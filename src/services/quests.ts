@@ -33,11 +33,11 @@ export const questsApi = {
 
             const data = await response.json()
             return { success: true, data }
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error fetching all quest leaderboards:', error)
             return {
                 success: false,
-                error: error?.message || 'Failed to fetch leaderboards',
+                error: error instanceof Error ? error.message : 'Failed to fetch leaderboards',
             }
         }
     },
@@ -71,11 +71,11 @@ export const questsApi = {
 
             const data = await response.json()
             return { success: true, data }
-        } catch (error: any) {
+        } catch (error) {
             console.error(`Error fetching ${questId} leaderboard:`, error)
             return {
                 success: false,
-                error: error?.message || 'Failed to fetch leaderboard',
+                error: error instanceof Error ? error.message : 'Failed to fetch leaderboard',
             }
         }
     },

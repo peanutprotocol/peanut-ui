@@ -7,7 +7,7 @@
  */
 // TokenSelector.consts imports the wagmi `networks` config, which cannot
 // construct under jest (appkit env) — only the id list matters here.
-jest.mock('@/config', () => ({ networks: [] }))
+jest.mock('@/config/wagmi.config', () => ({ networks: [] }))
 
 import {
     CHAIN_LOGOS,

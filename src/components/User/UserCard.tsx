@@ -1,6 +1,7 @@
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
 import { useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import AddressLink from '../Global/AddressLink'
 import Attachment from '../Global/Attachment'
 import Card from '../Global/Card'
@@ -43,6 +44,7 @@ const UserCard = ({
     isRequestPot,
     contributors,
 }: UserCardProps) => {
+    const t = useTranslations('global')
     const getIcon = (): IconName | undefined => {
         if (type === 'send') return 'arrow-up-right'
         if (type === 'request') return 'arrow-down-left'
@@ -54,21 +56,21 @@ const UserCard = ({
     const getTitle = useCallback(() => {
         const icon = getIcon()
         let title = ''
-        if (type === 'send') title = `You're sending money to`
-        if (type === 'request') title = `Requesting money from`
-        if (type === 'received_link') title = `You received`
-        if (type === 'request_pay') title = `${fullName ?? username} is requesting`
-        if (type === 'request_fulfilment') title = `Sending ${fullName ?? username}`
+        if (type === 'send') title = t('userCard.sendingMoneyTo')
+        if (type === 'request') title = t('userCard.requestingMoneyFrom')
+        if (type === 'received_link') title = t('userCard.youReceived')
+        if (type === 'request_pay') title = t('userCard.isRequesting', { name: fullName ?? username })
+        if (type === 'request_fulfilment') title = t('userCard.sendingTo', { name: fullName ?? username })
         return (
             <div className="flex items-center gap-2 text-xs font-normal text-grey-1">
                 {icon && <Icon name={icon} size={8} />} {title}
             </div>
         )
-    }, [type])
+    }, [type, fullName, username, t])
 
     const getAddressLinkTitle = () => {
         if (isRequestPot && amount && amount > 0) return `$${amount}` // If goal is set.
-        if (!amount && isRequestPot) return `Pay what you want` // If no goal is set.
+        if (!amount && isRequestPot) return t('userCard.payWhatYouWant') // If no goal is set.
 
         return username
     }
@@ -100,7 +102,7 @@ const UserCard = ({
                                     <p className="text-2xl font-extrabold">${amount}</p>
                                     <div className="flex items-center gap-2">
                                         <Icon name="alert-filled" size={16} className="text-yellow-11" />
-                                        <p className="text-sm text-yellow-11">Send the exact amount!</p>
+                                        <p className="text-sm text-yellow-11">{t('userCard.sendExactAmount')}</p>
                                     </div>
                                 </div>
                             )}

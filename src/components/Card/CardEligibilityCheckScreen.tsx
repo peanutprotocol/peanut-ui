@@ -16,6 +16,7 @@
  */
 
 import { type FC, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
 import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
@@ -33,6 +34,7 @@ interface Props {
 }
 
 const CardEligibilityCheckScreen: FC<Props> = ({ onComplete, onPrev, username }) => {
+    const t = useTranslations('card')
     const { triggerHaptic } = useHaptic()
     const [shake, setShake] = useState<{ on: boolean; intensity: ShakeIntensity }>({
         on: false,
@@ -51,13 +53,13 @@ const CardEligibilityCheckScreen: FC<Props> = ({ onComplete, onPrev, username })
 
     return (
         <div className={`flex min-h-[inherit] flex-col gap-6 ${getShakeClass(shake.on, shake.intensity)}`}>
-            <NavHeader title="The door" onPrev={onPrev} />
+            <NavHeader title={t('eligibility.navTitle')} onPrev={onPrev} />
 
             <div className="flex flex-col gap-2 text-center">
                 <h1 className="text-2xl font-extrabold text-n-1">
-                    {username ? `Let's see, @${username}…` : "Let's see if you qualify"}
+                    {username ? t('eligibility.titleWithUsername', { username }) : t('eligibility.title')}
                 </h1>
-                <p className="text-grey-1">Press and hold the button. We&apos;re looking you up.</p>
+                <p className="text-grey-1">{t('eligibility.description')}</p>
             </div>
 
             <div className="mx-auto w-full max-w-sm">
@@ -68,9 +70,9 @@ const CardEligibilityCheckScreen: FC<Props> = ({ onComplete, onPrev, username })
                 <HoldToClaimButton
                     onComplete={handleComplete}
                     onShakeChange={(on, intensity) => setShake({ on, intensity })}
-                    ariaLabel="Press and hold to check eligibility"
+                    ariaLabel={t('eligibility.holdAriaLabel')}
                 >
-                    See if you qualify
+                    {t('eligibility.cta')}
                 </HoldToClaimButton>
             </div>
         </div>

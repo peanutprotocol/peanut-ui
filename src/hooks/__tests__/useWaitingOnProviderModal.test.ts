@@ -1,4 +1,5 @@
-import { act, renderHook } from '@testing-library/react'
+import { act } from '@testing-library/react'
+import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import type { GateState } from '@/utils/capability-gate'
 

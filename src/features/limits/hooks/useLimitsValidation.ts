@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useLimits } from '@/hooks/useLimits'
-import type { MantecaLimit } from '@/interfaces'
+import type { MantecaLimit } from '@/interfaces/interfaces'
 import {
     MAX_QR_PAYMENT_AMOUNT_FOREIGN,
     MAX_MANTECA_DEPOSIT_AMOUNT,

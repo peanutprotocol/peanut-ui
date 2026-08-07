@@ -33,6 +33,7 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
+import { useTranslations } from 'next-intl'
 
 interface RequestPotActionListProps {
     isAmountEntered: boolean
@@ -56,6 +57,8 @@ export function RequestPotActionList({
     onPayWithExternalWallet,
 }: RequestPotActionListProps) {
     const router = useRouter()
+    const t = useTranslations('payment')
+    const tCommon = useTranslations('common')
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
@@ -167,7 +170,7 @@ export function RequestPotActionList({
                 inviterUsername={recipientUsername}
             />
 
-            <Divider text="or" />
+            <Divider text={tCommon('or')} />
 
             {/* payment methods */}
             <div className="space-y-2">
@@ -189,7 +192,7 @@ export function RequestPotActionList({
                                     {(method.soon || methodRequiresVerification) && (
                                         <StatusBadge
                                             status={methodRequiresVerification ? 'custom' : 'soon'}
-                                            customText={methodRequiresVerification ? 'REQUIRES VERIFICATION' : ''}
+                                            customText={methodRequiresVerification ? t('requiresVerification') : ''}
                                         />
                                     )}
                                 </div>
@@ -206,10 +209,10 @@ export function RequestPotActionList({
             <ActionModal
                 visible={showMinAmountError}
                 onClose={() => setShowMinAmountError(false)}
-                title="Minimum Amount"
-                description={`The minimum amount for this payment method is $${MIN_BANK_TRANSFER_AMOUNT}. Please enter a higher amount or try a different method.`}
+                title={t('minAmount.title')}
+                description={t('minAmount.description', { minAmount: MIN_BANK_TRANSFER_AMOUNT })}
                 icon="alert"
-                ctas={[{ text: 'Close', shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
+                ctas={[{ text: tCommon('close'), shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 iconContainerClassName="bg-yellow-400"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
@@ -223,12 +226,12 @@ export function RequestPotActionList({
                     setIsUsePeanutBalanceModalShown(true)
                     setSelectedPaymentMethod(null)
                 }}
-                title="Use your Peanut balance instead"
-                description="You already have enough funds in your Peanut account. Using this method is instant and avoids delays."
+                title={t('usePeanutBalance.title')}
+                description={t('usePeanutBalance.description')}
                 icon="user-plus"
                 ctas={[
                     {
-                        text: 'Pay with Peanut',
+                        text: t('usePeanutBalance.payWithPeanut'),
                         shadowSize: '4',
                         onClick: () => {
                             setShowUsePeanutBalanceModal(false)
@@ -238,7 +241,7 @@ export function RequestPotActionList({
                         },
                     },
                     {
-                        text: 'Continue',
+                        text: tCommon('continue'),
                         shadowSize: '4',
                         variant: 'stroke',
                         onClick: () => {

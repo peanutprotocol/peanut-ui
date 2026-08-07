@@ -14,10 +14,13 @@
  * Anonymous visitors (no userId, no token by design) proceed immediately.
  */
 import React from 'react'
-import { render, screen, act, waitFor, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, act, waitFor, fireEvent } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import SupportDrawer from '../index'
 import { isCapacitor } from '@/utils/capacitor'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
+
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockUseCrispUserData = jest.fn()
 const mockUseCrispTokenId = jest.fn()
@@ -115,13 +118,13 @@ describe('SupportDrawer — Crisp load-failure fallback', () => {
 
         // spinner up, no fallback yet
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
-        expect(screen.queryByText(/chat couldn’t load/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/chat couldn't load/i)).not.toBeInTheDocument()
 
         postCrispMessage('CRISP_FAILED')
 
         // spinner replaced by a fallback with a mailto link to the real support inbox
         expect(screen.queryByTestId('peanut-loading')).not.toBeInTheDocument()
-        expect(screen.getByText(/chat couldn’t load/i)).toBeInTheDocument()
+        expect(screen.getByText(/chat couldn't load/i)).toBeInTheDocument()
         const mailto = screen.getByRole('link', { name: SUPPORT_EMAIL })
         expect(mailto).toHaveAttribute('href', `mailto:${SUPPORT_EMAIL}`)
         expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
@@ -133,18 +136,18 @@ describe('SupportDrawer — Crisp load-failure fallback', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /try again/i }))
 
-        expect(screen.queryByText(/chat couldn’t load/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/chat couldn't load/i)).not.toBeInTheDocument()
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
     })
 
     it('a later CRISP_READY dismisses the fallback', () => {
         render(<SupportDrawer />)
         postCrispMessage('CRISP_FAILED')
-        expect(screen.getByText(/chat couldn’t load/i)).toBeInTheDocument()
+        expect(screen.getByText(/chat couldn't load/i)).toBeInTheDocument()
 
         postCrispMessage('CRISP_READY')
 
-        expect(screen.queryByText(/chat couldn’t load/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/chat couldn't load/i)).not.toBeInTheDocument()
         expect(screen.queryByTestId('peanut-loading')).not.toBeInTheDocument()
     })
 })
@@ -171,6 +174,63 @@ describe('SupportDrawer — pointer-events when opened inside a vaul drawer', ()
         expect(panel.className).toContain('pointer-events-auto')
         expect(backdrop?.className).not.toContain('pointer-events-none')
         expect(panel.className).not.toContain('pointer-events-none')
+    })
+})
+
+describe('SupportDrawer — iOS keyboard', () => {
+    // iOS leaves the layout viewport at full height when the keyboard opens, so a
+    // `bottom: 0` panel keeps Crisp's composer underneath the keys. The drawer has to
+    // lift by, and shrink to, whatever the visual viewport says is still on screen.
+    const LAYOUT_HEIGHT = 800
+
+    class FakeVisualViewport extends EventTarget {
+        height = LAYOUT_HEIGHT
+        offsetTop = 0
+        scale = 1
+    }
+
+    let viewport: FakeVisualViewport
+    let realInnerHeight: PropertyDescriptor | undefined
+
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({ userId: undefined, email: undefined })
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+
+        realInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight')
+        viewport = new FakeVisualViewport()
+        Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true })
+        Object.defineProperty(window, 'innerHeight', { value: LAYOUT_HEIGHT, configurable: true })
+    })
+
+    // Hand the window back untouched — later describes in this file share it.
+    afterEach(() => {
+        delete (window as { visualViewport?: unknown }).visualViewport
+        if (realInnerHeight) Object.defineProperty(window, 'innerHeight', realInnerHeight)
+    })
+
+    const openKeyboard = (visibleHeight: number) => {
+        viewport.height = visibleHeight
+        act(() => {
+            viewport.dispatchEvent(new Event('resize'))
+        })
+    }
+
+    // Only `bottom` is assertable here: jsdom's CSS parser drops both `env()` and
+    // `min()`, so the safe-area padding and the height clamp read back as ''.
+    it('sits flush on the bottom edge while no keyboard is up', () => {
+        render(<SupportDrawer />)
+
+        expect(screen.getByRole('dialog', { name: 'Support' }).style.bottom).toBe('0px')
+    })
+
+    it('lifts by exactly the height the keyboard covers', () => {
+        render(<SupportDrawer />)
+        const panel = screen.getByRole('dialog', { name: 'Support' })
+
+        openKeyboard(460)
+
+        expect(panel.style.bottom).toBe('340px')
     })
 })
 

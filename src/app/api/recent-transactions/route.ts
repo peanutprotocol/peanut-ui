@@ -1,19 +1,6 @@
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { NextRequest } from 'next/server'
 
-interface TransferDetails {
-    id: string
-    timestamp: string
-    chain: string
-    details: any
-}
-
-interface Portfolio {
-    id: string
-    ownerAddress: string
-    assetActivities: TransferDetails[]
-}
-
 const query = `
     query RecentTokenTransfers($address: String!) {
       portfolios(
@@ -79,7 +66,7 @@ const query = `
     }
   `
 
-export async function POST(request: NextRequest, context: { params: Promise<Record<string, string>> }) {
+export async function POST(request: NextRequest, _context: { params: Promise<Record<string, string>> }) {
     const body = await request.json()
 
     try {
@@ -106,7 +93,7 @@ export async function POST(request: NextRequest, context: { params: Promise<Reco
         return Response.json(JSON.parse(responseJson), {
             status: 200,
         })
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error occured while fetching recent transactions:', error)
 
         return Response.json(

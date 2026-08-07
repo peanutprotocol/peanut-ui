@@ -10,6 +10,7 @@ const cardInfo = (
         waitlistPosition?: number | null
         waitlistReleasedAt?: string | null
         skipBadges?: string[]
+        geoProhibited?: boolean
     } = {}
 ): CardInfoResponse => ({
     hasCardAccess: opts.hasCardAccess ?? false,
@@ -20,6 +21,7 @@ const cardInfo = (
     waitlistPosition: opts.waitlistPosition ?? null,
     waitlistReleasedAt: opts.waitlistReleasedAt ?? null,
     skipBadges: opts.skipBadges ?? [],
+    geoProhibited: opts.geoProhibited,
 })
 
 const emptyOverview: RainCardOverview = {
@@ -272,6 +274,71 @@ describe('computeCardState', () => {
                     skipCelebrationSeen: true,
                 })
             ).toBe('requires-support')
+        })
+    })
+
+    describe('geo-blocked (country on Rain prohibited-issuance list)', () => {
+        it('blocks a fresh user (no application) before the press-and-hold gate', () => {
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: emptyOverview,
+                    cardInfo: cardInfo({ hasCardAccess: true, geoProhibited: true }),
+                    eligibilityCheckDone: false,
+                })
+            ).toBe('geo-blocked')
+        })
+
+        it('blocks a waitlist-bound user too (no card access, no application)', () => {
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: emptyOverview,
+                    cardInfo: cardInfo({ hasCardAccess: false, geoProhibited: true }),
+                })
+            ).toBe('geo-blocked')
+        })
+
+        it('does NOT block an existing card holder', () => {
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: withCard('ACTIVE'),
+                    cardInfo: cardInfo({ hasCardAccess: true, geoProhibited: true }),
+                })
+            ).toBe('active')
+        })
+
+        it('does NOT mask an in-flight application state', () => {
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: withApp('PENDING'),
+                    cardInfo: cardInfo({ hasCardAccess: true, geoProhibited: true }),
+                })
+            ).toBe('pending')
+        })
+
+        it('does NOT block the re-issue path (ENABLED rail, no card — already approved by Rain)', () => {
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: withApp('ENABLED'),
+                    cardInfo: cardInfo({ hasCardAccess: true, geoProhibited: true }),
+                    skipCelebrationSeen: true,
+                })
+            ).toBe('add-card')
+        })
+
+        it('treats a missing geoProhibited field (older BE) as not blocked', () => {
+            expect(
+                computeCardState({
+                    ...base,
+                    overview: emptyOverview,
+                    cardInfo: cardInfo({ hasCardAccess: true, skipBadges: [] }),
+                    skipCelebrationSeen: true,
+                })
+            ).toBe('add-card')
         })
     })
 

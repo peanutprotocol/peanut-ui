@@ -7,8 +7,10 @@ import type { RhinoChainType } from '@/services/services.types'
 import { useQuery } from '@tanstack/react-query'
 import { rhinoApi } from '@/services/rhino'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useTranslations } from 'next-intl'
 
 const ExternalWalletPaymentView = () => {
+    const t = useTranslations('payment')
     const { charge, setCurrentView, setIsExternalWalletPayment, amount, request } = useContributePotFlow()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
     const { address: peanutWalletAddress } = useWallet()
@@ -37,7 +39,7 @@ const ExternalWalletPaymentView = () => {
         <div className="flex flex-col gap-4">
             <RhinoDepositView
                 showUserCard
-                headerTitle="Pay"
+                headerTitle={t('headers.pay')}
                 chainType={chainType}
                 setChainType={setChainType}
                 depositAddressData={depositAddressData}

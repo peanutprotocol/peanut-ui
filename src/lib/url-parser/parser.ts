@@ -110,7 +110,7 @@ export async function parsePaymentURL(
             if (isPeanutRecipient && PEANUT_WALLET_CHAIN.id.toString() !== chainDetails.chainId) {
                 throw new Error('Invalid chain')
             }
-        } catch (error) {
+        } catch {
             return { parsedUrl: null, error: { message: EParseUrlError.INVALID_CHAIN, recipient } }
         }
     } else if (isPeanutRecipient) {
@@ -126,7 +126,7 @@ export async function parsePaymentURL(
         if (amount) {
             try {
                 parsedAmount = validateAmount(amount)
-            } catch (error) {
+            } catch {
                 return { parsedUrl: null, error: { message: EParseUrlError.INVALID_AMOUNT, recipient } }
             }
         }

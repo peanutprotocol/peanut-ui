@@ -29,22 +29,19 @@ export const printableUsdc = (balance: bigint): string => {
 }
 
 /**
- * Shared balance copy for the send-link, qr-pay and withdraw flows. (The
- * features/payments flows — direct-send/semantic-request/contribute-pot — keep
- * their own in-context wording.)
+ * Shared balance error copy lives in the `errors` next-intl namespace:
+ *  - `notEnoughBalanceAddFunds` — input-time gate, when the entered amount
+ *    exceeds the full displayed balance (a real shortfall). Gates run on the
+ *    DISPLAYED balance so we never block funds the live spend could route.
+ *  - `balanceSettling` — failure-time, when a spend that passed the gate can't
+ *    be routed yet (the smart→collateral rebalance hasn't landed). Deliberately
+ *    generic — it must NOT expose the card-collateral mechanic — and it nudges a
+ *    retry, since the FE balance is refetched on this failure.
  *
- * Two distinct moments:
- *  - INSUFFICIENT — input-time gate, when the entered amount exceeds the full
- *    displayed balance (a real shortfall). Gates run on the DISPLAYED balance so
- *    we never block funds the live spend could actually route — see `useWallet`.
- *  - SETTLING — failure-time, when a spend that passed the gate can't be routed
- *    yet (the smart→collateral rebalance hasn't landed, or the ~30s-polled FE
- *    balance was momentarily ahead of chain). Deliberately generic — it must NOT
- *    expose the card-collateral mechanic — and it nudges a retry, since the FE
- *    balance is refetched on this failure and the spend usually succeeds shortly.
+ * Components render these via `useTranslations('errors')`. When a rendered
+ * balance message is compared to drive logic (retryable vs blocking), compare a
+ * stable code, never the localized string.
  */
-export const INSUFFICIENT_BALANCE_MESSAGE = 'Not enough balance. Add funds to continue.'
-export const BALANCE_SETTLING_MESSAGE = "Your balance isn't fully available yet. Please try again in a few seconds."
 
 /**
  * Pure affordability check: does `balanceUnits` cover `amountUsd`? Parses the

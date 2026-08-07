@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import PeanutLoading from '../Global/PeanutLoading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
@@ -17,30 +17,42 @@ import { saveToCookie } from '@/utils/general.utils'
 import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
-import { OFFRAMP_BADGE_CODE, classifyBareCampaign, resolveCampaign } from './campaign-maps'
+import { OFFRAMP_BADGE_CODE, classifyBareCampaigns, resolveCampaigns } from './campaign-maps'
 
 function InvitePageContent() {
+    const t = useTranslations('invites')
+    const tSetup = useTranslations('setup')
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
     const redirectUri = searchParams.get('redirect_uri')
-    // support 'campaign', 'campaignTag', and 'utm_campaign' query parameters
-    const campaignParam = searchParams.get('campaign') || searchParams.get('campaignTag')
-    const utmCampaignParam = searchParams.get('utm_campaign')?.toLowerCase()
     const { user, isFetchingUser, fetchUser } = useAuth()
 
-    // precedence + lowercase-tag mapping live in campaign-maps.ts (unit-tested)
-    const campaign = resolveCampaign(campaignParam, inviteCode, utmCampaignParam)
+    // support 'campaign', 'campaignTag', and 'utm_campaign' query parameters —
+    // repeated params and comma-separated values stack (all get awarded).
+    // union + lowercase-tag mapping live in campaign-maps.ts (unit-tested).
+    // memoized: the array is an effect dependency below, and a fresh identity
+    // every render would refire the effect.
+    const campaigns = useMemo(
+        () =>
+            resolveCampaigns(
+                [...searchParams.getAll('campaign'), ...searchParams.getAll('campaignTag')],
+                inviteCode,
+                searchParams.get('utm_campaign')?.toLowerCase()
+            ),
+        [searchParams, inviteCode]
+    )
 
     // Bare campaign link (no invite code) that's claimable without an invite. The
     // effects below treat these specially so a returning logged-in user still gets
     // the badge (useZeroDev's award only fires on new-account registration). The
     // copy distinguishes the two flavours: `isWaitlistSkip` (skip + event_alumni)
     // promises a card-waitlist skip; vanity badges (touched_grass) are claimable
-    // but show generic copy. See classifyBareCampaign in campaign-maps.ts.
-    const { isBareClaimCampaign, isWaitlistSkip } = classifyBareCampaign(campaign, inviteCode)
+    // but show generic copy. See classifyBareCampaigns in campaign-maps.ts.
+    const { isBareClaimCampaign, isWaitlistSkip } = classifyBareCampaigns(campaigns, inviteCode)
 
     const dispatch = useAppDispatch()
     const router = useRouter()
@@ -111,20 +123,27 @@ function InvitePageContent() {
 
         hasStartedAwardingRef.current = true
 
-        if (campaign) {
+        if (campaigns.length > 0) {
             setIsAwardingBadge(true)
-            invitesApi
-                .awardBadge(campaign)
-                .catch((e) => console.error('Error awarding campaign badge', e))
-                .finally(async () => {
-                    await fetchUser()
-                    setIsAwardingBadge(false)
-                    // offramp migrants came here to move their balance — land them
-                    // directly on the migration deposit screen, not /home.
-                    router.push(
-                        campaign === OFFRAMP_BADGE_CODE ? '/add-money/crypto?network=EVM&source=offramp' : '/home'
-                    )
-                })
+            // sequential on purpose: each award is an idempotent POST and the
+            // backend flips access flags as side effects — parallel fire-and-forget
+            // would race fetchUser below. awardBadge never throws (the service
+            // catches internally) — check the result instead.
+            ;(async () => {
+                for (const tag of campaigns) {
+                    const { success } = await invitesApi.awardBadge(tag)
+                    if (!success) console.error('Error awarding campaign badge', tag)
+                }
+            })().finally(async () => {
+                await fetchUser()
+                setIsAwardingBadge(false)
+                // offramp migrants came here to move their balance — land them
+                // directly on the migration deposit screen, not /home.
+                // case-insensitive: dedup keeps the first-seen casing, so the
+                // stack may carry 'offramp_user' rather than the canonical code.
+                const hasOfframp = campaigns.some((tag) => tag.toLowerCase() === OFFRAMP_BADGE_CODE.toLowerCase())
+                router.push(hasOfframp ? '/add-money/crypto?network=EVM&source=offramp' : '/home')
+            })
             return
         }
 
@@ -138,16 +157,31 @@ function InvitePageContent() {
         isLoading,
         isFetchingUser,
         router,
-        campaign,
+        campaigns,
         redirectUri,
         fetchUser,
         isBareClaimCampaign,
         inviteCode,
     ])
 
+    // A bare link that resolves to nothing claimable — unknown ?campaign= value,
+    // a stray tracking param swept up by the root-domain redirect, an empty
+    // ?code= — gets the landing page, not the invalid-invite error. That screen
+    // is reserved for links that actually carried an invite code. Safe from a
+    // redirect loop: the root redirect only fires when the params are present,
+    // and we replace with a bare '/'.
+    const isDeadBareLink = !inviteCode && !isBareClaimCampaign
+    useEffect(() => {
+        if (isDeadBareLink) router.replace('/')
+    }, [isDeadBareLink, router])
+
     const handleClaim = () => {
-        const eventTag = inviteCode || (isBareClaimCampaign ? campaign : undefined)
-        posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, { invite_code: eventTag })
+        // invite_code keeps its single-value shape for existing PostHog filters;
+        // stacked campaigns ride in their own property.
+        posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, {
+            invite_code: inviteCode || (isBareClaimCampaign ? campaigns[0] : undefined),
+            campaign_tags: campaigns.join(',') || undefined,
+        })
 
         if (inviteCode) {
             dispatch(setupActions.setInviteCode(inviteCode))
@@ -155,9 +189,10 @@ function InvitePageContent() {
             // Save to cookie so PWA-install + later signup still see the invite.
             saveToCookie('inviteCode', inviteCode)
         }
-        if (campaign) {
-            // useZeroDev reads `campaignTag` post-signup and calls /badge/award.
-            saveToCookie('campaignTag', campaign)
+        if (campaigns.length > 0) {
+            // useZeroDev reads `campaignTag` post-signup (comma-separated for
+            // stacked campaigns) and calls /badge/award for each.
+            saveToCookie('campaignTag', campaigns.join(','))
         }
 
         const signupUrl = redirectUri
@@ -166,20 +201,21 @@ function InvitePageContent() {
         router.push(signupUrl)
     }
 
-    if (isAwardingBadge || !shouldShowContent) {
+    if (isAwardingBadge || !shouldShowContent || isDeadBareLink) {
         return <PeanutLoading coverFullScreen />
     }
 
     // Invalid invite code (only reachable when an invite code was supplied).
     // Bare-claim campaigns (skip / event_alumni / touched_grass) carry no invite
-    // code, so they bypass this gate and never show the invalid-invite screen.
+    // code, so they bypass this gate and never show the invalid-invite screen;
+    // bare links with nothing claimable were bounced to '/' above.
     if (!isBareClaimCampaign && (isError || !inviteCodeData?.success)) {
         return (
             <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
                 <ValidationErrorView
-                    title="Invalid Invite Code"
-                    message="The invite code you are trying to use is invalid. Please check the URL and try again."
-                    buttonText="Join waitlist"
+                    title={t('invalidCodeTitle')}
+                    message={t('invalidCodeMessage')}
+                    buttonText={tSetup('waitlist.joinWaitlist')}
                     redirectTo="/setup"
                 />
             </div>
@@ -190,17 +226,17 @@ function InvitePageContent() {
     // (touched_grass — claimable but no skip), and the default inviter-code screen.
     const isVanityClaim = isBareClaimCampaign && !isWaitlistSkip
     const title = isWaitlistSkip
-        ? "You're skipping the waitlist"
+        ? t('skipTitle')
         : isVanityClaim
-          ? 'Claim your badge'
-          : `${inviteCodeData?.username} invited you to Peanut`
+          ? t('vanityTitle')
+          : t('inviterTitle', { username: inviteCodeData?.username ?? '' })
     const description = isWaitlistSkip
-        ? 'Someone at Peanut wants you in. Create your wallet and walk straight past the line — no invite code, no queue.'
+        ? t('skipDescription')
         : isVanityClaim
-          ? 'You earned a Peanut badge. To claim it, sign up or log in.'
-          : 'Members-only access. Use this invite to open your wallet and start sending and receiving money globally.'
-    const ctaLabel = isWaitlistSkip ? 'Claim your Skip Pass' : isVanityClaim ? 'Sign up' : 'Claim your spot'
-    const loginLabel = isVanityClaim ? 'Log in' : 'Already have an account? Log in!'
+          ? t('vanityDescription')
+          : t('inviterDescription')
+    const ctaLabel = isWaitlistSkip ? t('skipCta') : isVanityClaim ? t('vanityCta') : t('inviterCta')
+    const loginLabel = isVanityClaim ? t('logIn') : t('alreadyHaveAccount')
 
     return (
         <InvitesPageLayout image={PeanutWavingHello.src}>

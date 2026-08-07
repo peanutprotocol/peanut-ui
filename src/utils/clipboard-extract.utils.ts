@@ -1,3 +1,4 @@
+import { Clipboard } from '@capacitor/clipboard'
 import { isAddress } from 'viem'
 import { isIBAN } from 'validator'
 import { isValidRoutingNumber, isValidSortCode, isValidUKAccountNumber } from '@/utils/bridge-accounts.utils'
@@ -145,5 +146,42 @@ export function createSmartPasteHandler(
             e.preventDefault()
             applyValue(extracted)
         }
+    }
+}
+
+/**
+ * Result of a native clipboard read. `empty` and `unavailable` are separated so
+ * callers can say "nothing to paste" rather than "something broke".
+ */
+export type ClipboardReadResult =
+    | { ok: true; text: string }
+    | { ok: false; reason: 'empty' | 'unavailable'; cause?: unknown }
+
+/**
+ * Reads the clipboard, classifying a rejection instead of matching its message.
+ *
+ * Capacitor's Android plugin REJECTS on an empty clipboard rather than
+ * resolving with an empty value, and the message it rejects with ("There is no
+ * data on the clipboard") is a hardcoded English literal inside the plugin's
+ * Java — not an OS string. Matching on it therefore isn't a locale bug, but it
+ * does couple us to a dependency's copy: a plugin patch bump silently flips the
+ * branch and an empty clipboard starts reporting as a failure.
+ *
+ * Default an unrecognised rejection to `empty`: Android has no runtime
+ * clipboard-read permission (the focused app can always read), so `unavailable`
+ * is effectively unreachable there and `empty` is the better guess. The web path
+ * can genuinely be blocked, so a NotAllowedError there stays `unavailable`.
+ */
+export async function readClipboard(): Promise<ClipboardReadResult> {
+    try {
+        const { value } = await Clipboard.read()
+        const text = (value ?? '').trim()
+        return text ? { ok: true, text } : { ok: false, reason: 'empty' }
+    } catch (cause) {
+        const name = cause instanceof Error ? cause.name : ''
+        if (name === 'NotAllowedError' || name === 'SecurityError') {
+            return { ok: false, reason: 'unavailable', cause }
+        }
+        return { ok: false, reason: 'empty', cause }
     }
 }

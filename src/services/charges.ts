@@ -7,7 +7,7 @@ import {
     type CreateChargeRequest,
 } from './services.types'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthToken } from '@/utils/auth-token'
+import { getAuthToken, authReady } from '@/utils/auth-token'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
 import { isDemoMode } from '@/utils/demo'
 
@@ -35,6 +35,7 @@ export const chargesApi = {
             }
         })
 
+        await authReady()
         const headers: Record<string, string> = {}
         const token = getAuthToken()
         if (token) headers['Authorization'] = `Bearer ${token}`
@@ -94,6 +95,12 @@ export const chargesApi = {
     }): Promise<PaymentCreationResponse> => {
         const response = await apiFetch(`/charges/${chargeId}/payments`, {
             method: 'POST',
+            // The write the whole flow hinges on: funds have already moved
+            // on-chain when this fires. The 20s default abort has fired while
+            // the API had long since committed (Vercel proxy cold-start ate
+            // the budget — TASK-19581), which reads as a failed withdrawal.
+            // Give bookkeeping room to succeed instead of surfacing Retry.
+            timeoutMs: 30_000,
             body: JSON.stringify({
                 chainId,
                 hash,

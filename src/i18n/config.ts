@@ -1,3 +1,4 @@
+import { BASE_URL } from '@/constants/general.consts'
 import { type Locale, SUPPORTED_LOCALES, DEFAULT_LOCALE } from './types'
 
 /** All marketing route slugs — same across all locales (Wise pattern) */
@@ -30,12 +31,22 @@ export const ROUTE_SLUGS = [
 export type RouteSlug = (typeof ROUTE_SLUGS)[number]
 
 /** Map locale codes to hreflang values */
-const HREFLANG_MAP: Record<Locale, string> = {
+export const HREFLANG_MAP: Record<Locale, string> = {
     en: 'en',
     'es-419': 'es-419',
     'es-ar': 'es-AR',
-    'es-es': 'es-ES',
     'pt-br': 'pt-BR',
+}
+
+/**
+ * Open Graph locale values (Facebook's territory format). es-419 has no OG
+ * twin — es_LA is Facebook's "Spanish (Latin America)".
+ */
+export const OG_LOCALE_MAP: Record<Locale, string> = {
+    en: 'en_US',
+    'es-419': 'es_LA',
+    'es-ar': 'es_AR',
+    'pt-br': 'pt_BR',
 }
 
 /** Build a localized path: all locales get /{locale}/ prefix */
@@ -50,27 +61,73 @@ export function localizedBarePath(locale: Locale, ...segments: string[]): string
     return `/${locale}${suffix}`
 }
 
+/**
+ * hreflang set restricted to `locales` (from a content-availability check) so a
+ * URL whose file would only fall back is never advertised. English is always
+ * included — a page with no en file doesn't render at all.
+ */
+export function getAlternatesFor(
+    locales: readonly Locale[],
+    route: RouteSlug,
+    ...segments: string[]
+): Record<string, string> {
+    const alternates: Record<string, string> = {
+        'x-default': `${BASE_URL}${localizedPath(route, 'en', ...segments)}`,
+        en: `${BASE_URL}${localizedPath(route, 'en', ...segments)}`,
+    }
+    for (const locale of locales) {
+        if (locale === DEFAULT_LOCALE) continue
+        alternates[HREFLANG_MAP[locale]] = `${BASE_URL}${localizedPath(route, locale, ...segments)}`
+    }
+    return alternates
+}
+
 /** Get all alternate URLs for hreflang tags */
 export function getAlternates(route: RouteSlug, ...segments: string[]): Record<string, string> {
-    const alternates: Record<string, string> = {}
-    for (const locale of SUPPORTED_LOCALES) {
-        const langCode = locale === 'en' ? 'x-default' : HREFLANG_MAP[locale]
-        alternates[langCode] = `https://peanut.me${localizedPath(route, locale, ...segments)}`
+    return getAlternatesFor(SUPPORTED_LOCALES, route, ...segments)
+}
+
+/** getAlternatesFor for bare paths (hub pages at /{locale}/{country}) */
+export function getBareAlternatesFor(locales: readonly Locale[], ...segments: string[]): Record<string, string> {
+    const alternates: Record<string, string> = {
+        'x-default': `${BASE_URL}${localizedBarePath('en', ...segments)}`,
+        en: `${BASE_URL}${localizedBarePath('en', ...segments)}`,
     }
-    // Also add 'en' explicitly alongside x-default
-    alternates['en'] = `https://peanut.me${localizedPath(route, 'en', ...segments)}`
+    for (const locale of locales) {
+        if (locale === DEFAULT_LOCALE) continue
+        alternates[HREFLANG_MAP[locale]] = `${BASE_URL}${localizedBarePath(locale, ...segments)}`
+    }
     return alternates
 }
 
 /** Get alternate URLs for bare paths (hub pages at /{locale}/{country}) */
 export function getBareAlternates(...segments: string[]): Record<string, string> {
-    const alternates: Record<string, string> = {}
+    return getBareAlternatesFor(SUPPORTED_LOCALES, ...segments)
+}
+
+/**
+ * hreflang for the landing page. English lives at `/`, not `/en` (which
+ * redirects), so it can't go through getBareAlternates.
+ */
+export function getLandingAlternates(): Record<string, string> {
+    const alternates: Record<string, string> = { 'x-default': `${BASE_URL}/`, en: `${BASE_URL}/` }
     for (const locale of SUPPORTED_LOCALES) {
-        const langCode = locale === 'en' ? 'x-default' : HREFLANG_MAP[locale]
-        alternates[langCode] = `https://peanut.me${localizedBarePath(locale, ...segments)}`
+        if (locale === DEFAULT_LOCALE) continue
+        alternates[HREFLANG_MAP[locale]] = `${BASE_URL}/${locale}`
     }
-    alternates['en'] = `https://peanut.me${localizedBarePath('en', ...segments)}`
     return alternates
+}
+
+/**
+ * Re-point an internal content href at `locale`. Content authors write hrefs
+ * both with and without a locale prefix (`/en/help/x` and `/help/x`), so strip
+ * any leading locale before prefixing. External links and anchors pass through.
+ */
+export function localizeContentHref(href: string, locale: Locale): string {
+    if (!href.startsWith('/')) return href
+    const segments = href.split('/').filter(Boolean)
+    if (segments.length > 0 && isValidLocale(segments[0])) segments.shift()
+    return segments.length > 0 ? `/${locale}/${segments.join('/')}` : `/${locale}`
 }
 
 export function isValidLocale(locale: string): locale is Locale {

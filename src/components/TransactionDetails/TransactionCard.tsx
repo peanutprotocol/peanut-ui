@@ -5,12 +5,14 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
 import {
     hasUserProfile,
     isCardPaymentEntry,
     isPerkReward,
 } from '@/components/TransactionDetails/transaction-predicates'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
+import { useTranslations } from 'next-intl'
 import {
     formatNumberForDisplay,
     formatCurrency,
@@ -18,7 +20,7 @@ import {
     isStableCoin,
     shortenStringLong,
 } from '@/utils/general.utils'
-import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
+import { getAvatarUrl, getTransactionSign, isTestTransaction } from '@/utils/history.utils'
 import React, { lazy, Suspense } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
@@ -79,6 +81,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         useTransactionDetailsDrawer()
     const { triggerHaptic } = useHaptic()
     const router = useRouter()
+    const t = useTranslations('transaction')
 
     const handleClick = () => {
         triggerHaptic()
@@ -102,11 +105,17 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
-    const isTestTransaction = name === 'Enjoy Peanut!'
+    const isTest = isTestTransaction(name)
+
+    // FE-generated labels carry a catalog key — localize; real counterparty
+    // names (usernames, merchants, addresses) pass through as data.
+    const localizedName = transaction.nameKey
+        ? translateTransactionName(t, transaction.nameKey, transaction.nameParams)
+        : name
 
     // ENS reverse-lookup for raw addresses; hook is a no-op when name is a username.
     const { primaryName } = usePrimaryNameServer(isAddress(name) ? name : undefined)
-    let displayName = normalizeEnsName(primaryName) ?? name
+    let displayName = normalizeEnsName(primaryName) ?? localizedName
     // Shortens crypto addresses AND raw UUIDs (usernameless Peanut users whose
     // `identifier` arrives as a userId) so the feed row never renders a 36-char
     // string.
@@ -187,7 +196,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
-                        {isTestTransaction ? (
+                        {isTest ? (
                             <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
                                 <Image
                                     src={PEANUTMAN}
@@ -241,22 +250,22 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             </div>
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-xs font-medium text-gray-1">
-                                {!isTestTransaction && getActionIcon(type, transaction.direction, status)}
-                                <span className="capitalize">
-                                    {isTestTransaction
-                                        ? 'Setup'
+                                {!isTest && getActionIcon(type, transaction.direction, status)}
+                                <span>
+                                    {isTest
+                                        ? t('type.setup')
                                         : isPerkRewardEntry
-                                          ? 'Reward'
-                                          : getActionText(type, status)}
+                                          ? t('type.reward')
+                                          : t(getActionLabelKey(type, status))}
                                 </span>
                                 {status && <StatusPill status={status} />}
-                                {isAdjustedCardSpend && <span>· Adjusted</span>}
+                                {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
                             </div>
                         </div>
                     </div>
 
                     {/* amount and status on the right side */}
-                    {isTestTransaction ? (
+                    {isTest ? (
                         <InvitesIcon animate={false} className="size-4" />
                     ) : (
                         <div className="flex items-center gap-2">
@@ -312,31 +321,45 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     )
 }
 
-// Per-type presentation: the feed row's action icon + label. One table keyed
-// by TransactionType replaces the two parallel switches these used to be, so a
-// new type is a single row here instead of an edit in two places that can
-// drift out of sync. `icon: null` means "no icon" (e.g. `request`, which is
-// direction-dependent and handled in getActionIcon). `text` defaults to the
-// type literal when omitted (matches the old `let actionText = type` fallback).
-const TYPE_PRESENTATION: Record<TransactionType, { icon: IconName | null; iconSize?: number; text?: string }> = {
+// Per-type presentation: the feed row's action icon. One table keyed by
+// TransactionType replaces the switch this used to be, so a new type is a
+// single row here. `icon: null` means "no icon" (e.g. `request`, which is
+// direction-dependent and handled in getActionIcon). The row's label lives
+// in the `transaction.type.*` catalog, keyed by the same literal.
+const TYPE_PRESENTATION: Record<TransactionType, { icon: IconName | null; iconSize?: number }> = {
     send: { icon: 'arrow-up-right' },
     receive: { icon: 'arrow-down-left' },
     request: { icon: null }, // direction-dependent — see getActionIcon
     withdraw: { icon: 'arrow-up', iconSize: 8 },
     cashout: { icon: 'arrow-up', iconSize: 8 },
-    claim_external: { icon: 'arrow-up', iconSize: 8, text: 'Claim' },
-    bank_claim: { icon: 'arrow-up', iconSize: 8, text: 'Claim' },
-    bank_withdraw: { icon: 'arrow-up', iconSize: 8, text: 'Withdraw' },
+    claim_external: { icon: 'arrow-up', iconSize: 8 },
+    bank_claim: { icon: 'arrow-up', iconSize: 8 },
+    bank_withdraw: { icon: 'arrow-up', iconSize: 8 },
     add: { icon: 'arrow-down', iconSize: 8 },
-    bank_deposit: { icon: 'arrow-down', iconSize: 8, text: 'Add' },
-    bank_request_fulfillment: { icon: 'arrow-up-right', text: 'Request paid via bank' },
+    bank_deposit: { icon: 'arrow-down', iconSize: 8 },
+    bank_request_fulfillment: { icon: 'arrow-up-right' },
     pay: { icon: 'arrow-up-right' },
-    // 'Pay' for card spends — the `card_pay` literal is an internal
-    // discriminator (see TransactionType comment) that renders as "Pay".
-    card_pay: { icon: 'arrow-up-right', text: 'Pay' },
+    card_pay: { icon: 'arrow-up-right' },
     // Refund credit row — same inbound arrow as 'receive', labelled "Refund".
-    refund: { icon: 'arrow-down-left', text: 'Refund' },
+    refund: { icon: 'arrow-down-left' },
 }
+
+const TYPE_LABEL_KEYS = {
+    send: 'type.send',
+    receive: 'type.receive',
+    request: 'type.request',
+    withdraw: 'type.withdraw',
+    cashout: 'type.cashout',
+    claim_external: 'type.claim_external',
+    bank_claim: 'type.bank_claim',
+    bank_withdraw: 'type.bank_withdraw',
+    add: 'type.add',
+    bank_deposit: 'type.bank_deposit',
+    bank_request_fulfillment: 'type.bank_request_fulfillment',
+    pay: 'type.pay',
+    card_pay: 'type.card_pay',
+    refund: 'type.refund',
+} as const satisfies Record<TransactionType, string>
 
 // helper functions
 function getActionIcon(
@@ -358,9 +381,10 @@ function getActionIcon(
     return <Icon name={icon} size={iconSize ?? 7} fill="currentColor" />
 }
 
-function getActionText(type: TransactionType, status?: StatusPillType): string {
-    if (status === 'refunded') return 'Refund'
-    return TYPE_PRESENTATION[type].text ?? type
+/** Catalog key for the row's action label — refunded rows read "Refund"
+ *  regardless of the underlying type. */
+function getActionLabelKey(type: TransactionType, status?: StatusPillType) {
+    return TYPE_LABEL_KEYS[status === 'refunded' ? 'refund' : type]
 }
 
 export default TransactionCard

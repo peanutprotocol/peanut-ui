@@ -1,6 +1,7 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MERCADO_PAGO, PIX } from '@/assets'
+import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
+import PIX from '@/assets/payment-apps/pix.svg'
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
 import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
@@ -13,6 +14,7 @@ import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.const
 import Image from 'next/image'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
+import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useContacts } from '@/hooks/useContacts'
 import { getInitialsFromName } from '@/utils/general.utils'
 import posthog from 'posthog-js'
@@ -24,6 +26,7 @@ import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernam
 import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
 import { isAddress } from 'viem'
 import dynamic from 'next/dynamic'
+import { useTranslations } from 'next-intl'
 
 // Lazy — only needed for address/ENS recipients, and pulls the heavy
 // TokenSelector → wagmi config graph. Static-importing it bloats the common
@@ -37,6 +40,9 @@ const SemanticRequestPageWrapper = dynamic(
 )
 
 export const SendRouterView = () => {
+    const t = useTranslations('send')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
     const router = useRouter()
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
@@ -50,6 +56,7 @@ export const SendRouterView = () => {
             ? decodeURIComponent(window.location.pathname.replace('/send/', '').split('/')[0])
             : null
     const recipientUsername = recipientFromQuery || recipientFromPath || null
+    const { resetWithdrawFlow } = useWithdrawFlow()
     // only fetch 3 contacts for avatar display
     const { contacts, isLoading: isFetchingContacts } = useContacts({ limit: 3 })
 
@@ -127,19 +134,26 @@ export const SendRouterView = () => {
                 router.push('/send?view=contacts')
                 break
             case 'bank':
-                // navigate to send via bank flow
+                // navigate to send via bank flow.
+                // fresh click = fresh intent: browser back skips the in-app NavHeader
+                // reset, and a stale selectedMethod left in the app-wide context would
+                // hijack the routing (Bank landing on the crypto amount step)
+                resetWithdrawFlow()
                 router.push('/withdraw?method=bank')
                 break
             case 'exchange-or-wallet':
                 // navigate to external wallet send flow
+                resetWithdrawFlow()
                 router.push('/withdraw?method=crypto')
                 break
             case 'mercadopago':
                 // navigate to mercado pago send flow
+                resetWithdrawFlow()
                 router.push('/withdraw/manteca?method=mercado-pago&country=argentina')
                 break
             case 'pix':
                 // navigate to pix send flow
+                resetWithdrawFlow()
                 router.push('/withdraw/manteca?method=pix&country=brazil')
                 break
             default:
@@ -155,6 +169,8 @@ export const SendRouterView = () => {
                 case 'bank':
                     return {
                         ...method,
+                        title: t('methods.bankTitle'),
+                        description: t('methods.bankDescription'),
                         identifierIcon: (
                             <div className="flex size-8 min-w-8 items-center justify-center rounded-full bg-black">
                                 <Icon name="bank" size={14} fill="white" />
@@ -164,6 +180,8 @@ export const SendRouterView = () => {
                 case 'exchange-or-wallet':
                     return {
                         ...method,
+                        title: t('methods.exchangeOrWalletTitle'),
+                        description: t('methods.exchangeOrWalletDescription'),
                         identifierIcon: (
                             <div className="flex size-8 min-w-8 items-center justify-center rounded-full bg-yellow-1">
                                 <Icon name="wallet-outline" size={14} />
@@ -173,18 +191,20 @@ export const SendRouterView = () => {
                 case 'mercadopago':
                     return {
                         ...method,
+                        description: t('methods.instantTransfers'),
                         identifierIcon: <Image src={MERCADO_PAGO} alt="Mercado Pago" className="size-8 min-w-8" />,
                     }
                 case 'pix':
                     return {
                         ...method,
+                        description: t('methods.instantTransfers'),
                         identifierIcon: <Image src={PIX} alt="Pix" className="size-8 min-w-8" />,
                     }
                 default:
                     return method
             }
         })
-    }, [])
+    }, [t])
 
     // filter send options based on geolocation
     const { filteredMethods: geoFilteredMethods } = useGeoFilteredPaymentOptions({
@@ -200,14 +220,14 @@ export const SendRouterView = () => {
                     <Icon name="user" size={14} />
                 </div>
             ),
-            title: 'Peanut contacts',
-            description: "Peanuts you've interacted with",
+            title: t('methods.contactsTitle'),
+            description: t('methods.contactsDescription'),
             icons: [],
             soon: false,
         }
 
         return [peanutContactsOption, ...geoFilteredMethods]
-    }, [geoFilteredMethods])
+    }, [geoFilteredMethods, t])
 
     // direct send to a specific recipient (native app uses /send?recipient=...).
     // Mirrors the web [...recipient] dispatch: an EVM address / ENS / a recipient
@@ -242,7 +262,7 @@ export const SendRouterView = () => {
 
     return (
         <div className="space-y-8">
-            <NavHeader title="Send" onPrev={handlePrev} />
+            <NavHeader title={tNav('send')} onPrev={handlePrev} />
             <div className="w-full space-y-4">
                 <Card position="single" className="p-4 pb-5">
                     <div className="flex flex-col items-center justify-center gap-4">
@@ -251,17 +271,17 @@ export const SendRouterView = () => {
                                 <Icon name="link" size={16} />
                             </div>
                             <div className="space-y-1 text-center">
-                                <div className="font-bold">Send money with a link</div>
-                                <div className="text-sm font-medium">No account needed to receive.</div>
+                                <div className="font-bold">{t('linkCard.title')}</div>
+                                <div className="text-sm font-medium">{t('linkCard.description')}</div>
                             </div>
                         </div>
                         <Button shadowSize="4" icon="link" iconSize={12} onClick={handleLinkCtaClick}>
-                            Send via link
+                            {t('linkCard.cta')}
                         </Button>
                     </div>
                 </Card>
 
-                <Divider text="or" textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" />
+                <Divider text={tCommon('or')} textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" />
 
                 <div className="space-y-2">
                     {sendOptions.map((option) => {
@@ -272,7 +292,9 @@ export const SendRouterView = () => {
                                 rightContent = contactsAvatars
                                 break
                             case 'mercadopago':
-                                rightContent = <StatusBadge status="custom" customText="YOUR ACCOUNTS ONLY" />
+                                rightContent = (
+                                    <StatusBadge status="custom" customText={t('methods.yourAccountsOnly')} />
+                                )
                                 break
                             default:
                                 rightContent = (

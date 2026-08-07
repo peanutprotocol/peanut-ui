@@ -1,5 +1,5 @@
 import { type AddBankAccountPayload } from './types/users.types'
-import { type IBridgeAccount } from '@/interfaces'
+import { type IBridgeAccount } from '@/interfaces/interfaces'
 import { serverFetch } from '@/utils/api-fetch'
 
 export async function createBridgeExternalAccountForGuest(

@@ -54,9 +54,12 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
     terere: 'TERERE',
 }
 
-// Resolve the effective campaign (a badge code, or a raw passthrough tag) from
-// the three places it can arrive on /invite. Precedence:
-//   1. explicit ?campaign= / ?campaignTag= — mapped through the UTM map first so
+// Resolve the effective campaigns (badge codes, or raw passthrough tags) from
+// the three places they can arrive on /invite. Campaigns STACK — a link carrying
+// several (repeated ?campaign= params, comma-separated values, an invite code
+// that maps to a badge, plus a mapped utm_campaign) resolves to the union, and
+// the claim flow awards every one. Sources, in output order:
+//   1. explicit ?campaign= / ?campaignTag= — each mapped through the UTM map so
 //      a human-facing lowercase token (?campaign=offramp) resolves to its badge
 //      code instead of reaching /badge/award raw and 400ing; unmapped values
 //      pass through unchanged (?campaign=OFFRAMP_USER still works).
@@ -64,19 +67,33 @@ export const UTM_CAMPAIGN_TO_BADGE_MAP: Record<string, string> = {
 //      ?utm_campaign=<tag> — users and partners can't be expected to know the
 //      difference between the two param spellings.
 //   2. a mapped special invite code (?code=offramp).
-//   3. ?utm_campaign= — last so an explicit ?campaign= wins on links carrying both.
-export function resolveCampaign(
-    campaignParam: string | null | undefined,
+//   3. ?utm_campaign= — only badge-mapped values contribute; ordinary marketing
+//      UTMs resolve to nothing.
+// Deduped case-insensitively on the resolved value, first occurrence wins.
+export function resolveCampaigns(
+    campaignParams: readonly string[],
     inviteCode: string | null | undefined,
     utmCampaignParam: string | null | undefined
-): string | undefined {
-    return (
-        (campaignParam && UTM_CAMPAIGN_TO_BADGE_MAP[campaignParam.toLowerCase()]) ||
-        campaignParam ||
-        (inviteCode ? INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode] : undefined) ||
-        (utmCampaignParam ? UTM_CAMPAIGN_TO_BADGE_MAP[utmCampaignParam] : undefined) ||
-        undefined
-    )
+): string[] {
+    const resolved: string[] = []
+    const seen = new Set<string>()
+    const add = (tag: string | undefined) => {
+        if (!tag) return
+        const key = tag.toLowerCase()
+        if (seen.has(key)) return
+        seen.add(key)
+        resolved.push(tag)
+    }
+    for (const param of campaignParams) {
+        for (const raw of param.split(',')) {
+            const tag = raw.trim()
+            if (!tag) continue
+            add(UTM_CAMPAIGN_TO_BADGE_MAP[tag.toLowerCase()] ?? tag)
+        }
+    }
+    if (inviteCode) add(INVITE_CODE_TO_CAMPAIGN_MAP[inviteCode])
+    if (utmCampaignParam) add(UTM_CAMPAIGN_TO_BADGE_MAP[utmCampaignParam])
+    return resolved
 }
 
 // Bare ?campaign= links (no invite code) that are claimable without an invite —
@@ -112,17 +129,19 @@ export type CampaignClassification = {
     isWaitlistSkip: boolean
 }
 
-// Classify a resolved campaign for a visitor carrying the given invite code (if
-// any). A campaign is only "bare-claimable" when there is no invite code — with
-// an invite code the normal invite-validation path owns the flow. Matching is
-// case-insensitive (campaign codes arrive in any case from ?campaign= URLs).
-export function classifyBareCampaign(
-    campaign: string | undefined,
+// Classify resolved campaigns for a visitor carrying the given invite code (if
+// any). Campaigns are only "bare-claimable" when there is no invite code — with
+// an invite code the normal invite-validation path owns the flow. With stacked
+// campaigns, ANY claimable one makes the link claimable (the claim flow awards
+// all of them; unknown tags 400 harmlessly on the backend whitelist), and ANY
+// skip campaign in the stack earns the skip copy. Matching is case-insensitive
+// (campaign codes arrive in any case from ?campaign= URLs).
+export function classifyBareCampaigns(
+    campaigns: readonly string[],
     inviteCode: string | undefined
 ): CampaignClassification {
-    const key = campaign?.toLowerCase()
-    const isBare = !inviteCode && !!key
-    const isWaitlistSkip = isBare && WAITLIST_SKIP_CAMPAIGNS.has(key!)
-    const isVanity = isBare && BARE_VANITY_CAMPAIGNS.has(key!)
+    const keys = inviteCode ? [] : campaigns.map((c) => c.toLowerCase())
+    const isWaitlistSkip = keys.some((key) => WAITLIST_SKIP_CAMPAIGNS.has(key))
+    const isVanity = keys.some((key) => BARE_VANITY_CAMPAIGNS.has(key))
     return { isBareClaimCampaign: isWaitlistSkip || isVanity, isWaitlistSkip }
 }

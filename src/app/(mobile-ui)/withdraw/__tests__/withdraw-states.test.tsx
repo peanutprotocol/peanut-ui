@@ -9,6 +9,7 @@
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
 
@@ -112,15 +113,6 @@ jest.mock('@/hooks/useGetExchangeRate', () => ({
     default: () => mockUseGetExchangeRate(),
 }))
 
-jest.mock('@/interfaces', () => ({
-    AccountType: {
-        IBAN: 'iban',
-        US: 'us',
-        GB: 'gb',
-        CLABE: 'clabe',
-    },
-}))
-
 const mockUseLimitsValidation = jest.fn()
 jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: (...args: any[]) => mockUseLimitsValidation(...args),
@@ -128,7 +120,7 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="limits-warning-card" />,
+    default: (_props: any) => <div data-testid="limits-warning-card" />,
 }))
 
 jest.mock('@/features/limits/utils', () => ({
@@ -233,9 +225,11 @@ function renderWithdraw(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
     return render(
-        <QueryClientProvider client={queryClient}>
-            <WithdrawPage />
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <WithdrawPage />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 
@@ -411,6 +405,20 @@ describe('GROUP 3: Amount Validation', () => {
 
         fireEvent.click(continueBtn)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
+    })
+
+    test('Crypto send forwards the send marker to the next step', () => {
+        // `?method=` is the ONLY send-vs-withdraw signal. Drop it on this hop and
+        // every screen after the amount step reverts to withdraw copy — the user
+        // picks "Send -> Exchange or Wallet" and the next screen says
+        // "You're withdrawing". Losing it here is the original bug.
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.amountToWithdraw = '25'
+
+        renderWithdraw({ method: 'crypto' })
+
+        fireEvent.click(screen.getByText('Continue'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
     })
 
     test('Bank withdrawal keeps the $1 minimum for sub-$1 amounts', async () => {

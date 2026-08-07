@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
 import { useAuth } from '@/context/authContext'
@@ -15,8 +16,6 @@ import { cardApi } from '@/services/card'
 import { invitesApi } from '@/services/invites'
 import { saveToCookie } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-
-const marqueeMessages = ['IYKYK', 'WORD TRAVELS', 'CLOSED BETA', 'SHHHH', 'PEANUT CLUB']
 
 // /shhhhh?campaign=skip — the Skip Pass link. Awards the WAITLIST_SKIP badge
 // (same contract as /invite?campaign=skip) so friends-of-Peanut skip the line.
@@ -34,6 +33,7 @@ function WaitlistJoined({
     dark?: boolean
     onClick?: () => void
 }) {
+    const t = useTranslations('shhhhh.waitlist')
     return (
         <div className="flex flex-col items-center gap-3 md:items-start">
             <button
@@ -43,22 +43,20 @@ function WaitlistJoined({
                     dark ? 'bg-secondary-1 text-n-1' : 'bg-white text-n-1'
                 }`}
             >
-                ✓ You&apos;re on the waitlist
-                {typeof position === 'number' ? ` · #${inflateWaitlistPosition(position)}` : ''}
+                {typeof position === 'number'
+                    ? t('joinedWithPosition', { position: inflateWaitlistPosition(position) })
+                    : t('joined')}
             </button>
-            <p className={`font-roboto-flex text-sm font-bold ${dark ? 'text-white/90' : ''}`}>
-                We&apos;ll holler when your turn comes up.
-            </p>
+            <p className={`font-roboto-flex text-sm font-bold ${dark ? 'text-white/90' : ''}`}>{t('holler')}</p>
         </div>
     )
 }
 
-const stats: Array<{ value: string; label: string }> = [
-    { value: '150M+', label: 'Visa-accepting merchants' },
-    { value: '1', label: 'balance' },
-    { value: '1', label: 'card' },
-    { value: '0', label: 'middlemen' },
-]
+// Values are numerals (not translatable); labels come from the catalog.
+const statValues = ['150M+', '1', '1', '0'] as const
+const statLabelKeys = ['statMerchants', 'statBalance', 'statCard', 'statMiddlemen'] as const
+
+const faqKeys = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const
 
 const badges: Array<{ code: string; name: string; src: string }> = [
     { code: 'OG_2025_10_12', name: 'Peanut OG', src: '/badges/og_v1.svg' },
@@ -66,45 +64,11 @@ const badges: Array<{ code: string; name: string; src: string }> = [
     { code: 'ARBIVERSE_DEVCONNECT_BA_2025', name: 'Arbiverse', src: '/badges/arbiverse_devconnect.svg' },
 ]
 
-const faqQuestions = [
-    {
-        question: "WHAT'S THE PEANUT CARD?",
-        answer: 'A non-custodial card. Top up with stablecoins, then use the card for everyday spending wherever Visa is accepted.',
-    },
-    {
-        question: 'WHERE DOES IT WORK?',
-        answer: 'Accepted wherever Visa is accepted — about 150 million merchants. Online, in-store, ATMs.',
-    },
-    {
-        question: 'IS MY MONEY SAFE?',
-        answer: "It's yours. Non-custodial — your stablecoins stay in your wallet until the moment you use the card. We don't hold custody. We don't lend it out.",
-    },
-    {
-        question: "WHAT'S THE $10?",
-        answer: 'A welcome reward. Complete verification + first $100 in card spend → $10 unlocked to your balance. Same deal whether you signed up yourself or got referred. If you referred someone, you also are eligible for $10 when they activate. Subject to eligibility and program terms.',
-    },
-    {
-        question: 'HOW LONG IS THE WAITLIST?',
-        answer: "We're letting in about 20 people a week during closed beta. Order matters. Badges skip the line entirely.",
-    },
-    {
-        question: 'WHERE CAN I GET THE CARD?',
-        answer: "We're rolling out to select regions first and adding more as our partners' coverage expands. Eligibility is shown during signup.",
-    },
-    {
-        question: 'ANY FEES?',
-        answer: 'No monthly fees. No annual fees. Standard fees and limits apply per the cardholder terms.',
-    },
-    {
-        question: 'WHY "SHHHHH"?',
-        answer: "We'd rather under-promise and over-deliver to a small group than blast the whole internet on day one. Word travels.",
-    },
-]
-
 const ctaButtonClassName =
     '!w-auto bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl'
 
 function ScarcityCounter() {
+    const t = useTranslations('shhhhh.hero')
     const [count, setCount] = useState(21)
     useEffect(() => {
         const timer = setTimeout(() => setCount(20), 2500)
@@ -116,12 +80,13 @@ function ScarcityCounter() {
             animate={count === 20 ? { scale: [1, 1.18, 1] } : {}}
             transition={{ duration: 0.5, ease: 'easeOut' }}
         >
-            only {count}
+            {t('onlyCount', { count })}
         </motion.span>
     )
 }
 
 function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
+    const t = useTranslations('shhhhh.hero')
     const [visible, setVisible] = useState(false)
     const rafId = useRef(0)
     const lastVisible = useRef(false)
@@ -163,7 +128,7 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
                         onClick={onClick}
                         className="pointer-events-auto w-full py-3 text-base font-extrabold"
                     >
-                        TRY THE DOOR
+                        {t('tryTheDoor')}
                     </Button>
                 </motion.div>
             )}
@@ -172,6 +137,7 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
 }
 
 export default function ShhhhhLandingPage() {
+    const t = useTranslations('shhhhh')
     const { user, fetchUser } = useAuth()
     const router = useRouter()
 
@@ -275,7 +241,16 @@ export default function ShhhhhLandingPage() {
         await joinWaitlist()
     }
 
-    const marqueeProps = { visible: true, message: marqueeMessages }
+    const marqueeProps = {
+        visible: true,
+        message: [
+            t('marquee.iykyk'),
+            t('marquee.wordTravels'),
+            t('marquee.closedBeta'),
+            t('marquee.shhhh'),
+            t('marquee.peanutClub'),
+        ],
+    }
 
     return (
         <>
@@ -311,15 +286,13 @@ export default function ShhhhhLandingPage() {
                 <div className="relative z-20 mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 md:grid-cols-[1.1fr_0.9fr]">
                     <div className="min-w-0 text-center md:text-left">
                         <h1 className="font-roboto-flex-extrabold text-headingMedium font-extraBlack md:text-headingLarge lg:text-[12rem]">
-                            shhhhh.
+                            {t('hero.wordmark')}
                         </h1>
                         <p className="font-roboto-flex-extrabold mt-6 max-w-xl text-2xl font-extraBlack uppercase md:text-3xl">
-                            The peanut card is out. For you. Maybe.
+                            {t('hero.tagline')}
                         </p>
                         <p className="font-roboto-flex mt-6 max-w-xl text-xl leading-relaxed md:text-2xl">
-                            A card accepted at over 150 million Visa-accepting merchants. We&apos;re letting beta users
-                            in slowly — <ScarcityCounter /> a week. If you&apos;ve got the right badge, you skip the
-                            line entirely.
+                            {t.rich('hero.body', { counter: () => <ScarcityCounter /> })}
                         </p>
                         {isJoined ? (
                             <div className="mt-8 flex justify-center md:justify-start">
@@ -338,7 +311,7 @@ export default function ShhhhhLandingPage() {
                                         disabled={ctaBusy}
                                         className={ctaButtonClassName}
                                     >
-                                        TRY THE DOOR
+                                        {t('hero.tryTheDoor')}
                                     </Button>
                                     <motion.img
                                         src={Sparkle.src}
@@ -356,13 +329,13 @@ export default function ShhhhhLandingPage() {
                                     disabled={ctaBusy}
                                     className="font-roboto-flex text-base font-bold underline underline-offset-4 disabled:opacity-50"
                                 >
-                                    or join the waitlist →
+                                    {t('hero.orJoinWaitlist')}
                                 </button>
                             </div>
                         )}
                         {joinError && (
                             <p className="font-roboto-flex mt-3 text-center text-sm font-bold text-error md:text-left">
-                                Couldn&apos;t join the waitlist — try the door again.
+                                {t('hero.joinError')}
                             </p>
                         )}
                     </div>
@@ -396,25 +369,24 @@ export default function ShhhhhLandingPage() {
             <section className="relative overflow-hidden bg-secondary-1 px-4 py-24 text-center text-n-1 md:py-32">
                 <div className="mx-auto max-w-5xl">
                     <h2 className="font-roboto-flex-extrabold mx-auto max-w-3xl text-heading font-extraBlack uppercase md:text-headingMedium">
-                        It&apos;s a card.
+                        {t('whatItDoes.titleLine1')}
                         <br />
-                        That&apos;s the whole trick.
+                        {t('whatItDoes.titleLine2')}
                     </h2>
                     <p className="font-roboto-flex mx-auto mt-8 max-w-2xl text-xl leading-relaxed md:text-2xl">
-                        Fund the card however you already move money: bank transfer, exchange withdrawal, or stablecoins
-                        (USDC, USDT). Your balance is yours. Non-custodial. No monthly fees. No annual fees.
+                        {t('whatItDoes.body')}
                     </p>
                     <div className="mt-12 flex flex-wrap justify-center gap-3 md:flex-nowrap md:gap-4">
-                        {stats.map((stat) => (
+                        {statLabelKeys.map((labelKey, i) => (
                             <div
-                                key={stat.label}
+                                key={labelKey}
                                 className="flex basis-[calc(50%_-_0.375rem)] flex-col items-center justify-center rounded-sm border-2 border-n-1 bg-white px-4 py-8 text-center shadow-[4px_4px_0_#000] md:flex-1 md:basis-0 md:py-10"
                             >
                                 <div className="font-roboto-flex-extrabold text-5xl font-extraBlack md:text-6xl">
-                                    {stat.value}
+                                    {statValues[i]}
                                 </div>
                                 <div className="font-roboto-flex mt-3 text-xs font-bold uppercase tracking-wider md:text-sm">
-                                    {stat.label}
+                                    {t(`whatItDoes.${labelKey}`)}
                                 </div>
                             </div>
                         ))}
@@ -428,13 +400,9 @@ export default function ShhhhhLandingPage() {
             <section className="relative overflow-hidden bg-primary-1 px-4 py-24 text-n-1 md:py-32">
                 <div className="mx-auto max-w-3xl">
                     <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
-                        If you live in more than one country, this is for you.
+                        {t('whoItsFor.title')}
                     </h2>
-                    <p className="font-roboto-flex mt-10 text-xl leading-relaxed md:text-2xl">
-                        We built peanut for people who don&apos;t fit. Digital nomads who get bounced by every
-                        neobank&apos;s verification the moment they cross a border. Expats who pay 4% on every
-                        transaction home. Cross-border users who earn in one currency and spend in another.
-                    </p>
+                    <p className="font-roboto-flex mt-10 text-xl leading-relaxed md:text-2xl">{t('whoItsFor.body')}</p>
                 </div>
             </section>
 
@@ -447,10 +415,10 @@ export default function ShhhhhLandingPage() {
             >
                 <div className="mx-auto max-w-5xl">
                     <h2 className="font-roboto-flex-extrabold text-center text-heading font-extraBlack uppercase md:text-headingMedium">
-                        How to get in.
+                        {t('howToGetIn.title')}
                     </h2>
                     <p className="font-roboto-flex mt-3 text-center text-xl font-bold md:text-2xl">
-                        Cred check. Badge skips the queue.
+                        {t('howToGetIn.subtitle')}
                     </p>
                     <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
                         <div className="rounded-sm border-2 border-n-1 bg-white p-8 shadow-[10px_10px_0_#000] md:p-10">
@@ -461,10 +429,10 @@ export default function ShhhhhLandingPage() {
                                 01
                             </div>
                             <h3 className="font-roboto-flex-extrabold mt-5 text-3xl font-extraBlack uppercase md:text-4xl">
-                                Got a badge.
+                                {t('howToGetIn.badgeTitle')}
                             </h3>
                             <p className="font-roboto-flex mt-4 text-base leading-relaxed">
-                                You skip the line. We&apos;re whitelisting holders of:
+                                {t('howToGetIn.badgeBody')}
                             </p>
                             <div className="mt-6 grid grid-cols-3 gap-3">
                                 {badges.map((b) => (
@@ -488,8 +456,7 @@ export default function ShhhhhLandingPage() {
                                 ))}
                             </div>
                             <p className="font-roboto-flex mt-5 text-base leading-relaxed">
-                                Sign in, we check the badges on your account, you go straight to verification. No peanut
-                                account yet? Sign up first — takes a minute.
+                                {t('howToGetIn.badgeFooter')}
                             </p>
                         </div>
 
@@ -501,13 +468,13 @@ export default function ShhhhhLandingPage() {
                                 02
                             </div>
                             <h3 className="font-roboto-flex-extrabold mt-5 text-3xl font-extraBlack uppercase md:text-4xl">
-                                No badge.
+                                {t('howToGetIn.noBadgeTitle')}
                             </h3>
                             <p className="font-roboto-flex mt-4 text-base leading-relaxed">
-                                Join the waitlist. We let people in 20 a week.
+                                {t('howToGetIn.noBadgeBody')}
                             </p>
                             <p className="font-roboto-flex mt-3 text-base leading-relaxed">
-                                Put your name on the list and we&apos;ll holler when your turn comes up.
+                                {t('howToGetIn.noBadgeFooter')}
                             </p>
                         </div>
                     </div>
@@ -520,14 +487,13 @@ export default function ShhhhhLandingPage() {
             <section className="relative overflow-hidden bg-n-1 px-4 py-24 text-white md:py-32">
                 <div className="mx-auto max-w-3xl">
                     <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
-                        Probably not for you.
+                        {t('notForYou.title')}
                     </h2>
                     <p className="font-roboto-flex mt-8 text-xl leading-relaxed opacity-90 md:text-2xl">
-                        If your money lives in one country and one currency, your bank card already works. Keep it.
+                        {t('notForYou.body1')}
                     </p>
                     <p className="font-roboto-flex mt-4 text-xl leading-relaxed opacity-90 md:text-2xl">
-                        If your money lives elsewhere — across borders, in dollars, in self-custody — the peanut card
-                        was built for you.
+                        {t('notForYou.body2')}
                     </p>
                 </div>
             </section>
@@ -541,21 +507,20 @@ export default function ShhhhhLandingPage() {
             >
                 <div className="mx-auto max-w-3xl">
                     <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
-                        FAQ.
+                        {t('faq.title')}
                     </h2>
                     <div className="mt-10 border-y-2 border-n-1">
-                        {faqQuestions.map((q, idx) => (
-                            <details
-                                key={q.question}
-                                className={`group py-5 ${idx > 0 ? 'border-t-2 border-n-1' : ''}`}
-                            >
+                        {faqKeys.map((key, idx) => (
+                            <details key={key} className={`group py-5 ${idx > 0 ? 'border-t-2 border-n-1' : ''}`}>
                                 <summary className="font-roboto-flex-extrabold flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-extraBlack uppercase md:text-xl [&::-webkit-details-marker]:hidden">
-                                    <span>{q.question}</span>
+                                    <span>{t(`faq.${key}.question`)}</span>
                                     <span className="shrink-0 text-3xl leading-none transition-transform duration-200 group-open:rotate-45">
                                         +
                                     </span>
                                 </summary>
-                                <p className="mt-4 text-lg font-semibold leading-6 text-n-1 md:text-xl">{q.answer}</p>
+                                <p className="mt-4 text-lg font-semibold leading-6 text-n-1 md:text-xl">
+                                    {t(`faq.${key}.answer`)}
+                                </p>
                             </details>
                         ))}
                     </div>
@@ -586,10 +551,10 @@ export default function ShhhhhLandingPage() {
                 />
                 <div className="relative z-10 mx-auto max-w-3xl">
                     <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingMedium lg:text-headingLarge">
-                        ready?
+                        {t('ready.title')}
                     </h2>
                     <p className="font-roboto-flex-extrabold mt-6 text-2xl font-extraBlack uppercase md:text-3xl">
-                        Try the door.
+                        {t('ready.subtitle')}
                     </p>
                     <div className="mt-10 flex justify-center">
                         {isJoined ? (
@@ -606,14 +571,12 @@ export default function ShhhhhLandingPage() {
                                 disabled={ctaBusy}
                                 className={ctaButtonClassName}
                             >
-                                TRY THE DOOR
+                                {t('hero.tryTheDoor')}
                             </Button>
                         )}
                     </div>
                     {joinError && (
-                        <p className="font-roboto-flex mt-3 text-sm font-bold text-error">
-                            Couldn&apos;t join the waitlist — try the door again.
-                        </p>
+                        <p className="font-roboto-flex mt-3 text-sm font-bold text-error">{t('hero.joinError')}</p>
                     )}
                 </div>
             </section>

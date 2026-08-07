@@ -13,7 +13,7 @@
  */
 // TokenSelector.consts imports the wagmi `networks` config, which cannot
 // construct under jest — mock it to the real mainnet ids the gate filters on.
-jest.mock('@/config', () => ({
+jest.mock('@/config/wagmi.config', () => ({
     networks: [
         { id: 42161 },
         { id: 1 },

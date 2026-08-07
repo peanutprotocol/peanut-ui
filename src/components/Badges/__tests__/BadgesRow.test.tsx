@@ -1,6 +1,11 @@
-import { render } from '@testing-library/react'
+import { render as rtlRender } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
+import React from 'react'
 import type { ComponentProps } from 'react'
 import BadgesRow from '@/components/Badges/BadgesRow'
+
+const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
+    rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 jest.mock('next/image', () => ({
     __esModule: true,

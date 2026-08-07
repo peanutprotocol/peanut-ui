@@ -8,29 +8,31 @@ import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 type FaqModal = 'lose-phone' | 'change-phone' | 'export-keys' | null
 
 export default function BackupPage() {
+    const t = useTranslations('profile.backup')
     const onBack = useSafeBack('/profile', { replace: true })
     const { deviceType } = useDeviceType()
     const [activeModal, setActiveModal] = useState<FaqModal>(null)
 
     const isAndroid = deviceType === 'android'
-    const accountType = isAndroid ? 'Google account' : 'Apple ID'
+    const platform = isAndroid ? 'android' : 'ios'
 
     const backupSteps = isAndroid
         ? [
-              { title: 'Open Settings', description: 'Google → All services' },
-              { title: 'Find Password Manager', description: 'Autofill → Google Password Manager → Turn ON sync' },
-              { title: 'Verify in Chrome', description: 'Settings → Passwords → Search "Peanut"' },
+              { title: t('steps.android.step1.title'), description: t('steps.android.step1.description') },
+              { title: t('steps.android.step2.title'), description: t('steps.android.step2.description') },
+              { title: t('steps.android.step3.title'), description: t('steps.android.step3.description') },
           ]
         : [
-              { title: 'Go to Settings', description: '[Your Name] → iCloud' },
-              { title: 'Find Passwords & Keychain', description: 'Turn it on' },
-              { title: 'Verify it worked', description: 'Settings → Passwords → Search "Peanut"' },
+              { title: t('steps.ios.step1.title'), description: t('steps.ios.step1.description') },
+              { title: t('steps.ios.step2.title'), description: t('steps.ios.step2.description') },
+              { title: t('steps.ios.step3.title'), description: t('steps.ios.step3.description') },
           ]
 
     const closeModal = () => setActiveModal(null)
@@ -38,16 +40,16 @@ export default function BackupPage() {
     return (
         <PageContainer>
             <div className="mb-6 space-y-4">
-                <NavHeader title="Backup" onPrev={onBack} />
+                <NavHeader title={t('title')} onPrev={onBack} />
 
                 <EmptyState
-                    title="Non-custodial wallet"
-                    description="Only you control this wallet. We can't recover it if you lose access. Your backup is your responsibility."
+                    title={t('nonCustodial.title')}
+                    description={t('nonCustodial.description')}
                     icon="upload-cloud"
                 />
 
                 <div className="space-y-2">
-                    <h1 className="font-bold text-black">Enable backup now</h1>
+                    <h1 className="font-bold text-black">{t('enableNow')}</h1>
                     <Card>
                         <ol className="list-decimal space-y-4 py-2 pl-5">
                             {backupSteps.map((step, index) => (
@@ -60,29 +62,29 @@ export default function BackupPage() {
                     </Card>
                     <InfoCard
                         variant="warning"
-                        title="No backup = No recovery"
-                        description="If you lose your phone without backup enabled, your money is gone forever."
+                        title={t('noBackupWarning.title')}
+                        description={t('noBackupWarning.description')}
                         icon="alert"
                     />
                 </div>
 
                 <div>
-                    <h1 className="mb-2 font-bold text-black">Common questions</h1>
+                    <h1 className="mb-2 font-bold text-black">{t('faqHeading')}</h1>
                     <Card position="first" onClick={() => setActiveModal('lose-phone')}>
                         <div className="flex cursor-pointer justify-between py-1">
-                            <p className="text-sm font-medium text-black">What if I lose my phone?</p>
+                            <p className="text-sm font-medium text-black">{t('faq.losePhone')}</p>
                             <NavigationArrow size={24} className="fill-black" />
                         </div>
                     </Card>
                     <Card position="middle" onClick={() => setActiveModal('change-phone')}>
                         <div className="flex cursor-pointer justify-between py-1">
-                            <p className="text-sm font-medium text-black">What if I change phone?</p>
+                            <p className="text-sm font-medium text-black">{t('faq.changePhone')}</p>
                             <NavigationArrow size={24} className="fill-black" />
                         </div>
                     </Card>
                     <Card position="last" onClick={() => setActiveModal('export-keys')}>
                         <div className="flex cursor-pointer justify-between py-1">
-                            <p className="text-sm font-medium text-black">Why can't I export my private key?</p>
+                            <p className="text-sm font-medium text-black">{t('faq.exportKeys')}</p>
                             <NavigationArrow size={24} className="fill-black" />
                         </div>
                     </Card>
@@ -94,7 +96,7 @@ export default function BackupPage() {
                 visible={activeModal === 'lose-phone'}
                 onClose={closeModal}
                 icon="info"
-                title="What if I lose my phone?"
+                title={t('faq.losePhone')}
                 titleClassName="font-extrabold text-xl"
                 content={
                     <div className="w-full space-y-3">
@@ -102,14 +104,14 @@ export default function BackupPage() {
                             variant="success"
                             icon="check"
                             iconClassName="text-success"
-                            title="Backup is enabled"
-                            description={`Sign into your new phone with your ${accountType}. Download Peanut. Your wallet restores automatically`}
+                            title={t('losePhoneModal.enabledTitle')}
+                            description={t('losePhoneModal.enabledDescription', { platform })}
                         />
                         <InfoCard
                             variant="error"
                             icon="cancel"
-                            title="No backup"
-                            description="Your funds are permanently lost, we can't recover your wallet. This is how self-custody works."
+                            title={t('losePhoneModal.noBackupTitle')}
+                            description={t('losePhoneModal.noBackupDescription')}
                         />
                     </div>
                 }
@@ -120,34 +122,34 @@ export default function BackupPage() {
                 visible={activeModal === 'change-phone'}
                 onClose={closeModal}
                 icon="info"
-                title="What if I change phone?"
+                title={t('faq.changePhone')}
                 titleClassName="font-extrabold text-xl"
                 content={
                     <div className="w-full space-y-3">
                         <ol className="list-decimal pl-5 text-left text-sm text-black">
-                            <li>Verify backup is working (check step 3 above)</li>
-                            <li>Know your {accountType} password</li>
-                            <li>Keep old phone until new one works</li>
+                            <li>{t('changePhoneModal.step1')}</li>
+                            <li>{t('changePhoneModal.step2', { platform })}</li>
+                            <li>{t('changePhoneModal.step3')}</li>
                         </ol>
                         <InfoCard
                             variant="success"
                             icon="check"
                             iconClassName="text-success"
-                            title="iPhone → iPhone"
-                            description="Just sign in. Everything transfers."
+                            title={t('changePhoneModal.iphoneToIphoneTitle')}
+                            description={t('changePhoneModal.iphoneToIphoneDescription')}
                         />
                         <InfoCard
                             variant="success"
                             icon="check"
                             iconClassName="text-success"
-                            title="Android → Android"
-                            description="Sign into Google. Your wallet follows."
+                            title={t('changePhoneModal.androidToAndroidTitle')}
+                            description={t('changePhoneModal.androidToAndroidDescription')}
                         />
                         <InfoCard
                             variant="warning"
                             icon="alert"
-                            title="iPhone ↔ Android"
-                            description="Create new wallet on new device. Transfer your funds. Passkeys don't work cross-platform unless you are using a third party password manager such as 1Password. "
+                            title={t('changePhoneModal.crossPlatformTitle')}
+                            description={t('changePhoneModal.crossPlatformDescription')}
                         />
                     </div>
                 }
@@ -158,35 +160,29 @@ export default function BackupPage() {
                 visible={activeModal === 'export-keys'}
                 onClose={closeModal}
                 icon="info"
-                title="Why can't I export my private key?"
+                title={t('faq.exportKeys')}
                 titleClassName="font-extrabold text-xl"
                 content={
                     <div className="w-full space-y-4 text-left">
                         <div>
-                            <h4 className="font-bold text-black">Passkeys are safer by design</h4>
-                            <p className="mt-1 text-sm text-black">
-                                Unlike traditional private keys that can be copied as text, passkeys are cryptographic
-                                credentials that can't be:
-                            </p>
+                            <h4 className="font-bold text-black">{t('exportKeysModal.saferTitle')}</h4>
+                            <p className="mt-1 text-sm text-black">{t('exportKeysModal.saferIntro')}</p>
                             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-black">
-                                <li>Screenshot by accident</li>
-                                <li>Sent in a text message</li>
-                                <li>Saved in an unsafe note app</li>
-                                <li>Stolen by malware</li>
+                                <li>{t('exportKeysModal.bullets.screenshot')}</li>
+                                <li>{t('exportKeysModal.bullets.textMessage')}</li>
+                                <li>{t('exportKeysModal.bullets.noteApp')}</li>
+                                <li>{t('exportKeysModal.bullets.malware')}</li>
                             </ul>
                         </div>
                         <div>
-                            <h4 className="font-bold text-black">The tradeoff</h4>
-                            <p className="mt-1 text-sm text-black">
-                                You get better security, but passkeys are locked to your device ecosystem (Apple or
-                                Google). That's why cloud backup is critical.
-                            </p>
+                            <h4 className="font-bold text-black">{t('exportKeysModal.tradeoffTitle')}</h4>
+                            <p className="mt-1 text-sm text-black">{t('exportKeysModal.tradeoffDescription')}</p>
                         </div>
                         <div className="flex items-start gap-2 text-xs text-gray-1">
                             <span className="mt-0.5 flex size-4 flex-shrink-0 items-center justify-center rounded-full border border-gray-1">
                                 i
                             </span>
-                            <p>We're exploring advanced export options for power users in future updates.</p>
+                            <p>{t('exportKeysModal.futureNote')}</p>
                         </div>
                     </div>
                 }

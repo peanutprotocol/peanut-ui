@@ -2,12 +2,14 @@
 
 import { useEffect } from 'react'
 import Image from 'next/image'
-import { HandThumbsUp } from '@/assets'
+import { useTranslations } from 'next-intl'
+import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 
 /*
 This page is just to let users know that their KYC was successful. Incase there's some issue with webosckets closing the modal, ideally this should not happen but added this as fallback guide
 */
 export default function KycSuccessPage() {
+    const t = useTranslations('kyc')
     useEffect(() => {
         if (window.parent) {
             window.parent.postMessage({ source: 'peanut-kyc-success' }, '*')
@@ -18,8 +20,8 @@ export default function KycSuccessPage() {
         <div className="flex h-screen min-h-full w-full flex-col items-center justify-center gap-4">
             <Image src={HandThumbsUp} alt="Peanut HandThumbsUp" className="size-34" />
             <div className="space-y-2">
-                <p className="text-lg font-semibold">Verification successful!</p>
-                <p className="text-sm text-gray-1">You can now close this window.</p>
+                <p className="text-lg font-semibold">{t('successTitle')}</p>
+                <p className="text-sm text-gray-1">{t('successCloseWindow')}</p>
             </div>
         </div>
     )

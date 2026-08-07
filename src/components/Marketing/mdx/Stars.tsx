@@ -1,5 +1,6 @@
-import { Star } from '@/assets'
+import Star from '@/assets/illustrations/star.svg'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
+import Image from 'next/image'
 
 interface StarConfig {
     className: string
@@ -49,7 +50,7 @@ export function Stars({ configs = defaultStars }: { configs?: StarConfig[] }) {
                     x={config.x}
                     rotate={config.rotate}
                 >
-                    <img src={Star.src} alt="" width={config.width} height={config.height} />
+                    <Image src={Star} alt="" width={config.width} height={config.height} />
                 </AnimateOnView>
             ))}
         </>

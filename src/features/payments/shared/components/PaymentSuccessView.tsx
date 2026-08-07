@@ -34,6 +34,7 @@ import { resolveRecipientDisplay } from '@/utils/recipient-display'
 import { isDemoMode } from '@/utils/demo'
 import { recordDemoTransaction } from '@/utils/demo-transactions'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
@@ -63,6 +64,13 @@ type DirectSuccessViewProps = {
     currencyAmount?: string
     isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
+    /**
+     * A withdraw the user reached through the send flow. Narrow on purpose: it
+     * only reframes the title. `isWithdrawFlow` still governs layout (it
+     * suppresses the recipient render and picks the "to" prefix), both of which
+     * remain correct for a send to an address.
+     */
+    isFromSendFlow?: boolean
     redirectTo?: string
     // When true, the "Done"/cancel navigation replaces the current history entry instead of
     // pushing. Use for terminal flows (e.g. deposit success) so browser/device back doesn't
@@ -89,6 +97,7 @@ const PaymentSuccessView = ({
     currencyAmount,
     isExternalWalletFlow,
     isWithdrawFlow,
+    isFromSendFlow,
     redirectTo = '/home',
     replaceOnDone = false,
     onComplete,
@@ -100,6 +109,7 @@ const PaymentSuccessView = ({
     transactionDetails: transactionDetailsProp,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
+    const t = useTranslations('payment')
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
     const { user: authUser } = useUserStore()
@@ -188,7 +198,7 @@ const PaymentSuccessView = ({
             },
             networkFeeDetails: {
                 amountDisplay: networkFeeDisplayValue,
-                moreInfoText: 'This transaction may face slippage due to token conversion or cross-chain bridging.',
+                moreInfoText: t('confirm.slippageInfo'),
             },
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
@@ -199,19 +209,17 @@ const PaymentSuccessView = ({
         return details as TransactionDetails
     }, [
         chargeDetails,
-        type,
         amountValue,
         recipientName,
         parsedPaymentData,
-        message,
         user,
-        getInitialsFromName,
         tokenIconUrl,
         chainIconUrl,
         resolvedChainName,
         resolvedTokenSymbol,
         paymentDetails,
         usdAmount,
+        t,
     ])
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
@@ -261,11 +269,11 @@ const PaymentSuccessView = ({
     }
 
     const getTitle = () => {
-        if (isExternalWalletFlow) return 'You successfully added'
-        if (isWithdrawFlow) return 'You just withdrew'
-        if (type === 'SEND') return 'You sent '
-        if (type === 'REQUEST') return 'You requested '
-        if (type === 'DEPOSIT') return 'You added '
+        if (isExternalWalletFlow) return t('success.addedExternal')
+        if (isWithdrawFlow) return isFromSendFlow ? t('success.justSent') : t('success.withdrew')
+        if (type === 'SEND') return t('success.sent')
+        if (type === 'REQUEST') return t('success.requested')
+        if (type === 'DEPOSIT') return t('success.added')
         return undefined
     }
 
@@ -320,7 +328,7 @@ const PaymentSuccessView = ({
                         <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
                         {message && (
                             <p className="text-sm font-medium text-grey-1">
-                                {isWithdrawFlow ? 'to' : 'for'} {message}
+                                {isWithdrawFlow ? t('success.toPrefix') : t('success.forPrefix')} {message}
                             </p>
                         )}
                     </div>
@@ -331,7 +339,7 @@ const PaymentSuccessView = ({
                 <div className="w-full space-y-5">
                     {!!authUser?.user.userId ? (
                         <Button onClick={handleDone} shadowSize="4">
-                            Back to home
+                            {t('success.backToHome')}
                         </Button>
                     ) : (
                         <CreateAccountButton onClick={() => router.push('/setup')} />
@@ -347,7 +355,7 @@ const PaymentSuccessView = ({
                                 }
                             }}
                         >
-                            See receipt
+                            {t('success.seeReceipt')}
                         </Button>
                     )}
                 </div>

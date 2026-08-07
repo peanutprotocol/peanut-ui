@@ -143,7 +143,6 @@ interface CurrencyBoxProps {
 const CurrencyBox = ({
     selected,
     countryCode,
-    country,
     currency,
     currencyName,
     comingSoon = false,

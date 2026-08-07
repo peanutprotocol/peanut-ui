@@ -12,7 +12,10 @@
  * genuinely-fixable bank RFI still surfaces in the /add-money bank flow.
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 let mockRails: Array<{
     id: string

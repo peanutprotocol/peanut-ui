@@ -25,6 +25,9 @@ const ITEMS_TO_DISABLE = [
     { path: 'm/[slug]', type: 'dir' },
     // web-only routes that conflict with static export
     { path: '[locale]', type: 'dir' }, // marketing/blog/seo pages
+    { path: 'es-419', type: 'dir' }, // localized landing (web-only)
+    { path: 'es-ar', type: 'dir' }, // localized landing (web-only)
+    { path: 'pt-br', type: 'dir' }, // localized landing (web-only)
     { path: 'quests/[questId]', type: 'dir' }, // quest detail page (dynamicParams issues)
     { path: 'quests/explore', type: 'dir' }, // quest explore page
     { path: 'quests/page.tsx', type: 'file' }, // quest list page
@@ -85,7 +88,7 @@ export default function RootRedirect() {
     {
         path: '(mobile-ui)/claim/page.tsx',
         // strip generateMetadata + force-dynamic, keep component render (SEO irrelevant in native)
-        replacement: `import { Claim } from '@/components'
+        replacement: `import { Claim } from '@/components/Claim/Claim'
 
 export default function ClaimPage() {
     return <Claim />

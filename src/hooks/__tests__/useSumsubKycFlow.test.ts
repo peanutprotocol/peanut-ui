@@ -1,4 +1,5 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, waitFor } from '@testing-library/react'
+import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { initiateSumsubKyc } from '@/app/actions/sumsub'
 
@@ -7,6 +8,7 @@ import { initiateSumsubKyc } from '@/app/actions/sumsub'
 // asserts hook behaviour (does onKycSuccess fire? is an error surfaced?) and nothing else.
 // The websocket mock captures the status-update handler so a test can simulate a
 // late/stale APPROVED event arriving after the flow has resolved.
+
 const mockWs: { handler?: (status: string, labels?: string[]) => void } = {}
 jest.mock('@/app/actions/sumsub', () => ({
     initiateSumsubKyc: jest.fn(),

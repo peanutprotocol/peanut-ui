@@ -1,6 +1,7 @@
 'use client'
 
 import { type FC, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -19,6 +20,7 @@ const Mascot: FC<{ src: string; alt: string }> = ({ src, alt }) => (
 )
 
 const DeleteAccountButton: FC = () => {
+    const t = useTranslations('settings.deleteAccount')
     const { logoutUser } = useAuth()
     const toast = useToast()
     const [modalState, setModalState] = useState<ModalState>('closed')
@@ -42,7 +44,7 @@ const DeleteAccountButton: FC = () => {
             setModalState('done')
         } catch {
             posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
-            toast.error('Could not delete your account. Please try again.')
+            toast.error(t('error'))
         } finally {
             setIsSubmitting(false)
         }
@@ -60,7 +62,7 @@ const DeleteAccountButton: FC = () => {
 
     const confirmCtas: ActionModalButtonProps[] = [
         {
-            text: 'Yes, delete it',
+            text: t('confirmCta'),
             variant: 'purple',
             shadowSize: '4',
             loading: isSubmitting,
@@ -68,7 +70,7 @@ const DeleteAccountButton: FC = () => {
             onClick: confirmDelete,
         },
         {
-            text: "Never mind, I'll stay",
+            text: t('cancelCta'),
             variant: 'stroke',
             shadowSize: '4',
             disabled: isSubmitting,
@@ -78,7 +80,7 @@ const DeleteAccountButton: FC = () => {
 
     const doneCtas: ActionModalButtonProps[] = [
         {
-            text: 'Goodbye',
+            text: t('doneCta'),
             variant: 'purple',
             shadowSize: '4',
             onClick: finish,
@@ -94,7 +96,7 @@ const DeleteAccountButton: FC = () => {
                 onClick={open}
                 className="w-full text-center text-sm font-semibold text-error underline underline-offset-2"
             >
-                Delete My Account
+                {t('button')}
             </button>
 
             <ActionModal
@@ -104,18 +106,14 @@ const DeleteAccountButton: FC = () => {
                 hideModalCloseButton={lockModal}
                 icon={
                     isDone ? (
-                        <Mascot src={PeanutCrying.src} alt="Crying peanut" />
+                        <Mascot src={PeanutCrying.src} alt={t('cryingPeanutAlt')} />
                     ) : (
-                        <Mascot src={PeanutSad.src} alt="Sad peanut" />
+                        <Mascot src={PeanutSad.src} alt={t('sadPeanutAlt')} />
                     )
                 }
                 iconContainerClassName="size-32 rounded-none bg-transparent"
-                title={isDone ? "We'll miss you" : "Aw, you're leaving?"}
-                description={
-                    isDone
-                        ? 'Your account is off and your data will be gone within 30 days. Thanks for cracking open Peanut with us — take care out there!'
-                        : "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed."
-                }
+                title={isDone ? t('doneTitle') : t('confirmTitle')}
+                description={isDone ? t('doneDescription') : t('confirmDescription')}
                 ctas={isDone ? doneCtas : confirmCtas}
             />
         </>

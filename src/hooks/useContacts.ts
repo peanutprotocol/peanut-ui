@@ -2,7 +2,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { CONTACTS } from '@/constants/query.consts'
 import { getContacts } from '@/app/actions/users'
-import { type Contact, type ContactsResponse } from '@/interfaces'
+import { type Contact, type ContactsResponse } from '@/interfaces/interfaces'
 
 export type { Contact }
 

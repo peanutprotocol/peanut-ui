@@ -15,6 +15,7 @@ import { apiFetch } from '@/utils/api-fetch'
 import { getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
+import { API_ERROR_CODES, ApiError } from './api-error'
 import type { AcceptedLegalDocument } from '@/services/consent'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -196,6 +197,7 @@ export interface PhysicalWaitlistState {
 }
 
 export class RainCardRateLimitError extends Error {
+    readonly code = API_ERROR_CODES.CARD_SECRETS_RATE_LIMITED
     constructor(message: string) {
         super(message)
         this.name = 'RainCardRateLimitError'
@@ -216,6 +218,10 @@ export class RainCardRateLimitError extends Error {
  */
 export class RainCooldownError extends Error {
     readonly retryAfterSec: number | null
+    /** Wire discriminant — see `friendlyError`. Fixed rather than threaded from
+     *  the response because the branch that constructs this is already gated on
+     *  the 425 + cooldown path, so the literal is exact. */
+    readonly code = API_ERROR_CODES.WITHDRAWAL_COOLDOWN_ACTIVE
     constructor(message: string, retryAfterSec: number | null) {
         super(message)
         this.name = 'RainCooldownError'
@@ -240,12 +246,14 @@ export interface RainCooldownEventDetail {
  * recovery CTA on ANY spend path without threading state through the call —
  * same event-driven pattern as the cooldown 425 above.
  *
- * TODO(gen:api): the backend (peanut-api-ts #1143) added `code:
- * 'STALE_CARD_APPROVAL'` to the withdraw error contract. Once that openapi
- * lands on dev, run `pnpm gen:api` and branch off the generated union type
- * instead of this hand-written string literal.
+ * The 409 body's `code` is preserved on the instance (see below) rather than
+ * discarded, so `friendlyError` can map it to localized copy.
  */
 export class StaleCardApprovalError extends Error {
+    /** Wire discriminant — the 409 branch that constructs this is already gated
+     *  on `err.code === 'STALE_CARD_APPROVAL'`, so pinning the literal here is
+     *  exact and stops the code being discarded in favour of English prose. */
+    readonly code = API_ERROR_CODES.STALE_CARD_APPROVAL
     constructor(message: string) {
         super(message)
         this.name = 'StaleCardApprovalError'
@@ -306,6 +314,12 @@ export type ApplyForCardResponse =
     | {
           status: 'pending'
           rainUserId: string
+          message: string
+      }
+    | {
+          // Residence country is on Rain's prohibited-issuance list —
+          // terminal. Render the geo-blocked screen; no retry, no support CTA.
+          status: 'geo-blocked'
           message: string
       }
     | {
@@ -399,12 +413,18 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
             }
             throw new StaleCardApprovalError(message)
         }
-        throw new Error(err.error || err.message || `Request failed: ${response.status}`)
+        throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
+            status: response.status,
+            code: err.code,
+        })
     }
 
     if (!response.ok) {
         const err = await response.json().catch(() => ({}))
-        throw new Error(err.error || err.message || `Request failed: ${response.status}`)
+        throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
+            status: response.status,
+            code: err.code,
+        })
     }
 
     return (await response.json()) as T

@@ -6,7 +6,7 @@ export const isLikelyWebview = () => {
     if (typeof navigator === 'undefined') return false
     // capacitor webview is intentional — not an in-app browser
     if (isCapacitor()) return false
-    const uaString = navigator.userAgent || navigator.vendor || (window as any).opera
+    const uaString = navigator.userAgent || navigator.vendor || (window as { opera?: string }).opera || ''
     // pwps running in standalone mode are not considered webviews
     if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
         return false

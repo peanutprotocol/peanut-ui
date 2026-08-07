@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { BadgeStatusDrawer } from './BadgeStatusDrawer'
@@ -14,6 +15,7 @@ export const BadgeStatusItem = ({
     position?: CardPosition
     entry: BadgeHistoryEntry
 }) => {
+    const t = useTranslations('badges')
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const displayName = getBadgeDisplayName(entry.code, entry.name)
 
@@ -39,7 +41,7 @@ export const BadgeStatusItem = ({
                 <div className={'relative flex h-8 w-8 items-center justify-center rounded-full'}>
                     <Image
                         src={getBadgeIcon(entry.code)}
-                        alt={`${displayName} icon`}
+                        alt={t('iconAlt', { name: displayName })}
                         className="size-10 object-contain"
                         width={32}
                         height={32}
@@ -52,7 +54,7 @@ export const BadgeStatusItem = ({
                         <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">{displayName}</div>
                     </div>
                     <div className="flex items-center gap-1 text-sm font-medium text-gray-1">
-                        <span className="capitalize">Badge unlocked!</span>
+                        <span>{t('unlocked')}</span>
                     </div>
                 </div>
 

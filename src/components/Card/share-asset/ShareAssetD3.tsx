@@ -160,7 +160,6 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                 fontFamily: 'var(--font-roboto), system-ui, sans-serif',
             }}
         >
-            {/* eslint-disable-next-line react/no-unknown-property -- styled-jsx `jsx` attr */}
             <style jsx>{`
                 @keyframes stampDrop {
                     0% {

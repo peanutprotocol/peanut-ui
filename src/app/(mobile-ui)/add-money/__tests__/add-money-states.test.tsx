@@ -13,10 +13,12 @@
  * Strategy: mock every hook and service at the module level, then configure
  * per-test via mockReturnValue / mockImplementation.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @typescript-eslint/no-require-imports, react/display-name, @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react/display-name */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -895,7 +897,11 @@ function createQueryClient() {
 
 function renderWithProviders(component: React.ReactElement) {
     const queryClient = createQueryClient()
-    return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>)
+    return render(
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>
+        </IntlWrapper>
+    )
 }
 
 // ---------- default mock values ----------
@@ -1178,10 +1184,10 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        expect(screen.getByText('Oops! Market moved')).toBeInTheDocument()
-        expect(screen.getByText('Try Again')).toBeInTheDocument()
+        expect(screen.getByText(en.addMoney.crypto.marketMovedTitle)).toBeInTheDocument()
+        expect(screen.getByText(en.common.tryAgain)).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('Try Again'))
+        fireEvent.click(screen.getByText(en.common.tryAgain))
         expect(mockResetStatus).toHaveBeenCalled()
     })
 
@@ -1370,6 +1376,30 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         expect(screen.getByTestId('empty-state')).toBeInTheDocument()
         expect(screen.getByText('Country not found')).toBeInTheDocument()
+    })
+
+    // Manteca countries (BR/AR) must never render this Bridge SEPA page — it has no
+    // BR/AR currency and would show EUR (TASK-20225). Bounce them to /manteca instead.
+    test.each(['brazil', 'argentina'])(
+        'Manteca country (%s) redirects to the manteca route, never shows EUR bank UI',
+        (country) => {
+            setParams({ country })
+            renderWithProviders(<OnrampBankPage />)
+
+            expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
+            expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+            expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        }
+    )
+
+    // Control: a non-Manteca bank country (Mexico) must NOT be bounced — it stays on
+    // the Bridge amount UI. Guards against the redirect over-firing.
+    test('non-Manteca country (mexico) stays on the Bridge bank UI, no redirect', () => {
+        setParams({ country: 'mexico' })
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
     })
 
     test('fresh user needs KYC before Bridge deposit confirmation', async () => {

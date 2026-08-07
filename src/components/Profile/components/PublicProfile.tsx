@@ -1,10 +1,13 @@
 'use client'
 
-import { HandThumbsUpV2, PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
+import HandThumbsUpV2 from '@/assets/illustrations/hand-thumbs-up-v2.svg'
+import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import ProfileHeader from './ProfileHeader'
 import { useState, useEffect, useMemo } from 'react'
@@ -25,6 +28,8 @@ interface PublicProfileProps {
 }
 
 const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = false, onSendClick }) => {
+    const t = useTranslations('profile.publicProfile')
+    const tNav = useTranslations('navigation')
     const [totalSentByLoggedInUser, setTotalSentByLoggedInUser] = useState<string>('0')
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
@@ -76,8 +81,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             <div>
                 {!isLoggedIn ? (
                     <div className="flex items-center gap-2 md:hidden">
-                        <Image src={PEANUTMAN} alt="Peanut mascot" height={24} />
-                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Text" height={12} />
+                        <Image src={PEANUTMAN} alt={t('peanutMascotAlt')} height={24} />
+                        <Image src={PEANUT_LOGO_BLACK} alt={t('peanutLogoTextAlt')} height={12} />
                     </div>
                 ) : (
                     <NavHeader
@@ -117,7 +122,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
                             <Icon name="arrow-up-right" size={18} fill="black" />
-                            <span className="font-bold">Send</span>
+                            <span className="font-bold">{tNav('send')}</span>
                         </Button>
 
                         <Button
@@ -133,7 +138,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
                             <Icon name="arrow-down-left" size={18} fill="black" />
-                            <span className="font-bold">Request</span>
+                            <span className="font-bold">{tNav('request')}</span>
                         </Button>
                     </div>
                 )}
@@ -147,40 +152,39 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <Card position="single" className="space-y-2 p-4 text-center">
                             {isLoggedIn ? (
                                 <>
-                                    <h2 className="text-lg font-extrabold">You're all set</h2>
-                                    <p className="mx-auto max-w-[55%] text-sm">
-                                        Now send or request money to get started.
-                                    </p>
+                                    <h2 className="text-lg font-extrabold">{t('allSetTitle')}</h2>
+                                    <p className="mx-auto max-w-[55%] text-sm">{t('allSetDescription')}</p>
                                 </>
                             ) : (
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-center gap-2">
-                                            <Image src={HandThumbsUpV2.src} alt="Join Peanut" width={20} height={20} />
-                                            <h2 className="text-lg font-extrabold">Join Peanut!</h2>
+                                            <Image
+                                                src={HandThumbsUpV2.src}
+                                                alt={t('joinPeanutAlt')}
+                                                width={20}
+                                                height={20}
+                                            />
+                                            <h2 className="text-lg font-extrabold">{t('joinPeanut')}</h2>
                                             <Image
                                                 src={HandThumbsUpV2.src}
                                                 className="scale-x-[-1] transform"
-                                                alt="Join Peanut"
+                                                alt={t('joinPeanutAlt')}
                                                 width={20}
                                                 height={20}
                                             />
                                         </div>
                                         <p>
-                                            Peanut is invite-only.
+                                            {t('inviteOnlyLine1')}
                                             <br />
-                                            Go beg your friend for an invite link!
+                                            {t('inviteOnlyLine2')}
                                         </p>
                                     </div>
                                     <ShareButton
-                                        generateText={() =>
-                                            Promise.resolve(
-                                                `Bro… I’m on my knees. Peanut is invite-only and I’m locked outside. Save my life and send me your invite`
-                                            )
-                                        }
-                                        title="Beg for an invite"
+                                        generateText={() => Promise.resolve(t('begShareText'))}
+                                        title={t('begForInvite')}
                                     >
-                                        Beg for an invite
+                                        {t('begForInvite')}
                                     </ShareButton>
                                 </div>
                             )}
@@ -209,9 +213,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         {isSelfProfile && (
                             <div className="mb-1 mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-grey-4/25 px-3 py-2">
                                 <Icon name="info" size={16} className="text-grey-1" />
-                                <p className="text-center text-sm text-grey-1">
-                                    Activity is only visible for you, it is not public.
-                                </p>
+                                <p className="text-center text-sm text-grey-1">{t('activityPrivateNote')}</p>
                             </div>
                         )}
                     </div>
@@ -219,22 +221,15 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
                 <ActionModal
                     icon="user"
-                    title="No invite, no Peanut"
-                    description={`Peanut is invite-only.\nGo beg your friend for an invite link!`}
+                    title={t('noInviteTitle')}
+                    description={`${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}`}
                     visible={showInviteModal}
                     onClose={() => {
                         setShowInviteModal(false)
                     }}
                     content={
-                        <ShareButton
-                            generateText={() =>
-                                Promise.resolve(
-                                    `Bro… I’m on my knees. Peanut is invite-only and I’m locked outside. Save my life and send me your invite`
-                                )
-                            }
-                            title="Beg for an invite"
-                        >
-                            Beg for an invite
+                        <ShareButton generateText={() => Promise.resolve(t('begShareText'))} title={t('begForInvite')}>
+                            {t('begForInvite')}
                         </ShareButton>
                     }
                 />
