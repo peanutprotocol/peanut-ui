@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import Modal from '@/components/Global/Modal'
 import ActionModal from '@/components/Global/ActionModal'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
@@ -11,6 +11,7 @@ import posthog from 'posthog-js'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
+import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
 import { SumsubNativeSdk } from './SumsubNativeSdk'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
@@ -65,6 +66,8 @@ const SumsubWebSdkModal = ({
     const { setIsSupportModalOpen } = useModalsContext()
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
+    const locale = useLocale()
+    const sumsubLocaleRef = useRef(toSumsubLocale(locale))
 
     // callback refs to avoid stale closures in sdk init effect
     const onCompleteRef = useRef(onComplete)
@@ -84,6 +87,10 @@ const SumsubWebSdkModal = ({
         onRefreshTokenRef.current = onRefreshToken
         isMultiLevelRef.current = isMultiLevel
     }, [onComplete, onError, onRefreshToken, isMultiLevel])
+
+    useEffect(() => {
+        sumsubLocaleRef.current = toSumsubLocale(locale)
+    }, [locale])
 
     // stable wrappers that read from refs
     const stableOnComplete = useCallback(() => onCompleteRef.current(), [])
@@ -194,7 +201,7 @@ const SumsubWebSdkModal = ({
 
             const sdk = window.snsWebSdk
                 .init(accessToken, stableOnRefreshToken)
-                .withConf({ lang: 'en', theme: 'light' })
+                .withConf({ lang: sumsubLocaleRef.current, theme: 'light' })
                 .withOptions({ addViewportTag: false, adaptIframeHeight: true })
                 .on('onApplicantSubmitted', handleSubmitted)
                 .on('onApplicantResubmitted', handleResubmitted)
