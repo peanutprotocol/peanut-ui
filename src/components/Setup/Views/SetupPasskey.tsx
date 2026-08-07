@@ -17,6 +17,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 // A signup that failed client-side AFTER the server verified may have already
 // registered this username (user + passkey exist server-side, so login works).
@@ -34,6 +35,7 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
 }
 
 const SetupPasskey = () => {
+    const t = useTranslations('setup')
     const { username } = useSetupStore()
     const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address, isRegistering } = useZeroDev()
@@ -76,7 +78,7 @@ const SetupPasskey = () => {
         // calling create() and failing cryptically. (Was the May-18 rejection.)
         const support = await checkPasskeySupport()
         if (!support.isSupported) {
-            const message = support.warning ?? 'Passkeys aren’t available on this device yet. Please try again.'
+            const message = support.warning ?? t('passkey.notAvailable')
             setPreflightWarning(message)
             setInlineError(message)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
@@ -140,7 +142,7 @@ const SetupPasskey = () => {
                 } else {
                     // likely user cancellation - show simple inline error
                     console.log('[SetupPasskey] User likely cancelled, showing inline error')
-                    setInlineError('Passkey setup was cancelled. Please try again when ready.')
+                    setInlineError(t('passkey.cancelled'))
                 }
                 return
             }
@@ -174,7 +176,7 @@ const SetupPasskey = () => {
             // success — useLogin's effect redirects once the user is loaded
         } catch (error) {
             // handleLogin throws PasskeyError with a curated user-facing message
-            setInlineError((error as Error)?.message || 'We couldn’t log you in. Please try again.')
+            setInlineError((error as Error)?.message || t('loginFailed'))
         }
     }
 
@@ -205,12 +207,12 @@ const SetupPasskey = () => {
                         className="text-nowrap"
                         shadowSize="4"
                     >
-                        Set it up
+                        {t('passkey.setItUp')}
                     </Button>
                     {preflightWarning && <p className="text-sm font-bold text-orange-1">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
-                            <ErrorAlert description="This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in." />
+                            <ErrorAlert description={t('passkey.usernameTaken')} />
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
@@ -219,7 +221,7 @@ const SetupPasskey = () => {
                                 className="text-nowrap"
                                 shadowSize="4"
                             >
-                                Log In
+                                {t('logIn')}
                             </Button>
                         </>
                     )}
@@ -228,7 +230,7 @@ const SetupPasskey = () => {
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
                         <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
-                            Learn more about what Passkeys are
+                            {t('passkey.learnMore')}
                         </DocsLink>{' '}
                     </p>
                 </div>

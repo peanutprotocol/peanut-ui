@@ -1,32 +1,35 @@
 'use client'
 
 import { PEANUTMAN } from '@/assets/mascot'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { PAYMENT_LOADING_WORDS } from './words'
+import { useTranslations } from 'next-intl'
+import { PAYMENT_LOADING_WORD_KEYS } from './words'
 
 const ROTATE_MS = 1800
 
 export default function CyclingLoading() {
-    const [index, setIndex] = useState(() => Math.floor(Math.random() * PAYMENT_LOADING_WORDS.length))
+    const t = useTranslations('paymentLoading')
+    const [index, setIndex] = useState(() => Math.floor(Math.random() * PAYMENT_LOADING_WORD_KEYS.length))
 
     useEffect(() => {
         const id = setInterval(() => {
             setIndex((i) => {
                 let next = i
-                while (next === i) next = Math.floor(Math.random() * PAYMENT_LOADING_WORDS.length)
+                while (next === i) next = Math.floor(Math.random() * PAYMENT_LOADING_WORD_KEYS.length)
                 return next
             })
         }, ROTATE_MS)
         return () => clearInterval(id)
     }, [])
 
-    const word = PAYMENT_LOADING_WORDS[index]
+    const word = t(PAYMENT_LOADING_WORD_KEYS[index])
 
     return (
         <div className="w-full flex-col items-center justify-center self-center text-center">
             <div className="flex w-full items-center justify-center self-center">
                 <div className="animate-spin">
-                    <img src={PEANUTMAN.src} alt="logo" className="h-10" />
+                    <Image src={PEANUTMAN} alt="logo" className="h-10 w-auto" />
                     <span className="sr-only">{word}</span>
                 </div>
             </div>

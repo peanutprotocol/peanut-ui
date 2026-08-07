@@ -22,10 +22,29 @@ export const fetchCache = 'force-no-store'
 let lastNotificationTime = 0
 const NOTIFICATION_COOLDOWN_MS = 30 * 60 * 1000 // 30 minutes
 
+type ServiceHealth = {
+    status?: string
+    responseTime?: number
+    timestamp?: string
+    details?: Record<string, unknown>
+    error?: string
+}
+
+type HealthSummary = { total: number; healthy: number; degraded: number; unhealthy: number }
+
+type HealthReport = {
+    status: string
+    healthScore: number
+    timestamp: string
+    summary: HealthSummary
+    services: Record<string, ServiceHealth>
+    systemInfo?: { environment?: string; version?: string; region?: string }
+}
+
 /**
  * Send Discord notification when system is unhealthy (with cooldown).
  */
-async function sendDiscordNotification(healthData: any) {
+async function sendDiscordNotification(healthData: HealthReport) {
     try {
         const webhookUrl = process.env.DISCORD_WEBHOOK_URL
         if (!webhookUrl) {
@@ -44,12 +63,12 @@ async function sendDiscordNotification(healthData: any) {
         lastNotificationTime = now
 
         const failedServices = Object.entries(healthData.services)
-            .filter(([_, service]: [string, any]) => service.status === 'unhealthy')
-            .map(([name, service]: [string, any]) => `• ${name}: ${service.error || 'unhealthy'}`)
+            .filter(([_, service]) => service.status === 'unhealthy')
+            .map(([name, service]) => `• ${name}: ${service.error || 'unhealthy'}`)
 
         const degradedServices = Object.entries(healthData.services)
-            .filter(([_, service]: [string, any]) => service.status === 'degraded')
-            .map(([name, service]: [string, any]) => `• ${name}: ${service.error || 'degraded'}`)
+            .filter(([_, service]) => service.status === 'degraded')
+            .map(([name, service]) => `• ${name}: ${service.error || 'degraded'}`)
 
         // Only @mention the role in production
         const isProduction = process.env.NODE_ENV === 'production'
@@ -123,7 +142,7 @@ export async function GET() {
 
                     clearTimeout(timeoutId)
 
-                    const data = await response.json()
+                    const data: ServiceHealth = await response.json()
 
                     // Pass through the sub-check's own status rather than only trusting HTTP status.
                     // Sub-checks now return degraded (HTTP 200) for non-critical partial failures.
@@ -135,7 +154,7 @@ export async function GET() {
             })
         )
 
-        const results: any = {
+        const results: { services: Record<string, ServiceHealth>; summary: HealthSummary } = {
             services: {},
             summary: {
                 total: services.length,
@@ -150,7 +169,7 @@ export async function GET() {
             const serviceName = services[index]
 
             if (result.status === 'fulfilled') {
-                const serviceData = result.value as any
+                const serviceData = result.value
                 const serviceStatus = serviceData.status || 'unhealthy'
 
                 results.services[serviceName] = {

@@ -19,6 +19,12 @@ export type FunnelStateId =
 
 export type SurfaceKind = 'step' | 'carousel' | 'modal' | 'card-screen'
 
+/**
+ * How much of the machinery the board exposes. `product` reads as a cockpit
+ * (copy + flow only); `dev` adds gating predicates, source files and event types.
+ */
+export type JourneyViewMode = 'product' | 'dev'
+
 export interface InAppSurface {
     id: string
     kind: SurfaceKind
@@ -108,7 +114,37 @@ export interface JourneySpec {
     emailPreviewBase: string
 }
 
-// ---------- live user inspector (GET /__dev/journey-inspect?userId=…) ----------
+// ---------- copy review (email renders awaiting a product verdict) ----------
+
+/**
+ * One `?example=N` of an email. Most lifecycle emails render a single example;
+ * the two first_spend steps render a second one for the rewards branch.
+ */
+export interface EmailExample {
+    index: number
+    /** Human label for the variant toggle ("plain" / "rewards"). */
+    label: string
+}
+
+/** One reviewable email render — an (email, example) pair, in board order. */
+export interface EmailRenderRef {
+    /** `${eventType}#${example}` — the localStorage verdict key. */
+    id: string
+    eventType: string
+    example: number
+    exampleLabel: string
+    step: SpecEmailStep
+}
+
+/** An open product decision attached to an email, surfaced as a chip on its card. */
+export interface EmailDecisionFlag {
+    /** Chip text — imperative, so the board reads as a to-do list. */
+    label: string
+    /** One line explaining what is actually being decided. */
+    note: string
+}
+
+// ---------- live user inspector (GET /__dev/journey-inspect?username=…|userId=…) ----------
 
 export interface InspectDue {
     userId: string
@@ -127,12 +163,14 @@ export interface InspectHistoryRow {
 }
 
 export interface JourneyInspectResponse {
+    /** The resolved user — the API 404s instead of returning a null user. */
     user: {
+        userId: string
         username: string | null
         email: string | null
         createdAt: string
         cardAccessGrantedAt: string | null
-    } | null
+    }
     due: InspectDue | null
     history: InspectHistoryRow[]
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
@@ -17,6 +18,8 @@ const DISMISS_THRESHOLD = 100
 const TOP_RESERVE = 24
 
 const SupportDrawer = () => {
+    const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
     const userData = useCrispUserData()
     const crispTokenId = useCrispTokenId()
@@ -174,7 +177,7 @@ const SupportDrawer = () => {
             <div
                 ref={panelRef}
                 role="dialog"
-                aria-label="Support"
+                aria-label={t('supportDrawer.label')}
                 aria-modal={isSupportModalOpen}
                 className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-[10px] border bg-background pt-4 ${
                     isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
@@ -218,15 +221,13 @@ const SupportDrawer = () => {
                         )}
                         {isCrispFailed && (
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background px-8 text-center">
-                                <p className="text-base font-bold text-n-1">Chat couldn’t load</p>
-                                <p className="text-sm text-grey-1">
-                                    Something went wrong loading support chat. Email us and we’ll help you out:
-                                </p>
+                                <p className="text-base font-bold text-n-1">{t('supportDrawer.chatLoadFailed')}</p>
+                                <p className="text-sm text-grey-1">{t('supportDrawer.chatLoadFailedDescription')}</p>
                                 <a href={`mailto:${SUPPORT_EMAIL}`} className="text-black underline">
                                     {SUPPORT_EMAIL}
                                 </a>
                                 <Button variant="stroke" className="w-full" onClick={handleRetry}>
-                                    Try again
+                                    {tCommon('tryAgain')}
                                 </Button>
                             </div>
                         )}
@@ -237,7 +238,7 @@ const SupportDrawer = () => {
                                 className="h-full w-full"
                                 allow="storage-access *"
                                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-storage-access-by-user-activation"
-                                title="Support Chat"
+                                title={t('supportDrawer.chatTitle')}
                                 tabIndex={isSupportModalOpen ? 0 : -1}
                             />
                         )}

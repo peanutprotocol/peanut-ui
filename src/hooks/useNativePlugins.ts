@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { focusManager } from '@tanstack/react-query'
 import { captureMessage } from '@sentry/nextjs'
 import { isCapacitor, getPlatform } from '@/utils/capacitor'
+import { localeApplied } from '@/i18n/app/locale-store'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import { sanitizeRedirectURL } from '@/utils/general.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
@@ -160,6 +161,10 @@ export function useNativePlugins() {
             }
 
             try {
+                // hold the splash until the startup locale has painted, so
+                // es/pt users never see an English flash. The timeout guard
+                // means an i18n bug can never keep the splash up.
+                await Promise.race([localeApplied(), new Promise((resolve) => setTimeout(resolve, 2000))])
                 const { SplashScreen } = await import('@capacitor/splash-screen')
                 await SplashScreen.hide()
             } catch (e) {

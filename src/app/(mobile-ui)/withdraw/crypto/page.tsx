@@ -22,33 +22,44 @@ import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { captureMessage } from '@sentry/nextjs'
+import { useSafeBack } from '@/hooks/useSafeBack'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
 import { Slider } from '@/components/Slider'
-import { tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted, printableAddress } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
-    const onBack = useSafeBack('/withdraw')
-    const { isConnected: isPeanutWallet, address, sendTransactions, sendMoney, spendableBalance } = useWallet()
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
+    const toFriendlyError = useFriendlyError()
+    // Send → Exchange or Wallet lands here as /withdraw/crypto?method=crypto.
+    // Every back/redirect target below keeps the marker, or the amount step it
+    // returns to silently reverts to withdraw copy.
+    // Forward the marker verbatim rather than assuming crypto: entering as
+    // /withdraw?method=bank and then picking Crypto lands here as method=bank,
+    // and rewriting it to crypto would change the amount step's back behaviour.
+    const { isFromSendFlow, sendFlowMethod } = useSendFlowOrigin()
+    const amountStepHref = isFromSendFlow ? `/withdraw?method=${sendFlowMethod}` : '/withdraw'
+    const onBack = useSafeBack(amountStepHref)
+    const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         amountToWithdraw,
         usdAmount,
-        setAmountToWithdraw,
         currentView,
         setCurrentView,
         withdrawData,
@@ -84,6 +95,18 @@ export default function WithdrawCryptoPage() {
     } = useCrossChainTransfer()
 
     const { isRecording, error: recordError, recordPayment, reset: resetPaymentRecorder } = usePaymentRecorder()
+
+    // Once the on-chain leg has broadcast for a charge, Retry must NEVER
+    // broadcast again — a recordPayment failure after the spend used to
+    // re-run the whole flow and issue a second on-chain transfer
+    // (TASK-19581 double-spend). Stamped the moment a tx identifier
+    // exists; a retry for the same charge replays only the record.
+    const executedSpendRef = useRef<{
+        chargeId: string
+        txHash: Hex
+        minedTxHash: Hex | undefined
+        strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
+    } | null>(null)
 
     const { triggerHaptic } = useHaptic()
 
@@ -167,7 +190,7 @@ export default function WithdrawCryptoPage() {
         async (data: Omit<WithdrawData, 'amount'>) => {
             if (!amountToWithdraw) {
                 console.error('Amount to withdraw is not set or not available from context')
-                setError('Withdrawal amount is missing.')
+                setError(t('errors.amountMissing'))
                 return
             }
 
@@ -224,7 +247,7 @@ export default function WithdrawCryptoPage() {
                 const newRequest: TRequestResponse = await requestsApi.create(apiRequestPayload)
 
                 if (!newRequest || !newRequest.uuid) {
-                    throw new Error('Failed to create request for withdrawal.')
+                    throw new Error(t('errors.requestFailed'))
                 }
 
                 const chargePayload: CreateChargeRequest = {
@@ -249,16 +272,16 @@ export default function WithdrawCryptoPage() {
                 const createdCharge: TCharge = await chargesApi.create(chargePayload)
 
                 if (!createdCharge || !createdCharge.data || !createdCharge.data.id) {
-                    throw new Error('Failed to create charge for withdrawal or charge ID missing.')
+                    throw new Error(t('errors.chargeFailed'))
                 }
 
                 const fullChargeDetails = await chargesApi.get(createdCharge.data.id)
 
                 setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
-            } catch (err: any) {
+            } catch (err) {
                 console.error('Error during setup review (request/charge creation):', err)
-                const errorMessage = err.message || 'Could not prepare withdrawal. Please try again.'
+                const errorMessage = err instanceof Error && err.message ? err.message : t('errors.prepareFailed')
                 setError(errorMessage)
             } finally {
                 setIsPreparingReview(false)
@@ -272,6 +295,7 @@ export default function WithdrawCryptoPage() {
             setWithdrawData,
             setShowCompatibilityModal,
             setError,
+            t,
         ]
     )
 
@@ -281,9 +305,9 @@ export default function WithdrawCryptoPage() {
             setCurrentView('CONFIRM')
         } else {
             console.error('Proceeding to confirm, but charge details or withdraw data are missing.')
-            setError('Failed to load withdrawal details for confirmation. Please go back and try again.')
+            setError(t('errors.confirmDetailsFailed'))
         }
-    }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError])
+    }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError, t])
 
     // True when the withdraw needs a Rhino path (SDA or bridge swap) rather
     // than a direct USDC transfer. Crosses a chain boundary OR a token
@@ -298,13 +322,13 @@ export default function WithdrawCryptoPage() {
     const handleConfirmWithdrawal = useCallback(async () => {
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
-            setError('Essential withdrawal information is missing.')
+            setError(t('errors.essentialInfoMissing'))
             return
         }
 
         if (!transactions || transactions.length === 0) {
             console.error('No transactions prepared for withdrawal')
-            setError('Transaction not prepared. Please try again.')
+            setError(t('errors.txNotPrepared'))
             return
         }
 
@@ -326,21 +350,30 @@ export default function WithdrawCryptoPage() {
             // sendTransactions mixed path.
             let finalTxHash: Hex | undefined
             let receipt: TransactionReceipt | null = null
+            let minedTxHash: Hex | undefined
             // 'collateral-only' | 'smart-only' | 'mixed' — how the spend was
             // funded; drives how strictly the recordPayment result is treated
             // (see the recordPayment note below).
             let strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
-            // Backend TransactionIntent id — used to navigate to the unified
-            // receipt page for collateral/mixed spends.
-            let intentId: string | undefined
 
-            if (!isCrossChainWithdrawal) {
+            const executedSpend =
+                executedSpendRef.current?.chargeId === chargeDetails.uuid ? executedSpendRef.current : null
+            if (executedSpend) {
+                // A previous attempt already moved funds for this charge and
+                // failed at bookkeeping — replay ONLY the record.
+                finalTxHash = executedSpend.txHash
+                minedTxHash = executedSpend.minedTxHash
+                strategy = executedSpend.strategy
+                captureMessage('withdraw: retry with executed spend — record-only, skipping broadcast', {
+                    level: 'info',
+                    extra: { chargeId: chargeDetails.uuid, txHash: finalTxHash, strategy },
+                })
+            } else if (!isCrossChainWithdrawal) {
                 const {
                     userOpHash,
                     txHash,
                     receipt: r,
                     strategy: s,
-                    intentId: i,
                 } = await sendMoney(withdrawData.address as Address, amountToWithdraw, {
                     kind: 'CRYPTO_WITHDRAW',
                     // Lets the backend settle the charge directly when the spend
@@ -353,7 +386,6 @@ export default function WithdrawCryptoPage() {
                 })
                 receipt = r
                 strategy = s
-                intentId = i
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
@@ -373,7 +405,6 @@ export default function WithdrawCryptoPage() {
                 })
                 receipt = txResult.receipt
                 strategy = txResult.strategy
-                intentId = txResult.intentId
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
@@ -381,6 +412,11 @@ export default function WithdrawCryptoPage() {
             }
 
             if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')
+
+            // Funds are (or are about to be) moving on-chain — from here on,
+            // any failure must retry as record-only, never as a re-broadcast.
+            minedTxHash ??= receipt?.transactionHash as Hex | undefined
+            executedSpendRef.current = { chargeId: chargeDetails.uuid, txHash: finalTxHash, minedTxHash, strategy }
 
             // Record the payment against the charge on EVERY path — completing
             // the user-facing charge is what makes the withdrawal appear in
@@ -409,7 +445,7 @@ export default function WithdrawCryptoPage() {
             // and leave a breadcrumb. collateral-only is safe regardless: its
             // hash is a backend-broadcast EVM tx and the tagged charge settles
             // via the trusted path.
-            const mixedWithoutMinedHash = strategy === 'mixed' && !isCrossChainWithdrawal && !receipt?.transactionHash
+            const mixedWithoutMinedHash = strategy === 'mixed' && !isCrossChainWithdrawal && !minedTxHash
 
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
             if (mixedWithoutMinedHash) {
@@ -442,6 +478,7 @@ export default function WithdrawCryptoPage() {
                 }
             }
 
+            executedSpendRef.current = null
             setTransactionHash(finalTxHash)
             setPaymentDetails(payment)
             triggerHaptic()
@@ -452,7 +489,7 @@ export default function WithdrawCryptoPage() {
             })
         } catch (err) {
             console.error('Withdrawal execution failed:', err)
-            const errMsg = ErrorHandler(err)
+            const errMsg = toFriendlyError(err)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'crypto',
                 error_message: errMsg,
@@ -479,6 +516,8 @@ export default function WithdrawCryptoPage() {
         clearErrors,
         setError,
         triggerHaptic,
+        t,
+        toFriendlyError,
     ])
 
     const handleBackFromConfirm = useCallback(() => {
@@ -552,8 +591,8 @@ export default function WithdrawCryptoPage() {
     // which would override the router.push('/home') in handleDone
     const needsAmountRedirect = !amountToWithdraw && currentView !== 'STATUS'
     useEffect(() => {
-        if (needsAmountRedirect) router.push('/withdraw')
-    }, [needsAmountRedirect, router])
+        if (needsAmountRedirect) router.push(amountStepHref)
+    }, [needsAmountRedirect, router, amountStepHref])
 
     if (needsAmountRedirect) {
         return <PeanutLoading />
@@ -567,6 +606,7 @@ export default function WithdrawCryptoPage() {
                     onReview={handleSetupReview}
                     onBack={onBack}
                     isProcessing={isPreparingReview}
+                    isFromSendFlow={isFromSendFlow}
                 />
             )}
 
@@ -588,17 +628,23 @@ export default function WithdrawCryptoPage() {
                     showHighFeeWarning={showHighFeeWarning}
                     insufficientBalance={insufficientForFee}
                     belowMinimumMessage={belowMinimumMessage}
+                    isFromSendFlow={isFromSendFlow}
                 />
             )}
 
             {currentView === 'STATUS' && withdrawData && chargeDetails && (
                 <>
                     <PaymentSuccessView
-                        headerTitle="Withdraw"
+                        headerTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                         recipientType="ADDRESS"
                         type="SEND"
                         amount={usdAmount}
+                        // Stays true even from the send flow: it also suppresses the
+                        // recipient render (no recipientName is passed here) and picks
+                        // the "to" prefix, both correct for a send to an address.
+                        // Only the title needs the send framing.
                         isWithdrawFlow={true}
+                        isFromSendFlow={isFromSendFlow}
                         redirectTo="/home"
                         chargeDetails={chargeDetails}
                         paymentDetails={paymentDetails}
@@ -620,19 +666,16 @@ export default function WithdrawCryptoPage() {
                     setShowCompatibilityModal(false)
                 }}
                 preventClose={isPreparingReview}
-                title="Is this address compatible?"
+                title={t('compatibilityModal.title')}
                 description={
                     <div className="space-y-2">
-                        <p>
-                            Only send to an address that supports the selected network and token. Incorrect transfers
-                            may be lost.
-                        </p>
+                        <p>{t('compatibilityModal.description')}</p>
                         {/* Show the concrete destination so the user confirms a real
                             address, not an abstract warning — for ENS recipients this
                             is the first time the resolved address is visible. */}
                         {!!withdrawData?.address && (
                             <p>
-                                You're sending to{' '}
+                                {t('compatibilityModal.sendingTo')}{' '}
                                 <span className="font-mono font-medium text-n-1 dark:text-white">
                                     {printableAddress(withdrawData.address)}
                                 </span>

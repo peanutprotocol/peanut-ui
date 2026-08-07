@@ -63,7 +63,7 @@ export async function getPostBySlug(
     const raw = fs.readFileSync(filePath, 'utf8')
     const { data, content: body } = matter(raw)
 
-    const { content } = await renderContent(body)
+    const { content } = await renderContent(body, locale)
 
     const frontmatter = { ...data, date: coerceDate(data.date) } as BlogPost['frontmatter']
 

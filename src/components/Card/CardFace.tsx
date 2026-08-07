@@ -1,6 +1,7 @@
 'use client'
 import { type FC, useState } from 'react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
@@ -53,6 +54,7 @@ const CardFace: FC<Props> = ({
     locked = false,
     className,
 }) => {
+    const t = useTranslations('card.face')
     const showingDetails = revealed != null
     // The hand slides out of the way while details are shown OR being fetched,
     // so it never covers the PAN / expiry / CVV (or the loading skeletons).
@@ -106,7 +108,8 @@ const CardFace: FC<Props> = ({
                     </div>
                     <div className="flex flex-col items-end leading-none">
                         <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0" />
-                        <span className="mt-0.5 text-[11px] font-semibold tracking-wide">Platinum</span>
+                        {/* Card-tier brand lockup, not copy — stays English in every locale. */}
+                        <span className="mt-0.5 text-[11px] font-semibold tracking-wide">{'Platinum'}</span>
                     </div>
                 </div>
 
@@ -119,11 +122,11 @@ const CardFace: FC<Props> = ({
                             <span className="text-xl font-extrabold tracking-wider">???? ???? ???? ????</span>
                             <div className="mt-1 flex items-end justify-between gap-6 text-xs">
                                 <div>
-                                    <div className="opacity-70">Peanut Pioneer</div>
+                                    <div className="opacity-70">{t('peanutPioneer')}</div>
                                     <div className="font-bold">????</div>
                                 </div>
                                 <div>
-                                    <div className="opacity-70">Valid</div>
+                                    <div className="opacity-70">{t('valid')}</div>
                                     <div className="font-bold">??/??</div>
                                 </div>
                             </div>
@@ -140,7 +143,7 @@ const CardFace: FC<Props> = ({
                                 {onCopy && (
                                     <button
                                         type="button"
-                                        aria-label="Copy card number"
+                                        aria-label={t('copyCardNumber')}
                                         onClick={() => handleCopy(revealed.pan, 'pan')}
                                         className="p-1"
                                     >
@@ -174,7 +177,7 @@ const CardFace: FC<Props> = ({
                                         {onCopy && (
                                             <button
                                                 type="button"
-                                                aria-label="Copy CVV"
+                                                aria-label={t('copyCvv')}
                                                 onClick={() => handleCopy(revealed.cvv, 'cvv')}
                                                 className="p-1"
                                             >
@@ -186,7 +189,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <button
                                         type="button"
-                                        aria-label="Hide card details"
+                                        aria-label={t('hideDetails')}
                                         onClick={onToggleReveal}
                                         className="p-1"
                                     >
@@ -218,7 +221,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <button
                                         type="button"
-                                        aria-label="Retry showing card details"
+                                        aria-label={t('retryDetails')}
                                         onClick={onToggleReveal}
                                         className="shrink-0 p-1"
                                     >
@@ -229,7 +232,7 @@ const CardFace: FC<Props> = ({
                             {isVirtual && (
                                 <div className="mt-1">
                                     <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
-                                        Virtual
+                                        {t('virtual')}
                                     </span>
                                 </div>
                             )}
@@ -244,7 +247,7 @@ const CardFace: FC<Props> = ({
                                 {onToggleReveal && (
                                     <button
                                         type="button"
-                                        aria-label="Show card details"
+                                        aria-label={t('showDetails')}
                                         onClick={onToggleReveal}
                                         className="p-1"
                                     >
@@ -255,7 +258,7 @@ const CardFace: FC<Props> = ({
                             {isVirtual && (
                                 <div className="mt-1">
                                     <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
-                                        Virtual
+                                        {t('virtual')}
                                     </span>
                                 </div>
                             )}

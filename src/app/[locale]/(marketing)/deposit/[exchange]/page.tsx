@@ -2,11 +2,16 @@ import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { EXCHANGES, DEPOSIT_RAILS } from '@/data/seo'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternates, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations, t } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readPageContentLocalized, type ContentFrontmatter } from '@/lib/content'
+import {
+    availableContentLocales,
+    contentLocaleFor,
+    readPageContentLocalized,
+    type ContentFrontmatter,
+} from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -50,16 +55,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const mdxContent = readPageContentLocalized<ContentFrontmatter>('deposit', deposit.key, locale)
     if (mdxContent && mdxContent.frontmatter.published !== false) {
+        // A fallback-served page canonicalizes to the locale that owns the prose.
+        const contentLocale = contentLocaleFor('deposit', deposit.key, locale)
         return {
             ...metadataHelper({
+                locale,
                 title: mdxContent.frontmatter.title,
                 description: mdxContent.frontmatter.description,
-                canonical: `/${locale}/deposit/${rawSlug}`,
+                canonical: `/${contentLocale}/deposit/${rawSlug}`,
                 dynamicOg: true,
             }),
             alternates: {
-                canonical: `/${locale}/deposit/${rawSlug}`,
-                languages: getAlternates('deposit', rawSlug),
+                canonical: `/${contentLocale}/deposit/${rawSlug}`,
+                languages: getAlternatesFor(availableContentLocales('deposit', deposit.key), 'deposit', rawSlug),
             },
         }
     }
@@ -71,6 +79,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
+            locale,
             title: `${t(i18n.depositFrom, { exchange: ex.name })} | Peanut`,
             description: `${t(i18n.depositFrom, { exchange: ex.name })}. ${i18n.recommendedNetwork}: ${ex.recommendedNetwork}.`,
             canonical: `/${locale}/deposit/from-${deposit.key}`,
@@ -92,7 +101,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('deposit', deposit.key, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/deposit/${rawSlug}`
 

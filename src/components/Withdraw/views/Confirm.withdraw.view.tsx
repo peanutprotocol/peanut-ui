@@ -10,12 +10,12 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
-import { type ITokenPriceData } from '@/interfaces'
+import { type ITokenPriceData } from '@/interfaces/interfaces'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
-import { INSUFFICIENT_BALANCE_MESSAGE } from '@/utils/balance.utils'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
+import { useTranslations } from 'next-intl'
 
 interface WithdrawConfirmViewProps {
     amount: string
@@ -62,6 +62,8 @@ interface WithdrawConfirmViewProps {
      * CTA and shows the message.
      */
     belowMinimumMessage?: string | null
+    /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
+    isFromSendFlow?: boolean
 }
 
 export default function ConfirmWithdrawView({
@@ -82,7 +84,13 @@ export default function ConfirmWithdrawView({
     showHighFeeWarning = false,
     insufficientBalance = false,
     belowMinimumMessage = null,
+    isFromSendFlow = false,
 }: WithdrawConfirmViewProps) {
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
+    const tErrors = useTranslations('errors')
     const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
         chainId: chain.chainId,
         tokenAddress: token.address,
@@ -99,9 +107,9 @@ export default function ConfirmWithdrawView({
     // gas is sponsored by Peanut's paymaster (the "Peanut fee" row below). For
     // same-chain (no bridge) there's no Rhino fee, so it stays sponsored.
     const networkFeeDisplay = useMemo<string>(() => {
-        if (!isCrossChain || networkFee <= 0) return 'Sponsored by Peanut!'
+        if (!isCrossChain || networkFee <= 0) return tCommon('sponsoredByPeanut')
         return networkFee < 0.01 ? '< $0.01' : `$${networkFee.toFixed(2)}`
-    }, [isCrossChain, networkFee])
+    }, [isCrossChain, networkFee, tCommon])
 
     // What actually leaves the wallet on a cross-chain withdraw — the exact USDC
     // the kernel spends (`payAmount`). This is authoritative for BOTH paths and
@@ -117,7 +125,7 @@ export default function ConfirmWithdrawView({
 
     return (
         <div className="space-y-8">
-            <NavHeader title="Withdraw" onPrev={onBack} />
+            <NavHeader title={isFromSendFlow ? tNav('send') : tNav('withdraw')} onPrev={onBack} />
 
             <div className="space-y-4 pb-5">
                 <PeanutActionDetailsCard
@@ -127,26 +135,27 @@ export default function ConfirmWithdrawView({
                     recipientName={''}
                     amount={formatAmount(amount)}
                     tokenSymbol="USDC"
+                    isFromSendFlow={isFromSendFlow}
                 />
 
                 <Card className="rounded-sm">
                     {isCrossChain && (isCalculating || displayReceived) && (
                         <PaymentInfoRow
-                            label="Recipient receives"
+                            label={t('confirm.recipientReceives')}
                             value={displayReceived}
                             loading={isCalculating}
-                            moreInfoText="The full amount arrives on the destination chain. The cross-chain network fee is paid on top — see below."
+                            moreInfoText={t('confirm.recipientReceivesInfo')}
                         />
                     )}
                     <PaymentInfoRow
-                        label="Token and network"
+                        label={t('confirm.tokenAndNetwork')}
                         value={
                             <div className="flex items-center gap-2">
                                 {token && (
                                     <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
                                         <DisplayIcon
                                             iconUrl={tokenIconUrl}
-                                            altText={resolvedTokenSymbol || 'token'}
+                                            altText={resolvedTokenSymbol || t('confirm.tokenAlt')}
                                             fallbackName={resolvedTokenSymbol || 'T'}
                                             sizeClass="h-6 w-6"
                                         />
@@ -154,7 +163,7 @@ export default function ConfirmWithdrawView({
                                             <div className="absolute -bottom-1 -right-1">
                                                 <DisplayIcon
                                                     iconUrl={chainIconUrl}
-                                                    altText={resolvedChainName || 'chain'}
+                                                    altText={resolvedChainName || t('confirm.chainAlt')}
                                                     fallbackName={resolvedChainName || 'C'}
                                                     sizeClass="h-3.5 w-3.5"
                                                     className="rounded-full border-2 border-white dark:border-grey-4"
@@ -164,34 +173,33 @@ export default function ConfirmWithdrawView({
                                     </div>
                                 )}
                                 <span>
-                                    {resolvedTokenSymbol || token.symbol} on{' '}
-                                    <span className="capitalize">{resolvedChainName || chain.networkName}</span>
+                                    {t.rich('confirm.tokenOnChain', {
+                                        token: resolvedTokenSymbol || token.symbol,
+                                        chain: resolvedChainName || chain.networkName,
+                                        c: (chunks) => <span className="capitalize">{chunks}</span>,
+                                    })}
                                 </span>
                             </div>
                         }
                     />
                     <PaymentInfoRow
-                        label="To"
+                        label={t('confirm.to')}
                         value={<AddressLink isLink={false} address={toAddress} className="text-black no-underline" />}
                     />
                     <PaymentInfoRow
-                        label="Network fee"
+                        label={t('confirm.networkFee')}
                         value={networkFeeDisplay}
                         loading={isCrossChain && isCalculating}
-                        moreInfoText="Cross-chain bridge fee (destination gas + Rhino's 0.07%). Paid on top of the amount withdrawn."
+                        moreInfoText={t('confirm.networkFeeInfo')}
                     />
                     {isCrossChain && (isCalculating || totalPayDisplay) && (
-                        <PaymentInfoRow label="You pay" value={totalPayDisplay} loading={isCalculating} />
+                        <PaymentInfoRow label={t('confirm.youPay')} value={totalPayDisplay} loading={isCalculating} />
                     )}
-                    <PaymentInfoRow hideBottomBorder label="Peanut fee" value={`$${peanutFee}`} />
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value={`$${peanutFee}`} />
                 </Card>
 
                 {showHighFeeWarning && (
-                    <InfoCard
-                        variant="info"
-                        icon="info"
-                        description="Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
-                    />
+                    <InfoCard variant="info" icon="info" description={t('confirm.highFeeWarning')} />
                 )}
 
                 {error ? (
@@ -210,7 +218,7 @@ export default function ConfirmWithdrawView({
                         className="w-full"
                         icon="retry"
                     >
-                        Retry
+                        {tCommon('retry')}
                     </Button>
                 ) : (
                     <Button
@@ -221,11 +229,13 @@ export default function ConfirmWithdrawView({
                         loading={isProcessing}
                         className="w-full"
                     >
-                        {isProcessing ? 'Withdrawing' : 'Withdraw'}
+                        {isProcessing
+                            ? tLoading(isFromSendFlow ? 'sending' : 'withdrawing')
+                            : tNav(isFromSendFlow ? 'send' : 'withdraw')}
                     </Button>
                 )}
 
-                {insufficientBalance && !error && <ErrorAlert description={INSUFFICIENT_BALANCE_MESSAGE} />}
+                {insufficientBalance && !error && <ErrorAlert description={tErrors('notEnoughBalanceAddFunds')} />}
                 {belowMinimumMessage && !insufficientBalance && !error && (
                     <ErrorAlert description={belowMinimumMessage} />
                 )}

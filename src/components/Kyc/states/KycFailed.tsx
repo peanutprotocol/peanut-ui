@@ -4,11 +4,12 @@ import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { RejectLabelsList } from '../RejectLabelsList'
 import Card from '@/components/Global/Card'
 import { useMemo } from 'react'
-import { formatDate } from '@/utils/general.utils'
+import { useFormatter, useTranslations } from 'next-intl'
 
 // this component shows the identity-verification status when it's failed/rejected.
-// reads the provider-agnostic identity fields: a friendly actionMessage + normalized
-// reject labels. No provider names.
+// reads the provider-agnostic identity fields + normalized reject labels. The
+// backend's actionMessage is a pure function of status, so its presence gates the
+// reason row while the copy itself comes from the catalog. No provider names.
 export const KycFailed = ({
     actionMessage,
     rejectLabels,
@@ -22,15 +23,21 @@ export const KycFailed = ({
     onRetry: () => void
     isLoading?: boolean
 }) => {
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
+    const format = useFormatter()
+
     const rejectedOn = useMemo(() => {
-        if (!reviewedAt) return 'N/A'
+        if (!reviewedAt) return t('notAvailable')
         try {
-            return formatDate(new Date(reviewedAt))
+            const date = new Date(reviewedAt)
+            if (isNaN(date.getTime())) return t('notAvailable')
+            return format.dateTime(date, { year: 'numeric', month: 'long', day: 'numeric' })
         } catch (error) {
             console.error('failed to parse reviewedAt date:', error)
-            return 'N/A'
+            return t('notAvailable')
         }
-    }, [reviewedAt])
+    }, [reviewedAt, format, t])
 
     const hasReason = !!actionMessage
 
@@ -39,8 +46,8 @@ export const KycFailed = ({
             <KYCStatusDrawerItem status="failed" />
 
             <Card position="single" className="py-0">
-                <PaymentInfoRow label="Rejected on" value={rejectedOn} hideBottomBorder={!hasReason} />
-                {hasReason && <PaymentInfoRow label="Reason" value={actionMessage} hideBottomBorder />}
+                <PaymentInfoRow label={t('rejectedOn')} value={rejectedOn} hideBottomBorder={!hasReason} />
+                {hasReason && <PaymentInfoRow label={t('reason')} value={t('actionMessageFailed')} hideBottomBorder />}
             </Card>
 
             <RejectLabelsList rejectLabels={rejectLabels} />
@@ -53,7 +60,7 @@ export const KycFailed = ({
                 onClick={() => onRetry()}
                 disabled={isLoading}
             >
-                {isLoading ? 'Loading...' : 'Retry verification'}
+                {isLoading ? tCommon('loading') : t('retryVerification')}
             </Button>
         </div>
     )

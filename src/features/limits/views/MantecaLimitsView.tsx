@@ -5,6 +5,7 @@ import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import PeriodToggle from '../components/PeriodToggle'
 import LimitsProgressBar from '../components/LimitsProgressBar'
@@ -27,13 +28,14 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
  * shows monthly/yearly limits per currency with remaining amounts
  */
 const MantecaLimitsView = () => {
+    const t = useTranslations('limits.provider')
     const onBack = useSafeBack('/limits')
     const { mantecaLimits, isLoading, error } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader title="Limits" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
 
             {isLoading && <PeanutLoading coverFullScreen />}
 
@@ -65,7 +67,9 @@ const MantecaLimitsView = () => {
                                                     className="size-5 rounded-full object-cover"
                                                 />
                                             )}
-                                            <span className="text-xs text-grey-1">{limit.asset} total allowed</span>
+                                            <span className="text-xs text-grey-1">
+                                                {t('totalAllowed', { asset: limit.asset })}
+                                            </span>
                                         </div>
                                         <PeriodToggle value={period} onChange={setPeriod} />
                                     </div>
@@ -77,9 +81,7 @@ const MantecaLimitsView = () => {
                                     <LimitsProgressBar total={limitData.limit} remaining={limitData.remaining} />
 
                                     <div className="flex items-center justify-between text-sm">
-                                        <span className="text-grey-1">
-                                            Remaining this {period === 'monthly' ? 'month' : 'year'}
-                                        </span>
+                                        <span className="text-grey-1">{t('remaining', { period })}</span>
                                         <span className={`font-medium ${getLimitColorClass(remainingPercent, 'text')}`}>
                                             {formatAmountWithCurrency(limitData.remaining, limit.asset)}
                                         </span>
@@ -90,7 +92,7 @@ const MantecaLimitsView = () => {
                         {/* info text */}
                         <div className="flex items-center justify-center gap-2 text-xs text-grey-1">
                             <Icon name="info" size={16} />
-                            <p>Applies to adding money, withdraws and QR payments</p>
+                            <p>{t('appliesTo')}</p>
                         </div>
                     </div>
 
@@ -101,7 +103,7 @@ const MantecaLimitsView = () => {
             )}
 
             {!isLoading && !error && (!mantecaLimits || mantecaLimits.length === 0) && (
-                <EmptyState title="Limits data not available" icon="meter" />
+                <EmptyState title={t('noData')} icon="meter" />
             )}
         </div>
     )

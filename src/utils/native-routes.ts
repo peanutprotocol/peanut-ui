@@ -100,6 +100,14 @@ function mapDeepLink(url: string): string | null {
     const parsed = new URL(url, 'https://peanut.me')
     if (!APP_HOSTS.test(parsed.hostname)) return null
 
+    // The fragment is re-attached here rather than inside each branch below:
+    // a claim link's password lives in `#p=<password>` and never reaches the
+    // server, so a mapper that drops it turns the link into an unclaimable one.
+    // Appending once is the only shape a new route branch can't forget.
+    return `${mapDeepLinkPath(parsed)}${parsed.hash}`
+}
+
+function mapDeepLinkPath(parsed: URL): string {
     const path = parsed.pathname
     const extraParams = parsed.search.replace(/^\?/, '')
     const segments = path.split('/').filter(Boolean)

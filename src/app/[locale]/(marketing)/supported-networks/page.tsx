@@ -1,10 +1,15 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
-import { SUPPORTED_LOCALES, getBareAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getBareAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { readSingletonContentLocalized, type ContentFrontmatter } from '@/lib/content'
+import {
+    availableSingletonLocales,
+    readSingletonContentLocalized,
+    singletonLocaleFor,
+    type ContentFrontmatter,
+} from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -23,16 +28,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const mdxContent = readSingletonContentLocalized<ContentFrontmatter>('supported-networks', locale)
     if (!mdxContent || mdxContent.frontmatter.published === false) return {}
 
+    // A fallback-served page canonicalizes to the locale that owns the prose.
+    const contentLocale = singletonLocaleFor('supported-networks', locale)
+
     return {
         ...metadataHelper({
+            locale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
-            canonical: `/${locale}/supported-networks`,
+            canonical: `/${contentLocale}/supported-networks`,
             dynamicOg: true,
         }),
         alternates: {
-            canonical: `/${locale}/supported-networks`,
-            languages: getBareAlternates('supported-networks'),
+            canonical: `/${contentLocale}/supported-networks`,
+            languages: getBareAlternatesFor(availableSingletonLocales('supported-networks'), 'supported-networks'),
         },
     }
 }
@@ -44,7 +53,7 @@ export default async function SupportedNetworksPage({ params }: PageProps) {
     const mdxSource = readSingletonContentLocalized<ContentFrontmatter>('supported-networks', locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
 
-    const { content } = await renderContent(mdxSource.body)
+    const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/supported-networks`
 

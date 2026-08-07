@@ -324,6 +324,35 @@ describe('native-routes', () => {
                 )
             })
 
+            // The claim-link password lives in the fragment and is never sent to
+            // the server (see peanut-link.utils.ts), so dropping it here yields a
+            // link that resolves to a claim page with no way to claim.
+            it('preserves the claim-link password fragment', () => {
+                expect(deepLinkToNativePath('https://peanut.me/claim?c=42161&v=v4.2&i=99#p=s3cr3t')).toBe(
+                    '/claim?c=42161&v=v4.2&i=99#p=s3cr3t'
+                )
+            })
+
+            it('preserves a fragment on a bare path from a push payload', () => {
+                expect(deepLinkToNativePath('/claim?i=99#p=s3cr3t')).toBe('/claim?i=99#p=s3cr3t')
+            })
+
+            it('carries the fragment through a dynamic-route rewrite', () => {
+                expect(deepLinkToNativePath('https://peanut.me/send/bob#p=s3cr3t')).toBe('/send?recipient=bob#p=s3cr3t')
+                expect(deepLinkToNativePath('https://peanut.me/withdraw/be/bank#top')).toBe(
+                    '/withdraw?country=be&view=bank#top'
+                )
+            })
+
+            it('adds no stray # when the link has no fragment', () => {
+                expect(deepLinkToNativePath('https://peanut.me/claim?i=99')).toBe('/claim?i=99')
+                expect(deepLinkToNativePath('https://peanut.me/history')).toBe('/history')
+            })
+
+            it('still rejects an off-host link that carries a fragment', () => {
+                expect(deepLinkToNativePath('https://evil.com/claim?i=99#p=s3cr3t')).toBeNull()
+            })
+
             it('rejects an off-domain url rather than rewriting it into an in-app path', () => {
                 expect(deepLinkToNativePath('https://evil.com/receipt/intent-1')).toBeNull()
             })
@@ -371,6 +400,12 @@ describe('native-routes', () => {
 
             it('keeps a profile charge link on the profile route', () => {
                 expect(deepLinkToNativePath('/alice?chargeId=charge-123')).toBe('/alice?chargeId=charge-123')
+            })
+
+            it('preserves the claim-link password fragment', () => {
+                expect(deepLinkToNativePath('https://peanut.me/claim?c=42161&v=v4.2&i=99#p=s3cr3t')).toBe(
+                    '/claim?c=42161&v=v4.2&i=99#p=s3cr3t'
+                )
             })
         })
     })

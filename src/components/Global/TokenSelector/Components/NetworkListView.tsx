@@ -5,8 +5,10 @@
  * accessed via the "more" button in the popular networks section
  */
 
+import { useTranslations } from 'next-intl'
 import React, { useMemo } from 'react'
 
+import { type ChainWithTokens } from '@/interfaces/chain-meta'
 import EmptyState from '../../EmptyStates/EmptyState'
 import NavHeader from '../../NavHeader'
 import { type NetworkConfig } from '../TokenSelector.consts'
@@ -14,7 +16,7 @@ import NetworkListItem from './NetworkListItem'
 import SearchInput from './SearchInput'
 
 interface NetworkListViewProps {
-    chains: Record<string, any>
+    chains: Record<string, ChainWithTokens>
     onSelectChain: (chainId: string) => void
     onBack: () => void
     searchValue: string
@@ -34,20 +36,17 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
     allowedChainIds,
     comingSoonNetworks,
 }) => {
+    const t = useTranslations('global')
     const filteredChains = useMemo(() => {
         const lowerSearchValue = searchValue.toLowerCase()
 
         // filter active chains that match the search term and are in the allowed chains list
         const activeChains = Object.values(chains)
             .filter((chain) => allowedChainIds.has(String(chain.chainId)))
-            .filter(
-                (chain) =>
-                    chain.networkName?.toLowerCase().includes(lowerSearchValue) ||
-                    chain.chainName?.toLowerCase().includes(lowerSearchValue)
-            )
+            .filter((chain) => chain.networkName.toLowerCase().includes(lowerSearchValue))
             .map((chain) => ({
                 chainId: chain.chainId,
-                name: chain.networkName || chain.chainName,
+                name: chain.networkName,
                 iconUrl: chain.chainIconURI,
                 isComingSoon: false,
             }))
@@ -67,12 +66,12 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
 
     return (
         <div className="relative flex flex-col space-y-4">
-            <NavHeader title="More networks" onPrev={onBack} />
+            <NavHeader title={t('tokenSelector.moreNetworksTitle')} onPrev={onBack} />
             <SearchInput
                 value={searchValue}
                 onChange={setSearchValue}
                 onClear={() => setSearchValue('')}
-                placeholder="Search for a network"
+                placeholder={t('tokenSelector.searchNetworkPlaceholder')}
             />
 
             <div className="flex max-h-[60vh] flex-col gap-3 space-y-2 overflow-y-auto pr-1 pt-2">
@@ -91,8 +90,8 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
                 ) : (
                     <EmptyState
                         icon="search"
-                        title={`No networks found matching ${searchValue}`}
-                        description="Try searching for a different network"
+                        title={t('tokenSelector.noNetworksFoundTitle', { search: searchValue })}
+                        description={t('tokenSelector.noNetworksFoundDescription')}
                     />
                 )}
             </div>

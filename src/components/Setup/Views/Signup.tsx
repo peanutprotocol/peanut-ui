@@ -13,8 +13,10 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { useTranslations } from 'next-intl'
 
 const SignupStep = () => {
+    const t = useTranslations('setup')
     const dispatch = useAppDispatch()
     const { username } = useSetupStore()
     const [error, setError] = useState('')
@@ -28,23 +30,23 @@ const SignupStep = () => {
 
         // handle empty input
         if (!username) {
-            setError('Username is required')
+            setError(t('signupStep.errors.required'))
             return false
         }
 
         // check length requirement
         if (username.length < USERNAME_MIN_LENGTH) {
-            setError('Username must be at least 4 characters long')
+            setError(t('signupStep.errors.tooShort'))
             return false
         }
         if (username.length > 12) {
-            setError('Username must be at most 12 characters long')
+            setError(t('signupStep.errors.tooLong'))
             return false
         }
 
         // check character requirement
         if (!username.match(/^[a-z][a-z0-9]{3,11}$/)) {
-            setError('Username must contain only lowercase letters and numbers and start with a letter')
+            setError(t('signupStep.errors.invalidFormat'))
             return false
         }
 
@@ -56,7 +58,7 @@ const SignupStep = () => {
             })
             switch (res.status) {
                 case 200:
-                    setError('Username already taken')
+                    setError(t('signupStep.errors.taken'))
                     posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
                         is_valid: false,
                         error_type: 'taken',
@@ -64,7 +66,7 @@ const SignupStep = () => {
                     })
                     return false
                 case 400:
-                    setError('Username is invalid, please use a different one')
+                    setError(t('signupStep.errors.invalid'))
                     posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
                         is_valid: false,
                         error_type: 'invalid',
@@ -79,7 +81,7 @@ const SignupStep = () => {
                 default:
                     // we dont expect any other status code
                     console.error('Unexpected status code when checking handle availability:', res.status)
-                    setError('Failed to check handle availability. Please try again.')
+                    setError(t('signupStep.errors.checkFailed'))
                     Sentry.captureMessage('Unexpected status code when checking handle availability', {
                         level: 'error',
                         extra: {
@@ -91,7 +93,7 @@ const SignupStep = () => {
                     return false
             }
         } catch {
-            setError('Failed to check handle availability. Please try again or contact support.')
+            setError(t('signupStep.errors.checkFailedSupport'))
             return false
         }
     }
@@ -121,7 +123,7 @@ const SignupStep = () => {
                 <div className="mb-auto w-full space-y-2.5">
                     <div className="flex items-center gap-2">
                         <ValidatedInput
-                            placeholder="Enter a username"
+                            placeholder={t('signupStep.usernamePlaceholder')}
                             value={username}
                             debounceTime={750}
                             validate={checkUsernameValidity}
@@ -142,7 +144,7 @@ const SignupStep = () => {
                             onClick={() => handleNext(async () => isValid)}
                             disabled={!isValid || isChanging || isLoading}
                         >
-                            Next
+                            {t('next')}
                         </Button>
                     </div>
                     {error && (
@@ -153,14 +155,18 @@ const SignupStep = () => {
                 </div>
                 <div>
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
-                        <span>By creating account you agree with </span>
-                        <DocsLink href="/terms" className="underline underline-offset-2">
-                            T&C
-                        </DocsLink>
-                        {' and '}
-                        <DocsLink href="/privacy" className="underline underline-offset-2">
-                            Privacy Policy
-                        </DocsLink>
+                        {t.rich('signupStep.termsAgreement', {
+                            terms: (chunks) => (
+                                <DocsLink href="/terms" className="underline underline-offset-2">
+                                    {chunks}
+                                </DocsLink>
+                            ),
+                            privacy: (chunks) => (
+                                <DocsLink href="/privacy" className="underline underline-offset-2">
+                                    {chunks}
+                                </DocsLink>
+                            ),
+                        })}
                     </p>
                 </div>
             </div>

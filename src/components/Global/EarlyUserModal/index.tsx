@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import ActionModal from '../ActionModal'
 import ShareButton from '../ShareButton'
 import DocsLink from '@/components/Global/DocsLink'
@@ -10,6 +11,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 const EarlyUserModal = () => {
+    const t = useTranslations('global')
     const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
     const [showModal, setShowModal] = useState(false)
@@ -35,24 +37,21 @@ const EarlyUserModal = () => {
     return (
         <ActionModal
             icon="lock"
-            title="Earn from invites"
+            title={t('earlyUserModal.title')}
             visible={showModal}
             onClose={handleCloseModal}
             content={
                 <>
                     <p className="text-sm text-grey-1">
-                        <span className="block">Peanut is now invite-only and you're in!</span>
-                        <span>
-                            <b>Friends you invite →</b> you earn a cut of their fees. <b>Their invites →</b> you earn a
-                            cut of their cut.
-                        </span>
+                        <span className="block">{t('earlyUserModal.inviteOnly')}</span>
+                        <span>{t.rich('earlyUserModal.earnRules', { b: (chunks) => <b>{chunks}</b> })}</span>
                     </p>
 
-                    <ShareButton url={inviteLink} title="Share your invite link">
-                        Share Invite link
+                    <ShareButton url={inviteLink} title={t('earlyUserModal.shareSheetTitle')}>
+                        {t('earlyUserModal.shareCta')}
                     </ShareButton>
                     <DocsLink href="/en/help" className="text-sm text-grey-1 underline">
-                        Learn more
+                        {t('earlyUserModal.learnMore')}
                     </DocsLink>
                 </>
             }

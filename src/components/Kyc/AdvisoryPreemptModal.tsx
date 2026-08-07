@@ -1,5 +1,5 @@
+import { useFormatter, useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
-import { formatEffectiveDate } from '@/utils/format.utils'
 
 interface AdvisoryPreemptModalProps {
     visible: boolean
@@ -22,7 +22,18 @@ export default function AdvisoryPreemptModal({
     isLoading = false,
     onCompleteNow,
 }: AdvisoryPreemptModalProps) {
-    const formatted = formatEffectiveDate(effectiveDate)
+    const t = useTranslations('kyc')
+    const format = useFormatter()
+
+    const parsed = effectiveDate ? new Date(effectiveDate) : null
+    const formatted =
+        parsed && !Number.isNaN(parsed.getTime())
+            ? // `effectiveDate` is a date-only YYYY-MM-DD, so it parses at UTC
+              // midnight. Format in UTC too, or Americas timezones render the
+              // day before the deadline.
+              format.dateTime(parsed, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+            : null
+
     return (
         <ActionModal
             visible={visible}
@@ -33,15 +44,13 @@ export default function AdvisoryPreemptModal({
             preventClose
             hideModalCloseButton
             icon="badge"
-            title="One quick step to continue"
+            title={t('advisory.title')}
             description={
-                formatted
-                    ? `To continue using bank transfers, please complete a short verification (required by ${formatted}). It only takes a couple of minutes.`
-                    : `To continue using bank transfers, please complete a short verification. It only takes a couple of minutes.`
+                formatted ? t('advisory.descriptionByDate', { deadline: formatted }) : t('advisory.description')
             }
             ctas={[
                 {
-                    text: 'Complete now',
+                    text: t('advisory.completeNow'),
                     onClick: onCompleteNow,
                     variant: 'purple',
                     shadowSize: '4',

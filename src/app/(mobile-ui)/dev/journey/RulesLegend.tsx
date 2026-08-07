@@ -1,12 +1,13 @@
 'use client'
 
+import StuckBadge from './StuckBadge'
 import type { SpecRules } from './journeyTypes'
 
-function Chip({ label, value }: { label: string; value: string }) {
+function Rule({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="flex items-center gap-1.5 rounded-sm border border-n-1 bg-white px-2 py-1">
             <span className="text-[10px] font-bold uppercase tracking-wide text-grey-1">{label}</span>
-            <span className="text-xs font-bold">{value}</span>
+            {children}
         </div>
     )
 }
@@ -22,13 +23,30 @@ export default function RulesLegend({ rules, specError }: { rules: SpecRules | n
     }
     return (
         <div className="flex flex-wrap gap-2">
-            <Chip label="nudge 1" value={`day ${rules.step1AfterDays} stuck`} />
-            <Chip label="nudge 2" value={`day ${rules.step2AfterDays} stuck`} />
-            <Chip label="governor" value={`≥${rules.governorDays}d between emails`} />
-            <Chip label="freshness" value={`${rules.freshnessDays}d window`} />
-            <Chip label="holdout" value={`${Math.round(rules.holdoutFraction * 100)}% control`} />
-            <Chip label="send window" value={`${rules.sendWindowUtc.startHour}–${rules.sendWindowUtc.endHour}h UTC`} />
-            <Chip label="cap" value={`${rules.maxSendsPerCycle}/cycle`} />
+            {/* The two nudge rules render the very badge the board stamps on each email. */}
+            <Rule label="nudge 1">
+                <StuckBadge days={rules.step1AfterDays} />
+            </Rule>
+            <Rule label="nudge 2">
+                <StuckBadge days={rules.step2AfterDays} />
+            </Rule>
+            <Rule label="governor">
+                <span className="text-xs font-bold">≥{rules.governorDays}d between emails</span>
+            </Rule>
+            <Rule label="freshness">
+                <span className="text-xs font-bold">{rules.freshnessDays}d window</span>
+            </Rule>
+            <Rule label="holdout">
+                <span className="text-xs font-bold">{Math.round(rules.holdoutFraction * 100)}% control</span>
+            </Rule>
+            <Rule label="send window">
+                <span className="text-xs font-bold">
+                    {rules.sendWindowUtc.startHour}–{rules.sendWindowUtc.endHour}h UTC
+                </span>
+            </Rule>
+            <Rule label="cap">
+                <span className="text-xs font-bold">{rules.maxSendsPerCycle}/cycle</span>
+            </Rule>
         </div>
     )
 }

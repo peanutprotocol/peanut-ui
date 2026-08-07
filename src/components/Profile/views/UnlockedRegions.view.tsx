@@ -16,8 +16,10 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { deriveRegionAccess, getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useRef, useMemo } from 'react'
@@ -63,6 +65,9 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
 }
 
 const UnlockedRegions = () => {
+    const t = useTranslations('profile.regions')
+    const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
     // Card-priority guard: an eligible user (skip badge / admin grant →
@@ -133,6 +138,13 @@ const UnlockedRegions = () => {
     // override modal variant when sumsub is approved but a provider rejected the user.
     // ROW has no provider (clickedRegionProvider null) → no provider rejection can apply.
     const providerRejectionForRegion = clickedRegionProvider === 'bridge' ? bridgeRejection : mantecaRejection
+    // Known reason codes render localized identity.reasons.* copy; unknown
+    // codes keep the backend's display-ready prose (#2554: key off codes,
+    // never match English text).
+    const providerRejectionReasonKey = reasonCodeKey(providerRejectionForRegion.reasonCode)
+    const providerRejectionMessage = providerRejectionReasonKey
+        ? tIdentity(providerRejectionReasonKey)
+        : providerRejectionForRegion.userMessage
     const hasProviderRejectionForRegion =
         !!selectedRegion &&
         clickedRegionProvider !== null &&
@@ -199,12 +211,10 @@ const UnlockedRegions = () => {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
-            <NavHeader title="Unlocked regions" onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
             <div className="my-auto">
-                <h1 className="font-bold">Unlocked regions</h1>
-                <p className="mt-2 text-sm">
-                    Transfer to and receive from any bank account and use supported payments methods.
-                </p>
+                <h1 className="font-bold">{t('title')}</h1>
+                <p className="mt-2 text-sm">{t('description')}</p>
 
                 {/* Pending Bridge verification tasks (ToS / hosted re-verification).
                     Non-dismissible here — this is where the /home card's X sends
@@ -215,8 +225,8 @@ const UnlockedRegions = () => {
 
                 {unlockedRegions.length === 0 && (
                     <EmptyState
-                        title="No regions unlocked yet"
-                        description="Tap a region below to confirm your ID and unlock payments there."
+                        title={t('empty.title')}
+                        description={t('empty.description')}
                         icon="globe-lock"
                         containerClassName="mt-3"
                     />
@@ -226,8 +236,8 @@ const UnlockedRegions = () => {
 
                 {lockedRegions.length > 0 && (
                     <>
-                        <h1 className="mt-5 font-bold">Locked regions</h1>
-                        <p className="mt-2 text-sm">Where do you want to send and receive money?</p>
+                        <h1 className="mt-5 font-bold">{t('lockedTitle')}</h1>
+                        <p className="mt-2 text-sm">{t('lockedDescription')}</p>
 
                         <RegionsList regions={lockedRegions} isLocked={true} onRegionClick={handleRegionClick} />
                     </>
@@ -267,26 +277,24 @@ const UnlockedRegions = () => {
                 onClose={handleModalClose}
                 title={
                     providerRejectionForRegion.state === 'fixable'
-                        ? 'We need an updated document'
+                        ? t('providerRejection.fixableTitle')
                         : providerRejectionForRegion.state === 'restart-identity'
-                          ? 'Verify with a different document'
-                          : 'Region unavailable'
+                          ? t('providerRejection.restartTitle')
+                          : t('providerRejection.unavailableTitle')
                 }
                 description={
                     providerRejectionForRegion.state === 'fixable'
-                        ? providerRejectionForRegion.userMessage ||
-                          'Please upload a clearer photo of your ID to unlock this region.'
+                        ? providerRejectionMessage || t('providerRejection.fixableDescription')
                         : providerRejectionForRegion.state === 'restart-identity'
-                          ? providerRejectionForRegion.userMessage ||
-                            'This region needs a document from a supported country. You can verify with a different ID.'
-                          : 'This region is not available for your account. Contact support for help.'
+                          ? providerRejectionMessage || t('providerRejection.restartDescription')
+                          : t('providerRejection.unavailableDescription')
                 }
                 icon="alert"
                 iconContainerClassName="bg-yellow-1"
                 ctas={[
                     providerRejectionForRegion.state === 'fixable'
                         ? {
-                              text: 'Upload document',
+                              text: t('providerRejection.uploadDocument'),
                               onClick: () => {
                                   handleModalClose()
                                   flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
@@ -296,7 +304,7 @@ const UnlockedRegions = () => {
                           }
                         : providerRejectionForRegion.state === 'restart-identity'
                           ? {
-                                text: 'Verify with a different document',
+                                text: t('providerRejection.restartTitle'),
                                 onClick: () => {
                                     handleModalClose()
                                     flow.handleRestartIdentity()
@@ -305,7 +313,7 @@ const UnlockedRegions = () => {
                                 shadowSize: '4' as const,
                             }
                           : {
-                                text: 'Contact support',
+                                text: tCommon('contactSupport'),
                                 onClick: () => {
                                     handleModalClose()
                                     setIsSupportModalOpen(true)
@@ -319,15 +327,15 @@ const UnlockedRegions = () => {
             <ActionModal
                 visible={!!flow.error && !errorAcknowledged}
                 onClose={() => setErrorAcknowledged(true)}
-                title={failedRegionRetriable ? "Verification couldn't start" : 'Not available yet'}
-                description={flow.error || 'Something went wrong. Please try again or contact support.'}
+                title={failedRegionRetriable ? t('initError.retriableTitle') : t('initError.notAvailableTitle')}
+                description={flow.error || tCommon('genericError')}
                 icon="alert"
                 iconContainerClassName="bg-yellow-1"
                 ctas={
                     failedRegionRetriable
                         ? [
                               {
-                                  text: 'Try again',
+                                  text: tCommon('tryAgain'),
                                   variant: 'purple',
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
@@ -336,7 +344,7 @@ const UnlockedRegions = () => {
                                   },
                               },
                               {
-                                  text: 'Contact support',
+                                  text: tCommon('contactSupport'),
                                   variant: 'stroke',
                                   onClick: () => {
                                       setErrorAcknowledged(true)
@@ -346,7 +354,7 @@ const UnlockedRegions = () => {
                           ]
                         : [
                               {
-                                  text: 'Got it',
+                                  text: tCommon('gotIt'),
                                   variant: 'purple',
                                   shadowSize: '4',
                                   onClick: () => setErrorAcknowledged(true),

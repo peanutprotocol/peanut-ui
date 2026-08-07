@@ -1,6 +1,6 @@
 import { countryData as ALL_METHODS_DATA, type CountryData } from '@/components/AddMoney/consts'
 import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
-import { type Account, AccountType } from '@/interfaces'
+import { type Account, AccountType } from '@/interfaces/interfaces'
 
 export interface CurrencyConfig {
     currency: string

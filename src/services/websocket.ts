@@ -66,7 +66,7 @@ export class PeanutWebSocket {
     private socket: WebSocket | null = null
     private pingInterval: NodeJS.Timeout | null = null
     private reconnectTimeout: NodeJS.Timeout | null = null
-    private eventListeners: Map<string, Set<(data: any) => void>> = new Map()
+    private eventListeners: Map<string, Set<(data: unknown) => void>> = new Map()
     private isConnected = false
     /** Set when the server refused our credential; suppresses the reconnect loop. */
     private authFailed = false
@@ -134,12 +134,12 @@ export class PeanutWebSocket {
             this.eventListeners.set(event, new Set())
         }
 
-        this.eventListeners.get(event)?.add(callback as (data: any) => void)
+        this.eventListeners.get(event)?.add(callback as (data: unknown) => void)
     }
 
     public off<T>(event: string, callback: (data: T) => void): void {
         if (this.eventListeners.has(event)) {
-            this.eventListeners.get(event)?.delete(callback as (data: any) => void)
+            this.eventListeners.get(event)?.delete(callback as (data: unknown) => void)
         }
     }
 
@@ -341,7 +341,7 @@ export class PeanutWebSocket {
         }
     }
 
-    private emit(event: string, data: any): void {
+    private emit(event: string, data: unknown): void {
         if (this.eventListeners.has(event)) {
             this.eventListeners.get(event)?.forEach((callback) => {
                 try {

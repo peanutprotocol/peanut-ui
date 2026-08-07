@@ -2,6 +2,7 @@
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { notFound } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
@@ -53,6 +54,8 @@ function markSkipCelebrationSeen(): void {
 // they don't re-see the gate after celebration / add-card transitions.
 
 const CardPage: FC = () => {
+    const t = useTranslations('card')
+    const tCommon = useTranslations('common')
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
@@ -91,6 +94,11 @@ const CardPage: FC = () => {
     // the new card row". Without it the screen would briefly flip back to Add
     // Card mid-apply before the state machine sees the new state.
     const [isIssuing, setIsIssuing] = useState(false)
+    // Set when POST /rain/cards answers `geo-blocked` (country on Rain's
+    // prohibited-issuance list, detected from the Sumsub address at apply
+    // time). Per-mount — the cardInfo refetch it triggers makes the state
+    // machine's geoProhibited path own the block durably.
+    const [geoBlocked, setGeoBlocked] = useState(false)
 
     // Track whether the user has acknowledged the skip-badge celebration.
     // localStorage on purpose (per-device, replayable via the eligibility
@@ -299,12 +307,26 @@ const CardPage: FC = () => {
                 setPendingTerms({ isUsResident: res.isUsResident })
                 return
             }
+            // Terminal regulatory block from the BE gate. This can fire
+            // mid-funnel for Sumsub-only users whose country is unknown until
+            // their address lands (cardInfo.geoProhibited couldn't catch them
+            // up front). Local flag renders the screen immediately — without
+            // it the user would bounce back to add-card with a generic error
+            // and an apply button that can never succeed. The cardInfo refetch
+            // lets the state machine own the block on subsequent visits.
+            if (res.status === 'geo-blocked') {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setGeoBlocked(true)
+                void refetchCardInfo()
+                return
+            }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
             setPendingCountryConfirmation(null)
             invalidateOverview()
         },
-        [invalidateOverview]
+        [invalidateOverview, refetchCardInfo]
     )
 
     // The user picked their residence country on the confirmation screen.
@@ -330,13 +352,13 @@ const CardPage: FC = () => {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
-                const message = e instanceof Error ? e.message : 'Failed to confirm country'
+                const message = e instanceof Error ? e.message : t('page.confirmCountryFailed')
                 console.error('[card apply] country confirm error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse]
+        [advanceFromApplyResponse, t]
     )
 
     const handleApply = useCallback(
@@ -361,13 +383,13 @@ const CardPage: FC = () => {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
-                const message = e instanceof Error ? e.message : 'Failed to apply for card'
+                const message = e instanceof Error ? e.message : t('page.applyFailed')
                 console.error('[card apply] error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, pendingTerms]
+        [advanceFromApplyResponse, pendingTerms, t]
     )
 
     const handleAcceptTerms = useCallback(async () => {
@@ -403,18 +425,14 @@ const CardPage: FC = () => {
                 // the backend — no card should be created without consent.
                 setIsIssuing(false)
                 setPendingTerms({ isUsResident: isUsResidentSnapshot })
-                setApplyError(
-                    tap.error.kind === 'user-cancelled'
-                        ? 'Setup cancelled — please try again.'
-                        : 'Could not complete setup — please try again.'
-                )
+                setApplyError(tap.error.kind === 'user-cancelled' ? t('page.setupCancelled') : t('page.setupFailed'))
                 return
             }
             await handleApply(true, tap.serialized)
         } finally {
             setIsIssuing(false)
         }
-    }, [handleApply, overview, pendingTerms, serializeGrant])
+    }, [handleApply, overview, pendingTerms, serializeGrant, t])
 
     // Distinguishes "user finished the applicant action" from "user closed the
     // modal without finishing" — without this both paths would fire
@@ -457,7 +475,7 @@ const CardPage: FC = () => {
             })
             if (controller.signal.aborted) return
             if (readyResult === false) {
-                setApplyError('Verification is taking longer than expected. Please try again.')
+                setApplyError(t('page.verificationSlow'))
                 return
             }
 
@@ -473,21 +491,21 @@ const CardPage: FC = () => {
             })
             if (controller.signal.aborted) return
             if (!res) {
-                setApplyError('Verification is taking longer than expected. Please try again.')
+                setApplyError(t('page.verificationSlow'))
                 return
             }
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
             advanceFromApplyResponse(res)
         } catch (e) {
             if (controller.signal.aborted) return
-            const message = e instanceof Error ? e.message : 'Failed to apply for card'
+            const message = e instanceof Error ? e.message : t('page.applyFailed')
             console.error('[card apply] post-sumsub poll error:', e)
             setApplyError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
         } finally {
             if (!controller.signal.aborted) setIsIssuing(false)
         }
-    }, [advanceFromApplyResponse])
+    }, [advanceFromApplyResponse, t])
 
     const handleSumsubClose = useCallback(() => {
         if (!sumsubCompletedRef.current) {
@@ -509,11 +527,14 @@ const CardPage: FC = () => {
             setPendingTerms({ isUsResident: res.isUsResident })
         } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
             setPendingCountryConfirmation({ candidates: res.candidates })
+        } else if (res.status === 'geo-blocked') {
+            setGeoBlocked(true)
+            void refetchCardInfo()
         } else {
             invalidateOverview()
         }
         return ''
-    }, [invalidateOverview])
+    }, [invalidateOverview, refetchCardInfo])
 
     // Outer-gate fail — the useEffect above fires notFound() to render the
     // 404 boundary; render nothing here so the page doesn't flash for the
@@ -536,9 +557,9 @@ const CardPage: FC = () => {
         return (
             <PageContainer>
                 <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4">
-                    <p className="text-center text-n-1">Failed to load card info. Please try again.</p>
+                    <p className="text-center text-n-1">{t('page.loadFailed')}</p>
                     <Button onClick={() => refetchCardInfo()} variant="purple" shadowSize="4">
-                        Retry
+                        {tCommon('retry')}
                     </Button>
                 </div>
             </PageContainer>
@@ -551,6 +572,12 @@ const CardPage: FC = () => {
         // to Add Card for a split second while the API call is in flight.
         if (isIssuing) {
             return <ApplicationStatusScreen variant="pending" />
+        }
+        // Terminal regulatory block detected mid-funnel by the BE apply gate —
+        // takes precedence over the confirmation/terms overlays (those flows
+        // are moot once the country verdict is in).
+        if (geoBlocked) {
+            return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
         }
         // Residence confirmation comes before terms in the funnel — the
         // backend won't return terms-required until the country is resolved.
@@ -662,13 +689,14 @@ const CardPage: FC = () => {
                         </div>
                     )
                 }
-                const cardRailReason = poaSubmitted
-                    ? 'We received your proof of address — it’s being reviewed.'
-                    : railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRail = railsForProvider('rain')[0]
+                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="requires-info"
                         reasonMessage={cardRailReason}
+                        reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
                         uploadError={poaError ?? undefined}
@@ -686,6 +714,10 @@ const CardPage: FC = () => {
                         onPrev={onBack}
                     />
                 )
+            case 'geo-blocked':
+                // Regulatory dead end (country on Rain's prohibited-issuance
+                // list) — no support CTA, support can't override regulation.
+                return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
             case 'rejected': {
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually
@@ -700,15 +732,14 @@ const CardPage: FC = () => {
                 // (meaningless without its reason), the rejected screen is useful
                 // on its own (reassurance + support CTA), so show it now and let
                 // the reason fill in once capabilities resolve.
-                const cardRailReason = poaSubmitted
-                    ? 'We received your proof of address — it’s being reviewed.'
-                    : capabilitiesLoading
-                      ? undefined
-                      : railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRail = capabilitiesLoading ? undefined : railsForProvider('rain')[0]
+                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"
                         reasonMessage={cardRailReason}
+                        reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
                         uploadError={poaError ?? undefined}

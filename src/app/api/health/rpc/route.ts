@@ -17,6 +17,23 @@ const ALCHEMY_API_KEY = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY
 // If a critical chain has zero healthy providers, overall status = unhealthy.
 const CRITICAL_CHAINS = new Set([1, 42161]) // Ethereum, Arbitrum
 
+type ProviderHealth = {
+    status: 'healthy' | 'degraded' | 'unhealthy'
+    responseTime: number
+    blockNumber?: number | null
+    httpStatus?: number
+    error?: string
+    url: string
+}
+
+type ChainHealth = {
+    chainId: number
+    critical: boolean
+    providers: Record<string, ProviderHealth>
+    overallStatus: string
+    summary?: { total: number; healthy: number; degraded: number; unhealthy: number }
+}
+
 export async function GET() {
     const startTime = Date.now()
 
@@ -34,7 +51,7 @@ export async function GET() {
             )
         }
 
-        const chainResults: any = {}
+        const chainResults: Record<string, ChainHealth> = {}
 
         const chainsToTest = [
             { id: 1, name: 'ethereum' },
@@ -117,7 +134,7 @@ export async function GET() {
                 )
 
                 // Determine chain overall status
-                const chainProviders = Object.values(chainResults[chain.name].providers) as any[]
+                const chainProviders = Object.values(chainResults[chain.name].providers)
                 const healthyCount = chainProviders.filter((p) => p.status === 'healthy').length
                 const degradedCount = chainProviders.filter((p) => p.status === 'degraded').length
                 const unhealthyCount = chainProviders.length - healthyCount - degradedCount

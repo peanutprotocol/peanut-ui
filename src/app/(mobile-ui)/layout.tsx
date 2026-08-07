@@ -33,6 +33,10 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 import '@/hooks/useSafeBack'
 import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
+import SunsetScreen from '@/components/Migration/SunsetScreen'
+import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { shouldShowSunsetBlock } from '@/utils/migration.utils'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -52,6 +56,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
     const { showIosPwaInstallScreen } = useSetupStore()
+    const migrationOn = useMigrationFlag()
+    const hasKeepWebBypass = useKeepWebBypass()
 
     // detect online/offline status for full-page offline screen
     const { isOnline, isInitialized } = useNetworkStatus()
@@ -151,6 +157,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 </div>
             )
         }
+    }
+
+    // PWA sunset: past the cutover the web app is switched off — download the
+    // native app is the only way forward (keep-web cookie bypasses, public
+    // guest links keep working). Must precede the PWA-install and waitlist
+    // screens: the web is gone either way.
+    if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass, isPublic: isPublicPath })) {
+        return <SunsetScreen />
     }
 
     // After setup flow is completed, show ios pwa install screen if not in pwa

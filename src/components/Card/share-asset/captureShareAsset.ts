@@ -44,7 +44,7 @@ export class ShareAssetCaptureError extends Error {
  * Wait for the asset's content to be painted before we snapshot.
  *
  * Every visible element of the asset is a plain <img> now — badge stickers, the
- * card logos, AND the card's pixelated hand (see PixelatedCardFace). The hand
+ * card logos, AND the card's hand (see PixelatedCardFace). The hand
  * used to be a runtime <canvas>, which html-to-image silently dropped when it
  * couldn't serialise it (canvas.toDataURL() returns empty on iOS Safari for an
  * SVG-sourced canvas → blank card, no error: the launch-day "blank share asset"

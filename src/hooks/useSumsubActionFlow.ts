@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 
 export interface ActionFlowResponse {
     token: string | null
@@ -30,6 +31,7 @@ interface UseSumsubActionFlowOptions {
  * - needs_support: edge case requiring manual support
  */
 export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: UseSumsubActionFlowOptions) {
+    const t = useTranslations('kyc')
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
@@ -57,7 +59,7 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
             }
 
             if (!response.data) {
-                setError('No response from server. Please try again.')
+                setError(t('errorNoResponse'))
                 return
             }
 
@@ -80,15 +82,15 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
                 setAccessToken(token)
                 setShowWrapper(true)
             } else {
-                setError(message || 'Could not start document verification. Please try again.')
+                setError(message || t('errorStartDocVerification'))
             }
         } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : 'An unexpected error occurred'
+            const message = e instanceof Error ? e.message : t('unexpectedError')
             setError(message)
         } finally {
             setIsLoading(false)
         }
-    }, [])
+    }, [t])
 
     // called when SDK signals verification was submitted
     const handleSdkComplete = useCallback(() => {

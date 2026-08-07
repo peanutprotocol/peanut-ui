@@ -7,6 +7,7 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
@@ -30,6 +31,8 @@ const InstallPWA = ({
     screenId?: ScreenId
     setShowBraveSuccessMessage?: (show: boolean) => void
 }) => {
+    const t = useTranslations('setup.installPwa')
+    const tCommon = useTranslations('common')
     const toast = useToast()
     const { handleNext, isLoading: isSetupFlowLoading } = useSetupFlow()
     const [showModal, setShowModal] = useState(false)
@@ -156,7 +159,7 @@ const InstallPWA = ({
                             shadowSize="4"
                             loading={isSetupFlowLoading}
                         >
-                            Continue
+                            {tCommon('continue')}
                         </Button>
                     </div>
                 )
@@ -187,7 +190,7 @@ const InstallPWA = ({
                         }
                         className="btn btn-purple btn-shadow-primary-4 flex w-full items-center justify-center gap-2 no-underline transition-all duration-100 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
                     >
-                        Open Peanut app
+                        {t('openPeanutApp')}
                     </a>
                 </div>
             )
@@ -198,7 +201,7 @@ const InstallPWA = ({
             return (
                 <div className="flex flex-col items-center gap-4">
                     <Button disabled={true} className="w-full" shadowSize="4" loading={true}>
-                        Installing
+                        {t('installing')}
                     </Button>
                 </div>
             )
@@ -209,11 +212,9 @@ const InstallPWA = ({
             return (
                 <div className="flex flex-col items-center gap-4">
                     <Button onClick={handleInstall} disabled={isSetupFlowLoading} className="w-full" shadowSize="4">
-                        Add Peanut to Home Screen
+                        {t('addToHomeScreen')}
                     </Button>
-                    {installCancelled && (
-                        <ErrorAlert description="Installation cancelled. You can try adding to Home Screen again." />
-                    )}
+                    {installCancelled && <ErrorAlert description={t('installCancelled')} />}
                 </div>
             )
         }
@@ -221,11 +222,9 @@ const InstallPWA = ({
         // Scenario 4: Fallback (manual install instructions)
         return (
             <div className="space-y-4 text-center">
-                <p className="text-sm text-grey-1">
-                    To install the app, please add it to your Home Screen from your browser menu.
-                </p>
+                <p className="text-sm text-grey-1">{t('manualInstallHint')}</p>
                 <Button onClick={() => handleNext()} className="w-full" shadowSize="4" variant="purple">
-                    Continue
+                    {tCommon('continue')}
                 </Button>
             </div>
         )
@@ -237,10 +236,8 @@ const InstallPWA = ({
                 <Icon name="mobile-install" size={24} />
             </div>
             <div className="space-y-3 text-center">
-                <StepTitle text="Peanut is mobile first!" />
-                <p className="max-w-[220px] text-lg font-normal text-grey-1">
-                    For a better experience, use Peanut on your phone.
-                </p>
+                <StepTitle text={t('mobileFirstTitle')} />
+                <p className="max-w-[220px] text-lg font-normal text-grey-1">{t('mobileFirstDescription')}</p>
             </div>
             <div className="mx-auto rounded-lg">
                 <QRCodeWrapper url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin} />
@@ -265,7 +262,7 @@ const InstallPWA = ({
                                 shadowSize="4"
                                 variant="purple"
                             >
-                                {installComplete ? 'Open in the App' : 'Install App'}
+                                {installComplete ? t('openInApp') : t('installApp')}
                             </Button>
                         </div>
                         {showModal && (
@@ -283,7 +280,7 @@ const InstallPWA = ({
                                         shadowSize="4"
                                         variant="purple"
                                     >
-                                        Got it!
+                                        {t('gotIt')}
                                     </Button>
                                 </div>
                             </Modal>

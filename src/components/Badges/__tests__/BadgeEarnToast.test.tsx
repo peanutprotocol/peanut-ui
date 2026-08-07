@@ -1,6 +1,9 @@
-import { render, screen, act } from '@testing-library/react'
+import { render as rtlRender, screen, act } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import type { ComponentProps } from 'react'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
+
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 // next/navigation — mutable pathname so we can exercise the /home gate; stable
 // router object so the effect doesn't re-fire on the tap-triggered re-render.
@@ -35,8 +38,12 @@ jest.mock('@/components/Badges/useBadgeEarnToast', () => ({
 
 // Minimal stub: surface the title so we can assert the detail modal opened.
 jest.mock('@/components/Badges/BadgeDetailModal', () => ({
-    BadgeDetailModal: ({ isOpen, title }: { isOpen: boolean; title: string }) =>
-        isOpen ? <div data-testid="badge-detail-modal">{title}</div> : null,
+    BadgeDetailModal: ({ isOpen, title, code }: { isOpen: boolean; title: string; code?: string }) =>
+        isOpen ? (
+            <div data-testid="badge-detail-modal" data-code={code}>
+                {title}
+            </div>
+        ) : null,
 }))
 
 import posthog from 'posthog-js'
@@ -84,6 +91,7 @@ describe('BadgeEarnToast', () => {
         expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:PRODUCT_HUNT')
         expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_tapped', { count: 1 })
         expect(screen.getByTestId('badge-detail-modal')).toHaveTextContent('Product Hunt')
+        expect(screen.getByTestId('badge-detail-modal')).toHaveAttribute('data-code', 'PRODUCT_HUNT')
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 

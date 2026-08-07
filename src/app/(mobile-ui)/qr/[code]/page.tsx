@@ -6,6 +6,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { serverFetch } from '@/utils/api-fetch'
 import { useAuth } from '@/context/authContext'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -18,6 +19,9 @@ import type { ShakeIntensity } from '@/hooks/useHoldToClaim'
 import { qrSuccessUrl } from '@/utils/native-routes'
 
 export default function RedirectQrClaimPage() {
+    const t = useTranslations('qrPay')
+    const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
     const router = useRouter()
     const params = useParams()
     const searchParams = useSearchParams()
@@ -56,11 +60,11 @@ export default function RedirectQrClaimPage() {
                         window.location.href = redirectQrData.redirectUrl
                     } else {
                         console.error('Untrusted external redirect blocked:', redirectQrData.redirectUrl)
-                        setError('Invalid QR code destination.')
+                        setError(t('claim.invalidDestination'))
                     }
-                } catch (error) {
+                } catch {
                     console.error('Invalid redirect URL:', redirectQrData.redirectUrl)
-                    setError('Invalid QR code destination.')
+                    setError(t('claim.invalidDestination'))
                 }
             }
             return
@@ -106,14 +110,14 @@ export default function RedirectQrClaimPage() {
 
             // Success! Show success page, then redirect to invite (which goes to profile for logged-in users)
             router.push(qrSuccessUrl(code))
-        } catch (err: any) {
+        } catch (err) {
             console.error('Error claiming QR:', err)
             // Always show generic error message (don't expose backend details)
-            setError('Failed to claim QR code. Please try again.')
+            setError(t('claim.claimFailed'))
         } finally {
             setIsLoading(false)
         }
-    }, [code, router, user])
+    }, [code, router, user, t])
 
     // Shake state surfaced by <HoldToClaimButton /> so the surrounding
     // column shakes with the button — same scope as the eligibility-check.
@@ -126,7 +130,7 @@ export default function RedirectQrClaimPage() {
     if (isCheckingStatus || (redirectQrData?.claimed && redirectQrData?.redirectUrl)) {
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
-                <NavHeader title="Loading" />
+                <NavHeader title={tLoading('loading')} />
                 <div className="my-auto flex h-full items-center justify-center">
                     <PeanutLoading />
                 </div>
@@ -139,7 +143,7 @@ export default function RedirectQrClaimPage() {
     if (!user) {
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
-                <NavHeader title="Loading" />
+                <NavHeader title={tLoading('loading')} />
                 <div className="my-auto flex h-full items-center justify-center">
                     <PeanutLoading />
                 </div>
@@ -155,7 +159,7 @@ export default function RedirectQrClaimPage() {
         }
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
-                <NavHeader title="Claim QR Code" />
+                <NavHeader title={t('claim.navTitle')} />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     <Card className="space-y-4 p-6">
                         <div className="flex items-center justify-center">
@@ -164,16 +168,14 @@ export default function RedirectQrClaimPage() {
                             </div>
                         </div>
                         <div className="space-y-2 text-center">
-                            <h1 className="text-2xl font-extrabold">QR Code Unavailable</h1>
+                            <h1 className="text-2xl font-extrabold">{t('claim.unavailableTitle')}</h1>
                             <p className="text-base text-grey-1">
-                                {redirectQrData?.claimed
-                                    ? 'This QR code has already been claimed by another user.'
-                                    : 'This QR code is not available for claiming.'}
+                                {redirectQrData?.claimed ? t('claim.alreadyClaimed') : t('claim.notAvailable')}
                             </p>
                         </div>
                     </Card>
                     <Button variant="purple" shadowSize="4" onClick={() => router.push('/home')} className="w-full">
-                        Go to Home
+                        {tCommon('goToHome')}
                     </Button>
                 </div>
             </div>
@@ -182,7 +184,7 @@ export default function RedirectQrClaimPage() {
 
     return (
         <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
-            <NavHeader title="Your Invite QR" />
+            <NavHeader title={t('claim.inviteQrTitle')} />
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* QR Code Visual */}
                 <Card className="space-y-4 p-6">
@@ -192,10 +194,8 @@ export default function RedirectQrClaimPage() {
                         </div>
                     </div>
                     <div className="space-y-2 text-center">
-                        <h1 className="text-2xl font-extrabold">Your Invite QR</h1>
-                        <p className="text-base text-grey-1">
-                            Share anywhere. Points keep coming from the activity of friends & their friends.
-                        </p>
+                        <h1 className="text-2xl font-extrabold">{t('claim.inviteQrTitle')}</h1>
+                        <p className="text-base text-grey-1">{t('claim.inviteQrDescription')}</p>
                     </div>
                 </Card>
 
@@ -204,7 +204,7 @@ export default function RedirectQrClaimPage() {
                     <div className="flex gap-3">
                         <Icon name="info" size={20} className="flex-shrink-0 text-secondary-1" />
                         <p className="text-sm font-medium">
-                            <strong>Note:</strong> Permanent once claimed.
+                            {t.rich('claim.permanentNote', { strong: (chunks) => <strong>{chunks}</strong> })}
                         </p>
                     </div>
                 </Card>
@@ -217,7 +217,7 @@ export default function RedirectQrClaimPage() {
                     loading={isLoading}
                     onShakeChange={(on, intensity) => setShake({ on, intensity })}
                 >
-                    {isLoading ? 'Claiming...' : 'Hold to make it yours forever'}
+                    {isLoading ? t('claim.claiming') : t('claim.holdToClaim')}
                 </HoldToClaimButton>
 
                 {error && <ErrorAlert description={error} />}

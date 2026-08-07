@@ -1,5 +1,6 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
+import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 import { isNegativeWireAmount, normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
 
 export const qrPay: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => {
@@ -8,6 +9,7 @@ export const qrPay: TransactionStrategy = (entry: HistoryEntry): TransactionStra
         direction: 'qr_payment',
         transactionCardType: 'pay',
         nameForDetails: raw ? normalizeMerchantName(raw) : 'Merchant',
+        nameKey: raw ? undefined : TRANSACTION_NAME_KEYS.merchant,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }
@@ -30,6 +32,7 @@ export const cardSpend: TransactionStrategy = (entry: HistoryEntry): Transaction
         // render the Mercado Pago / PIX brand mark instead.
         transactionCardType: 'card_pay',
         nameForDetails: merchantName ? normalizeMerchantName(merchantName) : 'Card payment',
+        nameKey: merchantName ? undefined : TRANSACTION_NAME_KEYS.cardPayment,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }
@@ -42,6 +45,8 @@ export const cardRefund: TransactionStrategy = (entry: HistoryEntry): Transactio
         direction: 'receive',
         transactionCardType: 'refund',
         nameForDetails: cleaned ? `Refund from ${cleaned}` : 'Card refund',
+        nameKey: cleaned ? TRANSACTION_NAME_KEYS.refundFrom : TRANSACTION_NAME_KEYS.cardRefund,
+        nameParams: cleaned ? { name: cleaned } : undefined,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }

@@ -25,7 +25,6 @@ describe('shareableUrl', () => {
         jest.resetModules()
         jest.doMock('@/utils/capacitor', () => ({ isCapacitor: () => true }))
         setOrigin('https://localhost')
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { shareableUrl: scoped } = require('@/utils/url.utils')
         const link = scoped('/invite?code=demo')
         expect(link).not.toContain('localhost')

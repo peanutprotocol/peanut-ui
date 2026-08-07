@@ -8,8 +8,11 @@
  * confirmed in-app.
  */
 import React from 'react'
-import { render, act } from '@testing-library/react'
+import { render as rtlRender, act } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import IframeWrapper from '../index'
+
+const render = (ui: React.ReactElement) => rtlRender(<IntlWrapper>{ui}</IntlWrapper>)
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@/context/ModalsContext', () => ({

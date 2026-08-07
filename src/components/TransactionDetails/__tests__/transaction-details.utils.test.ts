@@ -12,7 +12,7 @@
  * enum (`WALLET_EXTERNAL`), which never reaches the FE. Each case below fails
  * on the pre-fix code (where `'address'` fell through to `formatIban`).
  */
-import { getAccountCopyValue, getBankAccountLabel } from '../transaction-details.utils'
+import { getAccountCopyValue, bankAccountLabelKey } from '../transaction-details.utils'
 import { isCryptoAddressType, maskAccountIdentifier } from '@/utils/account-mask.utils'
 
 // 3rd char is a LETTER (G) — dodges the /^[a-zA-Z]{2}\d/ display heuristic.
@@ -78,14 +78,14 @@ describe('maskAccountIdentifier — display path', () => {
     })
 })
 
-describe('getBankAccountLabel', () => {
-    test("crypto destinations (wire type 'address') label as Address, not Account Number", () => {
-        expect(getBankAccountLabel('address')).toBe('Address')
-        expect(getBankAccountLabel('evm-address')).toBe('Address')
+describe('bankAccountLabelKey', () => {
+    test("crypto destinations (wire type 'address') map to the 'address' key, not 'accountNumber'", () => {
+        expect(bankAccountLabelKey('address')).toBe('address')
+        expect(bankAccountLabelKey('evm-address')).toBe('address')
     })
-    test('bank rails unchanged', () => {
-        expect(getBankAccountLabel('BANK_IBAN')).toBe('IBAN')
-        expect(getBankAccountLabel('BANK_CLABE')).toBe('CLABE')
-        expect(getBankAccountLabel('us')).toBe('Account Number')
+    test('bank rails map to their scheme key', () => {
+        expect(bankAccountLabelKey('BANK_IBAN')).toBe('iban')
+        expect(bankAccountLabelKey('BANK_CLABE')).toBe('clabe')
+        expect(bankAccountLabelKey('us')).toBe('accountNumber')
     })
 })

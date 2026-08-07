@@ -7,7 +7,10 @@
  * honor it (i.e. provides the handler — the semantic-request flow does).
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
+
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({

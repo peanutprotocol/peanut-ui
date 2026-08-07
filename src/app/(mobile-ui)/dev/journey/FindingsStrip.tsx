@@ -6,7 +6,7 @@ import { FINDINGS } from './journeyData'
  * The inventory's product-issue findings as collapsible warning cards —
  * real gaps in the activation journey, kept visible next to the board.
  */
-export default function FindingsStrip() {
+export default function FindingsStrip({ showDev }: { showDev: boolean }) {
     return (
         <div className="flex flex-col gap-2">
             {FINDINGS.map((finding) => (
@@ -16,9 +16,11 @@ export default function FindingsStrip() {
                     </summary>
                     <div className="border-t border-n-1 bg-white px-3 py-2">
                         <p className="text-sm">{finding.detail}</p>
-                        <p className="mt-1.5 break-all font-mono text-[10px] leading-relaxed text-grey-1">
-                            {finding.sourceFiles.join(' · ')}
-                        </p>
+                        {showDev && (
+                            <p className="mt-1.5 break-all font-mono text-[10px] leading-relaxed text-grey-1">
+                                {finding.sourceFiles.join(' · ')}
+                            </p>
+                        )}
                     </div>
                 </details>
             ))}

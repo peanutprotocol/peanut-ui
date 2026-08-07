@@ -13,9 +13,12 @@
  * the click wiring are mocked (router, haptic, drawer state, ENS lookup, auth).
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import TransactionCard from '../TransactionCard'
 import { type TransactionDetails } from '../transactionTransformer'
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const push = jest.fn()
 const triggerHaptic = jest.fn()
@@ -55,7 +58,6 @@ jest.mock('../TransactionDetailsDrawer', () => ({
 jest.mock('next/image', () => ({
     __esModule: true,
     default: (props: Record<string, unknown>) => {
-        // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
         return React.createElement('img', props as Record<string, string>)
     },
 }))
