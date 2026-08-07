@@ -22,6 +22,19 @@ export function isCapacitor(): boolean {
 }
 
 /**
+ * true ONLY when the capacitor native bridge is actually present.
+ *
+ * Unlike {@link isCapacitor}, this ignores NEXT_PUBLIC_CAPACITOR_BUILD, which
+ * is baked into web builds (vercel previews) where there is no bridge at all.
+ * Use this to decide whether a NATIVE api will really work; use isCapacitor()
+ * for build-flavor questions.
+ */
+export function isNativeBridge(): boolean {
+    if (typeof window === 'undefined') return false
+    return !!window.Capacitor?.isNativePlatform?.()
+}
+
+/**
  * returns the platform the app is running on
  */
 export function getPlatform(): 'web' | 'ios-native' | 'android-native' | 'ios-pwa' | 'android-pwa' {
