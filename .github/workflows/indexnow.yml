@@ -6,9 +6,19 @@ on:
     deployment_status:
     # Allow manual trigger
     workflow_dispatch:
+        inputs:
+            full:
+                description: 'Submit every sitemap URL instead of only what changed'
+                type: boolean
+                default: false
 
 permissions:
     contents: read
+
+# Deploys overlap; serialise so runs can't race on the submission-state cache.
+concurrency:
+    group: indexnow
+    cancel-in-progress: false
 
 jobs:
     ping:
@@ -24,16 +34,95 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Deep enough to diff against the content commit we last submitted for.
+                  fetch-depth: 100
+
+            - uses: actions/cache/restore@v4
+              with:
+                  path: .indexnow-state
+                  key: indexnow-state-${{ github.sha }}
+                  restore-keys: indexnow-state-
+
+            - name: Resolve what changed since the last submission
+              id: changes
+              run: |
+                  state=.indexnow-state/urls.json
+                  content_sha=$(git -C src/content rev-parse HEAD)
+                  echo "content_sha=$content_sha" >> "$GITHUB_OUTPUT"
+
+                  if [ ! -f "$state" ]; then
+                      echo "No submission state cached — the script will submit the full sitemap."
+                      echo "run=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+
+                  # checkout clones submodules at the superproject's depth; the commit we last
+                  # submitted for can sit outside it, so take the whole content history.
+                  if [ "$(git -C src/content rev-parse --is-shallow-repository)" = 'true' ]; then
+                      git -C src/content fetch --unshallow --quiet || true
+                  fi
+
+                  prev_content_sha=$(jq -r '.contentSha // empty' "$state")
+                  if [ -n "$prev_content_sha" ] && git -C src/content cat-file -e "$prev_content_sha^{commit}" 2>/dev/null; then
+                      changed=$(git -C src/content diff --name-only "$prev_content_sha" "$content_sha")
+                      force_full=false
+                  else
+                      # Without the diff we cannot tell which existing pages were edited, and the
+                      # sitemap diff only surfaces new URLs. Resubmit everything rather than skip.
+                      echo "Previous content commit unavailable — falling back to a full submission."
+                      changed=""
+                      force_full=true
+                  fi
+                  echo "force_full=$force_full" >> "$GITHUB_OUTPUT"
+
+                  {
+                      echo 'changed_files<<EOF'
+                      echo "$changed"
+                      echo 'EOF'
+                  } >> "$GITHUB_OUTPUT"
+
+                  # Everything outside the submodule that can add or remove a sitemap URL.
+                  prev_sha=$(jq -r '.sha // empty' "$state")
+                  if [ -n "$prev_sha" ] && git cat-file -e "$prev_sha^{commit}" 2>/dev/null; then
+                      sources_changed=$(git diff --name-only "$prev_sha" "$GITHUB_SHA" -- \
+                          src/app/sitemap.ts src/data/seo src/i18n src/lib/content.ts src/lib/blog.ts)
+                  else
+                      echo "Previous commit outside fetch depth — running rather than risk missing new URLs."
+                      sources_changed="unknown"
+                  fi
+
+                  if [ -z "$changed" ] && [ -z "$sources_changed" ] && [ "$prev_content_sha" = "$content_sha" ] \
+                      && [ "$force_full" != 'true' ] && [ "${{ inputs.full }}" != 'true' ]; then
+                      echo 'Nothing that affects the sitemap changed since the last submission — skipping.'
+                      echo "run=false" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "run=true" >> "$GITHUB_OUTPUT"
+                  fi
 
             - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+              if: steps.changes.outputs.run == 'true'
+
             - uses: actions/setup-node@v4
+              if: steps.changes.outputs.run == 'true'
               with:
-                  node-version-file: '.node-version'
+                  node-version: '20'
                   cache: 'pnpm'
 
             - run: pnpm install --frozen-lockfile
+              if: steps.changes.outputs.run == 'true'
 
             - name: Ping IndexNow
+              if: steps.changes.outputs.run == 'true'
               env:
+                  # Not a secret by design — IndexNow requires it to be served at public/<key>.txt.
                   INDEXNOW_KEY: '054e10e6239a45cb2d06e92d669f5b6f'
+                  INDEXNOW_FULL: ${{ inputs.full == true || steps.changes.outputs.force_full == 'true' }}
+                  INDEXNOW_CHANGED_FILES: ${{ steps.changes.outputs.changed_files }}
+                  INDEXNOW_CONTENT_SHA: ${{ steps.changes.outputs.content_sha }}
               run: pnpm tsx scripts/ping-indexnow.ts
+
+            - uses: actions/cache/save@v4
+              if: steps.changes.outputs.run == 'true'
+              with:
+                  path: .indexnow-state
+                  key: indexnow-state-${{ github.sha }}
