@@ -16,6 +16,13 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
     // Expected input validation, surfaced inline to the user — not a server bug.
     { pattern: /\/invites\/validate/, statuses: [400] },
+    // Public FX pair misses and validation failures are expected user/input
+    // outcomes, not backend incidents. 503 is included deliberately: it means a
+    // provider leg is momentarily absent, which peanut-api already reports with
+    // the upstream cause attached. Reporting it here too would multiply one
+    // incident by every mounted hook and its retries — the merchant page alone
+    // runs three — and bury the backend signal that can actually be acted on.
+    { pattern: /\/fx\/rate(?:\?|$)/, statuses: [400, 404, 429, 503] },
     // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)

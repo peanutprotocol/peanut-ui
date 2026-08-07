@@ -155,10 +155,39 @@
 				"parameters": [
 					{
 						"schema": {
+							"type": "integer",
+							"minimum": 1
+						},
+						"in": "query",
+						"name": "chainId",
+						"required": false
+					},
+					{
+						"schema": {
 							"type": "string"
 						},
 						"in": "path",
 						"name": "ensName",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/ens/reverse/{address}": {
+			"get": {
+				"parameters": [
+					{
+						"schema": {
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"type": "string"
+						},
+						"in": "path",
+						"name": "address",
 						"required": true
 					}
 				],
@@ -573,6 +602,10 @@
 																					{
 																						"type": "string",
 																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["bridge-hosted"]
 																					}
 																				]
 																			},
@@ -638,6 +671,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["provide-email"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["bridge-hosted"]
 																	}
 																]
 															},
@@ -1607,6 +1644,10 @@
 																					{
 																						"type": "string",
 																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["bridge-hosted"]
 																					}
 																				]
 																			},
@@ -1672,6 +1713,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["provide-email"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["bridge-hosted"]
 																	}
 																]
 															},
@@ -1781,9 +1826,11 @@
 										},
 										"externalActionId": {
 											"type": "string"
+										},
+										"verificationUrl": {
+											"type": "string"
 										}
-									},
-									"required": ["sumsubAccessToken", "levelName"]
+									}
 								}
 							}
 						}
@@ -1795,7 +1842,23 @@
 			"get": {
 				"responses": {
 					"200": {
-						"description": "Default Response"
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tosLink": {
+											"type": "string"
+										},
+										"endorsement": {
+											"type": "string"
+										}
+									},
+									"required": ["tosLink", "endorsement"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1815,6 +1878,175 @@
 				"responses": {
 					"200": {
 						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/consent/status": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"documents": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"slug": {
+														"type": "string"
+													},
+													"currentVersion": {
+														"type": "string"
+													},
+													"acceptedVersion": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"acceptedAt": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"needsAcceptance": {
+														"type": "boolean"
+													}
+												},
+												"required": [
+													"slug",
+													"currentVersion",
+													"acceptedVersion",
+													"acceptedAt",
+													"needsAcceptance"
+												]
+											}
+										},
+										"needsReConsent": {
+											"type": "boolean"
+										}
+									},
+									"required": ["documents", "needsReConsent"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/users/consent/accept": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"documents": {
+										"minItems": 1,
+										"maxItems": 8,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"slug": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"hash": {
+													"type": "string"
+												}
+											},
+											"required": ["slug", "version"]
+										}
+									}
+								},
+								"required": ["documents"]
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"recorded": {
+											"type": "number"
+										}
+									},
+									"required": ["recorded"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1967,6 +2199,25 @@
 									"cred": {},
 									"rpID": {
 										"type": "string"
+									},
+									"acceptedLegal": {
+										"maxItems": 4,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"slug": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"hash": {
+													"type": "string"
+												}
+											},
+											"required": ["slug", "version"]
+										}
 									}
 								},
 								"required": ["userId", "username", "cred"]
@@ -8193,6 +8444,25 @@
 										"minLength": 2,
 										"maxLength": 2,
 										"type": "string"
+									},
+									"acceptedDocuments": {
+										"maxItems": 8,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"slug": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"hash": {
+													"type": "string"
+												}
+											},
+											"required": ["slug", "version"]
+										}
 									}
 								}
 							}
@@ -11890,6 +12160,18 @@
 											{
 												"type": "string",
 												"enum": ["MANICERO"]
+											},
+											{
+												"type": "string",
+												"enum": ["NITA"]
+											},
+											{
+												"type": "string",
+												"enum": ["NAIJA"]
+											},
+											{
+												"type": "string",
+												"enum": ["TERERE"]
 											}
 										]
 									},
@@ -14167,6 +14449,448 @@
 				"responses": {
 					"200": {
 						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/fx/rates": {
+			"get": {
+				"description": "Public, indicative display-sell FX rates resolved relative to one base. unitsPerBase is quote-currency units per one base unit.",
+				"parameters": [
+					{
+						"schema": {
+							"pattern": "^[A-Za-z]{3,4}$",
+							"type": "string"
+						},
+						"in": "query",
+						"name": "base",
+						"required": false,
+						"description": "ISO-style currency code or supported four-letter internal ticker"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"base": {
+											"pattern": "^[A-Z]{3,4}$",
+											"type": "string"
+										},
+										"basis": {
+											"type": "string",
+											"enum": ["display_sell"]
+										},
+										"indicative": {
+											"type": "boolean",
+											"enum": [true]
+										},
+										"generatedAt": {
+											"format": "date-time",
+											"type": "string"
+										},
+										"rates": {
+											"minItems": 1,
+											"maxItems": 512,
+											"type": "array",
+											"items": {
+												"additionalProperties": false,
+												"type": "object",
+												"properties": {
+													"code": {
+														"pattern": "^[A-Z]{3,4}$",
+														"type": "string"
+													},
+													"unitsPerBase": {
+														"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+														"type": "string"
+													},
+													"selection": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["identity"]
+															},
+															{
+																"type": "string",
+																"enum": ["provider_pair"]
+															},
+															{
+																"type": "string",
+																"enum": ["reference_pair"]
+															}
+														]
+													},
+													"baseSource": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["identity"]
+															},
+															{
+																"type": "string",
+																"enum": ["bridge"]
+															},
+															{
+																"type": "string",
+																"enum": ["manteca"]
+															},
+															{
+																"type": "string",
+																"enum": ["reference"]
+															}
+														]
+													},
+													"quoteSource": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["identity"]
+															},
+															{
+																"type": "string",
+																"enum": ["bridge"]
+															},
+															{
+																"type": "string",
+																"enum": ["manteca"]
+															},
+															{
+																"type": "string",
+																"enum": ["reference"]
+															}
+														]
+													},
+													"effectiveAt": {
+														"anyOf": [
+															{
+																"format": "date-time",
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													}
+												},
+												"required": [
+													"code",
+													"unitsPerBase",
+													"selection",
+													"baseSource",
+													"quoteSource",
+													"effectiveAt"
+												]
+											}
+										}
+									},
+									"required": ["base", "basis", "indicative", "generatedAt", "rates"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/fx/rate": {
+			"get": {
+				"description": "Public indicative display-sell rate for one currency pair.",
+				"parameters": [
+					{
+						"schema": {
+							"pattern": "^[A-Za-z]{3,4}$",
+							"type": "string"
+						},
+						"in": "query",
+						"name": "from",
+						"required": true,
+						"description": "ISO-style currency code or supported four-letter internal ticker"
+					},
+					{
+						"schema": {
+							"pattern": "^[A-Za-z]{3,4}$",
+							"type": "string"
+						},
+						"in": "query",
+						"name": "to",
+						"required": true,
+						"description": "ISO-style currency code or supported four-letter internal ticker"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"from": {
+											"pattern": "^[A-Z]{3,4}$",
+											"type": "string"
+										},
+										"to": {
+											"pattern": "^[A-Z]{3,4}$",
+											"type": "string"
+										},
+										"rate": {
+											"pattern": "^(?:0|[1-9]\\d*)(?:\\.\\d{1,18})?$",
+											"type": "string"
+										},
+										"basis": {
+											"type": "string",
+											"enum": ["display_sell"]
+										},
+										"indicative": {
+											"type": "boolean",
+											"enum": [true]
+										},
+										"selection": {
+											"anyOf": [
+												{
+													"type": "string",
+													"enum": ["identity"]
+												},
+												{
+													"type": "string",
+													"enum": ["provider_pair"]
+												},
+												{
+													"type": "string",
+													"enum": ["reference_pair"]
+												}
+											]
+										},
+										"fromSource": {
+											"anyOf": [
+												{
+													"type": "string",
+													"enum": ["identity"]
+												},
+												{
+													"type": "string",
+													"enum": ["bridge"]
+												},
+												{
+													"type": "string",
+													"enum": ["manteca"]
+												},
+												{
+													"type": "string",
+													"enum": ["reference"]
+												}
+											]
+										},
+										"toSource": {
+											"anyOf": [
+												{
+													"type": "string",
+													"enum": ["identity"]
+												},
+												{
+													"type": "string",
+													"enum": ["bridge"]
+												},
+												{
+													"type": "string",
+													"enum": ["manteca"]
+												},
+												{
+													"type": "string",
+													"enum": ["reference"]
+												}
+											]
+										},
+										"effectiveAt": {
+											"anyOf": [
+												{
+													"format": "date-time",
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"generatedAt": {
+											"format": "date-time",
+											"type": "string"
+										}
+									},
+									"required": [
+										"from",
+										"to",
+										"rate",
+										"basis",
+										"indicative",
+										"selection",
+										"fromSource",
+										"toSource",
+										"effectiveAt",
+										"generatedAt"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"503": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": false,
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["error", "message"]
+								}
+							}
+						}
 					}
 				}
 			}
