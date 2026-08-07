@@ -1003,6 +1003,27 @@ describe('GROUP 1: Landing / Method Selection', () => {
         expect(screen.getByText('Add Money')).toBeInTheDocument()
     })
 
+    test('an earned Offramp badge keeps its migration entry regardless of provenance', () => {
+        mockUseAuth.mockReturnValue({
+            user: {
+                user: {
+                    username: 'test-user',
+                    userId: 'user-123',
+                    badges: [{ code: 'OFFRAMP_USER' }],
+                },
+            },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('action-card-migrate-from-offramp'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp')
+        expect(screen.getByText('Crypto')).toBeInTheDocument()
+        expect(screen.getByText('Bank Transfer')).toBeInTheDocument()
+    })
+
     test('clicking Crypto opens the network drawer', () => {
         renderWithProviders(<AddMoneyPage />)
 

@@ -226,7 +226,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/ens/{ensName}": {
+    "/ens/reverse/{address}": {
         parameters: {
             query?: never;
             header?: never;
@@ -235,12 +235,10 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: {
-                    chainId?: number;
-                };
+                query?: never;
                 header?: never;
                 path: {
-                    ensName: string;
+                    address: string;
                 };
                 cookie?: never;
             };
@@ -263,7 +261,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/ens/reverse/{address}": {
+    "/ens/{ensName}": {
         parameters: {
             query?: never;
             header?: never;
@@ -272,10 +270,12 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    chainId?: number;
+                };
                 header?: never;
                 path: {
-                    address: string;
+                    ensName: string;
                 };
                 cookie?: never;
             };
@@ -1881,6 +1881,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -1892,6 +1893,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -1903,6 +1905,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3089,7 +3092,23 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            code?: string;
+                        };
+                    };
                 };
             };
         };
@@ -3400,6 +3419,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3411,6 +3431,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3422,6 +3443,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3494,6 +3516,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3505,6 +3528,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3516,6 +3540,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3527,6 +3552,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                             retryAfterSec?: number;
                         };
                     };
@@ -3539,6 +3565,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3550,6 +3577,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3605,6 +3633,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3616,6 +3645,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3679,6 +3709,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3690,6 +3721,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3714,6 +3746,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -3725,6 +3758,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -4486,7 +4520,94 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            message: string;
+                            /** @enum {boolean} */
+                            attributionResolved: true;
+                            /** @enum {boolean} */
+                            onboardingResolved: true;
+                            attributionKind: "PERSONAL" | "SYSTEM" | "LEGACY_UNRESOLVED";
+                            claims: {
+                                /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
+                                badgeCampaign: string;
+                                /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                badgeCode?: string;
+                                badge?: {
+                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                    code: string;
+                                    name: string;
+                                    description: string;
+                                    publicDescription: string;
+                                    iconUrl: string;
+                                };
+                                outcome: "awarded" | "already_owned" | "inactive" | "expired" | "unknown" | "definition_missing";
+                                acquisition?: {
+                                    /** @enum {string} */
+                                    fallback: "normal_app";
+                                    destination: "offramp_migration" | "normal_app";
+                                };
+                            }[];
+                            legacyAcquisition?: {
+                                campaignTag: string;
+                                /** @enum {string} */
+                                fallback: "normal_app";
+                                destination: "offramp_migration" | "normal_app";
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            /** @enum {boolean} */
+                            attributionResolved: false;
+                            /** @enum {boolean} */
+                            onboardingResolved: false;
+                            claims: {
+                                /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
+                                badgeCampaign: string;
+                                /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                badgeCode?: string;
+                                badge?: {
+                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                    code: string;
+                                    name: string;
+                                    description: string;
+                                    publicDescription: string;
+                                    iconUrl: string;
+                                };
+                                outcome: "awarded" | "already_owned" | "inactive" | "expired" | "unknown" | "definition_missing";
+                                acquisition?: {
+                                    /** @enum {string} */
+                                    fallback: "normal_app";
+                                    destination: "offramp_migration" | "normal_app";
+                                };
+                            }[];
+                            legacyAcquisition?: {
+                                campaignTag: string;
+                                /** @enum {string} */
+                                fallback: "normal_app";
+                                destination: "offramp_migration" | "normal_app";
+                            };
+                        };
+                    };
                 };
             };
         };
@@ -4558,7 +4679,55 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            message: string;
+                            /** @enum {boolean} */
+                            attributionResolved: true;
+                            /** @enum {boolean} */
+                            onboardingResolved: true;
+                            attributionKind: "PERSONAL" | "SYSTEM" | "LEGACY_UNRESOLVED";
+                            username: string;
+                            legacyAcquisition?: {
+                                campaignTag: string;
+                                /** @enum {string} */
+                                fallback: "normal_app";
+                                destination: "offramp_migration" | "normal_app";
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            /** @enum {boolean} */
+                            attributionResolved: false;
+                            /** @enum {boolean} */
+                            onboardingResolved: false;
+                            legacyAcquisition?: {
+                                campaignTag: string;
+                                /** @enum {string} */
+                                fallback: "normal_app";
+                                destination: "offramp_migration" | "normal_app";
+                            };
+                        };
+                    };
                 };
             };
         };
@@ -5014,6 +5183,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/badge/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        badgeCampaigns: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            claims: {
+                                /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
+                                badgeCampaign: string;
+                                /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                badgeCode?: string;
+                                badge?: {
+                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                    code: string;
+                                    name: string;
+                                    description: string;
+                                    publicDescription: string;
+                                    iconUrl: string;
+                                };
+                                outcome: "awarded" | "already_owned" | "inactive" | "expired" | "unknown" | "definition_missing";
+                                acquisition?: {
+                                    /** @enum {string} */
+                                    fallback: "normal_app";
+                                    destination: "offramp_migration" | "normal_app";
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/badge/award": {
         parameters: {
             query?: never;
@@ -5035,6 +5268,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                         campaignTag: string;
                     };
                 };
@@ -5045,7 +5279,31 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            message: string;
+                            claim: {
+                                /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
+                                badgeCampaign: string;
+                                /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                badgeCode?: string;
+                                badge?: {
+                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                    code: string;
+                                    name: string;
+                                    description: string;
+                                    publicDescription: string;
+                                    iconUrl: string;
+                                };
+                                outcome: "awarded" | "already_owned" | "inactive" | "expired" | "unknown" | "definition_missing";
+                                acquisition?: {
+                                    /** @enum {string} */
+                                    fallback: "normal_app";
+                                    destination: "offramp_migration" | "normal_app";
+                                };
+                            };
+                        };
+                    };
                 };
             };
         };
@@ -6105,7 +6363,6 @@ export interface paths {
                             hasCardAccess: boolean;
                             isEligible: boolean;
                             eligibilityReason?: string;
-                            geoProhibited?: boolean;
                             flowEarlyAccess: boolean;
                             isPublicLaunched: boolean;
                             waitlistJoinedAt: string | null;
@@ -6506,10 +6763,6 @@ export interface paths {
                                 idDocumentCountry: string | null;
                             };
                         } | {
-                            /** @enum {string} */
-                            status: "geo-blocked";
-                            message: string;
-                        } | {
                             status: string;
                             rainUserId?: string;
                             message: string;
@@ -6789,6 +7042,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -6800,6 +7054,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -6865,6 +7120,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -6876,6 +7132,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -6921,6 +7178,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -6958,6 +7216,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7009,6 +7268,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7020,6 +7280,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7072,6 +7333,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7083,6 +7345,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7137,6 +7400,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7148,6 +7412,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7159,6 +7424,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7228,6 +7494,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7239,6 +7506,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7250,6 +7518,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7261,6 +7530,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7307,6 +7577,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7364,6 +7635,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7375,6 +7647,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7429,6 +7702,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7440,6 +7714,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7451,6 +7726,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7501,6 +7777,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7512,6 +7789,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7523,6 +7801,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7564,6 +7843,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7575,6 +7855,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7586,6 +7867,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -7597,6 +7879,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                            code?: string;
                         };
                     };
                 };
@@ -8777,6 +9060,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/crisp/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dev/cheats/approve-kyc": {
         parameters: {
             query?: never;
@@ -9021,7 +9337,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         userId: string;
-                        code: "BETA_TESTER" | "DEVCONNECT_BA_2025" | "PRODUCT_HUNT" | "OG_2025_10_12" | "SEEDLING_DEVCONNECT_BA_2025" | "ARBIVERSE_DEVCONNECT_BA_2025" | "CARD_PIONEER" | "FOUNDER_HOUSE" | "BUG_WHISPERER" | "SHHHHH" | "NOT_SO_SHHHH" | "CARD_FIRST_SWIPE" | "CARD_SPENT_1K" | "CARD_ALPHA" | "TOKEN_NATION_SP_2026" | "ETHFLORIPA_HUB" | "IRL_NOMADS" | "EVENT_ALUMNI" | "TOUCHED_GRASS" | "OFFRAMP_USER" | "PSYOPS_DIVISION" | "WAITLIST_SKIP" | "FESTA_JUNINA_2026" | "MANICERO" | "NITA" | "NAIJA" | "TERERE";
+                        /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                        code: string;
                         revoke?: boolean;
                     };
                 };

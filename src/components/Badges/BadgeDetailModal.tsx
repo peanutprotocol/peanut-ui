@@ -1,9 +1,9 @@
 'use client'
 
-import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import ActionModal from '../Global/ActionModal'
+import { BadgeImage } from './BadgeImage'
 import ShareButton from '../Global/ShareButton'
 import { getBadgeShareText } from './badge.utils'
 import { useUserStore } from '@/redux/hooks'
@@ -35,7 +35,16 @@ export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, lo
 
     return (
         <ActionModal
-            icon={<Image height={240} width={240} src={logo} alt={title} className="w-60 object-contain" unoptimized />}
+            icon={
+                <BadgeImage
+                    height={240}
+                    width={240}
+                    src={logo}
+                    alt={title}
+                    className="w-60 object-contain"
+                    unoptimized
+                />
+            }
             iconContainerClassName="bg-transparent min-w-60 h-auto"
             modalPanelClassName="m-0"
             visible={isOpen}

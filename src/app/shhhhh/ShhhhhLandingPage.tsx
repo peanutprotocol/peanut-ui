@@ -13,14 +13,15 @@ import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFa
 import { inflateWaitlistPosition } from '@/components/Card/doorTally.utils'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
-import { invitesApi } from '@/services/invites'
-import { saveToCookie } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-
-// /shhhhh?campaign=skip — the Skip Pass link. Awards the WAITLIST_SKIP badge
-// (same contract as /invite?campaign=skip) so friends-of-Peanut skip the line.
-// A BARE visit grants nothing: the door joins the waitlist, it is not a bypass.
-const SKIP_CAMPAIGN = 'skip'
+import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
+import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
+import { captureException } from '@sentry/nextjs'
+import {
+    destinationForShhhhhClaims,
+    queueShhhhhCampaignContinuation,
+    shhhhhCampaignSignupRoute,
+} from './shhhhh-acquisition'
 
 // Inline "you're on the waitlist" confirmation shown in place of the door CTA
 // once the user joins (pre-launch, non-skip path). `dark` = on the black §7.
@@ -193,39 +194,48 @@ export default function ShhhhhLandingPage() {
     }, [user])
 
     const handleCTA = async () => {
-        // /shhhhh?campaign=skip → Skip Pass (awards the badge). A bare press is
-        // NOT a bypass — it joins the waitlist (Hugo 2026-06-07). Read the param
-        // at click time (client-only) — avoids useSearchParams (which would bail
-        // /shhhhh out of static prerendering) and any mount-effect race.
-        const isSkipCampaign =
-            new URLSearchParams(window.location.search).get('campaign')?.toLowerCase() === SKIP_CAMPAIGN
+        // Read opaque campaign identities at click time (client-only) to avoid
+        // bailing static prerendering. The backend resolves award semantics;
+        // provenance is audit-only and does not weaken an earned skip badge.
+        const badgeCampaigns = badgeCampaignsFromSearchParams(new URLSearchParams(window.location.search))
 
         posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, {
             signed_in: !!user,
-            campaign: isSkipCampaign ? SKIP_CAMPAIGN : null,
+            campaign_tags: badgeCampaigns,
         })
 
-        // Skip Pass link → award the badge; the user is in. (The bare door never
-        // awards a badge — see below.)
-        if (isSkipCampaign) {
+        if (badgeCampaigns.length > 0) {
+            const queuedBadgeCampaigns = queuePendingBadgeCampaigns(badgeCampaigns, 30)
             if (!user) {
-                // useZeroDev's post-signup `campaignTag` branch awards the badge
-                // (awaited inside registration, before setup redirects) — so
-                // landing on /card afterwards is race-free.
-                saveToCookie('campaignTag', SKIP_CAMPAIGN)
-                router.push(`/setup?step=signup&redirect_uri=${encodeURIComponent('/card')}`)
+                queueShhhhhCampaignContinuation()
+                router.push(shhhhhCampaignSignupRoute())
                 return
             }
+
+            let destination: '/card' | '/home' = '/home'
             try {
-                await invitesApi.awardBadge(SKIP_CAMPAIGN)
-                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { campaign_tag: SKIP_CAMPAIGN })
-                await fetchUser()
-            } catch (err) {
-                console.error('[shhhhh] awardBadge(skip) failed:', err)
+                const batch = await claimAndSettlePendingBadgeCampaigns(queuedBadgeCampaigns)
+                const confirmed = batch.claims.filter(isConfirmedBadgeCampaignClaim)
+                destination = destinationForShhhhhClaims(batch.claims)
+                if (confirmed.length > 0) {
+                    posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
+                        campaign_tags: confirmed.map((claim) => claim.badgeCampaign),
+                    })
+                    await fetchUser()
+                }
+                if (batch.pending.length > 0) {
+                    captureException(new Error('shhhhh campaign claim retained for retry'), {
+                        tags: { error_type: 'campaign_claim_retryable' },
+                        extra: { pendingCampaigns: batch.pending, claims: batch.claims },
+                    })
+                }
+            } catch (error) {
+                captureException(error, { tags: { error_type: 'campaign_claim_unexpected_failure' } })
             }
-            // Straight into the card flow — the badge award just opened both
-            // gates BE-side; /home would make them hunt for the card CTA.
-            router.push('/card')
+
+            // Only a confirmed Skip Pass continues to the card flow. Unknown,
+            // inactive, expired, malformed, and retryable claims fall back home.
+            router.push(destination)
             return
         }
 

@@ -12,6 +12,8 @@ export interface ShareAssetBadge {
     /** Backend badge code (e.g. "OG_2025_10_12"). Any string accepted —
      *  unknown codes fall back to the peanut logo icon. */
     code: string
+    /** Backend-owned presentation URL. Legacy responses may omit it. */
+    iconUrl?: string | null
     earnedAt?: string | Date
     /** Display label override. Unused by the share asset (we don't render
      *  text per stamp anymore) but kept for API compatibility. */

@@ -18,14 +18,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import Image from 'next/image'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { BadgeDetailModal } from '@/components/Badges/BadgeDetailModal'
-import { getBadgeDisplayName, getBadgeIcon, getPublicBadgeDescription } from '@/components/Badges/badge.utils'
+import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from '@/components/Badges/badge.utils'
 import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { BadgeImage } from '@/components/Badges/BadgeImage'
 
 const HOME_PATH = '/home'
 
@@ -53,7 +53,7 @@ export default function BadgeEarnToast() {
         const count = badges.length
         const newest = badges[0]
         const newestName = getBadgeDisplayName(newest.code, newest.name)
-        const newestIcon = getBadgeIcon(newest.code)
+        const newestIcon = getBadgeIcon(newest.code, newest.iconUrl)
         // Per-batch id (not a fixed id): a fixed id de-dupes in the Toast layer,
         // so a second badge earned within the toast's window would be marked
         // seen but never shown. Keying on the codes lets a distinct later batch
@@ -68,7 +68,7 @@ export default function BadgeEarnToast() {
                 setModalBadge({
                     code: newest.code,
                     title: newestName,
-                    description: newest.description || getPublicBadgeDescription(newest.code) || '',
+                    description: getBadgeDescription(newest.description) || '',
                     logo: newestIcon,
                 })
             } else {
@@ -85,7 +85,7 @@ export default function BadgeEarnToast() {
             className: 'border-yellow-1',
             content: (
                 <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
-                    <Image
+                    <BadgeImage
                         src={newestIcon}
                         alt=""
                         width={28}

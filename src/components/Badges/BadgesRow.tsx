@@ -1,19 +1,20 @@
 'use client'
 
 import Card from '@/components/Global/Card'
-import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { Tooltip } from '../Tooltip'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Global/Icons/Icon'
-import { getBadgeDisplayName, getBadgeIcon, getPublicBadgeDescription } from './badge.utils'
+import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { BadgeImage } from './BadgeImage'
 
 type UIBadge = {
     code: string
     name: string
     description: string | null
+    publicDescription?: string | null
     iconUrl: string | null
     earnedAt?: string | Date
 }
@@ -100,10 +101,9 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                     aria-label={t('collectionLabel')}
                 >
                     {visibleBadges.map((badge) => {
-                        // use public description if viewing someone else's profile, otherwise use original
-                        const displayDescription = isSelfProfile
-                            ? badge.description
-                            : getPublicBadgeDescription(badge.code) || badge.description
+                        const displayDescription = getBadgeDescription(
+                            isSelfProfile ? badge.description : (badge.publicDescription ?? badge.description)
+                        )
                         const displayName = getBadgeDisplayName(badge.code, badge.name)
 
                         return (
@@ -116,8 +116,8 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                                     </div>
                                 }
                             >
-                                <Image
-                                    src={getBadgeIcon(badge.code)}
+                                <BadgeImage
+                                    src={getBadgeIcon(badge.code, badge.iconUrl)}
                                     alt={displayName}
                                     className="min-h-10 min-w-10 object-contain"
                                     height={48}

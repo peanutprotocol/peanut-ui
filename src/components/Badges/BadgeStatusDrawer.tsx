@@ -1,14 +1,14 @@
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
-import Image from 'next/image'
 import { useState } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
-import { getBadgeDisplayName, getBadgeIcon, getBadgeShareText } from './badge.utils'
+import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon, getBadgeShareText } from './badge.utils'
 import { BASE_URL } from '@/constants/general.consts'
 import { useAuth } from '@/context/authContext'
+import { BadgeImage } from './BadgeImage'
 
 export type BadgeStatusDrawerProps = {
     isOpen: boolean
@@ -43,6 +43,8 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
               })
             : undefined
     const displayName = getBadgeDisplayName(badge.code, badge.name)
+    const displayDescription = getBadgeDescription(badge.description)
+    const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
     // generate profile link for sharing
     const profileLink = username ? `${BASE_URL}/${username}` : BASE_URL
@@ -64,8 +66,8 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                         >
                             <div className="flex items-center gap-3">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-full">
-                                    <Image
-                                        src={getBadgeIcon(badge.code)}
+                                    <BadgeImage
+                                        src={displayIcon}
                                         alt={t('iconAlt', { name: displayName })}
                                         className="size-full object-contain"
                                         width={160}
@@ -86,7 +88,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
 
                         <Card position="single">
                             <PaymentInfoRow label={t('unlockedAtLabel')} value={dateStr} />
-                            <PaymentInfoRow label={t('reasonLabel')} value={badge.description} hideBottomBorder />
+                            <PaymentInfoRow label={t('reasonLabel')} value={displayDescription} hideBottomBorder />
                         </Card>
 
                         <div className="pb-4">
@@ -115,8 +117,8 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                 onClose={() => setIsDetailOpen(false)}
                 code={badge.code}
                 title={displayName}
-                description={badge.description || ''}
-                logo={getBadgeIcon(badge.code)}
+                description={displayDescription || ''}
+                logo={displayIcon}
             />
         </>
     )
