@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { DEDICATED_ROUTES, couldBeRecipient, isLocaleSegment, isReservedRoute } from '../routes'
+import { DEDICATED_ROUTES, couldBeRecipient, isLocaleSegment, isPublicRoute, isReservedRoute } from '../routes'
 
 // Guards against the "/card/foo → invalid recipient" class of bug: every
 // folder that resolves to a real Next.js route under src/app/ must be
@@ -131,5 +131,15 @@ describe('isReservedRoute', () => {
 
     test('does not flag plausible usernames', () => {
         expect(isReservedRoute('/hugo0')).toBe(false)
+    })
+})
+
+describe('payment explorer access gate', () => {
+    test('requires the normal app session in production', () => {
+        expect(isPublicRoute('/dev/payment-graph', false)).toBe(false)
+    })
+
+    test('retains local developer convenience only in development', () => {
+        expect(isPublicRoute('/dev/payment-graph', true)).toBe(true)
     })
 })

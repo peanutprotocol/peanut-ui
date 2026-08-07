@@ -13,8 +13,12 @@ import posthog from 'posthog-js'
 
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
+import { isPaymentNetworkExplorerPath } from '@/features/payment-network-explorer/privacy-route'
 
-if (process.env.NODE_ENV !== 'development') {
+if (
+    process.env.NODE_ENV !== 'development' &&
+    (typeof window === 'undefined' || !isPaymentNetworkExplorerPath(window.location.pathname))
+) {
     Sentry.init({
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
         environment: inferSentryEnvironment(),
@@ -22,7 +26,14 @@ if (process.env.NODE_ENV !== 'development') {
         tracesSampleRate: 0.1,
         debug: false,
 
-        beforeSend: beforeSendHandler,
+        // Client navigation can enter the explorer after Sentry initialized.
+        // Drop events there; direct explorer loads skip init above.
+        beforeSend: (event) =>
+            typeof window !== 'undefined' && isPaymentNetworkExplorerPath(window.location.pathname)
+                ? null
+                : beforeSendHandler(event),
+        beforeSendTransaction: (event) =>
+            typeof window !== 'undefined' && isPaymentNetworkExplorerPath(window.location.pathname) ? null : event,
 
         integrations: [
             Sentry.captureConsoleIntegration({

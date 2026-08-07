@@ -3,6 +3,12 @@ import * as Sentry from '@sentry/nextjs'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { getIOSMajorVersion } from '@/utils/webkit.utils'
+import {
+    installPaymentNetworkGoogleAnalyticsGuard,
+    isPaymentNetworkExplorerPath,
+} from '@/features/payment-network-explorer/privacy-route'
+
+installPaymentNetworkGoogleAnalyticsGuard()
 
 // rrweb session replay serializes the DOM on every mutation — too heavy for low-end
 // WebViews. iOS WebKit has no deviceMemory, so gate on OS version there: iOS 17
@@ -17,7 +23,11 @@ function nativeReplayEnabled(): boolean {
     return (nav.deviceMemory ?? 0) >= 4 && (nav.hardwareConcurrency ?? 0) >= 6
 }
 
-if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
+if (
+    typeof window !== 'undefined' &&
+    process.env.NODE_ENV !== 'development' &&
+    !isPaymentNetworkExplorerPath(window.location.pathname)
+) {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
 
@@ -32,6 +42,9 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
         capture_pageview: true,
         capture_pageleave: true,
         autocapture: true,
+        // The payment explorer contains team-only identity and relationship data.
+        // Drop every event on client navigation; direct loads skip init above.
+        before_send: (event) => (isPaymentNetworkExplorerPath(window.location.pathname) ? null : event),
         // Leave replay sampling to the PostHog project settings (unchanged). Only extra
         // gate: on native, skip low-end WebViews where rrweb serialization causes jank.
         disable_session_recording: isNativeBuild && !nativeReplayEnabled(),
@@ -56,7 +69,8 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
             // down. Mirror web by also capturing console.warn.
             sampleRate: 1.0,
             tracesSampleRate: 0.1,
-            beforeSend: beforeSendHandler,
+            beforeSend: (event) =>
+                isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
             integrations: [Sentry.captureConsoleIntegration({ levels: ['error', 'warn'] })],
         })
     }
