@@ -204,7 +204,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     review/warning step (external tester feedback). */}
                 {!!recipient.name && !!recipient.address && isValidRecipient && !inputChanging && (
                     <p className="text-left text-xs text-grey-1">
-                        {recipient.name} {t('resolvesTo')}{' '}
+                        {recipient.name} resolves to{' '}
                         <span className="font-mono">{printableAddress(recipient.address)}</span>
                     </p>
                 )}
