@@ -9,9 +9,10 @@ import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { type IUserBalance } from '@/interfaces'
+import { type IUserBalance } from '@/interfaces/interfaces'
 import { formatAmountWithSignificantDigits, formatAmount } from '@/utils/general.utils'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import React, { useContext, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon } from '../../Icons/Icon'
@@ -35,6 +36,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     isPopularToken = false,
     isEnabled = true,
 }) => {
+    const t = useTranslations('global')
     const [tokenPlaceholder, setTokenPlaceholder] = useState(false)
     const [chainLogoPlaceholder, setChainLogoPlaceholder] = useState(false)
     const [tokenImageError, setTokenImageError] = useState(false)
@@ -115,7 +117,10 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                     isPopularToken ? 'text-xs' : 'ml-1'
                                 )}
                             >
-                                on <span className="capitalize">{chainDetails.name}</span>
+                                {t.rich('tokenSelector.onChain', {
+                                    chainName: chainDetails.name,
+                                    c: (chunks) => <span className="capitalize">{chunks}</span>,
+                                })}
                             </span>
                         </div>
                     </div>

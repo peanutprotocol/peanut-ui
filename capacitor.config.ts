@@ -39,8 +39,13 @@ const config: CapacitorConfig = {
             publicKey:
                 '-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAr0HzEca/1vuvWcJ8/xYB6tx0j4uJMzw/kT34GnjyMlRmLLUIO9sj\nroXaUGaNoqlOCx73b7Qgp10TLPOAVxmoHV9ZJ4BS9cMCl5mvzB4qIdl6FZLcl3g5\nk5Nkj4w22nskqbBqL7eqMXpk4DD9oWRclnaZC/lCpok1n2AWy4EMZrshemBQ6iXr\ncppo+WByPbqmh/GbHvJyRvkx4Rgt2LSBJBI3laP3eEDkujCq1ZH9qgcIE4MXO5xq\n7c6LsLjN5wkQiNPSPI81zAbqBThhqodKzwav0FwIE1pyiJeGk1nV5Ji5kUgpFNwY\nY78iDVq4OP2jPfWO4jXnnJtnGN7aeKDMEQIDAQAB\n-----END RSA PUBLIC KEY-----\n',
         },
+        // CapacitorHttp OFF: its Android GET proxy (_capacitor_http_interceptor_)
+        // stalls under load, timing out every in-flight request (PEANUT-UI-R44).
+        // Requests go direct from the webview — CORS allows https://localhost and
+        // capacitor://, and auth rides the Authorization header from native
+        // Preferences (src/utils/auth-token.ts) instead of the plugin's cookie jar.
         CapacitorHttp: {
-            enabled: true,
+            enabled: false,
         },
         CapacitorPasskey: {
             // shim patches navigator.credentials.create/get so browser WebAuthn code works natively.

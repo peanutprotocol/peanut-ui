@@ -4,7 +4,7 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { serverFetch } from '@/utils/api-fetch'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'

@@ -2,7 +2,7 @@ import { isAddress } from 'viem'
 
 import { resolveEns } from '@/app/actions/ens'
 
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { usersApi } from '@/services/users'
 import { serverFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'

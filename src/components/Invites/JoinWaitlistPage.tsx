@@ -19,8 +19,8 @@ import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { isValidEmail } from '@/utils/format.utils'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { INVITER_NOT_FOUND_ERROR } from '@/constants/invites.consts'
 import { getFromCookie, removeFromCookie, toInviteCode } from '@/utils/general.utils'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { settleAcceptedInviteAcquisition } from '@/services/invite-acquisition'
@@ -33,6 +33,10 @@ const nextStepAfterEmail = (isPermissionGranted: boolean): WaitlistStep =>
     isPermissionGranted ? 'jail' : 'notifications'
 
 const JoinWaitlistPage = () => {
+    const t = useTranslations('invites')
+    const tCommon = useTranslations('common')
+    const tSetup = useTranslations('setup')
+    const tNotifications = useTranslations('notifications')
     const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
     const router = useRouter()
     const { inviteType, inviteCode: setupInviteCode } = useSetupStore()
@@ -109,7 +113,7 @@ const JoinWaitlistPage = () => {
         if (!isValidEmail(emailValue) || isSubmittingEmail) return
 
         if (!user?.user.userId) {
-            setEmailError('Account not loaded yet. Please wait a moment and try again.')
+            setEmailError(t('accountNotLoaded'))
             return
         }
 
@@ -126,7 +130,7 @@ const JoinWaitlistPage = () => {
             const refreshedUser = await fetchUser()
             if (!refreshedUser?.user.email) {
                 console.error('[JoinWaitlist] Email update succeeded but fetchUser did not return email')
-                setEmailError('Email saved, but we had trouble loading your profile. Please try again.')
+                setEmailError(t('emailSavedProfileFailed'))
                 return
             }
 
@@ -136,7 +140,7 @@ const JoinWaitlistPage = () => {
             setStep(nextStepAfterEmail(isPermissionGranted))
         } catch (e) {
             console.error('[JoinWaitlist] handleEmailSubmit failed:', e)
-            setEmailError('Something went wrong. Please try again or skip this step.')
+            setEmailError(t('emailSubmitFailed'))
         } finally {
             setIsSubmittingEmail(false)
         }
@@ -224,7 +228,7 @@ const JoinWaitlistPage = () => {
         try {
             const outcome = await acceptInviteWithCode(inviteCode, 'waitlist_page')
             if (outcome === 'failed') {
-                setError('Something went wrong. Please try again or contact support.')
+                setError(tCommon('genericError'))
             }
         } catch {
             posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
@@ -232,7 +236,7 @@ const JoinWaitlistPage = () => {
                 error_message: 'Exception during invite acceptance',
                 source: 'waitlist_page',
             })
-            setError('Something went wrong. Please try again or contact support.')
+            setError(tCommon('genericError'))
         } finally {
             setIsAccepting(false)
         }
@@ -300,16 +304,14 @@ const JoinWaitlistPage = () => {
                     {/* Step 1: Email Collection */}
                     {step === 'email' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">Stay in the loop</h1>
-                            <p className="text-base font-medium">
-                                Enter your email so we can reach you when you get access.
-                            </p>
+                            <h1 className="text-xl font-extrabold">{t('emailTitle')}</h1>
+                            <p className="text-base font-medium">{t('emailDescription')}</p>
 
                             <BaseInput
                                 type="email"
                                 variant="sm"
-                                aria-label="Email address"
-                                placeholder="you@example.com"
+                                aria-label={t('emailLabel')}
+                                placeholder={t('emailPlaceholder')}
                                 value={emailValue}
                                 onChange={(e) => {
                                     setEmailValue(e.target.value)
@@ -329,12 +331,12 @@ const JoinWaitlistPage = () => {
                                 disabled={!isValidEmail(emailValue) || isSubmittingEmail}
                                 loading={isSubmittingEmail}
                             >
-                                Continue
+                                {tCommon('continue')}
                             </Button>
 
                             {emailError && (
                                 <button onClick={handleSkipEmail} className="text-sm underline">
-                                    Skip for now
+                                    {tCommon('skipForNow')}
                                 </button>
                             )}
                         </div>
@@ -343,15 +345,15 @@ const JoinWaitlistPage = () => {
                     {/* Step 2: Enable Notifications (skippable) */}
                     {step === 'notifications' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">Want instant updates?</h1>
-                            <p className="text-base font-medium">We&apos;ll notify you the moment you get access.</p>
+                            <h1 className="text-xl font-extrabold">{t('notificationsTitle')}</h1>
+                            <p className="text-base font-medium">{t('notificationsDescription')}</p>
 
                             <Button shadowSize="4" onClick={handleEnableNotifications}>
-                                Enable notifications
+                                {tNotifications('enable')}
                             </Button>
 
                             <button onClick={() => setStep('jail')} className="text-sm underline">
-                                Not now
+                                {tNotifications('notNow')}
                             </button>
                         </div>
                     )}
@@ -360,18 +362,16 @@ const JoinWaitlistPage = () => {
                     {step === 'jail' && isLoadingWaitlistPosition && <PeanutLoading coverFullScreen />}
                     {step === 'jail' && !isLoadingWaitlistPosition && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">Peanut is invite-only</h1>
+                            <h1 className="text-xl font-extrabold">{t('inviteOnlyTitle')}</h1>
 
                             <h2 className="text-xl font-bold">
-                                You&apos;re {data?.position ? `#${data.position} ` : ''}in line
+                                {data?.position ? t('inLineWithPosition', { position: data.position }) : t('inLine')}
                             </h2>
-                            <p className="text-base font-medium">
-                                Skip the line — drop the username of the member who invited you.
-                            </p>
+                            <p className="text-base font-medium">{t('skipTheLine')}</p>
 
                             <div className="flex items-center gap-2">
                                 <ValidatedInput
-                                    placeholder="Their username"
+                                    placeholder={tSetup('waitlist.inviterUsernamePlaceholder')}
                                     value={inviteCode}
                                     debounceTime={750}
                                     validate={validateInviteCode}
@@ -400,18 +400,18 @@ const JoinWaitlistPage = () => {
                                     onClick={handleAcceptInvite}
                                     disabled={!isValid || isChanging || isValidating || isAccepting}
                                 >
-                                    Next
+                                    {tCommon('next')}
                                 </Button>
                             </div>
 
                             {!isValid && !isChanging && !!inviteCode && (
-                                <ErrorAlert description={INVITER_NOT_FOUND_ERROR} />
+                                <ErrorAlert description={tSetup('waitlist.inviterNotFound')} />
                             )}
 
                             {error && <ErrorAlert description={error} />}
 
                             <button onClick={handleLogout} className="text-sm underline">
-                                {isLoggingOut ? 'Please wait...' : 'Log in with a different account'}
+                                {isLoggingOut ? t('pleaseWait') : t('logInDifferentAccount')}
                             </button>
                         </div>
                     )}

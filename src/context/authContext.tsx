@@ -1,4 +1,5 @@
 'use client'
+import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
@@ -14,6 +15,8 @@ import {
     updateUserPreferences,
 } from '@/utils/general.utils'
 import { apiFetch } from '@/utils/api-fetch'
+import { useAppLocked } from '@/hooks/useAppLocked'
+import { currentAppLocale, currentDeviceContext } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
@@ -24,6 +27,7 @@ import { createContext, type ReactNode, useContext, useState, useEffect, useMemo
 import { captureException, setUser as setSentryUser } from '@sentry/nextjs'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
+import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
@@ -65,10 +69,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const dispatch = useAppDispatch()
     const toast = useToast()
+    const tErrors = useTranslations('errors')
     const queryClient = useQueryClient()
     const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
-    const { data: user, isLoading: isFetchingUser, refetch: fetchUser, error: userFetchError } = useUserQuery()
+    // While the native app lock is engaged the session is paused: disabling
+    // the query here also disables its refetchOnMount/refetchOnWindowFocus,
+    // so a resume can't race a request out before the unlock ceremony. When
+    // the lock lifts, react-query refetches stale data on its own — that IS
+    // the post-unlock refresh.
+    const appLocked = useAppLocked()
+    const {
+        data: user,
+        isLoading: isFetchingUser,
+        refetch: fetchUser,
+        error: userFetchError,
+    } = useUserQuery(!appLocked)
 
     // Singleton auto-refresh poller — keeps the user query fresh while any
     // rail is provisioning OR a recent submission window is open. Mounted
@@ -93,6 +109,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // server-side identify in peanut-api-ts src/log/identifyUser.ts — keep in sync.
             // `name` duplicates username because PostHog's Persons-page search is
             // hardcoded to email/name/distinct_id — username alone is not searchable.
+            const enabledRails = user.rails?.filter((rail) => rail.status === 'ENABLED') ?? []
+            const appLocale = currentAppLocale()
             posthog.identify(user.user.userId, {
                 username: user.user.username,
                 name: user.user.username,
@@ -101,6 +119,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // Badge codes (human-readable identifier), never the uuid.
                 badges: user.user.badges?.map((badge) => badge.code) ?? [],
                 kycStatus: user.identityVerification?.status ?? 'not_started',
+                // Human-readable PROVIDER:METHOD codes for cohorting, plus the
+                // catalog rail ids for joins against the rails table.
+                enabledRails: enabledRails.map((rail) => `${rail.rail.provider.code}:${rail.rail.method.code}`),
+                enabledRailIds: enabledRails.map((rail) => rail.rail.id),
+                // Client-only (locale never reaches the BE) — covers the first
+                // session, where the startup locale resolves before identify.
+                ...(appLocale ? { app_locale: appLocale } : {}),
             })
             // Sentry: every error captured from here on inherits user context
             // as searchable Sentry tags. Closes the historical gap where FE
@@ -260,18 +285,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         dispatch(zerodevActions.resetZeroDevState())
 
         // clear service worker caches (non-fatal if it fails)
-        if ('caches' in window) {
-            try {
-                const cacheNames = await caches.keys()
-                await Promise.all(
-                    cacheNames
-                        .filter((name) => USER_DATA_CACHE_PATTERNS.some((pattern) => name.includes(pattern)))
-                        .map((name) => caches.delete(name))
-                )
-            } catch (e) {
-                console.warn('failed to clear caches on logout:', e)
-            }
-        }
+        await purgeCaches(USER_DATA_CACHE_PATTERNS)
 
         // clear session flags
         try {
@@ -289,6 +303,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         try {
             posthog.reset()
+            // reset() wipes registered super properties — re-register the
+            // locale so logout-window events keep carrying app_locale
+            const locale = currentAppLocale()
+            if (locale) posthog.register({ app_locale: locale })
+            // same for the localization-OKR device context (device_language + platform)
+            const deviceContext = currentDeviceContext()
+            if (deviceContext) posthog.register(deviceContext)
         } catch (e) {
             console.warn('posthog reset failed:', e)
         }
@@ -321,12 +342,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 captureException(error)
                 console.error('Error logging out user', error)
                 // TODO: remove debug info after native testing
-                toast.error('Error logging out')
+                toast.error(tErrors('logoutFailed'))
             } finally {
                 setIsLoggingOut(false)
             }
         },
-        [clearLocalAuthState, fetchUser, isLoggingOut, toast]
+        [clearLocalAuthState, fetchUser, isLoggingOut, toast, tErrors]
     )
 
     return (

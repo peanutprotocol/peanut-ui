@@ -9,7 +9,10 @@
  * confusion. Nested primitives are stubbed.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen, type RenderOptions } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
+
+const render = (ui: React.ReactElement, options?: RenderOptions) => rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
     PaymentInfoRow: ({ label, value }: { label: React.ReactNode; value: React.ReactNode }) => (

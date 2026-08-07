@@ -9,6 +9,7 @@ import {
     getFromLocalStorage,
 } from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { addMoneyCountryUrl, withdrawCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { type FC, useEffect, useRef, useState, useTransition, useCallback } from 'react'
 import { useUserStore } from '@/redux/hooks'
@@ -24,6 +25,7 @@ import SavedAccountsView from '../Common/SavedAccountsView'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -63,6 +65,9 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 }) => {
     const router = useRouter()
     const { user } = useUserStore()
+    const t = useTranslations('withdraw')
+    const tAddMoney = useTranslations('addMoney')
+    const tCommon = useTranslations('common')
     const { setSelectedBankAccount, showAllWithdrawMethods, setShowAllWithdrawMethods, setSelectedMethod } =
         useWithdrawFlow()
     const onrampFlowContext = useOnrampFlow()
@@ -78,7 +83,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     // check if coming from send flow
     const methodParam = searchParams.get('method')
-    const isBankFromSend = methodParam === 'bank' && flow === 'withdraw'
+    // this view also serves the add-money flow, so the flow guard stays local
+    const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
 
     // determine if we should show the full list of methods (countries/crypto) instead of the default view
     let shouldShowAllMethods = flow === 'withdraw' ? showAllWithdrawMethods : localShowAllMethods
@@ -203,16 +209,14 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     <div className="space-y-2">
                         <AvatarWithBadge icon="alert" size="small" className="mx-auto bg-yellow-1" />
                         <div className="space-y-1 text-center">
-                            <h2 className="text-lg font-bold">No accounts yet</h2>
+                            <h2 className="text-lg font-bold">{t('noAccountsTitle')}</h2>
                             <p className="text-sm text-grey-1">
-                                Add your accounts details once
-                                <br />
-                                to withdraw in one tap.
+                                {t.rich('noAccountsDescription', { br: () => <br /> })}
                             </p>
                         </div>
                     </div>
                     <Button icon="plus" onClick={() => setShouldShowAllMethods(true)} shadowSize="4" className="w-full">
-                        Add account
+                        {t('addAccount')}
                     </Button>
                 </Card>
             </div>
@@ -260,7 +264,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <div className="flex min-h-[inherit] flex-col justify-normal gap-6">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="flex h-full flex-col justify-center space-y-2">
-                    <h2 className="text-base font-bold">Recent methods</h2>
+                    <h2 className="text-base font-bold">{tAddMoney('recentMethods')}</h2>
                     <DepositMethodList
                         methods={recentMethodsWithType as DepositMethod[]}
                         onItemClick={handleMethodSelected}
@@ -270,11 +274,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
                 <div className="flex items-center gap-1">
                     <div className="h-[1px] w-full bg-grey-1"></div>
-                    <span className="text-xs font-bold text-grey-1 lg:text-sm">or</span>
+                    <span className="text-xs font-bold text-grey-1 lg:text-sm">{tCommon('or')}</span>
                     <div className="h-[1px] w-full bg-grey-1"></div>
                 </div>
                 <Button icon="plus" className="mb-5" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
-                    Select new method
+                    {tAddMoney('selectNewMethod')}
                 </Button>
                 <TokenAndNetworkConfirmationModal
                     onClose={() => {

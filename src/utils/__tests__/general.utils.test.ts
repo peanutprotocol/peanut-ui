@@ -9,7 +9,7 @@ import {
     printableUserHandle,
     toInviteCode,
 } from '../general.utils'
-import { AccountType } from '@/interfaces'
+import { AccountType } from '@/interfaces/interfaces'
 import { type ChargeEntry, type Payment, type TStatus } from '@/services/services.types'
 
 describe('General Utilities', () => {

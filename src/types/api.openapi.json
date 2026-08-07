@@ -8904,6 +8904,9 @@
 										"eligibilityReason": {
 											"type": "string"
 										},
+										"geoProhibited": {
+											"type": "boolean"
+										},
 										"flowEarlyAccess": {
 											"type": "boolean"
 										},
@@ -9354,6 +9357,19 @@
 												}
 											},
 											"required": ["status", "candidates", "evidence"]
+										},
+										{
+											"type": "object",
+											"properties": {
+												"status": {
+													"type": "string",
+													"enum": ["geo-blocked"]
+												},
+												"message": {
+													"type": "string"
+												}
+											},
+											"required": ["status", "message"]
 										},
 										{
 											"type": "object",

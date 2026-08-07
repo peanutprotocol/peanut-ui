@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { Icon } from '@/components/Global/Icons/Icon'
 import type { RainCooldownEventDetail } from '@/services/rain'
@@ -45,6 +46,7 @@ function formatRemaining(ms: number): string {
 /** Toast inner content — its own component so it ticks via setInterval
  *  without re-animating the parent toast (id-de-dupe keeps the toast stable). */
 const CooldownPillContent = ({ endsAt }: { endsAt: number }) => {
+    const t = useTranslations('global')
     const [now, setNow] = useState(() => Date.now())
     useEffect(() => {
         const id = window.setInterval(() => setNow(Date.now()), 1000)
@@ -55,7 +57,7 @@ const CooldownPillContent = ({ endsAt }: { endsAt: number }) => {
         <div className="flex items-center gap-2">
             <Icon name="clock" className="h-4 w-4 text-n-1" />
             <span className="text-sm font-bold tabular-nums text-n-1">
-                Card cool-down · {formatRemaining(remainingMs)}
+                {t('rainCooldownPill')} · {formatRemaining(remainingMs)}
             </span>
         </div>
     )

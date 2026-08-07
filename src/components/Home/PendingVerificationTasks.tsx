@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { startBridgeHostedVerification } from '@/app/actions/sumsub'
 import { Button } from '@/components/0_Bruddle/Button'
 import Carousel from '@/components/Global/Carousel'
@@ -70,6 +71,7 @@ function taskCopy(task: NextAction): { title: string; description: string } {
  * non-dismissible for everything.
  */
 export default function PendingVerificationTasks({ dismissible = false }: { dismissible?: boolean }) {
+    const t = useTranslations('home')
     const { nextActions } = useCapabilities()
     const { user, fetchUser } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
@@ -219,7 +221,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             <div className="text-sm text-grey-1">{copy.description}</div>
                                             {deadline && (
                                                 <div className="mt-1 text-xs font-medium">
-                                                    Complete before {deadline}
+                                                    {t('pendingTasks.completeBefore', { deadline })}
                                                 </div>
                                             )}
                                         </div>

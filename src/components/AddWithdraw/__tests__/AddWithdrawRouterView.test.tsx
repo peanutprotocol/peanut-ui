@@ -13,6 +13,7 @@
  */
 import React, { useEffect } from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -135,10 +136,12 @@ function SelectedMethodProbe() {
 function Harness({ user }: { user: MockUser }) {
     mockUser = user
     return (
-        <WithdrawFlowContextProvider>
-            <AddWithdrawRouterView flow="withdraw" pageTitle="Withdraw" mainHeading="How?" />
-            <SelectedMethodProbe />
-        </WithdrawFlowContextProvider>
+        <IntlWrapper>
+            <WithdrawFlowContextProvider>
+                <AddWithdrawRouterView flow="withdraw" pageTitle="Withdraw" mainHeading="How?" />
+                <SelectedMethodProbe />
+            </WithdrawFlowContextProvider>
+        </IntlWrapper>
     )
 }
 

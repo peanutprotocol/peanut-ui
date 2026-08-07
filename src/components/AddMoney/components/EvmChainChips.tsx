@@ -1,6 +1,7 @@
 import ChainChip from './ChainChip'
 import { SUPPORTED_EVM_CHAINS, CHAIN_LOGOS, EVM_DEPOSIT_TOKEN_EXCEPTIONS } from '@/constants/rhino.consts'
 import { useChainRollout } from '@/hooks/useChainRollout'
+import { useTranslations } from 'next-intl'
 
 /**
  * The rollout-gated EVM deposit chain chips, annotated with per-chain token
@@ -10,11 +11,12 @@ import { useChainRollout } from '@/hooks/useChainRollout'
  */
 const EvmChainChips = () => {
     const isChainRolledOut = useChainRollout()
+    const t = useTranslations('addMoney')
     return (
         <>
             {SUPPORTED_EVM_CHAINS.filter(isChainRolledOut).map((chain) => {
                 const tokenException = EVM_DEPOSIT_TOKEN_EXCEPTIONS[chain]
-                const label = tokenException ? `${chain} · ${tokenException.join('/')} only` : chain
+                const label = tokenException ? t('chainTokenOnly', { chain, tokens: tokenException.join('/') }) : chain
                 return <ChainChip key={chain} chainName={label} chainSymbol={CHAIN_LOGOS[chain]} />
             })}
         </>

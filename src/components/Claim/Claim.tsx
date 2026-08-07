@@ -7,7 +7,7 @@ import { fetchTokenPrice } from '@/services/tokens-price'
 import { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { type TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'
-import { tokenSelectorContext } from '@/context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
@@ -45,9 +45,12 @@ import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useSearchParams } from 'next/navigation'
 import { useHaptic } from 'use-haptic'
+import { useTranslations } from 'next-intl'
 import type { IOfframpForm } from '@/constants/cashout.consts'
 
 export const Claim = ({}) => {
+    const t = useTranslations('claim')
+    const tCommon = useTranslations('common')
     const [linkUrl, setLinkUrl] = useState<string>('')
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkStateType>(_consts.claimLinkStateType.LOADING)
@@ -448,14 +451,12 @@ export const Claim = ({}) => {
                     <PeanutLoading />
                     {isSendLinkLoading && failureCount > 0 && (
                         <p className="text-center text-sm text-gray-600">
-                            {failureCount < 3
-                                ? 'Loading your link...'
-                                : 'This is taking longer than usual. The link might have just been created.'}
+                            {failureCount < 3 ? t('loading.loadingYourLink') : t('loading.takingLonger')}
                         </p>
                     )}
                     {isSendLinkLoading && failureCount >= 3 && (
                         <p className="text-center text-xs text-gray-500">
-                            We're still trying... (attempt {failureCount + 1}/5)
+                            {t('loading.stillTrying', { attempt: failureCount + 1, total: 5 })}
                         </p>
                     )}
                 </div>
@@ -502,9 +503,9 @@ export const Claim = ({}) => {
             )}
             {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && (
                 <ClaimErrorView
-                    title="Wrong password!"
-                    message="Are you sure you clicked on the right link?"
-                    primaryButtonText="Try Again"
+                    title={t('errors.wrongPasswordTitle')}
+                    message={t('errors.wrongPasswordMessage')}
+                    primaryButtonText={tCommon('tryAgain')}
                     onPrimaryClick={() => {
                         setLinkState(_consts.claimLinkStateType.LOADING)
                         refetch()
@@ -513,9 +514,9 @@ export const Claim = ({}) => {
             )}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && (
                 <ClaimErrorView
-                    title="This link seems broken!"
-                    message="Are you sure you clicked on the right link? Was this link just created? Try again in a few seconds."
-                    primaryButtonText="Retry Loading Link"
+                    title={t('errors.brokenLinkTitle')}
+                    message={t('errors.brokenLinkMessage')}
+                    primaryButtonText={t('errors.retryLoadingLink')}
                     onPrimaryClick={() => {
                         setLinkState(_consts.claimLinkStateType.LOADING)
                         refetch()

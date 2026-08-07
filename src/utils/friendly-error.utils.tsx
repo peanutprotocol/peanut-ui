@@ -1,4 +1,4 @@
-import { BALANCE_SETTLING_MESSAGE } from '@/utils/balance.utils'
+import { API_ERROR_CODES, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
 
 /** Safely extract a string-form of an unknown error + its `.message` if any.
  *  Lets the matchers below use `string` methods without unsafe property access
@@ -44,63 +44,177 @@ export const rainCollateralErrorMessage = (error: unknown): string | null => {
     return null
 }
 
-/** UI-friendly error message extractor. Matches substrings on common
- *  wallet / viem / Peanut API error messages and returns user-facing copy. */
-export const ErrorHandler = (error: unknown): string => {
+/** Display code for a mapped user-facing error. Callers turn it into copy via
+ *  the `errors` next-intl namespace (see `useFriendlyError`). This module stays
+ *  copy-free — it only classifies. */
+export type FriendlyErrorCode =
+    | 'balanceSettling'
+    | 'insufficientFunds'
+    | 'userRejectedTransaction'
+    | 'notDeployedOnChain'
+    | 'userRejectedRequest'
+    | 'networkError'
+    | 'nonceExpired'
+    | 'walletNotConnected'
+    | 'gasExceedsAllowance'
+    | 'gasFeesNativeToken'
+    | 'tokenPriceFetch'
+    | 'tokenChainUndefined'
+    | 'insufficientTokenBalance'
+    | 'minimumSendAmount'
+    | 'linkDetailsError'
+    | 'passwordGenerationError'
+    | 'gaslessDepositPayloadError'
+    | 'prepareTransactionError'
+    | 'switchNetworkError'
+    | 'signDataError'
+    | 'gaslessDepositApiError'
+    | 'sendTransactionError'
+    | 'transferAmountExceedsBalance'
+    | 'chainMismatch'
+    | 'insufficientBalance'
+    | 'operationTimedOut'
+    | 'passkeyNotCompleted'
+    | 'claimLinkFailed'
+    | 'sendLinkAlreadyClaimed'
+    | 'lowLiquidity'
+    | 'networkBusyTimeout'
+    | 'genericSupport'
+    // Mapped from backend wire codes — see WIRE_CODE_MAP below.
+    | 'staleCardApproval'
+    | 'rainInsufficientCollateral'
+    | 'rainCooldownRetryShortly'
+    | 'cardRateLimited'
+    | 'linkTransactionHashFetch'
+
+/**
+ * A classified error.
+ *  - `code`   → param-less localized copy (`t(code)`).
+ *  - `params` → localized copy taking ICU arguments. Deliberately a SEPARATE
+ *    variant rather than another member of `FriendlyErrorCode`: next-intl types
+ *    the `values` argument of `t(key, values)` as the INTERSECTION of every
+ *    union member's ICU args, so folding a parameterized key into the
+ *    param-less union would make `{ minutes }` required at every call site and
+ *    break `t(result.code)`. Add future parameterized codes as members of THIS
+ *    union and switch on `code` so each narrows to a single literal.
+ *  - `text`   → backend-authored copy with no key. Shrinking: prefer a wire
+ *    code whenever the backend ships one.
+ */
+export type FriendlyError =
+    | { kind: 'code'; code: FriendlyErrorCode }
+    | { kind: 'params'; code: 'rainCooldownRetry'; values: { minutes: number } }
+    | { kind: 'text'; text: string }
+
+const code = (c: FriendlyErrorCode): FriendlyError => ({ kind: 'code', code: c })
+const passthrough = (text: string): FriendlyError => ({ kind: 'text', text })
+
+/**
+ * Backend wire discriminants → display codes.
+ *
+ * This is an ALLOW-LIST and must stay one. Plenty of third-party errors carry
+ * an unrelated `.code` (ethers: `NETWORK_ERROR`, `CALL_EXCEPTION`), so mapping
+ * an arbitrary code straight to a translation key would turn every one of them
+ * into a missing-message error. Anything unlisted falls through to the message
+ * matchers below and keeps exactly today's behaviour.
+ *
+ * Keep in sync with peanut-api-ts `src/errors/error-codes.ts`.
+ */
+const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
+    [API_ERROR_CODES.STALE_CARD_APPROVAL]: 'staleCardApproval',
+    [API_ERROR_CODES.INSUFFICIENT_COLLATERAL]: 'rainInsufficientCollateral',
+    [API_ERROR_CODES.CARD_SECRETS_RATE_LIMITED]: 'cardRateLimited',
+    [API_ERROR_CODES.WITHDRAWAL_SIGNATURE_EXPIRED]: 'nonceExpired',
+    [API_ERROR_CODES.WITHDRAWAL_SUBMISSION_FAILED]: 'sendTransactionError',
+}
+
+/** Both cooldown codes render the same copy — the distinction between a
+ *  signature cooldown and a card cooldown is not meaningful to a user. */
+const COOLDOWN_WIRE_CODES: readonly string[] = [
+    API_ERROR_CODES.WITHDRAWAL_COOLDOWN_ACTIVE,
+    API_ERROR_CODES.WITHDRAWAL_SIGNATURE_COOLDOWN,
+]
+
+/** Minutes to display for a cooldown, rounded up and floored at 1 — a 20s wait
+ *  must not render as "0 minutes". Returns null when the backend gave us no
+ *  usable number, so the caller can fall back to copy without a countdown. */
+const cooldownMinutes = (error: unknown): number | null => {
+    if (!error || typeof error !== 'object') return null
+    const sec = (error as { retryAfterSec?: unknown }).retryAfterSec
+    if (typeof sec !== 'number' || !Number.isFinite(sec) || sec <= 0) return null
+    return Math.max(1, Math.ceil(sec / 60))
+}
+
+/** UI-friendly error classifier. Matches substrings on common wallet / viem /
+ *  Peanut API error messages and returns a display code (or verbatim backend
+ *  text). Preserves the exact precedence of the original `ErrorHandler`. */
+export const friendlyError = (error: unknown): FriendlyError => {
     const { text, message, name } = extractErrorParts(error)
-    // Rain card-collateral errors — surface the backend's already user-
-    // friendly copy verbatim (includes the "Try again in about M min." hint
-    // on the cooldown case). Covers every spend path that touches Rain.
+
+    // Wire code first: it's locale-independent and immune to backend copy
+    // edits, so it wins over every message matcher below. Pre-contract errors
+    // carry no `.code` and fall straight through, which is what keeps this
+    // safe to ship before/independently of the backend deploy.
+    const wire = wireErrorCode(error)
+    if (wire && COOLDOWN_WIRE_CODES.includes(wire)) {
+        const minutes = cooldownMinutes(error)
+        return minutes === null
+            ? code('rainCooldownRetryShortly')
+            : { kind: 'params', code: 'rainCooldownRetry', values: { minutes } }
+    }
+    if (wire) {
+        const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]
+        if (mapped) return code(mapped)
+    }
+
+    // Rain card-collateral errors — pre-contract fallback: surface the
+    // backend's already user-friendly English verbatim. Now sits behind the
+    // wire-code check above, so it goes dark once the backend ships codes on
+    // these paths.
     const rainMsg = rainCollateralErrorMessage(error)
-    if (rainMsg) return rainMsg
+    if (rainMsg) return passthrough(rainMsg)
     // Spend passed the displayed-balance gate but couldn't be routed yet
     // (in-transit collateral not landed) — nudge a retry rather than "add funds".
     // Match the typed error's name first (stable) and fall back to the message.
     if (name === 'InsufficientSpendableError' || text.includes('Insufficient spendable balance'))
-        return BALANCE_SETTLING_MESSAGE
-    if (text.includes('insufficient funds')) return "You don't have enough funds."
-    if (text.includes('user rejected transaction')) return 'Please confirm the transaction in your wallet.'
-    if (text.includes('not deployed on chain')) return 'Bulk is not able on this chain, please try another chain.'
-    if (text.includes('User rejected the request')) return 'Please confirm the request in your wallet.'
-    if (text.includes('NETWORK_ERROR')) return 'A network error occured. Please refresh and try again.'
-    if (text.includes('NONCE_EXPIRED')) return 'Nonce expired, please try again.'
-    if (text.includes('Failed to get wallet client')) return 'Please make sure your wallet is connected.'
-    if (text.includes('gas required exceeds allowance'))
-        return 'Gas required exceeds balance. Please confirm you have enough funds.'
+        return code('balanceSettling')
+    if (text.includes('insufficient funds')) return code('insufficientFunds')
+    if (text.includes('user rejected transaction')) return code('userRejectedTransaction')
+    if (text.includes('not deployed on chain')) return code('notDeployedOnChain')
+    if (text.includes('User rejected the request')) return code('userRejectedRequest')
+    if (text.includes('NETWORK_ERROR')) return code('networkError')
+    if (text.includes('NONCE_EXPIRED')) return code('nonceExpired')
+    if (text.includes('Failed to get wallet client')) return code('walletNotConnected')
+    if (text.includes('gas required exceeds allowance')) return code('gasExceedsAllowance')
     if (
         text.includes('fee cap (`maxFeePerGas`)') ||
         text.includes('max fee per gas less than block base fee') ||
         text.includes('EstimateGasExecutionError')
     ) {
-        return 'Transaction failed, please make sure you have enough native token on this network to cover gas fees.'
+        return code('gasFeesNativeToken')
     }
     if (
         text.includes(
             'Something went wrong while fetching the token price. Please change the input denomination and try again'
         )
     )
-        return 'Something went wrong while fetching the token price. Please change the input denomination and try again.'
-    if (text.includes('Please ensure that the correct token and chain are defined'))
-        return 'Please ensure that the correct token and chain are defined.'
+        return code('tokenPriceFetch')
+    if (text.includes('Please ensure that the correct token and chain are defined')) return code('tokenChainUndefined')
     if (text.includes('Please ensure that you have sufficient balance of the token you are trying to send'))
-        return 'Please ensure that you have sufficient balance of the token you are trying to send, including gas fees.'
-    if (text.includes('The minimum amount to send is 0.0001')) return 'The minimum amount to send is 0.0001.'
-    if (text.includes('Error getting the linkDetails')) return 'Error getting the linkDetails.'
-    if (text.includes('Error generating the password.')) return 'Error generating the password.'
-    if (text.includes('Error making the gasless deposit payload.')) return 'Error making the gasless deposit payload.'
-    if (text.includes('Error preparing the transaction(s).')) return 'Error preparing the transaction(s).'
-    if (text.includes('Error switching network.')) return 'Error switching network.'
-    if (text.includes('Error signing the data in the wallet.')) return 'Error signing the data in the wallet.'
-    if (text.includes('Error making the gasless deposit through the peanut api.'))
-        return 'Error making the gasless deposit through the peanut api.'
-    if (text.includes('Error sending the transaction.')) return 'Error sending the transaction.'
-    if (text.includes('Error getting the link with transactionHash')) return message ?? text
-    if (text.includes('transfer amount exceeds balance'))
-        return 'You do not have enough balance to complete the transaction.'
-    if (text.includes('does not match the target chain for the transaction'))
-        return 'Failed to switch network. Try switching to the correct network manually.'
-    if (text.includes('Insufficient balance')) return "You don't have enough balance."
-    if (text.includes('The operation either timed out or was not allowed')) return 'Please confirm the transaction.'
+        return code('insufficientTokenBalance')
+    if (text.includes('The minimum amount to send is 0.0001')) return code('minimumSendAmount')
+    if (text.includes('Error getting the linkDetails')) return code('linkDetailsError')
+    if (text.includes('Error generating the password.')) return code('passwordGenerationError')
+    if (text.includes('Error making the gasless deposit payload.')) return code('gaslessDepositPayloadError')
+    if (text.includes('Error preparing the transaction(s).')) return code('prepareTransactionError')
+    if (text.includes('Error switching network.')) return code('switchNetworkError')
+    if (text.includes('Error signing the data in the wallet.')) return code('signDataError')
+    if (text.includes('Error making the gasless deposit through the peanut api.')) return code('gaslessDepositApiError')
+    if (text.includes('Error sending the transaction.')) return code('sendTransactionError')
+    if (text.includes('Error getting the link with transactionHash')) return code('linkTransactionHashFetch')
+    if (text.includes('transfer amount exceeds balance')) return code('transferAmountExceedsBalance')
+    if (text.includes('does not match the target chain for the transaction')) return code('chainMismatch')
+    if (text.includes('Insufficient balance')) return code('insufficientBalance')
+    if (text.includes('The operation either timed out or was not allowed')) return code('operationTimedOut')
     // iOS Safari's NotAllowedError copy when the passkey ceremony never
     // completes. Third-party credential providers (1Password) can wedge and
     // refuse every assertion until unlocked or the device restarts
@@ -109,13 +223,13 @@ export const ErrorHandler = (error: unknown): string => {
     // than error.name: NotAllowedError is also thrown by camera/clipboard
     // APIs (the QR scanner raises one), and wrapped signing errors keep the
     // text but lose the name.
-    if (text.includes('not allowed by the user agent'))
-        return "Your device didn't complete the passkey confirmation. Try again — if it keeps failing, unlock your password manager (e.g. 1Password) or restart your device."
+    if (text.includes('not allowed by the user agent')) return code('passkeyNotCompleted')
     if (text.includes('Wrong password or invalid transaction.') || text.includes('transaction may fail'))
-        return 'Could not claim link, please refresh page. If problem persist confirm link with sender'
-    if (text.includes('Send link already claimed')) return 'Send link already claimed'
-    if (text.toLowerCase().includes('liquidity'))
-        return message || 'Low liquidity. Please try a smaller amount or different route.'
+        return code('claimLinkFailed')
+    if (text.includes('Send link already claimed')) return code('sendLinkAlreadyClaimed')
+    // Liquidity errors carry a backend-authored detail when present — pass it
+    // through verbatim; only fall back to the coded copy when there's no message.
+    if (text.toLowerCase().includes('liquidity')) return message ? passthrough(message) : code('lowLiquidity')
     // viem transport timeout — most often a slow ZeroDev paymaster/bundler RPC
     // (`zd_sponsorUserOperation`) on a busy network. Transient + retryable, so
     // tell the user to try again instead of the generic "contact support".
@@ -124,11 +238,19 @@ export const ErrorHandler = (error: unknown): string => {
     // fetch timeout fell through to the generic "contact support" fallback
     // (Sentry PEANUT-UI-QH9, Bridge offramp /confirm). Callers that move money
     // must still gate Retry separately — see WithdrawBankPage.
+    // fetchWithSentry rethrows a generic ServiceUnavailableError whose real
+    // cause (`timed out after <ms>ms`) hangs off `.cause`, which this
+    // classifier does not walk — so every server fetch timeout was collapsing
+    // to genericSupport instead of the accurate retryable code. Match the name
+    // we set ourselves rather than walking `.cause` generically: extractErrorParts
+    // feeds three call paths and a recursive walk would silently reclassify
+    // every wrapped error in the app.
+    if (name === 'ServiceUnavailableError') return code('networkBusyTimeout')
     if (
         text.includes('took too long to respond') ||
         text.includes('The request timed out') ||
         text.includes('timed out after')
     )
-        return 'The network is busy and your request timed out. Please try again in a moment.'
-    return 'There was an issue with your request. Please contact support.'
+        return code('networkBusyTimeout')
+    return code('genericSupport')
 }

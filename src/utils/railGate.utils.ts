@@ -1,4 +1,4 @@
-import { type IUserRail } from '@/interfaces'
+import { type IUserRail } from '@/interfaces/interfaces'
 
 // Pure helpers for reading gate state off the user's rails. Phase 6 of
 // rail-gating: the frontend gate hooks derive from UserRail.status instead

@@ -1,4 +1,6 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, waitFor } from '@testing-library/react'
+// These hooks localize their error copy now, so they need the intl provider.
+import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { getRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
 import { useAccountSetup } from '../useAccountSetup'
 import { useLogin } from '../useLogin'

@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -28,6 +29,7 @@ const RouteExpiryTimer: React.FC<RouteExpiryTimerProps> = ({
     disableRefetch = false,
     error = null,
 }) => {
+    const t = useTranslations('global')
     const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null)
     const [hasTriggeredNearExpiry, setHasTriggeredNearExpiry] = useState(false)
     const [hasExpired, setHasExpired] = useState(false)
@@ -148,11 +150,11 @@ const RouteExpiryTimer: React.FC<RouteExpiryTimerProps> = ({
 
     const getText = (): string => {
         if (error) return error
-        if (isLoading) return 'Finding best rate...'
-        if (!expiry) return 'No quote available'
-        if (!timeRemaining) return 'Quote expired'
-        if (timeRemaining.totalMs <= 0) return 'Quote expired'
-        return `Price locked for ${formatTime(timeRemaining)}`
+        if (isLoading) return t('routeExpiryTimer.findingBestRate')
+        if (!expiry) return t('routeExpiryTimer.noQuote')
+        if (!timeRemaining) return t('routeExpiryTimer.quoteExpired')
+        if (timeRemaining.totalMs <= 0) return t('routeExpiryTimer.quoteExpired')
+        return t('routeExpiryTimer.priceLocked', { time: formatTime(timeRemaining) })
     }
 
     return (

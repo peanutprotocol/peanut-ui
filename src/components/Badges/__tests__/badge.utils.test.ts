@@ -1,6 +1,12 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { BADGE_ASSET_FALLBACKS, getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from '../badge.utils'
+import {
+    BADGE_ASSET_FALLBACKS,
+    getBadgeDescription,
+    getBadgeDisplayName,
+    getBadgeIcon,
+    getBadgeShareText,
+} from '../badge.utils'
 
 describe('backend-owned badge presentation', () => {
     // UI half of the cross-repo asset contract. BADGE_ASSET_FALLBACKS is now
@@ -63,5 +69,60 @@ describe('backend-owned badge presentation', () => {
         expect(getBadgeDisplayName('FUTURE_BADGE', null)).toBe('FUTURE_BADGE')
         expect(getBadgeDisplayName(undefined, null)).toBe('Badge')
         expect(getBadgeDescription(null)).toBeNull()
+    })
+})
+
+describe('getBadgeShareText', () => {
+    const url = 'https://peanut.me/satoshi'
+
+    it('uses the badge-specific brag line for a known code (not the generic fallback) and appends the profile url', () => {
+        // Copy-agnostic on purpose: assert a mapped code yields something OTHER than
+        // the generic fallback, so editing a line never breaks this test.
+        const mapped = getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url)
+        const fallback = getBadgeShareText('___UNMAPPED___', 'First Swipe', url)
+        expect(mapped).not.toBe(fallback)
+        expect(mapped).toContain(url)
+        // first-person voice — the sharer is bragging about themselves
+        expect(mapped).toMatch(/\b(I|my)\b/i)
+    })
+
+    it('uses bespoke copy for the runtime English locale options path', () => {
+        const text = getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, {
+            locale: 'en',
+            localizedFallback: 'localized fallback sentinel',
+        })
+
+        expect(text).not.toContain('localized fallback sentinel')
+        expect(text).toContain(url)
+    })
+
+    it('includes bespoke copy for the MANICERO badge added after the original PR', () => {
+        const mapped = getBadgeShareText('MANICERO', 'Manicero', url)
+        const fallback = getBadgeShareText('___UNMAPPED___', 'Manicero', url)
+
+        expect(mapped).not.toBe(fallback)
+    })
+
+    it('falls back to a generic brag (with display name) for unknown / parked codes', () => {
+        const text = getBadgeShareText('NOT_A_REAL_BADGE', 'Mystery Badge', url)
+        expect(text).toContain('Mystery Badge')
+        expect(text).toContain(url)
+    })
+
+    it('still produces shareable text when the code is undefined', () => {
+        const text = getBadgeShareText(undefined, 'Some Badge', url)
+        expect(text).toContain('Some Badge')
+        expect(text).toContain(url)
+    })
+
+    it('keeps the localized generic copy outside English', () => {
+        const localizedFallback = `Ganhei o selo First Swipe no Peanut!\n\n${url}`
+
+        expect(
+            getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, {
+                locale: 'pt-BR',
+                localizedFallback,
+            })
+        ).toBe(localizedFallback)
     })
 })

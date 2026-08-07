@@ -17,6 +17,7 @@ import { getValidRedirectUrl, saveRedirectUrl, saveToCookie } from '@/utils/gene
 import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
 import { captureException } from '@sentry/nextjs'
@@ -34,6 +35,8 @@ import {
 import { destinationForInviteAcquisition } from '@/services/invite-acquisition'
 
 function InvitePageContent() {
+    const t = useTranslations('invites')
+    const tSetup = useTranslations('setup')
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
@@ -213,6 +216,13 @@ function InvitePageContent() {
         legacyAcquisition,
     ])
 
+    // A bare link that resolves to nothing claimable — unknown ?campaign= value,
+    // a stray tracking param swept up by the root-domain redirect, an empty
+    // ?code= — gets the landing page, not the invalid-invite error. That screen
+    // is reserved for links that actually carried an invite code. Safe from a
+    // redirect loop: the root redirect only fires when the params are present,
+    // and we replace with a bare '/'.
+
     const handleClaim = () => {
         posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, {
             invite_code: inviteCode,
@@ -269,24 +279,25 @@ function InvitePageContent() {
         return (
             <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
                 <ValidationErrorView
-                    title="Invalid Invite Code"
-                    message="The invite code you are trying to use is invalid. Please check the URL and try again."
-                    buttonText="Join waitlist"
+                    title={t('invalidCodeTitle')}
+                    message={t('invalidCodeMessage')}
+                    buttonText={tSetup('waitlist.joinWaitlist')}
                     redirectTo="/setup"
                 />
             </div>
         )
     }
 
+    // A bare badge-campaign link is the localized "vanity claim" case: the badge
+    // is the reason to sign up, and there is no inviter to name. The FE no longer
+    // classifies skip-vs-vanity — the backend owns that — so both collapse here.
     const isBadgeCampaignOnly = hasAcquisitionBadgeCampaigns && !hasValidInvite
     const title = isBadgeCampaignOnly
-        ? 'Continue your Peanut campaign'
-        : `${inviteCodeData?.username} invited you to Peanut`
-    const description = isBadgeCampaignOnly
-        ? 'Sign up or log in to continue. Peanut will apply any available badge after you authenticate.'
-        : 'Members-only access. Use this invite to open your wallet and start sending and receiving money globally.'
-    const ctaLabel = isBadgeCampaignOnly ? 'Continue' : 'Claim your spot'
-    const loginLabel = isBadgeCampaignOnly ? 'Log in' : 'Already have an account? Log in!'
+        ? t('vanityTitle')
+        : t('inviterTitle', { username: inviteCodeData?.username ?? '' })
+    const description = isBadgeCampaignOnly ? t('vanityDescription') : t('inviterDescription')
+    const ctaLabel = isBadgeCampaignOnly ? t('vanityCta') : t('inviterCta')
+    const loginLabel = isBadgeCampaignOnly ? t('logIn') : t('alreadyHaveAccount')
 
     return (
         <InvitesPageLayout image={PeanutWavingHello.src}>

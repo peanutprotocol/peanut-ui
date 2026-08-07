@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 export type ActivationStep = 'verify' | 'deposit' | 'card' | 'outbound' | 'completed'
 
 interface ActivationStatus {
-    /** whether user has completed activation funnel (kyc + first outbound tx) */
+    /** whether user has activated (≥1 spend: card spend or QR spend on Mercado Pago/Pix) */
     isActivated: boolean
     /** timestamp of activation, null if not yet activated */
     activatedAt: string | null
@@ -31,14 +31,18 @@ const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed'
  * derives the user's activation status for gating rewards/referral UI.
  *
  * activation funnel: registered → verified → funded → card → activated
- * (activated = kyc approved + ≥1 outbound transaction with fees)
+ * (activated = ≥1 SPEND transaction: card spend or QR spend on Mercado Pago/Pix —
+ * other outbound tx kinds like send links, offramps and withdrawals no longer
+ * count; the BE computes `isActivated`/`activationMilestone` on /users/me and
+ * this hook just consumes them, so it inherits the definition automatically)
  *
  * The `card` step only appears when the user is eligible for a Rain card
  * (hasCardAccess) but doesn't have an active one yet, and hasn't dismissed
- * it via "Maybe later". Otherwise the funnel skips straight to outbound.
+ * it via "Maybe later". Otherwise the funnel skips straight to the spend step
+ * (`outbound` — step id kept for continuity, it now means "make your first spend").
  *
- * before backend ships isActivated, falls back to treating all users as activated
- * so no UI breaks during the transition.
+ * if the BE omits isActivated (bug/outage), falls back to false so gated UI
+ * (rewards/referral) stays hidden rather than leaking.
  */
 export function useActivationStatus(): ActivationStatus {
     const { user } = useAuth()

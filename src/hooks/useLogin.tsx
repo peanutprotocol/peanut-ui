@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from './useZeroDev'
@@ -33,6 +34,7 @@ export const useLogin = () => {
     const searchParams = useSearchParams()
     const router = useRouter()
     const toast = useToast()
+    const tErrors = useTranslations('errors')
     const [isloginClicked, setIsloginClicked] = useState(false)
     const [loginResolved, setLoginResolved] = useState(false)
 
@@ -54,7 +56,7 @@ export const useLogin = () => {
         const timer = setTimeout(() => {
             setIsloginClicked(false)
             setLoginResolved(false)
-            toast.error('Login didn’t complete. Please try again.')
+            toast.error(tErrors('loginIncomplete'))
             captureMessage('login ceremony succeeded but user never loaded', {
                 level: 'warning',
                 tags: { error_type: 'login_stalled' },

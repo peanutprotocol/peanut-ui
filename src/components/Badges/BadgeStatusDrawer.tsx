@@ -1,11 +1,11 @@
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { useState } from 'react'
-import { formatDate } from '@/utils/general.utils'
+import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
-import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon, getBadgeShareText } from './badge.utils'
 import { BASE_URL } from '@/constants/general.consts'
 import { useAuth } from '@/context/authContext'
 import { BadgeImage } from './BadgeImage'
@@ -24,11 +24,24 @@ export type BadgeStatusDrawerProps = {
 
 // shows a drawer for a newly unlocked badge
 export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerProps) => {
+    const t = useTranslations('badges')
+    const locale = useLocale()
+    const format = useFormatter()
     const { user: authUser } = useAuth()
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const username = authUser?.user.username
     const earnedAt = badge.earnedAt ? new Date(badge.earnedAt) : undefined
-    const dateStr = earnedAt ? formatDate(earnedAt) : undefined
+    const dateStr =
+        earnedAt && !isNaN(earnedAt.getTime())
+            ? format.dateTime(earnedAt, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false,
+              })
+            : undefined
     const displayName = getBadgeDisplayName(badge.code, badge.name)
     const displayDescription = getBadgeDescription(badge.description)
     const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
@@ -55,7 +68,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                                 <div className="flex h-12 w-12 items-center justify-center rounded-full">
                                     <BadgeImage
                                         src={displayIcon}
-                                        alt="Icon"
+                                        alt={t('iconAlt', { name: displayName })}
                                         className="size-full object-contain"
                                         width={160}
                                         height={160}
@@ -64,7 +77,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
 
                                 <div className="space-y-1">
                                     <h2 className="flex items-center gap-2 text-xs font-medium text-grey-1">
-                                        Badge unlocked!
+                                        {t('unlocked')}
                                     </h2>
                                     <DrawerTitle className="text-lg font-extrabold md:text-4xl">
                                         {displayName}
@@ -74,8 +87,8 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                         </Card>
 
                         <Card position="single">
-                            <PaymentInfoRow label="Unlocked" value={dateStr} />
-                            <PaymentInfoRow label="Reason" value={displayDescription} hideBottomBorder />
+                            <PaymentInfoRow label={t('unlockedAtLabel')} value={dateStr} />
+                            <PaymentInfoRow label={t('reasonLabel')} value={displayDescription} hideBottomBorder />
                         </Card>
 
                         <div className="pb-4">
@@ -83,11 +96,17 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                                 title=""
                                 generateText={() =>
                                     Promise.resolve(
-                                        `I earned ${displayName} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n${profileLink}`
+                                        getBadgeShareText(badge.code, displayName, profileLink, {
+                                            locale,
+                                            localizedFallback: t('shareText', {
+                                                badge: displayName,
+                                                link: profileLink,
+                                            }),
+                                        })
                                     )
                                 }
                             >
-                                Share Achievement
+                                {t('shareAchievement')}
                             </ShareButton>
                         </div>
                     </div>
@@ -96,6 +115,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
             <BadgeDetailModal
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
+                code={badge.code}
                 title={displayName}
                 description={displayDescription || ''}
                 logo={displayIcon}

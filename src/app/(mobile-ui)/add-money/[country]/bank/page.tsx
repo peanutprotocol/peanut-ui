@@ -11,10 +11,10 @@ import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
@@ -42,16 +42,23 @@ import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { addMoneyCountryUrl } from '@/utils/native-routes'
+import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { getRegionIntent } from '@/utils/regions.utils'
+import { useTranslations } from 'next-intl'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
 
-export default function OnrampBankPage() {
+// The Bridge SEPA bank deposit page. Only mounted for non-Manteca countries — the
+// default export below bounces BR/AR away before this ever renders, so none of its
+// data hooks / URL-state effects run for a Manteca deep link.
+function BridgeBankOnrampPage() {
     const params = useParams()
     const _searchParams = useSearchParams()
+    const t = useTranslations('addMoney')
+    const tCommon = useTranslations('common')
 
     // URL state - persisted in query params
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
@@ -222,17 +229,17 @@ export default function OnrampBankPage() {
             }
             const amount = Number(amountStr)
             if (!Number.isFinite(amount)) {
-                setError({ showError: true, errorMessage: 'Please enter a valid number.' })
+                setError({ showError: true, errorMessage: t('errors.invalidNumber') })
                 return false
             }
             if (amount && amount < minimumAmount) {
-                setError({ showError: true, errorMessage: `Minimum deposit is ${minimumAmount}.` })
+                setError({ showError: true, errorMessage: t('errors.minimumDeposit', { amount: minimumAmount }) })
                 return false
             }
             setError({ showError: false, errorMessage: '' })
             return true
         },
-        [setError, minimumAmount]
+        [setError, minimumAmount, t]
     )
 
     // Handle amount change - sync to URL state
@@ -303,7 +310,7 @@ export default function OnrampBankPage() {
         if (!selectedCountry) {
             setError({
                 showError: true,
-                errorMessage: 'Please select a country first.',
+                errorMessage: t('errors.selectCountryFirst'),
             })
             return
         }
@@ -326,7 +333,7 @@ export default function OnrampBankPage() {
             } else {
                 setError({
                     showError: true,
-                    errorMessage: 'Could not get onramp details. Please try again.',
+                    errorMessage: t('errors.onrampDetails'),
                 })
             }
         } catch (error) {
@@ -366,8 +373,12 @@ export default function OnrampBankPage() {
     if (!selectedCountry) {
         return (
             <div className="space-y-8 self-start">
-                <NavHeader title="Not Found" onPrev={onBack} />
-                <EmptyState title="Country not found" description="Please try a different country." icon="search" />
+                <NavHeader title={tCommon('notFound')} onPrev={onBack} />
+                <EmptyState
+                    title={tCommon('countryNotFound')}
+                    description={tCommon('tryDifferentCountry')}
+                    icon="search"
+                />
             </div>
         )
     }
@@ -390,9 +401,9 @@ export default function OnrampBankPage() {
 
         return (
             <div className="flex flex-col justify-start space-y-8">
-                <NavHeader title="Add Money" onPrev={onBack} />
+                <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
-                    <div className="text-sm font-bold">How much do you want to add?</div>
+                    <div className="text-sm font-bold">{t('howMuchToAdd')}</div>
                     <AmountInput
                         initialAmount={rawTokenAmount}
                         setPrimaryAmount={handleTokenAmountChange}
@@ -423,11 +434,7 @@ export default function OnrampBankPage() {
                         })()}
 
                     {!limitsValidation.isBlocking && (
-                        <InfoCard
-                            variant="warning"
-                            icon="alert"
-                            description="Amount must match what you send from your bank!"
-                        />
+                        <InfoCard variant="warning" icon="alert" description={t('amountMustMatchBank')} />
                     )}
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
@@ -435,8 +442,8 @@ export default function OnrampBankPage() {
                         <InfoCard
                             variant="info"
                             icon="info"
-                            title="EUR accounts only"
-                            description="Only EUR accounts with IBAN work for onramps. Your local currency account may not work."
+                            title={t('eurAccountsOnlyTitle')}
+                            description={t('eurAccountsOnlyDescription')}
                         />
                     )}
                     <Button
@@ -456,7 +463,7 @@ export default function OnrampBankPage() {
                         className="w-full"
                         loading={isCreatingOnramp}
                     >
-                        Continue
+                        {tCommon('continue')}
                     </Button>
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
@@ -506,6 +513,7 @@ export default function OnrampBankPage() {
                     error={sumsubFlow.error}
                     variant={resolveKycModalVariant(gate)}
                     providerMessage={getGateUserMessage(gate)}
+                    reasonCode={getGateReasonCode(gate)}
                     regionName={selectedCountry?.title}
                 />
 
@@ -533,4 +541,36 @@ export default function OnrampBankPage() {
     }
 
     return null
+}
+
+// Route entry. Manteca countries (BR/AR) deposit via their own PIX / Mercado Pago
+// flow, not this Bridge SEPA page — getCurrencyConfig has no BR/AR branch, so the
+// Bridge page would render the amount in EUR. A KYC-success redirect or a deep link
+// can still target /add-money/[country]/bank for a Manteca country, so bounce it
+// here — before BridgeBankOnrampPage mounts — and never run its data hooks / URL
+// effects for BR/AR. Uses the same predicate the root dispatcher routes with
+// (add-money/page.tsx) so the two can't disagree on which countries are Manteca.
+export default function OnrampBankPage() {
+    const params = useParams()
+    const searchParams = useSearchParams()
+    const router = useRouter()
+
+    const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
+    const selectedCountry = useMemo(() => {
+        if (!selectedCountryPath) return null
+        return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
+    }, [selectedCountryPath])
+    const isMantecaRoute = !!selectedCountry && isMantecaSupportedCountryCode(selectedCountry.id)
+
+    useEffect(() => {
+        if (isMantecaRoute && selectedCountry) {
+            router.replace(rewriteMethodPath(`/add-money/${selectedCountry.path}/manteca`))
+        }
+    }, [isMantecaRoute, selectedCountry, router])
+
+    if (isMantecaRoute) {
+        return <PeanutLoading />
+    }
+
+    return <BridgeBankOnrampPage />
 }

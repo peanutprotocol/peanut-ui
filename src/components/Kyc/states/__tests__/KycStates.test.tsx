@@ -1,7 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import { type ReactNode } from 'react'
 import { KycActionRequired } from '../KycActionRequired'
 import { KycFailed } from '../KycFailed'
+
+const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic: jest.fn() }),
@@ -64,12 +67,14 @@ describe('KYC state cards', () => {
         expect(screen.queryByText(/resubmit your documents/i)).not.toBeInTheDocument()
     })
 
-    it('falls back to the generic actionMessage when there are no reject labels', () => {
-        render(
-            <KycActionRequired onResume={jest.fn()} actionMessage="Please resubmit your documents." rejectLabels={[]} />
-        )
+    it('renders the catalog copy when actionMessage is present and there are no reject labels', () => {
+        // The backend's actionMessage is a pure function of status: its
+        // presence gates the card, the copy comes from the catalog — raw
+        // backend prose must never render (it would be English in every locale).
+        render(<KycActionRequired onResume={jest.fn()} actionMessage="Some backend prose." rejectLabels={[]} />)
 
-        expect(screen.getByText('Please resubmit your documents.')).toBeInTheDocument()
+        expect(screen.getByText(/resubmit your documents/i)).toBeInTheDocument()
+        expect(screen.queryByText('Some backend prose.')).not.toBeInTheDocument()
         expect(screen.queryByTestId('reject-labels-list')).not.toBeInTheDocument()
     })
 

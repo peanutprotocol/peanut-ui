@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { BadgeDetailModal } from '@/components/Badges/BadgeDetailModal'
 import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from '@/components/Badges/badge.utils'
@@ -28,9 +29,10 @@ import { BadgeImage } from '@/components/Badges/BadgeImage'
 
 const HOME_PATH = '/home'
 
-type ModalBadge = { title: string; description: string; logo: string }
+type ModalBadge = { code: string; title: string; description: string; logo: string }
 
 export default function BadgeEarnToast() {
+    const t = useTranslations('badges')
     const pathname = usePathname()
     const router = useRouter()
     const { toast, dismiss } = useToast()
@@ -64,6 +66,7 @@ export default function BadgeEarnToast() {
             posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count })
             if (count === 1) {
                 setModalBadge({
+                    code: newest.code,
                     title: newestName,
                     description: getBadgeDescription(newest.description) || '',
                     logo: newestIcon,
@@ -73,7 +76,7 @@ export default function BadgeEarnToast() {
             }
         }
 
-        const label = count === 1 ? `Badge unlocked: ${newestName}` : `You unlocked ${count} badges 🎉`
+        const label = count === 1 ? t('toastSingle', { name: newestName }) : t('toastMultiple', { count })
 
         toast({
             id: toastId,
@@ -91,7 +94,7 @@ export default function BadgeEarnToast() {
                         unoptimized
                     />
                     <span className="text-sm font-bold">
-                        {label} <span className="font-medium underline">— tap to view</span>
+                        {label} <span className="font-medium underline">{t('toastTapToView')}</span>
                     </span>
                 </button>
             ),
@@ -99,7 +102,7 @@ export default function BadgeEarnToast() {
         liveToastIdRef.current = toastId
         posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_SHOWN, { count })
         markSeen(codes)
-    }, [pathname, pending, toast, dismiss, markSeen, router])
+    }, [pathname, pending, toast, dismiss, markSeen, router, t])
 
     // Dismiss the toast when the user leaves /home so it doesn't ride over the
     // next route for its remaining duration. Guarded on pathname so the
@@ -116,6 +119,7 @@ export default function BadgeEarnToast() {
         <BadgeDetailModal
             isOpen
             onClose={() => setModalBadge(null)}
+            code={modalBadge.code}
             title={modalBadge.title}
             description={modalBadge.description}
             logo={modalBadge.logo}

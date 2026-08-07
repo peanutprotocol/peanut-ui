@@ -1,15 +1,21 @@
 'use client'
 
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import Modal from '@/components/Global/Modal'
 import ActionModal from '@/components/Global/ActionModal'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
-import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { type ButtonVariant } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import posthog from 'posthog-js'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isCapacitor } from '@/utils/capacitor'
+import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
+import { SumsubNativeSdk } from './SumsubNativeSdk'
+import { SumsubSdkErrorView } from './SumsubSdkErrorView'
+import type { SumsubSdkProps } from './sumsubSdk.types'
 
 // todo: move to consts
 const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-builder.js'
@@ -24,18 +30,19 @@ const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-buil
  */
 const SDK_LAUNCH_TIMEOUT_MS = 20_000
 
-interface SumsubKycWrapperProps {
-    visible: boolean
-    accessToken: string | null
-    onClose: () => void
-    onComplete: () => void
-    onError?: (error: unknown) => void
-    onRefreshToken: () => Promise<string>
-    /** multi-level workflow (e.g. LATAM) — don't close SDK on Level 1 submission */
-    isMultiLevel?: boolean
+/**
+ * Every KYC entry point funnels through here, so this is the one place that
+ * knows which Sumsub SDK to drive. Native gets the Cordova SDK: the WebSDK does
+ * run inside the Capacitor WebView, but a Sumsub-side init failure there paints
+ * their "Initialization error" screen inside a cross-origin iframe, silent to
+ * every handler and every reporter we have.
+ */
+export const SumsubKycWrapper = (props: SumsubSdkProps) => {
+    if (isCapacitor()) return <SumsubNativeSdk {...props} />
+    return <SumsubWebSdkModal {...props} />
 }
 
-export const SumsubKycWrapper = ({
+const SumsubWebSdkModal = ({
     visible,
     accessToken,
     onClose,
@@ -43,7 +50,7 @@ export const SumsubKycWrapper = ({
     onError,
     onRefreshToken,
     isMultiLevel,
-}: SumsubKycWrapperProps) => {
+}: SumsubSdkProps) => {
     const [sdkLoaded, setSdkLoaded] = useState(false)
     const [sdkLoadError, setSdkLoadError] = useState(false)
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
@@ -57,6 +64,10 @@ export const SumsubKycWrapper = ({
     const [sdkContainer, setSdkContainer] = useState<HTMLDivElement | null>(null)
     const sdkInstanceRef = useRef<SnsWebSdkInstance | null>(null)
     const { setIsSupportModalOpen } = useModalsContext()
+    const t = useTranslations('kyc')
+    const tCommon = useTranslations('common')
+    const locale = useLocale()
+    const sumsubLocaleRef = useRef(toSumsubLocale(locale))
 
     // callback refs to avoid stale closures in sdk init effect
     const onCompleteRef = useRef(onComplete)
@@ -76,6 +87,10 @@ export const SumsubKycWrapper = ({
         onRefreshTokenRef.current = onRefreshToken
         isMultiLevelRef.current = isMultiLevel
     }, [onComplete, onError, onRefreshToken, isMultiLevel])
+
+    useEffect(() => {
+        sumsubLocaleRef.current = toSumsubLocale(locale)
+    }, [locale])
 
     // stable wrappers that read from refs
     const stableOnComplete = useCallback(() => onCompleteRef.current(), [])
@@ -186,7 +201,7 @@ export const SumsubKycWrapper = ({
 
             const sdk = window.snsWebSdk
                 .init(accessToken, stableOnRefreshToken)
-                .withConf({ lang: 'en', theme: 'light' })
+                .withConf({ lang: sumsubLocaleRef.current, theme: 'light' })
                 .withOptions({ addViewportTag: false, adaptIframeHeight: true })
                 .on('onApplicantSubmitted', handleSubmitted)
                 .on('onApplicantResubmitted', handleResubmitted)
@@ -311,19 +326,19 @@ export const SumsubKycWrapper = ({
     const modalDetails = useMemo(() => {
         if (modalVariant === 'trouble') {
             return {
-                title: 'Need a hand?',
-                description: "If the ID check isn't loading or working properly, our support team will help.",
+                title: t('wrapper.troubleTitle'),
+                description: t('wrapper.troubleDescription'),
                 icon: 'question-mark' as IconName,
                 iconContainerClassName: 'bg-primary-1',
                 ctas: [
                     {
-                        text: 'Chat with support',
+                        text: t('wrapper.chatWithSupport'),
                         onClick: () => setIsSupportModalOpen(true),
                         variant: 'purple' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
                     {
-                        text: 'Cancel',
+                        text: tCommon('cancel'),
                         onClick: () => setIsHelpModalOpen(false),
                         variant: 'transparent' as ButtonVariant,
                         className: 'underline text-sm font-medium w-full h-fit mt-3',
@@ -333,13 +348,13 @@ export const SumsubKycWrapper = ({
         }
 
         return {
-            title: 'Exit for now?',
-            description: 'You can pick up where you left off later — your progress is saved.',
+            title: t('wrapper.exitForNowTitle'),
+            description: t('wrapper.exitForNowDescription'),
             icon: 'alert' as IconName,
             iconContainerClassName: 'bg-secondary-1',
             ctas: [
                 {
-                    text: 'Exit',
+                    text: t('wrapper.exit'),
                     onClick: () => {
                         setIsHelpModalOpen(false)
                         onClose()
@@ -348,14 +363,14 @@ export const SumsubKycWrapper = ({
                     shadowSize: '4' as const,
                 },
                 {
-                    text: 'Continue',
+                    text: tCommon('continue'),
                     onClick: () => setIsHelpModalOpen(false),
                     variant: 'transparent' as ButtonVariant,
                     className: 'underline text-sm font-medium w-full h-fit mt-3',
                 },
             ],
         }
-    }, [modalVariant, onClose, setIsSupportModalOpen])
+    }, [modalVariant, onClose, setIsSupportModalOpen, t, tCommon])
 
     return (
         <>
@@ -371,15 +386,7 @@ export const SumsubKycWrapper = ({
                 hideOverlay={false}
             >
                 {sdkLoadError ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
-                        <Icon name="alert" size={24} className="text-red-500" />
-                        <p className="text-center text-lg font-medium">
-                            Failed to load verification. Please check your connection and try again.
-                        </p>
-                        <Button variant="purple" shadowSize="4" onClick={onClose}>
-                            Close
-                        </Button>
-                    </div>
+                    <SumsubSdkErrorView onClose={onClose} message={t('wrapper.loadError')} />
                 ) : (
                     <div className="flex h-full flex-col">
                         <div className="flex items-center justify-between px-4 py-2">

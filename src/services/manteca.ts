@@ -21,7 +21,7 @@ export type QrPayment = {
     sessionId: string
     status: string
     currentStage: string
-    stages: any[]
+    stages: unknown[]
     type: 'QR3_PAYMENT' | 'PIX'
     details: {
         depositAddress: Address

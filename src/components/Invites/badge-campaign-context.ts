@@ -71,18 +71,33 @@ export function sanitizeBadgeCampaignIdentities(
  * duplicate removal), and casing/punctuation are preserved for the backend.
  * `code` is deliberately not accepted by this function.
  */
+/**
+ * Published links stack campaigns either as repeated params or as one
+ * comma-separated value (`?campaign=a,b`). Both shapes must survive; dropping
+ * the CSV form would silently award only the first badge. Splitting happens
+ * HERE and not in sanitize, because a stored queue identity may itself contain
+ * a comma and must round-trip unchanged.
+ */
+function splitUrlCampaignValues(values: readonly string[]): string[] {
+    return values.flatMap((value) => value.split(','))
+}
+
 function badgeCampaignsFromSearchParamsWithExplicitBound(
     searchParams: BadgeCampaignSearchParams,
-    explicitMaxLength: number
+    explicitMaxLength: number,
+    splitCommas = true
 ): string[] {
-    const canonicalValues = searchParams.getAll(BADGE_CAMPAIGN_QUERY_PARAM)
+    const split = splitCommas ? splitUrlCampaignValues : (values: readonly string[]) => [...values]
+    const canonicalValues = split(searchParams.getAll(BADGE_CAMPAIGN_QUERY_PARAM))
     if (canonicalValues.length > 0) {
         return sanitizeBadgeCampaignIdentities(canonicalValues, explicitMaxLength)
     }
 
-    const legacyExplicitValues = [...searchParams.entries()]
-        .filter(([key]) => key === 'campaign' || key === 'campaignTag')
-        .map(([, value]) => value)
+    const legacyExplicitValues = split(
+        [...searchParams.entries()]
+            .filter(([key]) => key === 'campaign' || key === 'campaignTag')
+            .map(([, value]) => value)
+    )
     if (legacyExplicitValues.length > 0) {
         return sanitizeBadgeCampaignIdentities(legacyExplicitValues, explicitMaxLength)
     }
@@ -92,7 +107,7 @@ function badgeCampaignsFromSearchParamsWithExplicitBound(
     // `offramp`, which expires 2026-09-07). Everything else resolves `unknown`,
     // so a marketing link can no longer mint a badge as a side effect.
     const utmValues = sanitizeBadgeCampaignIdentities(
-        searchParams.getAll('utm_campaign'),
+        split(searchParams.getAll('utm_campaign')),
         MAX_RAW_BADGE_CAMPAIGN_LENGTH
     )
     return sanitizeBadgeCampaignIdentities(utmValues.map((value) => `${LEGACY_UTM_BADGE_CAMPAIGN_PREFIX}${value}`))
@@ -109,7 +124,9 @@ export function badgeCampaignsFromSearchParams(searchParams: BadgeCampaignSearch
  * truncating that 68-character internal wire representation.
  */
 export function badgeCampaignIdentitiesFromDeferredSearchParams(searchParams: BadgeCampaignSearchParams): string[] {
-    return badgeCampaignsFromSearchParamsWithExplicitBound(searchParams, MAX_BADGE_CAMPAIGN_IDENTITY_LENGTH)
+    // No comma splitting: these are already-qualified queue identities, not raw
+    // public URL input, and one may legitimately contain a comma.
+    return badgeCampaignsFromSearchParamsWithExplicitBound(searchParams, MAX_BADGE_CAMPAIGN_IDENTITY_LENGTH, false)
 }
 
 /**

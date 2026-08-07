@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import type { Hex } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -36,6 +37,7 @@ type Step = 'preview' | 'confirm' | 'signing' | 'submitting' | 'done'
  * requires the user's passkey.
  */
 export default function CardRecoveryPage() {
+    const t = useTranslations('card.recovery')
     const onBack = useSafeBack('/home')
     const { getClientForChain } = useKernelClient()
 
@@ -55,13 +57,13 @@ export default function CardRecoveryPage() {
                 const data = await rainApi.getRecoverFundsPreview()
                 if (!cancelled) setPreview(data)
             } catch (e) {
-                if (!cancelled) setError((e as Error).message || 'Could not load recovery preview')
+                if (!cancelled) setError((e as Error).message || t('previewFailed'))
             }
         })()
         return () => {
             cancelled = true
         }
-    }, [])
+    }, [t])
 
     const handleRecover = useCallback(async () => {
         setError(null)
@@ -98,25 +100,24 @@ export default function CardRecoveryPage() {
             setTxHash(hash as Hex)
             setStep('done')
         } catch (e) {
-            setError((e as Error).message || 'Recovery failed — please try again')
+            setError((e as Error).message || t('failed'))
             setStep('preview')
         }
-    }, [getClientForChain])
+    }, [getClientForChain, t])
 
     if (!preview && !error) return <PeanutLoading />
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title="Recover card funds" onPrev={onBack} />
+            <NavHeader title={t('navTitle')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 {error && <ErrorAlert description={error} />}
 
                 {step === 'done' && txHash ? (
                     <Card className="flex flex-col gap-3 p-6">
-                        <h2 className="text-h7 font-bold">Funds sent to your wallet.</h2>
+                        <h2 className="text-h7 font-bold">{t('doneTitle')}</h2>
                         <p className="text-sm text-grey-1">
-                            ${formatCents(recoveredCents ?? preview!.amountCents)} USDC has been returned to your peanut
-                            wallet.
+                            {t('doneBody', { amount: `$${formatCents(recoveredCents ?? preview!.amountCents)}` })}
                         </p>
                         <a
                             className="text-black underline"
@@ -124,7 +125,7 @@ export default function CardRecoveryPage() {
                             rel="noreferrer"
                             href={`${getExplorerUrl(String(PEANUT_WALLET_CHAIN.id)) ?? ''}/tx/${txHash}`}
                         >
-                            View transaction
+                            {t('viewTransaction')}
                         </a>
                     </Card>
                 ) : (
@@ -132,22 +133,18 @@ export default function CardRecoveryPage() {
                         <>
                             <Card className="flex flex-col gap-3 p-6">
                                 <h2 className="text-h7 font-bold">
-                                    {preview.hasRecoverableCard ? 'Recover your card collateral' : 'No card on file'}
+                                    {preview.hasRecoverableCard ? t('title') : t('noCardOnFile')}
                                 </h2>
-                                <p className="text-sm text-grey-1">
-                                    This pulls every USDC currently held in your card collateral contract back to your
-                                    peanut wallet. Auto-balance is turned off as part of recovery so the rebalancer
-                                    can't top up between now and the transfer.
-                                </p>
+                                <p className="text-sm text-grey-1">{t('description')}</p>
 
-                                <Row label="Recoverable" value={`$${formatCents(preview.amountCents)} USDC`} />
-                                <Row label="Destination" value={shorten(preview.recipient)} />
+                                <Row label={t('recoverable')} value={`$${formatCents(preview.amountCents)} USDC`} />
+                                <Row label={t('destination')} value={shorten(preview.recipient)} />
                                 {BigInt(preview.dustWei) > 0n && (
-                                    <Row label="Dust left in contract" value={`${preview.dustWei} wei (< $0.01)`} />
+                                    <Row label={t('dust')} value={`${preview.dustWei} wei (< $0.01)`} />
                                 )}
                                 <Row
-                                    label="Auto-balance"
-                                    value={preview.autoBalanceEnabled ? 'on — will be turned off' : 'off'}
+                                    label={t('autoBalance')}
+                                    value={preview.autoBalanceEnabled ? t('autoBalanceOn') : t('autoBalanceOff')}
                                 />
                             </Card>
 
@@ -165,10 +162,10 @@ export default function CardRecoveryPage() {
                                 onClick={handleRecover}
                             >
                                 {step === 'signing'
-                                    ? 'Sign with passkey…'
+                                    ? t('signWithPasskey')
                                     : step === 'submitting'
-                                      ? 'Submitting…'
-                                      : 'Recover funds'}
+                                      ? t('submitting')
+                                      : t('cta')}
                             </Button>
                         </>
                     )

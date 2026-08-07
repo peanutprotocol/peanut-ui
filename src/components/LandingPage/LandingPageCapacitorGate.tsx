@@ -9,7 +9,7 @@
 
 import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { hasNativeSessionCookie } from '@/utils/auth-token'
+import { hasNativeSession } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 
@@ -23,9 +23,10 @@ export function LandingPageCapacitorGate({ children }: { children: ReactNode }) 
                 router.replace('/home')
                 return
             }
-            // The session lives in the native cookie jar (async read). /home's
-            // layout still validates via /users/me and bounces dead sessions.
-            hasNativeSessionCookie().then((hasSession) => {
+            // The session lives in native Preferences (async read, with a
+            // legacy cookie-jar fallback). /home's layout still validates via
+            // /users/me and bounces dead sessions.
+            hasNativeSession().then((hasSession) => {
                 router.replace(hasSession ? '/home' : '/setup')
             })
         }

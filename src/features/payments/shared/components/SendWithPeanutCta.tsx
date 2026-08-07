@@ -8,7 +8,8 @@
  * - logged in: "send with peanut" + executes payment
  */
 
-import { PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
+import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
@@ -19,6 +20,8 @@ import { saveRedirectUrl, saveToLocalStorage, toInviteCode } from '@/utils/gener
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 
 interface SendWithPeanutCtaProps extends ButtonProps {
     title?: string
@@ -47,12 +50,16 @@ export default function SendWithPeanutCta({
     ...props
 }: SendWithPeanutCtaProps) {
     const router = useRouter()
+    const t = useTranslations('payment')
     const dispatch = useAppDispatch()
     const { user, isFetchingUser } = useAuth()
 
     const isLoggedIn = !!user?.user?.userId
     // assume logged in while fetching to prevent "Join Peanut" flash
     const showAsLoggedIn = isFetchingUser || isLoggedIn
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        trackImpressionWhenGuest: requiresAuth && !isFetchingUser && !isLoggedIn,
+    })
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         // don't act while auth is still resolving
@@ -60,6 +67,9 @@ export default function SendWithPeanutCta({
 
         // if auth is required and user is not logged in, redirect to signup
         if (requiresAuth && !isLoggedIn) {
+            // migration window: web signups are closed — hand the guest to the
+            // app stores instead (QR modal on desktop, store link on mobile)
+            if (interceptGuestCta()) return
             const redirectUri = encodeURIComponent(
                 window.location.pathname + window.location.search + window.location.hash
             )
@@ -107,31 +117,34 @@ export default function SendWithPeanutCta({
     }, [])
 
     return (
-        <Button
-            variant="purple"
-            shadowSize="4"
-            className="w-full"
-            icon={icon}
-            iconSize={16}
-            onClick={handleClick}
-            {...props}
-        >
-            {!showAsLoggedIn ? (
-                <div className="flex items-center gap-1">
-                    <div>Join </div>
-                    {peanutLogo}
-                </div>
-            ) : insufficientBalance ? (
-                <div className="flex items-center gap-1">
-                    <div>Add funds to </div>
-                    {peanutLogo}
-                </div>
-            ) : (
-                <div className="flex items-center gap-1">
-                    <div>{title || 'Send with '} </div>
-                    {peanutLogo}
-                </div>
-            )}
-        </Button>
+        <>
+            {storeHandoffModal}
+            <Button
+                variant="purple"
+                shadowSize="4"
+                className="w-full"
+                icon={icon}
+                iconSize={16}
+                onClick={handleClick}
+                {...props}
+            >
+                {!showAsLoggedIn ? (
+                    <div className="flex items-center gap-1">
+                        <div>{t('cta.join')} </div>
+                        {peanutLogo}
+                    </div>
+                ) : insufficientBalance ? (
+                    <div className="flex items-center gap-1">
+                        <div>{t('cta.addFundsTo')} </div>
+                        {peanutLogo}
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-1">
+                        <div>{title || t('cta.sendWith')} </div>
+                        {peanutLogo}
+                    </div>
+                )}
+            </Button>
+        </>
     )
 }

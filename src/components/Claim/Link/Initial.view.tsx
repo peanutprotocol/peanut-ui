@@ -11,17 +11,17 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
-import { loadingStateContext, tokenSelectorContext } from '@/context'
+import { loadingStateContext } from '@/context/loadingStates.context'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { areEvmAddressesEqual, formatTokenAmount, toInviteCode } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
-import { ErrorHandler } from '@/utils/friendly-error.utils'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { apiFetch } from '@/utils/api-fetch'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
-import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
+import { NATIVE_TOKEN_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -42,7 +42,8 @@ import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getTokenSymbol } from '@/utils/general.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
-import { PEANUT_LOGO_BLACK, PEANUTMAN } from '@/assets'
+import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import MantecaFlowManager from './MantecaFlowManager'
@@ -53,9 +54,15 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useFormatter, useTranslations } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
+    const t = useTranslations('claim')
+    const toFriendlyError = useFriendlyError()
+    const format = useFormatter()
+    const tCommon = useTranslations('common')
+    const tNav = useTranslations('navigation')
     const searchParams = useSearchParams()
     // `/claim` remains a published singular campaignTag wire. Resolve its URL
     // through the canonical badge namespace before forwarding that legacy field.
@@ -216,7 +223,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
-    }, [claimLinkData, isPeanutWallet])
+        // claimLinkData is unused in the body but load-bearing: it is what gives this
+        // callback a new identity per link, and the effects below depend on that
+        // identity to reset the token selection when new link data arrives. Dropping
+        // it would silently stop those resets.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [claimLinkData, isPeanutWallet, setSelectedChainID, setSelectedTokenAddress])
 
     const isPeanutChain = useMemo(() => {
         return claimLinkData.chainId === PEANUT_WALLET_CHAIN.id.toString()
@@ -238,10 +250,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
         }
         prevRecipientType.current = recipientType
-    }, [recipientType, claimLinkData.chainId, isPeanutChain, claimLinkData.tokenAddress])
+    }, [
+        recipientType,
+        claimLinkData.chainId,
+        isPeanutChain,
+        claimLinkData.tokenAddress,
+        setIsXChain,
+        setRefetchXchainRoute,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+    ])
 
     const handleClaimLink = useCallback(
-        async (bypassModal = false, autoClaim = false) => {
+        async (bypassModal = false, _autoClaim = false) => {
             if (!selectedTokenData) return
 
             if (!isPeanutWallet && !bypassModal) {
@@ -265,7 +286,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     if (!inviterUsername) {
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Unable to accept invite: missing inviter. Please contact support.',
+                            errorMessage: t('errors.missingInviter'),
                         })
                         setLoadingState('Idle')
                         return
@@ -280,7 +301,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         console.error('Failed to accept invite')
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Something went wrong. Please try again or contact support.',
+                            errorMessage: tCommon('genericError'),
                         })
                         setLoadingState('Idle')
                         return
@@ -294,7 +315,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     console.error('Failed to accept invite', error)
                     setErrorState({
                         showError: true,
-                        errorMessage: 'Something went wrong. Please try again or contact support.',
+                        errorMessage: tCommon('genericError'),
                     })
                     setLoadingState('Idle')
                     return
@@ -341,7 +362,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 // check if cross-chain claiming is needed
                 if (isXChain) {
                     if (underMaintenanceConfig.disableXchainSend) {
-                        // skip throwing through ErrorHandler — surface the friendly maintenance message directly
+                        // skip throwing through the friendly-error mapper — surface the friendly maintenance message directly
                         setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
                         setLoadingState('Idle')
                         return
@@ -419,7 +440,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     })
                 }
             } catch (error) {
-                const errorString = ErrorHandler(error)
+                const errorString = toFriendlyError(error)
                 setErrorState({
                     showError: true,
                     errorMessage: errorString,
@@ -454,6 +475,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             address,
             campaignTag,
             fetchUser,
+            t,
+            tCommon,
+            toFriendlyError,
         ]
     )
 
@@ -472,17 +496,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             if (tokenPrice) {
                 const cashoutUSDAmount =
                     Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                const usd = (amount: number) => format.number(amount, { style: 'currency', currency: 'USD' })
                 if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
                     setErrorState({
                         showError: true,
-                        errorMessage: 'offramp_lt_minimum',
+                        errorMessage: t('errors.belowMinimum', { amount: usd(MIN_CASHOUT_LIMIT) }),
                     })
                     return
                 } else if (cashoutUSDAmount > MAX_CASHOUT_LIMIT) {
                     setErrorState({
                         showError: true,
-                        errorMessage: 'offramp_mt_maximum',
+                        errorMessage: t('errors.aboveMaximum', { amount: usd(MAX_CASHOUT_LIMIT) }),
                     })
+                    return
                 }
             }
 
@@ -495,7 +521,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 if (!route) {
                     setErrorState({
                         showError: true,
-                        errorMessage: 'offramp unavailable',
+                        errorMessage: t('errors.offrampUnavailable'),
                     })
                     return
                 }
@@ -559,7 +585,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         } catch (error) {
             setErrorState({
                 showError: true,
-                errorMessage: 'You can not claim this link to your bank account.',
+                errorMessage: t('errors.bankClaimUnavailable'),
             })
             Sentry.captureException(error)
         } finally {
@@ -590,7 +616,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         } else {
             setIsXChain(true)
         }
-    }, [selectedTokenData, claimLinkData.chainId, claimLinkData.tokenAddress])
+    }, [
+        selectedTokenData,
+        claimLinkData.chainId,
+        claimLinkData.tokenAddress,
+        setHasFetchedRoute,
+        setIsXChain,
+        setSelectedRoute,
+    ])
 
     // We may need this when we re add rewards via specific tokens
     // If not, feel free to remove
@@ -677,7 +710,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setLoadingState('Idle')
             }
         },
-        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes]
+        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes, setHasFetchedRoute, setSelectedRoute]
     )
 
     useEffect(() => {
@@ -763,7 +796,15 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setIsXChain(true)
             }
         }
-    }, [isPeanutWallet, isPeanutChain, claimToExternalWallet])
+    }, [
+        isPeanutWallet,
+        isPeanutChain,
+        claimToExternalWallet,
+        setIsXChain,
+        setRefetchXchainRoute,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+    ])
 
     // Clear recipient when switching to external wallet
     useEffect(() => {
@@ -822,28 +863,28 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         if (isPeanutWallet && !claimToExternalWallet) {
             return (
                 <div className="flex items-center gap-1">
-                    <div>Receive on </div>
+                    <div>{t('initial.receiveOn')} </div>
                     <div className="flex items-center gap-1">
-                        <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
-                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                        <Image src={PEANUTMAN} alt={tNav('peanutLogoAlt')} className="size-5" />
+                        <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} />
                     </div>
                 </div>
             )
         }
 
         if (selectedRoute) {
-            return 'Review'
+            return t('review')
         }
 
         if ((isLoading || isXchainLoading) && !inputChanging) {
-            return 'Receiving'
+            return t('receiving')
         }
 
         if (isXChain && hasFetchedRoute && !selectedRoute) {
-            return 'Retry'
+            return tCommon('retry')
         }
 
-        return 'Receive now'
+        return t('receiveNow')
     }
 
     const handleClaimAction = () => {
@@ -894,7 +935,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         if (claimToMercadoPago && !user) {
             setShowVerificationModal(true)
         }
-    }, [claimToMercadoPago, user])
+    }, [claimToMercadoPago, user, setShowVerificationModal])
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
@@ -921,7 +962,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
                 <div>
                     <NavHeader
-                        title="Receive"
+                        title={t('receive')}
                         onPrev={() => {
                             if (claimToExternalWallet) {
                                 setClaimToExternalWallet(false)
@@ -933,7 +974,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 </div>
             ) : (
                 <div className="-mt-1 md:hidden">
-                    <div className="pb-1 text-center text-2xl font-extrabold">Receive</div>
+                    <div className="pb-1 text-center text-2xl font-extrabold">{t('receive')}</div>
                 </div>
             )}
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
@@ -971,7 +1012,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     {/* Manual Input Section - Always visible in non-peanut-only mode */}
                     {!!claimToExternalWallet && (
                         <GeneralRecipientInput
-                            placeholder="Enter a username, an address or ENS"
+                            placeholder={t('initial.recipientPlaceholder')}
                             recipient={recipient}
                             onUpdate={(update: GeneralRecipientUpdate) => {
                                 setRecipient(update.recipient)
@@ -1002,9 +1043,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         />
                     )}
                     {recipientType === 'username' && !!claimToExternalWallet && (
-                        <div className="text-xs text-grey-1">
-                            You can only claim USDC on Arbitrum for Peanut Wallet users.
-                        </div>
+                        <div className="text-xs text-grey-1">{t('initial.usdcArbitrumOnly')}</div>
                     )}
                 </div>
 
@@ -1041,11 +1080,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             <ActionModal
                 visible={showConfirmationModal}
                 onClose={() => setShowConfirmationModal(false)}
-                title="Is this address compatible?"
+                title={t('addressCompatible.title')}
                 description={
                     <div className="space-y-2">
-                        <p>Only claim to an address that support the selected network and token.</p>
-                        <p className="font-bold">Incorrect transfers may be lost. If you're unsure, do not proceed.</p>
+                        <p>{t('addressCompatible.line1')}</p>
+                        <p className="font-bold">{t('addressCompatible.line2')}</p>
                     </div>
                 }
                 icon="alert"
@@ -1073,7 +1112,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 setClaimToExternalWallet(false)
                             }}
                         >
-                            Not sure? Claim to peanut instead
+                            {t('addressCompatible.claimToPeanut')}
                         </Button>
                     </div>
                 }
@@ -1082,13 +1121,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             />
             <GuestVerificationModal
                 redirectToVerification
-                secondaryCtaLabel="Claim with other method"
+                secondaryCtaLabel={t('guestVerification.otherMethod')}
                 isOpen={showVerificationModal}
                 onClose={() => {
                     removeParamStep()
                     setShowVerificationModal(false)
                 }}
-                description="The sender isn't verified for this method. You'll have to create an account, verify your identity,  and then your funds will be deposited to your bank."
+                description={t('guestVerification.description')}
                 inviterUsername={claimLinkData?.sender?.username}
             />
         </div>

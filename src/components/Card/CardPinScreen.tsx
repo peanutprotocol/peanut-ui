@@ -1,5 +1,6 @@
 'use client'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -20,6 +21,7 @@ interface Props {
 const AUTO_MASK_MS = 30_000
 
 const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
+    const t = useTranslations('card.pin')
     const [mode, setMode] = useQueryState('mode', parseAsStringEnum<Mode>(['view', 'set']))
     const [pin, setPin] = useState<string | null>(null)
     const [pinUnset, setPinUnset] = useState(false)
@@ -57,7 +59,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                 setError(e.message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_PIN_RATE_LIMITED, { action: 'view' })
             } else {
-                setError(e instanceof Error ? e.message : 'Failed to load PIN')
+                setError(e instanceof Error ? e.message : t('loadFailed'))
             }
         } finally {
             setLoading(false)
@@ -86,7 +88,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
         return (
             <div className="flex min-h-[inherit] flex-col gap-6">
                 <NavHeader
-                    title="Set pin"
+                    title={t('setNavTitle')}
                     onPrev={() => {
                         setPinUnset(false)
                         void setMode(null)
@@ -106,16 +108,14 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
     if (pinUnset) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-6">
-                <NavHeader title="Your card pin" onPrev={onPrev} />
+                <NavHeader title={t('navTitle')} onPrev={onPrev} />
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-2">
-                        <h1 className="text-xl font-extrabold">No pin set yet</h1>
-                        <p className="text-grey-1">
-                            You need to set a pin before using your card for in-store purchases.
-                        </p>
+                        <h1 className="text-xl font-extrabold">{t('noPinTitle')}</h1>
+                        <p className="text-grey-1">{t('noPinBody')}</p>
                     </div>
                     <Button variant="purple" shadowSize="4" className="w-full" onClick={() => void setMode('set')}>
-                        Set pin
+                        {t('setPin')}
                     </Button>
                 </div>
             </div>
@@ -124,9 +124,9 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-6">
-            <NavHeader title="Your card pin" onPrev={onPrev} />
+            <NavHeader title={t('navTitle')} onPrev={onPrev} />
             <div className="flex flex-col gap-6">
-                <p className="text-sm text-grey-1">Your pin is hidden for security reasons.</p>
+                <p className="text-sm text-grey-1">{t('hiddenNote')}</p>
                 <div className="flex items-center gap-3">
                     {/* Fixed-height slot keeps the row geometry constant across
                      * masked / loading / revealed. text-6xl in this repo's
@@ -149,7 +149,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         type="button"
                         onClick={pin ? hide : reveal}
                         disabled={loading}
-                        aria-label={pin ? 'Hide pin' : 'Show pin'}
+                        aria-label={pin ? t('hidePin') : t('showPin')}
                         className="p-1"
                     >
                         {/* Icon reflects current state: slashed eye while hidden, open eye while visible. */}
@@ -159,7 +159,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                 {error && <p className="text-sm text-red">{error}</p>}
                 <ProfileMenuItem
                     icon="more-horizontal"
-                    label="Change pin"
+                    label={t('changePin')}
                     onClick={() => {
                         hide()
                         void setMode('set')

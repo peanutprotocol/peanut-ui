@@ -13,6 +13,10 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
 
+// dev holds the splash on localeApplied() with a 2s real timeout — resolve
+// immediately so waitFor() in these tests never races that timer
+jest.mock('@/i18n/app/locale-store', () => ({ localeApplied: () => Promise.resolve() }))
+
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => true),
     getPlatform: jest.fn(() => 'android-native'),

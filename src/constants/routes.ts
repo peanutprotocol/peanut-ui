@@ -48,6 +48,7 @@ export const DEDICATED_ROUTES = [
     'fix-card-signature',
 
     // Public pages (existing)
+    'app', // smart store link (/app) — QR codes point here, redirects by device
     'm', // merchant landing pages (/m/[slug]) — added on main; register so the catch-all never treats it as a recipient
     'careers',
     'jobs',
@@ -73,8 +74,11 @@ export const DEDICATED_ROUTES = [
     'en',
     'es-419',
     'es-ar',
-    'es-es',
     'pt-br',
+
+    // Retired locales — still 301'd in redirects.json, kept reserved so a stale
+    // URL can never be read as a recipient username by the catch-all route.
+    'es-es',
 ] as const
 
 /**
@@ -140,7 +144,7 @@ export function isLocaleSegment(segment: string): boolean {
 export function isReservedRoute(path: string): boolean {
     const firstSegment = path.split('/')[1]?.toLowerCase()
     if (!firstSegment) return false
-    return RESERVED_ROUTES.includes(firstSegment as any) || isLocaleSegment(firstSegment)
+    return RESERVED_ROUTES.includes(firstSegment) || isLocaleSegment(firstSegment)
 }
 
 /**
@@ -165,12 +169,15 @@ export function couldBeRecipient(segment: string): boolean {
         // malformed percent-encoding (e.g. lone '%') → not a recipient
         return false
     }
+    // strip the @chain suffix first so address@chainId deep links (e.g. the
+    // QR scanner's EIP-681 path builds /0x…@42161/34.4USDC) pass the guard —
+    // chain validation happens downstream in the url parser
+    const base = decoded.split('@')[0]
     // EVM address
-    if (/^0x[0-9a-f]{40}$/.test(decoded)) return true
+    if (/^0x[0-9a-f]{40}$/.test(base)) return true
     // ENS name
-    if (decoded.endsWith('.eth') && decoded.length > 4) return true
-    // username@chain handle (chain validation happens downstream)
-    const base = decoded.includes('@') ? decoded.split('@')[0] : decoded
+    if (base.endsWith('.eth') && base.length > 4) return true
+    // username@chain handle
     return USERNAME_PATTERN.test(base)
 }
 

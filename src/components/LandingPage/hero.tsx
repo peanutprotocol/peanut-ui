@@ -3,9 +3,14 @@
 import { PeanutWhistling } from '@/assets/mascot'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
+import type { LandingStrings } from './landingStrings'
+import type { Locale } from '@/i18n/types'
+import { type CTAButton } from '@/components/LandingPage/landing.types'
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
@@ -60,27 +65,25 @@ function PeanutMascot() {
     }, [position])
 
     return (
-        <img
+        <Image
             ref={imgRef}
-            src={PeanutWhistling.src}
+            src={PeanutWhistling}
+            unoptimized
             alt="Peanut Guy"
             className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
         />
     )
 }
 
-type CTAButton = {
-    label: string
-    href: string
-    isExternal?: boolean
-    subtext?: string
-}
-
 type HeroProps = {
+    strings: LandingStrings
+    locale: Locale
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
     buttonScale?: number
+    /** replaces the primary button entirely (store-button pair on desktop during the migration window) */
+    customCta?: React.ReactNode
 }
 
 const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
@@ -110,7 +113,15 @@ const transitionConfig = { type: 'spring', damping: 15 } as const
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 }: HeroProps) {
+export function Hero({
+    primaryCta,
+    secondaryCta,
+    buttonVisible,
+    buttonScale = 1,
+    customCta,
+    strings,
+    locale,
+}: HeroProps) {
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <motion.div
@@ -124,9 +135,11 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
                     href={cta.href}
                     target={cta.isExternal ? '_blank' : undefined}
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
+                    onClick={cta.onClick}
                 >
                     <Button
                         shadowSize="4"
+                        icon={cta.icon}
                         className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
                     >
                         {cta.label}
@@ -139,6 +152,17 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
         )
     }
 
+    const renderCustomCta = () => (
+        <motion.div
+            className={getButtonContainerClasses('primary')}
+            initial={getInitialAnimation('primary')}
+            animate={getAnimateAnimation('primary', buttonVisible, buttonScale)}
+            transition={transitionConfig}
+        >
+            {customCta}
+        </motion.div>
+    )
+
     return (
         <section
             id="hero"
@@ -146,9 +170,11 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
         >
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
-                <img
-                    src={GlobalCashLocalFeel.src}
-                    className="z-0 mx-auto w-full max-w-[1000px] object-contain md:w-[50%]"
+                <Image
+                    src={GlobalCashLocalFeel}
+                    priority
+                    sizes="(min-width: 768px) 50vw, 100vw"
+                    className="z-0 mx-auto h-auto w-full max-w-[1000px] object-contain md:w-[50%]"
                     alt="Global Cash Local Feel"
                 />
 
@@ -173,29 +199,29 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, buttonScale = 1 
 
             <div className="relative z-20 flex w-full flex-col items-center justify-center">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
-                    TAP. SCAN. ANYWHERE.
+                    {strings.heroTapScan}
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    <a href="/en/argentina" className="hover:underline">
+                    <Link href={`/${locale}/argentina`} className="hover:underline">
                         Buenos Aires
-                    </a>
+                    </Link>
                     .{' '}
-                    <a href="/en/brazil" className="hover:underline">
+                    <Link href={`/${locale}/brazil`} className="hover:underline">
                         São Paulo
-                    </a>
+                    </Link>
                     .{' '}
-                    <a href="/en/brazil" className="hover:underline">
+                    <Link href={`/${locale}/brazil`} className="hover:underline">
                         Floripa
-                    </a>
+                    </Link>
                     .
                 </span>
                 <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
-                    No local ID or bank required.
+                    {strings.heroNoLocalId}
                 </span>
-                {primaryCta && renderCTAButton(primaryCta, 'primary')}
+                {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
                 <motion.img
                     initial={{ opacity: 0, translateY: 20, translateX: 5 }}

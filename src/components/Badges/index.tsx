@@ -9,14 +9,16 @@ import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
 import { BadgeDetailModal } from './BadgeDetailModal'
 import { useMemo, useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useUserStore } from '@/redux/hooks'
 import { ActionListCard } from '../ActionListCard'
 import { useAuth } from '@/context/authContext'
 import { BadgeImage } from './BadgeImage'
 
-type BadgeView = { title: string; description: string; logo: string | StaticImageData }
+type BadgeView = { code: string; title: string; description: string; logo: string | StaticImageData }
 
 export const Badges = () => {
+    const t = useTranslations('badges')
     const onBack = useSafeBack('/profile')
     const { user: authUser } = useUserStore()
     const { fetchUser } = useAuth()
@@ -33,6 +35,7 @@ export const Badges = () => {
         // get badges from user object and map to card fields
         const raw = authUser?.user?.badges || []
         return raw.map((b) => ({
+            code: b.code,
             title: getBadgeDisplayName(b.code, b.name),
             description: getBadgeDescription(b.description) || '',
             logo: getBadgeIcon(b.code, b.iconUrl),
@@ -42,13 +45,9 @@ export const Badges = () => {
     if (!badges.length) {
         return (
             <div className="flex min-h-[inherit] flex-col items-center justify-center gap-8">
-                <NavHeader title="Your Badges" onPrev={onBack} />
+                <NavHeader title={t('yourBadges')} onPrev={onBack} />
                 <div className="my-auto">
-                    <EmptyState
-                        icon="achievements"
-                        title="No badges found"
-                        description="Earn badges as you use Peanut. Make payments, invite friends, and join events to unlock them and display them on your profile."
-                    />
+                    <EmptyState icon="achievements" title={t('emptyTitle')} description={t('emptyDescription')} />
                 </div>
             </div>
         )
@@ -56,7 +55,7 @@ export const Badges = () => {
 
     return (
         <div className="h-full w-full space-y-10">
-            <NavHeader title="Your Badges" onPrev={onBack} />
+            <NavHeader title={t('yourBadges')} onPrev={onBack} />
             <div className="space-y-4">
                 <div>
                     {badges.map((badge, idx) => (
@@ -91,7 +90,7 @@ export const Badges = () => {
 
                 <div className="flex items-center justify-center gap-2 text-xs text-grey-1">
                     <Icon name="info" width={16} height={16} />
-                    <span>These Badges are displayed on your public profile.</span>
+                    <span>{t('publicProfileNote')}</span>
                 </div>
             </div>
             {selectedBadge && (
@@ -101,6 +100,7 @@ export const Badges = () => {
                         setIsBadgeModalOpen(false)
                         setSelectedBadge(null)
                     }}
+                    code={selectedBadge.code}
                     title={selectedBadge.title}
                     description={selectedBadge.description}
                     logo={selectedBadge.logo}

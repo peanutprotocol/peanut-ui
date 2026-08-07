@@ -1,6 +1,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { useTranslations } from 'next-intl'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -17,17 +18,19 @@ const SearchInput: React.FC<SearchInputProps> = ({
     value,
     onChange,
     onClear,
-    placeholder = 'Search...',
+    placeholder,
     className,
     inputClassName,
     ...rest
 }) => {
+    const t = useTranslations('global')
+
     return (
         <div className={twMerge('relative', className)}>
             <BaseInput
                 variant="md"
                 className={twMerge('h-10 w-full border border-black px-10 text-sm font-normal', inputClassName)}
-                placeholder={placeholder}
+                placeholder={placeholder ?? t('tokenSelector.searchPlaceholder')}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 {...rest}
@@ -38,7 +41,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
                     variant="transparent"
                     onClick={onClear}
                     className="absolute right-2 top-1/2 w-fit -translate-y-1/2 p-0"
-                    aria-label="Clear search"
+                    aria-label={t('tokenSelector.clearSearch')}
                 >
                     <div className="flex size-6 items-center justify-center">
                         <Icon name="cancel" className="h-5 w-5 text-grey-1" />

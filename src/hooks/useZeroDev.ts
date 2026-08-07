@@ -149,6 +149,7 @@ export const useZeroDev = () => {
                         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
                             invite_code: userInviteCode,
                             invite_type: inviteType,
+                            campaign_tag: badgeCampaigns[0],
                             campaign_tags: badgeCampaigns,
                         })
                         clearAcceptedInviteCode()
@@ -204,6 +205,7 @@ export const useZeroDev = () => {
 
                 if (confirmed.length > 0) {
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
+                        campaign_tag: confirmed[0]?.badgeCampaign,
                         campaign_tags: confirmed.map((claim) => claim.badgeCampaign),
                         badge_codes: confirmed.map((claim) => claim.badgeCode).filter(Boolean),
                     })

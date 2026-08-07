@@ -2,6 +2,7 @@
 
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
+import { useTranslations } from 'next-intl'
 import { useHaptic } from 'use-haptic'
 
 interface CardLaunchCTABannerProps {
@@ -22,6 +23,7 @@ interface CardLaunchCTABannerProps {
  * with CarouselCTA); the X stops propagation.
  */
 export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunchCTABannerProps) {
+    const t = useTranslations('home.cardLaunch')
     const { triggerHaptic } = useHaptic()
 
     const handleTryDoor = () => {
@@ -43,7 +45,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
         >
             <button
                 type="button"
-                aria-label="Dismiss launch announcement"
+                aria-label={t('dismissAriaLabel')}
                 onClick={handleDismiss}
                 className="absolute right-2.5 top-2.5 z-10 cursor-pointer p-1 text-n-1 outline-none"
             >
@@ -51,8 +53,10 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             </button>
 
             <div className="relative z-[1] flex flex-col gap-3 pr-6">
-                <h3 className="font-roboto-flex-extrabold text-4xl font-extraBlack leading-[1.02] text-n-1">shhhh</h3>
-                <p className="text-sm font-bold leading-snug text-n-1">Tap to find out if you&apos;re in</p>
+                <h3 className="font-roboto-flex-extrabold text-4xl font-extraBlack leading-[1.02] text-n-1">
+                    {t('title')}
+                </h3>
+                <p className="text-sm font-bold leading-snug text-n-1">{t('subtitle')}</p>
                 <Button
                     variant="purple"
                     shadowSize="4"
@@ -63,7 +67,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
                         handleTryDoor()
                     }}
                 >
-                    Try the door →
+                    {t('cta')}
                 </Button>
             </div>
         </div>

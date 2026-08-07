@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import InfoCard from '@/components/Global/InfoCard'
@@ -11,6 +12,7 @@ import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
 /** A feature unlocked by identity verification, tagged by which channel unlocked it. */
 type UnlockItem = {
+    id: string
     title: React.ReactNode | string
     /** `bank` = shown when bank rails are enabled (US/EU/MX users). `qr` = shown
      * when QR-pay is enabled (LATAM users). Bullets in both groups display when
@@ -18,57 +20,8 @@ type UnlockItem = {
     type: 'bank' | 'qr'
 }
 
-/**
- * Static list of unlocked-feature bullets. `countryTitle` personalizes the
- * LATAM bank-transfer bullet (the user's verified ID country).
- */
-const getUnlockItems = (countryTitle?: string): UnlockItem[] => [
-    {
-        title: (
-            <p>
-                QR Payments in <b>Argentina and Brazil</b>
-            </p>
-        ),
-        type: 'bank',
-    },
-    {
-        title: (
-            <p>
-                <b>United States</b> ACH and Wire transfers
-            </p>
-        ),
-        type: 'bank',
-    },
-    {
-        title: (
-            <p>
-                <b>Europe</b> SEPA transfers (+30 countries)
-            </p>
-        ),
-        type: 'bank',
-    },
-    {
-        title: (
-            <p>
-                <b>Mexico</b> SPEI transfers
-            </p>
-        ),
-        type: 'bank',
-    },
-    {
-        // Important: this uses the user's verified ID country, not their selected country.
-        // Example: user picks Argentina but has Brazil ID → they get QR in Argentina
-        // but bank transfers only work in Brazil (their verified country).
-        title: `Bank transfers to your own accounts in ${countryTitle || 'your country'}`,
-        type: 'qr',
-    },
-    {
-        title: 'QR Payments in Brazil and Argentina',
-        type: 'qr',
-    },
-]
-
 const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+    const t = useTranslations('home.welcomeUnlock')
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
     // Provider-blind: the celebration modal splits its copy by what CHANNEL the
@@ -97,9 +50,27 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
         return 'none'
     }, [hasBankUnlock, hasQrUnlock])
 
-    const items = useMemo(() => {
-        return getUnlockItems(approvedCountryData?.title)
-    }, [approvedCountryData?.title])
+    /**
+     * Unlocked-feature bullets. The verified-ID country personalizes the LATAM
+     * bank-transfer bullet — the user's verified ID country, not their selected
+     * country. Example: user picks Argentina but has Brazil ID → they get QR in
+     * Argentina but bank transfers only work in Brazil (their verified country).
+     */
+    const items = useMemo((): UnlockItem[] => {
+        const b = (chunks: React.ReactNode) => <b>{chunks}</b>
+        return [
+            { id: 'qrArBr', title: <p>{t.rich('items.qrArBr', { b })}</p>, type: 'bank' },
+            { id: 'usTransfers', title: <p>{t.rich('items.usTransfers', { b })}</p>, type: 'bank' },
+            { id: 'euTransfers', title: <p>{t.rich('items.euTransfers', { b })}</p>, type: 'bank' },
+            { id: 'mxTransfers', title: <p>{t.rich('items.mxTransfers', { b })}</p>, type: 'bank' },
+            {
+                id: 'ownCountryTransfers',
+                title: t('items.ownCountryTransfers', { country: approvedCountryData?.title || t('yourCountry') }),
+                type: 'qr',
+            },
+            { id: 'qrBrAr', title: t('items.qrBrAr'), type: 'qr' },
+        ]
+    }, [t, approvedCountryData?.title])
 
     // Personalize the "Bank transfers to your own accounts in {country}" bullet
     // off the user's first enabled qr-only-or-pay-capable LATAM rail. Provider-
@@ -133,10 +104,10 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             onClose={onClose}
             icon={'globe-lock' as IconName}
             iconContainerClassName="bg-primary-1 text-black"
-            title="🎉 You're unlocked"
+            title={t('title')}
             ctas={[
                 {
-                    text: 'Start sending money',
+                    text: t('cta'),
                     onClick: () => {
                         posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
                             modal_type: MODAL_TYPES.KYC_COMPLETED,
@@ -151,7 +122,7 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             ]}
             content={
                 <div className="flex w-full flex-col items-start gap-2">
-                    <p>You can now:</p>
+                    <p>{t('youCanNow')}</p>
                     <InfoCard
                         variant="info"
                         itemIcon="check"
@@ -162,7 +133,7 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
                                 if (unlockedChannels === 'all') {
                                     // Show all items except the duplicate QR bullet
                                     // (the bank list already mentions QR in AR/BR).
-                                    return !(item.type === 'qr' && item.title === 'QR Payments in Brazil and Argentina')
+                                    return !(item.type === 'qr' && item.id === 'qrBrAr')
                                 }
                                 return item.type === unlockedChannels
                             })

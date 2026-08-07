@@ -15,8 +15,12 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useDebounce } from '@/hooks/useDebounce'
 import { ContactsListSkeleton } from '@/components/Common/ContactsListSkeleton'
+import { useTranslations } from 'next-intl'
 
 export default function ContactsView() {
+    const t = useTranslations('send')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
     const router = useRouter()
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
@@ -88,12 +92,12 @@ export default function ContactsView() {
     if (!!isError) {
         return (
             <div className="flex min-h-[inherit] flex-col space-y-8">
-                <NavHeader title="Send" onPrev={handlePrev} />
+                <NavHeader title={tNav('send')} onPrev={handlePrev} />
                 <div className="flex flex-1 items-center justify-center">
                     <EmptyState
-                        title="Failed to load contacts"
+                        title={t('contacts.errorTitle')}
                         icon="alert"
-                        description="We couldn't load your contacts. Please try again."
+                        description={t('contacts.errorDescription')}
                         cta={
                             <Button
                                 shadowSize="4"
@@ -102,7 +106,7 @@ export default function ContactsView() {
                                 icon="retry"
                                 iconSize={12}
                             >
-                                Retry
+                                {tCommon('retry')}
                             </Button>
                         }
                     />
@@ -118,7 +122,7 @@ export default function ContactsView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
-            <NavHeader title="Send" onPrev={handlePrev} />
+            <NavHeader title={tNav('send')} onPrev={handlePrev} />
 
             {hasContacts ? (
                 <div className="space-y-4">
@@ -127,7 +131,7 @@ export default function ContactsView() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onClear={() => setSearchQuery('')}
-                        placeholder="Search contacts..."
+                        placeholder={t('contacts.searchPlaceholder')}
                     />
 
                     {/* contacts list or search results */}
@@ -136,7 +140,7 @@ export default function ContactsView() {
                         <ContactsListSkeleton count={5} />
                     ) : contacts.length > 0 ? (
                         <div className="space-y-2">
-                            <h2 className="text-base font-bold">Your contacts</h2>
+                            <h2 className="text-base font-bold">{t('contacts.yourContacts')}</h2>
                             <div className="flex-1 space-y-0 overflow-y-auto">
                                 {contacts.map((contact, index) => {
                                     const isVerified = contact.isVerified
@@ -176,16 +180,18 @@ export default function ContactsView() {
                             {/* infinite scroll loader */}
                             <div ref={loaderRef} className="w-full py-4">
                                 {isFetchingNextPage && (
-                                    <div className="w-full text-center text-sm text-gray-500">Loading more...</div>
+                                    <div className="w-full text-center text-sm text-gray-500">
+                                        {t('contacts.loadingMore')}
+                                    </div>
                                 )}
                             </div>
                         </div>
                     ) : hasNoSearchResults ? (
                         // no search results - keep search input visible
                         <EmptyState
-                            title="No contacts found"
+                            title={t('contacts.noResultsTitle')}
                             icon="search"
-                            description={`Try searching for a different contact.`}
+                            description={t('contacts.noResultsDescription')}
                         />
                     ) : null}
                 </div>
@@ -193,9 +199,9 @@ export default function ContactsView() {
                 // empty state - no contacts at all (initial load with no contacts)
                 <div className="flex flex-1 items-center justify-center">
                     <EmptyState
-                        title="No contacts yet"
+                        title={t('contacts.emptyTitle')}
                         icon="trophy"
-                        description="Contacts appear when you send, request, or invite someone"
+                        description={t('contacts.emptyDescription')}
                         cta={
                             <Button
                                 shadowSize="4"
@@ -204,7 +210,7 @@ export default function ContactsView() {
                                 onClick={handleLinkCtaClick}
                                 className="mt-4"
                             >
-                                Send via link
+                                {t('linkCard.cta')}
                             </Button>
                         }
                     />

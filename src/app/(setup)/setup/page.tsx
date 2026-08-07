@@ -11,6 +11,7 @@ import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
+import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { getFromCookie } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -20,8 +21,10 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PeanutWavingHello } from '@/assets/mascot'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useTranslations } from 'next-intl'
 
 function SetupPageContent() {
+    const t = useTranslations('setup')
     const { steps, inviteCode } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
@@ -101,7 +104,12 @@ function SetupPageContent() {
             // Signup, unable to log back in (regression from PR #2346).
             const inviteCodeFromCookie = getFromCookie('inviteCode')
             const userInviteCode = inviteCode || inviteCodeFromCookie
-            const skipInviteGate = !!userInviteCode || searchParams.get('step') === 'signup'
+            // pwa-sunset notice window: web signups are closed (Landing hides
+            // Sign up), so the ?step=signup / invite-code jump must not skip
+            // past the landing gate — otherwise claim/invite links deep-link
+            // straight into the signup form. Native app keeps the fast path.
+            const webSignupClosed = isPwaSunsetOn() && !isCapacitor()
+            const skipInviteGate = (!!userInviteCode || searchParams.get('step') === 'signup') && !webSignupClosed
 
             const localDeviceType = detectedDeviceType
 
@@ -256,16 +264,16 @@ function SetupPageContent() {
                 layoutType="signup"
                 screenId="welcome"
                 image={PeanutWavingHello.src}
-                title="You're already signed in"
-                description={`This device is signed in as ${existingSessionUsername}. Continue with that account, or log out to create a new one.`}
+                title={t('existingSession.title')}
+                description={t('existingSession.description', { username: existingSessionUsername })}
                 contentClassName="flex flex-col items-center justify-center gap-5"
             >
                 <div className="flex w-full flex-col gap-3">
                     <Button shadowSize="4" onClick={handleContinueSession} disabled={isLoggingOut}>
-                        Continue as {existingSessionUsername}
+                        {t('existingSession.continueAs', { username: existingSessionUsername })}
                     </Button>
                     <Button variant="stroke" onClick={handleStartFresh} loading={isLoggingOut} disabled={isLoggingOut}>
-                        Log out & start fresh
+                        {t('existingSession.logoutAndStartFresh')}
                     </Button>
                 </div>
             </SetupWrapper>
@@ -296,13 +304,16 @@ function SetupPageContent() {
         )
     }
 
+    const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
+    const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
+
     return (
         <SetupWrapper
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
-            title={step.title}
-            description={step.description}
+            title={t(titleKey)}
+            description={t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
             showLogoutButton={step.screenId === 'sign-test-transaction'}

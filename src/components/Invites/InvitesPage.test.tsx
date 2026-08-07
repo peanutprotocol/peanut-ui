@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { renderWithIntl as render } from '@/test-utils/intl'
 import InvitesPage from './InvitesPage'
 
 const mockPush = jest.fn()
@@ -301,7 +302,7 @@ describe('invite and badge campaign routing boundaries', () => {
         mockSearch = search
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Sign up' }))
 
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith([badgeCampaign])
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
@@ -498,9 +499,9 @@ describe('invite and badge campaign routing boundaries', () => {
 
         render(<InvitesPage />)
 
-        expect(await screen.findByText('Continue your Peanut campaign')).toBeInTheDocument()
+        expect(await screen.findByText('Claim your badge')).toBeInTheDocument()
         expect(screen.queryByText(/legacy-placeholder invited you/i)).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'founderhaus')
         expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
@@ -525,7 +526,7 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         expect(await screen.findByText('peanut invited you to Peanut')).toBeInTheDocument()
-        expect(screen.queryByText('Continue your Peanut campaign')).not.toBeInTheDocument()
+        expect(screen.queryByText('Claim your badge')).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Claim your spot' }))
 
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'squirrelinvitesyou')
@@ -598,7 +599,7 @@ describe('invite and badge campaign routing boundaries', () => {
         }
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Continue' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Sign up' }))
 
         expect(mockSaveToCookie).not.toHaveBeenCalled()
         expect(mockDispatch).not.toHaveBeenCalled()

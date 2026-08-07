@@ -1,6 +1,6 @@
 'use client'
 
-import { type ITokenPriceData, type Account } from '@/interfaces'
+import { type ITokenPriceData, type Account } from '@/interfaces/interfaces'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
@@ -101,6 +101,9 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
 
     const resetWithdrawFlow = useCallback(() => {
         setAmountToWithdraw('')
+        // browser-back with the compatibility modal open leaves it armed for the
+        // next /withdraw/crypto entry — reset must close it like everything else
+        setShowCompatibilityModal(false)
         setCurrentView('INITIAL')
         setWithdrawData(null)
         setSelectedBankAccount(null)

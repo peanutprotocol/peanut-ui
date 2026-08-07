@@ -21,11 +21,11 @@ import { useSignTypedData } from 'wagmi'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
-    const { selectedChainID } = useContext(tokenSelectorContext)
+    const { selectedChainID: _selectedChainID } = useContext(tokenSelectorContext)
 
-    const { address, sendTransactions } = useWallet()
-    const { signTypedDataAsync } = useSignTypedData()
-    const { handleSendUserOpEncoded } = useZeroDev()
+    const { sendTransactions } = useWallet()
+    const { signTypedDataAsync: _signTypedDataAsync } = useSignTypedData()
+    const { handleSendUserOpEncoded: _handleSendUserOpEncoded } = useZeroDev()
 
     const generatePassword = async () => {
         try {
@@ -122,7 +122,7 @@ export const useCreateLink = () => {
                 preparationId: intentId,
             }
         },
-        [sendTransactions]
+        [sendTransactions, setLoadingState]
     )
 
     return {

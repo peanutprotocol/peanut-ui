@@ -5,9 +5,12 @@
  * can drive confirm -> loading -> done -> logout and the error-toast branch.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockLogout = jest.fn()
 const mockToastError = jest.fn()

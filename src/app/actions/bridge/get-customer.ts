@@ -17,8 +17,8 @@ type BridgeCustomer = {
 const ISO3_TO_ISO2: Record<string, string> = (() => {
     const map: Record<string, string> = {}
     for (const c of countryData) {
-        const iso2 = (c as any).iso2 || c.id
-        const iso3 = (c as any).iso3
+        const iso2 = c.iso2 || c.id
+        const iso3 = c.iso3
         if (iso2 && iso3) {
             map[String(iso3).toUpperCase()] = String(iso2).toUpperCase()
         }

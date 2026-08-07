@@ -1,8 +1,10 @@
 'use client'
 
 import { TWEETS, type Tweet } from '@/constants/tweets.consts'
+import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import Marquee from 'react-fast-marquee'
+import type { LandingStrings } from './landingStrings'
 
 // =============================================================================
 // Constants
@@ -53,10 +55,11 @@ const Avatar = ({ tweet }: { tweet: Tweet }) => {
     }
 
     return (
-        <img
+        <Image
             src={tweet.avatar}
             alt={tweet.author}
-            loading="lazy"
+            width={32}
+            height={32}
             className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
             onError={() => setImgError(true)}
         />
@@ -128,11 +131,12 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
         >
             {photoMedia && !imgError ? (
                 <div className="relative h-[220px] w-full flex-shrink-0 overflow-hidden border-b-2 border-n-1 bg-grey-2">
-                    <img
+                    <Image
                         src={photoMedia.url}
                         alt="Tweet media"
-                        loading="lazy"
-                        className="h-full w-full object-cover"
+                        fill
+                        sizes="280px"
+                        className="object-cover"
                         onError={() => setImgError(true)}
                     />
                     {hasVideo && <PlayOverlay />}
@@ -328,7 +332,7 @@ const buildColumns = (tweets: Tweet[]): ColumnType[] => {
  * - Lazy loaded images with fallbacks
  * - Links open in new tab
  */
-const TweetCarousel = () => {
+const TweetCarousel = ({ strings }: { strings: LandingStrings }) => {
     const columns = useMemo(() => buildColumns(TWEETS), [])
 
     if (columns.length === 0) return null
@@ -337,10 +341,10 @@ const TweetCarousel = () => {
         <section id="testimonials" className="w-full bg-primary-1 pb-10 pt-12 md:pb-14 md:pt-16">
             <div className="mx-auto max-w-7xl px-4 pb-8">
                 <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-n-1 lg:text-headingMedium">
-                    WALL OF LOVE
+                    {strings.wallOfLove}
                 </h2>
                 <p className="mt-3 text-center text-base text-n-1 md:text-xl">
-                    See what people are saying about Peanut on{' '}
+                    {strings.wallOfLoveBody}{' '}
                     <a
                         href="https://twitter.com/search?q=%40joinpeanut"
                         target="_blank"

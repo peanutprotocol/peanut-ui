@@ -11,6 +11,7 @@
  */
 
 import { type FC, useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, badges }) => {
+    const t = useTranslations('card.unlockHistory')
     const captureRef = useRef<HTMLDivElement | null>(null)
     const [hideUsername, setHideUsername] = useState(false)
     // Gate the Share/Save buttons until the card face's async hand <canvas>
@@ -55,7 +57,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                     DrawerHeader (mono Drawer pattern). */}
                 <DrawerHeader>
                     <DrawerTitle className="text-2xl font-extrabold">
-                        {entry.via === 'badge' ? 'You skipped the line' : 'Card access unlocked'}
+                        {entry.via === 'badge' ? t('drawerTitleBadge') : t('drawerTitleUnlocked')}
                     </DrawerTitle>
                 </DrawerHeader>
                 {/* Asset is capped at max-w-md on desktop so a 4:3 asset
@@ -78,7 +80,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                         {/* Anti-dox toggle — hides the peanut.me/<handle> pill on the asset */}
                         <Checkbox
                             className="self-center"
-                            label="Hide username"
+                            label={t('hideUsername')}
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}
                         />

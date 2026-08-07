@@ -1,4 +1,5 @@
-import Image from 'next/image'
+import Image, { type StaticImageData } from 'next/image'
+import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
@@ -6,59 +7,60 @@ import handPeace from '@/assets/illustrations/hand-peace.svg'
 import biometricProtection from '@/assets/illustrations/biometric-protection.svg'
 import selfCustodialDesign from '@/assets/illustrations/self-custodial-design.svg'
 import kycOnlyWhenRequired from '@/assets/illustrations/kyc-only-when-required.svg'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 
 interface Feature {
     id: number
     title: string
-    titleSvg: any
+    titleSvg: StaticImageData
     description: string
-    iconSrc: any
+    iconSrc: StaticImageData
     iconAlt: string
     learnMoreHref?: string
-    learnMoreLabel?: string
 }
 
-const features: Feature[] = [
-    {
-        id: 1,
-        title: 'TOTAL SECURITY',
-        titleSvg: biometricProtection,
-        description:
-            'Peanut is 100% non-custodial. Every transaction is approved via Passkeys using Face ID, Touch ID or passcode. No one else can move your assets. Not even us.',
-        iconSrc: handThumbsUp,
-        iconAlt: 'Thumbs up',
-        learnMoreHref: '/en/help/passkeys',
-        learnMoreLabel: 'Learn more',
-    },
-    {
-        id: 2,
-        title: 'TRUE CONTROL',
-        titleSvg: selfCustodialDesign,
-        description:
-            'You verify your identity only when a feature truly requires it — like bank connections or the Peanut Card. For everyday peer-to-peer use, no mandatory KYC or friction.',
-        iconSrc: handWaving,
-        iconAlt: 'Hand waving',
-        learnMoreHref: '/en/help/verification',
-        learnMoreLabel: 'Learn more',
-    },
-    {
-        id: 3,
-        title: '24/7 HELP',
-        titleSvg: kycOnlyWhenRequired,
-        description:
-            'One tap connects you to real humans. Friendly, expert support is on hand day or night to resolve any question instantly.',
-        iconSrc: handPeace,
-        iconAlt: 'Peace sign',
-    },
-]
+function buildFeatures(i18n: Translations, locale: Locale): Feature[] {
+    return [
+        {
+            id: 1,
+            title: i18n.landingSecurityTotalTitle,
+            titleSvg: biometricProtection,
+            description: i18n.landingSecurityTotalDesc,
+            iconSrc: handThumbsUp,
+            iconAlt: 'Thumbs up',
+            learnMoreHref: `/${locale}/help/passkeys`,
+        },
+        {
+            id: 2,
+            title: i18n.landingSecurityControlTitle,
+            titleSvg: selfCustodialDesign,
+            description: i18n.landingSecurityControlDesc,
+            iconSrc: handWaving,
+            iconAlt: 'Hand waving',
+            learnMoreHref: `/${locale}/help/verification`,
+        },
+        {
+            id: 3,
+            title: i18n.landingSecurityHelpTitle,
+            titleSvg: kycOnlyWhenRequired,
+            description: i18n.landingSecurityHelpDesc,
+            iconSrc: handPeace,
+            iconAlt: 'Peace sign',
+        },
+    ]
+}
 
-export function SecurityBuiltIn() {
+export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
+    const i18n = getTranslations(locale)
+    const features = buildFeatures(i18n, locale)
+
     return (
         <section id="security" className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 text-center md:mb-16 md:text-left">
                     <h1 className="font-roboto-flex-extrabold text-left text-heading font-extraBlack md:text-6xl lg:text-heading">
-                        SECURITY. CONTROL. SUPPORT.
+                        {i18n.landingSecurityHeading}
                     </h1>
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
@@ -88,24 +90,24 @@ export function SecurityBuiltIn() {
                                 >
                                     {feature.description}
                                 </p>
-                                {feature.learnMoreHref && feature.learnMoreLabel && (
+                                {feature.learnMoreHref && (
                                     <a
                                         href={feature.learnMoreHref}
                                         className="font-roboto-flex mt-4 inline-block text-base text-n-1 underline hover:no-underline md:text-lg"
                                     >
-                                        {feature.learnMoreLabel} →
+                                        {i18n.landingLearnMore} →
                                     </a>
                                 )}
                                 {feature.id === 3 && (
                                     <div className="mt-6">
-                                        <a href="/support">
+                                        <Link href="/support">
                                             <Button
                                                 shadowSize="4"
                                                 className="bg-white px-6 py-3 text-base font-extrabold text-n-1 hover:bg-white/90"
                                             >
-                                                Talk to Support
+                                                {i18n.landingTalkToSupport}
                                             </Button>
-                                        </a>
+                                        </Link>
                                     </div>
                                 )}
                             </div>
