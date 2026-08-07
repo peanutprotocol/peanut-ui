@@ -52,20 +52,44 @@ const SupportDrawer = () => {
         if (isSupportModalOpen) setHasBeenOpened(true)
     }, [isSupportModalOpen])
 
-    /*
-     * Clear the support unread badge. This flag is the single choke point for
-     * "the user opened the chat" — the nav tap, openSupportWithMessage(), the
-     * push deep link and the Capacitor path all set it before anything opens,
-     * so one effect covers every entry.
-     */
-    useEffect(() => {
-        if (!isSupportModalOpen) return
+    // Guests reach this drawer too (claim and pay links mount the same layout),
+    // and they have no notifications — the call would just 401.
+    const isLoggedIn = Boolean(userData.userId)
+
+    const clearSupportBadge = useCallback(() => {
+        if (!isLoggedIn) return
         notificationsApi
             .markAllRead('support')
             .then(() => window.dispatchEvent(new CustomEvent('notifications:updated')))
             // A failed mark-read only means the badge stays on a bit longer.
             .catch(() => {})
-    }, [isSupportModalOpen])
+    }, [isLoggedIn])
+
+    /*
+     * Clear the support unread badge — on the web path only; the Capacitor
+     * effect below clears its own once the native messenger actually opens.
+     *
+     * "Opened the drawer" is not the same as "read the reply". When the Crisp
+     * bundle fails to load, this same component shows the email fallback
+     * instead, and clearing then would bury a reply nobody saw. So wait until
+     * the chat is really in front of the user.
+     *
+     * The closing edge matters just as much: a reply arriving while the drawer
+     * is open — the normal case in a live conversation — would otherwise light
+     * the badge with nothing new behind it, and leave it lit until the user
+     * opened support again.
+     */
+    const wasShowingChat = useRef(false)
+    useEffect(() => {
+        const isShowingChat = isSupportModalOpen && isCrispReady && !isCrispFailed
+        if (isShowingChat) {
+            wasShowingChat.current = true
+            clearSupportBadge()
+        } else if (wasShowingChat.current && !isSupportModalOpen) {
+            wasShowingChat.current = false
+            clearSupportBadge()
+        }
+    }, [isSupportModalOpen, isCrispReady, isCrispFailed, clearSupportBadge])
 
     const handleRetry = useCallback(() => {
         setIsCrispFailed(false)
@@ -114,10 +138,23 @@ const SupportDrawer = () => {
             }
 
             CapacitorCrisp.openMessenger()
+            // The chat is now in front of the user, so the badge has done its
+            // job. There is no isCrispReady on this path — the native messenger
+            // reports nothing back — so clear it here rather than in the web
+            // effect above.
+            clearSupportBadge()
             // close our drawer since native UI takes over
             setIsSupportModalOpen(false)
         })
-    }, [isSupportModalOpen, isAwaitingToken, userData, crispTokenId, prefilledMessage, setIsSupportModalOpen])
+    }, [
+        isSupportModalOpen,
+        isAwaitingToken,
+        userData,
+        crispTokenId,
+        prefilledMessage,
+        setIsSupportModalOpen,
+        clearSupportBadge,
+    ])
 
     // drag-to-dismiss state
     const panelRef = useRef<HTMLDivElement>(null)

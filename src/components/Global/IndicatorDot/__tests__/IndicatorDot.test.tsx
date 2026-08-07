@@ -42,4 +42,11 @@ describe('IndicatorDot', () => {
             expect.arrayContaining(['absolute', '-right-1', '-top-1', 'h-2.5', 'w-2.5', 'bg-primary-1'])
         )
     })
+
+    it('announces the support badge to assistive tech', () => {
+        // aria-label on a bare span (generic role) is ignored, so the nav badge
+        // pairs it with role="status".
+        const { getByRole } = render(<IndicatorDot role="status" aria-label="New support reply" />)
+        expect(getByRole('status')).toHaveAttribute('aria-label', 'New support reply')
+    })
 })

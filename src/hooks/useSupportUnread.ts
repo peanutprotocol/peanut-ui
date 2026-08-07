@@ -1,7 +1,7 @@
 'use client'
 
 import { notificationsApi } from '@/services/notifications'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
  * True when support has replied since the user last opened the chat.
@@ -17,11 +17,23 @@ import { useCallback, useEffect, useState } from 'react'
  */
 export const useSupportUnread = (): boolean => {
     const [hasUnread, setHasUnread] = useState(false)
+    /*
+     * Responses can land out of order, and the stale one would win. Tapping a
+     * push on a backgrounded app fires a foreground refetch (count 1), then the
+     * deep link opens the drawer, which clears the badge and fires a second
+     * refetch (count 0). If the first response arrives last — routine on a
+     * mobile radio — the badge sticks on with nothing behind it, and with no
+     * polling nothing corrects it until the next foreground.
+     */
+    const latestRequestId = useRef(0)
 
     const refresh = useCallback(() => {
+        const requestId = ++latestRequestId.current
         notificationsApi
             .unreadCount('support')
-            .then(({ count }) => setHasUnread(count > 0))
+            .then(({ count }) => {
+                if (requestId === latestRequestId.current) setHasUnread(count > 0)
+            })
             // A failed count must never break the nav bar.
             .catch(() => {})
     }, [])

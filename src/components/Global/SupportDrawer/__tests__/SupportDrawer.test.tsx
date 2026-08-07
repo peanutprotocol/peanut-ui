@@ -116,6 +116,8 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
 })
 
 describe('SupportDrawer — support unread badge', () => {
+    // Opening the drawer is not the same as reading the reply: the chat has to
+    // actually render. Clearing too eagerly buries a reply nobody saw.
     beforeEach(() => {
         mockUseCrispUserData.mockReset().mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
         mockUseCrispTokenId.mockReset().mockReturnValue('token-abc')
@@ -123,16 +125,38 @@ describe('SupportDrawer — support unread badge', () => {
         mockMarkAllRead.mockClear()
     })
 
-    it('clears the support badge and tells the rest of the app when the drawer opens', async () => {
+    it('clears the badge and tells the rest of the app once the chat renders', async () => {
         const onUpdated = jest.fn()
         window.addEventListener('notifications:updated', onUpdated)
 
         render(<SupportDrawer />)
+        expect(mockMarkAllRead).not.toHaveBeenCalled()
+
+        postCrispMessage('CRISP_READY')
 
         await waitFor(() => expect(mockMarkAllRead).toHaveBeenCalledWith('support'))
         await waitFor(() => expect(onUpdated).toHaveBeenCalled())
 
         window.removeEventListener('notifications:updated', onUpdated)
+    })
+
+    it('does NOT clear the badge when Crisp fails and the user only sees the email fallback', async () => {
+        render(<SupportDrawer />)
+        postCrispMessage('CRISP_FAILED')
+
+        await waitFor(() => expect(screen.getByText(SUPPORT_EMAIL)).toBeInTheDocument())
+        expect(mockMarkAllRead).not.toHaveBeenCalled()
+    })
+
+    it('does not clear the badge for a logged-out visitor', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: undefined, email: undefined })
+        mockUseCrispTokenId.mockReturnValue(undefined)
+
+        render(<SupportDrawer />)
+        postCrispMessage('CRISP_READY')
+
+        await waitFor(() => expect(supportIframe()).toBeInTheDocument())
+        expect(mockMarkAllRead).not.toHaveBeenCalled()
     })
 })
 

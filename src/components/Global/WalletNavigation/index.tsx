@@ -116,8 +116,14 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
             >
                 <span className="relative">
                     <NavIcon name="peanut-support" size={24} />
+                    {/* role="status" so the dot is announced. aria-label alone on a
+                        bare span is ignored by assistive tech (generic role). */}
                     {hasUnreadSupport && (
-                        <IndicatorDot className="absolute -right-1 -top-1" aria-label="unread-support-indicator" />
+                        <IndicatorDot
+                            className="absolute -right-1 -top-1"
+                            role="status"
+                            aria-label={t('supportUnread')}
+                        />
                     )}
                 </span>
                 <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">{t('support')}</span>
