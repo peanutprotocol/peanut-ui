@@ -1,6 +1,5 @@
 import { useFormatter, useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
-import { formatEffectiveDate } from '@/utils/format.utils'
 
 interface AdvisoryPreemptModalProps {
     visible: boolean

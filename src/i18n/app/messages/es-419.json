@@ -201,6 +201,9 @@
             "closeVerificationPrompt": "Cerrar aviso de verificación",
             "closeNotificationPrompt": "Cerrar aviso de notificaciones",
             "claimablePerk": "Recompensa disponible"
+        },
+        "pendingTasks": {
+            "completeBefore": "Complete before {deadline}"
         }
     },
     "profile": {
@@ -2759,7 +2762,11 @@
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",
         "rainCooldownPill": "Enfriamiento de tarjeta",
         "betaBannerThumbsUpAlt": "Pulgar arriba",
-        "easterEggImageAlt": "Ilustración de huevo de pascua"
+        "easterEggImageAlt": "Ilustración de huevo de pascua",
+        "reConsent": {
+            "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
+            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual."
+        }
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
