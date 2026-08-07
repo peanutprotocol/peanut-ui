@@ -177,6 +177,63 @@ describe('SupportDrawer — pointer-events when opened inside a vaul drawer', ()
     })
 })
 
+describe('SupportDrawer — iOS keyboard', () => {
+    // iOS leaves the layout viewport at full height when the keyboard opens, so a
+    // `bottom: 0` panel keeps Crisp's composer underneath the keys. The drawer has to
+    // lift by, and shrink to, whatever the visual viewport says is still on screen.
+    const LAYOUT_HEIGHT = 800
+
+    class FakeVisualViewport extends EventTarget {
+        height = LAYOUT_HEIGHT
+        offsetTop = 0
+        scale = 1
+    }
+
+    let viewport: FakeVisualViewport
+    let realInnerHeight: PropertyDescriptor | undefined
+
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({ userId: undefined, email: undefined })
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+
+        realInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight')
+        viewport = new FakeVisualViewport()
+        Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true })
+        Object.defineProperty(window, 'innerHeight', { value: LAYOUT_HEIGHT, configurable: true })
+    })
+
+    // Hand the window back untouched — later describes in this file share it.
+    afterEach(() => {
+        delete (window as { visualViewport?: unknown }).visualViewport
+        if (realInnerHeight) Object.defineProperty(window, 'innerHeight', realInnerHeight)
+    })
+
+    const openKeyboard = (visibleHeight: number) => {
+        viewport.height = visibleHeight
+        act(() => {
+            viewport.dispatchEvent(new Event('resize'))
+        })
+    }
+
+    // Only `bottom` is assertable here: jsdom's CSS parser drops both `env()` and
+    // `min()`, so the safe-area padding and the height clamp read back as ''.
+    it('sits flush on the bottom edge while no keyboard is up', () => {
+        render(<SupportDrawer />)
+
+        expect(screen.getByRole('dialog', { name: 'Support' }).style.bottom).toBe('0px')
+    })
+
+    it('lifts by exactly the height the keyboard covers', () => {
+        render(<SupportDrawer />)
+        const panel = screen.getByRole('dialog', { name: 'Support' })
+
+        openKeyboard(460)
+
+        expect(panel.style.bottom).toBe('340px')
+    })
+})
+
 describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
     beforeEach(() => {
         mockUseCrispUserData.mockReset()

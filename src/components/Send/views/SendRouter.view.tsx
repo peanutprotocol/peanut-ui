@@ -14,6 +14,7 @@ import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.const
 import Image from 'next/image'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
+import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useContacts } from '@/hooks/useContacts'
 import { getInitialsFromName } from '@/utils/general.utils'
 import posthog from 'posthog-js'
@@ -55,6 +56,7 @@ export const SendRouterView = () => {
             ? decodeURIComponent(window.location.pathname.replace('/send/', '').split('/')[0])
             : null
     const recipientUsername = recipientFromQuery || recipientFromPath || null
+    const { resetWithdrawFlow } = useWithdrawFlow()
     // only fetch 3 contacts for avatar display
     const { contacts, isLoading: isFetchingContacts } = useContacts({ limit: 3 })
 
@@ -132,19 +134,26 @@ export const SendRouterView = () => {
                 router.push('/send?view=contacts')
                 break
             case 'bank':
-                // navigate to send via bank flow
+                // navigate to send via bank flow.
+                // fresh click = fresh intent: browser back skips the in-app NavHeader
+                // reset, and a stale selectedMethod left in the app-wide context would
+                // hijack the routing (Bank landing on the crypto amount step)
+                resetWithdrawFlow()
                 router.push('/withdraw?method=bank')
                 break
             case 'exchange-or-wallet':
                 // navigate to external wallet send flow
+                resetWithdrawFlow()
                 router.push('/withdraw?method=crypto')
                 break
             case 'mercadopago':
                 // navigate to mercado pago send flow
+                resetWithdrawFlow()
                 router.push('/withdraw/manteca?method=mercado-pago&country=argentina')
                 break
             case 'pix':
                 // navigate to pix send flow
+                resetWithdrawFlow()
                 router.push('/withdraw/manteca?method=pix&country=brazil')
                 break
             default:

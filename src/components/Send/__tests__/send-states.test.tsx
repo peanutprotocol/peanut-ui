@@ -170,6 +170,12 @@ jest.mock('../views/Contacts.view', () => ({
     default: () => <div data-testid="contacts-view">Contacts View</div>,
 }))
 
+// withdraw-flow context — SendRouterView resets it when a click enters the withdraw flow
+const mockResetWithdrawFlow = jest.fn()
+jest.mock('@/context/WithdrawFlowContext', () => ({
+    useWithdrawFlow: () => ({ resetWithdrawFlow: mockResetWithdrawFlow }),
+}))
+
 // ---------- import component under test AFTER all mocks ----------
 import { SendRouterView } from '../views/SendRouter.view'
 
@@ -319,25 +325,64 @@ describe('GROUP 3: Contacts View', () => {
 // GROUP 4: Method Selection Navigation
 // ============================================================
 describe('GROUP 4: Method Selection', () => {
-    test('Clicking bank navigates to /withdraw?method=bank', () => {
+    test('Clicking bank resets the withdraw flow, then navigates to /withdraw?method=bank', () => {
+        // Regression: browser back from an abandoned /withdraw?method=crypto skips the
+        // in-app NavHeader reset, so a stale selectedMethod survives in the app-wide
+        // context. Without the reset, Bank skips method selection and lands on the
+        // crypto amount step (continuing into /withdraw/crypto?method=bank).
         renderSend()
 
         fireEvent.click(screen.getByTestId('action-card-Bank'))
+        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=bank')
+        // reset must land before navigation hands off to /withdraw
+        expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
+            mockRouterPush.mock.invocationCallOrder[0]
+        )
     })
 
-    test('Clicking exchange-or-wallet navigates to /withdraw?method=crypto', () => {
+    test('Clicking exchange-or-wallet resets the withdraw flow, then navigates to /withdraw?method=crypto', () => {
         renderSend()
 
         fireEvent.click(screen.getByTestId('action-card-Exchange or Wallet'))
+        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=crypto')
+        expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
+            mockRouterPush.mock.invocationCallOrder[0]
+        )
     })
 
-    test('Clicking Peanut contacts navigates to /send?view=contacts', () => {
+    test('Mercado Pago and Pix also reset the withdraw flow before navigating', () => {
+        mockUseGeoFilteredPaymentOptions.mockReturnValue({
+            filteredMethods: [
+                { id: 'mercadopago', title: 'Mercado Pago', description: '', icons: [], soon: false },
+                { id: 'pix', title: 'Pix', description: '', icons: [], soon: false },
+            ],
+        })
+        renderSend()
+
+        fireEvent.click(screen.getByTestId('action-card-Mercado Pago'))
+        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=mercado-pago&country=argentina')
+        expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
+            mockRouterPush.mock.invocationCallOrder[0]
+        )
+
+        fireEvent.click(screen.getByTestId('action-card-Pix'))
+        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(2)
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+        expect(mockResetWithdrawFlow.mock.invocationCallOrder[1]).toBeLessThan(
+            mockRouterPush.mock.invocationCallOrder[1]
+        )
+    })
+
+    test('Clicking Peanut contacts navigates to /send?view=contacts without touching the withdraw flow', () => {
         renderSend()
 
         fireEvent.click(screen.getByTestId('action-card-Peanut contacts'))
         expect(mockRouterPush).toHaveBeenCalledWith('/send?view=contacts')
+        // contacts is not a withdraw entry — never clobber an unrelated flow's state
+        expect(mockResetWithdrawFlow).not.toHaveBeenCalled()
     })
 
     test('Back from main send navigates to /home', () => {

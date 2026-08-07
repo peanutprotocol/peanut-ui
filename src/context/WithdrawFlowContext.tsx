@@ -101,6 +101,9 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
 
     const resetWithdrawFlow = useCallback(() => {
         setAmountToWithdraw('')
+        // browser-back with the compatibility modal open leaves it armed for the
+        // next /withdraw/crypto entry — reset must close it like everything else
+        setShowCompatibilityModal(false)
         setCurrentView('INITIAL')
         setWithdrawData(null)
         setSelectedBankAccount(null)
