@@ -41,6 +41,15 @@ jest.mock('@/context/ModalsContext', () => ({
         supportPrefilledMessage: undefined,
     }),
 }))
+// Opening the drawer clears the support unread badge. That call is not what
+// this file guards, and serverFetch reaches for Capacitor Preferences, which
+// jsdom has no shim for.
+const mockMarkAllRead = jest.fn(async () => ({ ok: true }))
+jest.mock('@/services/notifications', () => ({
+    notificationsApi: {
+        markAllRead: (category: string) => mockMarkAllRead(category),
+    },
+}))
 jest.mock('@/hooks/useCrispUserData', () => ({
     useCrispUserData: () => mockUseCrispUserData(),
 }))
@@ -103,6 +112,27 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
         const iframe = supportIframe()
         expect(iframe).toBeInTheDocument()
         expect(iframe).toHaveAttribute('src', '/crisp-proxy')
+    })
+})
+
+describe('SupportDrawer — support unread badge', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+        mockUseCrispTokenId.mockReset().mockReturnValue('token-abc')
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+        mockMarkAllRead.mockClear()
+    })
+
+    it('clears the support badge and tells the rest of the app when the drawer opens', async () => {
+        const onUpdated = jest.fn()
+        window.addEventListener('notifications:updated', onUpdated)
+
+        render(<SupportDrawer />)
+
+        await waitFor(() => expect(mockMarkAllRead).toHaveBeenCalledWith('support'))
+        await waitFor(() => expect(onUpdated).toHaveBeenCalled())
+
+        window.removeEventListener('notifications:updated', onUpdated)
     })
 })
 

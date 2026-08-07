@@ -10,6 +10,7 @@ import { useVisualViewport } from '@/hooks/useVisualViewport'
 import PeanutLoading from '../PeanutLoading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
+import { notificationsApi } from '@/services/notifications'
 import { isCapacitor } from '@/utils/capacitor'
 
 const DISMISS_THRESHOLD = 100
@@ -49,6 +50,21 @@ const SupportDrawer = () => {
     const [hasBeenOpened, setHasBeenOpened] = useState(false)
     useEffect(() => {
         if (isSupportModalOpen) setHasBeenOpened(true)
+    }, [isSupportModalOpen])
+
+    /*
+     * Clear the support unread badge. This flag is the single choke point for
+     * "the user opened the chat" — the nav tap, openSupportWithMessage(), the
+     * push deep link and the Capacitor path all set it before anything opens,
+     * so one effect covers every entry.
+     */
+    useEffect(() => {
+        if (!isSupportModalOpen) return
+        notificationsApi
+            .markAllRead('support')
+            .then(() => window.dispatchEvent(new CustomEvent('notifications:updated')))
+            // A failed mark-read only means the badge stays on a bit longer.
+            .catch(() => {})
     }, [isSupportModalOpen])
 
     const handleRetry = useCallback(() => {
