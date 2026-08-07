@@ -3,9 +3,18 @@ import { join } from 'node:path'
 import { BADGE_ASSET_FALLBACKS, getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from '../badge.utils'
 
 describe('backend-owned badge presentation', () => {
-    it('keeps every legacy fallback asset checked into the public badge directory', () => {
-        for (const iconPath of Object.values(BADGE_ASSET_FALLBACKS)) {
-            expect(existsSync(join(process.cwd(), 'public', iconPath))).toBe(true)
+    // UI half of the cross-repo asset contract. BADGE_ASSET_FALLBACKS is now
+    // generated from peanut-api-ts docs/badge-assets.json, so this fails when a
+    // badge is added to the backend catalog without its artwork landing here.
+    // The API half asserts the manifest still matches the catalog.
+    it('resolves every badge asset the backend catalog declares', () => {
+        const paths = Object.values(BADGE_ASSET_FALLBACKS)
+        expect(paths.length).toBeGreaterThan(40)
+        for (const iconPath of paths) {
+            expect({ iconPath, exists: existsSync(join(process.cwd(), 'public', iconPath)) }).toEqual({
+                iconPath,
+                exists: true,
+            })
         }
     })
 

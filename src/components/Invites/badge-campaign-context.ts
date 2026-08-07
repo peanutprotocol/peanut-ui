@@ -87,10 +87,10 @@ function badgeCampaignsFromSearchParamsWithExplicitBound(
         return sanitizeBadgeCampaignIdentities(legacyExplicitValues, explicitMaxLength)
     }
 
-    // Source-qualify analytics-shaped input without resolving it. This prevents
-    // an ordinary SEO value that happens to equal a badge code from becoming an
-    // explicit acquisition. Only aliases explicitly marked `utm` in the backend
-    // badge catalog can resolve these identities to an award.
+    // utm_campaign is analytics-only. It is still source-qualified and forwarded
+    // so the backend can honour its own dated compatibility aliases (today: only
+    // `offramp`, which expires 2026-09-07). Everything else resolves `unknown`,
+    // so a marketing link can no longer mint a badge as a side effect.
     const utmValues = sanitizeBadgeCampaignIdentities(
         searchParams.getAll('utm_campaign'),
         MAX_RAW_BADGE_CAMPAIGN_LENGTH

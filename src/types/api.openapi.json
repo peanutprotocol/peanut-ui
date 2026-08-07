@@ -6943,33 +6943,6 @@
 								}
 							}
 						}
-					},
-					"503": {
-						"description": "Default Response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"error": {
-											"type": "string",
-											"enum": ["badge_definitions_unavailable"]
-										},
-										"message": {
-											"type": "string"
-										},
-										"retryable": {
-											"type": "boolean",
-											"enum": [true]
-										},
-										"retryAfterSeconds": {
-											"type": "number"
-										}
-									},
-									"required": ["error", "message", "retryable", "retryAfterSeconds"]
-								}
-							}
-						}
 					}
 				}
 			}
@@ -7679,33 +7652,6 @@
 								}
 							}
 						}
-					},
-					"503": {
-						"description": "Default Response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"error": {
-											"type": "string",
-											"enum": ["badge_definitions_unavailable"]
-										},
-										"message": {
-											"type": "string"
-										},
-										"retryable": {
-											"type": "boolean",
-											"enum": [true]
-										},
-										"retryAfterSeconds": {
-											"type": "number"
-										}
-									},
-									"required": ["error", "message", "retryable", "retryAfterSeconds"]
-								}
-							}
-						}
 					}
 				}
 			}
@@ -7856,33 +7802,6 @@
 										}
 									},
 									"required": ["message", "claim"]
-								}
-							}
-						}
-					},
-					"503": {
-						"description": "Default Response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"error": {
-											"type": "string",
-											"enum": ["badge_definitions_unavailable"]
-										},
-										"message": {
-											"type": "string"
-										},
-										"retryable": {
-											"type": "boolean",
-											"enum": [true]
-										},
-										"retryAfterSeconds": {
-											"type": "number"
-										}
-									},
-									"required": ["error", "message", "retryable", "retryAfterSeconds"]
 								}
 							}
 						}

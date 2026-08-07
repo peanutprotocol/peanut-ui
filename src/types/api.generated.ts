@@ -4575,22 +4575,6 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {string} */
-                            error: "badge_definitions_unavailable";
-                            message: string;
-                            /** @enum {boolean} */
-                            retryable: true;
-                            retryAfterSeconds: number;
-                        };
-                    };
-                };
             };
         };
         delete?: never;
@@ -5221,22 +5205,6 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {string} */
-                            error: "badge_definitions_unavailable";
-                            message: string;
-                            /** @enum {boolean} */
-                            retryable: true;
-                            retryAfterSeconds: number;
-                        };
-                    };
-                };
             };
         };
         delete?: never;
@@ -5300,22 +5268,6 @@ export interface paths {
                                     destination: "offramp_migration" | "normal_app";
                                 };
                             };
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {string} */
-                            error: "badge_definitions_unavailable";
-                            message: string;
-                            /** @enum {boolean} */
-                            retryable: true;
-                            retryAfterSeconds: number;
                         };
                     };
                 };
