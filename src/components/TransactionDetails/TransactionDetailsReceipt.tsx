@@ -71,6 +71,7 @@ import { generateInviteCodeLink } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 type CancelLinkState = 'idle' | 'cancelling' | 'cancelled'
 
@@ -607,7 +608,7 @@ export const TransactionDetailsReceipt = ({
                     {/* Onramp deposit instructions for bridge_onramp transactions */}
                     {rowVisibilityConfig.depositInstructions && <BridgeDepositInstructions transaction={transaction} />}
 
-                    {rowVisibilityConfig.points && transaction.points && (
+                    {rowVisibilityConfig.points && transaction.points && !isReferralRewardsHidden() && (
                         <PaymentInfoRow
                             label={t('rows.pointsEarned')}
                             value={

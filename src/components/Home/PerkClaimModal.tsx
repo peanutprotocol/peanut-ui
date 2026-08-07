@@ -20,6 +20,7 @@ import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils
 import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 type ClaimPhase = 'idle' | 'holding' | 'opening' | 'revealed' | 'exiting'
 
@@ -184,6 +185,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
     const [canDismiss, setCanDismiss] = useState(false)
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const isExiting = claimPhase === 'exiting'
+    const hideReferralRewards = isReferralRewardsHidden()
 
     // Surprise moment claim count: read synchronously so first render has correct copy.
     // 0=first surprise, 1=second, 2+=normal referral claim.
@@ -204,7 +206,9 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
         return () => clearTimeout(dismissTimer)
     }, []) // eslint-disable-line react-hooks/exhaustive-deps -- triggerHaptic is stable
 
-    const isSurpriseMoment = claimCount < 2
+    // The surprise-moment treatment is pure reward messaging ("You just earned
+    // $X", "share & earn"), so iOS falls through to the plain claimed state.
+    const isSurpriseMoment = claimCount < 2 && !hideReferralRewards
 
     return (
         <>
@@ -273,15 +277,17 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onDismiss}>
                                             {tCommon('done')}
                                         </Button>
-                                        <p
-                                            className="cursor-pointer text-center text-sm text-grey-1 underline"
-                                            onClick={() => {
-                                                onDismiss()
-                                                router.push('/rewards')
-                                            }}
-                                        >
-                                            {t('inviteFriendsToEarnMore')}
-                                        </p>
+                                        {!hideReferralRewards && (
+                                            <p
+                                                className="cursor-pointer text-center text-sm text-grey-1 underline"
+                                                onClick={() => {
+                                                    onDismiss()
+                                                    router.push('/rewards')
+                                                }}
+                                            >
+                                                {t('inviteFriendsToEarnMore')}
+                                            </p>
+                                        )}
                                     </>
                                 )}
                             </div>

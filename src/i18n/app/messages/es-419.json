@@ -2352,6 +2352,7 @@
         "inviteFriendsModal": {
             "title": "¡Invita a tus amigos!",
             "description": "Comparte tu enlace. Cada vez que un amigo que trajiste haga un pago, ganas recompensas.",
+            "descriptionNoRewards": "Comparte tu enlace para que tus amigos se unan a ti en Peanut.",
             "shareSheetTitle": "Comparte tu enlace de invitación",
             "shareCta": "Compartir enlace de invitación"
         },

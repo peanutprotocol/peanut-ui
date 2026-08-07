@@ -19,6 +19,7 @@ import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 import { useToast } from '@/components/0_Bruddle/Toast'
 
 // Days a dismissed CTA stays hidden before reappearing. Set above 1 so dismiss feels
@@ -161,7 +162,7 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // Generic invite CTA for non-LATAM activated users who haven't invited yet.
-        if (!isLatamUser && isActivated && !hasSentInvites) {
+        if (!isLatamUser && isActivated && !hasSentInvites && !isReferralRewardsHidden()) {
             _carouselCTAs.push({
                 id: 'invite-friends',
                 title: t('invite.title'),
@@ -236,7 +237,7 @@ export const useHomeCarouselCTAs = () => {
         // ------------------------------------------------------------------------------------------------
         // LATAM rewards CTA - show to activated users in Argentina or Brazil who haven't
         // invited anyone yet. Encourages first-invite; we hide once they've sent at least one.
-        if (isLatamUser && isActivated && !hasSentInvites) {
+        if (isLatamUser && isActivated && !hasSentInvites && !isReferralRewardsHidden()) {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: <span>{t.rich('latamInvite.title', { b })}</span>,

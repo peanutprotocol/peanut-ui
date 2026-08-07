@@ -2352,6 +2352,7 @@
         "inviteFriendsModal": {
             "title": "Invite friends!",
             "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
+            "descriptionNoRewards": "Share your link so friends can join you on Peanut.",
             "shareSheetTitle": "Share your invite link",
             "shareCta": "Share Invite Link"
         },
