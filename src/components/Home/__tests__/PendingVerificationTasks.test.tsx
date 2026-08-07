@@ -98,6 +98,8 @@ describe('PendingVerificationTasks', () => {
             },
         })
         mockBrowserAddListener.mockClear()
+        mockBrowserAddListener.mockReturnValue(Promise.resolve(mockBrowserListener))
+        mockBrowserListener.remove.mockClear()
         mockReservedTab = { location: { href: '' }, close: jest.fn(), closed: false, opener: {} }
         mockWindowOpen = jest.spyOn(window, 'open').mockReturnValue(mockReservedTab as unknown as Window)
         mockWindowOpen.mockClear()
@@ -165,6 +167,21 @@ describe('PendingVerificationTasks', () => {
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
         await waitFor(() => expect(mockAssignHref).toHaveBeenCalledWith('https://bridge.withpersona.com/verify?x=1'))
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()
+    })
+
+    it('a REJECTED start-action closes the tab and unsticks the button (transport-layer failure)', async () => {
+        // The action body catches its own errors, but the server action itself
+        // can reject — dropped network, or a deploy invalidating the action id.
+        mockNextActions = [hostedAction]
+        mockStartHosted.mockRejectedValue(new Error('Failed to find Server Action'))
+        render(<PendingVerificationTasks />)
+
+        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        expect(await screen.findByText(/couldn't start the verification/i)).toBeInTheDocument()
+        expect(mockReservedTab.close).toHaveBeenCalledTimes(1)
+        // Not stranded on "Loading..." — the button is tappable again.
+        expect(screen.getByRole('button', { name: /complete verification/i })).toBeEnabled()
+        expect(mockAssignHref).not.toHaveBeenCalled()
     })
 
     it('a tab closed mid-fetch falls back instead of silently navigating a dead window', async () => {
@@ -266,6 +283,23 @@ describe('PendingVerificationTasks', () => {
         expect(screen.queryByText('Action not allowed for this user')).not.toBeInTheDocument()
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
+    })
+
+    it('a browserFinished listener resolving AFTER cleanup removes itself', async () => {
+        mockIsCapacitor = true
+        mockNextActions = [hostedAction]
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        // Registration still in flight when the component goes away.
+        let resolveListener: (v: { remove: jest.Mock }) => void = () => {}
+        mockBrowserAddListener.mockReturnValue(new Promise((r) => (resolveListener = r)))
+        const { unmount } = render(<PendingVerificationTasks />)
+
+        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        await waitFor(() => expect(mockBrowserAddListener).toHaveBeenCalled())
+        unmount()
+
+        resolveListener(mockBrowserListener)
+        await waitFor(() => expect(mockBrowserListener.remove).toHaveBeenCalledTimes(1))
     })
 
     it('advisory task renders its deadline and keep-access copy; blocking renders enable copy', () => {

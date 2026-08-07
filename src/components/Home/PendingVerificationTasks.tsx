@@ -171,8 +171,22 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             if (reservedTab) reservedTab.opener = null
 
             setIsStartingHosted(true)
-            const { url } = await startBridgeHostedVerification()
-            setIsStartingHosted(false)
+            let url: string | undefined
+            try {
+                ;({ url } = await startBridgeHostedVerification())
+            } catch (error) {
+                // The action body catches its own errors, but a server action
+                // can still REJECT at the transport layer — a dropped network,
+                // or a deploy invalidating the action id mid-flight. Without
+                // this the button stays on "Loading..." forever and the blank
+                // reserved tab is orphaned.
+                reservedTab?.close()
+                console.error('[pending-tasks] start-action rejected', error)
+                setError("We couldn't start the verification. Please try again in a moment.")
+                return
+            } finally {
+                setIsStartingHosted(false)
+            }
             if (!url) {
                 // Friendly copy regardless of the server detail (a 403 here just
                 // means the action aged out); refetch so a stale card self-corrects.
@@ -225,14 +239,22 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             // resume — the same defect that makes useNativePlugins drive
             // TanStack's focusManager off `appStateChange`. The in-app
             // browser's own close event is the precise signal here.
+            let disposed = false
             let remove: (() => void) | undefined
             void import('@capacitor/browser')
                 .then(({ Browser }) => Browser.addListener('browserFinished', refresh))
                 .then((handle) => {
-                    remove = () => handle.remove()
+                    // Cleanup can run while the dynamic import is still in
+                    // flight; without this the listener registers after the
+                    // fact and nobody ever removes it.
+                    if (disposed) handle.remove()
+                    else remove = () => handle.remove()
                 })
                 .catch((error) => console.error('[pending-tasks] browserFinished listener failed', error))
-            return () => remove?.()
+            return () => {
+                disposed = true
+                remove?.()
+            }
         }
 
         const onReturn = () => {
