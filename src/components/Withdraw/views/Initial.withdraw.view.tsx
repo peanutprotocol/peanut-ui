@@ -87,10 +87,13 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
 
         const name = recipient.name
         let stale = false
+        setRecipient({ name, address: '' })
+        setIsValidRecipient(false)
         validateAndResolveRecipient(name, true, 'evm', selectedChainID)
             .then((validation) => {
                 if (stale) return
                 setRecipient({ name, address: validation.resolvedAddress })
+                setIsValidRecipient(true)
             })
             .catch(() => {
                 if (stale) return
