@@ -35,6 +35,19 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // to the user via the cooldown modal + floating timer. Normal UX state,
     // not an error; would otherwise flood Sentry on every retry.
     { pattern: /\/rain\/cards\/withdraw\/prepare/, statuses: [425] },
+    // /ens/reverse 404 is the answer, not a failure. usePrimaryNameServer asks
+    // the server first and falls back to a client-side lookup when that misses,
+    // so a 404 costs the user nothing. The route also isn't deployed yet
+    // (peanut-api-ts #1237 is still open), which means EVERY address rendered
+    // by AddressLink and TransactionCard reports one — 1,948 events in 24h on
+    // 2026-07-29, drowning every other signal in the feed. Once #1237 lands a
+    // 404 will mean "this address has no primary name", which is still not an
+    // error. Timeouts and 5xx here are real and stay reported.
+    { pattern: /\/ens\/reverse\//, statuses: [404] },
+    // /rhino/status 404 = "no update for this deposit address yet". The FE
+    // polls it until the provider records one, so 404 is the normal waiting
+    // tick, repeated per poll per address.
+    { pattern: /\/rhino\/status\//, statuses: [404] },
 ]
 
 /**
@@ -386,24 +399,34 @@ const sanitizeHeaders = (headers: RequestInit['headers']): Record<string, unknow
     return sanitized
 }
 
+/** Collapse per-request identifiers in a URL to placeholders.
+ *
+ * Used for the Sentry fingerprint AND for the reported message, so that one
+ * broken route is one issue instead of one issue per address. Anything left
+ * varying here multiplies the feed: a hex segment used to survive, so every
+ * address on `/ens/reverse` and `/rhino/status` minted its own grouping.
+ *
+ * The real URL is never lost — callers attach it as `extra.url`.
+ *
+ * Hex runs are matched before the numeric rule, since an all-digit hex body
+ * would otherwise be rewritten as `{id}` and split the group again. Segments
+ * may end at `/`, `?` or the string end. */
+export const sanitizeUrl = (url: string): string =>
+    url
+        // 0x-prefixed segments: addresses (40), tx hashes (64), send-link pubKeys
+        .replace(/\/0x[0-9a-fA-F]{6,}(?=[/?]|$)/g, '/{hex}')
+        // UUIDs
+        .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=[/?]|$)/gi, '/{uuid}')
+        // Numeric path segments
+        .replace(/\/\d+(?=[/?]|$)/g, '/{id}')
+        // Numeric query values
+        .replace(/([?&][^=&]*=)\d+/g, '$1{id}')
+
 export const fetchWithSentry = async (
     url: string,
     options: RequestInit = {},
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
-    // Sanitize URL for fingerprinting by replacing IDs with placeholders
-    const sanitizeUrl = (url: string) => {
-        return (
-            url
-                // Replace numeric IDs in path
-                .replace(/\/\d+(?=\/|$)/g, '/{id}')
-                // Replace UUIDs in path
-                .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi, '/{uuid}')
-                // Replace numeric IDs in query params
-                .replace(/([?&][^=&]*=)\d+/g, '$1{id}')
-        )
-    }
-
     // Idempotent requests get one silent retry on timeout: stalled-transport
     // failures (Android webview, flaky mobile networks) usually clear on a
     // fresh attempt (PEANUT-UI-R44).
@@ -444,7 +467,13 @@ export const fetchWithSentry = async (
             // 401 on cleared session, etc). Logging them clutters DevTools and
             // gets picked up by forward-logs-shared as Sentry breadcrumbs.
             if (!shouldSkipReporting(url, response.status)) {
-                console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
+                // Sanitized in the message too, not just the fingerprint:
+                // captureConsoleIntegration turns this warn into its own Sentry
+                // event with NO fingerprint, grouped on the message text — so a
+                // raw URL here splits per address however good the fingerprint is.
+                console.warn(
+                    `Request to ${sanitizeUrl(String(url).replace(/[\r\n]/g, ''))} failed with status ${response.status}`
+                )
 
                 let errorContent: JSONValue
                 try {
@@ -459,7 +488,7 @@ export const fetchWithSentry = async (
                     scope.setFingerprint([method, sanitizeUrl(url), String(response.status)])
                     if (featureTag) scope.setTag('feature', featureTag)
 
-                    Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
+                    Sentry.captureMessage(`${method} to ${sanitizeUrl(url)} failed with status ${response.status}`, {
                         level: getErrorLevelFromStatus(response.status),
                         extra: {
                             url,
@@ -485,7 +514,7 @@ export const fetchWithSentry = async (
         console.info(error)
 
         if (error instanceof Error && error.name === 'AbortError') {
-            const timeoutError = new Error(`Request to ${url} timed out after ${timeoutMs}ms`)
+            const timeoutError = new Error(`Request to ${sanitizeUrl(url)} timed out after ${timeoutMs}ms`)
 
             const timeoutFeatureTag = getFeatureTag(url)
             Sentry.withScope((scope) => {

@@ -6,6 +6,7 @@ import {
     fetchWithSentry,
     resolveDefaultTimeoutMs,
     sanitizeRequestBody,
+    sanitizeUrl,
     sanitizeResponseBody,
     scrubObject,
 } from '../sentry.utils'
@@ -99,6 +100,101 @@ describe('fetchWithSentry — expected-response suppression', () => {
             'POST to https://api.peanut.me/some/endpoint failed with status 400',
             expect.objectContaining({ level: 'warning' })
         )
+    })
+
+    // 1,948 events in 24h on 2026-07-29, one issue per address, burying every
+    // other signal. A reverse lookup that finds no name is an answer, and the
+    // hook falls back client-side, so the user never sees a failure.
+    it('does NOT report /ens/reverse 404 (no primary name is an answer, and it falls back)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, { error: 'Not found' }))
+
+        const res = await fetchWithSentry(
+            'https://api.peanut.me/ens/reverse/0x7a3b39dadfc09ecfc4dc120675bdaff3fc859764'
+        )
+
+        expect(res.status).toBe(404)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        // Also asserts the console path: captureConsoleIntegration would
+        // otherwise mint a second, un-fingerprinted event per address.
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    it('does NOT report /rhino/status 404 (the poll-until-present waiting tick)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, { error: 'No update found' }))
+
+        await fetchWithSentry('https://api.peanut.me/rhino/status/0xeba44f5961db32de6c4484372dbb0bd116f33a4e')
+
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    it('still reports a 500 on those same routes (a real failure is not expected)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/ens/reverse/0x7a3b39dadfc09ecfc4dc120675bdaff3fc859764')
+
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            'GET to https://api.peanut.me/ens/reverse/{hex} failed with status 500',
+            expect.objectContaining({ level: 'error' })
+        )
+    })
+
+    // The point of the whole change: two addresses, one issue.
+    it('reports two different addresses under an IDENTICAL message', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/ens/reverse/0x7a3b39dadfc09ecfc4dc120675bdaff3fc859764')
+        await fetchWithSentry('https://api.peanut.me/ens/reverse/0x2a1530e2898dea93a418fcf58434882b843b5a88')
+
+        const messages = (Sentry.captureMessage as jest.Mock).mock.calls.map((call) => call[0])
+        expect(messages).toHaveLength(2)
+        expect(messages[0]).toBe(messages[1])
+    })
+
+    it('keeps the real URL on the event so it stays debuggable', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+        const url = 'https://api.peanut.me/ens/reverse/0x7a3b39dadfc09ecfc4dc120675bdaff3fc859764'
+
+        await fetchWithSentry(url)
+
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            expect.stringContaining('{hex}'),
+            expect.objectContaining({ extra: expect.objectContaining({ url }) })
+        )
+    })
+})
+
+describe('sanitizeUrl', () => {
+    it('collapses 0x segments — addresses, tx hashes, pubKeys', () => {
+        expect(sanitizeUrl('https://api.peanut.me/ens/reverse/0x7a3b39dadfc09ecfc4dc120675bdaff3fc859764')).toBe(
+            'https://api.peanut.me/ens/reverse/{hex}'
+        )
+        // 64-hex tx hash, mid-path rather than trailing
+        expect(sanitizeUrl(`/send-links/claim/0x${'a'.repeat(64)}/associate-user`)).toBe(
+            '/send-links/claim/{hex}/associate-user'
+        )
+        // terminated by a query string, not a slash
+        expect(sanitizeUrl('/rhino/status/0xeba44f5961db32de6c4484372dbb0bd116f33a4e?poll=1')).toBe(
+            '/rhino/status/{hex}?poll={id}'
+        )
+    })
+
+    it('still collapses UUIDs and numeric segments', () => {
+        expect(sanitizeUrl('/charges/2f7a9f29-456a-4ec6-92a3-a2a1510925a4')).toBe('/charges/{uuid}')
+        expect(sanitizeUrl('/history/12345')).toBe('/history/{id}')
+    })
+
+    it('leaves non-identifier segments alone', () => {
+        // An ENS name must not be collapsed — it is low-cardinality enough to
+        // be worth seeing, and it is not hex.
+        expect(sanitizeUrl('/ens/vitalik.eth')).toBe('/ens/vitalik.eth')
+        expect(sanitizeUrl('https://api.peanut.me/users/me')).toBe('https://api.peanut.me/users/me')
+    })
+
+    it('collapses an all-digit hex body as hex, not as a numeric id', () => {
+        // Ordering guard: the numeric rule running first would produce
+        // '/0x{id}' and split the group again.
+        expect(sanitizeUrl('/ens/reverse/0x1234567890123456789012345678901234567890')).toBe('/ens/reverse/{hex}')
     })
 })
 
