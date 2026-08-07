@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import Modal from '@/components/Global/Modal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
@@ -36,6 +37,7 @@ export const SumsubNativeSdk = ({
     onRefreshToken,
 }: SumsubSdkProps) => {
     const t = useTranslations('kyc')
+    const locale = useLocale()
     const [failure, setFailure] = useState<'sdk-missing' | 'launch' | null>(null)
 
     const onCloseRef = useRef(onClose)
@@ -43,6 +45,7 @@ export const SumsubNativeSdk = ({
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
     const accessTokenRef = useRef(accessToken)
+    const sumsubLocaleRef = useRef(toSumsubLocale(locale))
 
     useEffect(() => {
         onCloseRef.current = onClose
@@ -51,6 +54,10 @@ export const SumsubNativeSdk = ({
         onRefreshTokenRef.current = onRefreshToken
         accessTokenRef.current = accessToken
     }, [onClose, onComplete, onError, onRefreshToken, accessToken])
+
+    useEffect(() => {
+        sumsubLocaleRef.current = toSumsubLocale(locale)
+    }, [locale])
 
     // Gate on token PRESENCE, not identity: refreshToken() writes a new token
     // into the same state, and re-running this effect on that would dismiss and
@@ -93,7 +100,7 @@ export const SumsubNativeSdk = ({
                         if (event?.newStatus && SUBMITTED_STATES.has(event.newStatus)) hasSubmitted = true
                     },
                 })
-                .withLocale('en')
+                .withLocale(sumsubLocaleRef.current)
                 .withDebug(process.env.NODE_ENV === 'development')
                 .build()
 
