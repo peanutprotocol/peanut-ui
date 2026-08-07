@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
-import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
@@ -273,11 +273,21 @@ export const useMultiPhaseKycFlow = ({
     // (a resume otherwise looks identical and inflates "initiated" counts).
     const resumingRef = useRef(false)
 
+    // Arguments of the initiate that opened the SDK, replayed on resume. The
+    // LATAM surfaces build the flow as `useMultiPhaseKycFlow({})` and pass the
+    // intent at call time, so a resume that re-initiates with hook defaults
+    // there mints a token for the wrong verification level — and still opens the
+    // SDK, so the flag is not cleared and the user never sees what went wrong.
+    // The resolved intent is stored rather than the raw override so the replay
+    // pins the exact intent used.
+    const lastInitiateArgsRef = useRef<KycResumeState>({})
+
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
             const intent = overrideIntent ?? regionIntent
             lastIntentRef.current = intent
+            lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry }
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
                 { region_intent: intent, acquisition_source: acquisitionSource, resumed: resumingRef.current }
@@ -297,18 +307,19 @@ export const useMultiPhaseKycFlow = ({
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
 
-    // PWA-reload resume (see useSumsubReloadResume). On mount, if ?kyc=true is
-    // set but the SDK is closed, re-initiate: mint a fresh token for the existing
-    // applicant and reopen the SDK. The SDK now launches straight into Sumsub on
-    // open (the StartVerificationView intro was removed with the native-SDK
-    // refactor), so no extra auto-start step is needed.
-    useSumsubReloadResume(showWrapper, async () => {
+    // PWA-reload resume (see useSumsubReloadResume). On mount, if the state is
+    // in the URL but the SDK is closed, re-initiate with the same arguments:
+    // mint a fresh token for the existing applicant and reopen the SDK. The SDK
+    // now launches straight into Sumsub on open (the StartVerificationView intro
+    // was removed with the native-SDK refactor), so no extra auto-start step is
+    // needed.
+    useSumsubReloadResume(showWrapper ? lastInitiateArgsRef.current : null, async (state) => {
         // Returns whether the SDK actually opened — a resume that resolves
-        // without opening (already-approved user, or a remediation flow a bare
-        // initiate can't reconstruct) clears the flag instead of retrying on
+        // without opening (already-approved user, or a remediation flow the
+        // replay can't reconstruct) clears the state instead of retrying on
         // every future reload.
         resumingRef.current = true
-        const opened = await handleInitiateKyc()
+        const opened = await handleInitiateKyc(state.intent, state.levelName, state.crossRegion, state.targetCountry)
         resumingRef.current = false
         return !!opened
     })

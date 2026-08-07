@@ -539,12 +539,14 @@ const CardPage: FC = () => {
 
     // PWA-reload resume (see useSumsubReloadResume). On a reload mid-Sumsub,
     // re-apply to mint a fresh token for the same in-progress applicant and
-    // reopen the SDK — same idempotent call the token-refresh path uses.
-    useSumsubReloadResume(sumsubToken !== null, async () => {
+    // reopen the SDK — same idempotent call the token-refresh path uses. The
+    // card flow takes no initiate arguments, so the persisted state is empty.
+    useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
         const res = await rainApi.applyForCard({ termsAccepted: false })
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             setSumsubToken(res.sumsubAccessToken)
-            posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+            // tagged so a resume doesn't read as a fresh open in the card funnel
+            posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
             return true
         }
         // user advanced past Sumsub while backgrounded — route normally
