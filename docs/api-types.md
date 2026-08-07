@@ -59,6 +59,25 @@ pulled from the BE schema, so a BE shape change shows up as a TS error.
 - When CI's typecheck flags a stale type — pull `main`, run `pnpm gen:api`, commit
 - Before opening a PR that touches a BE route
 
+## Cross-repo FX rollout
+
+Peanut API owns the `/fx/rate` and `/fx/rates` contracts. Its OpenAPI spec is the canonical reference.
+
+Peanut UI calls `/fx/rate` directly from first-party browsers and native clients,
+so the backend rate limiter sees each real client IP. Its
+`/api/exchange-rate` route remains a compatibility proxy that returns
+`{ rate: number }`, but normal UI traffic no longer traverses it.
+
+Peanut Split calls `/fx/rates` from its server. Peanut UI does not use that batch route.
+
+Deploy Peanut API first. Smoke-test both FX routes, refresh this snapshot, and then deploy Peanut UI and Peanut Split.
+
+The backend preserves the UI's established pair policy as one atomic choice:
+use `provider_pair` only when both legs have provider coverage; otherwise use
+`reference_pair` for both legs. For example, PLN→EUR remains reference/reference
+even though EUR has a Bridge quote. Responses expose the selection and both leg
+sources, and consumers reject provider/reference hybrids.
+
 ## Limitations
 
 - The generator only sees what's in TypeBox `schema`. Routes that don't declare a response schema appear as `unknown` content. Fixing that is per-route and incremental.

@@ -97,7 +97,10 @@ export function proxy(request: NextRequest) {
     // every request to `/`, so a cached English `/` still gets redirected for a
     // visitor whose cookie says otherwise. The redirect response above does
     // carry Vary, since nothing rewrites it.
-    if (url.pathname.startsWith('/api/')) {
+    //
+    // The exchange-rate route is exempt: it is intentionally cacheable and owns
+    // its own narrower CDN policy, including no-store on its error paths.
+    if (url.pathname.startsWith('/api/') && url.pathname !== '/api/exchange-rate') {
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
         response.headers.set('Pragma', 'no-cache')
         response.headers.set('Expires', '0')

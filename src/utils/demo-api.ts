@@ -14,10 +14,11 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
+const PASSTHROUGH_TIMEOUT_MS = 10_000
 
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
-const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices'])
+const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate'])
 
 const EMPTY_GRAPH = {
     nodes: [] as unknown[],
@@ -377,6 +378,19 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/charges/:id', handler: () => ({}) },
     { method: 'GET', pattern: '/request-charges/:id', handler: ({ params }) => demoRequestCharge(params.id) },
 
+    // Fallback for the /fx/rate passthrough when the live call fails. Without a
+    // handler this lands on defaultShape and answers 200 {}, which the response
+    // validator then rejects — a contract violation dressed as a success. A
+    // canned rate is not an option either: handlers never see the query string,
+    // and fetchDisplayRate rejects any payload whose pair does not match what
+    // was asked. 503 is the truthful answer, and the hook already fails closed
+    // on it rather than showing a stale or invented number.
+    {
+        method: 'GET',
+        pattern: '/fx/rate',
+        handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Exchange rates are unavailable.' }, 503),
+    },
+
     // bridge on/off-ramp
     {
         method: 'GET',
@@ -637,11 +651,18 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
 
     // Live-rate passthrough to the real backend (best-effort).
     if (method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), PASSTHROUGH_TIMEOUT_MS)
         try {
-            const res = await fetch(`${PEANUT_API_URL}${path}`, { headers: { accept: 'application/json' } })
+            const res = await fetch(`${PEANUT_API_URL}${path}`, {
+                headers: { accept: 'application/json' },
+                signal: controller.signal,
+            })
             if (res.ok) return res
         } catch {
             // fall through to the canned handler below
+        } finally {
+            clearTimeout(timeout)
         }
     }
 
