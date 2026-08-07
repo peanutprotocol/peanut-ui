@@ -33,7 +33,7 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
-import { isTxReverted } from '@/utils/general.utils'
+import { isTxReverted, printableAddress } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
@@ -620,7 +620,21 @@ export default function WithdrawCryptoPage() {
                 }}
                 preventClose={isPreparingReview}
                 title={t('compatibilityModal.title')}
-                description={t('compatibilityModal.description')}
+                description={
+                    <div className="space-y-2">
+                        <p>{t('compatibilityModal.description')}</p>
+                        {/* Show the concrete destination so the user confirms a real
+                            address, not an abstract warning — for ENS recipients this
+                            is the first time the resolved address is visible. */}
+                        {!!withdrawData?.address && (
+                            <p>
+                                <span className="font-mono font-medium text-n-1 dark:text-white">
+                                    {printableAddress(withdrawData.address)}
+                                </span>
+                            </p>
+                        )}
+                    </div>
+                }
                 icon="alert"
                 footer={
                     <div className="w-full">

@@ -171,7 +171,9 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                         <div className="text-base font-bold">{copy.title}</div>
                                         <div className="text-sm text-grey-1">{copy.description}</div>
                                         {deadline && (
-                                            <div className="mt-1 text-xs font-medium">Complete before {deadline}</div>
+                                            <div className="mt-1 text-xs font-medium">
+                                                {'Complete before'} {deadline}
+                                            </div>
                                         )}
                                     </div>
                                     <Button
