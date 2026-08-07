@@ -5,12 +5,16 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
+import { useVisualViewport } from '@/hooks/useVisualViewport'
 import PeanutLoading from '../PeanutLoading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
 import { isCapacitor } from '@/utils/capacitor'
 
 const DISMISS_THRESHOLD = 100
+
+/** Backdrop left showing above the panel when the keyboard squeezes it. */
+const TOP_RESERVE = 24
 
 const SupportDrawer = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, supportPrefilledMessage: prefilledMessage } = useModalsContext()
@@ -23,6 +27,11 @@ const SupportDrawer = () => {
     const [iframeKey, setIframeKey] = useState(0)
 
     const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage, crispTokenId)
+
+    // Crisp's composer sits at the very bottom of the iframe, so the panel's bottom
+    // edge is the thing the iOS keyboard covers. Only measured while the drawer is
+    // open — see the hook for why CSS alone can't see the keyboard.
+    const { height: visibleHeight, keyboardInset } = useVisualViewport(isSupportModalOpen)
 
     /*
      * The proxy iframe boots the ENTIRE Next.js app at /crisp-proxy, and its src
@@ -167,10 +176,24 @@ const SupportDrawer = () => {
                 role="dialog"
                 aria-label="Support"
                 aria-modal={isSupportModalOpen}
-                className={`fixed inset-x-0 bottom-0 z-[999999] flex max-h-[85vh] flex-col rounded-t-[10px] border bg-background pt-4 ${
+                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-[10px] border bg-background pt-4 ${
                     isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
                 }`}
                 style={{
+                    // Sit on top of the keyboard rather than behind it: `bottom: 0` is the
+                    // bottom of the *layout* viewport, which iOS leaves under the keyboard.
+                    bottom: keyboardInset,
+                    // …and never be taller than what's actually on screen, so lifting the
+                    // panel pushes the conversation down instead of off the top edge. The
+                    // reserved strip keeps the drag handle out from under the notch and
+                    // leaves a backdrop target to tap-to-close; with no keyboard up it is
+                    // slack and 85dvh wins, so the resting look is unchanged.
+                    height: visibleHeight
+                        ? `min(85dvh, calc(${visibleHeight}px - env(safe-area-inset-top) - ${TOP_RESERVE}px))`
+                        : '85dvh',
+                    // The keyboard already covers the home indicator; padding for it too
+                    // would just wedge a dead strip between the composer and the keys.
+                    paddingBottom: keyboardInset ? 0 : 'env(safe-area-inset-bottom)',
                     transform: isSupportModalOpen ? `translateY(${dragOffset}px)` : 'translateY(100%)',
                     transition: isDragging ? 'none' : 'transform 300ms ease-out',
                 }}
@@ -185,8 +208,9 @@ const SupportDrawer = () => {
                     <div className="h-1.5 w-10 rounded-full bg-black" />
                 </div>
 
-                <div className="flex w-full justify-center">
-                    <div className="relative h-[80vh] w-full overflow-auto md:max-w-xl">
+                {/* min-h-0 lets the iframe row shrink below its content when the panel does */}
+                <div className="flex min-h-0 w-full flex-1 justify-center">
+                    <div className="relative h-full w-full overflow-hidden md:max-w-xl">
                         {(!isCrispReady || isAwaitingToken) && !isCrispFailed && (
                             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
                                 <PeanutLoading />
