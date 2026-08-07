@@ -369,6 +369,19 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/charges/:id', handler: () => ({}) },
     { method: 'GET', pattern: '/request-charges/:id', handler: ({ params }) => demoRequestCharge(params.id) },
 
+    // Fallback for the /fx/rate passthrough when the live call fails. Without a
+    // handler this lands on defaultShape and answers 200 {}, which the response
+    // validator then rejects — a contract violation dressed as a success. A
+    // canned rate is not an option either: handlers never see the query string,
+    // and fetchDisplayRate rejects any payload whose pair does not match what
+    // was asked. 503 is the truthful answer, and the hook already fails closed
+    // on it rather than showing a stale or invented number.
+    {
+        method: 'GET',
+        pattern: '/fx/rate',
+        handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Exchange rates are unavailable.' }, 503),
+    },
+
     // bridge on/off-ramp
     {
         method: 'GET',

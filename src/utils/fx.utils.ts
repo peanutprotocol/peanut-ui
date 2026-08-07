@@ -15,7 +15,16 @@ const PLAIN_DECIMAL = /^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/
 const MAX_GENERATED_AGE_MS = 15 * 60 * 1000
 const MAX_PROVIDER_EFFECTIVE_AGE_MS = 24 * 60 * 60 * 1000
 const MAX_REFERENCE_EFFECTIVE_AGE_MS = 30 * 24 * 60 * 60 * 1000
+// Bound for comparisons between two backend-stamped times. Both come from the
+// same clock, so this stays tight — it is a real sanity check on the payload.
 const MAX_FUTURE_CLOCK_SKEW_MS = 5 * 60 * 1000
+// Bound for anything compared against the DEVICE clock, which we do not
+// control. At five minutes a phone whose clock drifted rejects every response
+// the backend can possibly send — permanently, with no fallback path left now
+// that the local implementation is gone. Staleness is still genuinely bounded
+// by the backend-only observation checks below, which no device clock can
+// affect, so this allowance costs correctness nothing.
+const MAX_CLIENT_CLOCK_SKEW_MS = 6 * 60 * 60 * 1000
 // The backend constrains each USD leg to [1e-9, 1e9]. A cross-rate is a
 // quotient of two legs, so its corresponding safe envelope is [1e-18, 1e18].
 const MIN_DISPLAY_RATE = 1e-18
@@ -69,7 +78,9 @@ function parseFxRateResponse(value: unknown, from: string, to: string): number |
     const generatedAt = timestamp(data.generatedAt)
     if (generatedAt === null) return null
     const generatedAge = Date.now() - generatedAt
-    if (generatedAge > MAX_GENERATED_AGE_MS || generatedAge < -MAX_FUTURE_CLOCK_SKEW_MS) return null
+    if (generatedAge > MAX_GENERATED_AGE_MS + MAX_CLIENT_CLOCK_SKEW_MS || generatedAge < -MAX_CLIENT_CLOCK_SKEW_MS) {
+        return null
+    }
 
     // Identity is handled locally before the request. Every backend response
     // consumed here must therefore be one complete non-identity domain.
@@ -90,8 +101,8 @@ function parseFxRateResponse(value: unknown, from: string, to: string): number |
     if (
         observationAgeAtGeneration > maxObservationAge ||
         observationAgeAtGeneration < -MAX_FUTURE_CLOCK_SKEW_MS ||
-        effectiveAgeNow > maxObservationAge + MAX_GENERATED_AGE_MS ||
-        effectiveAgeNow < -MAX_FUTURE_CLOCK_SKEW_MS
+        effectiveAgeNow > maxObservationAge + MAX_GENERATED_AGE_MS + MAX_CLIENT_CLOCK_SKEW_MS ||
+        effectiveAgeNow < -MAX_CLIENT_CLOCK_SKEW_MS
     ) {
         return null
     }

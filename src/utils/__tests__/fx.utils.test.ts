@@ -26,6 +26,18 @@ describe('fetchDisplayRate — shared backend contract', () => {
 
     afterEach(() => jest.restoreAllMocks())
 
+    it.each([
+        ['three hours slow', '2026-08-05T05:00:00.000Z'],
+        ['three hours fast', '2026-08-05T11:00:00.000Z'],
+    ])('still accepts a valid response when the device clock is %s', async (_label, deviceNow) => {
+        // A drifted device clock must not reject every rate the backend can send.
+        // There is no local fallback left, so this would be a permanent blackout.
+        jest.spyOn(Date, 'now').mockReturnValue(Date.parse(deviceNow))
+        mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => validResponse })
+
+        await expect(fetchDisplayRate('pln', 'eur')).resolves.toBeCloseTo(0.2322191619648635, 15)
+    })
+
     it('normalizes the pair and converts a valid decimal-string rate to a number', async () => {
         mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => validResponse })
 
@@ -116,8 +128,9 @@ describe('fetchDisplayRate — shared backend contract', () => {
         ['unknown provenance', { ...validResponse, toSource: 'other' }],
         ['non-canonical timestamp', { ...validResponse, generatedAt: '2026-08-05' }],
         ['missing generation time', { ...validResponse, generatedAt: undefined }],
-        ['stale generation time', { ...validResponse, generatedAt: '2026-08-05T07:44:59.999Z' }],
-        ['future generation time', { ...validResponse, generatedAt: '2026-08-05T08:05:00.001Z' }],
+        // Past the 15-minute freshness bound plus the 6-hour device-clock allowance.
+        ['stale generation time', { ...validResponse, generatedAt: '2026-08-05T01:44:59.999Z' }],
+        ['future generation time', { ...validResponse, generatedAt: '2026-08-05T14:00:00.001Z' }],
         ['future effective time', { ...validResponse, effectiveAt: '2026-08-05T08:05:00.001Z' }],
         ['stale effective time', { ...validResponse, effectiveAt: '2026-07-06T07:59:59.999Z' }],
         ['implausibly small rate', { ...validResponse, rate: '0.000000000000000000' }],
