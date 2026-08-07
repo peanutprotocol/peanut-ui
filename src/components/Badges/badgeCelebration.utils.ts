@@ -15,6 +15,7 @@ export type CelebrationBadge = {
     code: string
     name: string
     description: string | null
+    iconUrl?: string | null
     earnedAt: string | Date
     isVisible?: boolean
 }

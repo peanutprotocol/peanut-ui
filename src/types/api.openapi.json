@@ -150,9 +150,38 @@
 				}
 			}
 		},
+		"/ens/reverse/{address}": {
+			"get": {
+				"parameters": [
+					{
+						"schema": {
+							"pattern": "^0x[a-fA-F0-9]{40}$",
+							"type": "string"
+						},
+						"in": "path",
+						"name": "address",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/ens/{ensName}": {
 			"get": {
 				"parameters": [
+					{
+						"schema": {
+							"minimum": 1,
+							"type": "integer"
+						},
+						"in": "query",
+						"name": "chainId",
+						"required": false
+					},
 					{
 						"schema": {
 							"type": "string"
@@ -573,6 +602,10 @@
 																					{
 																						"type": "string",
 																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["bridge-hosted"]
 																					}
 																				]
 																			},
@@ -638,6 +671,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["provide-email"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["bridge-hosted"]
 																	}
 																]
 															},
@@ -1607,6 +1644,10 @@
 																					{
 																						"type": "string",
 																						"enum": ["provide-email"]
+																					},
+																					{
+																						"type": "string",
+																						"enum": ["bridge-hosted"]
 																					}
 																				]
 																			},
@@ -1672,6 +1713,10 @@
 																	{
 																		"type": "string",
 																		"enum": ["provide-email"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["bridge-hosted"]
 																	}
 																]
 															},
@@ -1781,9 +1826,11 @@
 										},
 										"externalActionId": {
 											"type": "string"
+										},
+										"verificationUrl": {
+											"type": "string"
 										}
-									},
-									"required": ["sumsubAccessToken", "levelName"]
+									}
 								}
 							}
 						}
@@ -1795,7 +1842,23 @@
 			"get": {
 				"responses": {
 					"200": {
-						"description": "Default Response"
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"tosLink": {
+											"type": "string"
+										},
+										"endorsement": {
+											"type": "string"
+										}
+									},
+									"required": ["tosLink", "endorsement"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1815,6 +1878,175 @@
 				"responses": {
 					"200": {
 						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/consent/status": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"documents": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"slug": {
+														"type": "string"
+													},
+													"currentVersion": {
+														"type": "string"
+													},
+													"acceptedVersion": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"acceptedAt": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"needsAcceptance": {
+														"type": "boolean"
+													}
+												},
+												"required": [
+													"slug",
+													"currentVersion",
+													"acceptedVersion",
+													"acceptedAt",
+													"needsAcceptance"
+												]
+											}
+										},
+										"needsReConsent": {
+											"type": "boolean"
+										}
+									},
+									"required": ["documents", "needsReConsent"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/users/consent/accept": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"documents": {
+										"minItems": 1,
+										"maxItems": 8,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"slug": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"hash": {
+													"type": "string"
+												}
+											},
+											"required": ["slug", "version"]
+										}
+									}
+								},
+								"required": ["documents"]
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"recorded": {
+											"type": "number"
+										}
+									},
+									"required": ["recorded"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1967,6 +2199,25 @@
 									"cred": {},
 									"rpID": {
 										"type": "string"
+									},
+									"acceptedLegal": {
+										"maxItems": 4,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"slug": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"hash": {
+													"type": "string"
+												}
+											},
+											"required": ["slug", "version"]
+										}
 									}
 								},
 								"required": ["userId", "username", "cred"]
@@ -6308,6 +6559,9 @@
 								"type": "object",
 								"properties": {
 									"inviteCode": {
+										"minLength": 1,
+										"maxLength": 255,
+										"pattern": ".*\\S.*",
 										"type": "string"
 									},
 									"type": {
@@ -6323,6 +6577,9 @@
 										]
 									},
 									"campaignTag": {
+										"minLength": 1,
+										"maxLength": 68,
+										"pattern": ".*\\S.*",
 										"type": "string"
 									}
 								},
@@ -6344,7 +6601,348 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Default Response"
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"attributionResolved": {
+											"type": "boolean",
+											"enum": [true]
+										},
+										"onboardingResolved": {
+											"type": "boolean",
+											"enum": [true]
+										},
+										"attributionKind": {
+											"anyOf": [
+												{
+													"type": "string",
+													"enum": ["PERSONAL"]
+												},
+												{
+													"type": "string",
+													"enum": ["SYSTEM"]
+												},
+												{
+													"type": "string",
+													"enum": ["LEGACY_UNRESOLVED"]
+												}
+											]
+										},
+										"claims": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"badgeCampaign": {
+														"minLength": 1,
+														"maxLength": 68,
+														"pattern": ".*\\S.*",
+														"description": "Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug.",
+														"type": "string"
+													},
+													"badgeCode": {
+														"minLength": 1,
+														"maxLength": 50,
+														"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+														"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+														"type": "string"
+													},
+													"badge": {
+														"type": "object",
+														"properties": {
+															"code": {
+																"minLength": 1,
+																"maxLength": 50,
+																"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+																"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+																"type": "string"
+															},
+															"name": {
+																"type": "string"
+															},
+															"description": {
+																"type": "string"
+															},
+															"publicDescription": {
+																"type": "string"
+															},
+															"iconUrl": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"code",
+															"name",
+															"description",
+															"publicDescription",
+															"iconUrl"
+														]
+													},
+													"outcome": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["awarded"]
+															},
+															{
+																"type": "string",
+																"enum": ["already_owned"]
+															},
+															{
+																"type": "string",
+																"enum": ["inactive"]
+															},
+															{
+																"type": "string",
+																"enum": ["expired"]
+															},
+															{
+																"type": "string",
+																"enum": ["unknown"]
+															},
+															{
+																"type": "string",
+																"enum": ["definition_missing"]
+															}
+														]
+													},
+													"acquisition": {
+														"type": "object",
+														"properties": {
+															"fallback": {
+																"type": "string",
+																"enum": ["normal_app"]
+															},
+															"destination": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["offramp_migration"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["normal_app"]
+																	}
+																]
+															}
+														},
+														"required": ["fallback", "destination"]
+													}
+												},
+												"required": ["badgeCampaign", "outcome"]
+											}
+										},
+										"legacyAcquisition": {
+											"type": "object",
+											"properties": {
+												"campaignTag": {
+													"type": "string"
+												},
+												"fallback": {
+													"type": "string",
+													"enum": ["normal_app"]
+												},
+												"destination": {
+													"anyOf": [
+														{
+															"type": "string",
+															"enum": ["offramp_migration"]
+														},
+														{
+															"type": "string",
+															"enum": ["normal_app"]
+														}
+													]
+												}
+											},
+											"required": ["campaignTag", "fallback", "destination"]
+										}
+									},
+									"required": [
+										"message",
+										"attributionResolved",
+										"onboardingResolved",
+										"attributionKind",
+										"claims"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"attributionResolved": {
+											"type": "boolean",
+											"enum": [false]
+										},
+										"onboardingResolved": {
+											"type": "boolean",
+											"enum": [false]
+										},
+										"claims": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"badgeCampaign": {
+														"minLength": 1,
+														"maxLength": 68,
+														"pattern": ".*\\S.*",
+														"description": "Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug.",
+														"type": "string"
+													},
+													"badgeCode": {
+														"minLength": 1,
+														"maxLength": 50,
+														"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+														"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+														"type": "string"
+													},
+													"badge": {
+														"type": "object",
+														"properties": {
+															"code": {
+																"minLength": 1,
+																"maxLength": 50,
+																"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+																"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+																"type": "string"
+															},
+															"name": {
+																"type": "string"
+															},
+															"description": {
+																"type": "string"
+															},
+															"publicDescription": {
+																"type": "string"
+															},
+															"iconUrl": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"code",
+															"name",
+															"description",
+															"publicDescription",
+															"iconUrl"
+														]
+													},
+													"outcome": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["awarded"]
+															},
+															{
+																"type": "string",
+																"enum": ["already_owned"]
+															},
+															{
+																"type": "string",
+																"enum": ["inactive"]
+															},
+															{
+																"type": "string",
+																"enum": ["expired"]
+															},
+															{
+																"type": "string",
+																"enum": ["unknown"]
+															},
+															{
+																"type": "string",
+																"enum": ["definition_missing"]
+															}
+														]
+													},
+													"acquisition": {
+														"type": "object",
+														"properties": {
+															"fallback": {
+																"type": "string",
+																"enum": ["normal_app"]
+															},
+															"destination": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["offramp_migration"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["normal_app"]
+																	}
+																]
+															}
+														},
+														"required": ["fallback", "destination"]
+													}
+												},
+												"required": ["badgeCampaign", "outcome"]
+											}
+										},
+										"legacyAcquisition": {
+											"type": "object",
+											"properties": {
+												"campaignTag": {
+													"type": "string"
+												},
+												"fallback": {
+													"type": "string",
+													"enum": ["normal_app"]
+												},
+												"destination": {
+													"anyOf": [
+														{
+															"type": "string",
+															"enum": ["offramp_migration"]
+														},
+														{
+															"type": "string",
+															"enum": ["normal_app"]
+														}
+													]
+												}
+											},
+											"required": ["campaignTag", "fallback", "destination"]
+										}
+									},
+									"required": ["message", "attributionResolved", "onboardingResolved", "claims"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -6367,6 +6965,9 @@
 								"type": "object",
 								"properties": {
 									"inviteCode": {
+										"minLength": 1,
+										"maxLength": 255,
+										"pattern": ".*\\S.*",
 										"type": "string"
 									}
 								},
@@ -6378,7 +6979,143 @@
 				},
 				"responses": {
 					"200": {
-						"description": "Default Response"
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"attributionResolved": {
+											"type": "boolean",
+											"enum": [true]
+										},
+										"onboardingResolved": {
+											"type": "boolean",
+											"enum": [true]
+										},
+										"attributionKind": {
+											"anyOf": [
+												{
+													"type": "string",
+													"enum": ["PERSONAL"]
+												},
+												{
+													"type": "string",
+													"enum": ["SYSTEM"]
+												},
+												{
+													"type": "string",
+													"enum": ["LEGACY_UNRESOLVED"]
+												}
+											]
+										},
+										"username": {
+											"type": "string"
+										},
+										"legacyAcquisition": {
+											"type": "object",
+											"properties": {
+												"campaignTag": {
+													"type": "string"
+												},
+												"fallback": {
+													"type": "string",
+													"enum": ["normal_app"]
+												},
+												"destination": {
+													"anyOf": [
+														{
+															"type": "string",
+															"enum": ["offramp_migration"]
+														},
+														{
+															"type": "string",
+															"enum": ["normal_app"]
+														}
+													]
+												}
+											},
+											"required": ["campaignTag", "fallback", "destination"]
+										}
+									},
+									"required": [
+										"message",
+										"attributionResolved",
+										"onboardingResolved",
+										"attributionKind",
+										"username"
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"attributionResolved": {
+											"type": "boolean",
+											"enum": [false]
+										},
+										"onboardingResolved": {
+											"type": "boolean",
+											"enum": [false]
+										},
+										"legacyAcquisition": {
+											"type": "object",
+											"properties": {
+												"campaignTag": {
+													"type": "string"
+												},
+												"fallback": {
+													"type": "string",
+													"enum": ["normal_app"]
+												},
+												"destination": {
+													"anyOf": [
+														{
+															"type": "string",
+															"enum": ["offramp_migration"]
+														},
+														{
+															"type": "string",
+															"enum": ["normal_app"]
+														}
+													]
+												}
+											},
+											"required": ["campaignTag", "fallback", "destination"]
+										}
+									},
+									"required": ["message", "attributionResolved", "onboardingResolved"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -6761,6 +7498,164 @@
 				}
 			}
 		},
+		"/badge/claims": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"badgeCampaigns": {
+										"minItems": 1,
+										"maxItems": 20,
+										"type": "array",
+										"items": {
+											"minLength": 1,
+											"maxLength": 68,
+											"pattern": ".*\\S.*",
+											"description": "Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug.",
+											"type": "string"
+										}
+									}
+								},
+								"required": ["badgeCampaigns"]
+							}
+						}
+					},
+					"required": true
+				},
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "header",
+						"name": "Authorization",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"claims": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"badgeCampaign": {
+														"minLength": 1,
+														"maxLength": 68,
+														"pattern": ".*\\S.*",
+														"description": "Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug.",
+														"type": "string"
+													},
+													"badgeCode": {
+														"minLength": 1,
+														"maxLength": 50,
+														"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+														"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+														"type": "string"
+													},
+													"badge": {
+														"type": "object",
+														"properties": {
+															"code": {
+																"minLength": 1,
+																"maxLength": 50,
+																"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+																"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+																"type": "string"
+															},
+															"name": {
+																"type": "string"
+															},
+															"description": {
+																"type": "string"
+															},
+															"publicDescription": {
+																"type": "string"
+															},
+															"iconUrl": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"code",
+															"name",
+															"description",
+															"publicDescription",
+															"iconUrl"
+														]
+													},
+													"outcome": {
+														"anyOf": [
+															{
+																"type": "string",
+																"enum": ["awarded"]
+															},
+															{
+																"type": "string",
+																"enum": ["already_owned"]
+															},
+															{
+																"type": "string",
+																"enum": ["inactive"]
+															},
+															{
+																"type": "string",
+																"enum": ["expired"]
+															},
+															{
+																"type": "string",
+																"enum": ["unknown"]
+															},
+															{
+																"type": "string",
+																"enum": ["definition_missing"]
+															}
+														]
+													},
+													"acquisition": {
+														"type": "object",
+														"properties": {
+															"fallback": {
+																"type": "string",
+																"enum": ["normal_app"]
+															},
+															"destination": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"enum": ["offramp_migration"]
+																	},
+																	{
+																		"type": "string",
+																		"enum": ["normal_app"]
+																	}
+																]
+															}
+														},
+														"required": ["fallback", "destination"]
+													}
+												},
+												"required": ["badgeCampaign", "outcome"]
+											}
+										}
+									},
+									"required": ["claims"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/badge/award": {
 			"post": {
 				"requestBody": {
@@ -6770,6 +7665,10 @@
 								"type": "object",
 								"properties": {
 									"campaignTag": {
+										"minLength": 1,
+										"maxLength": 68,
+										"pattern": ".*\\S.*",
+										"description": "Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug.",
 										"type": "string"
 									}
 								},
@@ -6791,7 +7690,121 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Default Response"
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"claim": {
+											"type": "object",
+											"properties": {
+												"badgeCampaign": {
+													"minLength": 1,
+													"maxLength": 68,
+													"pattern": ".*\\S.*",
+													"description": "Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug.",
+													"type": "string"
+												},
+												"badgeCode": {
+													"minLength": 1,
+													"maxLength": 50,
+													"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+													"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+													"type": "string"
+												},
+												"badge": {
+													"type": "object",
+													"properties": {
+														"code": {
+															"minLength": 1,
+															"maxLength": 50,
+															"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+															"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+															"type": "string"
+														},
+														"name": {
+															"type": "string"
+														},
+														"description": {
+															"type": "string"
+														},
+														"publicDescription": {
+															"type": "string"
+														},
+														"iconUrl": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"name",
+														"description",
+														"publicDescription",
+														"iconUrl"
+													]
+												},
+												"outcome": {
+													"anyOf": [
+														{
+															"type": "string",
+															"enum": ["awarded"]
+														},
+														{
+															"type": "string",
+															"enum": ["already_owned"]
+														},
+														{
+															"type": "string",
+															"enum": ["inactive"]
+														},
+														{
+															"type": "string",
+															"enum": ["expired"]
+														},
+														{
+															"type": "string",
+															"enum": ["unknown"]
+														},
+														{
+															"type": "string",
+															"enum": ["definition_missing"]
+														}
+													]
+												},
+												"acquisition": {
+													"type": "object",
+													"properties": {
+														"fallback": {
+															"type": "string",
+															"enum": ["normal_app"]
+														},
+														"destination": {
+															"anyOf": [
+																{
+																	"type": "string",
+																	"enum": ["offramp_migration"]
+																},
+																{
+																	"type": "string",
+																	"enum": ["normal_app"]
+																}
+															]
+														}
+													},
+													"required": ["fallback", "destination"]
+												}
+											},
+											"required": ["badgeCampaign", "outcome"]
+										}
+									},
+									"required": ["message", "claim"]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -8193,6 +9206,25 @@
 										"minLength": 2,
 										"maxLength": 2,
 										"type": "string"
+									},
+									"acceptedDocuments": {
+										"maxItems": 8,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"slug": {
+													"type": "string"
+												},
+												"version": {
+													"type": "string"
+												},
+												"hash": {
+													"type": "string"
+												}
+											},
+											"required": ["slug", "version"]
+										}
 									}
 								}
 							}
@@ -11794,104 +12826,11 @@
 										"type": "string"
 									},
 									"code": {
-										"anyOf": [
-											{
-												"type": "string",
-												"enum": ["BETA_TESTER"]
-											},
-											{
-												"type": "string",
-												"enum": ["DEVCONNECT_BA_2025"]
-											},
-											{
-												"type": "string",
-												"enum": ["PRODUCT_HUNT"]
-											},
-											{
-												"type": "string",
-												"enum": ["OG_2025_10_12"]
-											},
-											{
-												"type": "string",
-												"enum": ["SEEDLING_DEVCONNECT_BA_2025"]
-											},
-											{
-												"type": "string",
-												"enum": ["ARBIVERSE_DEVCONNECT_BA_2025"]
-											},
-											{
-												"type": "string",
-												"enum": ["CARD_PIONEER"]
-											},
-											{
-												"type": "string",
-												"enum": ["FOUNDER_HOUSE"]
-											},
-											{
-												"type": "string",
-												"enum": ["BUG_WHISPERER"]
-											},
-											{
-												"type": "string",
-												"enum": ["SHHHHH"]
-											},
-											{
-												"type": "string",
-												"enum": ["NOT_SO_SHHHH"]
-											},
-											{
-												"type": "string",
-												"enum": ["CARD_FIRST_SWIPE"]
-											},
-											{
-												"type": "string",
-												"enum": ["CARD_SPENT_1K"]
-											},
-											{
-												"type": "string",
-												"enum": ["CARD_ALPHA"]
-											},
-											{
-												"type": "string",
-												"enum": ["TOKEN_NATION_SP_2026"]
-											},
-											{
-												"type": "string",
-												"enum": ["ETHFLORIPA_HUB"]
-											},
-											{
-												"type": "string",
-												"enum": ["IRL_NOMADS"]
-											},
-											{
-												"type": "string",
-												"enum": ["EVENT_ALUMNI"]
-											},
-											{
-												"type": "string",
-												"enum": ["TOUCHED_GRASS"]
-											},
-											{
-												"type": "string",
-												"enum": ["OFFRAMP_USER"]
-											},
-											{
-												"type": "string",
-												"enum": ["PSYOPS_DIVISION"]
-											},
-											{
-												"type": "string",
-												"enum": ["WAITLIST_SKIP"]
-											},
-											{
-												"type": "string",
-												"enum": ["FESTA_JUNINA_2026"]
-											},
-											{
-												"type": "string",
-												"enum": ["MANICERO"]
-											}
-										]
+										"minLength": 1,
+										"maxLength": 50,
+										"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+										"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+										"type": "string"
 									},
 									"revoke": {
 										"type": "boolean"

@@ -323,7 +323,7 @@ export function placeStamps(
 
     return pos.map(
         (p, i): StampPlacement => ({
-            badge: { code: sorted[i].code, iconUrl: getBadgeIcon(sorted[i].code) },
+            badge: { code: sorted[i].code, iconUrl: getBadgeIcon(sorted[i].code, sorted[i].iconUrl) },
             top: p.y - half,
             left: p.x - half,
             rotation: rng.float(-15, 15),
