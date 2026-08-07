@@ -44,7 +44,7 @@ jest.mock('@/context/ModalsContext', () => ({
 // Opening the drawer clears the support unread badge. That call is not what
 // this file guards, and serverFetch reaches for Capacitor Preferences, which
 // jsdom has no shim for.
-const mockMarkAllRead = jest.fn(async () => ({ ok: true }))
+const mockMarkAllRead = jest.fn(async (_category: string) => ({ ok: true }))
 jest.mock('@/services/notifications', () => ({
     notificationsApi: {
         markAllRead: (category: string) => mockMarkAllRead(category),
