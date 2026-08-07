@@ -5,8 +5,9 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromCookie, removeFromCookie, saveToCookie } from '@/utils/general.utils'
+import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
@@ -15,6 +16,15 @@ import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
 import { captureException } from '@sentry/nextjs'
 import { invitesApi } from '@/services/invites'
+import {
+    claimAndSettlePendingBadgeCampaigns,
+    isConfirmedBadgeCampaignClaim,
+    isUnavailableBadgeCampaignClaim,
+} from '@/services/badge-campaigns'
+import { settleAcceptedInviteAcquisition } from '@/services/invite-acquisition'
+import { persistRegistrationBadgeCampaignDestination } from '@/services/registration-acquisition'
+import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
+import { settleShhhhhCampaignContinuation } from '@/app/shhhhh/shhhhh-acquisition'
 import { signupConsentDocuments } from '@/services/consent'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -85,11 +95,7 @@ export const useZeroDev = () => {
 
             // invite code can also be store in cookies, so we need to check both
             const userInviteCode = inviteCode || inviteCodeFromCookie
-            // comma-separated for stacked campaigns (InvitesPage writes the CSV)
-            const campaignTags = String(getFromCookie('campaignTag') || '')
-                .split(',')
-                .map((tag) => tag.trim())
-                .filter(Boolean)
+            const badgeCampaigns = getPendingBadgeCampaigns()
 
             if (userInviteCode?.trim().length > 0) {
                 /*
@@ -101,26 +107,63 @@ export const useZeroDev = () => {
                  * The cookie is only cleared on confirmed success.
                  */
                 const keepInviteCodeForRetry = () => saveToCookie('inviteCode', userInviteCode, 30)
+                const clearAcceptedInviteCode = () => {
+                    removeFromCookie('inviteCode')
+                    dispatch(setupActions.setInviteCode(''))
+                }
                 try {
-                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType, campaignTags[0])
+                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType)
+                    let campaignOnlyProcessed = false
                     if (result.success) {
+                        if (result.legacyAcquisition) {
+                            const acceptedBadgeCampaigns = [result.legacyAcquisition.campaignTag]
+                            const { destination, pending } = settleAcceptedInviteAcquisition(
+                                result.legacyAcquisition,
+                                result.claims
+                            )
+
+                            // Keep an already-published migration continuation
+                            // through setup only after the matching claim confirms.
+                            if (destination !== '/home') saveToLocalStorage('redirect', destination)
+                            if (pending.some((tag) => tag.toLowerCase() === acceptedBadgeCampaigns[0].toLowerCase())) {
+                                captureException(new Error('accept-time legacy acquisition retained for retry'), {
+                                    tags: { error_type: 'invite_accept_campaign_retryable' },
+                                    extra: {
+                                        inviteCode: userInviteCode,
+                                        pendingCampaigns: pending,
+                                        claims: result.claims,
+                                    },
+                                })
+                            }
+                            if (!result.onboardingResolved) {
+                                // A NONE adapter is not an invite retry. Its
+                                // terminal claim is done; any retryable state is
+                                // now carried solely by the versioned campaign queue.
+                                campaignOnlyProcessed = true
+                                clearAcceptedInviteCode()
+                            }
+                        }
+                    }
+
+                    if (result.success && result.onboardingResolved) {
                         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
                             invite_code: userInviteCode,
                             invite_type: inviteType,
-                            // campaign_tag stays single-valued (what acceptInvite
-                            // consumed); the full stack rides the plural CSV.
-                            campaign_tag: campaignTags[0],
-                            campaign_tags: campaignTags.join(',') || undefined,
+                            campaign_tag: badgeCampaigns[0],
+                            campaign_tags: badgeCampaigns,
                         })
-                        if (inviteCodeFromCookie) {
-                            removeFromCookie('inviteCode')
-                        }
+                        clearAcceptedInviteCode()
+                    } else if (campaignOnlyProcessed) {
+                        // Deliberately no onboarding-failed analytics/Sentry:
+                        // campaign-only compatibility resolved as designed.
                     } else {
                         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
                             invite_code: userInviteCode,
-                            error_message: 'API returned unsuccessful',
+                            error_message: result.success
+                                ? 'Invite did not resolve onboarding'
+                                : 'API returned unsuccessful',
                         })
-                        captureException(new Error('register-time invite accept returned unsuccessful'), {
+                        captureException(new Error('register-time invite onboarding unresolved'), {
                             tags: { error_type: 'invite_accept_failed' },
                             extra: { inviteCode: userInviteCode, result },
                         })
@@ -141,33 +184,43 @@ export const useZeroDev = () => {
                 }
             }
 
-            // Award every campaign badge, with or without an invite code.
-            // /invites/accept only awards its own whitelisted badges, so a
-            // campaign like `skip` riding on an invite link
-            // (?code=alice&campaign=skip) was silently dropped here before this
-            // ran unconditionally. /badge/award is idempotent and whitelisted
-            // server-side — a tag acceptInvite already awarded no-ops, and
-            // anything unknown 400s harmlessly. awardBadge never throws (the
-            // service catches internally), so check each result: on any failure
-            // keep the cookie — a later signup retry (or a fixed backend) can
-            // still claim, and a Skip Pass must not be silently lost.
-            if (campaignTags.length > 0) {
-                const awarded: string[] = []
-                for (const tag of campaignTags) {
-                    const { success } = await invitesApi.awardBadge(tag)
-                    if (success) awarded.push(tag)
-                    else console.error('Error awarding campaign badge', tag)
-                }
-                if (awarded.length > 0 && !userInviteCode?.trim()) {
-                    // the invite-code branch already fired INVITE_ACCEPTED
+            // Campaign acquisition is independent from invite attribution. It
+            // runs after authentication whether or not an invite was present,
+            // and per-tag settlement keeps only transport/configuration retries.
+            // Re-read after `/invites/accept`: a confirmed legacy adapter may
+            // have settled the same tag, while a malformed/missing result may
+            // have queued it for an immediate canonical retry.
+            const pendingBadgeCampaigns = getPendingBadgeCampaigns()
+            if (pendingBadgeCampaigns.length > 0) {
+                const batch = await claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
+                const confirmed = batch.claims.filter(isConfirmedBadgeCampaignClaim)
+                const unavailable = batch.claims.filter(isUnavailableBadgeCampaignClaim)
+
+                // Explicit/UTM badge campaigns do not pass through `/invites/accept`.
+                // Shhhhh owns one compatibility continuation: only a confirmed
+                // Skip Pass replaces its safe /home marker with /card. Every
+                // other entrypoint uses backend-owned acquisition navigation.
+                const shhhhhDestination = settleShhhhhCampaignContinuation(batch.claims)
+                if (shhhhhDestination === undefined) persistRegistrationBadgeCampaignDestination(batch.claims)
+
+                if (confirmed.length > 0) {
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
-                        // single-valued for existing filters; full stack in the CSV
-                        campaign_tag: awarded[0],
-                        campaign_tags: awarded.join(','),
+                        campaign_tag: confirmed[0]?.badgeCampaign,
+                        campaign_tags: confirmed.map((claim) => claim.badgeCampaign),
+                        badge_codes: confirmed.map((claim) => claim.badgeCode).filter(Boolean),
                     })
                 }
-                if (awarded.length === campaignTags.length) {
-                    removeFromCookie('campaignTag')
+                if (unavailable.length > 0) {
+                    console.warn(
+                        'Campaign unavailable during registration',
+                        unavailable.map(({ badgeCampaign, outcome }) => ({ badgeCampaign, outcome }))
+                    )
+                }
+                if (batch.pending.length > 0) {
+                    captureException(new Error('register-time campaign claim retained for retry'), {
+                        tags: { error_type: 'campaign_claim_retryable' },
+                        extra: { pendingCampaigns: batch.pending, claims: batch.claims },
+                    })
                 }
             }
 
@@ -179,7 +232,8 @@ export const useZeroDev = () => {
             }
             const err = e as Error
             console.error('[useZeroDev] registration failed:', err.name, err.message, err, {
-                shimInstalled: (globalThis as { __capgoPasskeyShimInstalled?: unknown }).__capgoPasskeyShimInstalled,
+                shimInstalled: (globalThis as typeof globalThis & { __capgoPasskeyShimInstalled?: boolean })
+                    .__capgoPasskeyShimInstalled,
             })
             dispatch(zerodevActions.setIsRegistering(false))
             throw e
