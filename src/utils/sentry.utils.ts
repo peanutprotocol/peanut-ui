@@ -318,11 +318,12 @@ export const SERVER_FETCH_TIMEOUT_MS = 10_000
  * Client-side budget — the actual fix. No platform ceiling applies in a
  * browser, only real mobile networks, and 10s sat below the page load itself in
  * high-latency markets (Nigeria p90 LCP 11.3s vs 6.1s globally), aborting
- * healthy requests and reporting them as failures. Bounded above by React Query
- * retries, which multiply it; the worst-case total for the default retry
- * strategy is pinned in `sentry.utils.test.ts`.
+ * healthy requests and reporting them as failures. React Query retries and the
+ * one idempotent transport retry multiply it; the worst-case total for the
+ * default retry strategy is pinned in `sentry.utils.test.ts`.
  */
 export const CLIENT_FETCH_TIMEOUT_MS = 20_000
+export const TRANSPORT_TIMEOUT_RETRY_DELAY_MS = 300
 
 /**
  * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets. It
@@ -511,7 +512,7 @@ export const fetchWithSentry = async (
             } catch (error) {
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
                     console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} timed out — retrying`)
-                    await new Promise((resolve) => setTimeout(resolve, 300))
+                    await new Promise((resolve) => setTimeout(resolve, TRANSPORT_TIMEOUT_RETRY_DELAY_MS))
                     continue
                 }
                 throw error
