@@ -2,8 +2,10 @@
 import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
 import DirectSendQr from '@/components/Global/DirectSendQR'
 import { Icon, type IconName, Icon as NavIcon } from '@/components/Global/Icons/Icon'
+import IndicatorDot from '@/components/Global/IndicatorDot'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useSupportUnread } from '@/hooks/useSupportUnread'
 import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
 import Image from 'next/image'
@@ -76,6 +78,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
     const t = useTranslations('navigation')
     const { setIsSupportModalOpen } = useModalsContext()
     const { triggerHaptic } = useHaptic()
+    const hasUnreadSupport = useSupportUnread()
 
     return (
         <div className="z-1 grid h-20 grid-cols-3 border-t border-black bg-background md:hidden">
@@ -111,7 +114,18 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                     { 'text-primary-1': pathName === '/support' }
                 )}
             >
-                <NavIcon name="peanut-support" size={24} />
+                <span className="relative">
+                    <NavIcon name="peanut-support" size={24} />
+                    {/* role="status" so the dot is announced. aria-label alone on a
+                        bare span is ignored by assistive tech (generic role). */}
+                    {hasUnreadSupport && (
+                        <IndicatorDot
+                            className="absolute -right-1 -top-1"
+                            role="status"
+                            aria-label={t('supportUnread')}
+                        />
+                    )}
+                </span>
                 <span className="mx-auto mt-1 block pl-1 text-center text-xs font-medium">{t('support')}</span>
             </button>
         </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import IndicatorDot from '@/components/Global/IndicatorDot'
 import type { StaticImageData } from 'next/image'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -80,7 +81,7 @@ const CarouselCTA = ({
             {/* Close button or pink dot indicator for perk claims */}
             {isPerkClaim ? (
                 <div className={twMerge(CAROUSEL_CLOSE_BUTTON_POSITION, 'z-10')} aria-label={t('claimablePerk')}>
-                    <div className="h-2.5 w-2.5 rounded-full bg-primary-1" />
+                    <IndicatorDot />
                 </div>
             ) : (
                 <button

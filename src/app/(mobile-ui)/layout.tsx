@@ -10,11 +10,12 @@ import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
 import { useAuth } from '@/context/authContext'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
+import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
@@ -253,6 +254,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <ReConsentModal />
 
             <SupportDrawer />
+
+            {/* Suspense is required: nuqs reads useSearchParams, which triggers
+                a client-side-rendering bailout without a boundary. */}
+            <Suspense fallback={null}>
+                <SupportDeepLink />
+            </Suspense>
 
             <QRScannerOverlay />
 
