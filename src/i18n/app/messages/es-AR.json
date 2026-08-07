@@ -1,60 +1,1203 @@
 {
+    "common": {
+        "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
+        "tryDifferentCountry": "Probá con otro país."
+    },
     "home": {
         "activation": {
+            "steps": {
+                "verify": {
+                    "title": "Desbloqueá pagos"
+                },
+                "deposit": {
+                    "title": "Depositá",
+                    "description": "Agregá dinero para hacer tu primer pago"
+                },
+                "card": {
+                    "title": "Gastá donde acepten Visa",
+                    "description": "Usá tu saldo en más de 150M de comercios. En línea y sin contacto.",
+                    "cta": "Conseguí tu tarjeta"
+                },
+                "outbound": {
+                    "title": "Hacé tu primer pago",
+                    "description": "Empezá a pagar códigos QR de Pix y Mercado Pago"
+                }
+            },
+            "addEmail": {
+                "title": "Agregá tu email"
+            },
+            "completeSetup": {
+                "title": "Completá tu configuración"
+            },
+            "verificationIssue": {
+                "description": "Contactá a soporte para recibir ayuda con tu verificación."
+            },
             "spendWithPeanut": {
+                "title": "Pagá con Peanut",
                 "description": "Pagá con tu tarjeta o escaneá códigos QR de Pix y Mercado Pago"
+            },
+            "spendChooser": {
+                "title": "¿Cómo querés gastar?",
+                "payWithCard": "Pagá con tu tarjeta",
+                "scanQr": "Escaneá un código QR"
             }
         },
+        "autoBalance": {
+            "title": "Terminá de configurar tu tarjeta",
+            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora: te lo volveremos a pedir en tu primer pago con tarjeta."
+        },
+        "cardLaunch": {
+            "subtitle": "Tocá para saber si estás dentro",
+            "cta": "Probá la puerta →"
+        },
         "history": {
-            "networkErrorDescription": "Revisá tu conexión e intentá de nuevo."
+            "networkErrorDescription": "Revisá tu conexión e intentá de nuevo.",
+            "errorDescription": "Por favor contactá a Soporte.",
+            "emptyDescription": "Empezá enviando o solicitando dinero"
+        },
+        "welcomeUnlock": {
+            "title": "🎉 Ya tenés acceso",
+            "cta": "Empezá a enviar dinero",
+            "youCanNow": "Ahora podés:"
+        },
+        "perk": {
+            "surpriseDescriptionFirst": "Mirá tus recompensas ahora y ganá más.",
+            "surpriseDescriptionNext": "Mirá tus recompensas y cómo ganar más.",
+            "shareAndEarn": "Compartí y ganá",
+            "inviteFriendsToEarnMore": "Invitá amigos para ganar más",
+            "holdToUnwrap": "Mantené presionado para abrir tu recompensa"
         },
         "carousel": {
+            "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
+            "tapToClaim": "Tocá para reclamar tu recompensa.",
+            "card": {
+                "title": "Conseguí tu <b>Peanut Card</b>",
+                "description": "Beta cerrada. <b>Las insignias saltan la fila.</b> Desbloqueá $10 con tu primer gasto de $100."
+            },
+            "invite": {
+                "title": "Invitá amigos. Ganá recompensas",
+                "description": "Ganá recompensas cada vez que tus amigos usan Peanut."
+            },
             "notifications": {
-                "description": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
+                "title": "¡Mantenete al tanto!",
+                "description": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera.",
+                "blockedToast": "Tu navegador bloqueó las notificaciones. Activalas en la configuración del sitio y recargá."
+            },
+            "iosPwa": {
+                "title": "Agregá Peanut a tu pantalla de inicio",
+                "description": "Seguí una guía rápida para agregar la app a tu pantalla de inicio, sin descargar nada."
             },
             "qrPay": {
+                "title": "Pagá con <b>códigos QR</b>",
                 "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>recompensas</b>."
+            },
+            "latamInvite": {
+                "title": "Ganá <b>recompensas</b> en pagos QR",
+                "description": "Invitá amigos para <b>ganar más recompensas</b>. ¡Cuanto más usan, más ganás!"
+            },
+            "bugBounty": {
+                "title": "Ayudanos a mejorar y <b>¡ganá $5!</b>",
+                "description": "Reportá un error. ¡Recibí una recompensa! Sin preguntas."
+            },
+            "kyc": {
+                "title": "Desbloqueá <b>pagos con QR</b>",
+                "description": "Confirmá tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>PIX</b>"
             }
         }
     },
     "profile": {
+        "menu": {
+            "inviteFriends": "Invitá amigos a Peanut"
+        },
+        "edit": {
+            "placeholders": {
+                "name": "Agregá tu nombre",
+                "surname": "Agregá tu apellido",
+                "bio": "Agregá una bio",
+                "email": "Agregá tu email",
+                "phone": "Agregá tu número",
+                "website": "Agregá tu sitio web"
+            },
+            "errors": {
+                "nameRequired": "Por favor ingresá tu nombre."
+            }
+        },
+        "regions": {
+            "description": "Transferí y recibí desde cualquier cuenta bancaria y usá los métodos de pago disponibles.",
+            "empty": {
+                "title": "Aún no tenés regiones desbloqueadas",
+                "description": "Tocá una región abajo para confirmar tu identidad y desbloquear pagos ahí."
+            },
+            "lockedDescription": "¿A dónde querés enviar y recibir dinero?",
+            "providerRejection": {
+                "restartTitle": "Verificate con otro documento",
+                "fixableDescription": "Subí una foto más clara de tu documento para desbloquear esta región.",
+                "restartDescription": "Esta región necesita un documento de un país compatible. Podés verificarte con otro documento.",
+                "unavailableDescription": "Esta región no está disponible para tu cuenta. Contactá soporte para recibir ayuda."
+            }
+        },
+        "backup": {
+            "nonCustodial": {
+                "description": "Solo vos controlás esta billetera. No podemos recuperarla si perdés el acceso. El respaldo es tu responsabilidad."
+            },
+            "enableNow": "Activá el respaldo ahora",
+            "steps": {
+                "android": {
+                    "step1": {
+                        "title": "Abrí Configuración"
+                    },
+                    "step2": {
+                        "title": "Buscá el Administrador de contraseñas",
+                        "description": "Autocompletar → Administrador de contraseñas de Google → Activá la sincronización"
+                    },
+                    "step3": {
+                        "title": "Verificá en Chrome",
+                        "description": "Configuración → Contraseñas → Buscá \"Peanut\""
+                    }
+                },
+                "ios": {
+                    "step1": {
+                        "title": "Andá a Configuración"
+                    },
+                    "step2": {
+                        "title": "Buscá Contraseñas y llavero",
+                        "description": "Activalo"
+                    },
+                    "step3": {
+                        "title": "Verificá que funcionó",
+                        "description": "Configuración → Contraseñas → Buscá \"Peanut\""
+                    }
+                }
+            },
+            "noBackupWarning": {
+                "description": "Si perdés tu teléfono sin el respaldo activado, tu dinero se pierde para siempre."
+            },
+            "losePhoneModal": {
+                "enabledDescription": "Iniciá sesión en tu nuevo teléfono con tu {platform, select, android {cuenta de Google} other {Apple ID}}. Descargá Peanut. Tu billetera se restaura automáticamente"
+            },
+            "changePhoneModal": {
+                "step1": "Verificá que el respaldo funcione (revisá el paso 3 de arriba)",
+                "step2": "Recordá la contraseña de tu {platform, select, android {cuenta de Google} other {Apple ID}}",
+                "iphoneToIphoneDescription": "Solo iniciá sesión. Todo se transfiere.",
+                "androidToAndroidDescription": "Iniciá sesión en Google. Tu billetera te sigue.",
+                "crossPlatformDescription": "Creá una billetera nueva en el nuevo dispositivo. Transferí tus fondos. Las passkeys no funcionan entre plataformas a menos que uses un administrador de contraseñas externo como 1Password."
+            },
+            "exportKeysModal": {
+                "tradeoffDescription": "Obtenés mejor seguridad, pero las passkeys quedan ligadas al ecosistema de tu dispositivo (Apple o Google). Por eso el respaldo en la nube es clave."
+            }
+        },
         "publicProfile": {
-            "allSetDescription": "Ahora enviá o solicitá plata para empezar."
+            "joinPeanutAlt": "Unite a Peanut",
+            "allSetDescription": "Ahora enviá o solicitá plata para empezar.",
+            "joinPeanut": "¡Unite a Peanut!",
+            "inviteOnlyLine2": "¡Andá y rogale a tu amigo por un enlace de invitación!",
+            "begShareText": "Bro… estoy de rodillas. Peanut es solo por invitación y me quedé afuera. Salvame la vida y mandame tu invitación",
+            "activityPrivateNote": "La actividad solo es visible para vos, no es pública."
+        }
+    },
+    "settings": {
+        "deleteAccount": {
+            "doneDescription": "Tu cuenta está desactivada y tus datos desaparecerán en un plazo de 30 días. Gracias por abrir Peanut con nosotros — ¡cuidate mucho!",
+            "error": "No pudimos eliminar tu cuenta. Intentá de nuevo."
+        }
+    },
+    "limits": {
+        "pageDescription": "Los límites de pago controlan cuánto podés enviar y recibir. Varían según la región y se reinician cada mes o cada año.",
+        "fiatLocked": {
+            "title": "Desbloqueá pagos fiat",
+            "description": "Confirmá tu identidad para desbloquear pagos fiat y ver tus límites."
+        },
+        "error": {
+            "description": "No se pudieron cargar los límites. Intentá de nuevo."
+        },
+        "needHigherLimits": "¿Necesitás límites más altos? Contactá soporte.",
+        "warningCard": {
+            "addUpTo": "Podés agregar hasta {amount}",
+            "addUpToPerTransaction": "Podés agregar hasta {amount} por transacción",
+            "withdrawUpTo": "Podés retirar hasta {amount}",
+            "withdrawUpToPerTransaction": "Podés retirar hasta {amount} por transacción",
+            "payUpTo": "Podés pagar hasta {amount}",
+            "payUpToPerTransaction": "Podés pagar hasta {amount} por transacción"
         }
     },
     "exchangeRate": {
+        "tryIt": "¡Probalo!",
         "widget": {
             "youSend": "Vos enviás"
         }
     },
     "setup": {
         "steps": {
+            "unsupported-browser": {
+                "description": "Abrí Peanut en el navegador principal de tu dispositivo (Safari, Chrome, Firefox) para continuar con la configuración. Si ya estás en tu navegador principal, puede que tu dispositivo no sea compatible con Peanut."
+            },
+            "android-initial-pwa-install": {
+                "title": "Viví la experiencia completa"
+            },
+            "pwa-install": {
+                "title": "Instalá Peanut en tu teléfono",
+                "description": "¡Instalá Peanut en tu teléfono para una mejor experiencia!"
+            },
+            "landing": {
+                "description": "Creá tu billetera en segundos para ahorrar, enviar o retirar dólares rápido."
+            },
+            "welcome": {
+                "description": "¿Quién te invitó? Ingresá su nombre de usuario para continuar, o unite a la lista de espera y te avisaremos cuando puedas entrar."
+            },
+            "signup": {
+                "description": "Elegí tu nombre de usuario. Será tu ID para enviar y recibir dinero."
+            },
             "passkey-permission": {
                 "description": "Usá tu cara o tu huella para iniciar sesión. Sin contraseñas ni complicaciones. Solo vos."
             },
             "sign-test-transaction": {
                 "description": "Solo confirmá que sos vos: un toque y listo."
             }
+        },
+        "existingSession": {
+            "title": "Ya tenés una sesión iniciada",
+            "description": "Este dispositivo tiene una sesión iniciada como {username}. Continuá con esa cuenta o cerrá sesión para crear una nueva."
+        },
+        "braveInstall": {
+            "description": "Abrí la app de Peanut desde tu pantalla de inicio para continuar con la configuración."
+        },
+        "installPwa": {
+            "installCancelled": "Instalación cancelada. Podés intentar agregarlo a la pantalla de inicio de nuevo.",
+            "manualInstallHint": "Para instalar la app, agregala a tu pantalla de inicio desde el menú de tu navegador.",
+            "mobileFirstDescription": "Para una mejor experiencia, usá Peanut en tu teléfono."
+        },
+        "loginFailed": "No pudimos iniciar tu sesión. Intentalo de nuevo.",
+        "landing": {
+            "signUp": "Registrate",
+            "recoverWallet": "¿Necesitás recuperar tu billetera de Peanut?"
+        },
+        "waitlist": {
+            "inviterNotFound": "No hay ningún miembro de Peanut con ese nombre de usuario. Verificá el usuario exacto de quien te invitó.",
+            "loginCanceled": "El inicio de sesión fue cancelado. Intentalo de nuevo.",
+            "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."
+        },
+        "signupStep": {
+            "usernamePlaceholder": "Escribí un nombre de usuario",
+            "errors": {
+                "invalid": "El nombre de usuario no es válido, usá uno diferente",
+                "checkFailed": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo.",
+                "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo o contactá a soporte."
+            },
+            "termsAgreement": "Al crear una cuenta aceptás los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>"
+        },
+        "passkey": {
+            "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Intentalo de nuevo.",
+            "cancelled": "La configuración de la passkey fue cancelada. Intentalo de nuevo cuando quieras.",
+            "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste vos, tu passkey está lista: solo iniciá sesión.",
+            "learnMore": "Aprendé más sobre qué son las passkeys",
+            "help": {
+                "descriptions": {
+                    "notReadable": "Hay un problema con la configuración de passkeys de tu dispositivo. Intentalo de nuevo.",
+                    "notAllowedAndroid": "No pudimos crear una passkey. Esto suele pasar cuando no iniciaste sesión en una cuenta de Google, Google Play Services está desactualizado o no tenés bloqueo de pantalla configurado. Corregí uno de estos puntos y reintentá, o puede que se haya cancelado.",
+                    "notAllowed": "Las passkeys no están habilitadas en tu dispositivo. Revisá la configuración de tu dispositivo para habilitarlas"
+                },
+                "tryTheseFixes": "Probá estas soluciones:",
+                "stillHavingIssues": "¿Seguís con problemas?",
+                "contactSupport": "Contactá a nuestro equipo de soporte en <link>peanut.me/support</link>",
+                "steps": {
+                    "signInGoogle": "Iniciá sesión en una cuenta de Google en este dispositivo",
+                    "ensureSignedInGoogle": "Asegurate de haber iniciado sesión en una cuenta de Google en este dispositivo",
+                    "updatePlayServices": "Actualizá Google Play Services",
+                    "enableScreenLock": "Activá el bloqueo de pantalla (Ajustes > Seguridad)",
+                    "enableScreenLockSettings": "Activá el bloqueo de pantalla en Ajustes > Seguridad",
+                    "restartApp": "Reiniciá la app e intentalo de nuevo",
+                    "restartDevice": "Reiniciá tu dispositivo",
+                    "turnOffVpnPrivacy": "Desactivá temporalmente la VPN o las apps de privacidad",
+                    "turnOffVpn": "Desactivá temporalmente la VPN",
+                    "enableIcloudKeychain": "Activá el Llavero de iCloud en Ajustes",
+                    "enableBiometrics": "Activá Face ID/Touch ID en Ajustes",
+                    "unlockPasswordManager": "Si usás un gestor de contraseñas como 1Password, abrilo y desbloquealo primero",
+                    "exitIncognito": "Salí del modo incógnito o privado",
+                    "checkSecuritySettings": "Revisá los ajustes de seguridad de tu dispositivo",
+                    "updateBrowserOs": "Actualizá tu navegador y tu sistema operativo"
+                }
+            }
+        },
+        "testTransaction": {
+            "errors": {
+                "loadUserFailed": "No pudimos cargar tus datos. Recargá la página.",
+                "noWalletAddress": "No se encontró la dirección de la billetera. Intentá recargar la página.",
+                "userNotLoaded": "Tus datos no se cargaron. Recargá la página.",
+                "setupFailed": "No pudimos completar la configuración de tu cuenta. Intentalo de nuevo con el botón de abajo.",
+                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contactá a soporte para recibir ayuda."
+            }
+        },
+        "finish": {
+            "title": "Firmá una transacción de prueba"
+        }
+    },
+    "loadingStates": {
+        "signInWallet": "Firmá en tu billetera",
+        "allowNetworkSwitch": "Permití el cambio de red"
+    },
+    "send": {
+        "linkCard": {
+            "title": "Enviá dinero con un enlace"
+        },
+        "methods": {
+            "contactsDescription": "Peanuts con los que interactuaste"
+        },
+        "contacts": {
+            "errorDescription": "No pudimos cargar tus contactos. Intentalo de nuevo.",
+            "noResultsDescription": "Intentá buscar otro contacto.",
+            "emptyTitle": "Aún no tenés contactos",
+            "emptyDescription": "Los contactos aparecen cuando enviás, solicitás o invitás a alguien"
+        },
+        "link": {
+            "cancelSuccessRefresh": "¡Enlace cancelado! Actualizá para ver tu saldo al día.",
+            "cancelFailed": "No se pudo cancelar el enlace. Intentalo de nuevo."
         }
     },
     "request": {
-        "leaveEmptyHint": "Dejalo vacío para que quien paga elija el monto."
+        "leaveEmptyHint": "Dejalo vacío para que quien paga elija el monto.",
+        "recipientPlaceholder": "Ingresá un nombre de usuario, una dirección o ENS",
+        "errors": {
+            "enterRecipient": "Ingresá una dirección de destinatario"
+        },
+        "validation": {
+            "invalidRecipientMessage": "El usuario al que intentás solicitar no es un usuario válido de Peanut o no existe. Asegurate de tener el nombre de usuario de Peanut correcto.",
+            "missingRecipientMessage": "No se incluyó un nombre de usuario en la URL. Revisá el enlace e intentalo de nuevo.",
+            "createWallet": "Creá tu Peanut Wallet"
+        }
     },
-    "notifications": {
-        "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
+    "payment": {
+        "validation": {
+            "learnHow": "Aprendé cómo recibir dinero a través de Peanut"
+        },
+        "cta": {
+            "join": "Unite a",
+            "addFundsTo": "Agregá fondos a"
+        },
+        "input": {
+            "freeTransactionsHint": "¡Usá USDC en Arbitrum para transacciones gratis!"
+        },
+        "minAmount": {
+            "description": "El monto mínimo para este método de pago es de ${minAmount}. Ingresá un monto mayor o probá con otro método."
+        },
+        "usePeanutBalance": {
+            "title": "Usá tu saldo de Peanut",
+            "description": "Ya tenés fondos suficientes en tu cuenta de Peanut. Este método es instantáneo y evita demoras."
+        },
+        "errors": {
+            "insufficientPayment": "No tenés saldo suficiente para completar este pago con Peanut",
+            "insufficientRequest": "No tenés saldo suficiente para completar esta solicitud con Peanut",
+            "pleaseLoginToContinue": "Iniciá sesión para continuar",
+            "logInToContinue": "iniciá sesión para continuar"
+        }
+    },
+    "claim": {
+        "errors": {
+            "brokenLinkMessage": "¿Seguro que hiciste clic en el enlace correcto? ¿El enlace se acaba de crear? Intentalo de nuevo en unos segundos.",
+            "missingInviter": "No se pudo aceptar la invitación: falta quien te invitó. Contactá a soporte.",
+            "bankClaimUnavailable": "No podés reclamar este enlace a tu cuenta bancaria."
+        },
+        "claimed": {
+            "createWalletHint": "Creá una billetera para recibir enlaces en el futuro."
+        },
+        "initial": {
+            "recipientPlaceholder": "Ingresá un nombre de usuario, una dirección o ENS",
+            "usdcArbitrumOnly": "Solo podés reclamar USDC en Arbitrum para usuarios de Peanut Wallet."
+        },
+        "addressCompatible": {
+            "line1": "Reclamá solo a una dirección que admita la red y el token seleccionados.",
+            "claimToPeanut": "¿No estás seguro? Reclamá en Peanut"
+        },
+        "actions": {
+            "invitedBy": "¡{username} te invitó, tenés acceso anticipado!"
+        },
+        "minAmount": {
+            "description": "El monto mínimo para {method} es ${amount}. Probá con otro método."
+        },
+        "success": {
+            "devconnectReturnHint": "Tocá el botón X de arriba a la izquierda para volver a la app de Devconnect"
+        },
+        "bank": {
+            "selectCountry": "Seleccioná el país de tu cuenta bancaria",
+            "processAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo."
+        },
+        "manteca": {
+            "enterAccountDetails": "Ingresá los datos de la cuenta",
+            "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",
+            "errors": {
+                "withdrawalProcessing": "¡Retiro exitoso! Tus fondos se están procesando. Si la transacción no aparece en tu historial en 5 minutos, contactá a soporte.",
+                "generic": "Algo salió mal. Contactá a soporte"
+            }
+        }
+    },
+    "qrPay": {
+        "havingTrouble": "¿Tenés problemas?",
+        "orderNotReady": {
+            "description": "Pedile al comercio que lo ingrese y escaneá el QR de nuevo."
+        },
+        "kyc": {
+            "unlockTitle": "Desbloqueá los pagos con QR",
+            "unlockDescription": "Confirmá tu identidad para pagar con un código QR. Toma alrededor de un minuto.",
+            "restartTitle": "Verificate con otro documento",
+            "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Subí una foto más clara de tu identificación.",
+            "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Podés verificarte con otra identificación.",
+            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte para recibir ayuda."
+        },
+        "success": {
+            "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para reclamar tu recompensa.",
+            "holdToClaim": "¡Ganaste una recompensa! Mantené presionado para reclamarla.",
+            "earnedInviteFriends": "¡Ganaste ${amount}! Invitá amigos para ganar aún más.",
+            "inviteFriends": "Invitá amigos para ganar aún más recompensas."
+        },
+        "errors": {
+            "pixRecurring": "Este código QR es de un pago recurrente (PIX Automático). Peanut no admite pagos PIX recurrentes — pedí un código QR de PIX normal.",
+            "pixDecode": "No pudimos decodificar este código QR de Pix. Pedile al comercio que genere uno nuevo.",
+            "genericDecode": "No pudimos decodificar este código QR. Preguntale al comercio si puede generar un QR de Mercado Pago",
+            "initiateUnexpected": "No se pudo iniciar el pago por un error inesperado. Contactá a soporte",
+            "confirmTransaction": "Confirmá la transacción.",
+            "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Intentalo de nuevo. Si el problema persiste, contactá a soporte.",
+            "sessionExpired": "La sesión de pago expiró. Escaneá el código QR de nuevo.",
+            "merchantNotSupported": "Este código QR o comercio no es compatible. Intentalo de nuevo con otro código QR.",
+            "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte"
+        },
+        "claim": {
+            "inviteQrDescription": "Compartilo donde sea. Los puntos siguen llegando por la actividad de tus amigos y sus amigos.",
+            "holdToClaim": "Mantené presionado para hacerlo tuyo para siempre",
+            "claimFailed": "No se pudo reclamar el código QR. Intentalo de nuevo."
+        },
+        "claimSuccess": {
+            "putItAnywhere": "¡Pegalo donde quieras!",
+            "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación y sumar a tus puntos para siempre.",
+            "shareText": "¡Escaneá mi código QR para conectar conmigo en Peanut!"
+        }
+    },
+    "card": {
+        "noActiveCard": "No tenés una tarjeta activa.",
+        "entry": {
+            "title": "Gastá donde acepten Visa",
+            "description": "Usá tu saldo en más de 150M de comercios. En línea, sin contacto, tuya.",
+            "cta": "Conseguí tu tarjeta"
+        },
+        "addToWallet": {
+            "iosStep1": "Abrí la app Wallet",
+            "iosStep2": "Tocá + arriba a la derecha",
+            "iosStep3": "Tocá Tarjeta de débito o crédito",
+            "iosStep4": "Seguí los pasos en pantalla",
+            "androidStep1": "Abrí la app Wallet",
+            "androidStep2": "Tocá + agregar a wallet",
+            "androidStep3": "Tocá Tarjeta de pago",
+            "androidStep4": "Seguí los pasos en pantalla"
+        },
+        "status": {
+            "pendingBody": "Esperá un momento mientras terminamos de preparar tu tarjeta. Normalmente toma unos segundos.",
+            "requiresInfoBody": "Nuestro equipo te ayudará a terminar tu solicitud de tarjeta — escribile a soporte para continuar.",
+            "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escribile a soporte y lo resolvemos.",
+            "rejectedBody": "Podés seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
+            "geoBlockedBody": "Por restricciones regulatorias, no podemos emitir tarjetas en tu región. Igual podés usar Peanut libremente para depositar, retirar y pagar con cripto."
+        },
+        "celebration": {
+            "sublineBadge": "Tenés una insignia que se salta la fila de la beta cerrada. La tarjeta es tuya."
+        },
+        "cancel": {
+            "body": "Esto cancelará tu tarjeta de forma permanente. No servirá para ninguna transacción. Tendrás que pedir una nueva si cambiás de opinión.",
+            "slideToCancel": "Deslizá para cancelar",
+            "canceledBody": "Si cambiás de opinión más adelante, podés pedir otra tarjeta.",
+            "feedbackLabel": "Ayudanos a mejorar nuestro producto para vos"
+        },
+        "lockModal": {
+            "lockSuccessBody": "Volvé cuando quieras para desbloquearla.",
+            "slideToLock": "Deslizá para bloquear"
+        },
+        "errors": {
+            "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Intentalo de nuevo o contactá a soporte.",
+            "authorizationFailed": "Falló la autorización de la tarjeta. Intentalo de nuevo o contactá a soporte.",
+            "walletNotReady": "La billetera no está lista — volvé a intentarlo en un momento",
+            "unexpectedStrategy": "Estrategia de retiro inesperada — contactá a soporte"
+        },
+        "countryConfirm": {
+            "noCandidatesBody": "No pudimos confirmar tu país de residencia con tu verificación. Nuestro equipo lo resolverá — escribile a soporte para continuar.",
+            "title": "Confirmá tu país de residencia",
+            "description": "Tu verificación muestra dos países distintos. Elegí aquel donde vivís actualmente — tu solicitud de tarjeta se procesa con sus reglas."
+        },
+        "eligibility": {
+            "description": "Mantené presionado el botón. Te estamos buscando.",
+            "holdAriaLabel": "Mantené presionado para revisar si calificás"
+        },
+        "limits": {
+            "subtitle": "Definí tu límite de gasto por transacción.",
+            "invalidAmount": "Ingresá un monto válido",
+            "noActiveCard": "No tenés una tarjeta activa para gestionar límites."
+        },
+        "pin": {
+            "noPinTitle": "Todavía no tenés pin",
+            "noPinBody": "Tenés que definir un pin antes de usar tu tarjeta en compras en tienda.",
+            "successBody": "Ya podés usar tu tarjeta en compras en tienda.",
+            "confirmTitle": "Confirmá el PIN",
+            "confirmBody": "Volvé a ingresar tu PIN para verificarlo.",
+            "chooseTitle": "Elegí un PIN de 4 dígitos",
+            "ruleChangeLater": "Podés cambiar tu PIN más adelante"
+        },
+        "rejection": {
+            "comeBackTomorrow": "volvé mañana",
+            "joinFailed": "No se pudo unir a la lista de espera. Intentalo de nuevo."
+        },
+        "terms": {
+            "description": "Revisá y aceptá"
+        },
+        "unlockHistory": {
+            "badgeSubtitle": "Tocá para volver a abrir tu imagen para compartir",
+            "adminSubtitle": "Bienvenido. Tocá para compartir.",
+            "publicLaunchSubtitle": "Ya está abierto para todos. Tocá para compartir."
+        },
+        "physical": {
+            "onListBody": "Sos el #{position} en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
+            "comingSoonBody": "Unite a nuestra lista de espera y sé de los primeros en tenerla."
+        },
+        "yourCard": {
+            "payAsCreditTitle": "Pagá como crédito",
+            "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elegí crédito — tu tarjeta Peanut corre en la red de crédito."
+        },
+        "page": {
+            "loadFailed": "No se pudo cargar la información de la tarjeta. Intentalo de nuevo.",
+            "setupCancelled": "Configuración cancelada — intentalo de nuevo.",
+            "setupFailed": "No se pudo completar la configuración — intentalo de nuevo.",
+            "verificationSlow": "La verificación está tardando más de lo esperado. Intentalo de nuevo."
+        },
+        "recovery": {
+            "failed": "Falló la recuperación — intentalo de nuevo",
+            "title": "Recuperá el colateral de tu tarjeta"
+        }
+    },
+    "addMoney": {
+        "selectYourCountry": "Seleccioná tu país",
+        "howWouldYouLikeToAdd": "¿Cómo querés agregar dinero?",
+        "howMuchToAdd": "¿Cuánto querés agregar?",
+        "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
+        "amountMustMatchBank": "¡El monto debe coincidir con lo que enviás desde tu banco!",
+        "methods": {
+            "cryptoDescription": "Depositá desde una billetera o exchange"
+        },
+        "networkDrawer": {
+            "description": "Elegí la red desde la que querés depositar:"
+        },
+        "supportedNetworksModal": {
+            "description": "Una sola dirección para todas las redes EVM listadas abajo: enviá desde cualquiera de ellas y tus fondos se enrutarán correctamente."
+        },
+        "howToDeposit": {
+            "warningOfframp": "Enviá solo USDC en Arbitrum: otros tokens o redes se pueden perder.",
+            "default": {
+                "step1": "Copiá tu dirección de depósito de arriba",
+                "step2": "Abrí tu billetera o exchange e iniciá un retiro",
+                "step3": "Pegá la dirección y elegí una de las redes compatibles",
+                "step4": "Confirmá y enviá: los fondos llegan en pocos minutos"
+            },
+            "offramp": {
+                "step1": "Copiá tu dirección de depósito de migración de arriba",
+                "step2": "Abrí tu cuenta de Offramp e iniciá un retiro o envío",
+                "step3": "Elegí USDC en la red Arbitrum y pegá la dirección",
+                "step4": "Confirmá y enviá: tu saldo llega en pocos minutos"
+            }
+        },
+        "crypto": {
+            "sendUsdcOnArbitrum": "Enviá <b>USDC en Arbitrum</b> para migrar tu saldo",
+            "sendTokensToAddress": "Enviá tokens a esta dirección de <b>{network}</b>",
+            "tooltipEvm": "{count} redes EVM compatibles. Para montos exactos, depositá USDC en Arbitrum. Otras redes/tokens se puentean (±0.1%).",
+            "migrationAddressTooltip": "Usá esta dirección para tu migración desde Offramp. Solo acepta USDC en Arbitrum: no la guardes como dirección general de tu billetera.",
+            "selectNetworkType": "Seleccioná el tipo de red",
+            "warningTitle": "Enviá solo a redes compatibles",
+            "warningTitleOfframp": "Enviá solo USDC en Arbitrum",
+            "bridgingFeeNote": "Se aplica una pequeña comisión de puenteo (~0.1%): recibirás un poco menos de lo que enviás.",
+            "multipleTransfersNote": "¿Vas a mover más del máximo? Envialo en varias transferencias.",
+            "addressErrorDescription": "No se envió nada. Intentalo de nuevo: si el problema sigue, contactá a soporte.",
+            "transferSentBackNote": "Tu dinero volvió a tu cuenta de Offramp: iniciá el retiro de nuevo desde ahí."
+        },
+        "offrampGate": {
+            "description": "Ingresá el usuario o el email de la cuenta de Offramp desde la que estás migrando, para poder vincular tu saldo con tu nueva billetera de Peanut.",
+            "error": "No pudimos guardar tu cuenta de Offramp. Intentalo de nuevo."
+        },
+        "manteca": {
+            "sendOnlyOwnAccountTitle": "Enviá solo desde tu propia cuenta"
+        },
+        "pix": {
+            "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código PIX."
+        },
+        "confirmationModal": {
+            "youMust": "DEBÉS:"
+        },
+        "bankDetails": {
+            "sendExactAmount": "¡Enviá exactamente este monto!",
+            "pasteInReferenceField": "Pegala en el campo de referencia de tu banco",
+            "doubleCheckTitle": "Revisá bien en tu banco antes de enviar:",
+            "shareOutro": "Usá estos datos para completar tu transferencia bancaria.",
+            "doubleCheckSenderName": "Remitente: usá una cuenta bancaria a tu propio nombre (si el nombre no coincide, la transferencia rebota)",
+            "doubleCheckRecipientName": "Destinatario: escribí el nombre exactamente como se muestra arriba"
+        },
+        "errors": {
+            "invalidNumber": "Ingresá un número válido.",
+            "selectCountryFirst": "Primero seleccioná un país.",
+            "onrampDetails": "No pudimos obtener los datos para agregar dinero. Intentalo de nuevo.",
+            "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento.",
+            "bankAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo o contactá a soporte.",
+            "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Intentalo de nuevo en un momento."
+        }
+    },
+    "withdraw": {
+        "howWouldYouLikeToWithdraw": "¿Cómo querés retirar?",
+        "howWouldYouLikeToSend": "¿Cómo querés enviar?",
+        "chooseWithdrawingMethod": "Elegí el método de retiro",
+        "noAccountsTitle": "Aún no tenés cuentas",
+        "noAccountsDescription": "Agregá los datos de tus cuentas una vez<br></br>y retirá con un solo toque.",
+        "initial": {
+            "placeholderEns": "Ingresá una dirección o ENS",
+            "placeholderAddress": "Ingresá una dirección"
+        },
+        "confirm": {
+            "recipientReceivesInfo": "El monto completo llega a la red de destino. La comisión de red entre cadenas se paga aparte: mirá abajo.",
+            "youPay": "Pagás"
+        },
+        "compatibilityModal": {
+            "description": "Enviá solo a direcciones compatibles con la red y el token seleccionados. Las transferencias incorrectas se pueden perder."
+        },
+        "pixKey": {
+            "heading": "Ingresá la clave Pix",
+            "info": "Enviá a cualquier clave Pix: email, teléfono, CPF/CNPJ o clave aleatoria."
+        },
+        "bank": {
+            "confirmPending": "Tu transferencia se está procesando. Los fondos se enviaron on-chain correctamente: la confirmación puede tardar unos minutos. Si no ves el retiro en tu actividad dentro de 30 minutos, contactá a soporte."
+        },
+        "manteca": {
+            "enterMethodDetails": "Ingresá los datos de {method}",
+            "selectAccountType": "Seleccioná el tipo de cuenta",
+            "selectBank": "Seleccioná el banco",
+            "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre."
+        },
+        "bankForm": {
+            "heading": "Ingresá los datos de tu cuenta bancaria",
+            "accountOwnerNameFull": "Ingresá nombre y apellido",
+            "state": "Seleccioná tu estado"
+        },
+        "errors": {
+            "invalidNumber": "Ingresá un número válido.",
+            "invalidAmount": "Ingresá un monto válido.",
+            "countryUnresolved": "No pudimos determinar el país de esta cuenta. Contactá a soporte.",
+            "setupFailed": "Algo salió mal al configurar tu retiro. Contactá a soporte.",
+            "prepareFailed": "No pudimos preparar el retiro. Intentalo de nuevo.",
+            "confirmDetailsFailed": "No se pudieron cargar los datos del retiro para confirmar. Volvé atrás e intentalo de nuevo.",
+            "txNotPrepared": "La transacción no está preparada. Intentalo de nuevo.",
+            "enterAccountAddress": "Ingresá la dirección de tu cuenta",
+            "completeBankDetails": "Completá los datos bancarios",
+            "lockRateFailed": "No pudimos fijar el tipo de cambio. Intentalo de nuevo.",
+            "cardAuthFailed": "Falló la autorización de la tarjeta. Intentalo de nuevo o contactá a soporte.",
+            "confirmTransaction": "Confirmá la transacción.",
+            "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",
+            "unexpected": "El retiro falló inesperadamente. Si el problema continúa, contactá a soporte",
+            "completeAccountSetup": "Completá la configuración de tu cuenta. Andá a Ajustes para actualizar tu perfil."
+        }
+    },
+    "transaction": {
+        "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
+        "perk": {
+            "subtitle": "Ganá recompensas cada vez que tus amigos usan Peanut."
+        },
+        "actions": {
+            "inviteFriends": "Invitá amigos y ganá más recompensas",
+            "cancelDepositFailed": "No pudimos cancelar este depósito. Intentalo de nuevo o contactá a soporte."
+        },
+        "toast": {
+            "linkCancelledRefresh": "¡Enlace cancelado! Actualizá para ver tu saldo al día.",
+            "cancelLinkFailed": "No se pudo cancelar el enlace. Intentalo de nuevo."
+        },
+        "decline": {
+            "limitTooLow": "Límite de la tarjeta alcanzado — aumentá tu límite"
+        },
+        "nudge": {
+            "localRailTitle": "Pagá como local la próxima vez",
+            "usdAbroadTitle": "Pagá en moneda local la próxima vez",
+            "usdAbroadDescription": "Te cobraron en dólares. Cuando una terminal ofrezca cobrar en dólares, elegí la moneda local — el tipo de cambio de Peanut suele ser mejor."
+        },
+        "bridge": {
+            "depositMessageInfo": "Asegurate de ingresar este mensaje exacto como concepto o descripción de la transferencia. Si no se incluye, el depósito no se puede procesar."
+        },
+        "enjoyPeanut": "¡Disfrutá Peanut!"
+    },
+    "history": {
+        "errorDescription": "Contactá a soporte.",
+        "empty": "No hiciste ninguna transacción"
+    },
+    "rewards": {
+        "youHave": "Tenés",
+        "pendingCallout": "esperándote. Empezá a gastar para reclamarlo.",
+        "noPendingRewards": "No tenés recompensas pendientes por ahora.",
+        "lifetimeRewards": "Recompensas totales: {amount}. Para ganar más, invitá a tus amigos.",
+        "earnWhenFriendsUse": "¡Ganás recompensas cada vez que tus amigos usan Peanut!",
+        "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más recompensas",
+        "contactSupport": "Por favor contactá a Soporte."
+    },
+    "invites": {
+        "invalidCodeMessage": "El código de invitación que intentás usar no es válido. Revisá la URL e intentalo de nuevo.",
+        "skipTitle": "Te estás salteando la lista de espera",
+        "skipDescription": "Alguien de Peanut te quiere adentro. Creá tu billetera y pasá directo: sin código de invitación y sin fila.",
+        "skipCta": "Reclamá tu pase directo",
+        "vanityTitle": "Reclamá tu insignia",
+        "vanityDescription": "Ganaste una insignia de Peanut. Para reclamarla, registrate o iniciá sesión.",
+        "vanityCta": "Registrate",
+        "inviterDescription": "Acceso solo para miembros. Usá esta invitación para abrir tu billetera y empezar a enviar y recibir dinero en todo el mundo.",
+        "inviterCta": "Reclamá tu lugar",
+        "alreadyHaveAccount": "¿Ya tenés una cuenta? ¡Iniciá sesión!",
+        "logIn": "Iniciá sesión",
+        "emailTitle": "Mantenete al tanto",
+        "emailDescription": "Ingresá tu correo para que podamos avisarte cuando tengas acceso.",
+        "accountNotLoaded": "Tu cuenta aún no se cargó. Esperá un momento e intentalo de nuevo.",
+        "emailSavedProfileFailed": "Guardamos tu correo, pero tuvimos problemas para cargar tu perfil. Intentalo de nuevo.",
+        "emailSubmitFailed": "Algo salió mal. Intentalo de nuevo u omití este paso.",
+        "notificationsTitle": "¿Querés novedades al instante?",
+        "skipTheLine": "Salteá la fila: escribí el usuario del miembro que te invitó.",
+        "pleaseWait": "Esperá un momento..."
     },
     "badges": {
+        "emptyDescription": "Ganá insignias a medida que usás Peanut. Hacé pagos, invitá amigos y participá en eventos para desbloquearlas y mostrarlas en tu perfil.",
+        "shareText": "¡Gané la insignia {badge} en Peanut!\n\nUnite a Peanut y empezá a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
         "toastTapToView": "— tocá para ver"
     },
+    "notifications": {
+        "loadFailed": "No pudimos cargar las notificaciones. Intentalo de nuevo.",
+        "loadMoreFailed": "No pudimos cargar más notificaciones. Tocá para reintentar.",
+        "emptyTitle": "¡Aún no tenés notificaciones!",
+        "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
+    },
+    "kyc": {
+        "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",
+        "terminalDescription": "Tu verificación no se puede reintentar. Contactá a soporte para recibir ayuda.",
+        "failedDescriptionRetry": "No pudimos confirmar tu identidad. Podés intentarlo otra vez.",
+        "errorSdkUnavailable": "El SDK de KYC no está disponible. Actualizá la app.",
+        "errorVerificationFailed": "La verificación falló. Intentalo de nuevo.",
+        "errorInitiateFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
+        "errorRestartFailed": "No pudimos reiniciar la verificación de identidad. Intentalo de nuevo.",
+        "errorResubmitFailed": "No pudimos iniciar el reenvío de documentos. Intentalo de nuevo.",
+        "errorNoResponse": "No hubo respuesta del servidor. Intentalo de nuevo.",
+        "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Intentalo de nuevo.",
+        "initiate": {
+            "titleRestartIdentity": "Verificate con otro documento",
+            "titleCrossRegion": "Desbloqueá {region}",
+            "titleCrossRegionGeneric": "Desbloqueá esta región",
+            "titleDefault": "Desbloqueá tu cuenta",
+            "descriptionError": "{error} Contactá a soporte para recibir ayuda.",
+            "descriptionBlocked": "No pudimos confirmar tu identidad. Contactá a soporte para recibir ayuda.",
+            "descriptionRestartIdentity": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
+            "descriptionProviderRejection": "Subí una foto más nítida de tu documento para continuar.",
+            "descriptionRegionUnavailable": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
+            "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos. Toma alrededor de un minuto."
+        },
+        "advisory": {
+            "descriptionByDate": "Para seguir usando las transferencias bancarias, completá una breve verificación (obligatoria antes del {deadline}). Solo toma un par de minutos.",
+            "description": "Para seguir usando las transferencias bancarias, completá una breve verificación. Solo toma un par de minutos."
+        },
+        "progress": {
+            "verifyingDescription": "Estamos confirmando tu identidad — normalmente toma menos de un minuto. Podés esperar aquí o volver al inicio y te avisamos cuando esté listo.",
+            "preparingTimedOutDescription": "Podés continuar y te avisaremos cuando esté listo.",
+            "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Esperá un momento.",
+            "bridgeTosDescription": "Último paso: aceptá los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México."
+        },
+        "wrapper": {
+            "troubleTitle": "¿Necesitás ayuda?",
+            "exitForNowDescription": "Podés retomar donde lo dejaste más tarde — tu progreso se guarda.",
+            "loadError": "No se pudo cargar la verificación. Revisá tu conexión e intentalo de nuevo."
+        },
+        "provideEmail": {
+            "title": "Agregá tu correo para continuar",
+            "description": "No pudimos terminar de configurar tu cuenta porque falta una dirección de correo. Agregá una y lo reintentaremos automáticamente.",
+            "invalidEmail": "Ingresá una dirección de correo válida.",
+            "stillLoading": "Todavía estamos cargando tu cuenta — intentalo de nuevo en un momento.",
+            "saveFailed": "Algo salió mal al guardar tu correo. Intentalo de nuevo."
+        },
+        "bridgeTos": {
+            "baseDescription": "Para habilitar las transferencias bancarias, debés aceptar los términos de servicio de nuestro socio de pagos.",
+            "sepaDescription": "Para habilitar las transferencias bancarias en EUR (SEPA) y GBP (Faster Payments), debés aceptar los términos de servicio actualizados de nuestro socio de pagos.",
+            "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",
+            "genericError": "Algo salió mal. Podés aceptar los términos más tarde desde tu historial de actividad.",
+            "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo."
+        },
+        "reverificationPending": {
+            "description": "Tu verificación está en revisión — normalmente toma unos minutos. Te avisaremos apenas puedas continuar. Podés esperar aquí o volver al inicio."
+        },
+        "rejectLabels": {
+            "PROBLEMATIC_APPLICANT_DATA": {
+                "description": "La información que enviaste no coincide con nuestros registros. Revisá tu nombre, fecha de nacimiento y otros datos."
+            },
+            "WRONG_ADDRESS": {
+                "description": "La dirección que enviaste no coincide con tus documentos. Corregila e intentalo de nuevo."
+            },
+            "DB_DATA_MISMATCH": {
+                "description": "Tu información no coincide con la base de datos gubernamental. Verificá que tus datos sean correctos."
+            },
+            "DB_DATA_NOT_FOUND": {
+                "description": "No se encontraron tus datos en la base de datos gubernamental. Volvé a revisar tu información."
+            },
+            "GPS_AS_POA_SKIPPED": {
+                "description": "Los datos de dirección enviados son insuficientes. Indicá tu dirección completa."
+            },
+            "DOCUMENT_BAD_QUALITY": {
+                "description": "La imagen del documento salió borrosa, oscura o difícil de leer. Subí una foto más nítida."
+            },
+            "LOW_QUALITY": {
+                "description": "La calidad del documento es demasiado baja para procesarlo. Subí una imagen más nítida."
+            },
+            "UNSATISFACTORY_PHOTOS": {
+                "description": "La foto no se puede leer. Subí una imagen más nítida."
+            },
+            "DOCUMENT_DAMAGED": {
+                "description": "El documento parece dañado o desgastado. Usá un documento en buen estado."
+            },
+            "DOCUMENT_INCOMPLETE": {
+                "description": "Parte del documento quedó cortada o falta. Asegurate de que el documento se vea completo."
+            },
+            "INCOMPLETE_DOCUMENT": {
+                "description": "Faltan algunas páginas o caras del documento. Subí el documento completo."
+            },
+            "DOCUMENT_PAGE_MISSING": {
+                "description": "Falta una página obligatoria del documento. Subí todas las páginas."
+            },
+            "DOCUMENT_MISSING": {
+                "description": "No se envió un documento obligatorio. Subí todos los documentos solicitados."
+            },
+            "BLACK_AND_WHITE": {
+                "description": "El documento se envió en blanco y negro. Subí una imagen a color."
+            },
+            "SCREENSHOTS": {
+                "description": "No se aceptan capturas de pantalla. Subí una foto directa del documento."
+            },
+            "DIGITAL_DOCUMENT": {
+                "description": "Se subió una versión digital. Subí una foto del documento original."
+            },
+            "DOCUMENT_EXPIRED": {
+                "description": "El documento está vencido. Usá un documento vigente."
+            },
+            "EXPIRATION_DATE": {
+                "description": "El documento está vencido o está por vencer. Usá un documento con una fecha de vencimiento vigente."
+            },
+            "ID_INVALID": {
+                "description": "El documento de identidad no es válido. Usá otro documento."
+            },
+            "UNSUPPORTED_DOCUMENT": {
+                "description": "Este tipo de documento no se acepta. Usá un pasaporte, un documento nacional de identidad o una licencia de conducir."
+            },
+            "WRONG_DOCUMENT": {
+                "description": "El documento que subiste no coincide con el solicitado. Subí el documento correcto."
+            },
+            "NOT_DOCUMENT": {
+                "description": "El archivo que subiste no es un documento. Subí el archivo correcto."
+            },
+            "DOCUMENT_TEMPLATE": {
+                "description": "El documento enviado parece ser una plantilla. Subí tu documento real."
+            },
+            "OUTDATED_DOCUMENT_VERSION": {
+                "description": "Esta no es la versión más reciente del documento. Enviá la versión más reciente."
+            },
+            "UNFILLED_ID": {
+                "description": "No se pudo leer el documento. Subí una imagen más nítida."
+            },
+            "UNSUITABLE_DOCUMENT": {
+                "description": "El documento no cumple con los requisitos. Revisá los requisitos e intentalo de nuevo."
+            },
+            "INCOMPATIBLE_LANGUAGE": {
+                "description": "El documento está en un idioma no admitido. Enviá un documento traducido o alternativo."
+            },
+            "BAD_PROOF_OF_IDENTITY": {
+                "description": "Hubo un problema con tu documento de identidad. Subí una copia válida y nítida."
+            },
+            "BAD_PROOF_OF_ADDRESS": {
+                "description": "Hubo un problema con tu comprobante de domicilio. Subí un documento válido con tu nombre completo y tu dirección."
+            },
+            "ADDITIONAL_DOCUMENT_REQUIRED": {
+                "description": "Se requiere un documento adicional. Revisá la solicitud y subí el documento necesario."
+            },
+            "SELFIE_MISMATCH": {
+                "description": "La selfie no coincidió con la foto de tu documento. Intentalo de nuevo con una selfie nítida."
+            },
+            "BAD_FACE_MATCHING": {
+                "description": "Tu rostro no se veía con claridad. Tomate una selfie bien iluminada en la que se vea tu rostro completo."
+            },
+            "BAD_SELFIE": {
+                "description": "Hubo un problema con tu selfie. Tomate una selfie nítida y bien iluminada."
+            },
+            "BAD_VIDEO_SELFIE": {
+                "description": "No se pudo completar la verificación con selfie en video. Intentalo de nuevo."
+            },
+            "SELFIE_BAD_QUALITY": {
+                "description": "La selfie salió borrosa o mal iluminada. Tomate una selfie nítida y bien iluminada."
+            },
+            "FRAUDULENT_LIVENESS": {
+                "description": "No se pudo completar la prueba de vida. Intentalo de nuevo con una selfie en vivo."
+            },
+            "FORGERY": {
+                "description": "No se pudo verificar el documento. Usá un documento original y sin alteraciones."
+            },
+            "THIRD_PARTY_INVOLVED": {
+                "description": "Se detectó a un tercero durante la verificación. Tenés que completar la verificación por tu cuenta."
+            },
+            "BLOCKLIST": {
+                "description": "Tu cuenta fue restringida. Contactá a soporte."
+            },
+            "SPAM": {
+                "description": "Se subieron demasiados archivos. Contactá a soporte."
+            },
+            "AGE_REQUIREMENT_MISMATCH": {
+                "description": "Debés cumplir con el requisito de edad mínima para usar este servicio."
+            },
+            "AGE_BELOW_ACCEPTED_LIMIT": {
+                "description": "Debés tener al menos 18 años para usar este servicio."
+            },
+            "RESTRICTED_PERSON": {
+                "description": "Tu verificación no se pudo completar. Contactá a soporte."
+            },
+            "ADVERSE_MEDIA": {
+                "description": "Tu verificación no se pudo completar. Contactá a soporte."
+            },
+            "CRIMINAL": {
+                "description": "Tu verificación no se pudo completar. Contactá a soporte."
+            },
+            "COMPROMISED_PERSONS": {
+                "description": "Tu verificación no se pudo completar. Contactá a soporte."
+            },
+            "CHECK_UNAVAILABLE": {
+                "description": "La base de datos de verificación no está disponible en este momento. Intentalo de nuevo más tarde."
+            },
+            "DUPLICATE_EMAIL": {
+                "description": "Este correo ya está vinculado a otra cuenta de Peanut. Si es tuya, iniciá sesión en esa cuenta para continuar; si no, contactá a soporte."
+            },
+            "FALLBACK": {
+                "description": "Hubo un problema con tu verificación. Intentalo de nuevo o contactá a soporte."
+            }
+        },
+        "errorStartActionFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
+        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Volvé a enviar tus documentos.",
+        "actionMessageFailed": "No pudimos verificar tu identidad. Contactá a soporte.",
+        "successCloseWindow": "Ya podés cerrar esta ventana."
+    },
+    "identity": {
+        "unlockTitle": "Desbloqueá {region}",
+        "unlockTitleGeneric": "Desbloqueá esta región",
+        "unlockDescription": "Para enviar y recibir dinero aquí, confirmá tu identidad con un <b>documento oficial.</b>",
+        "reasons": {
+            "eea_tin_reupload": "Volvé a subir tu número de identificación fiscal.",
+            "email_required": "Necesitamos un correo electrónico para terminar de configurar esta cuenta. Agregá uno a tu perfil y lo reintentaremos automáticamente.",
+            "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: tocá abajo para escribirle a soporte.",
+            "bridge_tos_required": "Aceptá los términos de servicio de Bridge para continuar.",
+            "bridge_tos_v2_required": "Aceptá los términos de servicio de SEPA para habilitar transferencias en EUR / GBP.",
+            "verification_blocked": "Problema de verificación: contactá a soporte para recibir ayuda.",
+            "terminal_rejection": "Problema de verificación: contactá a soporte para recibir ayuda.",
+            "bridge_terminal_rejection": "No pudimos verificar tu cuenta para transferencias bancarias. Escribile a soporte si creés que es un error.",
+            "duplicate_customer_detected": "Bridge marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",
+            "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escribile a soporte si creés que es un error.",
+            "country_not_supported": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
+            "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento."
+        }
+    },
+    "recoverFunds": {
+        "selectToken": "Seleccioná un token para recuperar",
+        "recipientPlaceholder": "Ingresá la dirección donde querés recibir los fondos",
+        "recoveryUnavailable": "La recuperación aún no está disponible para {chain}. Contactá a soporte o intentalo de nuevo más tarde.",
+        "sessionExpired": "Tu sesión expiró. Actualizá la página e intentalo de nuevo.",
+        "sendFailed": "Error al enviar la transacción, intentalo de nuevo",
+        "txReverted": "La transacción fue revertida, intentalo de nuevo"
+    },
     "global": {
+        "tokenSelector": {
+            "selectAToken": "Elegí un token",
+            "drawerTitle": "Elegí token y red",
+            "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Podés usar USDC en Arbitrum.",
+            "selectANetwork": "Elegí una red",
+            "searchTokenPlaceholder": "Buscá un token o pegá una dirección",
+            "noMatchingTokensDescription": "Intentá buscar otro token",
+            "searchNetworkPlaceholder": "Buscá una red",
+            "noNetworksFoundDescription": "Intentá buscar otra red"
+        },
+        "qrScanner": {
+            "scanToPay": "Escaneá para pagar",
+            "clickToPaste": "Tocá para pegar",
+            "cameraPermissionDenied": "Permiso de cámara denegado. Permití el acceso a la cámara en la configuración de tu navegador.",
+            "cameraStillBusy": "La cámara sigue ocupada. Cerrá otras apps e intentalo de nuevo.",
+            "cameraUnavailable": "No se pudo acceder a la cámara. Asegurate de haber concedido los permisos de cámara.",
+            "cameraStartFailed": "No se pudo iniciar la cámara. Intentalo de nuevo.",
+            "cameraSwitchFailed": "No se pudo cambiar de cámara. Intentalo de nuevo.",
+            "cameraPermission": {
+                "withStepsHint": "Seguí estos pasos para habilitar el acceso a la cámara y volvé a intentarlo.",
+                "noStepsHint": "Habilitá el acceso a la cámara en la configuración de tu navegador o dispositivo y volvé a intentarlo.",
+                "androidChrome1": "Paso 1: tocá el ícono del candado en la barra de direcciones",
+                "androidChrome2": "Paso 2: tocá “Permisos”",
+                "androidChrome3": "Paso 3: activá la cámara",
+                "iosChrome1": "Paso 1: abrí Ajustes → Chrome",
+                "iosChrome2": "Paso 2: activá la cámara",
+                "iosSafari1": "Paso 1: tocá “aA” en la barra de direcciones",
+                "iosSafari2": "Paso 2: tocá “Ajustes del sitio web”"
+            }
+        },
+        "qrScannerOverlay": {
+            "notSupportedGetNotified": "¡Enterate cuando esté disponible!",
+            "getNotifiedCta": "¡Avisame!",
+            "directSendConfirm": "Confirmá los datos del pago antes de enviarlo",
+            "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
+            "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
+            "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
+            "myQrExpandedTitle": "Mostrá tu QR para cobrar",
+            "myQrButtonText": "Compartí tu perfil"
+        },
+        "qrBottomDrawer": {
+            "shareTitle": "Compartí tu perfil"
+        },
+        "inviteFriendsModal": {
+            "title": "¡Invitá a tus amigos!",
+            "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás recompensas.",
+            "shareSheetTitle": "Compartí tu enlace de invitación"
+        },
+        "confirmInviteModal": {
+            "description": "Este enlace te permite saltearte la lista de espera de Peanut. Si usás {method}, perderás tu invitación.",
+            "joinCta": "Unite"
+        },
         "earlyUserModal": {
-            "inviteOnly": "Peanut ahora es solo por invitación, ¡y vos estás dentro!"
+            "title": "Ganá con tus invitaciones",
+            "inviteOnly": "Peanut ahora es solo por invitación, ¡y vos estás dentro!",
+            "earnRules": "<b>Amigos que invitás →</b> ganás una parte de sus comisiones. <b>Sus invitados →</b> ganás una parte de la parte de ellos.",
+            "shareSheetTitle": "Compartí tu enlace de invitación"
         },
         "noMoreJailModal": {
+            "line1": "¡Ya sos parte de Peanut!",
             "line2": "Explorá, pagá e invitá a tus amigos."
         },
+        "balanceWarningModal": {
+            "congrats": "¡Sos rico! Felicitaciones por tener un saldo alto.",
+            "selfCustody": "Con Peanut, sos el único que puede acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
+            "passkey": "Tu passkey biométrica es tu llave al control total y a la seguridad. Si la perdés, no se puede recuperar, porque solo vos tenés acceso.",
+            "learnMore": "Aprendé a mantener tu passkey segura en <link>{platform}</link>.",
+            "slideToContinue": "Deslizá para continuar"
+        },
+        "guestLoginModal": {
+            "title": "Iniciá sesión con tu Peanut Wallet",
+            "noWallet": "¿No tenés una Peanut wallet? Conseguí una ahora."
+        },
+        "guestVerificationModal": {
+            "title": "Desbloqueá este método de pago"
+        },
+        "iosPwaInstallModal": {
+            "title": "Agregá Peanut a tu pantalla de inicio",
+            "description": "Seguí una guía rápida para agregar la app a tu pantalla de inicio, sin descargar nada.",
+            "firefoxDescription": "Firefox en iOS no permite instalar apps en la pantalla de inicio. Abrí esta página en Safari para continuar."
+        },
+        "unsupportedBrowserModal": {
+            "title": "Abrí este enlace en tu navegador",
+            "description": "Todavía estamos trabajando para que Peanut funcione en tu navegador. Por ahora, usá Chrome o Safari.",
+            "pasteHint": "Luego pegalo en tu navegador preferido."
+        },
+        "tokenAndNetworkConfirmationModal": {
+            "title": "Enviá solo tokens compatibles en redes compatibles",
+            "slideToProceed": "Deslizá para continuar"
+        },
+        "rainCooldownIntroModal": {
+            "title": "Esperá un momento",
+            "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, podés bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible."
+        },
         "staleCardApprovalModal": {
-            "successDescription": "Tu tarjeta está lista — intentá tu retiro de nuevo."
+            "description": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
+            "successDescription": "Tu tarjeta está lista — intentá tu retiro de nuevo.",
+            "cancelledError": "Se canceló la reactivación. Tocá Reactivar tarjeta para intentarlo otra vez.",
+            "unexpectedError": "No pudimos reactivar tu tarjeta. Intentalo de nuevo."
+        },
+        "iframeWrapper": {
+            "troubleTitle": "¿Necesitás ayuda?",
+            "troubleDescriptionLine1": "Si la verificación de identidad no carga aquí, completala en tu navegador.",
+            "troubleDescriptionLine2": "Solo copiá este enlace y abrilo allí.",
+            "exitDescription": "Podés volver y terminar esto en cualquier momento.",
+            "havingTrouble": "¿Tenés problemas?"
+        },
+        "supportDrawer": {
+            "chatLoadFailedDescription": "Hubo un problema al cargar el chat de soporte. Escribinos por correo y te ayudamos:"
+        },
+        "supportCta": {
+            "needHelp": "¿Necesitás ayuda con esta transacción?"
+        },
+        "offlineScreen": {
+            "description": "No se detectó conexión a internet. Revisá la configuración de tu red e intentalo de nuevo."
+        },
+        "peanutActionCard": {
+            "requestTitle": "Pedí dinero a tus amigos",
+            "sendTitle": "Creá un enlace de pago"
+        },
+        "createAccountButton": {
+            "label": "Creá una cuenta de <logo></logo>"
+        },
+        "fileUploadInput": {
+            "addReference": "Agregá una referencia (opcional)"
+        },
+        "mantecaMaintenance": {
+            "havingTrouble": "¿Tenés problemas?"
+        },
+        "countryList": {
+            "noResultsDescription": "Intentá buscar con otro término.",
+            "cryptoDepositDescription": "Usá un exchange o tu billetera",
+            "cryptoWithdrawDescription": "Retirá a una billetera o exchange"
+        },
+        "forceIosPwaInstall": {
+            "title": "Viví la experiencia completa",
+            "description": "Agregá Peanut a tu pantalla de inicio para desbloquear tu billetera y empezar a usarla.",
+            "tapShare": "Tocá el <share>ícono Compartir</share> en tu navegador"
+        },
+        "userCard": {
+            "payWhatYouWant": "Pagá lo que quieras",
+            "sendExactAmount": "¡Enviá el monto exacto!"
+        },
+        "betaBanner": "¡Peanut está en beta! Gracias por ser un usuario temprano, compartí tu opinión aquí"
+    },
+    "errors": {
+        "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agregá fondos para continuar.",
+        "insufficientFunds": "No tenés fondos suficientes.",
+        "userRejectedTransaction": "Confirmá la transacción en tu billetera.",
+        "notDeployedOnChain": "Bulk no está disponible en esta red, probá con otra red.",
+        "userRejectedRequest": "Confirmá la solicitud en tu billetera.",
+        "networkError": "Ocurrió un error de red. Actualizá la página e intentalo de nuevo.",
+        "nonceExpired": "El nonce expiró, intentalo de nuevo.",
+        "walletNotConnected": "Asegurate de que tu billetera esté conectada.",
+        "gasExceedsAllowance": "El gas requerido supera tu saldo. Confirmá que tenés fondos suficientes.",
+        "gasFeesNativeToken": "La transacción falló. Asegurate de tener suficiente token nativo en esta red para cubrir las comisiones de gas.",
+        "tokenPriceFetch": "Algo salió mal al obtener el precio del token. Cambiá la denominación de entrada e intentalo de nuevo.",
+        "tokenChainUndefined": "Asegurate de que el token y la red correctos estén definidos.",
+        "insufficientTokenBalance": "Asegurate de tener saldo suficiente del token que intentás enviar, incluidas las comisiones de gas.",
+        "transferAmountExceedsBalance": "No tenés saldo suficiente para completar la transacción.",
+        "chainMismatch": "No se pudo cambiar de red. Intentá cambiar a la red correcta manualmente.",
+        "insufficientBalance": "No tenés saldo suficiente.",
+        "operationTimedOut": "Confirmá la transacción.",
+        "passkeyNotCompleted": "Tu dispositivo no completó la confirmación con passkey. Intentalo de nuevo; si sigue fallando, desbloqueá tu gestor de contraseñas (por ejemplo, 1Password) o reiniciá tu dispositivo.",
+        "claimLinkFailed": "No se pudo reclamar el enlace, actualizá la página. Si el problema persiste, confirmá el enlace con quien lo envió.",
+        "lowLiquidity": "Baja liquidez. Probá con un monto menor o una ruta diferente.",
+        "networkBusyTimeout": "La red está congestionada y tu solicitud expiró. Intentalo de nuevo en un momento.",
+        "genericSupport": "Hubo un problema con tu solicitud. Contactá con soporte.",
+        "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
+        "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en breve.",
+        "staleCardApproval": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
+        "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Esperá un momento e intentalo de nuevo.",
+        "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualizá la página e intentalo de nuevo.",
+        "cardApprovalCancelled": "Aprobación cancelada: podés volver a intentarlo cuando quieras.",
+        "cardApprovalFailed": "No se pudo aprobar la tarjeta. Intentalo de nuevo.",
+        "logoutFailed": "No pudimos cerrar tu sesión. Intentalo de nuevo.",
+        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo."
+    },
+    "appLock": {
+        "prompt": "Desbloqueá para abrir la app.",
+        "promptFailed": "Desbloqueá de nuevo para abrir la app."
+    },
+    "migration": {
+        "downloadPrompt": {
+            "earlyDescription": "Peanut ya vive en el App Store y Google Play. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va con vos, sin configurar nada.",
+            "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descargala ahora y continuá justo donde quedaste. Tu cuenta y tu dinero se mudan con vos automáticamente."
+        },
+        "sunset": {
+            "sub": "Descargá la app y continuá justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí."
+        },
+        "qr": {
+            "title": "Descargá la app de Peanut",
+            "scanHint": "Escaneá con la cámara de tu celular para descargar."
+        },
+        "smartLink": {
+            "pickStore": "Elegí tu tienda y descargá la app."
         }
     },
     "shhhhh": {
@@ -97,8 +1240,5 @@
         "ready": {
             "subtitle": "Probá la puerta."
         }
-    },
-    "kyc": {
-        "successCloseWindow": "Ya podés cerrar esta ventana."
     }
 }
