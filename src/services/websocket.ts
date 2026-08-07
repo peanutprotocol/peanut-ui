@@ -260,7 +260,17 @@ export class PeanutWebSocket {
                     break
             }
         } catch (error) {
-            console.error('Error parsing WebSocket message:', error, event.data)
+            // Never log the raw frame. console.error is wired to Sentry via
+            // captureConsoleIntegration({ levels: ['error', 'warn'] }), and
+            // beforeSendHandler only scrubs headers/request.data/extra/
+            // contexts/breadcrumbs by key name - it does not touch
+            // event.message. A raw frame here carries kyc_status_update,
+            // history_entry, rain_card_balance_changed and friends, so it
+            // would ship user KYC and financial data straight to Sentry.
+            // The byte length is enough to tell a truncated frame from a
+            // malformed one, which is all this catch ever needed.
+            const size = typeof event.data === 'string' ? event.data.length : 'non-string'
+            console.error('Error parsing WebSocket message:', error, `(frame bytes: ${size})`)
         }
     }
 
