@@ -211,9 +211,16 @@ export const useZeroDev = () => {
                     })
                 }
                 if (unavailable.length > 0) {
+                    // Pre-joined into ONE string on purpose. Sentry's console
+                    // integration serializes each console argument, and an array
+                    // of objects lands in the issue as the literal "[Object]" —
+                    // so the campaign and the reason, the only two facts worth
+                    // logging, were both unreadable in production. Keep the
+                    // message itself constant so Sentry still groups these
+                    // together instead of opening a new issue per campaign.
                     console.warn(
                         'Campaign unavailable during registration',
-                        unavailable.map(({ badgeCampaign, outcome }) => ({ badgeCampaign, outcome }))
+                        unavailable.map(({ badgeCampaign, outcome }) => `${badgeCampaign}=${outcome}`).join(', ')
                     )
                 }
                 if (batch.pending.length > 0) {
