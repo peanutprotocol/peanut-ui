@@ -312,6 +312,42 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('/alice?chargeId=charge-123')).toBe('/pay-request?chargeId=charge-123')
             })
 
+            // getRequestLink() shape: /<recipient>/<amount><token>?id=<uuid>. This is what
+            // an IRL request QR encodes, and the catch-all that serves it on web is stripped
+            // from the static export.
+            it('maps a request link with an amount segment onto the pay-request stand-in', () => {
+                expect(deepLinkToNativePath('/alice/10USDC?id=req-123')).toBe('/pay-request?id=req-123')
+                expect(deepLinkToNativePath('/alice/10USDC?chargeId=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('maps a bare request link onto the pay-request stand-in', () => {
+                expect(deepLinkToNativePath('https://peanut.me/alice?id=req-123')).toBe('/pay-request?id=req-123')
+            })
+
+            it('carries the charge context param through', () => {
+                expect(deepLinkToNativePath('/alice/10USDC?chargeId=charge-123&context=card-pioneer')).toBe(
+                    '/pay-request?chargeId=charge-123&context=card-pioneer'
+                )
+            })
+
+            it('leaves a three-segment path alone — deeper than any recipient link', () => {
+                expect(deepLinkToNativePath('/alice/10USDC/extra?id=req-123')).toBe('/alice/10USDC/extra?id=req-123')
+            })
+
+            it.each(['/rewards', '/history'])('leaves the reserved route %s alone even with an id param', (route) => {
+                expect(deepLinkToNativePath(`${route}?id=req-123`)).toBe(`${route}?id=req-123`)
+            })
+
+            // The claim password lives only in the fragment — losing it lands the user on an
+            // empty claim form.
+            it('preserves the fragment on a claim link', () => {
+                expect(deepLinkToNativePath('https://peanut.me/claim?c=8453&v=v4.2&i=7#p=s3cret')).toBe(
+                    '/claim?c=8453&v=v4.2&i=7#p=s3cret'
+                )
+            })
+
             it('leaves a static in-app route untouched', () => {
                 expect(deepLinkToNativePath('https://peanut.me/history')).toBe('/history')
             })

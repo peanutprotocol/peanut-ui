@@ -100,6 +100,14 @@ function mapDeepLink(url: string): string | null {
     const parsed = new URL(url, 'https://peanut.me')
     if (!APP_HOSTS.test(parsed.hostname)) return null
 
+    const mapped = mapPath(parsed)
+    // Claim links carry the link password in the fragment (`/claim?c=..#p=<pw>`),
+    // and it never reaches the server — dropping it turns a working claim link
+    // into an empty claim form.
+    return parsed.hash ? `${mapped}${parsed.hash}` : mapped
+}
+
+function mapPath(parsed: URL): string {
     const path = parsed.pathname
     const extraParams = parsed.search.replace(/^\?/, '')
     const segments = path.split('/').filter(Boolean)
@@ -124,13 +132,30 @@ function mapDeepLink(url: string): string | null {
         const id = decodeURIComponent(segments[1])
         return appendParams(isCapacitor() ? `/receipt?id=${encodeURIComponent(id)}` : path, extraParams)
     }
-    // `/<username>?chargeId=<uuid>` — the catch-all profile route is disabled in
-    // native builds; /pay-request is its stand-in (see (mobile-ui)/pay-request).
-    // Gated by the same reserved-route/recipient rules the web catch-all uses, so
-    // `/rewards?chargeId=x` stays on /rewards instead of landing on /pay-request.
-    if (isCapacitor() && segments.length === 1 && !isReservedRoute(path) && couldBeRecipient(segments[0])) {
+    /*
+     * `/<recipient>[/<amount><token>]?chargeId=<uuid>` and `?id=<uuid>` — the
+     * shapes getRequestLink() prints into a shared link or an IRL request QR.
+     * The catch-all recipient route is disabled in native builds; /pay-request
+     * is its stand-in (see (mobile-ui)/pay-request), and it dispatches on the
+     * same two params the web catch-all does. The amount/token segment carries
+     * no information the charge or request doesn't already hold, so it is
+     * dropped rather than encoded.
+     *
+     * Gated by the same reserved-route/recipient rules the web catch-all uses,
+     * so `/rewards?chargeId=x` stays on /rewards instead of landing on
+     * /pay-request.
+     */
+    if (
+        isCapacitor() &&
+        segments.length >= 1 &&
+        segments.length <= 2 &&
+        !isReservedRoute(path) &&
+        couldBeRecipient(segments[0])
+    ) {
         const chargeId = parsed.searchParams.get('chargeId')
-        if (chargeId) return chargePayUrl(chargeId)
+        if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
+        const requestId = parsed.searchParams.get('id')
+        if (requestId) return requestPotUrl(requestId)
     }
 
     return appendParams(path, extraParams)

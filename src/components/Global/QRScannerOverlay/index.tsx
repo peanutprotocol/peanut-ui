@@ -16,7 +16,7 @@ import { serverFetch } from '@/utils/api-fetch'
 import { openExternalUrl } from '@/utils/capacitor'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
-import { recipientPayUrl, qrClaimUrl } from '@/utils/native-routes'
+import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -291,7 +291,13 @@ export default function QRScannerOverlay() {
                             redirectUrl = qrClaimUrl(redirectQrCode)
                         }
                     } else {
-                        redirectUrl = path
+                        // An IRL request QR is `/<recipient>/<amount><token>?id=<uuid>`,
+                        // which on native resolves to a route the static export doesn't
+                        // ship — the router falls back to a full page load and the
+                        // WebView lands on a localhost error page. Reuse the deep-link
+                        // mapper so a scanned link routes exactly like the same link
+                        // opened from a notification or an App Link.
+                        redirectUrl = deepLinkToNativePath(path) ?? path
                     }
                 }
                 break
