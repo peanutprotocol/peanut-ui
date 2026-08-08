@@ -29,6 +29,7 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 
 // localStorage key for the one-time celebration gate (per-device by design:
 // re-doing the funnel re-celebrates, see the eligibility-check effect below).
@@ -536,6 +537,23 @@ const CardPage: FC = () => {
         return ''
     }, [invalidateOverview, refetchCardInfo])
 
+    // PWA-reload resume (see useSumsubReloadResume). On a reload mid-Sumsub,
+    // re-apply to mint a fresh token for the same in-progress applicant and
+    // reopen the SDK — same idempotent call the token-refresh path uses. The
+    // card flow takes no initiate arguments, so the persisted state is empty.
+    useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
+        const res = await rainApi.applyForCard({ termsAccepted: false })
+        if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
+            setSumsubToken(res.sumsubAccessToken)
+            // tagged so a resume doesn't read as a fresh open in the card funnel
+            posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
+            return true
+        }
+        // user advanced past Sumsub while backgrounded — route normally
+        advanceFromApplyResponse(res)
+        return false
+    })
+
     // Outer-gate fail — the useEffect above fires notFound() to render the
     // 404 boundary; render nothing here so the page doesn't flash for the
     // one frame before that lands.
@@ -653,6 +671,7 @@ const CardPage: FC = () => {
                 const allBadges =
                     user?.user?.badges?.map((b) => ({
                         code: b.code,
+                        iconUrl: b.iconUrl,
                         earnedAt: b.earnedAt,
                     })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
                 return (
