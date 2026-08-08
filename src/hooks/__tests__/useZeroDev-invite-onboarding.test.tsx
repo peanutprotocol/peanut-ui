@@ -175,4 +175,42 @@ describe('useZeroDev registration invite boundary', () => {
         expect(mockPersistRegistrationBadgeCampaignDestination).not.toHaveBeenCalled()
         expect(mockSetWebAuthnKey).toHaveBeenCalledWith({ id: 'new-passkey' })
     })
+
+    it('names the unavailable campaign and reason in a form Sentry can read', async () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        mockPendingBadgeCampaigns = ['irl-nomads', 'ethfloripa']
+        mockAcceptInvite.mockResolvedValue({
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            claims: [],
+        })
+        mockClaimAndSettlePendingBadgeCampaigns.mockResolvedValue({
+            claims: [
+                { badgeCampaign: 'irl-nomads', outcome: 'inactive' },
+                { badgeCampaign: 'ethfloripa', outcome: 'unknown' },
+            ],
+            pending: [],
+            transport: 'canonical',
+        })
+        const { result } = renderHook(() => useZeroDev())
+
+        await act(async () => result.current.handleRegister('new-user'))
+
+        expect(warn).toHaveBeenCalledWith(
+            'Campaign unavailable during registration',
+            'irl-nomads=inactive, ethfloripa=unknown'
+        )
+
+        // The regression this pins. Sentry serializes each console argument, so
+        // passing objects produced the literal "[Object]" in production and the
+        // warning named neither the campaign nor the reason. A string survives.
+        const call = warn.mock.calls.find(([message]) => message === 'Campaign unavailable during registration')
+        expect(typeof call?.[1]).toBe('string')
+
+        // The message must stay constant, or Sentry opens a new issue per campaign.
+        expect(call?.[0]).toBe('Campaign unavailable during registration')
+
+        warn.mockRestore()
+    })
 })
