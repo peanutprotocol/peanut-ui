@@ -21,7 +21,7 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // a degraded display, never a wrong number. The backend already downgraded
     // its own log to warn for this exact reason (PEANUT-API-75); reporting it
     // from the client re-created the same page-per-lookup noise as PEANUT-UI-QKY.
-    { pattern: /\/tokens\/price/, statuses: [404] },
+    { pattern: /\/tokens\/price\/?(?:[?#]|$)/, statuses: [404] },
     // Public FX pair misses and validation failures are expected user/input
     // outcomes, not backend incidents. 503 is included deliberately: it means a
     // provider leg is momentarily absent, which peanut-api already reports with
