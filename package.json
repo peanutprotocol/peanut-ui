@@ -198,7 +198,7 @@
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat)([@+/]|$))"
+            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat|nuqs)([@+/]|$))"
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",

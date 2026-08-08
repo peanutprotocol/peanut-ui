@@ -31,7 +31,13 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
 }))
 
 const mockMarkSeen = jest.fn()
-let mockPending: Array<{ code: string; name: string; description: string | null; earnedAt: string }> = []
+let mockPending: Array<{
+    code: string
+    name: string
+    description: string | null
+    iconUrl?: string | null
+    earnedAt: string
+}> = []
 jest.mock('@/components/Badges/useBadgeEarnToast', () => ({
     useBadgeEarnToast: () => ({ pending: mockPending, markSeen: mockMarkSeen }),
 }))
@@ -93,6 +99,15 @@ describe('BadgeEarnToast', () => {
         expect(screen.getByTestId('badge-detail-modal')).toHaveTextContent('Product Hunt')
         expect(screen.getByTestId('badge-detail-modal')).toHaveAttribute('data-code', 'PRODUCT_HUNT')
         expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('renders the API iconUrl instead of the local legacy asset', () => {
+        mockPending = [{ ...badge('PRODUCT_HUNT', 'Backend Name'), iconUrl: '/badges/backend_product_hunt.webp' }]
+        render(<BadgeEarnToast />)
+
+        const { container } = render(mockToast.mock.calls[0][0].content)
+        expect(container.querySelector('img')).toHaveAttribute('src', '/badges/backend_product_hunt.webp')
+        expect(screen.getByText(/Backend Name/)).toBeInTheDocument()
     })
 
     it('coalesces multiple badges and routes to /badges on tap', () => {

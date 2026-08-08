@@ -104,11 +104,7 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
-    const {
-        isEligible: isCardPioneerEligible,
-        hasCardAccess: hasCardAccessGranted,
-        isLoading: isCardPioneerLoading,
-    } = useCardInfo()
+    const { hasCardAccess: hasCardAccessGranted } = useCardInfo()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already
@@ -348,9 +344,7 @@ export const useHomeCarouselCTAs = () => {
         deviceType,
         isPwa,
         userCountryCode,
-        isCardPioneerEligible,
         hasCardAccessGranted,
-        isCardPioneerLoading,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,
