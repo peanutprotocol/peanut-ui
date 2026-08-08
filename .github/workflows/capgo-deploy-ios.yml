@@ -82,6 +82,7 @@ jobs:
                     --apikey "$CAPGO_API_KEY" \
                     --path ./out \
                     --auto-min-update-version \
+                    --version-exists-ok \
                     --comment "$COMMENT"
 
             - name: Deployment summary

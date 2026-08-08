@@ -58,7 +58,8 @@
         "cashout": "Saque",
         "claim": "Resgatar",
         "peanutLogoAlt": "Logo da Peanut",
-        "receipt": "Recibo"
+        "receipt": "Recibo",
+        "supportUnread": "Nova resposta do suporte"
     },
     "home": {
         "rewards": "Recompensas",

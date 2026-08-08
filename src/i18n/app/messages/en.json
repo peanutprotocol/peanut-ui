@@ -58,7 +58,8 @@
         "cashout": "Cashout",
         "claim": "Claim",
         "peanutLogoAlt": "Peanut Logo",
-        "receipt": "Receipt"
+        "receipt": "Receipt",
+        "supportUnread": "New support reply"
     },
     "home": {
         "rewards": "Rewards",

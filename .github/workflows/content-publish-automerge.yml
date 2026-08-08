@@ -61,7 +61,10 @@ jobs:
                   REPO: ${{ github.repository }}
               run: |
                   set -euo pipefail
-                  FILES=$(gh pr diff "$PR" --repo "$REPO" --name-only)
+                  # `gh pr diff` returns HTTP 406 after 300 files. The Files API
+                  # is paginated, so large code PRs reach the same fail-closed
+                  # exact-match decision instead of leaving a false-red check.
+                  FILES=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename')
                   echo "Changed files:"
                   echo "$FILES"
                   if [ "$FILES" = "src/content" ]; then

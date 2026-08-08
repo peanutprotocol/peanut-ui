@@ -39,6 +39,9 @@ export default function RulesLegend({ rules, specError }: { rules: SpecRules | n
             <Rule label="holdout">
                 <span className="text-xs font-bold">{Math.round(rules.holdoutFraction * 100)}% control</span>
             </Rule>
+            <Rule label="balance gate">
+                <span className="text-xs font-bold">fund ≤ $0.10 · spend ≥ $1 (live chain read)</span>
+            </Rule>
             <Rule label="send window">
                 <span className="text-xs font-bold">
                     {rules.sendWindowUtc.startHour}–{rules.sendWindowUtc.endHour}h UTC
