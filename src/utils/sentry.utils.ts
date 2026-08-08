@@ -16,6 +16,12 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
     // Expected input validation, surfaced inline to the user — not a server bug.
     { pattern: /\/invites\/validate/, statuses: [400] },
+    // /tokens/price 404 means the upstream price provider declined the lookup —
+    // in practice a Mobula 429. The UI falls back to token denomination, so it is
+    // a degraded display, never a wrong number. The backend already downgraded
+    // its own log to warn for this exact reason (PEANUT-API-75); reporting it
+    // from the client re-created the same page-per-lookup noise as PEANUT-UI-QKY.
+    { pattern: /\/tokens\/price/, statuses: [404] },
     // Public FX pair misses and validation failures are expected user/input
     // outcomes, not backend incidents. 503 is included deliberately: it means a
     // provider leg is momentarily absent, which peanut-api already reports with
@@ -444,7 +450,16 @@ export const fetchWithSentry = async (
             // 401 on cleared session, etc). Logging them clutters DevTools and
             // gets picked up by forward-logs-shared as Sentry breadcrumbs.
             if (!shouldSkipReporting(url, response.status)) {
-                console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
+                // console.info, not warn — same reason as the catch block below.
+                // captureConsoleIntegration listens on ['error','warn'], so a warn
+                // here became a SECOND Sentry event for every non-2xx in the app,
+                // grouped by this call site rather than by request. That single
+                // bucket held ~32k events across every endpoint and titled itself
+                // after whichever request failed most recently, which made it read
+                // as one huge issue with a specific URL. The explicit
+                // captureMessage below is the real report: it fingerprints on
+                // [method, url, status] and carries headers, body and response.
+                console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
 
                 let errorContent: JSONValue
                 try {
