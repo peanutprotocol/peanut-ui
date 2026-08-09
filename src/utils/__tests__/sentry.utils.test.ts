@@ -90,6 +90,31 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(warnSpy).not.toHaveBeenCalled()
     })
 
+    it('does not report a /tokens/price 404 (upstream price provider declined)', async () => {
+        // Mobula 429s surface here as a 404. The UI falls back to token
+        // denomination, so it is a degraded display and never a wrong number —
+        // and the backend already downgraded its own log for this (PEANUT-API-75).
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, { error: 'Token price not available' }))
+
+        const response = await fetchWithSentry('https://api.peanut.me/tokens/price?address=0xaf88&chainId=42161', {})
+
+        expect(response.status).toBe(404)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('reports a non-2xx exactly once, via captureMessage and never via console.warn', async () => {
+        // captureConsoleIntegration listens on ['error','warn'], so a console.warn
+        // here produced a SECOND event for every non-2xx in the app, grouped by
+        // call site instead of by request — one bucket holding ~32k events and
+        // titling itself after whatever failed last (PEANUT-UI-60Y).
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/some/endpoint', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
     it('still reports 400s from endpoints without a skip rule', async () => {
         global.fetch = jest.fn().mockResolvedValue(mockResponse(400, { error: 'bad request' }))
 
