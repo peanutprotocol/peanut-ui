@@ -248,4 +248,4 @@ export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=me.
 // User-interview campaign (temporary): one shared cal.com event for the
 // flag-gated founder-call card on home. Delete together with the
 // `user-interviews-invite` PostHog flag when the campaign ends.
-export const USER_INTERVIEW_CAL_URL = 'https://cal.com/aleks-n-hugo/15min'
+export const USER_INTERVIEW_CAL_URL = 'https://cal.com/hugo0+abalinda/dynamic'
