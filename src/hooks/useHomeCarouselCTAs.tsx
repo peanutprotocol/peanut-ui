@@ -149,7 +149,7 @@ export const useHomeCarouselCTAs = () => {
         const b = (chunks: React.ReactNode) => <b>{chunks}</b>
 
         // User-interview invite (temporary campaign): hand-picked heavy users
-        // get asked for a 15-min founder call. The cohort lives in the PostHog
+        // get asked for a 15-min call with the team. The cohort lives in the PostHog
         // flag's `username` release condition — never in code. Leads the
         // carousel on purpose; it targets a handful of users. X-dismissal uses
         // the standard 7-day cooldown (id filter below). Delete this block, the

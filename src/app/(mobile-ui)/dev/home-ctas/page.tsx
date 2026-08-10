@@ -128,7 +128,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         logo: PeanutWavingHello,
         logoSize: 30,
         title: 'Help shape Peanut',
-        description: "You're one of our most active users. Book a 15-min call with the founders.",
+        description: "You're one of our most active users. Book a 15-min call with the team.",
     },
     {
         id: 'bug-bounty',
