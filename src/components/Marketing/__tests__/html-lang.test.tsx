@@ -1,7 +1,14 @@
 import { render, waitFor } from '@testing-library/react'
-import { AppIntlProvider } from '@/i18n/app/AppIntlProvider'
+import { AppIntlProvider, useAppLocale } from '@/i18n/app/AppIntlProvider'
 import { HtmlLang } from '@/components/Marketing/HtmlLang'
 import LocalizedMarketingLayout from '@/app/[locale]/(marketing)/layout'
+import { localeReady } from '@/i18n/app/locale-store'
+
+let mockPathname = '/'
+
+jest.mock('next/navigation', () => ({
+    usePathname: () => mockPathname,
+}))
 
 jest.mock('@/i18n/app/locale-store', () => ({
     currentAppLocale: jest.fn(() => null),
@@ -13,8 +20,12 @@ jest.mock('@/i18n/app/locale-store', () => ({
 }))
 
 describe('localized marketing document language', () => {
+    const mockedLocaleReady = jest.mocked(localeReady)
+
     beforeEach(() => {
         document.documentElement.lang = 'en'
+        mockPathname = '/'
+        mockedLocaleReady.mockResolvedValue('en')
     })
 
     afterEach(() => {
@@ -28,6 +39,11 @@ describe('localized marketing document language', () => {
         document.body.append(marketingRoot)
 
         return render(<AppIntlProvider>{children}</AppIntlProvider>, { container: marketingRoot })
+    }
+
+    function LocaleProbe() {
+        const { locale } = useAppLocale()
+        return <span data-testid="app-locale">{locale}</span>
     }
 
     it.each(['es-419', 'pt-br'] as const)('server-renders the %s route owner on the layout main', async (locale) => {
@@ -62,6 +78,33 @@ describe('localized marketing document language', () => {
         )
 
         await waitFor(() => expect(document.documentElement.lang).toBe('en'))
+    })
+
+    it('restores the selected app locale after leaving a localized marketing route', async () => {
+        mockedLocaleReady.mockResolvedValue('pt-BR')
+        mockPathname = '/es-419/split/guides/example'
+        const view = renderInMarketingRoot(
+            { marker: 'es-419', lang: 'es-419' },
+            <>
+                <HtmlLang locale="es-419" />
+                <LocaleProbe />
+            </>
+        )
+
+        await waitFor(() => expect(view.getByTestId('app-locale')).toHaveTextContent('pt-BR'))
+        expect(document.documentElement.lang).toBe('es-419')
+
+        mockPathname = '/home'
+        view.container.removeAttribute('data-marketing-locale')
+        view.container.removeAttribute('lang')
+        view.rerender(
+            <AppIntlProvider>
+                <LocaleProbe />
+                <div>Product UI</div>
+            </AppIntlProvider>
+        )
+
+        await waitFor(() => expect(document.documentElement.lang).toBe('pt-BR'))
     })
 
     it.each([

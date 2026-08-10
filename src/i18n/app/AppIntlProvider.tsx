@@ -1,6 +1,7 @@
 'use client'
 
 import { NextIntlClientProvider, IntlErrorCode, type IntlError } from 'next-intl'
+import { usePathname } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { isValidLocale as isValidMarketingLocale } from '@/i18n/config'
 import { DEFAULT_APP_LOCALE, type AppLocale } from './config'
@@ -46,6 +47,7 @@ export function AppIntlProvider({ children }: { children: React.ReactNode }) {
         messages: en,
     })
     const startupLocale = useRef<AppLocale | null>(null)
+    const pathname = usePathname()
 
     useEffect(() => {
         let cancelled = false
@@ -94,7 +96,7 @@ export function AppIntlProvider({ children }: { children: React.ReactNode }) {
         document.documentElement.lang = routeOwnsLanguage ? routeLocale : locale
         // signal "startup locale is painted" — the native splash gates on this
         if (locale === startupLocale.current) markLocaleApplied()
-    }, [locale])
+    }, [locale, pathname])
 
     const setLocale = useCallback(async (next: AppLocale) => {
         persistLocale(next)
