@@ -162,6 +162,9 @@ export interface CardMarkup {
 // saving worth advertising. The backend already bounds its live lane tighter;
 // this is the client's own refusal to render an absurd claim.
 const MAX_CARD_MARKUP = 0.5
+// The backend accepts an official rate up to seven days old (central banks
+// publish on business days), so the client cannot be stricter than that.
+const MAX_OFFICIAL_EFFECTIVE_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
 function positiveDecimal(value: unknown): number | null {
     if (typeof value !== 'string' || !PLAIN_DECIMAL.test(value)) return null
@@ -169,37 +172,60 @@ function positiveDecimal(value: unknown): number | null {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
-function parseCardMarkupResponse(
-    value: unknown,
-    currency: string,
-    lockedPeanutRate?: number | null
-): CardMarkup | null {
-    if (!value || typeof value !== 'object') return null
+/**
+ * Three outcomes, not two. "The backend published no comparison" and "the
+ * response could not be trusted" must stay apart: the first has to render
+ * nothing, the second may fall back to a local assumption. Collapsing them
+ * advertises a saving on evidence that there is none.
+ */
+type CardMarkupResult = { kind: 'markup'; markup: CardMarkup } | { kind: 'none' } | { kind: 'invalid' }
+
+const INVALID: CardMarkupResult = { kind: 'invalid' }
+const NONE: CardMarkupResult = { kind: 'none' }
+
+function parseCardMarkupResponse(value: unknown, currency: string, lockedPeanutRate?: number | null): CardMarkupResult {
+    if (!value || typeof value !== 'object') return INVALID
 
     const data = value as Partial<FxCardMarkupResponse>
-    if (data.currency !== currency || data.indicative !== true) return null
-    if (data.source !== 'live' && data.source !== 'static') return null
+    if (data.currency !== currency || data.indicative !== true) return INVALID
+    if (data.source !== 'live' && data.source !== 'static') return INVALID
 
     const generatedAt = timestamp(data.generatedAt)
-    if (generatedAt === null) return null
+    if (generatedAt === null) return INVALID
     const generatedAge = Date.now() - generatedAt
     if (generatedAge > MAX_GENERATED_AGE_MS + MAX_CLIENT_CLOCK_SKEW_MS || generatedAge < -MAX_CLIENT_CLOCK_SKEW_MS) {
-        return null
+        return INVALID
     }
 
+    // A well-formed zero is the backend stating there is no gap to show. That
+    // is an answer, not a fault, and it must not fall back to an assumption.
+    if (data.markupPct === '0') return NONE
     const markupPct = positiveDecimal(data.markupPct)
-    if (markupPct === null || markupPct >= MAX_CARD_MARKUP) return null
-    if (data.source === 'static') return { rate: markupPct, source: 'static' }
+    if (markupPct === null) return INVALID
+    if (markupPct >= MAX_CARD_MARKUP) return INVALID
+    if (data.source === 'static') return { kind: 'markup', markup: { rate: markupPct, source: 'static' } }
 
     // A live answer without its inputs cannot be a live answer.
     const components = data.components
-    if (!components || typeof components !== 'object') return null
+    if (!components || typeof components !== 'object') return INVALID
     const officialUsdRate = positiveDecimal(components.officialUsdRate)
     const issuerFeePct = positiveDecimal(components.issuerFeePct)
     if (positiveDecimal(components.peanutUsdRate) === null || officialUsdRate === null || issuerFeePct === null) {
-        return null
+        return INVALID
     }
-    if (issuerFeePct >= 1) return null
+    if (issuerFeePct >= 1) return INVALID
+
+    // The backend bounds how old an observation may be; this is the client's
+    // own ceiling, so a frozen upstream behind a fresh generatedAt is caught.
+    const effectiveAt = timestamp(data.effectiveAt)
+    if (effectiveAt === null) return INVALID
+    const effectiveAge = Date.now() - effectiveAt
+    if (
+        effectiveAge > MAX_OFFICIAL_EFFECTIVE_AGE_MS + MAX_CLIENT_CLOCK_SKEW_MS ||
+        effectiveAge < -MAX_CLIENT_CLOCK_SKEW_MS
+    ) {
+        return INVALID
+    }
 
     // A caller holding a locked Peanut price must compare a card against THAT
     // price. Otherwise the saving on screen is not the saving the user gets.
@@ -207,23 +233,33 @@ function parseCardMarkupResponse(
         // The issuer fee is charged on top of the converted amount, so the
         // rate a cardholder receives is the official rate divided by 1 + fee.
         const lockedMarkup = lockedPeanutRate / (officialUsdRate / (1 + issuerFeePct)) - 1
-        if (Number.isFinite(lockedMarkup) && lockedMarkup > 0 && lockedMarkup < MAX_CARD_MARKUP) {
-            return { rate: lockedMarkup, source: 'live' }
+        if (!Number.isFinite(lockedMarkup) || lockedMarkup <= 0 || lockedMarkup >= MAX_CARD_MARKUP) {
+            // The locked price beats no card, or the recompute is nonsense.
+            // Falling back to the market number here would publish exactly the
+            // claim this recompute exists to prevent.
+            return NONE
         }
+        return { kind: 'markup', markup: { rate: lockedMarkup, source: 'live' } }
     }
-    return { rate: markupPct, source: 'live' }
+    return { kind: 'markup', markup: { rate: markupPct, source: 'live' } }
 }
 
 /**
- * Reads the backend's indicative card-vs-Peanut markup. Throws on every
- * failure — the fallback policy lives in `useCardMarkupRate`, so a caller that
- * wants the raw contract still gets it.
+ * Reads the backend's indicative card-vs-Peanut markup.
+ *
+ * Returns `null` when the backend published no comparison, and throws when the
+ * response could not be obtained or could not be trusted. The caller must treat
+ * those differently: `null` renders nothing, a throw may fall back to a local
+ * assumption. See `useCardMarkupRate`.
  *
  * @param lockedPeanutRate Optional. Local-currency units per USD the caller has
  *        already locked (a QR payment does). Ignored on a static answer, which
  *        carries no components to recompute from.
  */
-export async function fetchCardMarkup(currencyCode: string, lockedPeanutRate?: number | null): Promise<CardMarkup> {
+export async function fetchCardMarkup(
+    currencyCode: string,
+    lockedPeanutRate?: number | null
+): Promise<CardMarkup | null> {
     const currency = currencyCode.toUpperCase()
     const query = new URLSearchParams({ currency })
     const response = await apiFetch(`/fx/card-markup?${query.toString()}`, {
@@ -244,7 +280,7 @@ export async function fetchCardMarkup(currencyCode: string, lockedPeanutRate?: n
         throw new Error(`FX API returned invalid JSON for the ${currency} card markup`)
     }
 
-    const markup = parseCardMarkupResponse(data, currency, lockedPeanutRate)
-    if (markup === null) throw new Error(`FX API returned an invalid card-markup contract for ${currency}`)
-    return markup
+    const result = parseCardMarkupResponse(data, currency, lockedPeanutRate)
+    if (result.kind === 'invalid') throw new Error(`FX API returned an invalid card-markup contract for ${currency}`)
+    return result.kind === 'none' ? null : result.markup
 }

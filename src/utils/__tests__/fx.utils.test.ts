@@ -273,7 +273,8 @@ describe('fetchCardMarkup — card comparison contract', () => {
         // The locked price, not the market one. The issuer fee is charged on
         // top of the converted amount, so the card's effective rate is
         // official / 1.03.
-        const { rate, source } = await fetchCardMarkup('ARS', 1600)
+        const result = await fetchCardMarkup('ARS', 1600)
+        const { rate, source } = result!
 
         expect(source).toBe('live')
         expect(rate).toBeCloseTo(1600 / (1520 / 1.03) - 1, 12)
@@ -291,7 +292,6 @@ describe('fetchCardMarkup — card comparison contract', () => {
         ['a non-indicative payload', { ...liveMarkup, indicative: false }],
         ['an exponent-notation markup', { ...liveMarkup, markupPct: '5.36e-2' }],
         ['an implausible markup', { ...liveMarkup, markupPct: '0.9' }],
-        ['a zero markup', { ...liveMarkup, markupPct: '0' }],
         ['a live answer with no components', { ...liveMarkup, components: undefined }],
         [
             'a live answer with a zero official rate',
@@ -301,6 +301,37 @@ describe('fetchCardMarkup — card comparison contract', () => {
         ['an unknown source', { ...liveMarkup, source: 'guessed' }],
     ])('rejects %s', async (_label, payload) => {
         mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => payload })
+
+        await expect(fetchCardMarkup('ARS')).rejects.toThrow('invalid card-markup contract')
+    })
+
+    it('returns null — not a throw — when the backend states there is no gap to show', async () => {
+        // A well-formed zero is an answer. Throwing here would let the caller
+        // fall back to a static claim on evidence that there is no saving.
+        mockApiFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ ...staticMarkup, markupPct: '0' }),
+        })
+
+        await expect(fetchCardMarkup('BRL')).resolves.toBeNull()
+    })
+
+    it('publishes no comparison when a locked price does not beat the card', async () => {
+        // The locked price is worse than the card's effective rate, so the real
+        // saving is zero or negative. Falling back to the market markup would
+        // publish exactly the claim the recompute exists to prevent.
+        mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => liveMarkup })
+
+        await expect(fetchCardMarkup('ARS', 1000)).resolves.toBeNull()
+    })
+
+    it('rejects a live answer whose observation is older than the backend allows', async () => {
+        mockApiFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ ...liveMarkup, effectiveAt: '2026-07-01T07:00:00.000Z' }),
+        })
 
         await expect(fetchCardMarkup('ARS')).rejects.toThrow('invalid card-markup contract')
     })

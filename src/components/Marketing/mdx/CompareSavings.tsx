@@ -41,6 +41,9 @@ interface Claim {
  * so every value arrives as text and has to be proven here.
  */
 function parseClaim({ markupPct, verifiedAt, baseAmount }: CompareSavingsProps): Claim | null {
+    // A leading minus would split into an empty first part, and Number('') is
+    // 0 — so "-2" would quietly publish as the range "0–2".
+    if (/^\s*[-–—]/.test(markupPct)) return null
     const parts = markupPct.replace(/[–—]/g, '-').split('-')
     if (parts.length > 2) return null
     const [min, max] = [Number(parts[0]), Number(parts[parts.length - 1])]
@@ -90,7 +93,15 @@ export function CompareSavings(props: CompareSavingsProps) {
     })
 
     const verifiedLabel = claim
-        ? new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(claim.verifiedAt)
+        ? // An ISO date parses as UTC midnight. Without an explicit UTC zone
+          // the server and a viewer west of Greenwich format different days,
+          // which on a statically generated page is a hydration mismatch.
+          new Intl.DateTimeFormat(locale, {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              timeZone: 'UTC',
+          }).format(claim.verifiedAt)
         : verifiedAt
 
     const source = sourceUrl ? (
@@ -116,8 +127,8 @@ export function CompareSavings(props: CompareSavingsProps) {
 
     const worstCaseUsd = (claim.baseAmount * claim.max) / 100
     const rangeLabel = formatRange(claim.min, claim.max)
-    const usd = (value: number) => `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-    const local = (value: number) => `${Math.round(value).toLocaleString('en-US')} ${currency}`
+    const usd = (value: number) => `$${value.toLocaleString(locale, { maximumFractionDigits: 2 })}`
+    const local = (value: number) => `${Math.round(value).toLocaleString(locale)} ${currency}`
 
     // Static lane — no live rate yet (server render, loading, or an outage).
     // Concrete and dated, so it stands alone in the static HTML.

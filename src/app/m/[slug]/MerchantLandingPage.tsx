@@ -290,7 +290,13 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
     // same market snapshot `usdArs` comes from, so the two agree by
     // construction. The static entry only covers a backend outage.
     const { data: markup } = useCardMarkupRate('ARS')
-    const cardMarkup = markup ?? { rate: CARD_FX_MARKUP_BY_CURRENCY.ARS, source: 'static' as const }
+    // `undefined` is still loading — show the documented assumption so the
+    // cards render. `null` is the backend stating it has no comparison to
+    // publish, and a rate of 0 is how every consumer here renders nothing.
+    const cardMarkup =
+        markup === undefined
+            ? { rate: CARD_FX_MARKUP_BY_CURRENCY.ARS, source: 'static' as const }
+            : (markup ?? { rate: 0, source: 'static' as const })
 
     return (
         <section id="menu" className="relative overflow-hidden bg-secondary-1 px-4 py-24 text-center text-n-1 md:py-32">

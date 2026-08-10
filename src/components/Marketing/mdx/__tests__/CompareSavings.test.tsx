@@ -54,6 +54,27 @@ describe('CompareSavings', () => {
         expect(text).not.toContain('NaN')
     })
 
+    it('rejects a negative percent instead of publishing it as a range', () => {
+        withRate(0)
+
+        // "-2" would split to ["", "2"] and Number('') is 0 — a silent "0–2%".
+        render(<CompareSavings competitor="Wise" markupPct="-2" verifiedAt="2026-08-10" />)
+
+        const text = screen.getByText(/Wise/).textContent ?? ''
+        expect(text).toContain('2026-08-10')
+        expect(text).not.toContain('0–2')
+    })
+
+    it('formats the verified date in UTC so the server and client agree', () => {
+        withRate(0)
+
+        // An ISO date is UTC midnight; formatting it in a western timezone
+        // would render the previous day and mismatch the static HTML.
+        render(<CompareSavings competitor="Wise" markupPct="1" verifiedAt="2026-08-10" />)
+
+        expect(screen.getByText(/Wise/).textContent).toContain('August 10, 2026')
+    })
+
     it('never renders empty on an unparsable date', () => {
         withRate(1500)
 
