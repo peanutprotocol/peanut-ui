@@ -132,6 +132,12 @@ export const ANALYTICS_EVENTS = {
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',
+    // User-interview campaign card (temporary) — clicked = tapped through to cal.com.
+    // No viewed event: $feature_flag_called is only a rough impression proxy —
+    // it fires per flag evaluation (prod only, dismissed users included), not
+    // per card render. Bookings on cal.com are the campaign's real metric.
+    // Non-prod taps also capture; filter insights by $host = peanut.me.
+    USER_INTERVIEW_CTA_CLICKED: 'user_interview_cta_clicked',
 
     // ── Error ──
     BACKEND_ERROR_SHOWN: 'backend_error_shown',

@@ -8,6 +8,7 @@ import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import { PeanutWavingHello } from '@/assets/mascot'
 import DevNoteCard from '../_components/DevNoteCard'
 import DevPageShell from '../_components/DevPageShell'
 import DevSectionLabel from '../_components/DevSectionLabel'
@@ -119,6 +120,15 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         logoSize: 30,
         title: 'Invite friends. Earn rewards',
         description: 'Earn rewards every time your friends use Peanut.',
+    },
+    {
+        id: 'user-interview',
+        label: 'User-interview invite (flag-gated campaign, logo variant)',
+        icon: 'peanut-support',
+        logo: PeanutWavingHello,
+        logoSize: 30,
+        title: 'Help shape Peanut',
+        description: "You're one of our most active users. Book a 15-min call with the team.",
     },
     {
         id: 'bug-bounty',
