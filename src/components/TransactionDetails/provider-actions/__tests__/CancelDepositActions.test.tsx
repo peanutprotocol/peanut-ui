@@ -88,8 +88,6 @@ import { CancelDepositActions } from '../CancelDepositActions'
 
 // these components call useTranslations; IntlWrapper supplies the en catalog
 // so the English assertions below keep asserting the real shipped copy
-const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
-
 const pendingBridgeOnramp = {
     id: 'tx-1',
     direction: 'bank_deposit',

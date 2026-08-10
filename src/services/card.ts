@@ -69,7 +69,7 @@ async function authHeaders(): Promise<Record<string, string>> {
 export const cardApi = {
     /** GET /card — info + waitlist state. */
     getInfo: async (): Promise<CardInfoResponse> => {
-        const response = await apiFetch('/card', {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
             method: 'GET',
             headers: await authHeaders(),
             cache: 'no-store',
@@ -83,7 +83,7 @@ export const cardApi = {
 
     /** POST /card/waitlist/join — idempotent stamp + position. */
     joinWaitlist: async (): Promise<{ joinedAt: string; position: number | null }> => {
-        const response = await apiFetch('/card/waitlist/join', {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/join`, {
             method: 'POST',
             headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
             body: '{}',
@@ -98,7 +98,7 @@ export const cardApi = {
 
     /** GET /card/waitlist/state — current waitlist state. */
     getWaitlistState: async (): Promise<WaitlistStateResponse> => {
-        const response = await apiFetch('/card/waitlist/state', {
+        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/state`, {
             method: 'GET',
             headers: await authHeaders(),
             cache: 'no-store',

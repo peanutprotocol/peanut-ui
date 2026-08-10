@@ -12,7 +12,6 @@ import { localizeDocsHref } from '@/components/Global/DocsLink'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
-import { localizeMarketingPath, resolveLocale } from '@/i18n/app/config'
 
 type NavPathProps = {
     labelKey: 'send' | 'request' | 'add' | 'withdraw' | 'history' | 'docs' | 'support'

@@ -81,7 +81,7 @@
                 },
                 "outbound": {
                     "title": "Haz tu primer pago",
-                    "description": "Empieza a pagar códigos QR de Pix y Mercado Pago",
+                    "description": "Empieza a pagar códigos QR de Pix y MercadoPago",
                     "cta": "Empezar a gastar"
                 }
             },
@@ -194,7 +194,7 @@
             },
             "kyc": {
                 "title": "Desbloquea <b>pagos con QR</b>",
-                "description": "Confirma tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>Pix</b>"
+                "description": "Confirma tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>PIX</b>"
             },
             "closePrompt": "Cerrar aviso",
             "closeTitled": "Cerrar {title}",
@@ -812,8 +812,8 @@
         },
         "requiresVerification": "REQUIERE VERIFICACIÓN",
         "contributors": {
-            "seeAll": "Ver todos los colaboradores",
-            "title": "Colaboradores ({count})"
+            "seeAll": "Ver todos los contribuyentes",
+            "title": "Contribuyentes ({count})"
         },
         "errors": {
             "insufficientPayment": "No tienes saldo suficiente para completar este pago con Peanut",
@@ -827,7 +827,7 @@
             "requestNotFound": "solicitud no encontrada",
             "invalidUrlFormat": "Formato de URL no válido",
             "invalidPaymentUrl": "url de pago no válida",
-            "userNotFound": "el usuario @{username} no existe o no tiene una billetera de Peanut",
+            "userNotFound": "el usuario @{username} no existe o no tiene una billetera de peanut",
             "usernameArbitrumOnly": "Los pagos a nombres de usuario de Peanut solo se pueden hacer en Arbitrum"
         }
     },
@@ -943,7 +943,7 @@
         "havingTrouble": "¿Tienes problemas?",
         "orderNotReady": {
             "title": "No pudimos obtener el monto",
-            "description": "Pídele al comercio que ingrese el monto y escanea el QR de nuevo.",
+            "description": "Pídele al comercio que lo ingrese y escanea el QR de nuevo.",
             "cta": "Escanear el código de nuevo"
         },
         "maintenance": {
@@ -970,8 +970,8 @@
             "exchangeRate": "Tipo de cambio",
             "exchangeRateTooltip": "El tipo de cambio mostrado es actual, pero puede variar un poco (~$1-5 ARS) hasta que se confirme el pago.",
             "saveVsCard": "Ahorro vs. tarjeta",
-            "saveVsCardTooltipBrl": "Las tarjetas extranjeras pagan IOF (~3.5%) más una comisión FX típica del emisor de ~3%. Peanut usa Pix al tipo de cambio actual del mercado.",
-            "saveVsCardTooltipArs": "Las tarjetas extranjeras aplican el tipo de cambio oficial más una comisión FX típica del emisor de ~3%. Peanut usa Mercado Pago al tipo de cambio actual del mercado."
+            "saveVsCardTooltipBrl": "Las tarjetas extranjeras pagan IOF (~3.5%) más una comisión FX típica del emisor de ~3%. Peanut usa PIX al tipo de cambio actual del mercado.",
+            "saveVsCardTooltipArs": "Las tarjetas extranjeras aplican el tipo de cambio oficial más una comisión FX típica del emisor de ~3%. Peanut usa MercadoPago al tipo de cambio actual del mercado."
         },
         "success": {
             "youPaid": "Pagaste a {merchant}",
@@ -989,7 +989,7 @@
         "errors": {
             "invalidQr": "El código QR escaneado no es válido",
             "pixMinAmount": "Este cobro de Pix está por debajo del mínimo de {amount} BRL para pagos con Pix.",
-            "pixRecurring": "Este código QR es de un pago recurrente (Pix Automático). Peanut no admite pagos Pix recurrentes — pide un código QR de Pix normal.",
+            "pixRecurring": "Este código QR es de un pago recurrente (PIX Automático). Peanut no admite pagos PIX recurrentes — pide un código QR de PIX normal.",
             "pixDecode": "No pudimos decodificar este código QR de Pix. Pídele al comercio que genere uno nuevo.",
             "genericDecode": "No pudimos decodificar este código QR. Pregúntale al comercio si puede generar un QR de Mercado Pago",
             "providerIssues": "Estamos teniendo problemas con los pagos de {method}. Estamos trabajando para solucionarlo lo antes posible",
@@ -1003,7 +1003,7 @@
             "merchantNotSupported": "Este código QR o comercio no es compatible. Inténtalo de nuevo con otro código QR.",
             "completeFailed": "No se pudo completar el pago. Escanea el código QR de nuevo. Si el problema persiste, contacta a soporte",
             "minMantecaAmount": "El monto del pago debe ser de al menos ${amount}",
-            "minPixAmountBrl": "El monto mínimo de Pix es {amount} BRL",
+            "minPixAmountBrl": "El monto mínimo de PIX es {amount} BRL",
             "maxQrAmount": "El monto del pago QR supera el límite máximo de ${amount}",
             "minQrAmount": "El monto del pago QR debe ser de al menos ${amount}",
             "genericQrDetails": "Ocurrió un error al obtener los detalles del QR.",
@@ -1273,17 +1273,17 @@
             "previewFailed": "No se pudo cargar la vista previa de recuperación",
             "failed": "Falló la recuperación — inténtalo de nuevo",
             "doneTitle": "Fondos enviados a tu billetera.",
-            "doneBody": "{amount} USDC se devolvieron a tu billetera de Peanut.",
+            "doneBody": "{amount} USDC se devolvieron a tu billetera de peanut.",
             "viewTransaction": "Ver transacción",
             "title": "Recupera el colateral de tu tarjeta",
             "noCardOnFile": "No hay tarjeta registrada",
-            "description": "Esto trae de vuelta a tu billetera de Peanut todo el USDC que esté en el contrato de colateral de tu tarjeta. La recarga automática se desactiva como parte de la recuperación para que el rebalanceador no recargue entre ahora y la transferencia.",
+            "description": "Esto trae de vuelta a tu billetera de peanut todo el USDC que esté en el contrato de colateral de tu tarjeta. El auto-balance se desactiva como parte de la recuperación para que el rebalanceador no recargue entre ahora y la transferencia.",
             "recoverable": "Recuperable",
             "destination": "Destino",
             "dust": "Polvo restante en el contrato",
-            "autoBalance": "Recarga automática",
-            "autoBalanceOn": "activada — se desactivará",
-            "autoBalanceOff": "desactivada",
+            "autoBalance": "Auto-balance",
+            "autoBalanceOn": "activado — se desactivará",
+            "autoBalanceOff": "desactivado",
             "signWithPasskey": "Firmar con passkey…",
             "submitting": "Enviando…",
             "cta": "Recuperar fondos"
@@ -1432,13 +1432,13 @@
             "minDepositAmount": "El monto del depósito debe ser de al menos ${amount}"
         },
         "pix": {
-            "payWithPix": "Pagar con Pix",
+            "payWithPix": "Pagar con PIX",
             "depositReceived": "¡Depósito recibido!",
             "balanceUpdated": "Tu saldo se actualizó.",
             "expiresIn": "Vence en {time}",
             "qrExpired": "Este código QR venció.",
             "goBack": "Volver",
-            "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
+            "scanWithBankApp": "Escanea con la app de tu banco o copia el código PIX."
         },
         "confirmationModal": {
             "title": "¡IMPORTANTE!",
@@ -1467,7 +1467,7 @@
             "sortCode": "Sort Code",
             "accountNumber": "Número de cuenta",
             "iban": "IBAN",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de ruta",
             "bic": "BIC",
             "youllReceive": "Recibirás",
             "doubleCheckTitle": "Revisa bien en tu banco antes de enviar:",
@@ -1509,7 +1509,7 @@
         "backToHome": "Volver al inicio",
         "somethingWentWrong": "¡Algo salió mal!",
         "methods": {
-            "mercadopago": "Mercado Pago",
+            "mercadopago": "MercadoPago",
             "pix": "Pix",
             "bankTransfer": "Transferencia bancaria"
         },
@@ -1520,7 +1520,7 @@
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",
-            "recipientReceivesInfo": "El monto completo llega a la red de destino. La comisión del puente entre cadenas se paga aparte: mira abajo.",
+            "recipientReceivesInfo": "El monto completo llega a la red de destino. La comisión de red entre cadenas se paga aparte: mira abajo.",
             "tokenAndNetwork": "Token y red",
             "tokenOnChain": "{token} en <c>{chain}</c>",
             "tokenAlt": "token",
@@ -1539,7 +1539,7 @@
         "pixKey": {
             "title": "Enviar con Pix",
             "heading": "Ingresa la clave Pix",
-            "placeholder": "Clave Pix (incluye +55 si es un número de teléfono)",
+            "placeholder": "Clave PIX (incluye +55 si es un número de teléfono)",
             "info": "Envía a cualquier clave Pix: email, teléfono, CPF/CNPJ o clave aleatoria.",
             "invalid": "Clave Pix inválida"
         },
@@ -1552,7 +1552,7 @@
             "clabe": "CLABE",
             "accountNumber": "Número de cuenta",
             "sortCode": "Sort Code",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de ruta",
             "fee": "Comisión",
             "bankAccount": "Cuenta bancaria",
             "transferProcessing": "Transferencia en proceso",
@@ -1578,7 +1578,7 @@
             "accountOwnerName": "Nombre del titular de la cuenta",
             "accountOwnerNameRequired": "El nombre del titular es obligatorio",
             "accountOwnerNameFull": "Ingresa nombre y apellido",
-            "email": "Email",
+            "email": "E-mail",
             "emailRequired": "El email es obligatorio",
             "clabe": "CLABE",
             "clabeRequired": "La CLABE es obligatoria",
@@ -1595,9 +1595,9 @@
             "bic": "BIC",
             "bicRequired": "El BIC es obligatorio",
             "bicInvalid": "Código BIC inválido",
-            "routingNumber": "Routing Number",
-            "routingNumberRequired": "El routing number es obligatorio",
-            "routingNumberInvalid": "Routing number inválido",
+            "routingNumber": "Número de ruta",
+            "routingNumberRequired": "El número de ruta es obligatorio",
+            "routingNumberInvalid": "Número de ruta inválido",
             "sortCode": "Sort Code",
             "sortCodeRequired": "El sort code es obligatorio",
             "sortCodeInvalid": "El sort code debe tener 6 dígitos",
@@ -1647,7 +1647,7 @@
         "drawerTitle": "Detalles de la transacción",
         "noGoalSet": "Sin meta definida",
         "amountCollected": "${amount} recaudados",
-        "contributors": "Colaboradores ({count})",
+        "contributors": "Contribuyentes ({count})",
         "pendingLinkDeviceNote": "Usa el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "type": {
             "send": "Envío",
@@ -1661,7 +1661,7 @@
             "bank_claim": "Reclamo",
             "bank_withdraw": "Retiro",
             "bank_deposit": "Ingreso",
-            "bank_request_fulfillment": "Solicitud pagada vía banco",
+            "bank_request_fulfillment": "Solicitud pagada por banco",
             "card_pay": "Pago",
             "refund": "Reembolso",
             "setup": "Configuración",
@@ -1775,11 +1775,6 @@
             "cancelDeposit": "Cancelar depósito",
             "cancelDepositRequest": "Cancelar solicitud",
             "cancelDepositFailed": "No pudimos cancelar este depósito. Inténtalo de nuevo o contacta a soporte.",
-            "cancelConfirm": {
-                "title": "{kind, select, deposit {¿Cancelar este depósito?} request {¿Cancelar esta solicitud?} other {¿Cancelar?}}",
-                "description": "Esto no se puede deshacer. Si ya enviaste la transferencia bancaria, <strong>no canceles</strong> — un depósito cancelado ya no puede asociarse a tu cuenta y el dinero volverá a tu banco.",
-                "confirm": "{kind, select, deposit {Sí, cancelar el depósito} request {Sí, cancelar la solicitud} other {Sí, cancelar}}"
-            },
             "cancelDepositTitle": "¿Cancelar este depósito?",
             "cancelRequestTitle": "¿Cancelar esta solicitud?",
             "cancelWarning": "Esto no se puede deshacer. Si ya enviaste la transferencia bancaria, <strong>no canceles</strong>: un depósito cancelado ya no se puede asociar a tu cuenta y el dinero se devolverá a tu banco.",
@@ -1839,7 +1834,7 @@
             "accountHolderName": "Nombre del titular",
             "bankName": "Nombre del banco",
             "bankAddress": "Dirección del banco",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de ruta",
             "beneficiaryName": "Nombre del beneficiario",
             "beneficiaryAddress": "Dirección del beneficiario",
             "sortCode": "Sort Code"
@@ -2478,10 +2473,10 @@
             "externalUrlTrust": "¡Asegúrate de confiar en este sitio web!",
             "openLink": "Abrir enlace",
             "unrecognized": "Lo sentimos, no se pudo reconocer este código QR.",
-            "pixRecurringIntro": "Este código QR es para un pago recurrente (Pix Automático).",
-            "pixRecurringBody": "Peanut no admite pagos Pix recurrentes: pide un código QR de Pix normal.",
+            "pixRecurringIntro": "Este código QR es para un pago recurrente (PIX Automático).",
+            "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pide un código QR de PIX normal.",
             "titleUnrecognized": "Código QR no reconocido",
-            "titlePixRecurring": "Pix Automático no compatible",
+            "titlePixRecurring": "PIX Automático no compatible",
             "titleNotSupported": "{qrName} aún no es compatible.",
             "titleWillBeNotified": "¡Estás en la lista!",
             "titleDirectSend": "ℹ️ Confirmación de pago",
@@ -2566,7 +2561,7 @@
         "balanceWarningModal": {
             "title": "Saldo alto",
             "congrats": "¡Eres rico! Felicitaciones por tener un saldo alto.",
-            "selfCustody": "Con Peanut, solo tú puedes acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
+            "selfCustody": "Con Peanut, eres el único que puede acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
             "passkey": "Tu passkey biométrica es tu llave al control total y a la seguridad. Si la pierdes, no se puede recuperar, porque solo tú tienes acceso.",
             "learnMore": "Aprende a mantener tu passkey segura en <link>{platform}</link>.",
             "yourDevice": "tu dispositivo",
@@ -2724,7 +2719,7 @@
             "remaining": "{amount} restante"
         },
         "routeExpiryTimer": {
-            "findingBestRate": "Buscando la mejor cotización...",
+            "findingBestRate": "Buscando la mejor tasa...",
             "noQuote": "No hay cotización disponible",
             "quoteExpired": "La cotización venció",
             "priceLocked": "Precio fijo por {time}"
@@ -2788,7 +2783,7 @@
             "payWhatYouWant": "Paga lo que quieras",
             "sendExactAmount": "¡Envía el monto exacto!"
         },
-        "betaBanner": "¡Peanut está en beta! Gracias por ser uno de los primeros usuarios, comparte tu opinión aquí",
+        "betaBanner": "¡Peanut está en beta! Gracias por ser un usuario temprano, comparte tu opinión aquí",
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",
         "rainCooldownPill": "Enfriamiento de tarjeta",
         "betaBannerThumbsUpAlt": "Pulgar arriba",

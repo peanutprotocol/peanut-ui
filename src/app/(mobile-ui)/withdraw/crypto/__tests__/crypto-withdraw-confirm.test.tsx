@@ -50,14 +50,6 @@ jest.mock('@/context/tokenSelector.context', () => {
     }
 })
 
-jest.mock('next-intl', () => ({
-    useTranslations: () => (key: string) => key,
-}))
-
-jest.mock('@/hooks/useFriendlyError', () => ({
-    useFriendlyError: () => (err: unknown) => (err instanceof Error ? err.message : 'Something went wrong'),
-}))
-
 jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_CHAIN: { id: 42161 },
     PEANUT_WALLET_TOKEN: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',

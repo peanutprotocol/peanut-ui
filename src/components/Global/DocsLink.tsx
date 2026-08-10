@@ -3,7 +3,6 @@
 import { type ReactNode } from 'react'
 import { useLocale } from 'next-intl'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
-import { localizeMarketingPath, resolveLocale } from '@/i18n/app/config'
 import { BASE_URL } from '@/constants/general.consts'
 
 interface DocsLinkProps {

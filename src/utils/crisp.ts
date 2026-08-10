@@ -34,8 +34,6 @@ export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeC
     return nativeCrispReady
 }
 
-type CrispInstance = Window['$crisp']
-
 /**
  * Sets Crisp user identification and session metadata on a $crisp instance
  *

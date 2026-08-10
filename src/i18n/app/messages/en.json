@@ -1775,11 +1775,6 @@
             "cancelDeposit": "Cancel deposit",
             "cancelDepositRequest": "Cancel Request",
             "cancelDepositFailed": "We couldn't cancel this deposit. Please try again or contact support.",
-            "cancelConfirm": {
-                "title": "{kind, select, deposit {Cancel this deposit?} request {Cancel this request?} other {Cancel?}}",
-                "description": "This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong> — a cancelled deposit can no longer be matched to your account, and the money will be returned to your bank instead.",
-                "confirm": "{kind, select, deposit {Yes, cancel deposit} request {Yes, cancel request} other {Yes, cancel}}"
-            },
             "cancelDepositTitle": "Cancel this deposit?",
             "cancelRequestTitle": "Cancel this request?",
             "cancelWarning": "This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong> — a cancelled deposit can no longer be matched to your account, and the money will be returned to your bank instead.",

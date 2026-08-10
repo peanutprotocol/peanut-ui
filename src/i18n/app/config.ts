@@ -12,6 +12,8 @@ export const DEFAULT_APP_LOCALE: AppLocale = 'en'
 const MARKETING_SEGMENT: Record<AppLocale, MarketingLocale> = {
     en: 'en',
     'es-419': 'es-419',
+    // marketing site has no es-AR variant — es-419 is its Spanish
+    'es-AR': 'es-419',
     'pt-BR': 'pt-br',
 }
 
