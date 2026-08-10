@@ -1,9 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { notFound } from 'next/navigation'
 import SplitLandingPlaceholder from '@/app/[locale]/(marketing)/split/page'
-import SplitNamespacePlaceholder, {
-    generateStaticParams as generateNamespaceStaticParams,
-} from '@/app/[locale]/(marketing)/split/[...path]/page'
+import SplitNamespacePlaceholder from '@/app/[locale]/(marketing)/split/[...path]/page'
+import * as splitNamespaceRoute from '@/app/[locale]/(marketing)/split/[...path]/page'
 import SplitGuidePage, {
     generateMetadata,
     generateStaticParams,
@@ -73,9 +72,13 @@ describe('Split route ownership and guide rendering', () => {
 
     it('reserves the bare and unknown localized Split namespace as intentional 404s', () => {
         expect(() => SplitLandingPlaceholder()).toThrow('NEXT_NOT_FOUND')
-        expect(generateNamespaceStaticParams()).toEqual([])
         expect(() => SplitNamespacePlaceholder()).toThrow('NEXT_NOT_FOUND')
         expect(mockedNotFound).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps the Split fallback dynamic instead of opting into empty static params', () => {
+        expect(splitNamespaceRoute).not.toHaveProperty('generateStaticParams')
+        expect(splitNamespaceRoute).not.toHaveProperty('dynamicParams')
     })
 
     it('passes through only the guide params selected by the exact-file helper', () => {

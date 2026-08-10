@@ -1,3 +1,5 @@
+import { createHash } from 'crypto'
+import { spawnSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -34,7 +36,6 @@ function generatedFrom(slug: string, locale: (typeof LOCALES)[number]) {
         context: [
             'projects/peanut-split/seo/stylebook.md',
             ...(locale === 'en' ? [] : [`projects/peanut-split/seo/localization.${locale}.md`]),
-            'content/_system/context/valid-links.md',
         ],
         guidelines: [
             'content/_system/guidelines/seo.md',
@@ -44,7 +45,7 @@ function generatedFrom(slug: string, locale: (typeof LOCALES)[number]) {
     }
 }
 
-function manifestEntry(slug: string, locale: (typeof LOCALES)[number]) {
+function manifestEntry(slug: string, locale: (typeof LOCALES)[number], sourceSha256: string) {
     const description =
         `A practical ${locale} guide for recording group expenses, checking shared totals, and agreeing how everyone settles after a trip together`.padEnd(
             149,
@@ -68,10 +69,32 @@ function manifestEntry(slug: string, locale: (typeof LOCALES)[number]) {
             path: `content/_system/data/split-guides/${slug}${locale === 'en' ? '' : `.${locale}`}.md`,
             content_mode: 'compose',
             source_provenance: `peanutprotocol/peanutsplit@${'a'.repeat(40)}:apps/web/src/content/blog/${slug}/${locale}.md`,
+            sha256: sourceSha256,
         },
         generated_from: generatedFrom(slug, locale),
         generated_at: '2026-08-10',
     }
+}
+
+function composeSource(slug: string, locale: (typeof LOCALES)[number]) {
+    const entry = manifestEntry(slug, locale, '0'.repeat(64))
+    const sourceFrontmatter = {
+        title: entry.title,
+        description: entry.description,
+        slug: entry.slug,
+        type: entry.type,
+        lang: entry.lang,
+        author: entry.author,
+        date: entry.date,
+        tags: entry.tags,
+        schema_types: entry.schema_types,
+        content_mode: entry.source.content_mode,
+        claims: entry.claims,
+        cast: entry.cast,
+        source_provenance: entry.source.source_provenance,
+        adapted_at: entry.generated_at,
+    }
+    return matter.stringify(`## Source brief\n\nWrite the exact ${locale} guide for ${slug}.\n`, sourceFrontmatter)
 }
 
 function body(slug: string, locale: (typeof LOCALES)[number]) {
@@ -96,7 +119,16 @@ function createFixture() {
     for (const slug of SLUGS) {
         guides[slug] = {}
         for (const locale of LOCALES) {
-            const entry = manifestEntry(slug, locale)
+            const sourceContent = composeSource(slug, locale)
+            const sourceFile = path.join(
+                root,
+                `content/_system/data/split-guides/${slug}${locale === 'en' ? '' : `.${locale}`}.md`
+            )
+            fs.mkdirSync(path.dirname(sourceFile), { recursive: true })
+            fs.writeFileSync(sourceFile, sourceContent)
+
+            const sourceSha256 = createHash('sha256').update(sourceContent, 'utf8').digest('hex')
+            const entry = manifestEntry(slug, locale, sourceSha256)
             guides[slug][locale] = entry
             const { source: _source, ...frontmatter } = entry
             const file = path.join(contentDir, 'split-guides', slug, `${locale}.md`)
@@ -119,19 +151,53 @@ function createFixture() {
     return { root, contentDir, manifestPath }
 }
 
-async function runVerifier(
-    contentDir: string,
-    manifestPath: string,
-    validateMdx: (body: string) => Promise<void> = async () => {}
-) {
+interface RunVerifierOptions {
+    sourceRoot?: string
+    validateMdx?: (body: string) => Promise<void>
+}
+
+async function runVerifier(contentDir: string, manifestPath: string, options: RunVerifierOptions = {}) {
     const diagnostics: Diagnostic[] = []
     const result = await verifySplitGuides({
         contentDir,
         manifestPath,
         reportError: (check, message, file) => diagnostics.push({ check, message, file }),
-        validateMdx,
+        ...(options.sourceRoot ? { sourceRoot: options.sourceRoot } : {}),
+        ...(options.validateMdx ? { validateMdx: options.validateMdx } : {}),
     })
     return { diagnostics, result }
+}
+
+const skipMdxCompile = async () => {}
+
+async function runFastVerifier(contentDir: string, manifestPath: string, options: RunVerifierOptions = {}) {
+    return runVerifier(contentDir, manifestPath, {
+        ...options,
+        validateMdx: options.validateMdx ?? skipMdxCompile,
+    })
+}
+
+function runDefaultCompilerVerifier(contentDir: string, manifestPath: string) {
+    const verifierPath = path.resolve(__dirname, '../lib/verify-split-guides.ts')
+    const program = `
+        const imported = await import(${JSON.stringify(verifierPath)});
+        const verifySplitGuides = imported.verifySplitGuides ?? imported.default.verifySplitGuides;
+        const diagnostics = [];
+        const result = await verifySplitGuides({
+            contentDir: ${JSON.stringify(contentDir)},
+            manifestPath: ${JSON.stringify(manifestPath)},
+            reportError: (check, message, file) => diagnostics.push({ check, message, file }),
+        });
+        process.stdout.write(JSON.stringify({ diagnostics, result }));
+    `
+    const completed = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', program], {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+    })
+    if (completed.status !== 0) {
+        throw new Error(`Default compiler subprocess failed: ${completed.stderr || completed.stdout}`)
+    }
+    return JSON.parse(completed.stdout) as { diagnostics: Diagnostic[]; result: { recordsChecked: number } }
 }
 
 describe('Split guide manifest verifier', () => {
@@ -146,7 +212,7 @@ describe('Split guide manifest verifier', () => {
         roots.push(root)
 
         await expect(
-            runVerifier(path.join(root, 'content'), path.join(root, 'generated/manifest.json'))
+            runFastVerifier(path.join(root, 'content'), path.join(root, 'generated/manifest.json'))
         ).resolves.toEqual({
             diagnostics: [],
             result: { recordsChecked: 0 },
@@ -169,7 +235,7 @@ describe('Split guide manifest verifier', () => {
             })
         )
 
-        const { diagnostics } = await runVerifier(path.join(root, 'content'), manifestPath)
+        const { diagnostics } = await runFastVerifier(path.join(root, 'content'), manifestPath)
         expect(diagnostics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
@@ -184,10 +250,80 @@ describe('Split guide manifest verifier', () => {
         const fixture = createFixture()
         roots.push(fixture.root)
 
-        await expect(runVerifier(fixture.contentDir, fixture.manifestPath)).resolves.toEqual({
+        await expect(runFastVerifier(fixture.contentDir, fixture.manifestPath)).resolves.toEqual({
             diagnostics: [],
             result: { recordsChecked: 6 },
         })
+    })
+
+    it('keeps mirrored UI verification independent from an unavailable compose-source checkout', async () => {
+        const fixture = createFixture()
+        roots.push(fixture.root)
+        fs.rmSync(path.join(fixture.root, 'content/_system'), { recursive: true })
+
+        await expect(runFastVerifier(fixture.contentDir, fixture.manifestPath)).resolves.toEqual({
+            diagnostics: [],
+            result: { recordsChecked: 6 },
+        })
+    })
+
+    it('verifies exact compose-source bytes and metadata when a source root is supplied', async () => {
+        const fixture = createFixture()
+        roots.push(fixture.root)
+
+        await expect(
+            runFastVerifier(fixture.contentDir, fixture.manifestPath, { sourceRoot: fixture.root })
+        ).resolves.toEqual({
+            diagnostics: [],
+            result: { recordsChecked: 6 },
+        })
+    })
+
+    it('blocks compose-source body drift from its manifest digest', async () => {
+        const fixture = createFixture()
+        roots.push(fixture.root)
+        const sourceFile = path.join(fixture.root, `content/_system/data/split-guides/${SLUGS[0]}.md`)
+        const source = fs.readFileSync(sourceFile, 'utf8')
+        fs.writeFileSync(sourceFile, source.replace('Write the exact en guide', 'Rewrite the exact en guide'))
+
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath, {
+            sourceRoot: fixture.root,
+        })
+        expect(diagnostics).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    check: 'split-guide-source',
+                    message: expect.stringContaining('digest differs from manifest'),
+                    file: sourceFile,
+                }),
+            ])
+        )
+    })
+
+    it('blocks compose-source frontmatter drift from both its digest and selected metadata', async () => {
+        const fixture = createFixture()
+        roots.push(fixture.root)
+        const sourceFile = path.join(fixture.root, `content/_system/data/split-guides/${SLUGS[0]}.md`)
+        const source = fs.readFileSync(sourceFile, 'utf8')
+        fs.writeFileSync(sourceFile, source.replace('author: Peanut', 'author: Someone Else'))
+
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath, {
+            sourceRoot: fixture.root,
+        })
+        expect(diagnostics).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    check: 'split-guide-source',
+                    message: expect.stringContaining('digest differs from manifest'),
+                    file: sourceFile,
+                }),
+                expect.objectContaining({
+                    check: 'split-guide-source',
+                    message: expect.stringContaining('author differs between the selected compose source and manifest'),
+                    file: sourceFile,
+                }),
+            ])
+        )
     })
 
     it('blocks guide files when their denormalized contract manifest is missing', async () => {
@@ -195,7 +331,7 @@ describe('Split guide manifest verifier', () => {
         roots.push(fixture.root)
         fs.unlinkSync(fixture.manifestPath)
 
-        const { diagnostics } = await runVerifier(fixture.contentDir, fixture.manifestPath)
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath)
         expect(diagnostics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
@@ -206,20 +342,37 @@ describe('Split guide manifest verifier', () => {
         )
     })
 
-    it('blocks output metadata drift from the selected compose source', async () => {
+    it('blocks output metadata drift from the mirrored manifest contract', async () => {
         const fixture = createFixture()
         roots.push(fixture.root)
         const file = path.join(fixture.contentDir, 'split-guides', SLUGS[0], 'en.md')
-        const parsed = matter(fs.readFileSync(file, 'utf8'))
-        parsed.data.title = 'A Drifted Title'
-        fs.writeFileSync(file, matter.stringify(parsed.content, parsed.data))
+        const content = fs.readFileSync(file, 'utf8')
+        fs.writeFileSync(file, content.replace('title: How to Split the First Group Cost', 'title: A Drifted Title'))
 
-        const { diagnostics } = await runVerifier(fixture.contentDir, fixture.manifestPath)
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath)
         expect(diagnostics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
                     check: 'split-guide-manifest',
-                    message: expect.stringContaining('title differs from the selected compose source'),
+                    message: expect.stringContaining('title differs from the manifest contract'),
+                }),
+            ])
+        )
+    })
+
+    it('reports the effective title limit that includes the route-owned suffix', async () => {
+        const fixture = createFixture()
+        roots.push(fixture.root)
+        const file = path.join(fixture.contentDir, 'split-guides', SLUGS[0], 'en.md')
+        const content = fs.readFileSync(file, 'utf8')
+        fs.writeFileSync(file, content.replace('title: How to Split the First Group Cost', `title: ${'x'.repeat(52)}`))
+
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath)
+        expect(diagnostics).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    check: 'split-guide-contract',
+                    message: expect.stringContaining('raw 52, effective 61'),
                 }),
             ])
         )
@@ -235,7 +388,7 @@ describe('Split guide manifest verifier', () => {
         manifest.allowed_product_claim_ids = ['some-other-claim']
         fs.writeFileSync(fixture.manifestPath, JSON.stringify(manifest))
 
-        const { diagnostics } = await runVerifier(fixture.contentDir, fixture.manifestPath)
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath)
         expect(diagnostics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ check: 'split-guide-locales', message: expect.stringContaining('es-ar.md') }),
@@ -255,7 +408,7 @@ describe('Split guide manifest verifier', () => {
             `someone/else@${'a'.repeat(40)}:apps/web/src/content/blog/${SLUGS[0]}/en.md`
         fs.writeFileSync(fixture.manifestPath, JSON.stringify(manifest))
 
-        const { diagnostics } = await runVerifier(fixture.contentDir, fixture.manifestPath)
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath)
         expect(diagnostics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
@@ -266,12 +419,32 @@ describe('Split guide manifest verifier', () => {
         )
     })
 
+    it('requires a deterministic source digest in the mirrored manifest', async () => {
+        const fixture = createFixture()
+        roots.push(fixture.root)
+        const manifest = JSON.parse(fs.readFileSync(fixture.manifestPath, 'utf8'))
+        delete manifest.guides[SLUGS[0]].en.source.sha256
+        fs.writeFileSync(fixture.manifestPath, JSON.stringify(manifest))
+
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath)
+        expect(diagnostics).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    check: 'split-guide-provenance',
+                    message: expect.stringContaining('source.sha256 must be a lowercase SHA-256 digest'),
+                }),
+            ])
+        )
+    })
+
     it('turns an MDX compiler failure into a blocking malformed-content diagnostic', async () => {
         const fixture = createFixture()
         roots.push(fixture.root)
 
-        const { diagnostics } = await runVerifier(fixture.contentDir, fixture.manifestPath, async () => {
-            throw new SyntaxError('fixture MDX is malformed')
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath, {
+            validateMdx: async () => {
+                throw new SyntaxError('fixture MDX is malformed')
+            },
         })
         expect(diagnostics).toEqual(
             expect.arrayContaining([
@@ -281,5 +454,49 @@ describe('Split guide manifest verifier', () => {
                 }),
             ])
         )
+    })
+
+    it('uses the default runtime compiler to reject a nested H1', async () => {
+        const fixture = createFixture()
+        roots.push(fixture.root)
+        const file = path.join(fixture.contentDir, 'split-guides', SLUGS[0], 'en.md')
+        const parsed = matter(fs.readFileSync(file, 'utf8'))
+        parsed.content = `> # A nested H1\n\n${parsed.content.trimStart()}`
+        fs.writeFileSync(file, matter.stringify(parsed.content, parsed.data))
+
+        const { diagnostics } = runDefaultCompilerVerifier(fixture.contentDir, fixture.manifestPath)
+        expect(diagnostics).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    check: 'split-guide-mdx',
+                    message: expect.stringContaining(
+                        'Malformed or unsafe MDX: Split guide body must not contain an H1'
+                    ),
+                }),
+            ])
+        )
+    })
+
+    it('allows forbidden page syntax when the default runtime compiler sees it inside fenced code', async () => {
+        const fixture = createFixture()
+        roots.push(fixture.root)
+        const file = path.join(fixture.contentDir, 'split-guides', SLUGS[0], 'en.md')
+        const parsed = matter(fs.readFileSync(file, 'utf8'))
+        const fencedExample = [
+            '```mdx',
+            '# Example H1',
+            'Example setext H1',
+            '=================',
+            '<h1>Example HTML</h1>',
+            '<Hero title="Example component" />',
+            '```',
+        ].join('\n')
+        parsed.content = `${fencedExample}\n\n${parsed.content.trimStart()}`
+        fs.writeFileSync(file, matter.stringify(parsed.content, parsed.data))
+
+        expect(runDefaultCompilerVerifier(fixture.contentDir, fixture.manifestPath)).toEqual({
+            diagnostics: [],
+            result: { recordsChecked: 6 },
+        })
     })
 })

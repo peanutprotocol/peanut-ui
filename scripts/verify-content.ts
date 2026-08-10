@@ -29,7 +29,7 @@
 import fs from 'fs'
 import path from 'path'
 import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
-import { verifySplitGuides } from './lib/verify-split-guides'
+import { SPLIT_GUIDE_LOCALES, verifySplitGuides } from './lib/verify-split-guides'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
@@ -37,6 +37,7 @@ const APP_DIR = path.join(process.cwd(), 'src/app/[locale]/(marketing)')
 
 const SUPPORTED_LOCALES = ['en', 'es-419', 'es-ar', 'pt-br']
 const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
+const SPLIT_GUIDE_LOCALE_SET = new Set<string>(SPLIT_GUIDE_LOCALES)
 
 // `content/deposit/` mixes two URL families on the same dynamic route:
 //   exchanges → /{locale}/deposit/from-{slug}
@@ -159,6 +160,12 @@ function hasPublishedLocalePage(intent: string, slug: string, locale: string): b
     return fs.existsSync(file) && isPublished(fs.readFileSync(file, 'utf-8'))
 }
 
+function publishedSplitGuideSlugs(): string[] {
+    return listDirs(path.join(CONTENT_DIR, 'split-guides')).filter((slug) =>
+        hasPublishedLocalePage('split-guides', slug, 'en')
+    )
+}
+
 // --- Build valid paths from actual routes ---
 
 function discoverRoutes(): Set<string> {
@@ -197,9 +204,7 @@ function discoverRoutes(): Set<string> {
     const storySlugs = listDirs(path.join(CONTENT_DIR, 'stories')).filter((s) => s !== 'index')
     const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
     const blogSlugs = listDirs(path.join(CONTENT_DIR, 'blog')).filter((s) => s !== 'index')
-    const splitGuideSlugs = listDirs(path.join(CONTENT_DIR, 'split-guides')).filter((slug) =>
-        hasPublishedLocalePage('split-guides', slug, 'en')
-    )
+    const splitGuideSlugs = publishedSplitGuideSlugs()
 
     // Corridors
     const corridors: Array<{ to: string; from: string }> = []
@@ -306,7 +311,7 @@ function discoverRoutes(): Set<string> {
 
         // Split guides are exact-locale only: never manufacture a route whose
         // locale file would have to fall back.
-        if (hasRoute('split/guides/[slug]')) {
+        if (SPLIT_GUIDE_LOCALE_SET.has(locale) && hasRoute('split/guides/[slug]')) {
             for (const slug of splitGuideSlugs) {
                 if (hasPublishedLocalePage('split-guides', slug, locale)) {
                     routes.add(`/${locale}/split/guides/${slug}`)
@@ -726,9 +731,7 @@ function expectedSitemapUrls(): string[] {
     const storySlugs = listDirs(path.join(CONTENT_DIR, 'stories')).filter((s) => s !== 'index')
     const useCaseSlugs = listDirs(path.join(CONTENT_DIR, 'use-cases'))
     const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
-    const splitGuideSlugs = listDirs(path.join(CONTENT_DIR, 'split-guides')).filter((slug) =>
-        hasPublishedLocalePage('split-guides', slug, 'en')
-    )
+    const splitGuideSlugs = publishedSplitGuideSlugs()
 
     // Corridors (send-to/{dst}/from/{origin}/{lang}.md)
     const corridors: Array<{ from: string; to: string }> = []
@@ -760,9 +763,11 @@ function expectedSitemapUrls(): string[] {
         urls.push(`/${locale}/content`)
         urls.push(`/${locale}/blog`)
         for (const slug of blogSlugs) urls.push(`/${locale}/blog/${slug}`)
-        for (const slug of splitGuideSlugs) {
-            if (hasPublishedLocalePage('split-guides', slug, locale)) {
-                urls.push(`/${locale}/split/guides/${slug}`)
+        if (SPLIT_GUIDE_LOCALE_SET.has(locale)) {
+            for (const slug of splitGuideSlugs) {
+                if (hasPublishedLocalePage('split-guides', slug, locale)) {
+                    urls.push(`/${locale}/split/guides/${slug}`)
+                }
             }
         }
     }
@@ -835,6 +840,9 @@ async function main() {
     const splitGuideResult = await verifySplitGuides({
         contentDir: CONTENT_DIR,
         manifestPath: path.join(ROOT, 'generated/split-guide-manifest.json'),
+        // The mirrored UI content checkout intentionally excludes compose
+        // briefs. Content/release audits can opt into raw source verification.
+        sourceRoot: process.env.SPLIT_GUIDE_SOURCE_ROOT,
         reportError: (check, message, file) => error(check, message, file ? rel(file) : undefined),
     })
     console.log(

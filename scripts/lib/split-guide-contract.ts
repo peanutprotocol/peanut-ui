@@ -7,6 +7,32 @@ interface MdastNode {
     position?: { start?: { line?: number } }
 }
 
+export function stripSplitGuideFencedCode(body: string): string {
+    let fence: { marker: '`' | '~'; length: number } | null = null
+
+    return body
+        .split(/(\r\n|\n)/)
+        .map((line, index) => {
+            if (index % 2 === 1) return line
+            if (fence) {
+                const closingFence = new RegExp(`^ {0,3}\\${fence.marker}{${fence.length},}[ \\t]*$`)
+                if (closingFence.test(line)) fence = null
+                return ' '.repeat(line.length)
+            }
+
+            const openingFence = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
+            if (!openingFence) return line
+
+            const marker = openingFence[1][0] as '`' | '~'
+            // CommonMark does not treat a backtick sequence as an opening fence
+            // when its info string contains another backtick.
+            if (marker === '`' && openingFence[2].includes('`')) return line
+            fence = { marker, length: openingFence[1].length }
+            return ' '.repeat(line.length)
+        })
+        .join('')
+}
+
 /**
  * Authoritative H1 guard for the same remark tree that is compiled into the
  * page. Walking every child catches headings nested in blockquotes and list
@@ -32,9 +58,10 @@ export function remarkRejectSplitGuideH1() {
  */
 export function findSplitGuideHeadingCollisions(body: string): SplitGuideHeadingCollision[] {
     const collisions: SplitGuideHeadingCollision[] = []
-    if (/^[ \t]*#(?:[ \t]+|$)/m.test(body)) collisions.push('atx-h1')
-    if (/^(?![ \t]*$).+\r?\n[ \t]*=+[ \t]*$/m.test(body)) collisions.push('setext-h1')
-    if (/<h1(?:\s|>)/i.test(body)) collisions.push('html-h1')
-    if (/<Hero\b/.test(body)) collisions.push('hero')
+    const scannable = stripSplitGuideFencedCode(body)
+    if (/^[ \t]*#(?:[ \t]+|$)/m.test(scannable)) collisions.push('atx-h1')
+    if (/^(?![ \t]*$).+\r?\n[ \t]*=+[ \t]*$/m.test(scannable)) collisions.push('setext-h1')
+    if (/<h1(?:\s|>)/i.test(scannable)) collisions.push('html-h1')
+    if (/<Hero\b/.test(scannable)) collisions.push('hero')
     return collisions
 }

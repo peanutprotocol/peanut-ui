@@ -1,11 +1,17 @@
+import { createHash } from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { isDeepStrictEqual } from 'util'
 import matter from 'gray-matter'
 import { remarkNoExecutableContent } from '../../src/lib/mdx-security'
-import { findSplitGuideHeadingCollisions, remarkRejectSplitGuideH1 } from './split-guide-contract'
+import {
+    findSplitGuideHeadingCollisions,
+    remarkRejectSplitGuideH1,
+    stripSplitGuideFencedCode,
+} from './split-guide-contract'
 
-const LOCALES = ['en', 'es-419', 'pt-br'] as const
+export const SPLIT_GUIDE_LOCALES = ['en', 'es-419', 'pt-br'] as const
+const LOCALES = SPLIT_GUIDE_LOCALES
 type SplitGuideLocale = (typeof LOCALES)[number]
 
 const LOCALE_SET = new Set<string>(LOCALES)
@@ -60,6 +66,19 @@ const SOURCE_METADATA_FIELDS = [
     'generated_from',
     'generated_at',
 ] as const
+const SOURCE_BRIEF_METADATA_FIELDS = [
+    'title',
+    'description',
+    'slug',
+    'type',
+    'lang',
+    'author',
+    'date',
+    'tags',
+    'claims',
+    'cast',
+    'schema_types',
+] as const
 
 type ReportError = (check: string, message: string, file?: string) => void
 
@@ -67,6 +86,8 @@ export interface VerifySplitGuidesOptions {
     contentDir: string
     manifestPath: string
     reportError: ReportError
+    /** Optional mono/content checkout root for recomputing source digests. */
+    sourceRoot?: string
     /** Test seam; production uses the same compiler as the runtime MDX stack. */
     validateMdx?: (body: string) => Promise<void>
 }
@@ -106,7 +127,7 @@ interface ManifestLocaleEntry extends Record<string, unknown> {
     schema_types: string[]
     canonical: string
     alternates: Record<string, string>
-    source: { path: string; content_mode: string; source_provenance: string }
+    source: { path: string; content_mode: string; source_provenance: string; sha256: string }
     generated_from: Record<string, unknown>
     generated_at: string
 }
@@ -181,7 +202,6 @@ function expectedGeneratedFrom(slug: string, locale: SplitGuideLocale): Record<s
         data.push(`content/_system/data/split-guides/${slug}.${locale}.md`)
         context.push(`projects/peanut-split/seo/localization.${locale}.md`)
     }
-    context.push('content/_system/context/valid-links.md')
 
     return {
         template: 'content/_system/templates/split-guide.md',
@@ -331,9 +351,89 @@ function validateManifestEntry(
                 )
             }
         }
+        if (typeof entry.source.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(entry.source.sha256)) {
+            reportError('split-guide-provenance', 'source.sha256 must be a lowercase SHA-256 digest', label)
+        }
     }
 
     return true
+}
+
+function sourceFrontmatterValue(
+    content: string,
+    frontmatter: Record<string, unknown>,
+    field: (typeof SOURCE_BRIEF_METADATA_FIELDS)[number]
+): unknown {
+    return field === 'date' ? rawFrontmatterScalar(content, field) : frontmatter[field]
+}
+
+function validateManifestSource(
+    slug: string,
+    locale: SplitGuideLocale,
+    entry: unknown,
+    sourceRoot: string,
+    manifestPath: string,
+    reportError: ReportError
+) {
+    if (!isRecord(entry) || !isRecord(entry.source) || typeof entry.source.path !== 'string') return
+
+    const label = `${manifestPath}#guides.${slug}.${locale}`
+    const resolvedRoot = path.resolve(sourceRoot)
+    const sourceFile = path.resolve(resolvedRoot, entry.source.path)
+    if (!sourceFile.startsWith(`${resolvedRoot}${path.sep}`)) {
+        reportError('split-guide-source', 'source.path must stay within the configured source root', label)
+        return
+    }
+
+    let bytes: Buffer
+    try {
+        bytes = fs.readFileSync(sourceFile)
+    } catch (cause) {
+        const message = cause instanceof Error ? cause.message : String(cause)
+        reportError('split-guide-source', `Unable to read selected compose source: ${message}`, sourceFile)
+        return
+    }
+
+    const actualDigest = createHash('sha256').update(Uint8Array.from(bytes)).digest('hex')
+    if (entry.source.sha256 !== actualDigest) {
+        reportError(
+            'split-guide-source',
+            `Selected compose source digest differs from manifest (expected ${String(entry.source.sha256)}, found ${actualDigest})`,
+            sourceFile
+        )
+    }
+
+    const content = bytes.toString('utf8')
+    let frontmatter: Record<string, unknown>
+    try {
+        const parsed = matter(content)
+        if (!isRecord(parsed.data)) throw new Error('frontmatter must be an object')
+        frontmatter = parsed.data
+    } catch (cause) {
+        const message = cause instanceof Error ? cause.message : String(cause)
+        reportError('split-guide-source', `Malformed compose-source frontmatter: ${message}`, sourceFile)
+        return
+    }
+
+    for (const field of SOURCE_BRIEF_METADATA_FIELDS) {
+        const actualValue = sourceFrontmatterValue(content, frontmatter, field)
+        if (!isDeepStrictEqual(actualValue, entry[field])) {
+            reportError(
+                'split-guide-source',
+                `${field} differs between the selected compose source and manifest (expected ${JSON.stringify(entry[field])}, found ${JSON.stringify(actualValue)})`,
+                sourceFile
+            )
+        }
+    }
+    for (const field of ['content_mode', 'source_provenance'] as const) {
+        if (!isDeepStrictEqual(frontmatter[field], entry.source[field])) {
+            reportError(
+                'split-guide-source',
+                `${field} differs between the selected compose source and manifest (expected ${JSON.stringify(entry.source[field])}, found ${JSON.stringify(frontmatter[field])})`,
+                sourceFile
+            )
+        }
+    }
 }
 
 function extractJsxTags(body: string): ParsedJsxTag[] {
@@ -462,10 +562,10 @@ function validateFrontmatter(
         if (/\|\s*Peanut\s*$/i.test(fm.title)) {
             reportError('split-guide-contract', 'title must be raw; the route owns the | Peanut suffix', file)
         }
-        if (rawLength > 60 || effectiveLength > 60) {
+        if (effectiveLength > 60) {
             reportError(
                 'split-guide-contract',
-                `title is too long (raw ${rawLength}, effective ${effectiveLength}; both must be <= 60)`,
+                `title is too long (raw ${rawLength}, effective ${effectiveLength} with the " | Peanut" suffix; raw title must be <= 51)`,
                 file
             )
         }
@@ -525,7 +625,7 @@ function validateFrontmatter(
         if (!isDeepStrictEqual(actualValue, expectedValue)) {
             reportError(
                 'split-guide-manifest',
-                `${field} differs from the selected compose source (expected ${JSON.stringify(expectedValue)}, found ${JSON.stringify(actualValue)})`,
+                `${field} differs from the manifest contract (expected ${JSON.stringify(expectedValue)}, found ${JSON.stringify(actualValue)})`,
                 file
             )
         }
@@ -539,6 +639,9 @@ async function validateBody(
     validateMdx: (body: string) => Promise<void>
 ) {
     const { body, file, locale, slug } = record
+    // Examples may intentionally show forbidden page syntax. Preserve byte
+    // offsets while hiding fenced code from source-level regex/tag checks.
+    const scannableBody = stripSplitGuideFencedCode(body)
     const headingCollisionMessages = {
         'atx-h1': 'Body must not contain an ATX H1 (including indented forms)',
         'setext-h1': 'Body must not contain a CommonMark setext H1',
@@ -548,19 +651,29 @@ async function validateBody(
     for (const collision of findSplitGuideHeadingCollisions(body)) {
         reportError('split-guide-mdx', headingCollisionMessages[collision], file)
     }
-    if (/<FAQ(?:Item)?\b/.test(body)) reportError('split-guide-mdx', 'Split guides must not contain FAQ', file)
-    if (/peanutsplit\.com/i.test(body)) {
+    if (/<FAQ(?:Item)?\b/.test(scannableBody)) reportError('split-guide-mdx', 'Split guides must not contain FAQ', file)
+    if (/peanutsplit\.com/i.test(scannableBody)) {
         reportError('split-guide-contract', 'Legacy peanutsplit.com links are forbidden', file)
     }
 
     try {
         await validateMdx(body)
     } catch (cause) {
-        const message = cause instanceof Error ? cause.message.split('\n')[0] : String(cause)
+        const rawMessage = cause instanceof Error ? cause.message : String(cause)
+        const message =
+            rawMessage
+                .split('\n')
+                .map((line) => line.trim())
+                .find(
+                    (line) =>
+                        line &&
+                        line !== '[next-mdx-remote] error compiling MDX:' &&
+                        !line.startsWith('More information:')
+                ) ?? rawMessage.split('\n')[0]
         reportError('split-guide-mdx', `Malformed or unsafe MDX: ${message}`, file)
     }
 
-    const tags = extractJsxTags(body)
+    const tags = extractJsxTags(scannableBody)
     const attrsByTag = new Map<ParsedJsxTag, Record<string, string>>()
     for (const tag of tags) {
         const attrs = validateComponentProps(record, tag, reportError)
@@ -627,7 +740,7 @@ async function validateBody(
     }
 
     const related = relatedPages[0]
-    const relatedCloseMatches = [...body.matchAll(/<\/RelatedPages\s*>/g)]
+    const relatedCloseMatches = [...scannableBody.matchAll(/<\/RelatedPages\s*>/g)]
     if (relatedCloseMatches.length !== 1) {
         reportError(
             'split-guide-contract',
@@ -653,7 +766,7 @@ async function validateBody(
 
     const relatedLink = relatedLinks[0]
     const relatedAttrs = relatedLink ? attrsByTag.get(relatedLink) : undefined
-    const relatedLinkCloseMatches = [...body.matchAll(/<\/RelatedLink\s*>/g)]
+    const relatedLinkCloseMatches = [...scannableBody.matchAll(/<\/RelatedLink\s*>/g)]
     if (relatedLinkCloseMatches.length !== 1) {
         reportError(
             'split-guide-contract',
@@ -715,6 +828,7 @@ export async function verifySplitGuides({
     contentDir,
     manifestPath,
     reportError,
+    sourceRoot,
     validateMdx = compileSplitGuideMdx,
 }: VerifySplitGuidesOptions): Promise<VerifySplitGuidesResult> {
     const splitRoot = path.join(contentDir, 'split-guides')
@@ -795,6 +909,9 @@ export async function verifySplitGuides({
         for (const locale of LOCALES) {
             const manifestEntry = isRecord(manifestGuides[slug]) ? manifestGuides[slug][locale] : undefined
             validateManifestEntry(slug, locale, manifestEntry, allowedClaims, manifestPath, reportError)
+            if (sourceRoot) {
+                validateManifestSource(slug, locale, manifestEntry, sourceRoot, manifestPath, reportError)
+            }
 
             const file = path.join(slugDir, `${locale}.md`)
             if (!fs.existsSync(file)) continue

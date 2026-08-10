@@ -53,6 +53,8 @@ describe('localeHref', () => {
         expect(hasRouteScopedLocaleSwitcher('/en/split/guides/group-trip')).toBe(true)
         expect(hasRouteScopedLocaleSwitcher('/pt-br/split/guides/group-trip')).toBe(true)
         expect(hasRouteScopedLocaleSwitcher('/en/split')).toBe(false)
+        expect(hasRouteScopedLocaleSwitcher('/en/split/guides')).toBe(false)
+        expect(hasRouteScopedLocaleSwitcher('/en/split/guides/a/b')).toBe(true)
         expect(hasRouteScopedLocaleSwitcher('/split/guides/group-trip')).toBe(false)
         expect(hasRouteScopedLocaleSwitcher('/en/blog/group-trip')).toBe(false)
     })

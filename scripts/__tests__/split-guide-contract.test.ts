@@ -1,4 +1,8 @@
-import { findSplitGuideHeadingCollisions, remarkRejectSplitGuideH1 } from '../lib/split-guide-contract'
+import {
+    findSplitGuideHeadingCollisions,
+    remarkRejectSplitGuideH1,
+    stripSplitGuideFencedCode,
+} from '../lib/split-guide-contract'
 
 const h1 = (line: number) => ({
     type: 'heading',
@@ -24,6 +28,27 @@ describe('Split guide route-owned H1 guard', () => {
 
     it('allows ordinary content and lower-level headings', () => {
         expect(findSplitGuideHeadingCollisions('## Section\n\n### Detail\n\nPlain copy.')).toEqual([])
+    })
+
+    it('allows heading and component syntax when it is shown inside fenced code', () => {
+        expect(
+            findSplitGuideHeadingCollisions(`\`\`\`mdx
+# Example H1
+Example setext H1
+=================
+<h1>Example HTML</h1>
+<Hero title="Example component" />
+\`\`\``)
+        ).toEqual([])
+    })
+
+    it('preserves offsets while hiding fenced code, including CRLF input', () => {
+        const body = 'Before\r\n```mdx\r\n<Hero title="Example" />\r\n```\r\n<CTA />'
+        const stripped = stripSplitGuideFencedCode(body)
+
+        expect(stripped).toHaveLength(body.length)
+        expect(stripped.indexOf('<CTA />')).toBe(body.indexOf('<CTA />'))
+        expect(stripped).not.toContain('<Hero')
     })
 
     describe('authoritative remark AST traversal', () => {
