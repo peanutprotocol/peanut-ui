@@ -4969,6 +4969,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fx/card-markup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Public, indicative estimate of how much more a foreign card costs than Peanut in one local currency. markupPct is a fraction, not a percentage. Not a quote: consumers must not add a fee on top of it. */
+        get: {
+            parameters: {
+                query: {
+                    /** @description ISO-style currency code or supported four-letter internal ticker */
+                    currency: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            currency: string;
+                            markupPct: string;
+                            source: "live" | "static";
+                            /** @enum {boolean} */
+                            indicative: true;
+                            components?: {
+                                peanutUsdRate: string;
+                                officialUsdRate: string;
+                                issuerFeePct: string;
+                            };
+                            effectiveAt: string | null;
+                            /** Format: date-time */
+                            generatedAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fx/rate": {
         parameters: {
             query?: never;

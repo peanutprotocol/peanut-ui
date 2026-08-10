@@ -6,6 +6,7 @@ import type { paths } from '@/types/api.generated'
 // why it lives apart from utils/currency.ts, which pulls in useCurrency.
 
 type FxRateResponse = paths['/fx/rate']['get']['responses'][200]['content']['application/json']
+type FxCardMarkupResponse = paths['/fx/card-markup']['get']['responses'][200]['content']['application/json']
 type FxSelection = FxRateResponse['selection']
 type FxSource = FxRateResponse['fromSource']
 const PLAIN_DECIMAL = /^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/
@@ -148,4 +149,100 @@ export async function fetchDisplayRate(fromCurrency: string, toCurrency: string)
         throw new Error(`FX API returned an invalid rate contract for ${from}→${to}`)
     }
     return rate
+}
+
+export interface CardMarkup {
+    /** Markup as a fraction: card price = peanut price × (1 + rate). */
+    rate: number
+    /** Whether the backend computed this from live observations or served its documented assumption. */
+    source: 'live' | 'static'
+}
+
+// A card costing half again as much as Peanut is an upstream fault, not a
+// saving worth advertising. The backend already bounds its live lane tighter;
+// this is the client's own refusal to render an absurd claim.
+const MAX_CARD_MARKUP = 0.5
+
+function positiveDecimal(value: unknown): number | null {
+    if (typeof value !== 'string' || !PLAIN_DECIMAL.test(value)) return null
+    const parsed = Number(value)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function parseCardMarkupResponse(
+    value: unknown,
+    currency: string,
+    lockedPeanutRate?: number | null
+): CardMarkup | null {
+    if (!value || typeof value !== 'object') return null
+
+    const data = value as Partial<FxCardMarkupResponse>
+    if (data.currency !== currency || data.indicative !== true) return null
+    if (data.source !== 'live' && data.source !== 'static') return null
+
+    const generatedAt = timestamp(data.generatedAt)
+    if (generatedAt === null) return null
+    const generatedAge = Date.now() - generatedAt
+    if (generatedAge > MAX_GENERATED_AGE_MS + MAX_CLIENT_CLOCK_SKEW_MS || generatedAge < -MAX_CLIENT_CLOCK_SKEW_MS) {
+        return null
+    }
+
+    const markupPct = positiveDecimal(data.markupPct)
+    if (markupPct === null || markupPct >= MAX_CARD_MARKUP) return null
+    if (data.source === 'static') return { rate: markupPct, source: 'static' }
+
+    // A live answer without its inputs cannot be a live answer.
+    const components = data.components
+    if (!components || typeof components !== 'object') return null
+    const officialUsdRate = positiveDecimal(components.officialUsdRate)
+    const issuerFeePct = positiveDecimal(components.issuerFeePct)
+    if (positiveDecimal(components.peanutUsdRate) === null || officialUsdRate === null || issuerFeePct === null) {
+        return null
+    }
+    if (issuerFeePct >= 1) return null
+
+    // A caller holding a locked Peanut price must compare a card against THAT
+    // price. Otherwise the saving on screen is not the saving the user gets.
+    if (typeof lockedPeanutRate === 'number' && lockedPeanutRate > 0) {
+        const lockedMarkup = lockedPeanutRate / (officialUsdRate * (1 - issuerFeePct)) - 1
+        if (Number.isFinite(lockedMarkup) && lockedMarkup > 0 && lockedMarkup < MAX_CARD_MARKUP) {
+            return { rate: lockedMarkup, source: 'live' }
+        }
+    }
+    return { rate: markupPct, source: 'live' }
+}
+
+/**
+ * Reads the backend's indicative card-vs-Peanut markup. Throws on every
+ * failure — the fallback policy lives in `useCardMarkupRate`, so a caller that
+ * wants the raw contract still gets it.
+ *
+ * @param lockedPeanutRate Optional. Local-currency units per USD the caller has
+ *        already locked (a QR payment does). Ignored on a static answer, which
+ *        carries no components to recompute from.
+ */
+export async function fetchCardMarkup(currencyCode: string, lockedPeanutRate?: number | null): Promise<CardMarkup> {
+    const currency = currencyCode.toUpperCase()
+    const query = new URLSearchParams({ currency })
+    const response = await apiFetch(`/fx/card-markup?${query.toString()}`, {
+        method: 'GET',
+        includeAuth: false,
+        credentials: 'omit',
+        redirect: 'error',
+        timeoutMs: 10_000,
+    })
+    if (!response.ok) {
+        throw new FxApiError(response.status, currency, 'card-markup', response.headers?.get?.('Retry-After') ?? null)
+    }
+
+    let data: unknown
+    try {
+        data = await response.json()
+    } catch {
+        throw new Error(`FX API returned invalid JSON for the ${currency} card markup`)
+    }
+
+    const markup = parseCardMarkupResponse(data, currency, lockedPeanutRate)
+    if (markup === null) throw new Error(`FX API returned an invalid card-markup contract for ${currency}`)
+    return markup
 }
