@@ -43,7 +43,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
 
     if (variant === 'card') {
         return (
-            <div className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
+            <div data-mdx-cta="card" className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
                 <div className="relative">
                     <Image
                         src={PeanutPointingDown}

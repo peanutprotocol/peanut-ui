@@ -87,7 +87,10 @@ export default async function SplitGuidePage({ params }: PageProps) {
                         </time>
                     </header>
                 </div>
-                {content}
+                {/* Card CTA mascots extend above their container; keep that clearance scoped to Split guides. */}
+                <div data-split-guide-body className="[&_[data-mdx-cta=card]]:!pt-24 md:[&_[data-mdx-cta=card]]:!pt-28">
+                    {content}
+                </div>
             </ContentPage>
         </>
     )

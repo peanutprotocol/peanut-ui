@@ -104,6 +104,11 @@ describe('Split route ownership and guide rendering', () => {
 
         expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(guide.frontmatter.title)
+        expect(container.querySelector('[data-split-guide-body]')).toHaveClass(
+            '[&_[data-mdx-cta=card]]:!pt-24',
+            'md:[&_[data-mdx-cta=card]]:!pt-28'
+        )
+        expect(container.querySelector('[data-split-guide-body]')).toHaveTextContent('Guide body')
 
         const schemas = Array.from(container.querySelectorAll('script[type="application/ld+json"]')).map(
             (script) => JSON.parse(script.textContent ?? '{}') as Record<string, unknown>
