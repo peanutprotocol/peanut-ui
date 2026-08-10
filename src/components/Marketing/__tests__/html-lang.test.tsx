@@ -2,6 +2,10 @@ import { render, waitFor } from '@testing-library/react'
 import { AppIntlProvider, useAppLocale } from '@/i18n/app/AppIntlProvider'
 import { HtmlLang } from '@/components/Marketing/HtmlLang'
 import LocalizedMarketingLayout from '@/app/[locale]/(marketing)/layout'
+import RootPage from '@/app/page'
+import EsLatamLandingPage from '@/app/es-419/page'
+import EsArgentinaLandingPage from '@/app/es-ar/page'
+import PtBrLandingPage from '@/app/pt-br/page'
 import { localeReady } from '@/i18n/app/locale-store'
 
 let mockPathname = '/'
@@ -61,6 +65,21 @@ describe('localized marketing document language', () => {
         })
     })
 
+    it.each([
+        ['en', RootPage],
+        ['es-419', EsLatamLandingPage],
+        ['es-ar', EsArgentinaLandingPage],
+        ['pt-br', PtBrLandingPage],
+    ] as const)('marks the literal %s landing page as its document-language owner', (locale, Page) => {
+        expect(Page()).toMatchObject({
+            type: 'main',
+            props: {
+                'data-marketing-locale': locale,
+                lang: locale,
+            },
+        })
+    })
+
     it.each(['es-419', 'pt-br'] as const)(
         'keeps the route-owned %s locale after the global app locale provider hydrates',
         async (locale) => {
@@ -105,6 +124,34 @@ describe('localized marketing document language', () => {
         )
 
         await waitFor(() => expect(document.documentElement.lang).toBe('pt-BR'))
+    })
+
+    it('preserves a literal landing locale when navigating from product UI', async () => {
+        mockedLocaleReady.mockResolvedValue('pt-BR')
+        mockPathname = '/home'
+        const view = renderInMarketingRoot(
+            {},
+            <>
+                <LocaleProbe />
+                <div>Product UI</div>
+            </>
+        )
+
+        await waitFor(() => expect(view.getByTestId('app-locale')).toHaveTextContent('pt-BR'))
+        expect(document.documentElement.lang).toBe('pt-BR')
+
+        mockPathname = '/es-419'
+        view.container.dataset.marketingLocale = 'es-419'
+        view.container.lang = 'es-419'
+        view.rerender(
+            <AppIntlProvider>
+                <HtmlLang locale="es-419" />
+                <LocaleProbe />
+                <div>Localized landing</div>
+            </AppIntlProvider>
+        )
+
+        await waitFor(() => expect(document.documentElement.lang).toBe('es-419'))
     })
 
     it.each([

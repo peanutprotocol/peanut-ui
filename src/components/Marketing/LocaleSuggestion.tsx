@@ -55,9 +55,9 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
 
     // Always render the wrapper, even when there's nothing to suggest. Returning
     // null during SSR leaves React no anchor for the node the effect creates
-    // later, and on the landing page — whose parent container is <body>, full of
-    // Next's streamed nodes — the banner got appended at the very bottom of the
-    // page instead of the top. An empty div collapses to zero height.
+    // later. On the landing page that once made the banner jump below Next's
+    // streamed nodes instead of staying at the top. An empty div collapses to
+    // zero height and preserves the insertion point.
     if (!suggested) return <div />
 
     const i18n = STRINGS[suggested]

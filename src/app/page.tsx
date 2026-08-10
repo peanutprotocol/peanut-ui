@@ -11,13 +11,13 @@ export const metadata = landingMetadata(DEFAULT_LOCALE)
 
 export default function RootPage() {
     return (
-        <>
+        <main data-marketing-locale={DEFAULT_LOCALE} lang={DEFAULT_LOCALE}>
             <LocaleSuggestion locale={DEFAULT_LOCALE} />
             <LandingPageCapacitorGate>
                 <LandingPageShell>
                     <LandingPageContent locale={DEFAULT_LOCALE} />
                 </LandingPageShell>
             </LandingPageCapacitorGate>
-        </>
+        </main>
     )
 }

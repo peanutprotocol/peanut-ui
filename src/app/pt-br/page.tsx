@@ -15,7 +15,7 @@ export const metadata: Metadata = landingMetadata(LOCALE)
 
 export default function PtBrLandingPage() {
     return (
-        <>
+        <main data-marketing-locale={LOCALE} lang={LOCALE}>
             <HtmlLang locale={LOCALE} />
             <LocaleSuggestion locale={LOCALE} />
             <LandingPageCapacitorGate>
@@ -23,6 +23,6 @@ export default function PtBrLandingPage() {
                     <LandingPageContent locale={LOCALE} />
                 </LandingPageShell>
             </LandingPageCapacitorGate>
-        </>
+        </main>
     )
 }
