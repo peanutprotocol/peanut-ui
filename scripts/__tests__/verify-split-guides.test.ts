@@ -41,6 +41,7 @@ function generatedFrom(slug: string, locale: (typeof LOCALES)[number]) {
             'content/_system/guidelines/seo.md',
             'content/_system/guidelines/components.md',
             'content/_system/guidelines/locales.md',
+            'content/_system/guidelines/intent-taxonomy.md',
         ],
     }
 }
@@ -62,7 +63,7 @@ function manifestEntry(slug: string, locale: (typeof LOCALES)[number], sourceSha
         tags: ['groups', 'expenses'],
         claims: ['free-forever'],
         cast: [],
-        schema_types: ['Article', 'BlogPosting'],
+        schema_types: ['BlogPosting'],
         canonical: `peanut.me/${locale}/split/guides/${slug}`,
         alternates: alternates(slug),
         source: {
@@ -355,6 +356,35 @@ describe('Split guide manifest verifier', () => {
                 expect.objectContaining({
                     check: 'split-guide-manifest',
                     message: expect.stringContaining('title differs from the manifest contract'),
+                }),
+            ])
+        )
+    })
+
+    it('rejects a redundant Article schema beside BlogPosting', async () => {
+        const fixture = createFixture()
+        roots.push(fixture.root)
+        const file = path.join(fixture.contentDir, 'split-guides', SLUGS[0], 'en.md')
+        const parsed = matter(fs.readFileSync(file, 'utf8'))
+        fs.writeFileSync(
+            file,
+            matter.stringify(parsed.content, { ...parsed.data, schema_types: ['Article', 'BlogPosting'] })
+        )
+
+        const manifest = JSON.parse(fs.readFileSync(fixture.manifestPath, 'utf8'))
+        manifest.guides[SLUGS[0]].en.schema_types = ['Article', 'BlogPosting']
+        fs.writeFileSync(fixture.manifestPath, JSON.stringify(manifest))
+
+        const { diagnostics } = await runFastVerifier(fixture.contentDir, fixture.manifestPath)
+        expect(diagnostics).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    check: 'split-guide-manifest',
+                    message: expect.stringContaining('exactly [BlogPosting]'),
+                }),
+                expect.objectContaining({
+                    check: 'split-guide-contract',
+                    message: expect.stringContaining('exactly [BlogPosting]'),
                 }),
             ])
         )

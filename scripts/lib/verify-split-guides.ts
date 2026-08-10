@@ -213,6 +213,7 @@ function expectedGeneratedFrom(slug: string, locale: SplitGuideLocale): Record<s
             'content/_system/guidelines/seo.md',
             'content/_system/guidelines/components.md',
             'content/_system/guidelines/locales.md',
+            'content/_system/guidelines/intent-taxonomy.md',
         ],
     }
 }
@@ -317,8 +318,8 @@ function validateManifestEntry(
         }
     }
     if (!isStringArray(entry.cast, true)) reportError('split-guide-manifest', 'cast must be a string array', label)
-    if (!isDeepStrictEqual(entry.schema_types, ['Article', 'BlogPosting'])) {
-        reportError('split-guide-manifest', 'schema_types must be exactly [Article, BlogPosting]', label)
+    if (!isDeepStrictEqual(entry.schema_types, ['BlogPosting'])) {
+        reportError('split-guide-manifest', 'schema_types must be exactly [BlogPosting]', label)
     }
     if (!isDeepStrictEqual(entry.alternates, expectedAlternates(slug))) {
         reportError('split-guide-manifest', 'alternates do not match the exact three locale files', label)
@@ -602,8 +603,8 @@ function validateFrontmatter(
     if (!isStringArray(fm.tags, false)) {
         reportError('split-guide-contract', 'tags must be a nonempty array of nonempty strings', file)
     }
-    if (!isDeepStrictEqual(fm.schema_types, ['Article', 'BlogPosting'])) {
-        reportError('split-guide-contract', 'schema_types must be exactly [Article, BlogPosting]', file)
+    if (!isDeepStrictEqual(fm.schema_types, ['BlogPosting'])) {
+        reportError('split-guide-contract', 'schema_types must be exactly [BlogPosting]', file)
     }
     if (!isDeepStrictEqual(fm.alternates, expectedAlternates(slug))) {
         reportError('split-guide-contract', 'alternates must list exactly the three exact-locale guide files', file)
