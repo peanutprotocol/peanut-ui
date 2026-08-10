@@ -10,6 +10,8 @@ import { CountryGrid } from './CountryGrid'
 import { ProseStars } from './ProseStars'
 import { Tabs, TabPanel } from './Tabs'
 import { PROSE_WIDTH } from './constants'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { localizeContentHref } from '@/i18n/config'
 
 /**
  * Component map for MDX content rendering.
@@ -21,7 +23,34 @@ import { PROSE_WIDTH } from './constants'
  * Paragraph spacing: mb-6 (24px) matching Wise
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const mdxComponents: Record<string, React.ComponentType<any>> = {
+type MdxComponentMap = Record<string, React.ComponentType<any>>
+
+/**
+ * Locale is injected here rather than authored in MDX: content files are
+ * locale-agnostic (one file per locale, same component tags), so any component
+ * that builds links or copy has to be bound to the page's locale or it silently
+ * falls back to English.
+ */
+export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxComponentMap {
+    return {
+        ...mdxComponents,
+        CountryGrid: (props) => <CountryGrid {...props} locale={locale} />,
+        Steps: (props) => <Steps {...props} locale={locale} />,
+        RelatedPages: (props) => <RelatedPages {...props} locale={locale} />,
+        FAQ: (props) => <FAQ {...props} locale={locale} />,
+        // Markdown links are authored with mixed locale prefixes (`/en/help/x`,
+        // `/help/x`), so a Spanish page would otherwise link back to English.
+        a: ({ href = '', ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+            <Link
+                href={localizeContentHref(href, locale)}
+                className="text-n-1 underline decoration-n-1/30 underline-offset-2 hover:decoration-n-1"
+                {...props}
+            />
+        ),
+    }
+}
+
+export const mdxComponents: MdxComponentMap = {
     // Custom components
     Hero,
     Steps,

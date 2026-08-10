@@ -52,6 +52,7 @@ import {
     validateMinimumAmount,
 } from '@/constants/payment.consts'
 import { useAppDispatch } from '@/redux/hooks'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useTranslations } from 'next-intl'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
@@ -95,6 +96,7 @@ export default function SendLinkActionList({
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const { user } = useAuth()
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({ trackImpressionWhenGuest: !isLoggedIn })
     const {
         setSelectedTokenAddress,
         setSelectedChainID,
@@ -187,6 +189,9 @@ export default function SendLinkActionList({
     }
 
     const handleContinueWithPeanut = () => {
+        // migration window: web signups are closed — hand the guest to the
+        // app stores instead (QR modal on desktop, store link on mobile)
+        if (!isLoggedIn && interceptGuestCta()) return
         addParamStep('claim')
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
         const rawUsername = claimLinkData?.sender?.username
@@ -214,6 +219,7 @@ export default function SendLinkActionList({
 
     return (
         <div className="space-y-2">
+            {storeHandoffModal}
             {showDevconnectMethod && (
                 <>
                     <Button

@@ -8,10 +8,10 @@ import type { IconName } from '@/components/Global/Icons/Icon'
 // this component shows the identity-verification status when more action is needed
 // from the user. Prefers the per-label copy when reject labels are present (e.g.
 // DUPLICATE_EMAIL → "Email already in use, sign in to that account or contact
-// support") and only falls back to the backend's generic actionMessage when there
-// are none. The backend (identity.ts → actionMessageFor) sends a fixed, generic
-// "resubmit your documents" message for every action_required state — it is never
-// label-specific — so checking it first would mask the actionable per-label copy.
+// support") and only falls back to a generic message when there are none. The
+// backend's actionMessage (identity.ts → actionMessageFor) is a pure function of
+// status — never label-specific — so its PRESENCE is the signal and the copy
+// itself comes from the catalog, keyed off the state we're already in.
 // RejectLabelsList already renders its own generic fallback for empty labels, so
 // the no-labels-no-actionMessage case lands there safely.
 export const KycActionRequired = ({
@@ -33,7 +33,7 @@ export const KycActionRequired = ({
             <KYCStatusDrawerItem status="pending" customText={t('actionNeeded')} />
 
             {!rejectLabels?.length && actionMessage ? (
-                <InfoCard variant="info" icon="alert" description={actionMessage} />
+                <InfoCard variant="info" icon="alert" description={t('actionMessageActionRequired')} />
             ) : (
                 <RejectLabelsList rejectLabels={rejectLabels} />
             )}

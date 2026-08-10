@@ -12,6 +12,8 @@ import WISE_ICON from '@/assets/icons/wise-logo.svg'
 import Star from '@/assets/illustrations/star.svg'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 const bgColor = '#F9F4F0'
 
@@ -32,7 +34,9 @@ const regulatedRailsClouds = [
     { top: '60%', width: 220, speed: '34s', direction: 'rtl' as const },
 ]
 
-export function RegulatedRails() {
+export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
+    const i18n = getTranslations(locale)
+
     return (
         <section
             id="regulated-rails"
@@ -50,28 +54,25 @@ export function RegulatedRails() {
                 </AnimateOnView>
 
                 <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] font-extraBlack !leading-[5rem] md:text-6xl lg:text-headingMedium">
-                    YOUR MONEY. YOUR RULES.
+                    {i18n.landingRailsHeading}
                 </h1>
-                <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">
-                    Connect your wallet to your bank and local payment networks like PIX and MercadoPago through
-                    licensed partners — so you can pay like a local without giving up control of your funds.
-                </p>
+                <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">{i18n.landingRailsBody}</p>
 
                 <h6 className="font-roboto-flex mt-3 text-xs md:text-lg">
                     <a
-                        href="/en/help/supported-geographies"
+                        href={`/${locale}/help/supported-geographies`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-n-1 underline"
                     >
-                        Learn more
+                        {i18n.landingLearnMore}
                     </a>
                 </h6>
             </div>
 
             <div className="w-full">
                 <p className="mb-4 text-center text-sm font-medium uppercase tracking-widest text-n-1 opacity-60">
-                    Works with
+                    {i18n.landingWorksWith}
                 </p>
                 <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none">
                     {logos.map((logo) => (

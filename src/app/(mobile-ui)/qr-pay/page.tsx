@@ -28,7 +28,7 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
-import { calculateSavingsInCents, hasCardMarkupComparison, getSavingsMessage } from '@/utils/qr-payment.utils'
+import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -1269,7 +1269,14 @@ export default function QRPayPage() {
         // Rate is live (BCRA for ARS) via useCardMarkupRate above.
         const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
         const showSavingsMessage = savingsInCents > 0 && hasCardMarkupComparison(currency?.code)
-        const savingsMessage = showSavingsMessage ? getSavingsMessage(savingsInCents) : ''
+        // < $1 reads in cents, otherwise in dollars — same split the old English-only util made
+        const savingsMessage = showSavingsMessage
+            ? savingsInCents < 100
+                ? t('success.savedVsCardCents', { count: savingsInCents })
+                : t('success.savedVsCardDollars', {
+                      amount: formatNumberForDisplay((savingsInCents / 100).toString(), { maxDecimals: 2 }),
+                  })
+            : ''
 
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
@@ -1450,7 +1457,11 @@ export default function QRPayPage() {
                                     onClick={() => {
                                         const now = new Date()
                                         openTransactionDetails({
-                                            id: qrPayment!.externalId,
+                                            // Manteca synthetic id — the only key /receipt/<id>
+                                            // resolves, and what Activity rows already carry.
+                                            // `externalId` is UUID-shaped, so it slips past the
+                                            // id-shape gate and 404s silently instead of erroring.
+                                            id: qrPayment!.id,
                                             direction: 'qr_payment',
                                             userName: qrPayment!.details.merchant.name,
                                             fullName: qrPayment!.details.merchant.name,
@@ -1603,7 +1614,7 @@ export default function QRPayPage() {
                             )
                         })()}
                         <PaymentInfoRow
-                            label={t('info.peanutFee')}
+                            label={tCommon('peanutFee')}
                             value={tCommon('sponsoredByPeanut')}
                             hideBottomBorder
                         />

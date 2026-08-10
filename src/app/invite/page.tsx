@@ -12,7 +12,7 @@ async function getInviteCodeData(inviteCode: string) {
 
     const response = await validateInviteCode(inviteCode)
 
-    if (response.data?.success) {
+    if (response.data?.success && response.data.onboardingResolved) {
         return {
             username: response.data.username,
         }

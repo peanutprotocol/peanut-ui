@@ -20,7 +20,7 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import { formatAmount, isStableCoin, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
 import { getAvatarUrl, isTestTransaction } from '@/utils/history.utils'
-import { formatIban, printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
+import { printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -38,8 +38,7 @@ import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
 import CancelSendLinkModal from '../Global/CancelSendLinkModal'
 import { twMerge } from 'tailwind-merge'
-import { isAddress } from 'viem'
-import { bankAccountLabelKey, type BankAccountLabelKey } from './transaction-details.utils'
+import { bankAccountLabelKey, getAccountCopyValue, type BankAccountLabelKey } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
@@ -58,6 +57,7 @@ import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
+import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
 import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
@@ -126,8 +126,11 @@ export const TransactionDetailsReceipt = ({
     const t = useTranslations('transaction')
     const tCommon = useTranslations('common')
     const formatDate = useReceiptDateFormatter()
-    const bankAccountLabel = (type: string) =>
-        BANK_ACCOUNT_SCHEME_LABELS[bankAccountLabelKey(type)] ?? t('rows.accountNumber')
+    const bankAccountLabel = (type: string) => {
+        const key = bankAccountLabelKey(type)
+        if (key === 'address') return t('rows.address')
+        return BANK_ACCOUNT_SCHEME_LABELS[key] ?? t('rows.accountNumber')
+    }
     const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
 
     // Sync modal state to parent if callback is provided
@@ -325,6 +328,8 @@ export const TransactionDetailsReceipt = ({
             <TransactionDetailsHeaderCard
                 direction={transaction.direction}
                 userName={transaction.userName}
+                nameKey={transaction.nameKey}
+                nameParams={transaction.nameParams}
                 amountDisplay={amountDisplay}
                 initials={transaction.initials}
                 status={transaction.status}
@@ -439,11 +444,11 @@ export const TransactionDetailsReceipt = ({
                             label={t('rows.to')}
                             value={
                                 <div className="flex items-center gap-2">
-                                    <span>
-                                        {isAddress(transaction.userName)
-                                            ? printableAddress(transaction.userName)
-                                            : transaction.userName}
-                                    </span>
+                                    {/* printableAddress shortens Solana/Tron/EVM and
+                                        passes usernames through — no viem isAddress
+                                        pre-guard, which is EVM-only and let 44-char
+                                        Solana counterparties render full-length. */}
+                                    <span>{printableAddress(transaction.userName)}</span>
                                     <CopyToClipboard textToCopy={transaction.userName} iconSize="4" />
                                 </div>
                             }
@@ -583,7 +588,10 @@ export const TransactionDetailsReceipt = ({
                                         // visual privacy only; the user owns the account
                                         // and may need to paste it elsewhere.
                                         <CopyToClipboard
-                                            textToCopy={formatIban(transaction.bankAccountDetails.identifier)}
+                                            textToCopy={getAccountCopyValue(
+                                                transaction.bankAccountDetails.identifier,
+                                                transaction.bankAccountDetails.type
+                                            )}
                                             iconSize="4"
                                         />
                                     )}
@@ -624,7 +632,7 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.comment && (
                         <PaymentInfoRow
                             label={tCommon('comment')}
-                            value={transaction.memo}
+                            value={transaction.memoKey ? t(transaction.memoKey) : transaction.memo}
                             hideBottomBorder={shouldHideBorder('comment')}
                         />
                     )}
@@ -640,7 +648,7 @@ export const TransactionDetailsReceipt = ({
 
                     {rowVisibilityConfig.peanutFee && (
                         <PaymentInfoRow
-                            label={t('rows.peanutFee')}
+                            label={tCommon('peanutFee')}
                             value={tCommon('sponsoredByPeanut')}
                             hideBottomBorder={shouldHideBorder('peanutFee')}
                         />
@@ -665,6 +673,12 @@ export const TransactionDetailsReceipt = ({
                     )}
                 </div>
             </Card>
+
+            {/* Over-capture explainer — the words for the Initial hold /
+                Adjustment rows in the details card and the merchant-recourse
+                path. First of the notices: it explains THIS receipt's numbers;
+                the others nudge future behavior. */}
+            {!isPublic && <CardAdjustmentNotice transaction={transaction} />}
 
             {/* Local-rail nudge — card spends in a country with a cheaper
                 first-party rail (AR → QR, BR → Pix). Self-gates: renders

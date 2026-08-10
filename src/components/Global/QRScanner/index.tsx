@@ -20,12 +20,13 @@ import { printableAddress } from '@/utils/general.utils'
 // Configuration
 // ============================================================================
 
+// Brand names stay verbatim — they are proper nouns in every locale. The EVM
+// row is the odd one out: its label and alt text are descriptive prose, so it
+// carries a key instead and is resolved at render.
 const PAYMENT_METHODS = [
     { src: PEANUTMAN, alt: 'Peanut', name: 'Peanut' },
     { src: MERCADO_PAGO, alt: 'Mercado Pago', name: 'Mercado Pago' },
     { src: PIX, alt: 'PIX', name: 'PIX' },
-    // Brand names above are proper nouns and stay verbatim; this row's label
-    // and alt are descriptive prose, so they resolve from the catalog at render.
     { src: ETHEREUM_ICON, alt: null, name: null },
 ] as const
 
@@ -222,41 +223,53 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         }
     }, [isScanning])
 
-    const handleUsePasteChip = async () => {
+    // Capacitor Clipboard reads through the native bridge on device (the
+    // WebView's navigator.clipboard.readText is unreliable/blocked in the
+    // Android WebView); its web shim falls back to navigator.clipboard.
+    // Returns trimmed text, or null after toasting the read failure.
+    const readClipboardText = async (): Promise<string | null> => {
         const result = await readClipboard()
-        if (!result.ok) {
-            setShowPasteChip(false)
-            if (result.reason === 'unavailable') console.error('Failed to read clipboard:', result.cause)
-            toast.error(t(result.reason === 'empty' ? 'qrScanner.clipboardEmpty' : 'qrScanner.clipboardUnavailable'))
-            return
-        }
-        const address = extractPaymentValue(result.text, 'evmAddress')
-        if (!address) {
-            setShowPasteChip(false)
-            toast.error(t('qrScanner.notAWalletAddress'))
-            return
-        }
+        if (result.ok) return result.text
+        if (result.reason === 'unavailable') console.error('Failed to read clipboard:', result.cause)
+        toast.error(t(result.reason === 'empty' ? 'qrScanner.clipboardEmpty' : 'qrScanner.clipboardUnavailable'))
+        return null
+    }
+
+    // Every tap path funnels onScan through this so a payment/routing failure
+    // is reported as a processing error, never as a clipboard problem.
+    const scanValue = async (data: string) => {
         try {
-            await onScan(address)
+            await onScan(data)
         } catch (err) {
             console.error('Error processing QR code:', err)
-            toast.error(t('qrScanner.qrProcessingFailed'))
+            toast.error(t('qrScanner.qrProcessingError'))
         }
     }
 
-    const handlePaste = async () => {
-        const result = await readClipboard()
-        if (!result.ok) {
-            if (result.reason === 'unavailable') console.error('Failed to read clipboard:', result.cause)
-            toast.error(t(result.reason === 'empty' ? 'qrScanner.clipboardEmpty' : 'qrScanner.clipboardUnavailable'))
+    const handleUsePasteChip = async () => {
+        const text = await readClipboardText()
+        if (!text) {
+            setShowPasteChip(false)
+            if (text === '') toast.error(t('qrScanner.clipboardEmpty'))
             return
         }
-        try {
-            await onScan(result.text)
-        } catch (err) {
-            console.error('Error processing QR code:', err)
-            toast.error(t('qrScanner.qrProcessingFailed'))
+        const address = extractPaymentValue(text, 'evmAddress')
+        if (!address) {
+            setShowPasteChip(false)
+            toast.error(t('qrScanner.pastedTextNotAnAddress'))
+            return
         }
+        await scanValue(address)
+    }
+
+    const handlePaste = async () => {
+        const text = await readClipboardText()
+        if (text === null) return
+        if (!text) {
+            toast.error(t('qrScanner.clipboardEmpty'))
+            return
+        }
+        await scanValue(text)
     }
 
     if (!isScanning) return null
@@ -288,7 +301,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     <ScanRegionOverlay
                         onPaste={handlePaste}
                         detectedAddress={detectedAddress}
-                        onUseDetected={() => onScan(detectedAddress!)}
+                        onUseDetected={() => scanValue(detectedAddress!)}
                         showPasteChip={showPasteChip}
                         onUsePasteChip={handleUsePasteChip}
                     />

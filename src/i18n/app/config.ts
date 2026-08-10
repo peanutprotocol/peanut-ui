@@ -2,7 +2,7 @@ import { type Locale as MarketingLocale } from '../types'
 
 // App (product UI) locales — separate from the marketing site's i18n
 // (src/i18n/*.json), which keeps its own locale set for SEO routing.
-export const APP_LOCALES = ['en', 'es-419', 'pt-BR'] as const
+export const APP_LOCALES = ['en', 'es-419', 'es-AR', 'pt-BR'] as const
 
 export type AppLocale = (typeof APP_LOCALES)[number]
 
@@ -12,6 +12,8 @@ export const DEFAULT_APP_LOCALE: AppLocale = 'en'
 const MARKETING_SEGMENT: Record<AppLocale, MarketingLocale> = {
     en: 'en',
     'es-419': 'es-419',
+    // marketing site has no es-AR variant — es-419 is its Spanish
+    'es-AR': 'es-419',
     'pt-BR': 'pt-br',
 }
 
@@ -29,6 +31,7 @@ export function localizeMarketingPath(path: string, locale: AppLocale): string {
 export const LOCALE_LABELS: Record<AppLocale, string> = {
     en: 'English',
     'es-419': 'Español',
+    'es-AR': 'Español (Argentina)',
     'pt-BR': 'Português (Brasil)',
 }
 

@@ -289,7 +289,6 @@ jest.mock('@/utils/qr-payment.utils', () => ({
     calculateSavingsInCents: jest.fn(() => 0),
     hasCardMarkupComparison: jest.fn(() => false),
     isArgentinaMantecaQrPayment: jest.fn(() => false),
-    getSavingsMessage: jest.fn(() => ''),
 }))
 
 jest.mock('@/config/underMaintenance.config', () => ({
@@ -1044,6 +1043,31 @@ describe('GROUP 4: Success States', () => {
         expect(screen.getByText('Split this bill')).toBeInTheDocument()
     })
 
+    test('See receipt opens the drawer keyed by the Manteca synthetic id, not externalId', async () => {
+        // getReceiptUrl builds /receipt/<id>?kind=QR_PAY, and the backend resolves
+        // that id only via the Manteca synthetic id. Stamping externalId here 404s
+        // every shared receipt.
+        const openTransactionDetails = jest.fn()
+        mockUseTransactionDetailsDrawer.mockReturnValue({
+            openTransactionDetails,
+            selectedTransaction: null,
+            isDrawerOpen: false,
+            closeTransactionDetails: jest.fn(),
+        })
+
+        await completeMantecaPayment()
+
+        await waitFor(() => {
+            expect(screen.getByText('See receipt')).toBeInTheDocument()
+        })
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('See receipt'))
+        })
+
+        expect(openTransactionDetails).toHaveBeenCalledWith(expect.objectContaining({ id: 'qp1' }))
+    })
+
     test('Manteca success, perk eligible shows hold-to-claim button', async () => {
         await completeMantecaPayment({
             perk: {
@@ -1219,15 +1243,10 @@ describe('GROUP 4: Success States', () => {
     })
 
     test('Argentina QR3 success shows savings message', async () => {
-        const {
-            hasCardMarkupComparison,
-            calculateSavingsInCents,
-            getSavingsMessage,
-        } = require('@/utils/qr-payment.utils')
+        const { hasCardMarkupComparison, calculateSavingsInCents } = require('@/utils/qr-payment.utils')
 
         hasCardMarkupComparison.mockReturnValue(true)
         calculateSavingsInCents.mockReturnValue(150)
-        getSavingsMessage.mockReturnValue('You saved $1.50 vs card!')
 
         await completeMantecaPayment()
 
@@ -1235,8 +1254,26 @@ describe('GROUP 4: Success States', () => {
             expect(screen.getByText(/You paid/)).toBeInTheDocument()
         })
 
-        // Savings message should appear for Argentina QR3 payments
-        expect(screen.getByText('You saved $1.50 vs card!')).toBeInTheDocument()
+        // Savings message should appear for Argentina QR3 payments, via the localized catalog
+        expect(screen.getByText('saved ~$1.5 compared to card!')).toBeInTheDocument()
+    })
+
+    test.each([
+        [1, 'saved ~1 cent compared to card!'],
+        [42, 'saved ~42 cents compared to card!'],
+    ])('savings below $1 read in cents (%i)', async (cents, message) => {
+        const { hasCardMarkupComparison, calculateSavingsInCents } = require('@/utils/qr-payment.utils')
+
+        hasCardMarkupComparison.mockReturnValue(true)
+        calculateSavingsInCents.mockReturnValue(cents)
+
+        await completeMantecaPayment()
+
+        await waitFor(() => {
+            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+        })
+
+        expect(screen.getByText(message)).toBeInTheDocument()
     })
 })
 

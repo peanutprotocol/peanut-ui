@@ -8,7 +8,11 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from './capacitor'
 import { isDemoMode } from './demo'
 
-type FetchOptions = RequestInit & { timeoutMs?: number }
+type FetchOptions = RequestInit & {
+    timeoutMs?: number
+    /** Public endpoints can opt out of sending the web bearer token. */
+    includeAuth?: boolean
+}
 
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {
     // Native-only demo mode: route to synthetic data before any header/network
@@ -17,11 +21,14 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     // web bundle and out of every api-fetch importer's module graph.
     if (isDemoMode()) return import('./demo-api').then((m) => m.demoRespond(path, options))
 
-    // Native: token hydrates async from Preferences; gate here so a cold-start
-    // request can't go out unauthenticated. Instant on web.
-    await authReady()
+    const { timeoutMs, includeAuth = true, ...fetchOptions } = options ?? {}
 
-    const { timeoutMs, ...fetchOptions } = options ?? {}
+    // Native: token hydrates async from Preferences; gate here so a cold-start
+    // request can't go out unauthenticated. Instant on web. An explicitly
+    // unauthenticated read skips it — a public rate must not queue behind auth
+    // hydration, and it would send no token either way.
+    if (includeAuth) await authReady()
+
     const callerHeaders = (fetchOptions.headers as Record<string, string>) ?? {}
 
     const headers: Record<string, string> = {}
@@ -29,7 +36,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     if (fetchOptions.body && !hasContentType) {
         headers['Content-Type'] = 'application/json'
     }
-    Object.assign(headers, getAuthHeaders(callerHeaders))
+    Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)
 
     /*
      * No JS-readable token on native means either logged out or a legacy

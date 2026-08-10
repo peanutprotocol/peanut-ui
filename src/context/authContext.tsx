@@ -16,19 +16,21 @@ import {
 } from '@/utils/general.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
+import { currentAppLocale, currentDeviceContext } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import { disableDemoMode } from '@/utils/demo'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { captureException, setUser as setSentryUser } from '@sentry/nextjs'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
+import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
+import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -65,7 +67,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const _router = useRouter()
     const dispatch = useAppDispatch()
     const toast = useToast()
     const tErrors = useTranslations('errors')
@@ -108,6 +109,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // server-side identify in peanut-api-ts src/log/identifyUser.ts — keep in sync.
             // `name` duplicates username because PostHog's Persons-page search is
             // hardcoded to email/name/distinct_id — username alone is not searchable.
+            const enabledRails = user.rails?.filter((rail) => rail.status === 'ENABLED') ?? []
+            const appLocale = currentAppLocale()
             posthog.identify(user.user.userId, {
                 username: user.user.username,
                 name: user.user.username,
@@ -116,6 +119,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // Badge codes (human-readable identifier), never the uuid.
                 badges: user.user.badges?.map((badge) => badge.code) ?? [],
                 kycStatus: user.identityVerification?.status ?? 'not_started',
+                // Human-readable PROVIDER:METHOD codes for cohorting, plus the
+                // catalog rail ids for joins against the rails table.
+                enabledRails: enabledRails.map((rail) => `${rail.rail.provider.code}:${rail.rail.method.code}`),
+                enabledRailIds: enabledRails.map((rail) => rail.rail.id),
+                // Client-only (locale never reaches the BE) — covers the first
+                // session, where the startup locale resolves before identify.
+                ...(appLocale ? { app_locale: appLocale } : {}),
             })
             // Sentry: every error captured from here on inherits user context
             // as searchable Sentry tags. Closes the historical gap where FE
@@ -132,6 +142,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setSentryUser(null)
         }
     }, [user])
+
+    // Returning-user and app-restart recovery. Invite attribution is handled
+    // elsewhere; this only resumes opaque campaign identities after auth. The
+    // claim service de-dupes concurrent registration/page attempts and retains
+    // only retryable tags.
+    useEffect(() => {
+        const userId = user?.user.userId
+        if (!userId) return
+
+        const badgeCampaigns = getPendingBadgeCampaigns()
+        if (badgeCampaigns.length === 0) return
+
+        let cancelled = false
+        void claimAndSettlePendingBadgeCampaigns(badgeCampaigns).then(async (batch) => {
+            if (cancelled) return
+            if (batch.claims.some(isConfirmedBadgeCampaignClaim)) {
+                try {
+                    await fetchUser()
+                } catch (error) {
+                    captureException(error, { tags: { error_type: 'campaign_profile_refresh_failed' } })
+                }
+            }
+            if (batch.pending.length > 0) {
+                captureException(new Error('authenticated campaign claim retained for retry'), {
+                    tags: { error_type: 'campaign_claim_retryable' },
+                    extra: { userId, pendingCampaigns: batch.pending, claims: batch.claims },
+                })
+            }
+        })
+
+        return () => {
+            cancelled = true
+        }
+    }, [user?.user.userId, fetchUser])
 
     const legacy_fetchUser = useCallback(async () => {
         const { data: fetchedUser } = await fetchUser()
@@ -229,6 +273,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear redirect url
         clearRedirectUrl()
 
+        // Pending badge campaigns are bearer acquisition intents. An explicit
+        // logout is an intentional account switch, so never let the next
+        // account on this browser inherit the previous account's award path.
+        // Passive auth expiry does not run this cleanup and retains retries.
+        clearPendingBadgeCampaigns()
+
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.
         clearStepUpToken()
@@ -262,6 +312,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         try {
             posthog.reset()
+            // reset() wipes registered super properties — re-register the
+            // locale so logout-window events keep carrying app_locale
+            const locale = currentAppLocale()
+            if (locale) posthog.register({ app_locale: locale })
+            // same for the localization-OKR device context (device_language + platform)
+            const deviceContext = currentDeviceContext()
+            if (deviceContext) posthog.register(deviceContext)
         } catch (e) {
             console.warn('posthog reset failed:', e)
         }

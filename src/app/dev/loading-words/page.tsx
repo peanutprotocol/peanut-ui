@@ -1,11 +1,12 @@
 'use client'
 
 import { PEANUTMAN } from '@/assets/mascot'
-import { PAYMENT_LOADING_WORDS } from '@/components/Global/PeanutLoading/words'
+import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/PeanutLoading/words'
+import en from '@/i18n/app/messages/en.json'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 
-const WORDS = PAYMENT_LOADING_WORDS
+const WORDS = PAYMENT_LOADING_WORD_KEYS.map((key) => en.paymentLoading[key])
 
 const ROTATE_MS = 1800
 

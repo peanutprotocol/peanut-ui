@@ -8,6 +8,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
 import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isCapacitor } from '@/utils/capacitor'
@@ -29,7 +30,7 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import { getRegionIntent } from '@/utils/regions.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
@@ -55,8 +56,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     // check if coming from send flow and what type
     const methodParam = searchParams.get('method')
-    const isFromSendFlow = !!(methodParam && ['bank', 'crypto'].includes(methodParam))
-    const isBankFromSend = methodParam === 'bank' && isFromSendFlow
+    // this list also serves the add-money flow, which navigates with its own
+    // ?method=bank — so the marker alone doesn't mean "send". Same guard as
+    // AddWithdrawRouterView.
+    const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
 
     // hooks
     const { deviceType } = useDeviceType()
@@ -384,6 +387,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 error={sumsubFlow.error}
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
+                reasonCode={getGateReasonCode(gate)}
                 regionName={currentCountry?.title}
             />
             <BridgeTosStep
@@ -507,7 +511,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                     ) : isPixOnrampUnderMaintenance ? (
                                         <StatusBadge
                                             status="pending"
-                                            customText={PIX_BRAZIL_ONRAMP_MAINTENANCE.badge}
+                                            customText={tAddMoney(PIX_BRAZIL_ONRAMP_MAINTENANCE.badgeKey)}
                                             size="small"
                                         />
                                     ) : null

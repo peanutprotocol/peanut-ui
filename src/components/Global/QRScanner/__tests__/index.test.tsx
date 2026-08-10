@@ -9,9 +9,8 @@
  * neither.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import en from '@/i18n/app/messages/en.json'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { isAndroidNative } from '@/utils/capacitor'
@@ -47,20 +46,19 @@ jest.mock('../useQRScanner', () => ({
 
 import QRScanner from '../index'
 
+const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
+    rtlRender(ui, { wrapper: IntlWrapper, ...options })
+
 const mockRead = Clipboard.read as jest.MockedFunction<typeof Clipboard.read>
 const mockHasStrings = clipboardHasStrings as jest.MockedFunction<typeof clipboardHasStrings>
 const mockIsAndroidNative = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 
 // all-lowercase: viem isAddress enforces checksum on mixed-case forms
 const ADDRESS = '0xab5801a7d398351b8be11c439e05c5b3259aec9b'
-const CHIP_LABEL = en.global.qrScanner.useCopiedAddress
+const CHIP_LABEL = 'Use copied address'
 
 const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) => {
-    render(
-        <IntlWrapper>
-            <QRScanner onScan={onScan} />
-        </IntlWrapper>
-    )
+    render(<QRScanner onScan={onScan} />)
     return onScan
 }
 
@@ -119,8 +117,40 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
     await act(async () => {
         fireEvent.click(chip)
     })
-    expect(mockToastError).toHaveBeenCalledWith(en.global.qrScanner.qrProcessingFailed)
-    expect(mockToastError).not.toHaveBeenCalledWith(en.global.qrScanner.clipboardUnavailable)
+    expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
+    expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
+})
+
+it('"Click to paste": onScan failure is not misreported as a clipboard error', async () => {
+    mockIsAndroidNative.mockReturnValue(false)
+    mockHasStrings.mockResolvedValue(false)
+    mockRead.mockResolvedValue({ value: 'some text', type: 'text/plain' })
+
+    const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
+    renderScanner(onScan)
+
+    const paste = await screen.findByText('Click to paste')
+    await act(async () => {
+        fireEvent.click(paste)
+    })
+    expect(onScan).toHaveBeenCalledWith('some text')
+    expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
+    expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
+})
+
+it('Android chip: onScan failure surfaces a processing error instead of rejecting unhandled', async () => {
+    mockIsAndroidNative.mockReturnValue(true)
+    mockRead.mockResolvedValue({ value: ADDRESS, type: 'text/plain' })
+
+    const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
+    renderScanner(onScan)
+
+    const chip = await screen.findByText(ADDRESS)
+    await act(async () => {
+        fireEvent.click(chip)
+    })
+    expect(onScan).toHaveBeenCalledWith(ADDRESS)
+    expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
 })
 
 it('chip tap: empty clipboard maps to the same copy as "Click to paste"', async () => {
@@ -134,6 +164,6 @@ it('chip tap: empty clipboard maps to the same copy as "Click to paste"', async 
     await act(async () => {
         fireEvent.click(chip)
     })
-    expect(mockToastError).toHaveBeenCalledWith(en.global.qrScanner.clipboardEmpty)
+    expect(mockToastError).toHaveBeenCalledWith('Clipboard is empty')
     await waitFor(() => expect(screen.queryByText(CHIP_LABEL)).toBeNull())
 })

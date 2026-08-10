@@ -8,11 +8,13 @@ import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { AccountType } from '@/interfaces/interfaces'
 import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
@@ -31,12 +33,11 @@ export default function WithdrawPage() {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
+    const { selectedTokenData } = useContext(tokenSelectorContext)
 
     // check if coming from send flow based on method query param
     const methodParam = searchParams.get('method')
-    const isFromSendFlow = !!(methodParam && ['bank', 'crypto'].includes(methodParam))
-    const isCryptoFromSend = methodParam === 'crypto' && isFromSendFlow
-    const isBankFromSend = methodParam === 'bank' && isFromSendFlow
+    const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
     // native app passes country as query param instead of path segment
     const countryFromQuery = searchParams.get('country')
@@ -231,7 +232,7 @@ export default function WithdrawPage() {
             setError({ showError: true, errorMessage: message })
             return false
         },
-        [balance, maxDecimalAmount, setError, isFromSendFlow, minUsdAmount, t, tErrors]
+        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t, tErrors]
     )
 
     const handleTokenAmountChange = useCallback(

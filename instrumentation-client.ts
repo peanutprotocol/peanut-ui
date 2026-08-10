@@ -47,6 +47,11 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
         disable_session_recording: false,
     })
 
+    // expose the instance like the official snippet does — console access for
+    // QA (feature-flag overrides, e.g. pwa-sunset preview testing) and support
+    // debugging; the npm bundle doesn't attach it by itself
+    ;(window as Window & { posthog?: typeof posthog }).posthog = posthog
+
     // The web build inits Sentry via sentry.client.config.ts (injected by
     // withSentryConfig) with tunnelRoute '/monitoring'. The Capacitor static
     // export runs neither withSentryConfig nor a server for that tunnel, so

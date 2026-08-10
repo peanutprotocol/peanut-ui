@@ -4,6 +4,11 @@ import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusB
 import { isTestTransaction } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
+import {
+    TRANSACTION_NAME_KEYS,
+    translateTransactionName,
+    type TransactionNameKey,
+} from '@/components/TransactionDetails/transaction-name-keys'
 import { printableUserHandle } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
@@ -20,6 +25,10 @@ import { profileUrl } from '@/utils/native-routes'
 interface TransactionDetailsHeaderCardProps {
     direction: TransactionDirection
     userName: string
+    /** Catalog key when `userName` is an FE-generated label — localized here;
+     *  also the locale-safe discriminant for the via-link title overrides. */
+    nameKey?: TransactionNameKey
+    nameParams?: Record<string, string>
     amountDisplay: string
     initials: string
     status?: StatusType
@@ -47,7 +56,8 @@ const getTitle = (
     direction: TransactionDirection,
     userName: string,
     isLinkTransaction?: boolean,
-    status?: StatusType
+    status?: StatusType,
+    nameKey?: TransactionNameKey
 ): React.ReactNode => {
     let titleText = userName
 
@@ -77,7 +87,9 @@ const getTitle = (
                 if (status === 'pending' || status === 'cancelled') {
                     titleText = displayName
                 } else {
-                    if (displayName === "You're sending via link") {
+                    // Locale-safe discriminant (#2554): key off nameKey, never
+                    // the (now localized) display string.
+                    if (nameKey === TRANSACTION_NAME_KEYS.sentViaLink) {
                         titleText = t('title.sentViaLink')
                     } else {
                         titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
@@ -90,7 +102,7 @@ const getTitle = (
                 titleText = t('title.isRequesting', { name: displayName })
                 break
             case 'receive':
-                if (displayName === 'Received via Link') {
+                if (nameKey === TRANSACTION_NAME_KEYS.receivedViaLink) {
                     titleText = t('title.receivedViaLink')
                 } else {
                     titleText = t('title.receivedFrom', { name: displayName })
@@ -183,6 +195,8 @@ const getIcon = (
 export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCardProps> = ({
     direction,
     userName,
+    nameKey,
+    nameParams,
     amountDisplay,
     initials,
     status,
@@ -204,11 +218,15 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
+    // FE-generated labels carry a catalog key — localize for every display
+    // surface below; raw `userName` stays for data uses (test-tx marker,
+    // profile URL, verification lookups).
+    const localizedUserName = nameKey ? translateTransactionName(t, nameKey, nameParams) : userName
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
-    const nameForAvatar = showFullName && fullName ? fullName : userName
+    const nameForAvatar = showFullName && fullName ? fullName : localizedUserName
 
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(userName)
@@ -265,8 +283,15 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                 username={userName}
                                 name={
                                     isRequestPotTransaction
-                                        ? userName
-                                        : (getTitle(t, direction, userName, isLinkTransaction, status) as string)
+                                        ? localizedUserName
+                                        : (getTitle(
+                                              t,
+                                              direction,
+                                              localizedUserName,
+                                              isLinkTransaction,
+                                              status,
+                                              nameKey
+                                          ) as string)
                                 }
                                 isVerified={isVerified}
                                 className="flex items-center gap-1"

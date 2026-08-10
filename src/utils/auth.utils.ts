@@ -21,8 +21,8 @@ export const clearAuthState = async (userId?: string) => {
         // Clear cookies (always do this, even if no userId)
         removeFromCookie('web-authn-key')
 
-        // Clear the JWT everywhere it can live — on native that's Preferences +
-        // the in-memory cache, not the cookie this used to expire by hand.
+        // Clear the JWT everywhere it can live — on native that includes the
+        // plugin-managed stores, not just the cookie this used to expire by hand.
         await clearAuthToken()
 
         console.log('Cleared auth state', { userId: userId || 'none' })

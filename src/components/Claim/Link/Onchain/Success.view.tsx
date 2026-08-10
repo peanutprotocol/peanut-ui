@@ -21,6 +21,7 @@ import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
+import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
 export const SuccessClaimLinkView = ({
     transactionHash,
@@ -36,7 +37,7 @@ export const SuccessClaimLinkView = ({
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
     const { triggerHaptic } = useAppHaptic()
     const params = useSearchParams()
-    const campaignTag = params.get('campaignTag')
+    const campaignTag = badgeCampaignForLegacyWire(params)
     const senderDisplay = useRecipientDisplay({
         user: claimLinkData.sender,
         address: claimLinkData.senderAddress,
@@ -197,7 +198,7 @@ export const SuccessClaimLinkView = ({
                 />
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
-                {campaignTag === 'devconnect_ba_2025' && (
+                {campaignTag?.toLowerCase() === 'devconnect_ba_2025' && (
                     <p className="text-center text-xs text-grey-1">{t('success.devconnectReturnHint')}</p>
                 )}
             </div>

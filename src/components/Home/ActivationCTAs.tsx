@@ -1,6 +1,7 @@
 'use client'
 
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
@@ -13,7 +14,9 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useCardInfo } from '@/hooks/useCardInfo'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import ActionModal from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
@@ -45,10 +48,16 @@ interface StepConfig {
 export default function ActivationCTAs({ activationStep, onDismissCard }: ActivationCTAsProps) {
     const t = useTranslations('home.activation')
     const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
     const { user } = useAuth()
+    // Card spend counts as activation too — card-access users get a card+QR
+    // chooser on the outbound step instead of jumping straight to the scanner.
+    // `undefined` while loading collapses to false → scanner behavior (never
+    // tease the card to a user we can't confirm has access).
+    const { hasCardAccess } = useCardInfo()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,
@@ -64,6 +73,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         fixableProvider,
         hasBlockedRejection,
         primaryRejectionMessage,
+        primaryRejectionCode,
         blockedRail,
         isEmailBlocked,
     } = useMemo(() => {
@@ -96,12 +106,30 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 const surfaced = emailBlocked ?? fixableRail ?? blocked
                 return surfaced ? railUserMessage(surfaced) : null
             })(),
+            primaryRejectionCode: (() => {
+                const surfaced = emailBlocked ?? fixableRail ?? blocked
+                return surfaced ? (surfaced.reason?.code ?? surfaced.resolved?.blocking?.code ?? null) : null
+            })(),
             blockedRail: blocked,
             isEmailBlocked: !!emailBlocked,
         }
     }, [rails, channelOf, nextActions])
 
+    // Known reason codes render localized identity.reasons.* copy; unknown
+    // codes keep the backend's display-ready prose as fallback.
+    const primaryRejectionReasonKey = reasonCodeKey(primaryRejectionCode)
+    const localizedRejectionMessage = primaryRejectionReasonKey
+        ? tIdentity(primaryRejectionReasonKey)
+        : primaryRejectionMessage
+
     const [showProvideEmail, setShowProvideEmail] = useState(false)
+    const [showSpendChooser, setShowSpendChooser] = useState(false)
+
+    // If card access is revoked (or the card-info refetch flips it) while the
+    // chooser is open, close it — a no-access user must never see the card option.
+    useEffect(() => {
+        if (hasCardAccess !== true) setShowSpendChooser(false)
+    }, [hasCardAccess])
 
     const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
         () => ({
@@ -199,7 +227,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
                     title: t('addEmail.title'),
-                    description: primaryRejectionMessage || t('addEmail.description'),
+                    description: localizedRejectionMessage || t('addEmail.description'),
                     ctaLabel: t('addEmail.cta'),
                     href: '', // handled in onClick
                 }
@@ -209,7 +237,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     icon: 'globe-lock',
                     iconBg: 'bg-primary-1',
                     title: t('completeSetup.title'),
-                    description: primaryRejectionMessage || t('completeSetup.description'),
+                    description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
                     href: '/profile/identity-verification',
                 }
@@ -225,6 +253,18 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             }
         }
 
+        // Card-access users can activate by swiping too — broaden the QR-only
+        // framing. Users without card access keep the QR copy untouched so we
+        // never tease a card they can't get.
+        if (activationStep === 'outbound' && hasCardAccess) {
+            return {
+                ...steps.outbound,
+                icon: 'credit-card',
+                title: t('spendWithPeanut.title'),
+                description: t('spendWithPeanut.description'),
+            }
+        }
+
         return steps[activationStep as Exclude<ActivationStep, 'completed'>]
     }, [
         t,
@@ -233,9 +273,10 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         hasProviderRejection,
         hasFixableRejection,
         isEmailBlocked,
-        primaryRejectionMessage,
+        localizedRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,
+        hasCardAccess,
     ])
 
     if (!step) return null
@@ -289,7 +330,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                         } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
                             void kycFlow.handleSelfHealResubmit(fixableProvider)
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
-                            setIsQRScannerOpen(true)
+                            if (hasCardAccess) {
+                                posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
+                                setShowSpendChooser(true)
+                            } else {
+                                setIsQRScannerOpen(true)
+                            }
                         } else {
                             router.push(step.href)
                         }
@@ -307,6 +353,33 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
+            />
+            <ActionModal
+                visible={showSpendChooser && hasCardAccess === true}
+                onClose={() => setShowSpendChooser(false)}
+                icon="credit-card"
+                title={t('spendChooser.title')}
+                description={t('spendChooser.description')}
+                ctas={[
+                    {
+                        text: t('spendChooser.payWithCard'),
+                        shadowSize: '4',
+                        onClick: () => {
+                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'card' })
+                            setShowSpendChooser(false)
+                            router.push('/card')
+                        },
+                    },
+                    {
+                        text: t('spendChooser.scanQr'),
+                        variant: 'stroke',
+                        onClick: () => {
+                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'qr' })
+                            setShowSpendChooser(false)
+                            setIsQRScannerOpen(true)
+                        },
+                    },
+                ]}
             />
             <SumsubKycModals flow={kycFlow} />
         </Card>

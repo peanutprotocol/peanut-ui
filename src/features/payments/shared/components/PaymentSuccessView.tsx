@@ -64,6 +64,13 @@ type DirectSuccessViewProps = {
     currencyAmount?: string
     isExternalWalletFlow?: boolean
     isWithdrawFlow?: boolean
+    /**
+     * A withdraw the user reached through the send flow. Narrow on purpose: it
+     * only reframes the title. `isWithdrawFlow` still governs layout (it
+     * suppresses the recipient render and picks the "to" prefix), both of which
+     * remain correct for a send to an address.
+     */
+    isFromSendFlow?: boolean
     redirectTo?: string
     // When true, the "Done"/cancel navigation replaces the current history entry instead of
     // pushing. Use for terminal flows (e.g. deposit success) so browser/device back doesn't
@@ -90,6 +97,7 @@ const PaymentSuccessView = ({
     currencyAmount,
     isExternalWalletFlow,
     isWithdrawFlow,
+    isFromSendFlow,
     redirectTo = '/home',
     replaceOnDone = false,
     onComplete,
@@ -172,7 +180,13 @@ const PaymentSuccessView = ({
                 kind: 'DIRECT_TRANSFER',
                 link: receiptLink,
             },
-            userName: user?.username || parsedPaymentData?.recipient?.identifier,
+            // external-wallet withdrawals have no username/identifier — fall back to
+            // the recipient address so the receipt never renders "Sent to undefined"
+            userName:
+                user?.username ||
+                parsedPaymentData?.recipient?.identifier ||
+                chargeDetails.requestLink?.recipientAddress ||
+                recipientName,
             sourceView: 'status',
             memo: chargeDetails.requestLink?.reference || undefined,
             attachmentUrl: chargeDetails.requestLink?.attachmentUrl || undefined,
@@ -256,7 +270,7 @@ const PaymentSuccessView = ({
 
     const getTitle = () => {
         if (isExternalWalletFlow) return t('success.addedExternal')
-        if (isWithdrawFlow) return t('success.withdrew')
+        if (isWithdrawFlow) return isFromSendFlow ? t('success.justSent') : t('success.withdrew')
         if (type === 'SEND') return t('success.sent')
         if (type === 'REQUEST') return t('success.requested')
         if (type === 'DEPOSIT') return t('success.added')

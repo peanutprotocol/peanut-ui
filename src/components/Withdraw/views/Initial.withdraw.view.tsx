@@ -23,9 +23,17 @@ interface InitialWithdrawViewProps {
     onReview: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
     onBack?: () => void
     isProcessing?: boolean
+    /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
+    isFromSendFlow?: boolean
 }
 
-export default function InitialWithdrawView({ amount, onReview, onBack, isProcessing }: InitialWithdrawViewProps) {
+export default function InitialWithdrawView({
+    amount,
+    onReview,
+    onBack,
+    isProcessing,
+    isFromSendFlow = false,
+}: InitialWithdrawViewProps) {
     const { usdAmount, withdrawData } = useWithdrawFlow()
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
@@ -86,9 +94,10 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         if (addressFamily !== 'evm' || !recipient.name) return
 
         const name = recipient.name
-        let stale = false
-        setRecipient({ name, address: '' })
+        // Gate Review while the previous chain's address is still in state —
+        // clicking it mid-resolution would send to that address.
         setIsValidRecipient(false)
+        let stale = false
         validateAndResolveRecipient(name, true, 'evm', selectedChainID)
             .then((validation) => {
                 if (stale) return
@@ -168,7 +177,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
         // flex/gap shell per the page-layout rules — space-y on the outer div
         // conflicts with centering and clipped the CTA on short viewports
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title={tNav('withdraw')} onPrev={onBack || defaultOnBack} />
+            <NavHeader title={isFromSendFlow ? tNav('send') : tNav('withdraw')} onPrev={onBack || defaultOnBack} />
 
             <div className="space-y-4">
                 <PeanutActionDetailsCard
@@ -178,6 +187,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     recipientName={''}
                     amount={`${formatAmount(parseFloat(usdAmount || amount))}`}
                     tokenSymbol="USDC"
+                    isFromSendFlow={isFromSendFlow}
                 />
 
                 <TokenSelector viewType="withdraw" />
@@ -207,7 +217,7 @@ export default function InitialWithdrawView({ amount, onReview, onBack, isProces
                     review/warning step (external tester feedback). */}
                 {!!recipient.name && !!recipient.address && isValidRecipient && !inputChanging && (
                     <p className="text-left text-xs text-grey-1">
-                        {recipient.name} {'resolves to'}{' '}
+                        {recipient.name} {t('resolvesTo')}{' '}
                         <span className="font-mono">{printableAddress(recipient.address)}</span>
                     </p>
                 )}

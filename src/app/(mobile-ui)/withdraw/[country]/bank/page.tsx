@@ -37,7 +37,7 @@ import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
@@ -48,6 +48,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useTranslations } from 'next-intl'
 
 type View = 'INITIAL' | 'SUCCESS'
@@ -142,19 +143,19 @@ export default function WithdrawBankPage() {
         if (sumsubFlow.showWrapper) setShowKycModal(false)
     }, [sumsubFlow.showWrapper])
 
+    // only bank reaches this page, so the bank-specific flag is the right one here
+    const { isBankFromSend: fromSendFlow } = useSendFlowOrigin()
+
     // validate country is supported for bank withdrawals
     useEffect(() => {
         if (country) {
             const countryInfo = getCountryFromPath(country)
             if (!countryInfo || !isBridgeSupportedCountry(countryInfo.id)) {
-                router.replace('/withdraw')
+                router.replace(`/withdraw${fromSendFlow ? '?method=bank' : ''}`)
             }
         }
-    }, [country, router])
+    }, [country, router, fromSendFlow])
 
-    // check if we came from send flow - using method param to detect (only bank goes through this page)
-    const methodParam = searchParams.get('method')
-    const fromSendFlow = methodParam === 'bank'
     const onBack = useSafeBack(fromSendFlow ? '/send' : '/withdraw')
 
     const nonEuroCurrency = countryCurrencyMappings.find(
@@ -178,14 +179,17 @@ export default function WithdrawBankPage() {
         // Skip redirects when on success view — clearing state during navigation
         // would race with router.push('/home') and redirect back to /withdraw
         if (view === 'SUCCESS') return
+        // Both targets keep ?method=bank: land on a bare /withdraw and the step
+        // the user is sent back to silently reverts to withdraw copy.
+        const sendMarker = fromSendFlow ? '?method=bank' : ''
         if (!amountToWithdraw) {
             // If no amount, go back to main page
-            router.replace('/withdraw')
+            router.replace(`/withdraw${sendMarker}`)
         } else if (!bankAccount && amountToWithdraw) {
             // If amount is set but no bank account, go to country method selection
-            router.replace(withdrawCountryUrl(country))
+            router.replace(withdrawCountryUrl(country, sendMarker))
         }
-    }, [bankAccount, router, amountToWithdraw, country, view])
+    }, [bankAccount, router, amountToWithdraw, country, view, fromSendFlow])
 
     const destinationDetails = (account: Account) => {
         // Derive currency + rail from the account's actual type (GB→GBP, IBAN→EUR,
@@ -448,6 +452,7 @@ export default function WithdrawBankPage() {
                         recipientName={bankAccount?.identifier ?? t('bank.bankAccount')}
                         amount={amountToWithdraw}
                         tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
+                        isFromSendFlow={fromSendFlow}
                     />
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
@@ -538,7 +543,7 @@ export default function WithdrawBankPage() {
                             disabled={isLoading || !bankAccount || !!balanceErrorMessage}
                             className="w-full"
                         >
-                            {tNav('withdraw')}
+                            {tNav(fromSendFlow ? 'send' : 'withdraw')}
                         </Button>
                     )}
                     {submittedTxHash ? (
@@ -558,6 +563,7 @@ export default function WithdrawBankPage() {
             {view === 'SUCCESS' && (
                 <PaymentSuccessView
                     isWithdrawFlow
+                    isFromSendFlow={fromSendFlow}
                     currencyAmount={`$${amountToWithdraw}`}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={pointsData?.estimatedPoints}
@@ -609,6 +615,7 @@ export default function WithdrawBankPage() {
                 error={sumsubFlow.error}
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
+                reasonCode={getGateReasonCode(gate)}
                 regionName={getCountryFromPath(country)?.title}
             />
             <AdvisoryPreemptModal {...advisoryModalProps} />

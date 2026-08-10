@@ -6,6 +6,8 @@ import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 interface Props {
     children: ReactNode
     fallback?: ReactNode
+    /** Localized fallback copy, supplied by the server component that renders this. */
+    strings?: { title: string; body: string }
 }
 
 interface State {
@@ -34,8 +36,8 @@ export class MarketingErrorBoundary extends Component<Props, State> {
             return (
                 this.props.fallback || (
                     <div className="mx-auto max-w-2xl px-6 py-16 text-center">
-                        <h2 className="text-2xl font-bold text-n-1">Content unavailable</h2>
-                        <p className="mt-4 text-grey-1">Please try refreshing the page.</p>
+                        <h2 className="text-2xl font-bold text-n-1">{this.props.strings?.title}</h2>
+                        <p className="mt-4 text-grey-1">{this.props.strings?.body}</p>
                     </div>
                 )
             )

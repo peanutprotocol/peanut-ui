@@ -576,7 +576,7 @@ export default function PaymentGraphPage() {
                                             <span className="inline-block h-0.5 w-3 bg-cyan-500/50"></span>P2P
                                         </span>
                                     </div>
-                                    <p className="text-gray-400">Click → Grafana | Right-click → Focus</p>
+                                    <p className="text-gray-400">Click → Select | Right-click → Focus</p>
                                     <p className="text-gray-400">
                                         {performanceMode ? 'Limited to 1000 nodes' : 'Limited to 5000 nodes'}
                                     </p>

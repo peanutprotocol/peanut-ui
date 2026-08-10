@@ -296,8 +296,8 @@ function Polaroids({ items }: { items: NonNullable<Merchant['polaroids']> }) {
 function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }> }) {
     const [currency, setCurrency] = useState<Currency>('USD')
 
-    // Live ARS rates from the same source as the currency widget (/api/exchange-rate
-    // via useExchangeRate). Both pairs are prefetched so the USD/EUR toggle is instant.
+    // Live ARS rates from the same source as the currency widget (/fx/rate via
+    // useExchangeRate). Both pairs are prefetched so the USD/EUR toggle is instant.
     // exchangeRate is 0 until loaded — we show a loading dash rather than a fake rate.
     const { exchangeRate: usdArs } = useExchangeRate({
         sourceCurrency: 'USD',

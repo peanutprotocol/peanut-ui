@@ -1,5 +1,6 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from './types'
+import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 import { cardRefund } from './intent/card'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 
@@ -24,6 +25,7 @@ export const intentFallback: TransactionStrategy = (entry: HistoryEntry): Transa
         direction: 'send',
         transactionCardType: 'send',
         nameForDetails: entry.recipientAccount?.identifier || 'Transaction',
+        nameKey: entry.recipientAccount?.identifier ? undefined : TRANSACTION_NAME_KEYS.transaction,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }

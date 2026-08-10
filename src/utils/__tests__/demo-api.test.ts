@@ -5,11 +5,16 @@
 // but stripped by jsdom. demo-api uses only web-standard APIs, so node is faithful.
 import { demoRespond } from '@/utils/demo-api'
 import { DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_USER } from '@/constants/demo-data'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 // The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
 // module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
 // Jest worker alive → "force exited" warning. Nothing here needs the clients.
 jest.mock('@/app/actions/clients', () => ({}))
+
+// The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
+// module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
+// Jest worker alive → "force exited" warning. Nothing here needs the clients.
 
 const body = async (path: string, options?: RequestInit) => {
     const res = await demoRespond(path, options)
@@ -17,6 +22,28 @@ const body = async (path: string, options?: RequestInit) => {
 }
 
 describe('demoRespond — routing', () => {
+    it('bounds and forwards the shared FX passthrough', async () => {
+        const originalFetch = global.fetch
+        global.fetch = jest.fn().mockResolvedValue(
+            new Response(JSON.stringify({ rate: '1' }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            })
+        )
+
+        try {
+            const { data } = await body('/fx/rate?from=USD&to=USD')
+
+            expect(data).toEqual({ rate: '1' })
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${PEANUT_API_URL}/fx/rate?from=USD&to=USD`,
+                expect.objectContaining({ signal: expect.any(AbortSignal) })
+            )
+        } finally {
+            global.fetch = originalFetch
+        }
+    })
+
     it('returns the synthetic user for GET /users/me', async () => {
         const { res, data } = await body('/users/me')
         expect(res.status).toBe(200)
@@ -110,16 +137,6 @@ describe('demoRespond — routing', () => {
         } finally {
             delete (globalThis as { window?: unknown }).window
         }
-    })
-})
-
-describe('demoRespond — rain card overview', () => {
-    it('returns a full RainCardOverview shape (useRainCardOverview derefs .status, cardState derefs .cards)', async () => {
-        const { res, data } = await body('/rain/cards')
-        expect(res.status).toBe(200)
-        expect(data.status.hasApplication).toBe(false)
-        expect(data.balance).toBeNull()
-        expect(Array.isArray(data.cards)).toBe(true)
     })
 })
 

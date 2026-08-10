@@ -46,14 +46,8 @@ export function CancelDepositActions({
     // Cancels are irreversible and the button sits next to the support link —
     // a real user cancelled a funded deposit while trying to report a problem
     // (no way to match the wire once cancelled). Every cancel confirms first.
-    // `kind` rather than a noun to interpolate: "Cancel this {noun}?" can't be
-    // translated — es/pt need gender agreement (este depósito / esta solicitud),
-    // so each kind carries its own full sentence.
-    const [pendingCancel, setPendingCancel] = useState<{
-        kind: 'deposit' | 'request'
-        run: () => Promise<void>
-    } | null>(null)
-    // Visibility is separate from pendingCancel so the copy stays rendered
+    const [pendingCancel, setPendingCancel] = useState<{ noun: string; run: () => Promise<void> } | null>(null)
+    // Visibility is separate from pendingCancel so the noun stays rendered
     // during the modal's fade-out (nulling it mid-fade flashed 'deposit'
     // over 'request' titles).
     const [confirmOpen, setConfirmOpen] = useState(false)
@@ -84,8 +78,8 @@ export function CancelDepositActions({
         }
     }
 
-    const armCancel = (kind: 'deposit' | 'request', run: () => Promise<void>) => {
-        setPendingCancel({ kind, run })
+    const armCancel = (noun: string, run: () => Promise<void>) => {
+        setPendingCancel({ noun, run })
         setConfirmOpen(true)
     }
 
@@ -110,24 +104,21 @@ export function CancelDepositActions({
                 visible={confirmOpen}
                 onClose={() => setConfirmOpen(false)}
                 icon="ban"
-                title={
-                    pendingCancel?.kind === 'request'
-                        ? t('actions.cancelRequestTitle')
-                        : t('actions.cancelDepositTitle')
-                }
+                title={t('actions.cancelConfirm.title', { kind: pendingCancel?.noun ?? 'deposit' })}
                 modalClassName="!z-[9999] pointer-events-auto"
-                description={t.rich('actions.cancelWarning', {
-                    strong: (chunks) => <strong>{chunks}</strong>,
-                })}
+                description={
+                    <>
+                        {t.rich('actions.cancelConfirm.description', {
+                            strong: (chunks) => <strong>{chunks}</strong>,
+                        })}
+                    </>
+                }
                 modalPanelClassName="max-w-sm mx-8 !z-[9999] pointer-events-auto"
                 contentContainerClassName="relative pointer-events-auto"
                 classOverlay="!bg-black/40 !z-[9998]"
                 ctas={[
                     {
-                        text:
-                            pendingCancel?.kind === 'request'
-                                ? t('actions.confirmCancelRequest')
-                                : t('actions.confirmCancelDeposit'),
+                        text: t('actions.cancelConfirm.confirm', { kind: pendingCancel?.noun ?? 'deposit' }),
                         shadowSize: '4',
                         className: 'md:py-2',
                         onClick: confirmThenRun,

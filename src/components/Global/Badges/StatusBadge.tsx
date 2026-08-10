@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 
 export type StatusType =
@@ -12,6 +13,22 @@ export type StatusType =
     | 'closed'
     | 'refunded'
 
+/**
+ * Status → `common.status.*` catalog key. Exhaustive over StatusType, so a new
+ * status can't compile without a label key — same pattern as TYPE_LABEL_KEYS.
+ */
+export const STATUS_LABEL_KEYS = {
+    completed: 'status.completed',
+    pending: 'status.pending',
+    processing: 'status.processing',
+    failed: 'status.failed',
+    cancelled: 'status.cancelled',
+    refunded: 'status.refunded',
+    soon: 'status.soon',
+    closed: 'status.closed',
+    custom: 'status.custom',
+} as const satisfies Record<StatusType, string>
+
 interface StatusBadgeProps {
     status: StatusType
     className?: string
@@ -20,6 +37,8 @@ interface StatusBadgeProps {
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'small', customText }) => {
+    const t = useTranslations('common')
+
     const getStatusStyles = () => {
         switch (status) {
             case 'completed':
@@ -41,34 +60,13 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
         }
     }
 
-    const getStatusText = () => {
-        // customText overrides the default label for any status type,
-        // allowing callers to use a specific status style with custom text
-        if (customText) return customText
-
-        switch (status) {
-            case 'completed':
-                return 'Completed'
-            case 'pending':
-                return 'Pending'
-            case 'processing':
-                return 'Processing'
-            case 'failed':
-                return 'Failed'
-            case 'cancelled':
-                return 'Cancelled'
-            case 'refunded':
-                return 'Refunded'
-            case 'soon':
-                return 'Soon!'
-            case 'closed':
-                return 'Closed'
-            case 'custom':
-                return 'Custom'
-            default:
-                return status
-        }
-    }
+    // customText overrides the default label for any status type, allowing
+    // callers to use a specific status style with custom text. The unknown
+    // guard covers values that reach here through a cast — never render a raw
+    // backend string.
+    // Truthiness on purpose: callers pass customText='' to mean "no override"
+    // (see SendLinkActionList's soon badge).
+    const label = customText || t(STATUS_LABEL_KEYS[status] ?? 'status.unknown')
 
     const getSizeClasses = () => {
         switch (size) {
@@ -93,7 +91,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
                 className
             )}
         >
-            {getStatusText()}
+            {label}
         </span>
     )
 }

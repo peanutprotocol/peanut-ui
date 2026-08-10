@@ -5,10 +5,10 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { isCapacitor } from '@/utils/capacitor'
 import { cancelHaptic, vibrateHaptic } from '@/utils/haptics'
 import Card from '@/components/Global/Card'
-import NavHeader from '@/components/Global/NavHeader'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
+import DevPageShell from '../_components/DevPageShell'
 
 export default function DevShakeTestPage() {
     const [isShaking, setIsShaking] = useState(false)
@@ -150,10 +150,13 @@ export default function DevShakeTestPage() {
     }, [holdTimer, progressInterval])
 
     return (
-        <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
-            <NavHeader title="🧪 Dev Shake Test" />
-
-            <div className="my-auto flex h-full flex-col justify-center space-y-6 px-4">
+        <DevPageShell
+            title="🧪 Dev Shake Test"
+            description="Tunes the shake-and-hold gesture — progressive shake intensity, hold progress, haptics and the confetti payoff."
+            width="prose"
+            className={getShakeClass(isShaking, shakeIntensity)}
+        >
+            <div className="flex flex-col space-y-6">
                 <Card className="space-y-4 p-6">
                     <h2 className="text-center text-2xl font-bold">Shake & Hold Test</h2>
                     <p className="text-center text-sm text-gray-600">
@@ -258,6 +261,6 @@ export default function DevShakeTestPage() {
                     </ul>
                 </Card>
             </div>
-        </div>
+        </DevPageShell>
     )
 }

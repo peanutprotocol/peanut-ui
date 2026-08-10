@@ -1,5 +1,16 @@
 import { useMemo } from 'react'
+import { useLocale } from 'next-intl'
 import { type CrispUserData } from '@/hooks/useCrispUserData'
+import type { AppLocale } from '@/i18n/app/config'
+
+/* Crisp chatbox locales (https://docs.crisp.chat — CRISP_RUNTIME_CONFIG.locale)
+   are lowercase and coarser than the app's; both Spanish variants map to "es". */
+const CRISP_LOCALE_BY_APP_LOCALE: Record<AppLocale, string> = {
+    en: 'en',
+    'es-419': 'es',
+    'es-AR': 'es',
+    'pt-BR': 'pt-br',
+}
 
 /**
  * Builds URL for Crisp proxy page with user data as query parameters
@@ -14,8 +25,11 @@ import { type CrispUserData } from '@/hooks/useCrispUserData'
  * @returns URL path to crisp-proxy page with encoded parameters
  */
 export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: string, crispTokenId?: string): string {
+    const locale = useLocale() as AppLocale
     return useMemo(() => {
         const params = new URLSearchParams()
+
+        params.append('locale', CRISP_LOCALE_BY_APP_LOCALE[locale] ?? 'en')
 
         if (crispTokenId) {
             params.append('crisp_token_id', crispTokenId)
@@ -36,7 +50,6 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
             userData.username ||
             userData.userId ||
             userData.fullName ||
-            userData.grafanaLink ||
             userData.walletAddressLink ||
             userData.bridgeCustomerLink ||
             userData.mantecaUserId ||
@@ -46,7 +59,6 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
                 username: userData.username || '',
                 user_id: userData.userId || '',
                 full_name: userData.fullName || '',
-                grafana_dashboard: userData.grafanaLink || '',
                 wallet_address: userData.walletAddressLink || '',
                 bridge_user_id: userData.bridgeCustomerLink || '',
                 manteca_user_id: userData.mantecaUserId || '',
@@ -68,11 +80,11 @@ export function useCrispProxyUrl(userData: CrispUserData, prefilledMessage?: str
         userData.username,
         userData.avatar,
         userData.userId,
-        userData.grafanaLink,
         userData.walletAddressLink,
         userData.bridgeCustomerLink,
         userData.mantecaUserId,
         userData.posthogPersonLink,
         prefilledMessage,
+        locale,
     ])
 }

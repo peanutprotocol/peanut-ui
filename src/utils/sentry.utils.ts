@@ -17,6 +17,19 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
     // Expected input validation, surfaced inline to the user — not a server bug.
     { pattern: /\/invites\/validate/, statuses: [400] },
+    // /tokens/price 404 means the upstream price provider declined the lookup —
+    // in practice a Mobula 429. The UI falls back to token denomination, so it is
+    // a degraded display, never a wrong number. The backend already downgraded
+    // its own log to warn for this exact reason (PEANUT-API-75); reporting it
+    // from the client re-created the same page-per-lookup noise as PEANUT-UI-QKY.
+    { pattern: /\/tokens\/price\/?(?:[?#]|$)/, statuses: [404] },
+    // Public FX pair misses and validation failures are expected user/input
+    // outcomes, not backend incidents. 503 is included deliberately: it means a
+    // provider leg is momentarily absent, which peanut-api already reports with
+    // the upstream cause attached. Reporting it here too would multiply one
+    // incident by every mounted hook and its retries — the merchant page alone
+    // runs three — and bury the backend signal that can actually be acted on.
+    { pattern: /\/fx\/rate(?:\?|$)/, statuses: [400, 404, 429, 503] },
     // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
@@ -402,7 +415,12 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
     // gets picked up by forward-logs-shared as Sentry breadcrumbs.
     if (shouldSkipReporting(url, response.status)) return
 
-    console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
+    // console.info, not warn — captureConsoleIntegration listens on
+    // ['error','warn'], so a warn here became a SECOND Sentry event for every
+    // non-2xx in the app, grouped by this call site rather than by request.
+    // The explicit captureMessage below is the real report: it fingerprints on
+    // [method, url, status] and carries headers, body and response.
+    console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
 
     let errorContent: JSONValue
     try {

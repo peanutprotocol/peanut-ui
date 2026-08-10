@@ -3,7 +3,6 @@
 import { type ReactNode } from 'react'
 import { useLocale } from 'next-intl'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
-import { localizeMarketingPath, resolveLocale } from '@/i18n/app/config'
 import { BASE_URL } from '@/constants/general.consts'
 
 interface DocsLinkProps {
@@ -12,6 +11,20 @@ interface DocsLinkProps {
     className?: string
     children: ReactNode
     'aria-label'?: string
+}
+
+/**
+ * Re-point an `/en/…` href at the app locale's marketing twin so a Spanish
+ * user tapping "Docs" lands on Spanish pages. App locales lowercase onto the
+ * marketing URL codes (pt-BR → pt-br), and the marketing fallback chains
+ * guarantee a missing translation serves fallback prose rather than a 404.
+ * Non-`/en/` hrefs (bare `/terms`, absolute URLs) pass through untouched.
+ */
+export function localizeDocsHref(href: string, appLocale: string): string {
+    const marketingLocale = appLocale.toLowerCase()
+    if (marketingLocale === 'en') return href
+    if (href === '/en' || href.startsWith('/en/')) return `/${marketingLocale}${href.slice(3)}`
+    return href
 }
 
 /**
@@ -24,7 +37,9 @@ interface DocsLinkProps {
  * keep writing the canonical English path.
  */
 export default function DocsLink({ href, className, children, ...rest }: DocsLinkProps) {
-    const localizedHref = localizeMarketingPath(href, resolveLocale(useLocale()))
+    const locale = useLocale()
+    const localizedHref = localizeDocsHref(href, locale)
+
     return (
         <a
             href={localizedHref}

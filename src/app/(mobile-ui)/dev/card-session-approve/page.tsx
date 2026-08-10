@@ -13,6 +13,7 @@ import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { Button } from '@/components/0_Bruddle/Button'
+import DevPageShell from '../_components/DevPageShell'
 
 export default function CardSessionApprovePage() {
     const { overview } = useRainCardOverview()
@@ -32,13 +33,11 @@ export default function CardSessionApprovePage() {
     }
 
     return (
-        <div className="mx-auto flex max-w-xl flex-col gap-4 p-6">
-            <h1 className="text-2xl font-black">Rain card — grant session-key permission</h1>
-            <p className="text-sm text-grey-1">
-                One passkey tap installs both auto-balancer and withdraw policies to your kernel. After this grant, card
-                collateral spends only need a single admin EIP-712 tap per spend.
-            </p>
-
+        <DevPageShell
+            title="Rain card — grant session-key permission"
+            description="One passkey tap installs both auto-balancer and withdraw policies to your kernel. After this grant, card collateral spends only need a single admin EIP-712 tap per spend."
+            width="prose"
+        >
             <div className="rounded-sm border border-n-1 p-3 text-sm">
                 <div>
                     <span className="font-bold">Card status: </span>
@@ -69,6 +68,6 @@ export default function CardSessionApprovePage() {
             </Button>
 
             {status && <pre className="whitespace-pre-wrap rounded-sm border border-n-1 p-3 text-xs">{status}</pre>}
-        </div>
+        </DevPageShell>
     )
 }

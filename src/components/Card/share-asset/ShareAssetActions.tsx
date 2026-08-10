@@ -70,8 +70,8 @@ interface Props {
     source: string
     /** Optional filename for the downloaded PNG. */
     filename?: string
-    /** Whether the share asset has finished painting its card face (the async
-     *  hand <canvas> has mounted — see PixelatedCardFace.onReady). Until then,
+    /** Whether the share asset has finished painting its card face (the hand
+     *  <img> has loaded — see PixelatedCardFace.onReady). Until then,
      *  capturing would snapshot a blank card, so both buttons stay disabled.
      *  Defaults to true so callers that don't wire the signal aren't blocked. */
     ready?: boolean

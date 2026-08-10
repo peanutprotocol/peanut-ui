@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
+import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
@@ -113,6 +114,13 @@ export const useMultiPhaseKycFlow = ({
     const preparingElapsedIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const isRealtimeFlowRef = useRef(false)
 
+    // effective region intent for analytics — Manteca entry points instantiate this
+    // hook with no `regionIntent` and pass 'LATAM' only as an override to
+    // handleInitiateKyc, so the hook-level prop alone misattributes the
+    // completed/abandoned events (LATAM successes fired as kyc_approved with
+    // region_intent: None). The last initiated intent wins over the prop.
+    const lastIntentRef = useRef<KYCRegionIntent | undefined>(undefined)
+
     // bridge ToS state
     const [tosLink, setTosLink] = useState<string | null>(null)
     const [showTosIframe, setShowTosIframe] = useState(false)
@@ -149,9 +157,10 @@ export const useMultiPhaseKycFlow = ({
 
     // complete the flow — close everything, call original onKycSuccess
     const completeFlow = useCallback(() => {
+        const effectiveIntent = lastIntentRef.current ?? regionIntent
         posthog.capture(
-            regionIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
-            { region_intent: regionIntent, acquisition_source: acquisitionSource }
+            effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
+            { region_intent: effectiveIntent, acquisition_source: acquisitionSource }
         )
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
@@ -240,7 +249,7 @@ export const useMultiPhaseKycFlow = ({
     useEffect(() => {
         if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
             posthog.capture(ANALYTICS_EVENTS.KYC_REJECTED, {
-                region_intent: regionIntent,
+                region_intent: lastIntentRef.current ?? regionIntent,
                 status: liveKycStatus,
             })
             fetchUser()
@@ -249,7 +258,7 @@ export const useMultiPhaseKycFlow = ({
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
-        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: regionIntent })
+        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
         isRealtimeFlowRef.current = true
         originalHandleSdkComplete()
         // for action flows (manteca, self-heal), the base status is already APPROVED
@@ -259,13 +268,29 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent])
 
+    // true only while a PWA-reload resume drives handleInitiateKyc, so the
+    // analytics event can distinguish a resume from a genuine new initiation
+    // (a resume otherwise looks identical and inflates "initiated" counts).
+    const resumingRef = useRef(false)
+
+    // Arguments of the initiate that opened the SDK, replayed on resume. The
+    // LATAM surfaces build the flow as `useMultiPhaseKycFlow({})` and pass the
+    // intent at call time, so a resume that re-initiates with hook defaults
+    // there mints a token for the wrong verification level — and still opens the
+    // SDK, so the flag is not cleared and the user never sees what went wrong.
+    // The resolved intent is stored rather than the raw override so the replay
+    // pins the exact intent used.
+    const lastInitiateArgsRef = useRef<KycResumeState>({})
+
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
             const intent = overrideIntent ?? regionIntent
+            lastIntentRef.current = intent
+            lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry }
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
-                { region_intent: intent, acquisition_source: acquisitionSource }
+                { region_intent: intent, acquisition_source: acquisitionSource, resumed: resumingRef.current }
             )
 
             setModalPhase('verifying')
@@ -277,10 +302,27 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            await originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry)
+            return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry)
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
+
+    // PWA-reload resume (see useSumsubReloadResume). On mount, if the state is
+    // in the URL but the SDK is closed, re-initiate with the same arguments:
+    // mint a fresh token for the existing applicant and reopen the SDK. The SDK
+    // now launches straight into Sumsub on open (the StartVerificationView intro
+    // was removed with the native-SDK refactor), so no extra auto-start step is
+    // needed.
+    useSumsubReloadResume(showWrapper ? lastInitiateArgsRef.current : null, async (state) => {
+        // Returns whether the SDK actually opened — a resume that resolves
+        // without opening (already-approved user, or a remediation flow the
+        // replay can't reconstruct) clears the state instead of retrying on
+        // every future reload.
+        resumingRef.current = true
+        const opened = await handleInitiateKyc(state.intent, state.levelName, state.crossRegion, state.targetCountry)
+        resumingRef.current = false
+        return !!opened
+    })
 
     // 30s timeout for preparing phase + elapsed time counter for progressive copy
     useEffect(() => {
@@ -378,9 +420,10 @@ export const useMultiPhaseKycFlow = ({
 
     // handle modal close (Go to Home, etc.)
     const handleModalClose = useCallback(() => {
+        const effectiveIntent = lastIntentRef.current ?? regionIntent
         posthog.capture(
-            regionIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_ABANDONED : ANALYTICS_EVENTS.KYC_ABANDONED,
-            { region_intent: regionIntent, phase: modalPhase }
+            effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_ABANDONED : ANALYTICS_EVENTS.KYC_ABANDONED,
+            { region_intent: effectiveIntent, phase: modalPhase }
         )
         isRealtimeFlowRef.current = false
         setForceShowModal(false)

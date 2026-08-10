@@ -187,3 +187,5 @@ describe('throttle', () => {
         expect(fire).toHaveBeenCalledTimes(1)
     })
 })
+
+export {}

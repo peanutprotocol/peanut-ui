@@ -9,8 +9,10 @@
  * confusion. Nested primitives are stubbed.
  */
 import React from 'react'
-import { render as rtlRender, screen } from '@testing-library/react'
+import { render as rtlRender, screen, type RenderOptions } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+
+const render = (ui: React.ReactElement, options?: RenderOptions) => rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
     PaymentInfoRow: ({ label, value }: { label: React.ReactNode; value: React.ReactNode }) => (
@@ -32,8 +34,6 @@ import { BridgeDepositInstructions } from '../BridgeDepositInstructions'
 
 // these components call useTranslations; IntlWrapper supplies the en catalog
 // so the English assertions below keep asserting the real shipped copy
-const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
-
 const FULL_REFERENCE = 'BRGTESTREF1234567890'
 const SHORT_REFERENCE = FULL_REFERENCE.slice(0, 10)
 

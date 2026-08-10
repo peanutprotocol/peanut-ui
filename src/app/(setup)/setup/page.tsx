@@ -11,6 +11,7 @@ import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
+import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { getFromCookie } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -75,6 +76,11 @@ function SetupPageContent() {
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
+        // Mounting the (setup) layout armed the post-setup iOS install wall
+        // (setShowIosPwaInstallScreen in (setup)/layout.tsx). This visit was not a
+        // setup session and the soft nav keeps the store alive, so disarm it —
+        // otherwise /home renders the no-escape ForceIOSPWAInstall screen.
+        dispatch(setupActions.setShowIosPwaInstallScreen(false))
         router.push('/home')
     }
 
@@ -98,19 +104,23 @@ function SetupPageContent() {
 
             // Skip the invite-code gate straight to signup when either:
             //  - an invite code is present (cookie survives the PWA-install hop), or
-            //  - the URL asks for it via ?step=signup — the signal every campaign /
-            //    skip flow already sends (ShhhhhLandingPage, InvitesPage.handleClaim)
-            //    when it pushes to /setup. useZeroDev still reads the campaignTag
-            //    cookie post-signup to award the badge; the step decision no longer
-            //    trusts that cookie.
+            //  - the URL asks for it via ?step=signup — the signal every campaign
+            //    entrypoint sends when it pushes to /setup. After authentication,
+            //    useZeroDev submits the queued opaque campaign list to the canonical
+            //    claim service; the step decision never interprets that cookie.
             //
-            // Why not the campaignTag cookie: it's a session cookie cleared only on a
-            // successful signup, so a returning user who claimed a campaign earlier in
-            // the same session was routed past Landing (the only screen with Log In)
-            // onto Signup, unable to log back in (regression from PR #2346).
+            // Why not the campaignTag cookie: retryable campaign acquisition can
+            // intentionally persist for 30 days. Using it as onboarding state would
+            // route a returning user past Landing (the only screen with Log In) onto
+            // Signup, unable to log back in (regression from PR #2346).
             const inviteCodeFromCookie = getFromCookie('inviteCode')
             const userInviteCode = inviteCode || inviteCodeFromCookie
-            const skipInviteGate = !!userInviteCode || searchParams.get('step') === 'signup'
+            // pwa-sunset notice window: web signups are closed (Landing hides
+            // Sign up), so the ?step=signup / invite-code jump must not skip
+            // past the landing gate — otherwise claim/invite links deep-link
+            // straight into the signup form. Native app keeps the fast path.
+            const webSignupClosed = isPwaSunsetOn() && !isCapacitor()
+            const skipInviteGate = (!!userInviteCode || searchParams.get('step') === 'signup') && !webSignupClosed
 
             const localDeviceType = detectedDeviceType
 

@@ -17,6 +17,7 @@
         "skipForNow": "Omitir por ahora",
         "gotIt": "Entendido",
         "contactSupport": "Contactar soporte",
+        "peanutFee": "Comisión de Peanut",
         "sponsoredByPeanut": "¡Patrocinada por Peanut!",
         "pending": "Pendiente",
         "comingSoon": "Próximamente",
@@ -27,7 +28,19 @@
         "next": "Siguiente",
         "notFound": "No encontrado",
         "countryNotFound": "País no encontrado",
-        "tryDifferentCountry": "Prueba con otro país."
+        "tryDifferentCountry": "Prueba con otro país.",
+        "status": {
+            "completed": "Completado",
+            "pending": "Pendiente",
+            "processing": "Procesando",
+            "failed": "Fallido",
+            "cancelled": "Cancelado",
+            "refunded": "Reembolsado",
+            "soon": "¡Pronto!",
+            "closed": "Cerrado",
+            "custom": "Personalizado",
+            "unknown": "Desconocido"
+        }
     },
     "navigation": {
         "home": "Inicio",
@@ -68,7 +81,7 @@
                 },
                 "outbound": {
                     "title": "Haz tu primer pago",
-                    "description": "Empieza a pagar códigos QR de Pix y Mercado Pago",
+                    "description": "Empieza a pagar códigos QR de Pix y MercadoPago",
                     "cta": "Empezar a gastar"
                 }
             },
@@ -86,6 +99,16 @@
                 "title": "Problema de verificación",
                 "description": "Contacta a soporte para recibir ayuda con tu verificación.",
                 "cta": "Contactar soporte"
+            },
+            "spendWithPeanut": {
+                "title": "Paga con Peanut",
+                "description": "Paga con tu tarjeta o escanea códigos QR de Pix y MercadoPago"
+            },
+            "spendChooser": {
+                "title": "¿Cómo quieres gastar?",
+                "description": "Ambas cuentan como tu primer pago.",
+                "payWithCard": "Paga con tu tarjeta",
+                "scanQr": "Escanea un código QR"
             }
         },
         "autoBalance": {
@@ -171,13 +194,16 @@
             },
             "kyc": {
                 "title": "Desbloquea <b>pagos con QR</b>",
-                "description": "Confirma tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>Pix</b>"
+                "description": "Confirma tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>PIX</b>"
             },
             "closePrompt": "Cerrar aviso",
             "closeTitled": "Cerrar {title}",
             "closeVerificationPrompt": "Cerrar aviso de verificación",
             "closeNotificationPrompt": "Cerrar aviso de notificaciones",
             "claimablePerk": "Recompensa disponible"
+        },
+        "pendingTasks": {
+            "completeBefore": "Complete before {deadline}"
         }
     },
     "profile": {
@@ -427,7 +453,6 @@
             "swapCurrencies": "Intercambiar monedas",
             "rateUnavailable": "Tipo de cambio no disponible por ahora",
             "bankFee": "Comisión bancaria",
-            "peanutFee": "Comisión de Peanut",
             "free": "¡Gratis!",
             "arrivesHours": "Debería llegar en horas.",
             "arrivesMinutes": "Debería llegar en minutos."
@@ -620,7 +645,44 @@
         "loggingIn": "Iniciando sesión",
         "loggingOut": "Cerrando sesión",
         "paying": "Pagando",
-        "withdrawing": "Retirando"
+        "withdrawing": "Retirando",
+        "sending": "Enviando"
+    },
+    "paymentLoading": {
+        "cracking": "Abriendo maníes",
+        "smacking": "Chasqueando",
+        "smoothing": "Alisando",
+        "stacking": "Apilando",
+        "tallying": "Contando",
+        "balancing": "Balanceando",
+        "doubleChecking": "Revisando dos veces",
+        "tripleChecking": "Revisando tres veces",
+        "wiring": "Transfiriendo",
+        "shuffling": "Mezclando",
+        "hustling": "Apurando",
+        "slinging": "Lanzando",
+        "wandering": "Vagando",
+        "sayingHola": "Diciendo hola",
+        "dodgingFees": "Esquivando comisiones",
+        "outrunningYourBank": "Corriendo más que tu banco",
+        "skippingTheLine": "Saltando la fila",
+        "cuttingTheLine": "Colándonos en la fila",
+        "ditchingWires": "Jubilando los giros",
+        "bypassingBorders": "Cruzando fronteras",
+        "sneakingPast": "Pasando de incógnito",
+        "sidestepping": "Esquivando",
+        "goingAround": "Dando la vuelta",
+        "outsmartingSwift": "Ganándole a SWIFT",
+        "huntingRates": "Cazando cotizaciones",
+        "rateHunting": "Buscando el mejor cambio",
+        "negotiating": "Negociando",
+        "haggling": "Regateando",
+        "bartering": "Haciendo trueque",
+        "chasingTheRate": "Persiguiendo la cotización",
+        "beatingYourCard": "¡Ganándole a tu tarjeta!",
+        "cooking": "Cocinando",
+        "marinating": "Marinando",
+        "yodeling": "Cantando a lo tirolés"
     },
     "send": {
         "linkCard": {
@@ -711,6 +773,7 @@
         "success": {
             "addedExternal": "Agregaste con éxito",
             "withdrew": "Acabas de retirar",
+            "justSent": "Acabas de enviar",
             "sent": "Enviaste ",
             "requested": "Solicitaste ",
             "added": "Agregaste ",
@@ -730,7 +793,6 @@
             "sending": "Enviando",
             "tokenAndNetwork": "Token y red",
             "networkFee": "Comisión de red",
-            "peanutFee": "Comisión de Peanut",
             "slippageInfo": "Esta transacción puede sufrir slippage debido a la conversión de tokens o al puente entre cadenas."
         },
         "input": {
@@ -750,8 +812,8 @@
         },
         "requiresVerification": "REQUIERE VERIFICACIÓN",
         "contributors": {
-            "seeAll": "Ver todos los colaboradores",
-            "title": "Colaboradores ({count})"
+            "seeAll": "Ver todos los contribuyentes",
+            "title": "Contribuyentes ({count})"
         },
         "errors": {
             "insufficientPayment": "No tienes saldo suficiente para completar este pago con Peanut",
@@ -765,7 +827,7 @@
             "requestNotFound": "solicitud no encontrada",
             "invalidUrlFormat": "Formato de URL no válido",
             "invalidPaymentUrl": "url de pago no válida",
-            "userNotFound": "el usuario @{username} no existe o no tiene una billetera de Peanut",
+            "userNotFound": "el usuario @{username} no existe o no tiene una billetera de peanut",
             "usernameArbitrumOnly": "Los pagos a nombres de usuario de Peanut solo se pueden hacer en Arbitrum"
         }
     },
@@ -840,8 +902,7 @@
             "tokenAlt": "token",
             "chainAlt": "red",
             "tokenOnChain": "{token} en <c>{chain}</c>",
-            "maxNetworkFee": "Comisión máxima de red",
-            "peanutFee": "Comisión de Peanut"
+            "maxNetworkFee": "Comisión máxima de red"
         },
         "success": {
             "peanutMascotAlt": "Mascota de Peanut",
@@ -856,7 +917,7 @@
             "selectCountry": "Selecciona el país de tu cuenta bancaria",
             "fullName": "Nombre completo",
             "accountNumber": "Número de cuenta",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de ruta",
             "countryNotSelected": "No seleccionaste un país",
             "processAccountFailed": "No se pudo procesar la cuenta bancaria. Inténtalo de nuevo."
         },
@@ -882,7 +943,7 @@
         "havingTrouble": "¿Tienes problemas?",
         "orderNotReady": {
             "title": "No pudimos obtener el monto",
-            "description": "Pídele al comercio que ingrese el monto y escanea el QR de nuevo.",
+            "description": "Pídele al comercio que lo ingrese y escanea el QR de nuevo.",
             "cta": "Escanear el código de nuevo"
         },
         "maintenance": {
@@ -909,9 +970,8 @@
             "exchangeRate": "Tipo de cambio",
             "exchangeRateTooltip": "El tipo de cambio mostrado es actual, pero puede variar un poco (~$1-5 ARS) hasta que se confirme el pago.",
             "saveVsCard": "Ahorro vs. tarjeta",
-            "saveVsCardTooltipBrl": "Las tarjetas extranjeras pagan IOF (~3.5%) más una comisión FX típica del emisor de ~3%. Peanut usa Pix al tipo de cambio actual del mercado.",
-            "saveVsCardTooltipArs": "Las tarjetas extranjeras aplican el tipo de cambio oficial más una comisión FX típica del emisor de ~3%. Peanut usa Mercado Pago al tipo de cambio actual del mercado.",
-            "peanutFee": "Comisión de Peanut"
+            "saveVsCardTooltipBrl": "Las tarjetas extranjeras pagan IOF (~3.5%) más una comisión FX típica del emisor de ~3%. Peanut usa PIX al tipo de cambio actual del mercado.",
+            "saveVsCardTooltipArs": "Las tarjetas extranjeras aplican el tipo de cambio oficial más una comisión FX típica del emisor de ~3%. Peanut usa MercadoPago al tipo de cambio actual del mercado."
         },
         "success": {
             "youPaid": "Pagaste a {merchant}",
@@ -920,6 +980,8 @@
             "holdToClaim": "¡Ganaste una recompensa! Mantén presionado para reclamarla.",
             "earnedInviteFriends": "¡Ganaste ${amount}! Invita amigos para ganar aún más.",
             "inviteFriends": "Invita amigos para ganar aún más recompensas.",
+            "savedVsCardCents": "¡ahorraste ~{count, plural, one {# centavo} other {# centavos}} comparado con la tarjeta!",
+            "savedVsCardDollars": "¡ahorraste ~${amount} comparado con la tarjeta!",
             "claimReward": "Reclamar recompensa",
             "splitThisBill": "Dividir esta cuenta",
             "seeReceipt": "Ver recibo"
@@ -927,7 +989,7 @@
         "errors": {
             "invalidQr": "El código QR escaneado no es válido",
             "pixMinAmount": "Este cobro de Pix está por debajo del mínimo de {amount} BRL para pagos con Pix.",
-            "pixRecurring": "Este código QR es de un pago recurrente (Pix Automático). Peanut no admite pagos Pix recurrentes — pide un código QR de Pix normal.",
+            "pixRecurring": "Este código QR es de un pago recurrente (PIX Automático). Peanut no admite pagos PIX recurrentes — pide un código QR de PIX normal.",
             "pixDecode": "No pudimos decodificar este código QR de Pix. Pídele al comercio que genere uno nuevo.",
             "genericDecode": "No pudimos decodificar este código QR. Pregúntale al comercio si puede generar un QR de Mercado Pago",
             "providerIssues": "Estamos teniendo problemas con los pagos de {method}. Estamos trabajando para solucionarlo lo antes posible",
@@ -941,7 +1003,7 @@
             "merchantNotSupported": "Este código QR o comercio no es compatible. Inténtalo de nuevo con otro código QR.",
             "completeFailed": "No se pudo completar el pago. Escanea el código QR de nuevo. Si el problema persiste, contacta a soporte",
             "minMantecaAmount": "El monto del pago debe ser de al menos ${amount}",
-            "minPixAmountBrl": "El monto mínimo de Pix es {amount} BRL",
+            "minPixAmountBrl": "El monto mínimo de PIX es {amount} BRL",
             "maxQrAmount": "El monto del pago QR supera el límite máximo de ${amount}",
             "minQrAmount": "El monto del pago QR debe ser de al menos ${amount}",
             "genericQrDetails": "Ocurrió un error al obtener los detalles del QR.",
@@ -1010,7 +1072,10 @@
             "requiresSupportTitle": "Algo salió mal de nuestro lado",
             "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escríbele a soporte y lo resolvemos.",
             "rejectedTitle": "No pudimos emitirte una tarjeta",
-            "rejectedBody": "Puedes seguir usando Peanut sin problema para depositar, retirar y pagar con cripto."
+            "rejectedBody": "Puedes seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
+            "geoBlockedTitle": "Las tarjetas aún no están disponibles en tu región",
+            "geoBlockedBody": "Por restricciones regulatorias, no podemos emitir tarjetas en tu región. Igual puedes usar Peanut libremente para depositar, retirar y pagar con cripto.",
+            "geoBlockedPolicyLink": "Ver qué regiones están restringidas"
         },
         "celebration": {
             "navTitle": "Bienvenido",
@@ -1168,11 +1233,11 @@
             "navTitle": "Tarjeta física",
             "onListTitle": "¡Estás en la lista!",
             "onListBody": "Eres el #{position} en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
-            "onListBodyNoPosition": "Estás en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
             "comingSoonTitle": "¡Próximamente!",
             "comingSoonBody": "Únete a nuestra lista de espera y sé de los primeros en tenerla.",
             "joinCta": "Unirme a la lista de espera",
-            "joinFailed": "No se pudo unir a la lista de espera"
+            "joinFailed": "No se pudo unir a la lista de espera",
+            "onListBodyPending": "Estás en la lista. Te avisamos cuando las tarjetas estén listas para enviarse."
         },
         "yourCard": {
             "navTitle": "Tu tarjeta",
@@ -1207,21 +1272,22 @@
             "previewFailed": "No se pudo cargar la vista previa de recuperación",
             "failed": "Falló la recuperación — inténtalo de nuevo",
             "doneTitle": "Fondos enviados a tu billetera.",
-            "doneBody": "{amount} USDC se devolvieron a tu billetera de Peanut.",
+            "doneBody": "{amount} USDC se devolvieron a tu billetera de peanut.",
             "viewTransaction": "Ver transacción",
             "title": "Recupera el colateral de tu tarjeta",
             "noCardOnFile": "No hay tarjeta registrada",
-            "description": "Esto trae de vuelta a tu billetera de Peanut todo el USDC que esté en el contrato de colateral de tu tarjeta. La recarga automática se desactiva como parte de la recuperación para que el rebalanceador no recargue entre ahora y la transferencia.",
+            "description": "Esto trae de vuelta a tu billetera de peanut todo el USDC que esté en el contrato de colateral de tu tarjeta. El auto-balance se desactiva como parte de la recuperación para que el rebalanceador no recargue entre ahora y la transferencia.",
             "recoverable": "Recuperable",
             "destination": "Destino",
             "dust": "Polvo restante en el contrato",
-            "autoBalance": "Recarga automática",
-            "autoBalanceOn": "activada — se desactivará",
-            "autoBalanceOff": "desactivada",
+            "autoBalance": "Auto-balance",
+            "autoBalanceOn": "activado — se desactivará",
+            "autoBalanceOff": "desactivado",
             "signWithPasskey": "Firmar con passkey…",
             "submitting": "Enviando…",
             "cta": "Recuperar fondos"
         },
+        "uploadProofOfAddress": "Subir comprobante de domicilio",
         "fixSignature": {
             "navTitle": "Reparar la firma de la tarjeta",
             "intro": "Esta herramienta repara un problema de estado de la billetera que impide que tu tarjeta se recargue automáticamente. Requiere hasta dos confirmaciones rápidas con tu passkey.",
@@ -1242,8 +1308,7 @@
             "noActiveCard": "No se encontró una tarjeta activa en esta cuenta. Contacta al soporte.",
             "regrantFailed": "La reactivación no se completó. Inténtalo de nuevo o contacta al soporte.",
             "diagnostics": "Diagnóstico: nonce {nonce} / piso {floor}"
-        },
-        "uploadProofOfAddress": "Subir comprobante de domicilio"
+        }
     },
     "addMoney": {
         "title": "Agregar dinero",
@@ -1357,7 +1422,6 @@
             "exchangeRate": "Tipo de cambio",
             "providerFees": "Comisiones del proveedor",
             "providerFeesInfo": "Nuestros proveedores y la blockchain cobran una pequeña comisión por cada transacción. Esa comisión ya está incluida en el monto que ves.",
-            "peanutFee": "Comisión de Peanut",
             "flagAlt": "bandera",
             "shareTitle": "Datos de la transferencia bancaria",
             "shareDetails": "Compartir datos",
@@ -1367,13 +1431,13 @@
             "minDepositAmount": "El monto del depósito debe ser de al menos ${amount}"
         },
         "pix": {
-            "payWithPix": "Pagar con Pix",
+            "payWithPix": "Pagar con PIX",
             "depositReceived": "¡Depósito recibido!",
             "balanceUpdated": "Tu saldo se actualizó.",
             "expiresIn": "Vence en {time}",
             "qrExpired": "Este código QR venció.",
             "goBack": "Volver",
-            "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
+            "scanWithBankApp": "Escanea con la app de tu banco o copia el código PIX."
         },
         "confirmationModal": {
             "title": "¡IMPORTANTE!",
@@ -1402,7 +1466,7 @@
             "sortCode": "Sort Code",
             "accountNumber": "Número de cuenta",
             "iban": "IBAN",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de ruta",
             "bic": "BIC",
             "youllReceive": "Recibirás",
             "doubleCheckTitle": "Revisa bien en tu banco antes de enviar:",
@@ -1426,7 +1490,8 @@
             "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Inténtalo de nuevo en un momento.",
             "bankAccountFailed": "No se pudo procesar la cuenta bancaria. Inténtalo de nuevo o contacta a soporte.",
             "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Inténtalo de nuevo en un momento."
-        }
+        },
+        "pixMaintenanceBadge": "Mantenimiento"
     },
     "withdraw": {
         "amountToWithdraw": "Monto a retirar",
@@ -1443,7 +1508,7 @@
         "backToHome": "Volver al inicio",
         "somethingWentWrong": "¡Algo salió mal!",
         "methods": {
-            "mercadopago": "Mercado Pago",
+            "mercadopago": "MercadoPago",
             "pix": "Pix",
             "bankTransfer": "Transferencia bancaria"
         },
@@ -1454,7 +1519,7 @@
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",
-            "recipientReceivesInfo": "El monto completo llega a la red de destino. La comisión del puente entre cadenas se paga aparte: mira abajo.",
+            "recipientReceivesInfo": "El monto completo llega a la red de destino. La comisión de red entre cadenas se paga aparte: mira abajo.",
             "tokenAndNetwork": "Token y red",
             "tokenOnChain": "{token} en <c>{chain}</c>",
             "tokenAlt": "token",
@@ -1463,17 +1528,17 @@
             "networkFee": "Comisión de red",
             "networkFeeInfo": "Comisión del puente entre cadenas (gas de destino + 0.07% de Rhino). Se paga aparte del monto retirado.",
             "youPay": "Pagas",
-            "peanutFee": "Comisión de Peanut",
             "highFeeWarning": "Nota: la comisión de red es una parte grande de este retiro. Retirar un monto mayor o elegir una red más barata la reduce."
         },
         "compatibilityModal": {
             "title": "¿Esta dirección es compatible?",
-            "description": "Envía solo a direcciones compatibles con la red y el token seleccionados. Las transferencias incorrectas se pueden perder."
+            "description": "Envía solo a direcciones compatibles con la red y el token seleccionados. Las transferencias incorrectas se pueden perder.",
+            "sendingTo": "Estás enviando a"
         },
         "pixKey": {
             "title": "Enviar con Pix",
             "heading": "Ingresa la clave Pix",
-            "placeholder": "Clave Pix (incluye +55 si es un número de teléfono)",
+            "placeholder": "Clave PIX (incluye +55 si es un número de teléfono)",
             "info": "Envía a cualquier clave Pix: email, teléfono, CPF/CNPJ o clave aleatoria.",
             "invalid": "Clave Pix inválida"
         },
@@ -1486,7 +1551,7 @@
             "clabe": "CLABE",
             "accountNumber": "Número de cuenta",
             "sortCode": "Sort Code",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de ruta",
             "fee": "Comisión",
             "bankAccount": "Cuenta bancaria",
             "transferProcessing": "Transferencia en proceso",
@@ -1504,7 +1569,6 @@
             "lockingRate": "Fijando el tipo de cambio...",
             "exchangeRate": "Tipo de cambio",
             "exchangeRateInfo": "El tipo de cambio mostrado es actual, pero puede variar un poco (~$1-5 ARS) hasta que se confirme el pago.",
-            "peanutFee": "Comisión de Peanut",
             "flagAlt": "bandera",
             "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago."
         },
@@ -1513,7 +1577,7 @@
             "accountOwnerName": "Nombre del titular de la cuenta",
             "accountOwnerNameRequired": "El nombre del titular es obligatorio",
             "accountOwnerNameFull": "Ingresa nombre y apellido",
-            "email": "Email",
+            "email": "E-mail",
             "emailRequired": "El email es obligatorio",
             "clabe": "CLABE",
             "clabeRequired": "La CLABE es obligatoria",
@@ -1530,9 +1594,9 @@
             "bic": "BIC",
             "bicRequired": "El BIC es obligatorio",
             "bicInvalid": "Código BIC inválido",
-            "routingNumber": "Routing Number",
-            "routingNumberRequired": "El routing number es obligatorio",
-            "routingNumberInvalid": "Routing number inválido",
+            "routingNumber": "Número de ruta",
+            "routingNumberRequired": "El número de ruta es obligatorio",
+            "routingNumberInvalid": "Número de ruta inválido",
             "sortCode": "Sort Code",
             "sortCodeRequired": "El sort code es obligatorio",
             "sortCodeInvalid": "El sort code debe tener 6 dígitos",
@@ -1575,13 +1639,14 @@
             "unexpected": "El retiro falló inesperadamente. Si el problema continúa, contacta a soporte",
             "completeAccountSetup": "Completa la configuración de tu cuenta. Ve a Ajustes para actualizar tu perfil.",
             "minWithdrawAmount": "El monto del retiro debe ser de al menos ${amount}"
-        }
+        },
+        "resolvesTo": "se resuelve a"
     },
     "transaction": {
         "drawerTitle": "Detalles de la transacción",
         "noGoalSet": "Sin meta definida",
         "amountCollected": "${amount} recaudados",
-        "contributors": "Colaboradores ({count})",
+        "contributors": "Contribuyentes ({count})",
         "pendingLinkDeviceNote": "Usa el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "type": {
             "send": "Envío",
@@ -1595,7 +1660,7 @@
             "bank_claim": "Reclamo",
             "bank_withdraw": "Retiro",
             "bank_deposit": "Ingreso",
-            "bank_request_fulfillment": "Solicitud pagada vía banco",
+            "bank_request_fulfillment": "Solicitud pagada por banco",
             "card_pay": "Pago",
             "refund": "Reembolso",
             "setup": "Configuración",
@@ -1623,6 +1688,38 @@
             "paidTo": "Pagado a {name}",
             "payingTo": "Pagando a {name}"
         },
+        "name": {
+            "merchant": "Comercio",
+            "cardPayment": "Pago con tarjeta",
+            "cardRefund": "Reembolso de tarjeta",
+            "refundFrom": "Reembolso de {name}",
+            "refund": "Reembolso",
+            "depositSource": "Origen del depósito",
+            "externalWallet": "Billetera externa",
+            "externalAccount": "Cuenta externa",
+            "claimedToBank": "Reclamado al banco",
+            "bankAccount": "Cuenta bancaria",
+            "recipient": "Destinatario",
+            "sender": "Remitente",
+            "request": "Solicitud",
+            "peanutReward": "Recompensa Peanut",
+            "receivedViaLink": "Recibido por enlace",
+            "sentViaLink": "Enviado por enlace",
+            "transaction": "Transacción",
+            "failedQrPayment": "Intento de pago QR fallido"
+        },
+        "failReason": {
+            "p2pSendTimeout": "El envío no se completó",
+            "p2pRequestFulfillTimeout": "El pago no se completó",
+            "sendLinkTimeout": "El enlace no se completó",
+            "sendLinkClaimTimeout": "El reclamo no se completó",
+            "cryptoWithdrawTimeout": "El retiro no se completó",
+            "qrPayTimeout": "El pago QR no se completó",
+            "onrampTimeout": "El depósito bancario no llegó",
+            "offrampTimeout": "La transferencia bancaria no se completó",
+            "refundTimeout": "El reembolso no se completó",
+            "generic": "La transacción no se completó"
+        },
         "rows": {
             "created": "Creado",
             "cancelled": "Cancelado",
@@ -1642,11 +1739,11 @@
             "transferId": "ID de transferencia",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
-            "peanutFee": "Comisión de Peanut",
             "attachment": "Adjunto",
             "download": "Descargar",
             "reason": "Motivo",
-            "accountNumber": "Número de cuenta"
+            "accountNumber": "Número de cuenta",
+            "address": "Dirección"
         },
         "perkBanner": {
             "title": "¡Ganaste una recompensa!",
@@ -1655,10 +1752,9 @@
             "generic": "¡Recibiste una recompensa de Peanut!"
         },
         "perk": {
-            "title": "Recompensa de Peanut",
+            "title": "Recompensa Peanut",
             "subtitle": "Gana recompensas cada vez que tus amigos usan Peanut.",
             "statusCompleted": "Completado",
-            "statusProcessing": "Procesando",
             "received": "Recibido"
         },
         "actions": {
@@ -1678,11 +1774,11 @@
             "cancelDeposit": "Cancelar depósito",
             "cancelDepositRequest": "Cancelar solicitud",
             "cancelDepositFailed": "No pudimos cancelar este depósito. Inténtalo de nuevo o contacta a soporte.",
-            "cancelDepositTitle": "¿Cancelar este depósito?",
-            "cancelRequestTitle": "¿Cancelar esta solicitud?",
-            "cancelWarning": "Esto no se puede deshacer. Si ya enviaste la transferencia bancaria, <strong>no canceles</strong>: un depósito cancelado ya no se puede asociar a tu cuenta y el dinero se devolverá a tu banco.",
-            "confirmCancelDeposit": "Sí, cancelar el depósito",
-            "confirmCancelRequest": "Sí, cancelar la solicitud"
+            "cancelConfirm": {
+                "title": "{kind, select, deposit {¿Cancelar este depósito?} request {¿Cancelar esta solicitud?} other {¿Cancelar?}}",
+                "description": "Esto no se puede deshacer. Si ya enviaste la transferencia bancaria, <strong>no canceles</strong> — un depósito cancelado ya no puede asociarse a tu cuenta y el dinero volverá a tu banco.",
+                "confirm": "{kind, select, deposit {Sí, cancelar el depósito} request {Sí, cancelar la solicitud} other {Sí, cancelar}}"
+            }
         },
         "toast": {
             "inviteLinkCopied": "¡Enlace de invitación copiado!",
@@ -1702,7 +1798,9 @@
             "pendingNote": "Autorizada, esperando liquidación o reversión",
             "dispute": "Disputa",
             "evidenceRequested": "Evidencia solicitada",
-            "flagAlt": "Bandera de {country}"
+            "flagAlt": "Bandera de {country}",
+            "initialHold": "Retención inicial",
+            "adjustment": "Ajuste"
         },
         "dispute": {
             "pending": "En disputa — Esperando revisión",
@@ -1735,7 +1833,7 @@
             "accountHolderName": "Nombre del titular",
             "bankName": "Nombre del banco",
             "bankAddress": "Dirección del banco",
-            "routingNumber": "Routing Number",
+            "routingNumber": "Número de ruta",
             "beneficiaryName": "Nombre del beneficiario",
             "beneficiaryAddress": "Dirección del beneficiario",
             "sortCode": "Sort Code"
@@ -1743,7 +1841,9 @@
         "manteca": {
             "depositAddress": "Dirección de depósito"
         },
-        "enjoyPeanut": "¡Disfruta Peanut!"
+        "enjoyPeanut": "¡Disfruta Peanut!",
+        "memoTestDeposit": "¡Tu billetera peanut está lista para usar!",
+        "adjustedSuffix": "· Ajustado"
     },
     "history": {
         "title": "Actividad",
@@ -1840,6 +1940,8 @@
         "iconAlt": "ícono",
         "setupTitle": "¿Activar las notificaciones?",
         "setupDescription": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
+        "migrationSetupTitle": "Recibe alertas de dinero",
+        "migrationSetupDescription": "Te avisamos al instante cuando llegue dinero o alguien te pida un pago.",
         "enable": "Activar notificaciones",
         "requesting": "Solicitando...",
         "notNow": "Ahora no"
@@ -1898,7 +2000,7 @@
             "descriptionProviderRejection": "Sube una foto más nítida de tu documento para continuar.",
             "descriptionCrossRegion": "Tu identidad ya está verificada. Para activar los pagos en {region}, solo necesitamos confirmar algunos datos más — alrededor de un minuto.",
             "descriptionCrossRegionGeneric": "Tu identidad ya está verificada. Para activar los pagos aquí, solo necesitamos confirmar algunos datos más — alrededor de un minuto.",
-            "descriptionRegionUnavailable": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para quienes viven ahí. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
+            "descriptionRegionUnavailable": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "descriptionDefault": "Confirma tu identidad para desbloquear los pagos. Toma alrededor de un minuto.",
             "ctaUploadDocument": "Subir documento",
             "ctaUnlockNow": "Desbloquear ahora",
@@ -1923,7 +2025,7 @@
             "bridgeTosTitle": "Un paso más",
             "bridgeTosDescription": "Último paso: acepta los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México.",
             "acceptTerms": "Aceptar términos",
-            "completeTitle": "Todo desbloqueado",
+            "completeTitle": "Listo",
             "completeDescription": "Tu cuenta está lista para usarse."
         },
         "wrapper": {
@@ -1932,7 +2034,10 @@
             "chatWithSupport": "Chatear con soporte",
             "exitForNowTitle": "¿Salir por ahora?",
             "exitForNowDescription": "Puedes retomar donde lo dejaste más tarde — tu progreso se guarda.",
+            "exitAndLoseProgressTitle": "¿Salir y perder el progreso?",
+            "exitAndLoseProgressDescription": "Si sales ahora, tendrás que empezar la verificación de identidad desde cero.",
             "exit": "Salir",
+            "keepGoing": "Continuar",
             "loadError": "No se pudo cargar la verificación. Revisa tu conexión e inténtalo de nuevo."
         },
         "provideEmail": {
@@ -2216,7 +2321,13 @@
                 "title": "Problema de verificación",
                 "description": "Hubo un problema con tu verificación. Inténtalo de nuevo o contacta a soporte."
             }
-        }
+        },
+        "errorStartActionFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
+        "errorInvalidResponse": "Respuesta inválida del servidor",
+        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Vuelve a enviar tus documentos.",
+        "actionMessageFailed": "No pudimos verificar tu identidad. Contacta a soporte.",
+        "successTitle": "¡Verificación exitosa!",
+        "successCloseWindow": "Ya puedes cerrar esta ventana."
     },
     "identity": {
         "unlockTitle": "Desbloquea {region}",
@@ -2231,7 +2342,36 @@
         "usAchWire": "Transferencias ACH y Wire en <b>Estados Unidos</b>",
         "mxSpei": "Transferencias SPEI en <b>México</b>",
         "latamBankTransfers": "Transferencias bancarias a tus propias cuentas en <b>LATAM</b>",
-        "defaultUnlockItem": "Transferencias bancarias y métodos de pago locales"
+        "defaultUnlockItem": "Transferencias bancarias y métodos de pago locales",
+        "reasons": {
+            "tax_identification_number": "Necesitamos tu número de identificación fiscal para continuar.",
+            "address_of_residence": "Necesitamos tu dirección de residencia para continuar.",
+            "proof_of_address": "Necesitamos un comprobante de domicilio válido.",
+            "source_of_funds": "Necesitamos información sobre el origen de tus fondos.",
+            "proof_of_source_of_funds": "Necesitamos un documento que compruebe el origen de tus fondos.",
+            "birth_details": "Necesitamos confirmar tu fecha de nacimiento.",
+            "eea_uplift": "Necesitamos información adicional para cumplir con las regulaciones del EEE.",
+            "eea_uplift_with_tin": "Necesitamos información adicional para cumplir con las regulaciones del EEE.",
+            "eea_tin_reupload": "Vuelve a subir tu número de identificación fiscal.",
+            "pep_documentation": "Necesitamos un documento que muestre el origen de los fondos que usarás en Peanut.",
+            "fep_documentation": "Debido a tu actividad profesional, necesitamos un comprobante de tu situación de reporte ante la UIF.",
+            "email_required": "Necesitamos un correo electrónico para terminar de configurar esta cuenta. Agrega uno a tu perfil y lo reintentaremos automáticamente.",
+            "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: toca abajo para escribirle a soporte.",
+            "proof_of_address_review": "Recibimos tu comprobante de domicilio; está en revisión.",
+            "bridge_tos_required": "Acepta los términos de servicio de Bridge para continuar.",
+            "bridge_tos_v2_required": "Acepta los términos de servicio de SEPA para habilitar transferencias en EUR / GBP.",
+            "bridge_processing": "Estamos finalizando tu verificación con Bridge; esto suele tomar unos minutos.",
+            "verification_blocked": "Problema de verificación: contacta a soporte para recibir ayuda.",
+            "terminal_rejection": "Problema de verificación: contacta a soporte para recibir ayuda.",
+            "bridge_terminal_rejection": "No pudimos verificar tu cuenta para transferencias bancarias. Escríbele a soporte si crees que es un error.",
+            "duplicate_customer_detected": "Bridge marcó tu cuenta como posible duplicado. Escríbele a soporte para verificarla y desbloquearla.",
+            "region_block": "Las tarjetas Peanut todavía no están disponibles en tu región.",
+            "compliance_block": "No pudimos aprobar tu solicitud de tarjeta después de una revisión de cumplimiento.",
+            "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escríbele a soporte si crees que es un error.",
+            "manteca_us_nationality": "Los pagos desde este país no están disponibles para ciudadanos de EE. UU. por el momento.",
+            "country_not_supported": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
+            "uk_resident_blocked": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento."
+        }
     },
     "recoverFunds": {
         "title": "Recuperar fondos",
@@ -2285,8 +2425,6 @@
             "clickToPaste": "Toca para pegar",
             "clipboardEmpty": "El portapapeles está vacío",
             "clipboardUnavailable": "No se pudo acceder al portapapeles",
-            "useCopiedAddress": "Usar dirección copiada",
-            "notAWalletAddress": "El texto copiado no es una dirección de billetera",
             "startingCamera": "Iniciando la cámara…",
             "qrRecognized": "Código QR reconocido",
             "qrProcessingFailed": "No se pudo procesar el código QR",
@@ -2312,10 +2450,12 @@
                 "iosSafari2": "Paso 2: toca “Ajustes del sitio web”",
                 "iosSafari3": "Paso 3: configura la cámara en “Permitir”"
             },
+            "useCopiedAddress": "Usar dirección copiada",
             "paymentMethods": {
                 "evmName": "ETH y EVMs",
                 "evmAlt": "Ethereum y EVMs"
-            }
+            },
+            "pastedTextNotAnAddress": "El texto copiado no es una dirección de billetera"
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "Estamos trabajando en una integración.",
@@ -2331,10 +2471,10 @@
             "externalUrlTrust": "¡Asegúrate de confiar en este sitio web!",
             "openLink": "Abrir enlace",
             "unrecognized": "Lo sentimos, no se pudo reconocer este código QR.",
-            "pixRecurringIntro": "Este código QR es para un pago recurrente (Pix Automático).",
-            "pixRecurringBody": "Peanut no admite pagos Pix recurrentes: pide un código QR de Pix normal.",
+            "pixRecurringIntro": "Este código QR es para un pago recurrente (PIX Automático).",
+            "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pide un código QR de PIX normal.",
             "titleUnrecognized": "Código QR no reconocido",
-            "titlePixRecurring": "Pix Automático no compatible",
+            "titlePixRecurring": "PIX Automático no compatible",
             "titleNotSupported": "{qrName} aún no es compatible.",
             "titleWillBeNotified": "¡Estás en la lista!",
             "titleDirectSend": "ℹ️ Confirmación de pago",
@@ -2352,9 +2492,9 @@
         "inviteFriendsModal": {
             "title": "¡Invita a tus amigos!",
             "description": "Comparte tu enlace. Cada vez que un amigo que trajiste haga un pago, ganas recompensas.",
-            "descriptionNoRewards": "Comparte tu enlace para que tus amigos se unan a ti en Peanut.",
             "shareSheetTitle": "Comparte tu enlace de invitación",
-            "shareCta": "Compartir enlace de invitación"
+            "shareCta": "Compartir enlace de invitación",
+            "descriptionNoRewards": "Comparte tu enlace para que tus amigos se unan a ti en Peanut."
         },
         "confirmInviteModal": {
             "title": "¡No pierdas tu invitación!",
@@ -2419,7 +2559,7 @@
         "balanceWarningModal": {
             "title": "Saldo alto",
             "congrats": "¡Eres rico! Felicitaciones por tener un saldo alto.",
-            "selfCustody": "Con Peanut, solo tú puedes acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
+            "selfCustody": "Con Peanut, eres el único que puede acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
             "passkey": "Tu passkey biométrica es tu llave al control total y a la seguridad. Si la pierdes, no se puede recuperar, porque solo tú tienes acceso.",
             "learnMore": "Aprende a mantener tu passkey segura en <link>{platform}</link>.",
             "yourDevice": "tu dispositivo",
@@ -2486,7 +2626,7 @@
             "chatWithSupport": "Chatear con soporte",
             "cancel": "Cancelar",
             "exitTitle": "¿Salir por ahora?",
-            "exitDescription": "Puedes volver y terminar esto cuando quieras.",
+            "exitDescription": "Puedes volver y terminar esto en cualquier momento.",
             "exit": "Salir",
             "continueVerifying": "Continuar verificando",
             "stopVerification": "Detener el proceso de verificación",
@@ -2539,6 +2679,7 @@
             "youJustClaimed": "Acabas de reclamar",
             "youreAdding": "Estás agregando",
             "youreWithdrawing": "Estás retirando",
+            "youreSending": "Estás enviando",
             "youWillReceive": "Vas a recibir",
             "youreAboutToReceive": "Estás por recibir"
         },
@@ -2576,7 +2717,7 @@
             "remaining": "{amount} restante"
         },
         "routeExpiryTimer": {
-            "findingBestRate": "Buscando la mejor cotización...",
+            "findingBestRate": "Buscando la mejor tasa...",
             "noQuote": "No hay cotización disponible",
             "quoteExpired": "La cotización venció",
             "priceLocked": "Precio fijo por {time}"
@@ -2640,11 +2781,15 @@
             "payWhatYouWant": "Paga lo que quieras",
             "sendExactAmount": "¡Envía el monto exacto!"
         },
-        "betaBanner": "¡Peanut está en beta! Gracias por ser uno de los primeros usuarios, comparte tu opinión aquí",
+        "betaBanner": "¡Peanut está en beta! Gracias por ser un usuario temprano, comparte tu opinión aquí",
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",
         "rainCooldownPill": "Enfriamiento de tarjeta",
         "betaBannerThumbsUpAlt": "Pulgar arriba",
-        "easterEggImageAlt": "Ilustración de huevo de pascua"
+        "easterEggImageAlt": "Ilustración de huevo de pascua",
+        "reConsent": {
+            "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
+            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual."
+        }
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
@@ -2697,5 +2842,130 @@
         "promptFailed": "Desbloquea de nuevo para abrir la app.",
         "unlock": "Desbloquear",
         "logOut": "Cerrar sesión"
+    },
+    "migration": {
+        "downloadPrompt": {
+            "earlyTitle": "¡La app de Peanut ya está aquí!",
+            "earlyDescription": "Peanut ya vive en el App Store y Google Play. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va contigo, sin configurar nada.",
+            "maybeLater": "La descargo más tarde",
+            "title": "Peanut será solo app",
+            "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descárgala ahora y continúa justo donde quedaste. Tu cuenta y tu dinero se mudan contigo automáticamente.",
+            "remindLater": "Recordarme más tarde"
+        },
+        "sunset": {
+            "heading": "Peanut ahora es solo app",
+            "sub": "Descarga la app y continúa justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí.",
+            "supportLink": "¿Problemas para descargar la app? Habla con nuestro soporte"
+        },
+        "qr": {
+            "title": "Descarga la app de Peanut",
+            "scanHint": "Escanea con la cámara de tu celular para descargar."
+        },
+        "banner": {
+            "title": "¡La app de Peanut ya está aquí!",
+            "description": "Más rápida, más fluida y te avisa cuando llega tu dinero."
+        },
+        "review": {
+            "title": "¿Te está gustando Peanut?",
+            "description": "Una calificación rápida ayuda a que otros nos encuentren.",
+            "loveIt": "Me encanta",
+            "meh": "Podría mejorar",
+            "supportPrefill": "Tengo comentarios sobre la app, esto es lo que podría mejorar: "
+        },
+        "downloadNow": "Descargar ahora",
+        "smartLink": {
+            "redirecting": "Te llevamos a la tienda…",
+            "pickStore": "Elige tu tienda y descarga la app."
+        }
+    },
+    "shhhhh": {
+        "hero": {
+            "wordmark": "shhhhh.",
+            "tagline": "La tarjeta de Peanut ya salió. Para ti. Quizás.",
+            "body": "Una tarjeta aceptada en más de 150 millones de comercios que aceptan Visa. Vamos dejando entrar a los usuarios beta de a poco: <counter></counter> por semana. Si tienes la insignia correcta, te saltas la fila por completo.",
+            "onlyCount": "solo {count}",
+            "tryTheDoor": "PRUEBA LA PUERTA",
+            "orJoinWaitlist": "o únete a la lista de espera →",
+            "joinError": "No pudimos sumarte a la lista de espera. Prueba la puerta de nuevo."
+        },
+        "waitlist": {
+            "joined": "✓ Estás en la lista de espera",
+            "joinedWithPosition": "✓ Estás en la lista de espera · #{position}",
+            "holler": "Te avisamos cuando llegue tu turno."
+        },
+        "marquee": {
+            "iykyk": "IYKYK",
+            "wordTravels": "SE CORRE LA VOZ",
+            "closedBeta": "BETA CERRADA",
+            "shhhh": "SHHHH",
+            "peanutClub": "PEANUT CLUB"
+        },
+        "whatItDoes": {
+            "titleLine1": "Es una tarjeta.",
+            "titleLine2": "Ese es todo el truco.",
+            "body": "Carga la tarjeta como ya mueves tu plata: transferencia bancaria, retiro de un exchange o stablecoins (USDC, USDT). Tu saldo es tuyo. Sin custodia. Sin comisiones mensuales. Sin comisiones anuales.",
+            "statMerchants": "comercios que aceptan Visa",
+            "statBalance": "saldo",
+            "statCard": "tarjeta",
+            "statMiddlemen": "intermediarios"
+        },
+        "whoItsFor": {
+            "title": "Si vives en más de un país, esto es para ti.",
+            "body": "Construimos peanut para quienes no encajan. Nómadas digitales que rebotan en la verificación de cada neobanco apenas cruzan una frontera. Expatriados que pagan 4% en cada envío a casa. Personas que ganan en una moneda y gastan en otra."
+        },
+        "howToGetIn": {
+            "title": "Cómo entrar.",
+            "subtitle": "Chequeo de credenciales. La insignia salta la fila.",
+            "badgeTitle": "Tienes una insignia.",
+            "badgeBody": "Te saltas la fila. Estamos habilitando a quienes tengan:",
+            "badgeFooter": "Inicia sesión, revisamos las insignias de tu cuenta y pasas directo a la verificación. ¿Todavía no tienes cuenta de peanut? Regístrate primero: toma un minuto.",
+            "noBadgeTitle": "Sin insignia.",
+            "noBadgeBody": "Únete a la lista de espera. Dejamos entrar a 20 personas por semana.",
+            "noBadgeFooter": "Anota tu nombre en la lista y te avisamos cuando llegue tu turno."
+        },
+        "notForYou": {
+            "title": "Probablemente no es para ti.",
+            "body1": "Si tu plata vive en un solo país y una sola moneda, la tarjeta de tu banco ya te sirve. Quédatela.",
+            "body2": "Si tu plata vive en otro lado —cruzando fronteras, en dólares, en autocustodia—, la tarjeta de peanut se construyó para ti."
+        },
+        "faq": {
+            "title": "PREGUNTAS FRECUENTES.",
+            "q1": {
+                "question": "¿QUÉ ES LA TARJETA DE PEANUT?",
+                "answer": "Una tarjeta sin custodia. Cárgala con stablecoins y úsala para tus gastos diarios donde acepten Visa."
+            },
+            "q2": {
+                "question": "¿DÓNDE FUNCIONA?",
+                "answer": "Se acepta donde acepten Visa: unos 150 millones de comercios. En línea, en tiendas y en cajeros."
+            },
+            "q3": {
+                "question": "¿MI PLATA ESTÁ SEGURA?",
+                "answer": "Es tuya. Sin custodia: tus stablecoins se quedan en tu billetera hasta el momento en que usas la tarjeta. No tenemos la custodia. No la prestamos."
+            },
+            "q4": {
+                "question": "¿QUÉ ES LO DE LOS $10?",
+                "answer": "Una recompensa de bienvenida. Completa la verificación + $100 de gasto con la tarjeta → se desbloquean $10 en tu saldo. Aplica igual si te registraste por tu cuenta o si te refirieron. Si tú refieres a alguien, también puedes recibir $10 cuando esa persona active su tarjeta. Sujeto a elegibilidad y a los términos del programa."
+            },
+            "q5": {
+                "question": "¿CUÁNTO DURA LA LISTA DE ESPERA?",
+                "answer": "Durante la beta cerrada dejamos entrar a unas 20 personas por semana. El orden importa. Las insignias saltan la fila por completo."
+            },
+            "q6": {
+                "question": "¿DÓNDE PUEDO CONSEGUIR LA TARJETA?",
+                "answer": "Primero estamos habilitando algunas regiones y sumamos más a medida que crece la cobertura de nuestros socios. La elegibilidad se muestra durante el registro."
+            },
+            "q7": {
+                "question": "¿HAY COMISIONES?",
+                "answer": "Sin comisiones mensuales. Sin comisiones anuales. Aplican las comisiones y los límites estándar según los términos del titular de la tarjeta."
+            },
+            "q8": {
+                "question": "¿POR QUÉ \"SHHHHH\"?",
+                "answer": "Preferimos prometer poco y cumplir de más con un grupo chico antes que gritarle a todo internet el primer día. La voz se corre."
+            }
+        },
+        "ready": {
+            "title": "¿todo listo?",
+            "subtitle": "Prueba la puerta."
+        }
     }
 }

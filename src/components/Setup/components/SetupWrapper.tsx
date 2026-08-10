@@ -6,6 +6,9 @@ import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
+import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { isCapacitor } from '@/utils/capacitor'
 import classNames from 'classnames'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
@@ -218,6 +221,12 @@ export const SetupWrapper = memo(function SetupWrapper({
     const { isBrave } = useBravePWAInstallState()
     const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
     const prefersReducedMotion = useReducedMotion()
+    const migrationOn = useMigrationFlag()
+    const hasKeepWebBypass = useKeepWebBypass()
+    // migration notice window's download-only landing: drop the fixed-height
+    // title block (it left a big gap above the QR) and center the copy on
+    // desktop to match the centered store content. legacy landing untouched.
+    const sunsetLanding = screenId === 'landing' && migrationOn && !isCapacitor() && !hasKeepWebBypass
 
     // Slide the white panel up on first paint for a native bottom-sheet feel.
     // Mobile + landing only; read synchronously so the offset is correct on mount.
@@ -274,20 +283,31 @@ export const SetupWrapper = memo(function SetupWrapper({
                     <div
                         className={twMerge(
                             'mx-auto h-full w-full space-y-4 md:max-h-48 md:max-w-xs',
-                            (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12'
+                            (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
+                            sunsetLanding && 'md:h-auto md:max-h-none'
                         )}
                     >
                         {headingTitle && (
                             <h1
                                 className={twMerge(
                                     'w-full text-left text-xl font-extrabold leading-tight',
+                                    sunsetLanding && 'md:text-center',
                                     titleClassName
                                 )}
                             >
                                 {headingTitle}
                             </h1>
                         )}
-                        {headingDescription && <p className="text-base font-medium text-black">{headingDescription}</p>}
+                        {headingDescription && (
+                            <p
+                                className={twMerge(
+                                    'text-base font-medium text-black',
+                                    sunsetLanding && 'md:text-center'
+                                )}
+                            >
+                                {headingDescription}
+                            </p>
+                        )}
                     </div>
                     {/* main content area */}
                     <div className="mx-auto w-full md:max-w-xs">

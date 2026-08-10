@@ -21,6 +21,13 @@ export default function robots(): MetadataRoute.Robots {
                 disallow: [],
             },
 
+            // Googlebot must be able to fetch the dynamic OG images too — the
+            // generic `disallow: /api/` below would otherwise block them.
+            {
+                userAgent: 'Googlebot',
+                allow: ['/api/og'],
+            },
+
             // AI search engine crawlers — explicitly welcome
             {
                 userAgent: [

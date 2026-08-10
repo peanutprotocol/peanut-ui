@@ -12,9 +12,25 @@ import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
 import DocsLink from '@/components/Global/DocsLink'
 import { useTranslations } from 'next-intl'
+import StoreButtons from '@/components/Migration/StoreButtons'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { isCapacitor } from '@/utils/capacitor'
 
 const LandingStep = () => {
     const t = useTranslations('setup')
+    const tMigration = useTranslations('migration')
+    const migrationOn = useMigrationFlag()
+    const hasKeepWebBypass = useKeepWebBypass()
+    const { deviceType } = useDeviceType()
+
+    // migration notice window on web (any device): NEW signups are closed —
+    // don't onboard users into a product that shuts in weeks; the app is the
+    // path. Existing users keep Log In until the cutover. Native app and
+    // keep-web bypass users see the normal card.
+    const blockSignup = migrationOn && !isCapacitor() && !hasKeepWebBypass
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
@@ -44,16 +60,27 @@ const LandingStep = () => {
     return (
         <Card className="border-0">
             <Card.Content className="space-y-4 p-0 pt-4">
-                <Button
-                    shadowSize="4"
-                    className="h-11"
-                    onClick={() => {
-                        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
-                        handleNext()
-                    }}
-                >
-                    {t('landing.signUp')}
-                </Button>
+                {blockSignup ? (
+                    <div className="space-y-2 pb-2">
+                        {/* heading only above the desktop QR — a lone store button
+                            explains itself */}
+                        {deviceType === DeviceType.WEB && (
+                            <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
+                        )}
+                        <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
+                    </div>
+                ) : (
+                    <Button
+                        shadowSize="4"
+                        className="h-11"
+                        onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+                            handleNext()
+                        }}
+                    >
+                        {t('landing.signUp')}
+                    </Button>
+                )}
                 <Button
                     loading={isLoggingIn}
                     shadowSize="4"
