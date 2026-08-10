@@ -152,8 +152,9 @@ export const useHomeCarouselCTAs = () => {
         // get asked for a 15-min founder call. The cohort lives in the PostHog
         // flag's `username` release condition — never in code. Leads the
         // carousel on purpose; it targets a handful of users. X-dismissal uses
-        // the standard 7-day cooldown (id filter below). Delete this block +
-        // flag + i18n keys when the campaign ends.
+        // the standard 7-day cooldown (id filter below). Delete this block, the
+        // flag, the i18n keys, and the dev/home-ctas preview entry when the
+        // campaign ends.
         if (interviewInviteOn) {
             _carouselCTAs.push({
                 id: 'user-interview',
@@ -162,9 +163,11 @@ export const useHomeCarouselCTAs = () => {
                 icon: 'peanut-support', // required by the type; hidden — logo takes precedence
                 logo: PeanutWavingHello,
                 logoSize: 30,
-                onClick: () => {
+                onClick: async () => {
                     posthog.capture(ANALYTICS_EVENTS.USER_INTERVIEW_CTA_CLICKED)
-                    void openExternalUrl(USER_INTERVIEW_CAL_URL)
+                    // Await so a native Browser.open failure surfaces in
+                    // CarouselCTA's onClick try/catch instead of vanishing.
+                    await openExternalUrl(USER_INTERVIEW_CAL_URL)
                 },
             })
         }
