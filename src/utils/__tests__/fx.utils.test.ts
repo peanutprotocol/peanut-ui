@@ -270,11 +270,14 @@ describe('fetchCardMarkup — card comparison contract', () => {
     it('recomputes the markup against a locked price so the saving shown is the saving given', async () => {
         mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => liveMarkup })
 
-        // 1600 / (1520 × 0.97) − 1 — the locked price, not the market one.
+        // The locked price, not the market one. The issuer fee is charged on
+        // top of the converted amount, so the card's effective rate is
+        // official / 1.03.
         const { rate, source } = await fetchCardMarkup('ARS', 1600)
 
         expect(source).toBe('live')
-        expect(rate).toBeCloseTo(1600 / (1520 * 0.97) - 1, 12)
+        expect(rate).toBeCloseTo(1600 / (1520 / 1.03) - 1, 12)
+        expect(rate).not.toBeCloseTo(1600 / (1520 * 0.97) - 1, 6)
     })
 
     it('ignores a locked price on a static answer, which has no components to recompute from', async () => {

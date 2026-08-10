@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
-import { fetchCardMarkup, type CardMarkup } from '@/utils/fx.utils'
+import { fetchCardMarkup, FxApiError, type CardMarkup } from '@/utils/fx.utils'
 
 /**
  * Card-vs-local-rail markup for the currencies where the comparison is
@@ -9,10 +9,15 @@ import { fetchCardMarkup, type CardMarkup } from '@/utils/fx.utils'
  *
  * The model itself lives in the backend (`GET /fx/card-markup`), computed
  * against the same market snapshot the displayed rate comes from. This hook
- * owns only the failure policy: it never rejects. A backend outage falls back
- * to the documented static table, so a surface that renders a savings line
- * keeps rendering one. Currencies with no modeled comparison return null and
- * callers must not render the row.
+ * owns only the failure policy: it never rejects.
+ *
+ * The two failure kinds are NOT the same, and conflating them publishes a
+ * false claim. A `404` is the backend saying it has no comparison to publish —
+ * an unmodeled currency, or observations proving there is no saving right now.
+ * Falling back to the static table there would advertise a 9% saving against
+ * evidence of none, so a `404` returns null and the caller renders no row.
+ * Any other failure means the model was unreachable, which is exactly what the
+ * documented static assumption is for.
  *
  * Cached 5 minutes client-side; the response is shared-cacheable for 5 minutes
  * as well.
@@ -28,8 +33,11 @@ export function useCardMarkupRate(currencyCode: string | null | undefined, mante
             const code = currencyCode!.toUpperCase()
             try {
                 return await fetchCardMarkup(code, mantecaPriceUsdToLocal)
-            } catch {
-                // Never block a payment surface on a comparison number.
+            } catch (error) {
+                // The backend has no comparison to publish — render nothing.
+                if (error instanceof FxApiError && error.status === 404) return null
+                // Unreachable, not disproven. Never block a payment surface on
+                // a comparison number.
                 const fallback = CARD_FX_MARKUP_BY_CURRENCY[code]
                 return fallback === undefined ? null : { rate: fallback, source: 'static' }
             }

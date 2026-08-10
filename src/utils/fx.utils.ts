@@ -204,7 +204,9 @@ function parseCardMarkupResponse(
     // A caller holding a locked Peanut price must compare a card against THAT
     // price. Otherwise the saving on screen is not the saving the user gets.
     if (typeof lockedPeanutRate === 'number' && lockedPeanutRate > 0) {
-        const lockedMarkup = lockedPeanutRate / (officialUsdRate * (1 - issuerFeePct)) - 1
+        // The issuer fee is charged on top of the converted amount, so the
+        // rate a cardholder receives is the official rate divided by 1 + fee.
+        const lockedMarkup = lockedPeanutRate / (officialUsdRate / (1 + issuerFeePct)) - 1
         if (Number.isFinite(lockedMarkup) && lockedMarkup > 0 && lockedMarkup < MAX_CARD_MARKUP) {
             return { rate: lockedMarkup, source: 'live' }
         }
