@@ -132,6 +132,9 @@ export const ANALYTICS_EVENTS = {
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',
+    // User-interview campaign card (temporary) — clicked = tapped through to cal.com.
+    // Impressions come free from the flag's $feature_flag_called exposure event.
+    USER_INTERVIEW_CTA_CLICKED: 'user_interview_cta_clicked',
 
     // ── Error ──
     BACKEND_ERROR_SHOWN: 'backend_error_shown',
