@@ -66,6 +66,7 @@ export const DEDICATED_ROUTES = [
     'convert',
     'compare',
     'blog',
+    'split',
     'help',
     'faq',
     'how-it-works',

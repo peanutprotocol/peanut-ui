@@ -25,6 +25,18 @@ export function localeHref(pathname: string, target: Locale): string {
     return `/${target}/${rest.join('/')}`
 }
 
+/**
+ * Exact-locale content renders its own availability-aware switcher. The global
+ * footer cannot inspect server-side content files, so it must stay out of the
+ * way instead of inventing links to missing locale variants.
+ */
+export function hasRouteScopedLocaleSwitcher(pathname: string): boolean {
+    const segments = pathname.split('/').filter(Boolean)
+    return (
+        isValidLocale(segments[0] ?? '') && segments[1] === 'split' && segments[2] === 'guides' && segments.length > 3
+    )
+}
+
 // Fixed so the trigger keeps its size whichever language is selected.
 const TRIGGER_WIDTH = 'w-40'
 
@@ -53,6 +65,8 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
             document.removeEventListener('keydown', onKey)
         }
     }, [])
+
+    if (hasRouteScopedLocaleSwitcher(pathname)) return null
 
     return (
         <div ref={wrapperRef} className="relative">

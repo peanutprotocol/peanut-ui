@@ -17,6 +17,7 @@ export const ROUTE_SLUGS = [
     'use-cases',
     'withdraw',
     'stories',
+    'split',
     'pricing',
     'supported-networks',
     'terms',

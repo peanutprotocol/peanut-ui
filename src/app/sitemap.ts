@@ -17,6 +17,11 @@ import {
     listContentSlugs,
     listPublishedSlugs,
 } from '@/lib/content'
+import {
+    buildSplitGuideSitemapRows,
+    getAvailableSplitGuideLocales,
+    getSplitGuideStaticParams,
+} from '@/lib/split-guides'
 
 // TODO (infra): Update GitHub org, Twitter bio, LinkedIn, npm package.json → peanut.me
 // TODO (GA4): Create data filter to exclude trafficheap.com referral traffic
@@ -30,6 +35,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         priority: number
         changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency']
         lastModified?: Date
+        alternates?: { languages: Record<string, string> }
     }
 
     const pages: SitemapEntry[] = [
@@ -47,6 +53,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         { path: '/en/privacy', priority: 0.5, changeFrequency: 'yearly' },
         { path: '/en/terms', priority: 0.5, changeFrequency: 'yearly' },
     ]
+    const splitGuideRows = buildSplitGuideSitemapRows(getSplitGuideStaticParams(), getAvailableSplitGuideLocales)
 
     // --- Programmatic SEO pages (all locales with /{locale}/ prefix) ---
     for (const locale of SUPPORTED_LOCALES) {
@@ -226,6 +233,17 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             })
         }
 
+        // Split guides intentionally have no locale fallback. Only an exact,
+        // published file may enter the sitemap.
+        for (const guide of splitGuideRows.filter((row) => row.locale === locale)) {
+            pages.push({
+                path: guide.path,
+                priority: 0.6 * basePriority,
+                changeFrequency: 'monthly',
+                alternates: guide.alternates,
+            })
+        }
+
         // Team pages excluded from production sitemap (not yet launched)
     }
 
@@ -234,6 +252,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: page.lastModified ?? BUILD_DATE,
         changeFrequency: page.changeFrequency,
         priority: page.priority,
+        ...(page.alternates ? { alternates: page.alternates } : {}),
     }))
 }
 

@@ -22,17 +22,20 @@
  *     route AND its data source isn't empty (catches the May 2026 SEO
  *     regression where empty entity-data made `generateStaticParams` return []
  *     and 404ed ~625 pages).
+ * 12. Split guide canary contract — exact locales, frontmatter, SEO, safe MDX,
+ *     CTA attribution and reciprocal related-guide links.
  */
 
 import fs from 'fs'
 import path from 'path'
 import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
+import { verifySplitGuides } from './lib/verify-split-guides'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
 const APP_DIR = path.join(process.cwd(), 'src/app/[locale]/(marketing)')
 
-const SUPPORTED_LOCALES = ['en', 'es-419', 'es-ar', 'es-es', 'pt-br']
+const SUPPORTED_LOCALES = ['en', 'es-419', 'es-ar', 'pt-br']
 const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
 
 // `content/deposit/` mixes two URL families on the same dynamic route:
@@ -113,6 +116,10 @@ function isContentPage(filePath: string): boolean {
     const basename = path.basename(filePath)
     if (basename === 'README.md') return false
     if (basename.endsWith('-index.md')) return false
+    // es-es is retired from the UI locale set. Keep its files in the mirror and
+    // page-count guard during cleanup, but do not validate links/content for a
+    // route family the app intentionally no longer serves.
+    if (basename === 'es-es.md') return false
     return true
 }
 
@@ -144,6 +151,12 @@ function parseFrontmatter(content: string): Record<string, unknown> {
 function isPublished(content: string): boolean {
     const fm = parseFrontmatter(content)
     return fm.published !== false
+}
+
+/** Exact locale file check for content families that never fall back. */
+function hasPublishedLocalePage(intent: string, slug: string, locale: string): boolean {
+    const file = path.join(CONTENT_DIR, intent, slug, `${locale}.md`)
+    return fs.existsSync(file) && isPublished(fs.readFileSync(file, 'utf-8'))
 }
 
 // --- Build valid paths from actual routes ---
@@ -184,6 +197,9 @@ function discoverRoutes(): Set<string> {
     const storySlugs = listDirs(path.join(CONTENT_DIR, 'stories')).filter((s) => s !== 'index')
     const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
     const blogSlugs = listDirs(path.join(CONTENT_DIR, 'blog')).filter((s) => s !== 'index')
+    const splitGuideSlugs = listDirs(path.join(CONTENT_DIR, 'split-guides')).filter((slug) =>
+        hasPublishedLocalePage('split-guides', slug, 'en')
+    )
 
     // Corridors
     const corridors: Array<{ to: string; from: string }> = []
@@ -288,6 +304,16 @@ function discoverRoutes(): Set<string> {
             for (const slug of blogSlugs) routes.add(`/${locale}/blog/${slug}`)
         }
 
+        // Split guides are exact-locale only: never manufacture a route whose
+        // locale file would have to fall back.
+        if (hasRoute('split/guides/[slug]')) {
+            for (const slug of splitGuideSlugs) {
+                if (hasPublishedLocalePage('split-guides', slug, locale)) {
+                    routes.add(`/${locale}/split/guides/${slug}`)
+                }
+            }
+        }
+
         // Content hub (cross-type landing)
         if (hasRoute('content')) routes.add(`/${locale}/content`)
     }
@@ -388,6 +414,7 @@ function checkPublishedHasRoute(validPaths: Set<string>) {
         { dir: 'use-cases', urlPattern: (l, s) => `/${l}/use-cases/${s}` },
         { dir: 'stories', urlPattern: (l, s) => `/${l}/stories/${s}` },
         { dir: 'withdraw', urlPattern: (l, s) => `/${l}/withdraw/${s}` },
+        { dir: 'split-guides', urlPattern: (l, s) => `/${l}/split/guides/${s}` },
     ]
 
     let issues = 0
@@ -473,14 +500,15 @@ function checkFrontmatter() {
 
         if (!isPublished(content)) continue
 
-        if (!fm.title || (typeof fm.title === 'string' && fm.title.trim() === '')) {
+        if (typeof fm.title !== 'string' || fm.title.trim() === '') {
             error('frontmatter', 'Published file missing title', rel(file))
             issues++
         }
-        if (!fm.description || (typeof fm.description === 'string' && fm.description.trim() === '')) {
+        if (typeof fm.description !== 'string' || fm.description.trim() === '') {
             error('frontmatter', 'Published file missing description', rel(file))
             issues++
         }
+
         // published field is now optional — missing defaults to published
     }
 
@@ -698,6 +726,9 @@ function expectedSitemapUrls(): string[] {
     const storySlugs = listDirs(path.join(CONTENT_DIR, 'stories')).filter((s) => s !== 'index')
     const useCaseSlugs = listDirs(path.join(CONTENT_DIR, 'use-cases'))
     const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
+    const splitGuideSlugs = listDirs(path.join(CONTENT_DIR, 'split-guides')).filter((slug) =>
+        hasPublishedLocalePage('split-guides', slug, 'en')
+    )
 
     // Corridors (send-to/{dst}/from/{origin}/{lang}.md)
     const corridors: Array<{ from: string; to: string }> = []
@@ -729,6 +760,11 @@ function expectedSitemapUrls(): string[] {
         urls.push(`/${locale}/content`)
         urls.push(`/${locale}/blog`)
         for (const slug of blogSlugs) urls.push(`/${locale}/blog/${slug}`)
+        for (const slug of splitGuideSlugs) {
+            if (hasPublishedLocalePage('split-guides', slug, locale)) {
+                urls.push(`/${locale}/split/guides/${slug}`)
+            }
+        }
     }
 
     // Asymmetry guard: if a whole family has zero slugs, the sitemap will emit
@@ -761,7 +797,7 @@ function checkSitemapCoverage(validPaths: Set<string>) {
         if (validPaths.has(url)) continue
         // Collapse identical messages across locales — one entry per pattern
         // is enough to fix; the full count is in the summary line.
-        const key = url.replace(/^\/(en|es-419|es-ar|es-es|pt-br)\//, '/{locale}/')
+        const key = url.replace(/^\/(en|es-419|es-ar|pt-br)\//, '/{locale}/')
         if (reported.has(key)) {
             missing++
             continue
@@ -777,7 +813,7 @@ function checkSitemapCoverage(validPaths: Set<string>) {
 
 // --- Main ---
 
-function main() {
+async function main() {
     console.log('Peanut Content Verification\n')
 
     console.log('Building route index from actual page.tsx files...')
@@ -796,6 +832,14 @@ function main() {
     checkSubmoduleFreshness()
     checkPageCountRegression()
     checkSitemapCoverage(validPaths)
+    const splitGuideResult = await verifySplitGuides({
+        contentDir: CONTENT_DIR,
+        manifestPath: path.join(ROOT, 'generated/split-guide-manifest.json'),
+        reportError: (check, message, file) => error(check, message, file ? rel(file) : undefined),
+    })
+    console.log(
+        `  Pass 12 — Split guide canary: ${splitGuideResult.recordsChecked === 0 ? 'no guide files yet (route remains inert)' : `${splitGuideResult.recordsChecked} exact-locale files checked`}`
+    )
 
     // Report
     const errors = diagnostics.filter((d) => d.level === 'error')
@@ -834,4 +878,7 @@ function main() {
     }
 }
 
-main()
+main().catch((cause) => {
+    console.error(cause)
+    process.exit(1)
+})

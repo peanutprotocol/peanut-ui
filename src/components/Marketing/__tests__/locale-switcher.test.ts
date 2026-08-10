@@ -1,4 +1,4 @@
-import { localeHref } from '../LocaleSwitcher'
+import { hasRouteScopedLocaleSwitcher, localeHref } from '../LocaleSwitcher'
 
 describe('localeHref', () => {
     it('swaps the locale segment and keeps the rest of the path', () => {
@@ -47,5 +47,13 @@ describe('localeHref', () => {
     it('tolerates trailing slashes and double slashes', () => {
         expect(localeHref('/es-419/help/', 'en')).toBe('/en/help')
         expect(localeHref('//es-419//help', 'en')).toBe('/en/help')
+    })
+
+    it('defers to the exact-locale switcher on Split guide routes', () => {
+        expect(hasRouteScopedLocaleSwitcher('/en/split/guides/group-trip')).toBe(true)
+        expect(hasRouteScopedLocaleSwitcher('/pt-br/split/guides/group-trip')).toBe(true)
+        expect(hasRouteScopedLocaleSwitcher('/en/split')).toBe(false)
+        expect(hasRouteScopedLocaleSwitcher('/split/guides/group-trip')).toBe(false)
+        expect(hasRouteScopedLocaleSwitcher('/en/blog/group-trip')).toBe(false)
     })
 })

@@ -122,6 +122,7 @@ describe('isReservedRoute', () => {
     test('catches DEDICATED_ROUTES entries', () => {
         expect(isReservedRoute('/home')).toBe(true)
         expect(isReservedRoute('/send')).toBe(true)
+        expect(isReservedRoute('/split')).toBe(true)
         expect(isReservedRoute('/es-419')).toBe(true)
     })
 
