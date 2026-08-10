@@ -34,6 +34,8 @@ export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeC
     return nativeCrispReady
 }
 
+type CrispInstance = Window['$crisp']
+
 /**
  * Sets Crisp user identification and session metadata on a $crisp instance
  *
@@ -58,7 +60,6 @@ export function setCrispUserData(
         email,
         fullName,
         avatar,
-        grafanaLink,
         walletAddressLink,
         bridgeCustomerLink,
         mantecaUserId,
@@ -87,7 +88,6 @@ export function setCrispUserData(
                 ['username', username || ''],
                 ['user_id', userId || ''],
                 ['full_name', fullName || ''],
-                ['grafana_dashboard', grafanaLink || ''],
                 ['wallet_address', walletAddressLink || ''],
                 ['bridge_user_id', bridgeCustomerLink || ''],
                 ['manteca_user_id', mantecaUserId || ''],

@@ -1,5 +1,6 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
+import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 import { cardRefund } from './card'
 
 // Strategy for kind=REFUND intents (any provider). Two shapes converge here:
@@ -27,6 +28,7 @@ export const refund: TransactionStrategy = (entry: HistoryEntry): TransactionStr
         direction: 'receive',
         transactionCardType: 'refund',
         nameForDetails: 'Refund',
+        nameKey: TRANSACTION_NAME_KEYS.refund,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }

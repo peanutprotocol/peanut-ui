@@ -4,9 +4,13 @@ import ActionModal from '../Global/ActionModal'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 
 export default function SetupNotificationsModal() {
     const t = useTranslations('notifications')
+    // migration-era copy ("Get money alerts") only ships when the pwa-sunset
+    // flag is on — flag off keeps today's prompt byte-for-byte (TASK-20771)
+    const migrationOn = useMigrationFlag()
     const {
         showPermissionModal,
         requestPermission,
@@ -46,8 +50,8 @@ export default function SetupNotificationsModal() {
                 visible={showPermissionModal}
                 onClose={handleCloseNotifsSetupModal}
                 modalPanelClassName="m-0 max-w-[90%]"
-                title={t('setupTitle')}
-                description={t('setupDescription')}
+                title={t(migrationOn ? 'migrationSetupTitle' : 'setupTitle')}
+                description={t(migrationOn ? 'migrationSetupDescription' : 'setupDescription')}
                 icon="bell"
                 ctaClassName="md:flex-col gap-4"
                 ctas={[

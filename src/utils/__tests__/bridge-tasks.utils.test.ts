@@ -1,4 +1,4 @@
-import { selectBridgeTasks } from '../bridge-tasks.utils'
+import { bridgeTaskDismissalKey, selectBridgeTasks } from '../bridge-tasks.utils'
 import type { NextAction } from '@/types/capabilities'
 
 const action = (overrides: Partial<NextAction>): NextAction => ({
@@ -30,5 +30,32 @@ describe('selectBridgeTasks', () => {
             action({ key: 'bridge-hosted', kind: 'bridge-hosted', effectiveDate: '2099-09-01' }),
         ])
         expect(task.effectiveDate).toBe('2099-09-01')
+    })
+})
+
+describe('bridgeTaskDismissalKey', () => {
+    it('advisory → blocking (effectiveDate disappears) changes the fingerprint', () => {
+        const advisory = action({ key: 'accept-tos:sepa', effectiveDate: '2099-09-01' })
+        const blocking = action({ key: 'accept-tos:sepa' })
+        expect(bridgeTaskDismissalKey(advisory)).not.toBe(bridgeTaskDismissalKey(blocking))
+    })
+
+    it('a new requirement under the shared bridge-hosted key changes the fingerprint', () => {
+        const first = action({ key: 'bridge-hosted', kind: 'bridge-hosted', requirementKey: 'kyc_approval' })
+        const second = action({
+            key: 'bridge-hosted',
+            kind: 'bridge-hosted',
+            requirementKey: 'kyc_with_proof_of_address',
+        })
+        expect(bridgeTaskDismissalKey(first)).not.toBe(bridgeTaskDismissalKey(second))
+    })
+
+    it('an unchanged task keeps a stable fingerprint', () => {
+        const task = action({
+            key: 'accept-tos:sepa',
+            effectiveDate: '2099-09-01',
+            requirementKey: 'tos_v2_acceptance',
+        })
+        expect(bridgeTaskDismissalKey(task)).toBe(bridgeTaskDismissalKey({ ...task }))
     })
 })

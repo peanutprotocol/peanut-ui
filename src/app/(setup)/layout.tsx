@@ -3,7 +3,7 @@
 import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
 import PeanutLoading from '@/components/Global/PeanutLoading'
@@ -11,24 +11,32 @@ import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import SunsetScreen from '@/components/Migration/SunsetScreen'
+import { isPwaSunsetOn, shouldShowSunsetBlock } from '@/utils/migration.utils'
 import { isCapacitor } from '@/utils/capacitor'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
     const { deviceType } = useDeviceType()
+    const migrationOn = useMigrationFlag()
+    const hasKeepWebBypass = useKeepWebBypass()
 
     /*
-     * Bottom-inset fill color. On both native platforms the content directly above
-     * the bottom inset (iOS home indicator / Android 15 edge-to-edge nav bar) is the
-     * setup flow's white panel, so a periwinkle fill reads as a stray strip — fill
-     * with white instead. State + effect (not a render-time platform check) so the
-     * static export's prerendered HTML hydrates cleanly.
+     * Bottom-inset fill color. The content directly above the bottom inset (iOS
+     * home indicator / Android 15 edge-to-edge nav bar) is the setup flow's white
+     * panel, so a periwinkle fill reads as a stray strip — fill with white on
+     * every native build (both platforms) AND on all iOS device types (native,
+     * home-screen PWA, Safari — the Face ID home-indicator bar is the same in
+     * each). State + effect (not a render-time platform check) so the static
+     * export's prerendered HTML hydrates cleanly.
      */
     const [bottomInsetFill, setBottomInsetFill] = useState('bg-secondary-3')
     useEffect(() => {
-        if (isCapacitor()) setBottomInsetFill('bg-white')
-    }, [])
+        if (isCapacitor() || deviceType === DeviceType.IOS) setBottomInsetFill('bg-white')
+    }, [deviceType])
 
     // configure status bar for native. the setup/onboarding flow has a periwinkle
     // top (illustration + feedback ribbon), so tint the status bar to match — on
@@ -48,9 +56,31 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
             .catch(() => {})
     }, [])
 
+    // Latched ONCE at the first effect run instead of reacting to the async
+    // PostHog flag load: a mid-load true-flip would re-dispatch setSteps, whose
+    // new identity re-runs determineInitialStep and yanks a mid-flow user back
+    // to the landing step (losing e.g. a typed username). Returning visitors
+    // read the cached flag correctly; only first-ever visitors in the seconds
+    // before flags cache get the legacy flow — acceptable transitional cohort.
+    const migrationOnAtEntry = useRef<boolean | null>(null)
+
     useEffect(() => {
+        if (migrationOnAtEntry.current === null) {
+            migrationOnAtEntry.current = isPwaSunsetOn()
+        }
+        const migrationSteps = migrationOnAtEntry.current
+
         // filter steps and set them in redux state
         const filteredSteps = setupSteps.filter((step) => {
+            // pwa-sunset notice window: stop onboarding new users into the PWA —
+            // the InstallPWA screens go away, store links show on the landing
+            // step instead (TASK-20830 / TASK-20600)
+            if (
+                migrationSteps &&
+                ['pwa-install', 'android-initial-pwa-install', 'unsupported-browser'].includes(step.screenId)
+            ) {
+                return false
+            }
             // Filter out pwa-install if already in PWA
             if (step.screenId === 'pwa-install' && isPWA) return false
 
@@ -59,7 +89,8 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         dispatch(setupActions.setSteps(filteredSteps))
 
         // if ios and not in pwa, show ios pwa install screen after setup flow is completed
-        if (deviceType === DeviceType.IOS && !isPWA) {
+        // (retired during the migration window — the app download replaces the PWA)
+        if (!migrationSteps && deviceType === DeviceType.IOS && !isPWA) {
             dispatch(setupActions.setShowIosPwaInstallScreen(true))
         } else {
             dispatch(setupActions.setShowIosPwaInstallScreen(false))
@@ -67,6 +98,13 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     }, [isPWA, deviceType, dispatch])
 
     usePullToRefresh()
+
+    // pwa-sunset: past the cutover the web signup is switched off too — same
+    // block as the mobile-ui layout (this route group has its own layout, so
+    // it needs its own gate). keep-web cookie/param bypasses.
+    if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass })) {
+        return <SunsetScreen />
+    }
 
     return (
         <>

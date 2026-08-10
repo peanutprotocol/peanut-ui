@@ -675,6 +675,7 @@ function MantecaBankWithdrawFlow() {
                               : 'default'
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
+                reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry?.title}
             />
             <SumsubKycModals flow={sumsubFlow} />
@@ -924,7 +925,7 @@ function MantecaBankWithdrawFlow() {
                             moreInfoText={t('manteca.exchangeRateInfo')}
                         />
                         <PaymentInfoRow
-                            label={t('manteca.peanutFee')}
+                            label={tCommon('peanutFee')}
                             value={tCommon('sponsoredByPeanut')}
                             hideBottomBorder
                         />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Modal from '../Modal'
 import { Icon, type IconName } from '../Icons/Icon'
@@ -20,6 +20,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
     const [copied, setCopied] = useState(false)
+    const iframeRef = useRef<HTMLIFrameElement | null>(null)
     const router = useRouter()
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -98,12 +99,16 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     // track completed event from iframe and close the modal
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            // A hidden-but-mounted wrapper must not react: several surfaces keep
-            // a wrapper mounted after a manual close (e.g. the multi-phase KYC
+            // React only to messages from OUR iframe. Several surfaces keep a
+            // wrapper mounted after a manual close (e.g. the multi-phase KYC
             // flow's ToS iframe), and a sibling iframe's completion event would
             // otherwise fire BOTH handlers — double ToS confirms + phantom flow
-            // transitions.
-            if (!visible) return
+            // transitions. Matching on the message SOURCE (not `visible`) keeps
+            // that protection — even against a sibling that is visible at the
+            // same time — without dropping a completion that lands in the
+            // instant the modal is hiding: the acceptance already happened at
+            // Bridge, and never confirming it strands a stale task.
+            if (!event.source || event.source !== iframeRef.current?.contentWindow) return
             const data = event.data
             if (data?.name === 'complete' && data?.metadata?.status === 'completed') {
                 onClose('completed')
@@ -144,6 +149,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 <div className="h-full w-full flex-grow overflow-scroll">
                     <iframe
                         key={src}
+                        ref={iframeRef}
                         src={src}
                         allow="camera *; microphone *; fullscreen *"
                         style={{ width: '100%', height: '85%', border: 'none' }}

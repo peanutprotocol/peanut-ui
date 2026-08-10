@@ -44,13 +44,15 @@ const ShareButton = ({
     const toast = useToast()
 
     const copyTextToClipboardWithFallback = async (text: string) => {
+        let textArea: HTMLTextAreaElement | undefined
+
         try {
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text)
                 return true
             } else {
                 // Fallback for older browsers
-                const textArea = document.createElement('textarea')
+                textArea = document.createElement('textarea')
                 textArea.value = text
                 textArea.style.position = 'fixed'
                 textArea.style.left = '-999999px'
@@ -58,13 +60,13 @@ const ShareButton = ({
                 document.body.appendChild(textArea)
                 textArea.focus()
                 textArea.select()
-                document.execCommand('copy')
-                document.body.removeChild(textArea)
-                return true
+                return document.execCommand('copy')
             }
         } catch (err) {
             console.error('Failed to copy: ', err)
             return false
+        } finally {
+            textArea?.remove()
         }
     }
 
@@ -88,6 +90,13 @@ const ShareButton = ({
                 if (shareUrl) shareData.url = shareUrl
 
                 await navigator.share(shareData)
+            }
+
+            if (!navigator.share && !copied) {
+                const error = new Error('Clipboard copy failed and the Web Share API is unavailable')
+                toast.error(t('shareButton.sharingFailed'))
+                onError?.(error)
+                return
             }
 
             onSuccess?.()

@@ -81,7 +81,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                         {/* position is nullable — without the branch a user with no
                             queue position is told they are "#null" on the list. */}
                         {data.position === null
-                            ? t('onListBodyNoPosition')
+                            ? t('onListBodyPending')
                             : t('onListBody', { position: data.position.toLocaleString() })}
                     </p>
                 </div>

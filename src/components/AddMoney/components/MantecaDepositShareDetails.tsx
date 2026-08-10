@@ -153,7 +153,7 @@ const MantecaDepositShareDetails = ({
                         moreInfoText={t('manteca.providerFeesInfo')}
                     />
                     <PaymentInfoRow
-                        label={t('manteca.peanutFee')}
+                        label={tCommon('peanutFee')}
                         value={tCommon('sponsoredByPeanut')}
                         hideBottomBorder
                     />

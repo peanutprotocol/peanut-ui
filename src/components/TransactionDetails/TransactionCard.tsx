@@ -5,6 +5,7 @@ import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionA
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
 import {
     hasUserProfile,
     isCardPaymentEntry,
@@ -106,9 +107,15 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(name)
 
+    // FE-generated labels carry a catalog key — localize; real counterparty
+    // names (usernames, merchants, addresses) pass through as data.
+    const localizedName = transaction.nameKey
+        ? translateTransactionName(t, transaction.nameKey, transaction.nameParams)
+        : name
+
     // ENS reverse-lookup for raw addresses; hook is a no-op when name is a username.
     const { primaryName } = usePrimaryNameServer(isAddress(name) ? name : undefined)
-    let displayName = normalizeEnsName(primaryName) ?? name
+    let displayName = normalizeEnsName(primaryName) ?? localizedName
     // Shortens crypto addresses AND raw UUIDs (usernameless Peanut users whose
     // `identifier` arrives as a userId) so the feed row never renders a 36-char
     // string.
@@ -171,6 +178,16 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // a failed refund (e.g. processing error) shouldn't be greyed out.
     const isDeclinedCardSpend =
         status === 'failed' && isCardPaymentEntry(transaction) && !transaction.extraDataForDrawer?.cardPayment?.isRefund
+
+    // Settlement cleared at a different amount than authorized (tip / FX
+    // true-up) — flag the row so the balance impact isn't invisible in the
+    // feed; the receipt carries the authorized/adjustment breakdown. Refunds
+    // excluded like isDeclinedCardSpend above — a refund-auth that clears at
+    // a different amount would otherwise render "Refund · Adjusted".
+    const isAdjustedCardSpend =
+        isCardPaymentEntry(transaction) &&
+        Boolean(transaction.extraDataForDrawer?.cardPayment?.settlementAdjusted) &&
+        !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
     return (
         <>
@@ -242,6 +259,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                           : t(getActionLabelKey(type, status))}
                                 </span>
                                 {status && <StatusPill status={status} />}
+                                {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
                             </div>
                         </div>
                     </div>

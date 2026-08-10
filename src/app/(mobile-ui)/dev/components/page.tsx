@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import DevPageShell from '../_components/DevPageShell'
 import Divider from '@/components/0_Bruddle/Divider'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -127,13 +128,12 @@ export default function ComponentsPage() {
     const { success, error, info, warning } = useToast()
 
     return (
-        <div className="flex w-full flex-col">
-            <div className="px-4 pt-4">
-                <NavHeader title="Components" href="/dev" />
-            </div>
-
+        <DevPageShell
+            title="Components"
+            description="Every Bruddle primitive and Global component, with all variants — the live counterpart to the design-system docs."
+        >
             {/* sticky TOC */}
-            <div className="sticky top-0 z-10 border-b border-n-1 bg-background px-4 py-2">
+            <div className="sticky top-0 z-10 -mx-1 border-b border-n-1 bg-background px-1 py-2">
                 <div className="flex gap-1 overflow-x-auto">
                     {TOC.map((item) => (
                         <a
@@ -148,7 +148,7 @@ export default function ComponentsPage() {
                 </div>
             </div>
 
-            <div className="space-y-8 px-4 py-6">
+            <div className="space-y-8">
                 {/* ━━━━━━━━━━━━━━━━━━ GUIDELINES ━━━━━━━━━━━━━━━━━━ */}
                 <div id="guidelines" className="scroll-mt-16 space-y-4">
                     <h2 className="text-lg font-bold">Guidelines & Legend</h2>
@@ -1389,6 +1389,6 @@ export default function ComponentsPage() {
                     </Section>
                 </div>
             </div>
-        </div>
+        </DevPageShell>
     )
 }

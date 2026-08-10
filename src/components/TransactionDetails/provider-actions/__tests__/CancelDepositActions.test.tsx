@@ -9,8 +9,10 @@
  * component's own logic is under test.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor, type RenderOptions } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+
+const render = (ui: React.ReactElement, options?: RenderOptions) => rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 const mockCancelOnramp = jest.fn()
 jest.mock('@/app/actions/onramp', () => ({

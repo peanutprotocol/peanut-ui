@@ -110,10 +110,14 @@ export function CancelDepositActions({
                 visible={confirmOpen}
                 onClose={() => setConfirmOpen(false)}
                 icon="ban"
-                title={
-                    pendingCancel?.kind === 'request'
-                        ? t('actions.cancelRequestTitle')
-                        : t('actions.cancelDepositTitle')
+                title={t('actions.cancelConfirm.title', { kind: pendingCancel?.noun ?? 'deposit' })}
+                modalClassName="!z-[9999] pointer-events-auto"
+                description={
+                    <>
+                        {t.rich('actions.cancelConfirm.description', {
+                            strong: (chunks) => <strong>{chunks}</strong>,
+                        })}
+                    </>
                 }
                 modalClassName="!z-[9999] pointer-events-auto"
                 description={t.rich('actions.cancelWarning', {
@@ -124,10 +128,7 @@ export function CancelDepositActions({
                 classOverlay="!bg-black/40 !z-[9998]"
                 ctas={[
                     {
-                        text:
-                            pendingCancel?.kind === 'request'
-                                ? t('actions.confirmCancelRequest')
-                                : t('actions.confirmCancelDeposit'),
+                        text: t('actions.cancelConfirm.confirm', { kind: pendingCancel?.noun ?? 'deposit' }),
                         shadowSize: '4',
                         className: 'md:py-2',
                         onClick: confirmThenRun,

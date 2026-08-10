@@ -407,6 +407,20 @@ describe('GROUP 3: Amount Validation', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
     })
 
+    test('Crypto send forwards the send marker to the next step', () => {
+        // `?method=` is the ONLY send-vs-withdraw signal. Drop it on this hop and
+        // every screen after the amount step reverts to withdraw copy — the user
+        // picks "Send -> Exchange or Wallet" and the next screen says
+        // "You're withdrawing". Losing it here is the original bug.
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.amountToWithdraw = '25'
+
+        renderWithdraw({ method: 'crypto' })
+
+        fireEvent.click(screen.getByText('Continue'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
+    })
+
     test('Bank withdrawal keeps the $1 minimum for sub-$1 amounts', async () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockWithdrawFlow.amountToWithdraw = '0.5'

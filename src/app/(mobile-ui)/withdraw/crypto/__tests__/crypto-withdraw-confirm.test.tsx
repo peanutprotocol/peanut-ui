@@ -13,7 +13,8 @@
  * module level; assert on the context-setter mocks rather than re-rendering.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
 
 // ---------- module-level mocks ----------
 
@@ -93,7 +94,7 @@ jest.mock('@/utils/withdraw.utils', () => ({
 
 jest.mock('@/utils/general.utils', () => ({
     isTxReverted: (receipt: { status?: string } | null) => receipt?.status === 'reverted',
-    printableAddress: (address: string) => address,
+    printableAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
 }))
 
 jest.mock('@/utils/url.utils', () => ({
@@ -102,6 +103,10 @@ jest.mock('@/utils/url.utils', () => ({
 
 jest.mock('@/utils/friendly-error.utils', () => ({
     ErrorHandler: (err: unknown) => (err instanceof Error ? err.message : 'Something went wrong'),
+}))
+
+jest.mock('@/hooks/useFriendlyError', () => ({
+    useFriendlyError: () => (err: unknown) => (err instanceof Error ? err.message : 'Something went wrong'),
 }))
 
 jest.mock('@/interfaces/peanut-sdk-types', () => ({
@@ -253,6 +258,9 @@ jest.mock('@/features/payments/shared/hooks/usePaymentRecorder', () => ({
 }))
 
 import WithdrawCryptoPage from '../page'
+
+const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
+    rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 // ---------- helpers ----------
 
@@ -431,5 +439,56 @@ describe('crypto withdraw confirm — charge completion', () => {
         await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
         expect(mockSetCurrentView).not.toHaveBeenCalledWith('STATUS')
         expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    })
+})
+
+describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)', () => {
+    // The prod incident: recordPayment times out AFTER the on-chain transfer
+    // broadcast; the user lands on Retry, and pre-fix Retry re-ran the whole
+    // flow — issuing a SECOND on-chain transfer for the same charge.
+    it('retry after a recordPayment failure never re-broadcasts — it replays only the record with the same hash', async () => {
+        mockSendMoney.mockResolvedValue({
+            txHash: undefined,
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+        mockRecordPayment.mockRejectedValueOnce(new Error('Request timed out after 30000ms'))
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+
+        // The on-chain leg ran exactly once across both attempts.
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        // The record ran twice, both times with the ORIGINAL mined hash.
+        expect(mockRecordPayment).toHaveBeenCalledTimes(2)
+        expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
+    })
+
+    it('a failure BEFORE any tx identifier exists retries with a fresh broadcast (nothing was spent)', async () => {
+        mockSendMoney.mockRejectedValueOnce(new Error('user rejected signature')).mockResolvedValueOnce({
+            txHash: '0xbetx',
+            userOpHash: undefined,
+            receipt: null,
+            strategy: 'collateral-only',
+            intentId: CHARGE_UUID,
+        })
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+
+        // No spend happened on attempt 1, so attempt 2 legitimately broadcasts.
+        expect(mockSendMoney).toHaveBeenCalledTimes(2)
     })
 })

@@ -1,12 +1,11 @@
 'use client'
 
-import { type ReactNode } from 'react'
 import Image from 'next/image'
-import NavHeader from '@/components/Global/NavHeader'
-import { Card } from '@/components/0_Bruddle/Card'
-import { Icon } from '@/components/Global/Icons/Icon'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import DevNoteCard from '../_components/DevNoteCard'
+import DevPageShell from '../_components/DevPageShell'
+import DevSectionLabel from '../_components/DevSectionLabel'
 
 /**
  * /dev/profile-card-row — 1:1 preview of the profile "first group" (card row +
@@ -49,26 +48,22 @@ function ProfileFirstGroup({ hasCardAccess }: { hasCardAccess: boolean }) {
     )
 }
 
-function SectionLabel({ children }: { children: ReactNode }) {
-    return <p className="text-xs font-bold uppercase tracking-wide text-grey-1">{children}</p>
-}
-
 export default function ProfileCardRowPreviewPage() {
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6 pb-8">
-            <div className="px-4 pt-4">
-                <NavHeader title="Profile card row" />
-            </div>
-
-            <div className="flex flex-col gap-8 px-4">
-                <p className="text-sm text-grey-1">
+        <DevPageShell
+            title="Profile card row"
+            description={
+                <>
                     The profile &ldquo;first group&rdquo; in both card states, rendered with the real{' '}
                     <code>ProfileMenuItem</code>. Rows are live links.
-                </p>
-
+                </>
+            }
+            width="prose"
+        >
+            <div className="flex flex-col gap-8">
                 {/* Non-holder — the new default for most users */}
                 <section className="flex flex-col gap-3">
-                    <SectionLabel>Non-holder (no card yet) — also the loading state</SectionLabel>
+                    <DevSectionLabel>Non-holder (no card yet) — also the loading state</DevSectionLabel>
                     <p className="text-[11px] text-grey-1">
                         &ldquo;Peanut Card&rdquo; · <span className="font-semibold">New!</span> badge · → /shhhhh
                     </p>
@@ -77,23 +72,17 @@ export default function ProfileCardRowPreviewPage() {
 
                 {/* Holder — unchanged from today */}
                 <section className="flex flex-col gap-3">
-                    <SectionLabel>Card holder (hasCardAccess) — unchanged</SectionLabel>
+                    <DevSectionLabel>Card holder (hasCardAccess) — unchanged</DevSectionLabel>
                     <p className="text-[11px] text-grey-1">&ldquo;Your Card&rdquo; · no badge · → /card</p>
                     <ProfileFirstGroup hasCardAccess={true} />
                 </section>
 
-                <Card className="bg-primary-3/20 p-3">
-                    <div className="mb-1 flex items-center gap-2">
-                        <Icon name="info" size={14} />
-                        <span className="text-xs font-bold">Note</span>
-                    </div>
-                    <p className="text-xs text-grey-1">
-                        The <span className="font-semibold">New!</span> pill is the shared StatusBadge{' '}
-                        <code>custom</code> style (lavender <code>primary-3</code>) — the same tag ProfileEdit uses for{' '}
-                        <span className="font-semibold">Soon!</span>. No new design surface.
-                    </p>
-                </Card>
+                <DevNoteCard>
+                    The <span className="font-semibold">New!</span> pill is the shared StatusBadge <code>custom</code>{' '}
+                    style (lavender <code>primary-3</code>) — the same tag ProfileEdit uses for{' '}
+                    <span className="font-semibold">Soon!</span>. No new design surface.
+                </DevNoteCard>
             </div>
-        </div>
+        </DevPageShell>
     )
 }

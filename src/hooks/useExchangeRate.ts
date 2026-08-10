@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDebounce } from './useDebounce'
 import { useQuery } from '@tanstack/react-query'
-import { isCapacitor } from '@/utils/capacitor'
-import { getCachedCurrencyPrice } from '@/app/actions/currency'
+import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
 
 type InputValue = number | ''
 
@@ -85,53 +84,36 @@ export function useExchangeRate({
         isError,
     } = useQuery<{ rate: number }>({
         queryKey: ['exchangeRate', sourceCurrency, destinationCurrency],
-        queryFn: async () => {
-            if (isCapacitor()) {
-                // in capacitor, no /api/ route exists. use getCurrencyPrice (client-side)
-                // and frankfurter as fallback — same logic as the next.js api route
-                const from = sourceCurrency.toUpperCase()
-                const to = destinationCurrency.toUpperCase()
-                if (from === to) return { rate: 1 }
-                try {
-                    let rate: number
-                    if (from === 'USD' || to === 'USD') {
-                        const price = await getCachedCurrencyPrice(from === 'USD' ? to : from)
-                        rate = from === 'USD' ? price.sell : 1 / price.buy
-                    } else {
-                        // Neither side is USD — cross via USD: (USD per `from`) × (`to` per USD).
-                        const [fromPrice, toPrice] = await Promise.all([
-                            getCachedCurrencyPrice(from),
-                            getCachedCurrencyPrice(to),
-                        ])
-                        rate = (1 / fromPrice.buy) * toPrice.sell
-                    }
-                    if (isFinite(rate) && rate > 0) return { rate }
-                } catch {}
-                // fallback to frankfurter (public api)
-                const res = await fetch(`https://api.frankfurter.app/latest?from=${from}&to=${to}`)
-                if (res.ok) {
-                    const data = await res.json()
-                    return { rate: data.rates[to] * 0.995 }
-                }
-                throw new Error('Failed to fetch exchange rate')
-            }
-            const res = await fetch(`/api/exchange-rate?from=${sourceCurrency}&to=${destinationCurrency}`)
-            if (!res.ok) throw new Error('Failed to fetch exchange rate')
-            return res.json()
-        },
+        // First-party browsers and native clients both call api.peanut.me
+        // directly. This preserves the real client IP at the API rate limiter;
+        // proxying normal web traffic through Vercel collapses every user onto
+        // one egress address and lets one noisy client throttle everyone.
+        queryFn: async () => ({ rate: await fetchDisplayRate(sourceCurrency, destinationCurrency) }),
         staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000, // garbage collect after 10 minutes
         refetchOnWindowFocus: true, // Refresh rates when user returns to tab
         refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+        // Invalid or unsupported pairs are deterministic client outcomes. Do
+        // not turn one selection into four identical rate-limited requests.
+        retry: (failureCount, error) =>
+            !(error instanceof FxApiError && [400, 404, 429].includes(error.status)) && failureCount < 3,
         enabled: enabled && !!sourceCurrency && !!destinationCurrency,
     })
 
-    const exchangeRate = rateData?.rate ?? 0
+    // TanStack intentionally retains the last successful data when a
+    // background refetch fails. FX must fail closed instead: otherwise a
+    // repeatedly failing refresh can leave an arbitrarily old conversion on
+    // screen even though the query is in its terminal error state.
+    const exchangeRate = isError ? 0 : (rateData?.rate ?? 0)
     const isLoading = isFetching
 
     // Recalculate amounts when debounced inputs or rate changes (no extra loading toggles)
     useEffect(() => {
-        if (exchangeRate <= 0) return
+        if (exchangeRate <= 0) {
+            if (lastEditedField === 'destination') setSourceAmount('')
+            else clearDestinationFields()
+            return
+        }
 
         const hasValidSource = isValidAmount(debouncedSourceAmount)
         const hasValidDestination = isValidAmount(debouncedDestinationAmount)

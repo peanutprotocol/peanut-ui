@@ -249,9 +249,7 @@ export function SemanticRequestConfirmView() {
                         hideBottomBorder={isCardPioneer}
                     />
 
-                    {!isCardPioneer && (
-                        <PaymentInfoRow hideBottomBorder label={t('confirm.peanutFee')} value="$ 0.00" />
-                    )}
+                    {!isCardPioneer && <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />}
                 </Card>
 
                 {/* buttons and error */}

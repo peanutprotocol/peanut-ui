@@ -43,6 +43,9 @@ export interface ProviderRejectionInfo {
     provider: 'BRIDGE' | 'MANTECA'
     state: ProviderRejectionState
     userMessage: string | null
+    /** Stable `CapabilityReason.code` behind `userMessage` — lets render sites
+     *  swap in localized copy (identity.reasons.*) and keep the prose fallback. */
+    reasonCode: string | null
 }
 
 const PROVIDER_CODE: Record<'BRIDGE' | 'MANTECA', 'bridge' | 'manteca'> = {
@@ -97,5 +100,6 @@ export function deriveProviderRejection(
         provider,
         state,
         userMessage: surfaced ? railUserMessage(surfaced.rail) || surfaced.verdict.blocking?.userMessage || null : null,
+        reasonCode: surfaced ? (surfaced.rail.reason?.code ?? surfaced.verdict.blocking?.code ?? null) : null,
     }
 }

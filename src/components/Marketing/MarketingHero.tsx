@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 const marketingClouds = [
     { top: '15%', width: 160, speed: '45s', direction: 'ltr' as const },
@@ -17,15 +19,19 @@ interface MarketingHeroProps {
     ctaText?: string
     ctaHref?: string
     image?: string
+    locale?: Locale
 }
 
 export function MarketingHero({
     title,
     subtitle,
-    ctaText = 'Get Started',
+    ctaText,
     ctaHref = '/home',
     image,
+    locale = DEFAULT_LOCALE,
 }: MarketingHeroProps) {
+    const i18n = getTranslations(locale)
+    ctaText = ctaText ?? i18n.getStarted
     return (
         <>
             <section className="relative overflow-hidden bg-primary-1 px-4 py-16 text-center md:px-8 md:py-20">
@@ -60,7 +66,13 @@ export function MarketingHero({
                 </div>
             </section>
             <MarqueeComp
-                message={['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC']}
+                message={[
+                    i18n.heroMarqueeNoFees,
+                    i18n.heroMarqueeInstant,
+                    '24/7',
+                    i18n.heroMarqueeDollars,
+                    'USDT/USDC',
+                ]}
                 imageSrc={HandThumbsUp.src}
                 backgroundColor="bg-secondary-1"
             />

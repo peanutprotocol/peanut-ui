@@ -25,6 +25,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
 import { useTranslations } from 'next-intl'
+import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -50,14 +51,11 @@ export const ConfirmClaimLinkView = ({
     })
     const { selectedChainID, selectedTokenAddress, isXChain } = useContext(tokenSelectorContext)
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
+    const campaignTag = badgeCampaignForLegacyWire(useSearchParams())
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-
-    // get campaign tag from claim link url for badge assignment
-    const params = useSearchParams()
-    const campaignTag = params.get('campaignTag')
 
     // We may need this when we re add rewards via specific tokens
     // If not, feel free to remove
@@ -116,13 +114,14 @@ export const ConfirmClaimLinkView = ({
                     link: claimLinkData.link,
                     destinationChainId: selectedChainID,
                     destinationToken: selectedTokenAddress,
+                    campaignTag: campaignTag ?? undefined,
                 })
                 setClaimType('claimxchain')
             } else {
                 claimTxHash = await claimLink({
                     address: recipient ? recipient.address : (address ?? ''),
                     link: claimLinkData.link,
-                    campaignTag: campaignTag ?? undefined, // badge assignment: pass campaign tag
+                    campaignTag: campaignTag ?? undefined,
                     // Note: Confirm view is used for external wallet claims (no optimistic return)
                     // Optimistic return is only for Peanut Wallet claims in Initial.view.tsx
                 })
@@ -241,7 +240,7 @@ export const ConfirmClaimLinkView = ({
                         <PaymentInfoRow label={t('confirm.maxNetworkFee')} value={networkFeeDisplay} />
 
                         {/* Peanut fee row */}
-                        <PaymentInfoRow label={t('confirm.peanutFee')} value={'$ 0.00'} hideBottomBorder />
+                        <PaymentInfoRow label={tCommon('peanutFee')} value={'$ 0.00'} hideBottomBorder />
                     </Card>
                 )}
 

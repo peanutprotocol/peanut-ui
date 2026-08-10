@@ -7,8 +7,9 @@ import { useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 
 // this component shows the identity-verification status when it's failed/rejected.
-// reads the provider-agnostic identity fields: a friendly actionMessage + normalized
-// reject labels. No provider names.
+// reads the provider-agnostic identity fields + normalized reject labels. The
+// backend's actionMessage is a pure function of status, so its presence gates the
+// reason row while the copy itself comes from the catalog. No provider names.
 export const KycFailed = ({
     actionMessage,
     rejectLabels,
@@ -46,7 +47,7 @@ export const KycFailed = ({
 
             <Card position="single" className="py-0">
                 <PaymentInfoRow label={t('rejectedOn')} value={rejectedOn} hideBottomBorder={!hasReason} />
-                {hasReason && <PaymentInfoRow label={t('reason')} value={actionMessage} hideBottomBorder />}
+                {hasReason && <PaymentInfoRow label={t('reason')} value={t('actionMessageFailed')} hideBottomBorder />}
             </Card>
 
             <RejectLabelsList rejectLabels={rejectLabels} />

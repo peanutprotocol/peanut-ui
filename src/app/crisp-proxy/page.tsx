@@ -115,7 +115,6 @@ function CrispProxyContent() {
                             ['username', data.username || ''],
                             ['user_id', data.user_id || ''],
                             ['full_name', data.full_name || ''],
-                            ['grafana_dashboard', data.grafana_dashboard || ''],
                             ['wallet_address', data.wallet_address || ''],
                             ['bridge_user_id', data.bridge_user_id || ''],
                             ['manteca_user_id', data.manteca_user_id || ''],
@@ -191,8 +190,11 @@ function CrispProxyContent() {
                     window.CRISP_WEBSITE_ID="${CRISP_WEBSITE_ID}";
                     window.CRISP_RUNTIME_CONFIG={lock_maximized:true,lock_full_view:true,cross_origin_cookies:true};
                     (function(){
-                        var t=new URLSearchParams(window.location.search).get("crisp_token_id");
+                        var q=new URLSearchParams(window.location.search);
+                        var t=q.get("crisp_token_id");
                         if(t) window.CRISP_TOKEN_ID=t;
+                        var l=q.get("locale");
+                        if(l) window.CRISP_RUNTIME_CONFIG.locale=l;
                     })();
                     (function(){
                         var d=document;

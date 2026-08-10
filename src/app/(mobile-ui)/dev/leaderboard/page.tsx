@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Card from '@/components/Global/Card'
-import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { pointsApi } from '@/services/points'
 import { Icon } from '@/components/Global/Icons/Icon'
+import DevPageShell from '../_components/DevPageShell'
 
 type TimeFilter = '1h' | '6h' | '24h' | 'custom'
 
@@ -280,7 +280,7 @@ export default function LeaderboardPage() {
     const getTierBadgeColor = (tier: number) => {
         switch (tier) {
             case 0:
-                return 'bg-gray-100 text-gray-700'
+                return 'bg-gray-100 text-grey-1'
             case 1:
                 return 'bg-blue-100 text-blue-700'
             case 2:
@@ -288,7 +288,7 @@ export default function LeaderboardPage() {
             case 3:
                 return 'bg-yellow-100 text-yellow-700'
             default:
-                return 'bg-gray-100 text-gray-700'
+                return 'bg-gray-100 text-grey-1'
         }
     }
 
@@ -310,16 +310,15 @@ export default function LeaderboardPage() {
     }
 
     return (
-        <div className="flex min-h-screen flex-col">
-            <NavHeader title="🏆 Points Leaderboard" href="/dev" />
-
-            {/* Main Content - Full Width Container */}
-            <div className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 md:px-8">
+        <DevPageShell
+            title="🏆 Points Leaderboard"
+            description="Live event leaderboard — points earned inside a chosen time window, refreshed on a timer."
+        >
+            <div className="mx-auto w-full max-w-7xl space-y-6">
                 {/* Header with Prize */}
                 <div className="text-center">
-                    <h1 className="mb-2 text-4xl font-bold">Event Leaderboard</h1>
                     <div className="mb-4">
-                        <span className="text-sm text-gray-500">Last update: {lastUpdate.toLocaleTimeString()}</span>
+                        <span className="text-sm text-grey-1">Last update: {lastUpdate.toLocaleTimeString()}</span>
                     </div>
                     <div className="mx-auto max-w-2xl rounded-xl bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 p-6 shadow-lg">
                         <div className="flex items-center justify-center gap-3">
@@ -338,23 +337,23 @@ export default function LeaderboardPage() {
                     <Card className="p-12">
                         <div className="flex items-center justify-center">
                             <Icon name="pending" size={32} className="animate-spin text-primary-1" />
-                            <span className="ml-3 text-lg text-gray-600">Loading leaderboard...</span>
+                            <span className="ml-3 text-lg text-grey-1">Loading leaderboard...</span>
                         </div>
                     </Card>
                 ) : error ? (
-                    <Card className="bg-red-50 p-8">
-                        <p className="text-red-800 text-center text-lg">{error}</p>
+                    <Card className="bg-error-1/20 p-8">
+                        <p className="text-center text-lg text-n-1">{error}</p>
                     </Card>
                 ) : leaderboard.length === 0 ? (
                     <Card className="p-12">
-                        <p className="text-center text-lg text-gray-600">No points earned in this time period yet.</p>
+                        <p className="text-center text-lg text-grey-1">No points earned in this time period yet.</p>
                     </Card>
                 ) : (
-                    <Card className="divide-y divide-gray-100">
+                    <Card className="divide-y divide-gray-3">
                         {leaderboard.map((entry) => (
                             <div
                                 key={entry.userId}
-                                className={`flex items-center justify-between p-6 transition-colors hover:bg-gray-50 ${
+                                className={`flex items-center justify-between p-6 transition-colors hover:bg-primary-3/20 ${
                                     entry.rank <= 3 ? 'bg-yellow-50/40' : ''
                                 }`}
                             >
@@ -371,14 +370,14 @@ export default function LeaderboardPage() {
                                     {/* User Info */}
                                     <div>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-xl font-bold text-gray-900">{entry.username}</span>
+                                            <span className="text-xl font-bold text-n-1">{entry.username}</span>
                                             <span
                                                 className={`rounded-full px-3 py-1 text-sm font-medium ${getTierBadgeColor(entry.currentTier)}`}
                                             >
                                                 Tier {entry.currentTier}
                                             </span>
                                         </div>
-                                        <span className="text-base text-gray-500">
+                                        <span className="text-base text-grey-1">
                                             {entry.pointsEarned.toLocaleString()} points
                                         </span>
                                     </div>
@@ -392,7 +391,7 @@ export default function LeaderboardPage() {
                                         </span>
                                     )}
                                     {entry.rank === 2 && (
-                                        <span className="rounded-full bg-gray-100 px-4 py-2 text-sm font-bold text-gray-700">
+                                        <span className="rounded-full bg-gray-100 px-4 py-2 text-sm font-bold text-grey-1">
                                             🥈 2nd Place
                                         </span>
                                     )}
@@ -409,12 +408,12 @@ export default function LeaderboardPage() {
             </div>
 
             {/* Compact Filter Bar at Bottom */}
-            <div className="sticky bottom-0 border-t border-gray-200 bg-white shadow-lg">
+            <div className="sticky bottom-0 rounded-sm border border-n-1 bg-white">
                 <div className="mx-auto max-w-7xl px-4 py-4 md:px-8">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         {/* Quick Filters */}
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-700">Time Period:</span>
+                            <span className="text-sm font-semibold text-grey-1">Time Period:</span>
                             <div className="flex gap-2">
                                 <Button
                                     size="small"
@@ -457,7 +456,7 @@ export default function LeaderboardPage() {
                                 type="datetime-local"
                                 value={customTime}
                                 onChange={(e) => handleCustomTimeChange(e.target.value)}
-                                className="w-48 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-primary-1 focus:outline-none focus:ring-1 focus:ring-primary-1"
+                                className="w-48 rounded-md border border-gray-3 px-2 py-1 text-sm focus:border-primary-1 focus:outline-none focus:ring-1 focus:ring-primary-1"
                             />
                             <Button
                                 size="small"
@@ -472,13 +471,13 @@ export default function LeaderboardPage() {
 
                         {/* Since Info */}
                         {sinceDate && (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-grey-1">
                                 Since: <span className="font-medium">{formatDate(sinceDate)}</span>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
-        </div>
+        </DevPageShell>
     )
 }

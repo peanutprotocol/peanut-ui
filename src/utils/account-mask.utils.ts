@@ -1,4 +1,4 @@
-import { formatIban } from './general.utils'
+import { formatIban, shortenStringLong } from './general.utils'
 
 /**
  * Per-rail bank account masking for receipt display.
@@ -29,6 +29,24 @@ type MaskMode =
 interface MaskRule {
     mode: MaskMode
 }
+
+/**
+ * Wire `type` values that denote a crypto WALLET ADDRESS rather than a bank
+ * rail. A CRYPTO_WITHDRAW destination serializes as `'address'` (BE history
+ * `mapGenericIntent` — the viewer is the sender), an external/EVM wallet as
+ * `'evm-address'`, and the user's own smart wallet as `'peanut-wallet'`
+ * (`accountTypeToApi` / `history-accounts`). None is ever an IBAN. This is a
+ * closed 3-value set; every other `type` is treated as a bank rail (so new
+ * rails keep IBAN formatting by default). The bug this guards against:
+ * `formatIban` treats any string whose first two chars are letters as an
+ * IBAN and uppercases + space-chunks it — every Tron address starts `T…` and
+ * base58 is case-SENSITIVE, so that silently corrupts the address in both the
+ * receipt display and the copy button.
+ */
+const CRYPTO_ADDRESS_TYPES = new Set(['address', 'evm-address', 'peanut-wallet'])
+
+export const isCryptoAddressType = (type: string | null | undefined): boolean =>
+    CRYPTO_ADDRESS_TYPES.has((type ?? '').toLowerCase())
 
 /**
  * Per-rail rules. Account types come from the BE's `Account.type` field
@@ -69,6 +87,19 @@ export function maskAccountIdentifier(
     accountType: string | null | undefined
 ): string {
     if (!identifier) return ''
+    // Crypto wallet addresses are shortened for display ("BfbXuD...NKNb19") —
+    // a full 44-char Solana address is one unbreakable token that overflows
+    // the receipt card on mobile. Copy still yields the verbatim address via
+    // getAccountCopyValue. Shorten by wire type, NOT via printableAddress's
+    // shape re-validation (viem isAddress rejects wrong-checksum mixed-case
+    // strings and would fall back to the full overflowing address). Never
+    // route these through the 'plain' branch's IBAN-shape heuristic, which
+    // mangles case-sensitive base58 (Tron `TN9R…`). The length guard keeps
+    // degenerate short identifiers intact — shortenStringLong would garble
+    // anything shorter than its 6+6 window; real addresses are 32+ chars.
+    if (isCryptoAddressType(accountType)) {
+        return identifier.length <= 16 ? identifier : shortenStringLong(identifier)
+    }
     const rail = (accountType ?? '').toUpperCase()
     const rule = MASK_RULES[rail] ?? { mode: 'plain' as MaskMode }
 

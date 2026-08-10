@@ -1,10 +1,9 @@
 'use client'
 
-import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import NavHeader from '../Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from './badge.utils'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
@@ -14,8 +13,9 @@ import { useTranslations } from 'next-intl'
 import { useUserStore } from '@/redux/hooks'
 import { ActionListCard } from '../ActionListCard'
 import { useAuth } from '@/context/authContext'
+import { BadgeImage } from './BadgeImage'
 
-type BadgeView = { title: string; description: string; logo: string | StaticImageData }
+type BadgeView = { code: string; title: string; description: string; logo: string | StaticImageData }
 
 export const Badges = () => {
     const t = useTranslations('badges')
@@ -35,9 +35,10 @@ export const Badges = () => {
         // get badges from user object and map to card fields
         const raw = authUser?.user?.badges || []
         return raw.map((b) => ({
+            code: b.code,
             title: getBadgeDisplayName(b.code, b.name),
-            description: b.description || '',
-            logo: getBadgeIcon(b.code),
+            description: getBadgeDescription(b.description) || '',
+            logo: getBadgeIcon(b.code, b.iconUrl),
         }))
     }, [authUser?.user?.badges])
 
@@ -70,7 +71,7 @@ export const Badges = () => {
                             }}
                             position={getCardPosition(idx, badges.length)}
                             leftIcon={
-                                <Image
+                                <BadgeImage
                                     src={badge.logo}
                                     alt={badge.title}
                                     // object-contain so non-square badge SVGs
@@ -99,6 +100,7 @@ export const Badges = () => {
                         setIsBadgeModalOpen(false)
                         setSelectedBadge(null)
                     }}
+                    code={selectedBadge.code}
                     title={selectedBadge.title}
                     description={selectedBadge.description}
                     logo={selectedBadge.logo}

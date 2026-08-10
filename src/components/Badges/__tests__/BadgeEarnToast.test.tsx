@@ -31,15 +31,25 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
 }))
 
 const mockMarkSeen = jest.fn()
-let mockPending: Array<{ code: string; name: string; description: string | null; earnedAt: string }> = []
+let mockPending: Array<{
+    code: string
+    name: string
+    description: string | null
+    iconUrl?: string | null
+    earnedAt: string
+}> = []
 jest.mock('@/components/Badges/useBadgeEarnToast', () => ({
     useBadgeEarnToast: () => ({ pending: mockPending, markSeen: mockMarkSeen }),
 }))
 
 // Minimal stub: surface the title so we can assert the detail modal opened.
 jest.mock('@/components/Badges/BadgeDetailModal', () => ({
-    BadgeDetailModal: ({ isOpen, title }: { isOpen: boolean; title: string }) =>
-        isOpen ? <div data-testid="badge-detail-modal">{title}</div> : null,
+    BadgeDetailModal: ({ isOpen, title, code }: { isOpen: boolean; title: string; code?: string }) =>
+        isOpen ? (
+            <div data-testid="badge-detail-modal" data-code={code}>
+                {title}
+            </div>
+        ) : null,
 }))
 
 import posthog from 'posthog-js'
@@ -87,7 +97,17 @@ describe('BadgeEarnToast', () => {
         expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:PRODUCT_HUNT')
         expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_tapped', { count: 1 })
         expect(screen.getByTestId('badge-detail-modal')).toHaveTextContent('Product Hunt')
+        expect(screen.getByTestId('badge-detail-modal')).toHaveAttribute('data-code', 'PRODUCT_HUNT')
         expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('renders the API iconUrl instead of the local legacy asset', () => {
+        mockPending = [{ ...badge('PRODUCT_HUNT', 'Backend Name'), iconUrl: '/badges/backend_product_hunt.webp' }]
+        render(<BadgeEarnToast />)
+
+        const { container } = render(mockToast.mock.calls[0][0].content)
+        expect(container.querySelector('img')).toHaveAttribute('src', '/badges/backend_product_hunt.webp')
+        expect(screen.getByText(/Backend Name/)).toBeInTheDocument()
     })
 
     it('coalesces multiple badges and routes to /badges on tap', () => {

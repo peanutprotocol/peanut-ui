@@ -109,10 +109,11 @@ const underMaintenanceConfig: MaintenanceConfig = {
 export const CROSS_CHAIN_DISABLED_MESSAGE =
     'Cross-chain claims are temporarily unavailable. Try claiming to an external wallet on the same chain as the link, or try again later.'
 
-// user-facing copy for the BRL-via-PIX onramp maintenance tag (the in-flow banner was
-// retired when the dynamic-QR deposit flow shipped — the tag is the remaining surface)
+// Catalog key (under the `addMoney` namespace) for the BRL-via-PIX onramp
+// maintenance tag — config carries the key, the render site translates (the
+// in-flow banner was retired when the dynamic-QR deposit flow shipped).
 export const PIX_BRAZIL_ONRAMP_MAINTENANCE = {
-    badge: 'Maintenance',
-}
+    badgeKey: 'pixMaintenanceBadge',
+} as const
 
 export default underMaintenanceConfig

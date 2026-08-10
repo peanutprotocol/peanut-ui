@@ -8,6 +8,7 @@ import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
 import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
+import { localizeDocsHref } from '@/components/Global/DocsLink'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
@@ -38,37 +39,32 @@ type NavSectionProps = {
 
 const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => {
     const t = useTranslations('navigation')
-    const locale = resolveLocale(useLocale())
+    const locale = useLocale()
     const router = useRouter()
     return (
         <>
-            {paths.map(({ labelKey, href: rawHref, icon, size }, index) => {
-                const href = localizeMarketingPath(rawHref, locale)
-                return (
-                    <div key={`${labelKey}-${index}`}>
-                        <Link
-                            href={href}
-                            className={classNames(
-                                'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
-                                {
-                                    'text-primary-1': pathName === href,
-                                }
-                            )}
-                            onClick={() => {
-                                if (pathName === href) {
-                                    router.refresh()
-                                }
-                            }}
-                        >
-                            <Icon name={icon} className="block text-white" size={size} />
-                            <span className="block w-fit pt-0.5 text-center text-base font-semibold">
-                                {t(labelKey)}
-                            </span>
-                        </Link>
-                        {index === 4 && <div className="w-full border-b border-grey-1 pt-5" />}
-                    </div>
-                )
-            })}
+            {paths.map(({ labelKey, href, icon, size }, index) => (
+                <div key={`${labelKey}-${index}`}>
+                    <Link
+                        href={localizeDocsHref(href, locale)}
+                        className={classNames(
+                            'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
+                            {
+                                'text-primary-1': pathName === href,
+                            }
+                        )}
+                        onClick={() => {
+                            if (pathName === href) {
+                                router.refresh()
+                            }
+                        }}
+                    >
+                        <Icon name={icon} className="block text-white" size={size} />
+                        <span className="block w-fit pt-0.5 text-center text-base font-semibold">{t(labelKey)}</span>
+                    </Link>
+                    {index === 4 && <div className="w-full border-b border-grey-1 pt-5" />}
+                </div>
+            ))}
         </>
     )
 }

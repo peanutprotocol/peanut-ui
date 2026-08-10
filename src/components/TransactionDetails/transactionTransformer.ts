@@ -17,6 +17,7 @@ import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
+import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
 import { parseWireAmount } from './transaction-details.utils'
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
@@ -300,6 +301,11 @@ export interface TransactionDetails {
     id: string
     direction: TransactionDirection
     userName: string
+    /** Catalog key (under `transaction`) when `userName` is an FE-generated
+     *  label rather than counterparty data. Render sites localize via
+     *  `t(nameKey, nameParams)` and fall back to `userName`. */
+    nameKey?: TransactionNameKey
+    nameParams?: Record<string, string>
     /** The counterparty is an actual Peanut user (not a raw address, bank
      *  account, or a system copy string like 'Request'/'Recipient'/reaper text).
      *  Authoritative gate for whether the name/avatar can deep-link to a
@@ -326,6 +332,9 @@ export interface TransactionDetails {
     date: string | Date
     fee?: number | string
     memo?: string
+    /** Catalog key (under `transaction`) for FE-generated memos (the test
+     *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
+    memoKey?: 'memoTestDeposit'
     attachmentUrl?: string
     cancelledDate?: string | Date
     txHash?: string
@@ -478,6 +487,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const displayUserRole =
         transactionCardType === 'refund' ? EHistoryUserRole.RECIPIENT : (entry.userRole as EHistoryUserRole)
     let nameForDetails = out.nameForDetails
+    let nameKey = out.nameKey
+    let nameParams = out.nameParams
     let isPeerActuallyUser = out.isPeerActuallyUser
     const isLinkTx = out.isLinkTx
     let fullName = out.fullName ?? ''
@@ -501,6 +512,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const reaperFailReason = entry.extraData?.failReason as string | undefined
     if (entry.status === 'FAILED' && reaperFailReason && reaperFailReason.endsWith('_timeout')) {
         nameForDetails = REAPER_FAIL_COPY[reaperFailReason] ?? 'Transaction did not complete'
+        nameKey = reaperFailKey(reaperFailReason)
+        nameParams = undefined
         isPeerActuallyUser = false
     } else if (entry.status === 'FAILED' && intentKindOf(entry) === 'QR_PAY') {
         // A collateral QR-pay that failed at submit (e.g. the stale-approval 403)
@@ -511,6 +524,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // settles then fails is refunded elsewhere — so "didn't complete" is honest
         // whether or not funds moved; the ledger stays the source of truth for that.
         nameForDetails = 'Failed QR payment attempt'
+        nameKey = TRANSACTION_NAME_KEYS.failedQrPayment
+        nameParams = undefined
         isPeerActuallyUser = false
     }
 
@@ -561,6 +576,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         id: entry.uuid,
         direction: direction,
         userName: nameForDetails,
+        nameKey,
+        nameParams,
         amount,
         tokenAmount: entry.amount,
         fullName,
@@ -586,6 +603,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // merchant name and any decline reason render inside CardPaymentRows
         // in the drawer, so a duplicate "Comment" row is just noise. Backend
         // already sets memo=undefined for card entries, but defend in depth.
+        memoKey: isTestDeposit ? 'memoTestDeposit' : undefined,
         memo: (() => {
             if (isTestDeposit) return 'Your peanut wallet is ready to use!'
             const kind = intentKindOf(entry)

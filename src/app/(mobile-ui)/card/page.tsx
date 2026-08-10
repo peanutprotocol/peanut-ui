@@ -24,10 +24,12 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
+import { cardConsentDocuments } from '@/services/consent'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 
 // localStorage key for the one-time celebration gate (per-device by design:
 // re-doing the funnel re-celebrates, see the eligibility-check effect below).
@@ -93,6 +95,11 @@ const CardPage: FC = () => {
     // the new card row". Without it the screen would briefly flip back to Add
     // Card mid-apply before the state machine sees the new state.
     const [isIssuing, setIsIssuing] = useState(false)
+    // Set when POST /rain/cards answers `geo-blocked` (country on Rain's
+    // prohibited-issuance list, detected from the Sumsub address at apply
+    // time). Per-mount — the cardInfo refetch it triggers makes the state
+    // machine's geoProhibited path own the block durably.
+    const [geoBlocked, setGeoBlocked] = useState(false)
 
     // Track whether the user has acknowledged the skip-badge celebration.
     // localStorage on purpose (per-device, replayable via the eligibility
@@ -301,12 +308,26 @@ const CardPage: FC = () => {
                 setPendingTerms({ isUsResident: res.isUsResident })
                 return
             }
+            // Terminal regulatory block from the BE gate. This can fire
+            // mid-funnel for Sumsub-only users whose country is unknown until
+            // their address lands (cardInfo.geoProhibited couldn't catch them
+            // up front). Local flag renders the screen immediately — without
+            // it the user would bounce back to add-card with a generic error
+            // and an apply button that can never succeed. The cardInfo refetch
+            // lets the state machine own the block on subsequent visits.
+            if (res.status === 'geo-blocked') {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setGeoBlocked(true)
+                void refetchCardInfo()
+                return
+            }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
             setPendingCountryConfirmation(null)
             invalidateOverview()
         },
-        [invalidateOverview]
+        [invalidateOverview, refetchCardInfo]
     )
 
     // The user picked their residence country on the confirmation screen.
@@ -349,7 +370,12 @@ const CardPage: FC = () => {
                 with_session_key: !!serializedApproval,
             })
             try {
-                const res = await rainApi.applyForCard({ termsAccepted, serializedApproval })
+                // Consent-ledger echo: on acceptance, send the exact documents
+                // CardTermsScreen displayed for this region (version + hash).
+                const acceptedDocuments = termsAccepted
+                    ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
+                    : undefined
+                const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setSumsubToken(res.sumsubAccessToken)
@@ -364,7 +390,7 @@ const CardPage: FC = () => {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, t]
+        [advanceFromApplyResponse, pendingTerms, t]
     )
 
     const handleAcceptTerms = useCallback(async () => {
@@ -502,11 +528,31 @@ const CardPage: FC = () => {
             setPendingTerms({ isUsResident: res.isUsResident })
         } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
             setPendingCountryConfirmation({ candidates: res.candidates })
+        } else if (res.status === 'geo-blocked') {
+            setGeoBlocked(true)
+            void refetchCardInfo()
         } else {
             invalidateOverview()
         }
         return ''
-    }, [invalidateOverview])
+    }, [invalidateOverview, refetchCardInfo])
+
+    // PWA-reload resume (see useSumsubReloadResume). On a reload mid-Sumsub,
+    // re-apply to mint a fresh token for the same in-progress applicant and
+    // reopen the SDK — same idempotent call the token-refresh path uses. The
+    // card flow takes no initiate arguments, so the persisted state is empty.
+    useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
+        const res = await rainApi.applyForCard({ termsAccepted: false })
+        if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
+            setSumsubToken(res.sumsubAccessToken)
+            // tagged so a resume doesn't read as a fresh open in the card funnel
+            posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
+            return true
+        }
+        // user advanced past Sumsub while backgrounded — route normally
+        advanceFromApplyResponse(res)
+        return false
+    })
 
     // Outer-gate fail — the useEffect above fires notFound() to render the
     // 404 boundary; render nothing here so the page doesn't flash for the
@@ -544,6 +590,12 @@ const CardPage: FC = () => {
         // to Add Card for a split second while the API call is in flight.
         if (isIssuing) {
             return <ApplicationStatusScreen variant="pending" />
+        }
+        // Terminal regulatory block detected mid-funnel by the BE apply gate —
+        // takes precedence over the confirmation/terms overlays (those flows
+        // are moot once the country verdict is in).
+        if (geoBlocked) {
+            return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
         }
         // Residence confirmation comes before terms in the funnel — the
         // backend won't return terms-required until the country is resolved.
@@ -619,6 +671,7 @@ const CardPage: FC = () => {
                 const allBadges =
                     user?.user?.badges?.map((b) => ({
                         code: b.code,
+                        iconUrl: b.iconUrl,
                         earnedAt: b.earnedAt,
                     })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
                 return (
@@ -655,13 +708,14 @@ const CardPage: FC = () => {
                         </div>
                     )
                 }
-                const cardRailReason = poaSubmitted
-                    ? 'We received your proof of address — it’s being reviewed.'
-                    : railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRail = railsForProvider('rain')[0]
+                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="requires-info"
                         reasonMessage={cardRailReason}
+                        reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
                         uploadError={poaError ?? undefined}
@@ -679,6 +733,10 @@ const CardPage: FC = () => {
                         onPrev={onBack}
                     />
                 )
+            case 'geo-blocked':
+                // Regulatory dead end (country on Rain's prohibited-issuance
+                // list) — no support CTA, support can't override regulation.
+                return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
             case 'rejected': {
                 // No retry CTA: Rain denials are terminal on our side. The
                 // only path forward is support reviewing the case manually
@@ -693,15 +751,14 @@ const CardPage: FC = () => {
                 // (meaningless without its reason), the rejected screen is useful
                 // on its own (reassurance + support CTA), so show it now and let
                 // the reason fill in once capabilities resolve.
-                const cardRailReason = poaSubmitted
-                    ? 'We received your proof of address — it’s being reviewed.'
-                    : capabilitiesLoading
-                      ? undefined
-                      : railsForProvider('rain')[0]?.reason?.userMessage
+                const cardRail = capabilitiesLoading ? undefined : railsForProvider('rain')[0]
+                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
                         variant="rejected"
                         reasonMessage={cardRailReason}
+                        reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
                         uploadError={poaError ?? undefined}

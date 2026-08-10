@@ -11,10 +11,10 @@ import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage } from '@/utils/capability-gate'
+import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
@@ -28,7 +28,7 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
-import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useCurrency } from '@/hooks/useCurrency'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
@@ -42,7 +42,8 @@ import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { addMoneyCountryUrl } from '@/utils/native-routes'
+import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { getRegionIntent } from '@/utils/regions.utils'
 import { useTranslations } from 'next-intl'
@@ -50,7 +51,10 @@ import { useTranslations } from 'next-intl'
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
 
-export default function OnrampBankPage() {
+// The Bridge SEPA bank deposit page. Only mounted for non-Manteca countries — the
+// default export below bounces BR/AR away before this ever renders, so none of its
+// data hooks / URL-state effects run for a Manteca deep link.
+function BridgeBankOnrampPage() {
     const params = useParams()
     const _searchParams = useSearchParams()
     const t = useTranslations('addMoney')
@@ -183,13 +187,10 @@ export default function OnrampBankPage() {
         return getCurrencyConfig(selectedCountry.id, 'onramp').currency.toUpperCase()
     }, [selectedCountry?.id])
 
-    // get exchange rate: local currency → USD (for limits validation)
-    // skip for USD since it's 1:1
-    const { exchangeRate, isLoading: isRateLoading } = useExchangeRate({
-        sourceCurrency: localCurrency,
-        destinationCurrency: 'USD',
-        enabled: localCurrency !== 'USD',
-    })
+    // deposit-side price (localCurrency per USD) for limits validation — deposits
+    // execute at buy, so the USD equivalent must derive from buy, not the sell-side
+    // display quote served by /fx/rate (useCurrency handles USD as 1:1)
+    const { price: localPrice, isLoading: isRateLoading, isError: isRateError } = useCurrency(localCurrency)
 
     // convert input amount to USD for limits validation
     // bridge limits are always in USD, but user inputs in local currency
@@ -201,9 +202,9 @@ export default function OnrampBankPage() {
         // for USD, no conversion needed
         if (localCurrency === 'USD') return numericAmount
 
-        // convert local currency to USD
-        return exchangeRate > 0 ? numericAmount * exchangeRate : 0
-    }, [rawTokenAmount, localCurrency, exchangeRate])
+        // convert local currency to USD at the deposit-executed (buy) side
+        return localPrice && localPrice.buy > 0 ? numericAmount / localPrice.buy : 0
+    }, [rawTokenAmount, localCurrency, localPrice])
 
     // validate against user's bridge limits
     // uses USD equivalent to correctly compare against USD-denominated limits
@@ -455,7 +456,9 @@ export default function OnrampBankPage() {
                             error.showError ||
                             isCreatingOnramp ||
                             limitsValidation.isBlocking ||
-                            (localCurrency !== 'USD' && isRateLoading)
+                            // fail closed: without a rate the limit check can't run, so don't
+                            // let an unchecked deposit through on a failed FX fetch
+                            (localCurrency !== 'USD' && (isRateLoading || isRateError))
                         }
                         className="w-full"
                         loading={isCreatingOnramp}
@@ -465,6 +468,9 @@ export default function OnrampBankPage() {
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
                         <ErrorAlert description={error.errorMessage} />
+                    )}
+                    {localCurrency !== 'USD' && isRateError && (
+                        <ErrorAlert description="We couldn't load the exchange rate. Please try again in a moment." />
                     )}
                 </div>
 
@@ -507,6 +513,7 @@ export default function OnrampBankPage() {
                     error={sumsubFlow.error}
                     variant={resolveKycModalVariant(gate)}
                     providerMessage={getGateUserMessage(gate)}
+                    reasonCode={getGateReasonCode(gate)}
                     regionName={selectedCountry?.title}
                 />
 
@@ -534,4 +541,36 @@ export default function OnrampBankPage() {
     }
 
     return null
+}
+
+// Route entry. Manteca countries (BR/AR) deposit via their own PIX / Mercado Pago
+// flow, not this Bridge SEPA page — getCurrencyConfig has no BR/AR branch, so the
+// Bridge page would render the amount in EUR. A KYC-success redirect or a deep link
+// can still target /add-money/[country]/bank for a Manteca country, so bounce it
+// here — before BridgeBankOnrampPage mounts — and never run its data hooks / URL
+// effects for BR/AR. Uses the same predicate the root dispatcher routes with
+// (add-money/page.tsx) so the two can't disagree on which countries are Manteca.
+export default function OnrampBankPage() {
+    const params = useParams()
+    const searchParams = useSearchParams()
+    const router = useRouter()
+
+    const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
+    const selectedCountry = useMemo(() => {
+        if (!selectedCountryPath) return null
+        return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
+    }, [selectedCountryPath])
+    const isMantecaRoute = !!selectedCountry && isMantecaSupportedCountryCode(selectedCountry.id)
+
+    useEffect(() => {
+        if (isMantecaRoute && selectedCountry) {
+            router.replace(rewriteMethodPath(`/add-money/${selectedCountry.path}/manteca`))
+        }
+    }, [isMantecaRoute, selectedCountry, router])
+
+    if (isMantecaRoute) {
+        return <PeanutLoading />
+    }
+
+    return <BridgeBankOnrampPage />
 }

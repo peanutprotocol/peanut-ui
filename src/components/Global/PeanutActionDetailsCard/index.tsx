@@ -51,6 +51,16 @@ export interface PeanutActionDetailsCardProps {
     timerError?: string | null
     isLoading?: boolean
     logo?: StaticImageData
+    /**
+     * A withdraw the user reached through the send flow (Send → Exchange or
+     * Wallet / Bank). Mechanically identical to a withdraw — only the verb
+     * differs, so this branches the title and nothing else.
+     *
+     * Without it this card can only ever be right for one of its two callers,
+     * which is why the copy has already been flipped in opposite directions
+     * twice (abd71b882 → "sending", d532b6a65 → "withdrawing").
+     */
+    isFromSendFlow?: boolean
 }
 
 export default function PeanutActionDetailsCard({
@@ -75,6 +85,7 @@ export default function PeanutActionDetailsCard({
     currencySymbol,
     isLoading = false,
     logo,
+    isFromSendFlow = false,
 }: PeanutActionDetailsCardProps) {
     const t = useTranslations('global')
     const renderRecipient = () => {
@@ -112,7 +123,9 @@ export default function PeanutActionDetailsCard({
         if (transactionType === 'ADD_MONEY' || transactionType === 'ADD_MONEY_BANK_ACCOUNT')
             title = t('peanutActionDetailsCard.youreAdding')
         if (transactionType === 'WITHDRAW' || transactionType === 'WITHDRAW_BANK_ACCOUNT')
-            title = t('peanutActionDetailsCard.youreWithdrawing')
+            title = isFromSendFlow
+                ? t('peanutActionDetailsCard.youreSending')
+                : t('peanutActionDetailsCard.youreWithdrawing')
         if (transactionType === 'CLAIM_LINK_BANK_ACCOUNT') {
             if (viewType === 'SUCCESS') {
                 title = t('peanutActionDetailsCard.youWillReceive')

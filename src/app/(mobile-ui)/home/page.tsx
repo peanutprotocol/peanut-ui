@@ -40,6 +40,8 @@ import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { useModalsContext } from '@/context/ModalsContext'
 
 // Lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // Components are only loaded when user triggers them
@@ -50,6 +52,9 @@ const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal')
 const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
 const WelcomeUnlockModal = lazy(() => import('@/components/Home/WelcomeUnlockModal'))
 const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
+const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
+const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
+const ReviewPromptModal = lazy(() => import('@/components/Migration/ReviewPromptModal'))
 
 const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
 const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
@@ -58,6 +63,7 @@ export default function Home() {
     const t = useTranslations('home')
     const tNav = useTranslations('navigation')
     const { showPermissionModal } = useNotifications()
+    const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
     const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } =
         useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
@@ -82,6 +88,9 @@ export default function Home() {
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(false)
+    // migration download prompt outranks every other home modal (self-gating,
+    // only during the pwa-sunset notice window)
+    const [showMigrationModal, setShowMigrationModal] = useState(false)
 
     // Track if this is a fresh signup session - captured once on mount so it persists
     // even after NoMoreJailModal clears the sessionStorage key
@@ -94,6 +103,13 @@ export default function Home() {
     useEffect(() => {
         fetchUser()
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // the migration prompt outranks the post-signup modal; unmounting the
+    // manager skips its onVisibilityChange(false), so clear the state here or
+    // it stays stuck true and suppresses the balance-warning/review modals
+    useEffect(() => {
+        if (showMigrationModal) setIsPostSignupActionModalVisible(false)
+    }, [showMigrationModal])
 
     // Show the "You're unlocked" celebration exactly once: the user has a usable
     // rail (isKycApproved) and has never dismissed it (activationCelebratedAt is
@@ -160,14 +176,23 @@ export default function Home() {
             if (
                 balanceInUsd > BALANCE_WARNING_THRESHOLD &&
                 !hasSeenBalanceWarning &&
-                !showPermissionModal && // highest priority
+                !showMigrationModal && // highest priority
+                !showPermissionModal &&
                 !showKycModal &&
                 !isPostSignupActionModalVisible
             ) {
                 setShowBalanceWarningModal(true)
             }
         }
-    }, [balance, isFetchingBalance, showPermissionModal, showKycModal, isPostSignupActionModalVisible, user])
+    }, [
+        balance,
+        isFetchingBalance,
+        showMigrationModal,
+        showPermissionModal,
+        showKycModal,
+        isPostSignupActionModalVisible,
+        user,
+    ])
 
     if (isLoading) {
         return <PeanutLoading coverFullScreen />
@@ -251,10 +276,29 @@ export default function Home() {
                     />
                 </div>
 
-                {showPermissionModal && !showBalanceWarningModal && (
+                {showPermissionModal && !showBalanceWarningModal && !showMigrationModal && (
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
                             <SetupNotificationsModal />
+                        </Suspense>
+                    </LazyLoadErrorBoundary>
+                )}
+
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={null}>
+                        <MigrationDownloadModal onVisibilityChange={setShowMigrationModal} />
+                    </Suspense>
+                </LazyLoadErrorBoundary>
+
+                {/* desktop target of the get-the-app carousel CTA */}
+                {isGetAppModalOpen && (
+                    <LazyLoadErrorBoundary>
+                        <Suspense fallback={null}>
+                            <ScanToDownloadModal
+                                visible={isGetAppModalOpen}
+                                onClose={() => setIsGetAppModalOpen(false)}
+                                surface={MIGRATION_SURFACES.HOME_BANNER}
+                            />
                         </Suspense>
                     </LazyLoadErrorBoundary>
                 )}
@@ -264,7 +308,7 @@ export default function Home() {
             {/* <AddMoneyPromptModal visible={showAddMoneyPromptModal} onClose={() => setShowAddMoneyPromptModal(false)} /> */}
 
             {/* these modals manage their own state internally */}
-            {!showBalanceWarningModal && (
+            {!showBalanceWarningModal && !showMigrationModal && (
                 <>
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
@@ -283,7 +327,7 @@ export default function Home() {
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
                     <WelcomeUnlockModal
-                        isOpen={showKycModal && !showBalanceWarningModal}
+                        isOpen={showKycModal && !showBalanceWarningModal && !showMigrationModal}
                         onClose={async () => {
                             // close the modal immediately for better ux
                             setShowKycModal(false)
@@ -305,7 +349,7 @@ export default function Home() {
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
                     <BalanceWarningModal
-                        visible={showBalanceWarningModal}
+                        visible={showBalanceWarningModal && !showMigrationModal}
                         onCloseAction={() => {
                             setShowBalanceWarningModal(false)
                             updateUserPreferences(user!.user.userId, {
@@ -327,7 +371,24 @@ export default function Home() {
 
             {/* Card Pioneer Modal - Show to all users who haven't purchased */}
             {/* Eligibility check happens during the flow (geo screen), not here */}
-            <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
+            {/* unmounted while the migration prompt shows (it re-checks on
+                remount); the effect below clears its stuck visibility state */}
+            {!showMigrationModal && (
+                <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
+            )}
+
+            {/* App review nudge (native only, once ever) — lowest priority */}
+            {!showMigrationModal &&
+                !showPermissionModal &&
+                !showBalanceWarningModal &&
+                !showKycModal &&
+                !isPostSignupActionModalVisible && (
+                    <LazyLoadErrorBoundary>
+                        <Suspense fallback={null}>
+                            <ReviewPromptModal />
+                        </Suspense>
+                    </LazyLoadErrorBoundary>
+                )}
         </PageContainer>
     )
 }

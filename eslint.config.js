@@ -248,7 +248,13 @@ module.exports = [
         files: [
             'src/app/(mobile-ui)/**/*.tsx',
             'src/app/(setup)/**/*.tsx',
-            'src/components/{Home,Send,Request,Profile,Setup,Settings,Card,AddMoney,AddWithdraw,Withdraw,Claim,Payment,Points,Badges,Notifications,Invites,TransactionDetails,Kyc,IdentityVerification,ExchangeRate,Common,ForceIOSPWAInstall,User}/**/*.tsx',
+            // Top-level app routes sit outside the route groups above; without
+            // them listed the guard cannot see their copy (/shhhhh shipped
+            // English-only to every locale because of exactly that gap).
+            'src/app/shhhhh/**/*.tsx',
+            'src/app/kyc/**/*.tsx',
+            'src/app/invite/**/*.tsx',
+            'src/components/{Home,Send,Request,Profile,Setup,Settings,Card,AddMoney,AddWithdraw,Withdraw,Claim,Payment,Points,Badges,Notifications,Invites,TransactionDetails,Kyc,IdentityVerification,ExchangeRate,Common,ForceIOSPWAInstall,User,Migration}/**/*.tsx',
             'src/components/Global/**/*.tsx',
             'src/features/**/*.tsx',
         ],
@@ -263,7 +269,7 @@ module.exports = [
             // fallback reached through the shared 0_Bruddle/Button.
             'src/components/Global/{Layout,AnimateOnView,MarqueeWrapper,FAQs,FooterVisibilityObserver,ExchangeRateWidget,Modal,Loading}/**',
             'src/components/Global/{Layout,AnimateOnView,MarqueeWrapper,FAQs,FooterVisibilityObserver,ExchangeRateWidget,Modal,Loading}.tsx',
-            'src/components/Global/{PeanutLoading,Icons,Badges}/**',
+            'src/components/Global/{PeanutLoading,Icons}/**',
             // InvitesGraph is a /dev-only debug visualization, not user-facing UI.
             'src/components/Global/InvitesGraph/**',
             // Hidden support tool — never linked in-app; support DMs the URL to
@@ -291,6 +297,9 @@ module.exports = [
                         '×',
                         '→',
                         '←',
+                        // ordered step markers on /shhhhh's two-door section
+                        '01',
+                        '02',
                         ',',
                         '.',
                         '*',
