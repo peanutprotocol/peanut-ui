@@ -9,6 +9,7 @@ import { verifySplitGuides } from '../lib/verify-split-guides'
 const LOCALES = ['en', 'es-419', 'pt-br'] as const
 const SLUGS = ['first-split-guide', 'second-split-guide'] as const
 const CTA_TEXT = { en: 'Start a split', 'es-419': 'Crear un split', 'pt-br': 'Criar um split' }
+const VERIFIER_PAYLOAD_PREFIX = '__SPLIT_GUIDE_VERIFIER_PAYLOAD__'
 
 interface Diagnostic {
     check: string
@@ -189,16 +190,26 @@ function runDefaultCompilerVerifier(contentDir: string, manifestPath: string) {
             manifestPath: ${JSON.stringify(manifestPath)},
             reportError: (check, message, file) => diagnostics.push({ check, message, file }),
         });
-        process.stdout.write(JSON.stringify({ diagnostics, result }));
+        process.stdout.write(${JSON.stringify(VERIFIER_PAYLOAD_PREFIX)} + JSON.stringify({ diagnostics, result }) + '\\n');
     `
     const completed = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', program], {
         cwd: process.cwd(),
         encoding: 'utf8',
+        timeout: 15_000,
     })
+    if ((completed.error as NodeJS.ErrnoException | undefined)?.code === 'ETIMEDOUT') {
+        throw new Error('Default compiler subprocess timed out after 15 seconds')
+    }
+    if (completed.error) throw completed.error
     if (completed.status !== 0) {
         throw new Error(`Default compiler subprocess failed: ${completed.stderr || completed.stdout}`)
     }
-    return JSON.parse(completed.stdout) as { diagnostics: Diagnostic[]; result: { recordsChecked: number } }
+    const payload = completed.stdout.split(/\r?\n/).findLast((line) => line.startsWith(VERIFIER_PAYLOAD_PREFIX))
+    if (!payload) throw new Error(`Default compiler subprocess returned no verifier payload: ${completed.stdout}`)
+    return JSON.parse(payload.slice(VERIFIER_PAYLOAD_PREFIX.length)) as {
+        diagnostics: Diagnostic[]
+        result: { recordsChecked: number }
+    }
 }
 
 describe('Split guide manifest verifier', () => {
