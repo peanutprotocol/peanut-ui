@@ -162,7 +162,10 @@ export const useHomeCarouselCTAs = () => {
                 description: t('userInterview.description'),
                 icon: 'peanut-support', // required by the type; hidden — logo takes precedence
                 logo: PeanutWavingHello,
-                logoSize: 30,
+                logoSize: 44,
+                // The shared icon container is size-8; without this override the
+                // Tailwind preflight img max-width clamps the logo back to 32px.
+                iconContainerClassName: 'size-11',
                 onClick: async () => {
                     posthog.capture(ANALYTICS_EVENTS.USER_INTERVIEW_CTA_CLICKED)
                     // Await so a native Browser.open failure surfaces in
