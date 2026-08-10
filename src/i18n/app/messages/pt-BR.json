@@ -1237,8 +1237,7 @@
             "comingSoonBody": "Entre na nossa lista de espera e seja um dos primeiros a ter.",
             "joinCta": "Entrar na lista de espera",
             "joinFailed": "Não foi possível entrar na lista de espera",
-            "onListBodyPending": "Você está na lista. Avisamos quando os cartões estiverem prontos para envio.",
-            "onListBodyNoPosition": "Você está na lista. Avisamos quando os cartões estiverem prontos para envio."
+            "onListBodyPending": "Você está na lista. Avisamos quando os cartões estiverem prontos para envio."
         },
         "yourCard": {
             "navTitle": "Seu cartão",
@@ -1775,11 +1774,11 @@
             "cancelDeposit": "Cancelar depósito",
             "cancelDepositRequest": "Cancelar cobrança",
             "cancelDepositFailed": "Não conseguimos cancelar este depósito. Tente de novo ou fale com o suporte.",
-            "cancelDepositTitle": "Cancelar este depósito?",
-            "cancelRequestTitle": "Cancelar esta cobrança?",
-            "cancelWarning": "Isso não pode ser desfeito. Se você já enviou a transferência bancária, <strong>não cancele</strong> — um depósito cancelado não pode mais ser associado à sua conta, e o dinheiro será devolvido ao seu banco.",
-            "confirmCancelDeposit": "Sim, cancelar o depósito",
-            "confirmCancelRequest": "Sim, cancelar a cobrança"
+            "cancelConfirm": {
+                "title": "{kind, select, deposit {Cancelar este depósito?} request {Cancelar esta solicitação?} other {Cancelar?}}",
+                "description": "Isso não pode ser desfeito. Se você já enviou a transferência bancária, <strong>não cancele</strong> — um depósito cancelado não pode mais ser associado à sua conta e o dinheiro voltará para o seu banco.",
+                "confirm": "{kind, select, deposit {Sim, cancelar o depósito} request {Sim, cancelar a solicitação} other {Sim, cancelar}}"
+            }
         },
         "toast": {
             "inviteLinkCopied": "Link de convite copiado!",
@@ -2456,8 +2455,7 @@
                 "evmName": "ETH e EVMs",
                 "evmAlt": "Ethereum e EVMs"
             },
-            "pastedTextNotAnAddress": "O texto copiado não é um endereço de carteira",
-            "notAWalletAddress": "O texto copiado não é um endereço de carteira"
+            "pastedTextNotAnAddress": "O texto copiado não é um endereço de carteira"
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "Estamos trabalhando em uma integração.",

@@ -1237,8 +1237,7 @@
             "comingSoonBody": "Join our waiting list and be amongst the first to get it.",
             "joinCta": "Join waiting list",
             "joinFailed": "Failed to join waitlist",
-            "onListBodyPending": "You are on the list. We'll let you know when cards are ready to be shipped.",
-            "onListBodyNoPosition": "You are on the list. We'll let you know when cards are ready to be shipped."
+            "onListBodyPending": "You are on the list. We'll let you know when cards are ready to be shipped."
         },
         "yourCard": {
             "navTitle": "Your card",
@@ -1775,11 +1774,11 @@
             "cancelDeposit": "Cancel deposit",
             "cancelDepositRequest": "Cancel Request",
             "cancelDepositFailed": "We couldn't cancel this deposit. Please try again or contact support.",
-            "cancelDepositTitle": "Cancel this deposit?",
-            "cancelRequestTitle": "Cancel this request?",
-            "cancelWarning": "This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong> — a cancelled deposit can no longer be matched to your account, and the money will be returned to your bank instead.",
-            "confirmCancelDeposit": "Yes, cancel deposit",
-            "confirmCancelRequest": "Yes, cancel request"
+            "cancelConfirm": {
+                "title": "{kind, select, deposit {Cancel this deposit?} request {Cancel this request?} other {Cancel?}}",
+                "description": "This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong> — a cancelled deposit can no longer be matched to your account, and the money will be returned to your bank instead.",
+                "confirm": "{kind, select, deposit {Yes, cancel deposit} request {Yes, cancel request} other {Yes, cancel}}"
+            }
         },
         "toast": {
             "inviteLinkCopied": "Invite link copied!",
@@ -2456,8 +2455,7 @@
                 "evmName": "ETH & EVMs",
                 "evmAlt": "Ethereum and EVMs"
             },
-            "pastedTextNotAnAddress": "Copied text is not a wallet address",
-            "notAWalletAddress": "Copied text is not a wallet address"
+            "pastedTextNotAnAddress": "Copied text is not a wallet address"
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "We're working on an integration.",

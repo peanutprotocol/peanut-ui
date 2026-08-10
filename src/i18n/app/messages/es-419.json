@@ -1237,8 +1237,7 @@
             "comingSoonBody": "Únete a nuestra lista de espera y sé de los primeros en tenerla.",
             "joinCta": "Unirme a la lista de espera",
             "joinFailed": "No se pudo unir a la lista de espera",
-            "onListBodyPending": "Estás en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
-            "onListBodyNoPosition": "Estás en la lista. Te avisamos cuando las tarjetas estén listas para enviarse."
+            "onListBodyPending": "Estás en la lista. Te avisamos cuando las tarjetas estén listas para enviarse."
         },
         "yourCard": {
             "navTitle": "Tu tarjeta",
@@ -1775,11 +1774,11 @@
             "cancelDeposit": "Cancelar depósito",
             "cancelDepositRequest": "Cancelar solicitud",
             "cancelDepositFailed": "No pudimos cancelar este depósito. Inténtalo de nuevo o contacta a soporte.",
-            "cancelDepositTitle": "¿Cancelar este depósito?",
-            "cancelRequestTitle": "¿Cancelar esta solicitud?",
-            "cancelWarning": "Esto no se puede deshacer. Si ya enviaste la transferencia bancaria, <strong>no canceles</strong>: un depósito cancelado ya no se puede asociar a tu cuenta y el dinero se devolverá a tu banco.",
-            "confirmCancelDeposit": "Sí, cancelar el depósito",
-            "confirmCancelRequest": "Sí, cancelar la solicitud"
+            "cancelConfirm": {
+                "title": "{kind, select, deposit {¿Cancelar este depósito?} request {¿Cancelar esta solicitud?} other {¿Cancelar?}}",
+                "description": "Esto no se puede deshacer. Si ya enviaste la transferencia bancaria, <strong>no canceles</strong> — un depósito cancelado ya no puede asociarse a tu cuenta y el dinero volverá a tu banco.",
+                "confirm": "{kind, select, deposit {Sí, cancelar el depósito} request {Sí, cancelar la solicitud} other {Sí, cancelar}}"
+            }
         },
         "toast": {
             "inviteLinkCopied": "¡Enlace de invitación copiado!",
@@ -2456,8 +2455,7 @@
                 "evmName": "ETH y EVMs",
                 "evmAlt": "Ethereum y EVMs"
             },
-            "pastedTextNotAnAddress": "El texto copiado no es una dirección de billetera",
-            "notAWalletAddress": "El texto copiado no es una dirección de billetera"
+            "pastedTextNotAnAddress": "El texto copiado no es una dirección de billetera"
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "Estamos trabajando en una integración.",

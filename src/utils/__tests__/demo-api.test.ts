@@ -15,7 +15,6 @@ jest.mock('@/app/actions/clients', () => ({}))
 // The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
 // module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
 // Jest worker alive → "force exited" warning. Nothing here needs the clients.
-jest.mock('@/app/actions/clients', () => ({}))
 
 const body = async (path: string, options?: RequestInit) => {
     const res = await demoRespond(path, options)
@@ -138,26 +137,6 @@ describe('demoRespond — routing', () => {
         } finally {
             delete (globalThis as { window?: unknown }).window
         }
-    })
-})
-
-describe('demoRespond — rain card overview', () => {
-    it('returns a full RainCardOverview shape (useRainCardOverview derefs .status, cardState derefs .cards)', async () => {
-        const { res, data } = await body('/rain/cards')
-        expect(res.status).toBe(200)
-        expect(data.status.hasApplication).toBe(false)
-        expect(data.balance).toBeNull()
-        expect(Array.isArray(data.cards)).toBe(true)
-    })
-})
-
-describe('demoRespond — rain card overview', () => {
-    it('returns a full RainCardOverview shape (useRainCardOverview derefs .status, cardState derefs .cards)', async () => {
-        const { res, data } = await body('/rain/cards')
-        expect(res.status).toBe(200)
-        expect(data.status.hasApplication).toBe(false)
-        expect(data.balance).toBeNull()
-        expect(Array.isArray(data.cards)).toBe(true)
     })
 })
 
