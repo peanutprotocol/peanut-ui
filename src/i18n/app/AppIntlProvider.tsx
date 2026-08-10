@@ -2,6 +2,7 @@
 
 import { NextIntlClientProvider, IntlErrorCode, type IntlError } from 'next-intl'
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { isValidLocale as isValidMarketingLocale } from '@/i18n/config'
 import { DEFAULT_APP_LOCALE, type AppLocale } from './config'
 import { loadMessages, type AppMessages } from './messages'
 import {
@@ -77,7 +78,20 @@ export function AppIntlProvider({ children }: { children: React.ReactNode }) {
     }, [])
 
     useEffect(() => {
-        document.documentElement.lang = locale
+        // Localized marketing routes server-render their URL locale on the
+        // layout's <main>. Their child HtmlLang effect mounts before this
+        // parent effect, so blindly applying the product-app locale here would
+        // immediately clobber the route-owned language back to English.
+        // Restrict ownership to the route layout's direct body child: nested
+        // page content must not be able to spoof the document language.
+        const marketingRoot = document.body.querySelector(':scope > main[data-marketing-locale]')
+        const routeLocale = marketingRoot?.getAttribute('data-marketing-locale')
+        const routeOwnsLanguage =
+            routeLocale !== null &&
+            routeLocale !== undefined &&
+            routeLocale === marketingRoot?.getAttribute('lang') &&
+            isValidMarketingLocale(routeLocale)
+        document.documentElement.lang = routeOwnsLanguage ? routeLocale : locale
         // signal "startup locale is painted" — the native splash gates on this
         if (locale === startupLocale.current) markLocaleApplied()
     }, [locale])

@@ -25,7 +25,7 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
     }
 
     return (
-        <main className="flex min-h-dvh flex-col bg-white" lang={locale}>
+        <main className="flex min-h-dvh flex-col bg-white" data-marketing-locale={locale} lang={locale}>
             <HtmlLang locale={locale} />
             <LocaleSuggestion locale={locale} />
             <div className="flex-1">{children}</div>
