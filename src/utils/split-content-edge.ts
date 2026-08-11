@@ -19,10 +19,14 @@ export const SPLIT_RAW_UNSAFE_VALUE = 'unsafe-v1'
 
 export type SplitContentRequestKind = 'html' | 'rsc' | 'asset' | 'sitemap'
 export type SplitContentRoute =
-    { action: 'forward'; kind: SplitContentRequestKind } | { action: 'not-found' } | { action: 'pass' }
+    | { action: 'forward'; kind: SplitContentRequestKind }
+    | { action: 'not-found' }
+    | { action: 'pass' }
 
 export type SplitContentEdgeConfig =
-    { state: 'disabled' } | { state: 'invalid' } | { state: 'ready'; marker: string; origin: URL }
+    | { state: 'disabled' }
+    | { state: 'invalid' }
+    | { state: 'ready'; marker: string; origin: URL }
 
 const RELEASED_GUIDE_PATHS = new Set<string>(SPLIT_RELEASED_GUIDE_PATHS)
 const MAXIMUM_PERCENT_DECODE_PASSES = 8
