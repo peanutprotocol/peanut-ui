@@ -124,6 +124,24 @@ export interface ContentFrontmatter {
     generated_at?: string
 }
 
+/** content/team/en.md frontmatter shape — shared by /team and any page that reuses team data (e.g. /press). */
+export interface TeamMember {
+    slug: string
+    name: string
+    role: string
+    bio: string
+    image?: string
+    social?: {
+        linkedin?: string
+        twitter?: string
+        github?: string
+    }
+}
+
+export interface TeamFrontmatter {
+    members?: TeamMember[]
+}
+
 // --- Low-level readers ---
 
 function parseMarkdownFile<T = Record<string, unknown>>(filePath: string): MarkdownContent<T> | null {

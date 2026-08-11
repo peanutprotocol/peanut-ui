@@ -9,26 +9,15 @@ import { Card } from '@/components/0_Bruddle/Card'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
-import { availableSingletonLocales, readSingletonContentLocalized, singletonLocaleFor } from '@/lib/content'
+import {
+    availableSingletonLocales,
+    readSingletonContentLocalized,
+    singletonLocaleFor,
+    type TeamFrontmatter,
+} from '@/lib/content'
 
 // Team data lives in mono at content/team/{lang}.md frontmatter — singleton
 // content authored by marketing/leadership, shipped via the mirror.
-interface TeamMember {
-    slug: string
-    name: string
-    role: string
-    bio: string
-    image?: string
-    social?: {
-        linkedin?: string
-        twitter?: string
-        github?: string
-    }
-}
-
-interface TeamFrontmatter {
-    members?: TeamMember[]
-}
 
 // `members` is authored frontmatter — only emit http(s) URLs so a `javascript:`
 // or `data:` value can't reach an href or a JSON-LD `sameAs`.

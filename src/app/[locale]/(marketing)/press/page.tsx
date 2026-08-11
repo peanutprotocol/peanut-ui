@@ -9,7 +9,12 @@ import { Card } from '@/components/0_Bruddle/Card'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
-import { availableSingletonLocales, readSingletonContentLocalized, singletonLocaleFor } from '@/lib/content'
+import {
+    availableSingletonLocales,
+    readSingletonContentLocalized,
+    singletonLocaleFor,
+    type TeamFrontmatter,
+} from '@/lib/content'
 
 // Press kit data lives in mono at content/press/{lang}.md frontmatter — singleton
 // content authored by marketing/leadership, shipped via the mirror. Team member
@@ -58,17 +63,6 @@ interface PressFrontmatter {
     team_photos_note?: string
     team_photos?: string[]
     media_contact?: string
-}
-
-interface TeamMember {
-    slug: string
-    name: string
-    role: string
-    bio: string
-}
-
-interface TeamFrontmatter {
-    members?: TeamMember[]
 }
 
 interface PageProps {
