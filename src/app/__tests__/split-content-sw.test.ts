@@ -1,8 +1,4 @@
-import {
-    SPLIT_RELEASED_GUIDE_PATHS,
-    SPLIT_WITHHELD_GUIDE_PATHS,
-    splitContentServiceWorkerMatcher,
-} from '@/utils/split-content-edge'
+import { SPLIT_RELEASED_GUIDE_PATHS, splitContentServiceWorkerMatcher } from '@/utils/split-content-edge'
 
 const matches = (pathname: string) => splitContentServiceWorkerMatcher({ url: new URL(pathname, 'https://peanut.me') })
 
@@ -13,10 +9,6 @@ describe('parent service-worker Split isolation', () => {
             expect(matches(pathname)).toBe(true)
         }
     )
-
-    it.each(SPLIT_WITHHELD_GUIDE_PATHS)('keeps withheld guide %s out of parent caches and fallbacks', (pathname) => {
-        expect(matches(pathname)).toBe(true)
-    })
 
     it.each([
         '/split',

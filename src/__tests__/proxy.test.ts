@@ -9,7 +9,6 @@ import {
     SPLIT_RAW_ROUTE_VALUE,
     SPLIT_RAW_UNSAFE_HEADER,
     SPLIT_RAW_UNSAFE_VALUE,
-    SPLIT_WITHHELD_GUIDE_PATHS,
 } from '@/utils/split-content-edge'
 
 function runProxy(path: string, init?: ConstructorParameters<typeof NextRequest>[1]) {
@@ -51,7 +50,7 @@ describe('API cache policy', () => {
     )
 })
 
-describe('Split B3a one-guide production edge', () => {
+describe('Split B3b six-guide production edge', () => {
     const marker = 'server-only-test-marker-at-least-32-bytes'
     const previous = {
         marker: process.env.SPLIT_CONTENT_EDGE_MARKER,
@@ -174,19 +173,6 @@ describe('Split B3a one-guide production edge', () => {
         expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
         expect(isRewrite(response)).toBe(false)
     })
-
-    it.each(SPLIT_WITHHELD_GUIDE_PATHS)(
-        'withholds otherwise-valid guide %s even if a canonical stamp is somehow present',
-        (pathname) => {
-            for (const response of [runProxy(pathname), runCanonicalSplitProxy(pathname)]) {
-                expect(response.status).toBe(404)
-                expect(response.body).toBeNull()
-                expect(response.headers.get('cache-control')).toBe('private, no-store')
-                expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
-                expect(isRewrite(response)).toBe(false)
-            }
-        }
-    )
 
     const encodedSplitPaths = [
         '/en/%73plit/guides/unknown',
@@ -343,7 +329,6 @@ describe('Split B3a one-guide production edge', () => {
 
     it.each([
         ...SPLIT_RELEASED_GUIDE_PATHS,
-        ...SPLIT_WITHHELD_GUIDE_PATHS,
         '/split',
         '/split/unknown',
         '/fr/split/guides/unknown',
