@@ -26,8 +26,10 @@ export type SplitContentEdgeConfig =
     | { state: 'ready'; marker: string; origin: URL }
 
 const CANARY_GUIDE_PATHS = new Set<string>(SPLIT_CANARY_GUIDE_PATHS)
+const MAXIMUM_PERCENT_DECODE_PASSES = 8
 const MINIMUM_MARKER_BYTES = 32
 const PRINTABLE_ASCII = /^[\x21-\x7e]+$/
+const PERCENT_ESCAPE = /%[0-9a-f]{2}/i
 
 const FORWARDED_REQUEST_HEADERS = new Set([
     'accept',
@@ -57,7 +59,7 @@ function isSplitPageNamespace(pathname: string): boolean {
     return segments[0] === '' && Boolean(segments[1]) && segments[2] === 'split'
 }
 
-export function classifySplitContentRequest(pathname: string, rscHeader: string | null): SplitContentRoute {
+function classifyCanonicalSplitContentRequest(pathname: string, rscHeader: string | null): SplitContentRoute {
     if (CANARY_GUIDE_PATHS.has(pathname)) {
         return { action: 'forward', kind: rscHeader === '1' ? 'rsc' : 'html' }
     }
@@ -74,6 +76,60 @@ export function classifySplitContentRequest(pathname: string, rscHeader: string 
     }
 
     return { action: 'pass' }
+}
+
+function fullyDecodePathname(pathname: string): string | null {
+    let decoded = pathname
+
+    // Bound edge CPU for hostile deeply nested encodings. Anything still
+    // encoded after the supported depth fails closed instead of reaching a
+    // product catch-all. A mixed valid/malformed encoding fails closed too.
+    for (let pass = 0; pass < MAXIMUM_PERCENT_DECODE_PASSES; pass += 1) {
+        if (!PERCENT_ESCAPE.test(decoded)) return decoded
+        try {
+            decoded = decodeURIComponent(decoded)
+        } catch {
+            return null
+        }
+    }
+
+    return PERCENT_ESCAPE.test(decoded) ? null : decoded
+}
+
+function normalizeDecodedPathname(pathname: string): string | null {
+    try {
+        // Resolve encoded dot segments, backslashes, and encoded query/fragment
+        // boundaries the same way a URL consumer would. Collapse separators
+        // before dot-segment resolution as well, because Next canonicalizes raw
+        // repeated slashes but does not do so after an encoded slash is decoded.
+        // The decoded value is appended after a fixed host and cannot replace it.
+        const canonicalSeparators = pathname.replaceAll('\\', '/').replace(/\/{2,}/g, '/')
+        return new URL(`https://split-content.invalid${canonicalSeparators}`).pathname
+    } catch {
+        return null
+    }
+}
+
+export function classifySplitContentRequest(pathname: string, rscHeader: string | null): SplitContentRoute {
+    const direct = classifyCanonicalSplitContentRequest(pathname, rscHeader)
+    if (direct.action !== 'pass') return direct
+    if (!PERCENT_ESCAPE.test(pathname)) return direct
+
+    const decoded = fullyDecodePathname(pathname)
+    if (decoded === null) return { action: 'not-found' }
+
+    const normalized = normalizeDecodedPathname(decoded)
+    if (normalized === null) return { action: 'not-found' }
+
+    // Encoded aliases of an owned or blocked Split path are never forwarded.
+    // Only the literal A1 public paths/assets/sitemap are canonical at the edge.
+    for (const candidate of new Set([decoded, normalized])) {
+        if (classifyCanonicalSplitContentRequest(candidate, rscHeader).action !== 'pass') {
+            return { action: 'not-found' }
+        }
+    }
+
+    return direct
 }
 
 export function isSplitContentPathname(pathname: string): boolean {

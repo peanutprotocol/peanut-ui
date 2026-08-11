@@ -21,7 +21,19 @@ describe('parent service-worker Split isolation', () => {
         expect(matches(pathname)).toBe(true)
     })
 
-    it.each(['/home', '/en', '/relay/e/', '/splitter', '/en/splitter/page'])(
+    it.each([
+        '/en/%73plit/guides/unknown',
+        '/en/split%2Fguides/unknown',
+        '/en/%2Fsplit/guides/unknown',
+        '/%2Fsplit-static/a.js',
+        '/split%2Dstatic/a.js',
+        '/split%2Dsitemap.xml',
+        '/en/%2573plit/guides/unknown',
+    ])('keeps encoded Split representation %s out of parent caches and fallbacks', (pathname) => {
+        expect(matches(pathname)).toBe(true)
+    })
+
+    it.each(['/home', '/en', '/relay/e/', '/splitter', '/en/splitter/page', '/en/travel%20guide'])(
         'does not claim unrelated parent path %s',
         (pathname) => {
             expect(matches(pathname)).toBe(false)

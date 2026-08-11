@@ -152,6 +152,32 @@ describe('Split B2 edge foundation', () => {
         expect(isRewrite(response)).toBe(false)
     })
 
+    const encodedSplitPaths = [
+        '/en/%73plit/guides/unknown',
+        '/en/split%2Fguides/unknown',
+        '/en/%2Fsplit/guides/unknown',
+        '/en/split/guides/split-expenses-across-currenc%69es',
+        '/%2Fsplit-static/a.js',
+        '/split%2Dstatic/a.js',
+        '/split%2Dsitemap.xml',
+        '/en/%2573plit/guides/unknown',
+        '/foo/%252e%252e/split-static/a.js',
+        '/en/foo%2F%2F..%2Fsplit/guides/unknown',
+        '/en/foo%5C..%5Csplit/guides/unknown',
+        '/en/%73plit%ZZ/guides/unknown',
+        `/en/%${'25'.repeat(9)}73plit/guides/unknown`,
+    ]
+
+    it.each(encodedSplitPaths)('returns a true bodyless noindex 404 for encoded Split path %s', (pathname) => {
+        const response = runProxy(pathname)
+
+        expect(response.status).toBe(404)
+        expect(response.body).toBeNull()
+        expect(response.headers.get('cache-control')).toBe('private, no-store')
+        expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
+        expect(isRewrite(response)).toBe(false)
+    })
+
     it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('rejects %s on every forwarded class', (method) => {
         for (const pathname of [SPLIT_CANARY_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml']) {
             const response = runProxy(pathname, { method })
@@ -173,11 +199,23 @@ describe('Split B2 edge foundation', () => {
         delete process.env.SPLIT_CONTENT_EDGE_MARKER
         delete process.env.SPLIT_CONTENT_ORIGIN
 
-        for (const pathname of [SPLIT_CANARY_GUIDE_PATHS[0], '/split', '/split-static/a.js', '/split-sitemap.xml']) {
+        for (const pathname of [
+            SPLIT_CANARY_GUIDE_PATHS[0],
+            '/en/%73plit/guides/unknown',
+            '/split',
+            '/split-static/a.js',
+            '/split-sitemap.xml',
+        ]) {
             const response = runProxy(pathname)
             expect(response.status).toBe(200)
             expect(isRewrite(response)).toBe(false)
             expect(response.headers.get('x-robots-tag')).toBeNull()
+        }
+
+        for (const pathname of [SPLIT_CANARY_GUIDE_PATHS[0], '/en/%73plit/guides/unknown']) {
+            const response = runProxy(`${pathname}?promo=x&id=y`)
+            expect(response.status).toBe(200)
+            expect(response.headers.get('location')).toBeNull()
         }
     })
 
@@ -223,6 +261,26 @@ describe('Split B2 edge foundation', () => {
         '/split-sitemap.xml/extra',
     ])('matches Split path %s before filesystem and catch-all routing', (url) => {
         expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(true)
+    })
+
+    it.each(encodedSplitPaths)('matches encoded Split path %s before filesystem and catch-all routing', (url) => {
+        expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(true)
+    })
+
+    it.each(['/en/travel%20guide', '/es-419/pagar%20con/efectivo'])(
+        'passes unrelated supplemental encoded match %s directly to the app router',
+        (pathname) => {
+            const response = runProxy(`${pathname}?promo=x&id=y`)
+            expect(response.status).toBe(200)
+            expect(isRewrite(response)).toBe(false)
+            expect(response.headers.get('x-robots-tag')).toBeNull()
+            expect(response.headers.get('location')).toBeNull()
+        }
+    )
+
+    it('preserves legacy proxy behavior for encoded paths inside an original matcher namespace', () => {
+        const response = runProxy('/api/rooms%20archive')
+        expect(response.headers.get('cache-control')).toBe('no-store, no-cache, must-revalidate, proxy-revalidate')
     })
 })
 

@@ -56,12 +56,34 @@ describe('Split B2 edge route classification', () => {
         expect(classifySplitContentRequest(pathname, null)).toEqual({ action: 'not-found' })
     })
 
-    it.each(['/splitter', '/en/splitter/page', '/foo/split-static/a.js', '/split-sitemap.xmlx', '/home'])(
-        'passes unrelated path %s',
-        (pathname) => {
-            expect(classifySplitContentRequest(pathname, null)).toEqual({ action: 'pass' })
-        }
-    )
+    it.each([
+        '/en/%73plit/guides/unknown',
+        '/en/split%2Fguides/unknown',
+        '/en/%2Fsplit/guides/unknown',
+        '/en/split/guides/split-expenses-across-currenc%69es',
+        '/%2Fsplit-static/a.js',
+        '/split%2Dstatic/a.js',
+        '/split%2Dsitemap.xml',
+        '/en/%2573plit/guides/unknown',
+        '/foo/%252e%252e/split-static/a.js',
+        '/en/foo%2F%2F..%2Fsplit/guides/unknown',
+        '/en/foo%5C..%5Csplit/guides/unknown',
+        '/en/%73plit%ZZ/guides/unknown',
+        `/en/%${'25'.repeat(9)}73plit/guides/unknown`,
+    ])('rejects non-canonical encoded Split representation %s', (pathname) => {
+        expect(classifySplitContentRequest(pathname, null)).toEqual({ action: 'not-found' })
+    })
+
+    it.each([
+        '/splitter',
+        '/en/splitter/page',
+        '/foo/split-static/a.js',
+        '/split-sitemap.xmlx',
+        '/en/travel%20guide',
+        '/home',
+    ])('passes unrelated path %s', (pathname) => {
+        expect(classifySplitContentRequest(pathname, null)).toEqual({ action: 'pass' })
+    })
 })
 
 describe('Split B2 edge configuration', () => {

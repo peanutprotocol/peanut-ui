@@ -47,6 +47,12 @@ describe('Vercel Split response sanitation contract', () => {
         '/en/split/guides/split-expenses-across-currencies/extra',
         '/split-static',
         '/split-sitemap.xml/extra',
+        '/en/%73plit/guides/unknown',
+        '/en/split%2Fguides/unknown',
+        '/en/%2Fsplit/guides/unknown',
+        '/%2Fsplit-static/a.js',
+        '/split%2Dstatic/a.js',
+        '/split%2Dsitemap.xml',
         '/home',
         '/splitter',
     ])('does not transform non-forwarded response %s', (pathname) => {
