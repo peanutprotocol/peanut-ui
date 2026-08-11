@@ -385,6 +385,9 @@ importers:
       prettier-plugin-tailwindcss:
         specifier: ^0.5.14
         version: 0.5.14(prettier@3.8.1)
+      saxes:
+        specifier: 6.0.0
+        version: 6.0.0
       serwist:
         specifier: ^9.0.10
         version: 9.5.0(typescript@5.9.3)
