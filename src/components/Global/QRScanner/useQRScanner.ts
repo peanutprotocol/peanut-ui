@@ -4,6 +4,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor } from '@/utils/capacitor'
+import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 
 // ============================================================================
 // Configuration
@@ -87,25 +88,6 @@ export type QRScanHandler = (data: string) => Promise<{ success: boolean; error?
 
 type FacingMode = 'user' | 'environment'
 
-/**
- * On native, settle the OS camera permission before getUserMedia runs, so the
- * scanner opens straight to a live camera instead of prompting mid-view. Best
- * effort: on any plugin error we return true and let getUserMedia trigger the
- * WebView's own permission flow (unchanged fallback).
- */
-async function ensureNativeCameraPermission(): Promise<boolean> {
-    try {
-        const { Camera } = await import('@capacitor/camera')
-        const status = await Camera.checkPermissions()
-        if (status.camera === 'granted' || status.camera === 'limited') return true
-        const requested = await Camera.requestPermissions({ permissions: ['camera'] })
-        return requested.camera === 'granted' || requested.camera === 'limited'
-    } catch (err) {
-        console.warn('Native camera permission check failed, falling back to getUserMedia:', err)
-        return true
-    }
-}
-
 // ============================================================================
 // Hook
 // ============================================================================
@@ -132,6 +114,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     const scannerRef = useRef<QrScannerLib | null>(null)
     const retryCountRef = useRef<number>(0)
     const videoElementRetryCountRef = useRef<number>(0)
+    const isSwitchingCameraRef = useRef(false)
 
     // -------------------------------------------------------------------------
     // Scanner Lifecycle
@@ -367,16 +350,28 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     )
 
     const toggleCamera = useCallback(async () => {
-        if (!scannerRef.current || !isScanning) return
+        if (!scannerRef.current || !isScanning || isSwitchingCameraRef.current) return
 
         const newFacingMode: FacingMode = facingMode === 'user' ? 'environment' : 'user'
 
+        /*
+         * setCamera tears the old stream down before the new one starts, so the
+         * <video> paints a dead frame for the whole handover (hundreds of ms on
+         * Android WebView). Drop isCameraReady for the gap — the existing
+         * "starting camera" placeholder covers the video — and guard against a
+         * second toggle racing overlapping stream restarts.
+         */
+        isSwitchingCameraRef.current = true
+        setIsCameraReady(false)
         try {
             await scannerRef.current.setCamera(newFacingMode)
             setFacingMode(newFacingMode)
+            if (isScanningRef.current) setIsCameraReady(true)
         } catch (err) {
             console.error('Error switching camera:', err)
             setError(t('qrScanner.cameraSwitchFailed'))
+        } finally {
+            isSwitchingCameraRef.current = false
         }
     }, [facingMode, isScanning, t])
 
@@ -394,8 +389,15 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
         const handleVisibilityChange = () => {
             if (document.hidden) {
                 scannerRef.current?.stop()
+                // resume repaints from a cold stream — show the placeholder until then
+                setIsCameraReady(false)
             } else if (isScanning && scannerRef.current) {
-                scannerRef.current.start()
+                scannerRef.current
+                    .start()
+                    .then(() => {
+                        if (isScanningRef.current) setIsCameraReady(true)
+                    })
+                    .catch((err) => console.error('Error resuming camera:', err))
             }
         }
 

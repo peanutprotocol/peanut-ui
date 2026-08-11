@@ -11,6 +11,7 @@ import PeanutLoading from '../PeanutLoading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
 import { isCapacitor } from '@/utils/capacitor'
+import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 import { ensureNativeCrispConfigured } from '@/utils/crisp'
 
 const DISMISS_THRESHOLD = 100
@@ -76,7 +77,15 @@ const SupportDrawer = () => {
         if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
 
         ensureNativeCrispConfigured()
-            .then(({ CapacitorCrisp }) => {
+            .then(async ({ CapacitorCrisp }) => {
+                /*
+                 * Settle the CAMERA runtime permission before the native Crisp UI
+                 * opens: the app manifest declares CAMERA (QR scanner), which makes
+                 * Crisp's "Take a photo" throw a SecurityException when it is
+                 * declared-but-ungranted — the SDK never requests it itself.
+                 * Result deliberately ignored: a denied camera must not block chat.
+                 */
+                await ensureNativeCameraPermission()
                 // set user data before opening
                 if (userData.email || userData.fullName) {
                     CapacitorCrisp.setUser({
