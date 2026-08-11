@@ -332,6 +332,31 @@ describe('validated and atomic state', () => {
         expect(fs.existsSync(file)).toBe(false)
     })
 
+    test('a released run with missing state fails closed before any API request', async () => {
+        const file = statePath()
+        const { fetchImpl, mock } = createFetch(deployedRoutes([HOME, NEW_ROOT_URL]), [{ status: 200 }])
+
+        await expect(runIndexNow(baseOptions(fetchImpl, file, { indexReleased: true }))).rejects.toThrow(
+            'No validated IndexNow state exists'
+        )
+        expect(apiCalls(mock)).toHaveLength(0)
+        expect(fs.existsSync(file)).toBe(false)
+    })
+
+    test('a released run with corrupt state fails closed before any API request', async () => {
+        const file = statePath()
+        fs.mkdirSync(path.dirname(file), { recursive: true })
+        fs.writeFileSync(file, '{')
+        const before = fs.readFileSync(file, 'utf8')
+        const { fetchImpl, mock } = createFetch(deployedRoutes([HOME, NEW_ROOT_URL]), [{ status: 200 }])
+
+        await expect(runIndexNow(baseOptions(fetchImpl, file, { indexReleased: true }))).rejects.toThrow(
+            'Invalid IndexNow state'
+        )
+        expect(apiCalls(mock)).toHaveLength(0)
+        expect(fs.readFileSync(file, 'utf8')).toBe(before)
+    })
+
     test('explicit full dry-run can inspect a missing baseline without writing it', async () => {
         const file = statePath()
         const { fetchImpl, mock } = createFetch(deployedRoutes([HOME, NEW_ROOT_URL]))
@@ -339,6 +364,16 @@ describe('validated and atomic state', () => {
         expect(result).toMatchObject({ mode: 'dry-run', candidates: [HOME, NEW_ROOT_URL] })
         expect(apiCalls(mock)).toHaveLength(0)
         expect(fs.existsSync(file)).toBe(false)
+    })
+
+    test('explicit full mode is the only released recovery for an evicted baseline', async () => {
+        const file = statePath()
+        const { fetchImpl, mock } = createFetch(deployedRoutes([HOME, NEW_ROOT_URL]), [{ status: 202 }])
+
+        const result = await runIndexNow(baseOptions(fetchImpl, file, { indexReleased: true, full: true }))
+        expect(result).toMatchObject({ mode: 'submitted', candidates: [HOME, NEW_ROOT_URL], batches: 1 })
+        expect(apiCalls(mock)).toHaveLength(1)
+        expect(readValidatedState(file)).toMatchObject({ urls: [HOME, NEW_ROOT_URL], reason: 'submission' })
     })
 })
 
@@ -469,6 +504,26 @@ describe('release, noindex, and delta gates', () => {
         )
         await expect(assertSplitPageIndexable({ fetchImpl, url: split, timeoutMs: 1_000 })).resolves.toBeUndefined()
     })
+
+    test('an unchanged deployed Split regression blocks an unrelated root delta', async () => {
+        const file = statePath()
+        const split = SIX_SPLIT_URLS[0]
+        writeStateAtomic(file, [HOME, split], 'submission')
+        const before = fs.readFileSync(file, 'utf8')
+        const routes = deployedRoutes([HOME, NEW_ROOT_URL], [split])
+        routes.set(split, {
+            status: 200,
+            contentType: 'text/html',
+            body: '<meta name="robots" content="noindex">',
+        })
+        const { fetchImpl, mock } = createFetch(routes, [{ status: 200 }])
+
+        await expect(runIndexNow(baseOptions(fetchImpl, file, { indexReleased: true }))).rejects.toThrow(
+            'still noindex'
+        )
+        expect(apiCalls(mock)).toHaveLength(0)
+        expect(fs.readFileSync(file, 'utf8')).toBe(before)
+    })
 })
 
 describe('IndexNow payload, batching, errors, and state advancement', () => {
@@ -585,5 +640,32 @@ describe('workflow fail-closed contract', () => {
         const productionKey = workflow.match(/INDEXNOW_KEY: '([A-Za-z0-9-]+)'/)?.[1]
         expect(productionKey).toBeDefined()
         expect(fs.readFileSync(path.join(process.cwd(), 'public', `${productionKey}.txt`), 'utf8')).toBe(productionKey)
+    })
+
+    test('uses only cache-writable trusted triggers in the main-branch state scope', () => {
+        const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/indexnow.yml'), 'utf8')
+        expect(workflow).toContain('schedule:')
+        expect(workflow).toContain("cron: '17,47 * * * *'")
+        expect(workflow).toContain('workflow_dispatch:')
+        expect(workflow).not.toContain('deployment_status:')
+        expect(workflow).toContain("if: github.ref == 'refs/heads/main'")
+        expect(workflow).toContain('group: indexnow-state-main')
+        expect(workflow).toContain('cancel-in-progress: false')
+    })
+
+    test('restores and saves immutable state without reusing a commit-keyed cache', () => {
+        const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/indexnow.yml'), 'utf8')
+        expect(workflow).toContain('key: indexnow-state-v1-restore-${{ github.run_id }}-${{ github.run_attempt }}')
+        expect(workflow).toContain('restore-keys: indexnow-state-v1-')
+        expect(workflow).toContain("key: indexnow-state-v1-${{ hashFiles('.indexnow-state/urls.json') }}")
+        expect(workflow).not.toMatch(/key: indexnow-state[^\n]*github\.sha/)
+    })
+
+    test('pins every third-party action to a full immutable commit SHA', () => {
+        const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/indexnow.yml'), 'utf8')
+        const actions = [...workflow.matchAll(/^\s*- uses: (\S+)/gm)].map((match) => match[1])
+        expect(actions).toHaveLength(5)
+        for (const action of actions) expect(action).toMatch(/^[^@\s]+@[0-9a-f]{40}$/)
+        expect(workflow).toContain('persist-credentials: false')
     })
 })
