@@ -64,6 +64,10 @@ export interface Translations {
     teamTitle: string // "Our Team"
     teamSubtitle: string // "The people behind Peanut."
 
+    // Press
+    pressTitle: string // "Press & Brand Kit"
+    pressSubtitle: string // "Everything you need to write or design about Peanut."
+
     // Help center
     help: string // "Help"
     helpCenter: string // "Help Center"
