@@ -67,20 +67,27 @@
                 <data android:pathPrefix="/badges/" />
                 <data android:path="/profile" />
                 <data android:pathPrefix="/profile/" />
+                <data android:path="/invite" />
+                <data android:pathPrefix="/invite/" />
             </intent-filter>
 
         </activity>
 
+        <!-- Subclassed (not androidx.core.content.FileProvider directly): the
+             manifest merger keys providers by android:name, and the Crisp SDK
+             declares the androidx class for its own upload provider. Declaring
+             it here too used to collide, and the tools:replace workaround
+             stripped Crisp's authority — crashing "Take a photo" in support
+             chat. The authority stays ${applicationId}.fileprovider because
+             @capacitor/camera hardcodes that suffix. -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="me.peanut.wallet.PeanutFileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
-            android:grantUriPermissions="true"
-            tools:replace="android:authorities">
+            android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"
-                tools:replace="android:resource" />
+                android:resource="@xml/file_paths" />
         </provider>
 
         <!-- Don't let OneSignal fire its own ACTION_VIEW for a notification's

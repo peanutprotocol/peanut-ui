@@ -68,7 +68,7 @@ public class MainActivity extends BridgeActivity {
                 public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                     WebResourceResponse response = super.shouldInterceptRequest(view, request);
 
-                    if (response == null && "GET".equals(request.getMethod())) {
+                    if (response == null && "GET".equals(request.getMethod()) && isAppHost(request)) {
                         String path = request.getUrl().getPath();
                         if (path != null && !path.contains(".") && !path.startsWith("/_next/") && !path.startsWith("/_capacitor_")) {
                             response = findPageHtml(view, path);
@@ -76,6 +76,21 @@ public class MainActivity extends BridgeActivity {
                     }
 
                     return response;
+                }
+
+                /*
+                 * The SPA fallback must only answer for the app's own origin.
+                 * Without this gate every cross-origin GET with a dotless path —
+                 * ipfs.io/ipfs/<CID> chain icons, any extensionless API URL —
+                 * got index.html back as text/html, which is why Base, Mantle
+                 * and Avalanche logos rendered as letter avatars natively.
+                 */
+                private boolean isAppHost(WebResourceRequest request) {
+                    String host = request.getUrl().getHost();
+                    if (host == null) return false;
+                    Bridge activeBridge = getBridge();
+                    String appHost = activeBridge != null ? activeBridge.getConfig().getHostname() : "localhost";
+                    return host.equalsIgnoreCase(appHost);
                 }
 
                 /**
