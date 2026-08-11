@@ -244,3 +244,8 @@ export const ENS_NAME_REGEX = /^(?:[-a-zA-Z0-9]+\.)+[-a-zA-Z0-9]+$/
 export const USERNAME_MIN_LENGTH = 4
 
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=me.peanut.wallet'
+
+// User-interview campaign (temporary): one shared cal.com event for the
+// flag-gated team-call card on home. Delete together with the
+// `user-interviews-invite` PostHog flag when the campaign ends.
+export const USER_INTERVIEW_CAL_URL = 'https://cal.com/hugo0+abalinda/dynamic'
