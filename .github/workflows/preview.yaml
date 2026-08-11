@@ -17,6 +17,20 @@ jobs:
     Deploy-Preview:
         runs-on: ubuntu-latest
         steps:
+            - name: Validate Split canary Preview configuration
+              if: github.head_ref == 'fix/split-b2-raw-path-seam'
+              env:
+                  SPLIT_CONTENT_ORIGIN: ${{ vars.SPLIT_CONTENT_ORIGIN }}
+                  SPLIT_CONTENT_EDGE_MARKER: ${{ secrets.SPLIT_CONTENT_EDGE_MARKER }}
+              run: |
+                  if [[ -z "$SPLIT_CONTENT_ORIGIN" ]]; then
+                      echo "::error::Missing required repository variable SPLIT_CONTENT_ORIGIN."
+                      exit 1
+                  fi
+                  if [[ -z "$SPLIT_CONTENT_EDGE_MARKER" ]]; then
+                      echo "::error::Missing required Actions secret SPLIT_CONTENT_EDGE_MARKER."
+                      exit 1
+                  fi
             - uses: actions/checkout@v4
               with:
                   submodules: true
@@ -29,6 +43,24 @@ jobs:
             - name: Pull Vercel Environment Information
               run: vercel pull --yes --environment=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
             - name: Build Project Artifacts
+              if: github.head_ref != 'fix/split-b2-raw-path-seam'
+              run: vercel build --target=preview --token=${{ secrets.VERCEL_TOKEN }}
+            - name: Build Project Artifacts (Split canary)
+              if: github.head_ref == 'fix/split-b2-raw-path-seam'
+              env:
+                  SPLIT_CONTENT_ORIGIN: ${{ vars.SPLIT_CONTENT_ORIGIN }}
+                  SPLIT_CONTENT_EDGE_MARKER: ${{ secrets.SPLIT_CONTENT_EDGE_MARKER }}
               run: vercel build --target=preview --token=${{ secrets.VERCEL_TOKEN }}
             - name: Deploy Project Artifacts to Vercel
+              if: github.head_ref != 'fix/split-b2-raw-path-seam'
               run: vercel deploy --prebuilt --archive=tgz --target=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
+            - name: Deploy Project Artifacts to Vercel (Split canary)
+              if: github.head_ref == 'fix/split-b2-raw-path-seam'
+              env:
+                  SPLIT_CONTENT_ORIGIN: ${{ vars.SPLIT_CONTENT_ORIGIN }}
+                  SPLIT_CONTENT_EDGE_MARKER: ${{ secrets.SPLIT_CONTENT_EDGE_MARKER }}
+              run: >-
+                  vercel deploy --prebuilt --archive=tgz --target=preview --scope=squirrellabs
+                  --env SPLIT_CONTENT_ORIGIN="$SPLIT_CONTENT_ORIGIN"
+                  --env SPLIT_CONTENT_EDGE_MARKER="$SPLIT_CONTENT_EDGE_MARKER"
+                  --token=${{ secrets.VERCEL_TOKEN }}
