@@ -63,6 +63,17 @@ const config: CapacitorConfig = {
             // resize the webview when the soft keyboard shows so inputs aren't hidden.
             resize: 'native',
         },
+        SplashScreen: {
+            /*
+             * The plugin's 500ms auto-hide exposed the login screen before the
+             * session had hydrated (logged-in cold starts flashed /setup).
+             * useSplashGate (ClientProviders) owns hide() with its own hard
+             * timeout, and CapacitorUpdater.appReadyTimeout recovers a bundle
+             * that never boots — the splash can't wedge. Binary change: takes
+             * effect on the next store release, not via OTA.
+             */
+            launchAutoHide: false,
+        },
     },
 }
 

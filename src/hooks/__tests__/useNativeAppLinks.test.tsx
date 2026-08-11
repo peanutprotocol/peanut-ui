@@ -1,10 +1,11 @@
-// deferred-deep-link wiring in useNativePlugins: the restored dest must land
+// deferred-deep-link wiring in useNativeAppLinks: the restored dest must land
 // unless a real deep link actually navigated — this is the only place that
 // happens, so it needs its own coverage (the pure payload logic is tested in
 // deferred-link.test.ts).
 import { renderHook, waitFor } from '@testing-library/react'
-import { useNativePlugins } from '../useNativePlugins'
+import { useNativeAppLinks } from '../useNativeAppLinks'
 import { restoreDeferredContext } from '@/utils/deferred-link'
+import { getOneSignalAdapter } from '@/services/onesignal'
 
 const push = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -12,10 +13,6 @@ jest.mock('next/navigation', () => ({
 }))
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
-
-// dev holds the splash on localeApplied() with a 2s real timeout — resolve
-// immediately so waitFor() in these tests never races that timer
-jest.mock('@/i18n/app/locale-store', () => ({ localeApplied: () => Promise.resolve() }))
 
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => true),
@@ -35,13 +32,6 @@ jest.mock('@capacitor/app', () => ({
     },
 }))
 
-jest.mock('@capacitor/status-bar', () => ({
-    StatusBar: { setOverlaysWebView: jest.fn(), setStyle: jest.fn(), setBackgroundColor: jest.fn() },
-    Style: { Light: 'LIGHT' },
-}))
-
-jest.mock('@capacitor/splash-screen', () => ({ SplashScreen: { hide: jest.fn() } }))
-
 jest.mock('@/utils/deferred-link', () => ({
     restoreDeferredContext: jest.fn(() => Promise.resolve(null)),
 }))
@@ -53,11 +43,11 @@ beforeEach(() => {
     launchUrl = undefined
 })
 
-describe('useNativePlugins deferred restore wiring', () => {
+describe('useNativeAppLinks deferred restore wiring', () => {
     it('pushes the restored dest when there is no launch url', async () => {
         mockRestore.mockResolvedValue({ dest: '/claim?x=1', locale: null })
 
-        renderHook(() => useNativePlugins())
+        renderHook(() => useNativeAppLinks())
 
         await waitFor(() => expect(push).toHaveBeenCalledWith('/claim?x=1'))
     })
@@ -66,7 +56,7 @@ describe('useNativePlugins deferred restore wiring', () => {
         launchUrl = 'https://peanut.me/home'
         mockRestore.mockResolvedValue({ dest: '/claim?x=1', locale: null })
 
-        renderHook(() => useNativePlugins())
+        renderHook(() => useNativeAppLinks())
 
         await waitFor(() => expect(mockRestore).toHaveBeenCalled())
         await waitFor(() => expect(push).toHaveBeenCalledWith('/home'))
@@ -77,7 +67,7 @@ describe('useNativePlugins deferred restore wiring', () => {
         launchUrl = 'https://evil.com/x'
         mockRestore.mockResolvedValue({ dest: '/claim?x=1', locale: null })
 
-        renderHook(() => useNativePlugins())
+        renderHook(() => useNativeAppLinks())
 
         await waitFor(() => expect(push).toHaveBeenCalledWith('/claim?x=1'))
     })
@@ -91,7 +81,7 @@ describe('useNativePlugins deferred restore wiring', () => {
             return Promise.resolve({ dest: '/claim?x=1', locale: null })
         })
 
-        renderHook(() => useNativePlugins())
+        renderHook(() => useNativeAppLinks())
 
         await waitFor(() => expect(mockRestore).toHaveBeenCalled())
         await new Promise((r) => setTimeout(r, 0))
@@ -102,10 +92,11 @@ describe('useNativePlugins deferred restore wiring', () => {
     it('a restore failure never breaks the rest of init', async () => {
         mockRestore.mockRejectedValue(new Error('boom'))
 
-        renderHook(() => useNativePlugins())
+        renderHook(() => useNativeAppLinks())
 
-        const { SplashScreen } = jest.requireMock('@capacitor/splash-screen')
-        await waitFor(() => expect(SplashScreen.hide).toHaveBeenCalled())
+        // push-tap routing registers after the restore block — it must still run
+        const mockAdapter = getOneSignalAdapter as jest.MockedFunction<typeof getOneSignalAdapter>
+        await waitFor(() => expect(mockAdapter).toHaveBeenCalled())
         expect(push).not.toHaveBeenCalled()
     })
 })

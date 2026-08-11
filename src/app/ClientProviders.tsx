@@ -19,7 +19,9 @@ import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
+import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
 import { useOtaUpdates } from '@/hooks/useOtaUpdates'
+import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
@@ -37,6 +39,10 @@ const HarnessBootstrap = HARNESS_ENABLED
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
     useOtaUpdates()
+    useSplashGate()
+    // App Links + push-tap routing must be registered on EVERY cold-start
+    // destination (including logged-out /setup), hence here and not (mobile-ui).
+    useNativeAppLinks()
     useZeroLegacyAndroidSafeAreaInsets()
 
     return (

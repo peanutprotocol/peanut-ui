@@ -19,7 +19,7 @@ const clickListeners = new Set<(info: NotificationClickInfo) => void>()
 /**
  * Cold-start tap buffer. Capacitor retains the click event only until the first
  * JS listener attaches — which happens inside init() (attachUnderlyingListeners),
- * driven by useNotifications. useNativePlugins registers its routing callback on
+ * driven by useNotifications. useNativeAppLinks registers its routing callback on
  * a separate async path, so if init() wins that race the retained event would be
  * consumed with an empty listener set and the tap silently dropped. Hold the
  * last unconsumed click here and replay it to the next listener that registers.

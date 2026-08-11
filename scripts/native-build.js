@@ -69,17 +69,33 @@ const P0_TRANSFORMS = [
         replacement: `'use client'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAuthToken } from '@/utils/auth-token'
+import { hasNativeSession } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
 
 export default function RootRedirect() {
     const router = useRouter()
     useEffect(() => {
-        const token = getAuthToken()
         // Demo has no JWT — without the isDemoMode() check a demo user who hits
         // the root (e.g. bounced from a web-only route) lands on /setup, whose
         // landing screen disables demo and dumps them at Log In.
-        router.replace(token || isDemoMode() ? '/home' : '/setup')
+        if (isDemoMode()) {
+            router.replace('/home')
+            return
+        }
+        /*
+         * Await real session presence instead of the sync getAuthToken() read:
+         * the in-memory token is null until Preferences hydration finishes, so
+         * the sync read routed every logged-in cold start to /setup first and
+         * the login screen flashed before the /home bounce. hasNativeSession()
+         * never prompts and fast-paths on the in-memory token once hydrated.
+         */
+        let cancelled = false
+        hasNativeSession().then((has) => {
+            if (!cancelled) router.replace(has ? '/home' : '/setup')
+        })
+        return () => {
+            cancelled = true
+        }
     }, [router])
     return null
 }
