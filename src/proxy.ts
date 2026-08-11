@@ -6,9 +6,18 @@ import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import {
+    classifySplitA2Request,
+    isSplitA2CanaryEnabled,
+    SPLIT_EDGE_MARKER_HEADER,
+    splitContentOrigin,
+} from '@/utils/split-content-edge'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
+
+    const splitResponse = handleSplitA2Canary(request)
+    if (splitResponse) return splitResponse
 
     // /dev/ routes are now accessible in production for testing
     // Uncomment below to block /dev/ routes in production if needed
@@ -110,6 +119,74 @@ export function proxy(request: NextRequest) {
     return response
 }
 
+function handleSplitA2Canary(request: NextRequest): NextResponse | null {
+    if (!isSplitA2CanaryEnabled(process.env.SPLIT_CONTENT_A2_CANARY_ENABLED, process.env.VERCEL_ENV)) return null
+
+    const route = classifySplitA2Request(request.nextUrl.pathname, request.headers.get('rsc'))
+    if (route.action === 'pass') return null
+
+    if (route.action === 'not-found') {
+        return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'no-store' } })
+    }
+
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+        return new NextResponse(null, { status: 405, headers: { Allow: 'GET, HEAD', 'Cache-Control': 'no-store' } })
+    }
+
+    const marker = process.env.SPLIT_CONTENT_EDGE_MARKER
+    if (!marker || marker.length < 32) {
+        return new NextResponse(null, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+    }
+
+    if (route.kind === 'headers-proof' || route.kind === 'set-cookie-proof') {
+        if (process.env.VERCEL_ENV !== 'preview') {
+            return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'no-store' } })
+        }
+
+        // External proof origins must never receive the caller's arbitrary
+        // headers. Keep this list deliberately tiny and non-empty: Next only
+        // applies its request-header override when the override list has at
+        // least one entry.
+        const proofHeaders = new Headers({
+            'x-split-a2-proof': route.kind === 'headers-proof' ? 'headers' : 'set-cookie',
+        })
+        if (route.kind === 'headers-proof') proofHeaders.set('x-forwarded-host', request.nextUrl.host)
+        const proofDestination =
+            route.kind === 'headers-proof'
+                ? new URL('https://httpbingo.org/anything')
+                : new URL(
+                      'https://httpbingo.org/response-headers?Set-Cookie=split-a2-first%3D1%3B%20Path%3D%2F&Set-Cookie=split-a2-second%3D2%3B%20Path%3D%2F'
+                  )
+        return NextResponse.rewrite(proofDestination, { request: { headers: proofHeaders } })
+    }
+
+    if (process.env.SPLIT_CONTENT_A2_PROOF_ONLY === '1') {
+        return new NextResponse(null, { status: 404, headers: { 'Cache-Control': 'no-store' } })
+    }
+
+    const origin = splitContentOrigin(process.env.SPLIT_CONTENT_ORIGIN)
+    if (!origin || origin.origin === request.nextUrl.origin) {
+        return new NextResponse(null, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+    }
+
+    const destination = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, origin)
+    return NextResponse.rewrite(destination, { request: { headers: splitForwardHeaders(request, marker) } })
+}
+
+function splitForwardHeaders(request: NextRequest, marker?: string): Headers {
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.delete('authorization')
+    requestHeaders.delete('cookie')
+    requestHeaders.delete('host')
+    requestHeaders.delete('x-forwarded-host')
+    requestHeaders.delete(SPLIT_EDGE_MARKER_HEADER)
+    if (marker) {
+        requestHeaders.set('x-forwarded-host', request.nextUrl.host)
+        requestHeaders.set(SPLIT_EDGE_MARKER_HEADER, marker)
+    }
+    return requestHeaders
+}
+
 const CRAWLER_UA =
     /bot|crawler|spider|crawling|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|linkedinbot|embedly|quora link preview|pinterest|vkshare|redditbot|applebot|semrush|ahrefs|screaming frog/i
 
@@ -174,5 +251,15 @@ export const config = {
         '/link/:path*',
         '/dev/:path*',
         '/qr/:path*',
+        '/split',
+        '/split/:path*',
+        '/:locale/split',
+        '/:locale/split/:path*',
+        '/split-static',
+        '/split-static/:path*',
+        '/split-sitemap.xml',
+        '/split-sitemap.xml/:path*',
+        '/_split-a2/headers',
+        '/_split-a2/set-cookie',
     ],
 }

@@ -1,4 +1,5 @@
 {
+    "$schema": "https://openapi.vercel.sh/vercel.json",
     "rewrites": [
         {
             "source": "/",
@@ -16,6 +17,21 @@
             "maxDuration": 300
         }
     },
+    "routes": [
+        {
+            "src": "^/(?:en/split/a2-transport|split-static(?:/.*)?|split-sitemap\\.xml|_split-a2/(?:headers|set-cookie))$",
+            "transforms": [
+                {
+                    "type": "response.headers",
+                    "op": "delete",
+                    "target": {
+                        "key": "set-cookie"
+                    }
+                }
+            ],
+            "continue": true
+        }
+    ],
     "headers": [
         {
             "source": "/(.*)",
