@@ -4,8 +4,11 @@ import {
     SPLIT_EDGE_MARKER_HEADER,
     SPLIT_RAW_ROUTE_HEADER,
     SPLIT_RAW_ROUTE_VALUE,
+    SPLIT_RAW_UNSAFE_HEADER,
+    SPLIT_RAW_UNSAFE_VALUE,
     classifySplitContentRequest,
     hasTrustedSplitRawRouteStamp,
+    hasUnsafeSplitRawRouteStamp,
     resolveSplitContentEdgeConfig,
     splitContentForwardHeaders,
 } from '@/utils/split-content-edge'
@@ -53,7 +56,13 @@ describe('Split B2 edge route classification', () => {
         '/fr/split/guides/split-expenses-across-currencies',
         '/es-ar/split/guides/split-expenses-across-currencies',
         '/EN/split/guides/split-expenses-across-currencies',
+        '/SPLIT',
+        '/SPLIT/anything',
+        '/EN/SPLIT/guides/split-expenses-across-currencies',
         '/split-static',
+        '/SPLIT-STATIC/a.js',
+        '/Split-Static/a.js',
+        '/SPLIT-SITEMAP.XML',
         '/split-sitemap.xml/extra',
     ])('firewalls unowned Split namespace path %s', (pathname) => {
         expect(classifySplitContentRequest(pathname, null)).toEqual({ action: 'not-found' })
@@ -143,6 +152,17 @@ describe('Split B2 request-header boundary', () => {
         expect(hasTrustedSplitRawRouteStamp(new Headers())).toBe(false)
     })
 
+    it('accepts only the exact Vercel unsafe raw-path stamp', () => {
+        expect(hasUnsafeSplitRawRouteStamp(new Headers({ [SPLIT_RAW_UNSAFE_HEADER]: SPLIT_RAW_UNSAFE_VALUE }))).toBe(
+            true
+        )
+
+        for (const value of ['', 'caller-spoof', `${SPLIT_RAW_UNSAFE_VALUE}, caller-spoof`]) {
+            expect(hasUnsafeSplitRawRouteStamp(new Headers({ [SPLIT_RAW_UNSAFE_HEADER]: value }))).toBe(false)
+        }
+        expect(hasUnsafeSplitRawRouteStamp(new Headers())).toBe(false)
+    })
+
     it('preserves public negotiation and Flight state but replaces all caller routing and credentials', () => {
         const requestHeaders = new Headers({
             accept: 'text/x-component',
@@ -159,6 +179,7 @@ describe('Split B2 request-header boundary', () => {
             rsc: '1',
             [SPLIT_EDGE_MARKER_HEADER]: 'caller-spoof',
             [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE,
+            [SPLIT_RAW_UNSAFE_HEADER]: SPLIT_RAW_UNSAFE_VALUE,
             'x-api-key': 'private-key',
             'x-forwarded-for': 'private-client-ip',
             'x-forwarded-host': 'spoof.example',
@@ -186,6 +207,7 @@ describe('Split B2 request-header boundary', () => {
         expect([...forwarded.values()].join('\n')).not.toContain('private')
         expect([...forwarded.values()].join('\n')).not.toContain('spoof.example')
         expect(forwarded.get(SPLIT_RAW_ROUTE_HEADER)).toBeNull()
+        expect(forwarded.get(SPLIT_RAW_UNSAFE_HEADER)).toBeNull()
     })
 
     it('keeps asset validators and ranges without carrying arbitrary headers', () => {

@@ -7,6 +7,8 @@ import {
     SPLIT_EDGE_MARKER_HEADER,
     SPLIT_RAW_ROUTE_HEADER,
     SPLIT_RAW_ROUTE_VALUE,
+    SPLIT_RAW_UNSAFE_HEADER,
+    SPLIT_RAW_UNSAFE_VALUE,
 } from '@/utils/split-content-edge'
 
 function runProxy(path: string, init?: ConstructorParameters<typeof NextRequest>[1]) {
@@ -16,6 +18,12 @@ function runProxy(path: string, init?: ConstructorParameters<typeof NextRequest>
 function runCanonicalSplitProxy(path: string, init?: ConstructorParameters<typeof NextRequest>[1]) {
     const headers = new Headers(init?.headers)
     headers.set(SPLIT_RAW_ROUTE_HEADER, SPLIT_RAW_ROUTE_VALUE)
+    return runProxy(path, { ...init, headers })
+}
+
+function runUnsafeRawProxy(path: string, init?: ConstructorParameters<typeof NextRequest>[1]) {
+    const headers = new Headers(init?.headers)
+    headers.set(SPLIT_RAW_UNSAFE_HEADER, SPLIT_RAW_UNSAFE_VALUE)
     return runProxy(path, { ...init, headers })
 }
 
@@ -121,6 +129,7 @@ describe('Split B2 edge foundation', () => {
         }
         expect(response.headers.get(`x-middleware-request-${SPLIT_EDGE_MARKER_HEADER}`)).toBe(marker)
         expect(response.headers.get(`x-middleware-request-${SPLIT_RAW_ROUTE_HEADER}`)).toBeNull()
+        expect(response.headers.get(`x-middleware-request-${SPLIT_RAW_UNSAFE_HEADER}`)).toBeNull()
         expect(response.headers.get('x-middleware-request-x-forwarded-host')).toBe('peanut.me')
         expect(response.headers.get(SPLIT_EDGE_MARKER_HEADER)).toBeNull()
     })
@@ -207,6 +216,40 @@ describe('Split B2 edge foundation', () => {
         }
     )
 
+    it.each(['/home', '/', '/api/exchange-rate', '/totally-unmatched-route'])(
+        'rejects an unsafe raw path even when Next normalized it to unrelated route %s',
+        (pathname) => {
+            const response = runUnsafeRawProxy(pathname)
+
+            expect(response.status).toBe(404)
+            expect(response.body).toBeNull()
+            expect(response.headers.get('cache-control')).toBe('private, no-store')
+            expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
+            expect(isRewrite(response)).toBe(false)
+        }
+    )
+
+    it('lets the unsafe stamp win over a canonical stamp', () => {
+        const response = runUnsafeRawProxy(SPLIT_CANARY_GUIDE_PATHS[0], {
+            headers: { [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE },
+        })
+
+        expect(response.status).toBe(404)
+        expect(response.body).toBeNull()
+        expect(isRewrite(response)).toBe(false)
+    })
+
+    it('fails an unsafe raw path closed under partial configuration', () => {
+        delete process.env.SPLIT_CONTENT_EDGE_MARKER
+
+        const response = runUnsafeRawProxy('/home')
+
+        expect(response.status).toBe(503)
+        expect(response.body).toBeNull()
+        expect(response.headers.get('x-robots-tag')).toContain('noindex')
+        expect(isRewrite(response)).toBe(false)
+    })
+
     it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('rejects %s on every forwarded class', (method) => {
         for (const pathname of [SPLIT_CANARY_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml']) {
             const response = runCanonicalSplitProxy(pathname, { method })
@@ -246,6 +289,11 @@ describe('Split B2 edge foundation', () => {
             expect(response.status).toBe(200)
             expect(response.headers.get('location')).toBeNull()
         }
+
+        const unsafeResponse = runUnsafeRawProxy('/totally-unmatched-route')
+        expect(unsafeResponse.status).toBe(200)
+        expect(isRewrite(unsafeResponse)).toBe(false)
+        expect(unsafeResponse.headers.get('x-robots-tag')).toBeNull()
     })
 
     it.each([
@@ -290,6 +338,26 @@ describe('Split B2 edge foundation', () => {
         '/split-sitemap.xml/extra',
     ])('matches Split path %s before filesystem and catch-all routing', (url) => {
         expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(true)
+    })
+
+    it.each(['/SPLIT', '/SPLIT/unknown', '/EN/SPLIT/unknown', '/SPLIT-STATIC/a.js', '/SPLIT-SITEMAP.XML'])(
+        'matches case-variant Split namespace %s before catch-all routing',
+        (url) => {
+            expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(true)
+        }
+    )
+
+    it('matches an arbitrary normalized path only when Vercel supplies the unsafe raw-path stamp', () => {
+        const url = '/totally-unmatched-route'
+        expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(false)
+        expect(
+            unstable_doesMiddlewareMatch({
+                config,
+                nextConfig: {},
+                url,
+                headers: { [SPLIT_RAW_UNSAFE_HEADER]: SPLIT_RAW_UNSAFE_VALUE },
+            })
+        ).toBe(true)
     })
 
     it.each(encodedSplitPaths)('matches encoded Split path %s before filesystem and catch-all routing', (url) => {

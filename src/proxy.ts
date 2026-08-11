@@ -9,6 +9,7 @@ import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import {
     classifySplitContentRequest,
     hasTrustedSplitRawRouteStamp,
+    hasUnsafeSplitRawRouteStamp,
     resolveSplitContentEdgeConfig,
     splitContentForwardHeaders,
 } from '@/utils/split-content-edge'
@@ -157,13 +158,24 @@ function isSupplementalEncodedMatcherOnly(pathname: string): boolean {
 }
 
 function handleSplitContentEdge(request: NextRequest): NextResponse | null {
-    const route = classifySplitContentRequest(request.nextUrl.pathname, request.headers.get('rsc'))
-    if (route.action === 'pass') return null
-
     const edgeConfig = resolveSplitContentEdgeConfig(
         process.env.SPLIT_CONTENT_ORIGIN,
         process.env.SPLIT_CONTENT_EDGE_MARKER
     )
+
+    // The platform sees structural hazards before WHATWG normalization and
+    // stamps them with a caller-unforgeable bit. Check it before classifying
+    // nextUrl.pathname, which may already be an unrelated route such as /home.
+    if (hasUnsafeSplitRawRouteStamp(request.headers)) {
+        if (edgeConfig.state === 'disabled') return null
+        if (edgeConfig.state === 'invalid') {
+            return new NextResponse(null, { status: 503, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+        }
+        return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    const route = classifySplitContentRequest(request.nextUrl.pathname, request.headers.get('rsc'))
+    if (route.action === 'pass') return null
 
     // A completely unconfigured deployment keeps today's routing byte-for-byte.
     // Once either value is supplied, the boundary is live and fails closed.
@@ -274,6 +286,12 @@ export const config = {
         '/split-static/:path*',
         '/split-sitemap.xml',
         '/split-sitemap.xml/:path*',
+        '/((?:[sS][pP][lL][iI][tT](?:-[sS][tT][aA][tT][iI][cC]|-[sS][iI][tT][eE][mM][aA][pP]\\.[xX][mM][lL])?)(?:/.*)?)',
+        '/([^/]+/[sS][pP][lL][iI][tT](?:/.*)?)',
+        {
+            source: '/:path*',
+            has: [{ type: 'header', key: 'x-peanut-split-raw-unsafe', value: 'unsafe-v1' }],
+        },
         '/((?=.*%[0-9A-Fa-f]{2}).*)',
     ],
 }

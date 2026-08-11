@@ -15,6 +15,8 @@ export const SPLIT_SITEMAP_PATH = '/split-sitemap.xml'
 export const SPLIT_EDGE_MARKER_HEADER = 'x-peanut-split-edge-marker'
 export const SPLIT_RAW_ROUTE_HEADER = 'x-peanut-split-raw-route'
 export const SPLIT_RAW_ROUTE_VALUE = 'canonical-v1'
+export const SPLIT_RAW_UNSAFE_HEADER = 'x-peanut-split-raw-unsafe'
+export const SPLIT_RAW_UNSAFE_VALUE = 'unsafe-v1'
 
 export type SplitContentRequestKind = 'html' | 'rsc' | 'asset' | 'sitemap'
 export type SplitContentRoute =
@@ -55,9 +57,10 @@ const FORWARDED_REQUEST_HEADERS = new Set([
 ])
 
 function isSplitPageNamespace(pathname: string): boolean {
-    if (pathname === '/split' || pathname.startsWith('/split/')) return true
+    const caseFolded = pathname.toLowerCase()
+    if (caseFolded === '/split' || caseFolded.startsWith('/split/')) return true
 
-    const segments = pathname.split('/')
+    const segments = caseFolded.split('/')
     return segments[0] === '' && Boolean(segments[1]) && segments[2] === 'split'
 }
 
@@ -69,9 +72,12 @@ function classifyCanonicalSplitContentRequest(pathname: string, rscHeader: strin
     if (pathname.startsWith(`${SPLIT_ASSET_PREFIX}/`)) return { action: 'forward', kind: 'asset' }
     if (pathname === SPLIT_SITEMAP_PATH) return { action: 'forward', kind: 'sitemap' }
 
+    const caseFolded = pathname.toLowerCase()
     if (
-        pathname === SPLIT_ASSET_PREFIX ||
-        pathname.startsWith(`${SPLIT_SITEMAP_PATH}/`) ||
+        caseFolded === SPLIT_ASSET_PREFIX ||
+        caseFolded.startsWith(`${SPLIT_ASSET_PREFIX}/`) ||
+        caseFolded === SPLIT_SITEMAP_PATH ||
+        caseFolded.startsWith(`${SPLIT_SITEMAP_PATH}/`) ||
         isSplitPageNamespace(pathname)
     ) {
         return { action: 'not-found' }
@@ -194,4 +200,13 @@ export function splitContentForwardHeaders(requestHeaders: Headers, publicHost: 
  */
 export function hasTrustedSplitRawRouteStamp(requestHeaders: Headers): boolean {
     return requestHeaders.get(SPLIT_RAW_ROUTE_HEADER) === SPLIT_RAW_ROUTE_VALUE
+}
+
+/**
+ * Vercel stamps structural raw-path hazards before Next normalizes them. This
+ * bit must be checked before classifying `nextUrl.pathname`: by then a request
+ * such as /split-static/%2e%2e/home is indistinguishable from literal /home.
+ */
+export function hasUnsafeSplitRawRouteStamp(requestHeaders: Headers): boolean {
+    return requestHeaders.get(SPLIT_RAW_UNSAFE_HEADER) === SPLIT_RAW_UNSAFE_VALUE
 }
