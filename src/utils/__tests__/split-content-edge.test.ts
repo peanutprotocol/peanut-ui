@@ -6,7 +6,6 @@ import {
     SPLIT_RAW_ROUTE_VALUE,
     SPLIT_RAW_UNSAFE_HEADER,
     SPLIT_RAW_UNSAFE_VALUE,
-    SPLIT_WITHHELD_GUIDE_PATHS,
     classifySplitContentRequest,
     hasTrustedSplitRawRouteStamp,
     hasUnsafeSplitRawRouteStamp,
@@ -16,9 +15,9 @@ import {
 
 const MARKER = 'split-content-test-marker-at-least-32-bytes'
 
-describe('Split B3a edge route classification', () => {
-    const expectedReleasedPaths = ['/en/split/guides/split-a-group-trip-across-countries']
-    const expectedWithheldPaths = [
+describe('Split B3b edge route classification', () => {
+    const expectedReleasedPaths = [
+        '/en/split/guides/split-a-group-trip-across-countries',
         '/es-419/split/guides/split-a-group-trip-across-countries',
         '/pt-br/split/guides/split-a-group-trip-across-countries',
         '/en/split/guides/split-expenses-across-currencies',
@@ -26,28 +25,22 @@ describe('Split B3a edge route classification', () => {
         '/pt-br/split/guides/split-expenses-across-currencies',
     ]
 
-    it('releases exactly one English guide and keeps the other five explicit', () => {
+    it('releases exactly the A1 two-slug, three-locale matrix', () => {
         expect(SPLIT_RELEASED_GUIDE_PATHS).toEqual(expectedReleasedPaths)
-        expect(SPLIT_WITHHELD_GUIDE_PATHS).toEqual(expectedWithheldPaths)
     })
 
     it.each(expectedReleasedPaths)('forwards exact released page %s as HTML', (pathname) => {
         expect(classifySplitContentRequest(pathname, null)).toEqual({ action: 'forward', kind: 'html' })
     })
 
-    it('preserves the RSC request class on the exact released page', () => {
+    it('preserves the RSC request class on every exact released page', () => {
         for (const pathname of expectedReleasedPaths) {
             expect(classifySplitContentRequest(pathname, '1')).toEqual({ action: 'forward', kind: 'rsc' })
         }
     })
 
-    it.each(expectedWithheldPaths)('firewalls otherwise-valid withheld guide %s for HTML and RSC', (pathname) => {
-        expect(classifySplitContentRequest(pathname, null)).toEqual({ action: 'not-found' })
-        expect(classifySplitContentRequest(pathname, '1')).toEqual({ action: 'not-found' })
-    })
-
-    it.each([...SPLIT_RELEASED_GUIDE_PATHS, ...SPLIT_WITHHELD_GUIDE_PATHS])(
-        'keeps every known guide inside the owned Split namespace %s',
+    it.each(SPLIT_RELEASED_GUIDE_PATHS)(
+        'keeps every released guide inside the owned Split namespace %s',
         (pathname) => {
             expect(classifySplitContentRequest(pathname, null).action).not.toBe('pass')
         }
@@ -112,7 +105,7 @@ describe('Split B3a edge route classification', () => {
     })
 })
 
-describe('Split B3a edge configuration', () => {
+describe('Split B3b edge configuration', () => {
     it('is inert only when both values are fully absent', () => {
         expect(resolveSplitContentEdgeConfig(undefined, undefined)).toEqual({ state: 'disabled' })
         expect(resolveSplitContentEdgeConfig('', '')).toEqual({ state: 'disabled' })
@@ -154,7 +147,7 @@ describe('Split B3a edge configuration', () => {
     })
 })
 
-describe('Split B3a request-header boundary', () => {
+describe('Split B3b request-header boundary', () => {
     it('accepts only the exact Vercel raw-route stamp', () => {
         expect(hasTrustedSplitRawRouteStamp(new Headers({ [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE }))).toBe(
             true

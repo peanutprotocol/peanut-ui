@@ -7,7 +7,6 @@ import {
     SPLIT_RAW_ROUTE_VALUE,
     SPLIT_RAW_UNSAFE_HEADER,
     SPLIT_RAW_UNSAFE_VALUE,
-    SPLIT_WITHHELD_GUIDE_PATHS,
 } from '@/utils/split-content-edge'
 
 interface VercelTransform {
@@ -102,19 +101,6 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
             [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE,
         })
     })
-
-    it.each(SPLIT_WITHHELD_GUIDE_PATHS)(
-        'does not raw-stamp or forward otherwise-valid withheld guide %s',
-        (pathname) => {
-            expect(new RegExp(canonicalSplitRoute.src).test(pathname)).toBe(false)
-            expect(
-                applyRequestHeaderTransforms(pathname, {
-                    [SPLIT_RAW_ROUTE_HEADER]: 'caller-spoof',
-                    [SPLIT_RAW_UNSAFE_HEADER]: 'caller-spoof',
-                })
-            ).toEqual({})
-        }
-    )
 
     it.each([
         '/split-static/%2e%2e/home',

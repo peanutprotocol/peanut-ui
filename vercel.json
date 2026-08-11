@@ -55,7 +55,7 @@
             "continue": true
         },
         {
-            "src": "^/(?:en/split/guides/split-a-group-trip-across-countries|split-static/(?!(?:\\.{1,2})(?:/|$))(?:[^/%\\\\]|%5[bBdD])+(?:/(?!(?:\\.{1,2})(?:/|$))(?:[^/%\\\\]|%5[bBdD])+)*|split-sitemap\\.xml)$",
+            "src": "^/(?:(?:en|es-419|pt-br)/split/guides/(?:split-a-group-trip-across-countries|split-expenses-across-currencies)|split-static/(?!(?:\\.{1,2})(?:/|$))(?:[^/%\\\\]|%5[bBdD])+(?:/(?!(?:\\.{1,2})(?:/|$))(?:[^/%\\\\]|%5[bBdD])+)*|split-sitemap\\.xml)$",
             "caseSensitive": true,
             "transforms": [
                 {

@@ -1,7 +1,7 @@
-// B3a exposes one production URL. Keep the five otherwise-valid precursor outputs
-// explicit so contracts prove they remain firewalled until a later release.
-export const SPLIT_RELEASED_GUIDE_PATHS = ['/en/split/guides/split-a-group-trip-across-countries'] as const
-export const SPLIT_WITHHELD_GUIDE_PATHS = [
+// B3b releases exactly the A1 two-slug, three-locale canary matrix. Keep this
+// literal and fail closed for every other path in the owned Split namespace.
+export const SPLIT_RELEASED_GUIDE_PATHS = [
+    '/en/split/guides/split-a-group-trip-across-countries',
     '/es-419/split/guides/split-a-group-trip-across-countries',
     '/pt-br/split/guides/split-a-group-trip-across-countries',
     '/en/split/guides/split-expenses-across-currencies',
