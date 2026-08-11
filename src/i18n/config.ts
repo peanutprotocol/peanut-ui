@@ -13,6 +13,7 @@ export const ROUTE_SLUGS = [
     'receive-money-from',
     'pay-with',
     'team',
+    'press',
     'help',
     'use-cases',
     'withdraw',

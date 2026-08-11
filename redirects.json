@@ -142,12 +142,12 @@
     },
     {
         "source": "/presskit",
-        "destination": "https://peanutprotocol.notion.site/Press-Kit-12f83811757981fc9ca5de581b20f50d",
+        "destination": "/en/press",
         "permanent": true
     },
     {
         "source": "/press-kit",
-        "destination": "https://peanutprotocol.notion.site/Press-Kit-12f83811757981fc9ca5de581b20f50d",
+        "destination": "/en/press",
         "permanent": true
     },
     {
