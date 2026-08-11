@@ -1,39 +1,71 @@
 name: Ping IndexNow
 
 on:
-    # Fires when Vercel (or any deployment) reports status to GitHub.
-    # Only runs on successful production deploys, so crawlers always hit live content.
+    # Inspect the deployed sitemaps only after a successful production deploy.
     deployment_status:
-    # Allow manual trigger
+    # Manual bootstrap/dry-run/full controls remain fail-closed behind the
+    # separately committed INDEXNOW_INDEX_RELEASED gate below.
     workflow_dispatch:
+        inputs:
+            dry_run:
+                description: 'Validate and print the delta without API or state mutation'
+                type: boolean
+                default: true
+            bootstrap:
+                description: 'Record a root-only baseline without submitting URLs'
+                type: boolean
+                default: false
+            full:
+                description: 'Plan the full deployed URL set instead of the delta'
+                type: boolean
+                default: false
 
 permissions:
     contents: read
 
+concurrency:
+    group: indexnow
+    cancel-in-progress: false
+
 jobs:
     ping:
         runs-on: ubuntu-latest
-        # Only run on successful production deployments (skip preview/staging).
-        # The condition is ignored for workflow_dispatch (no deployment_status context).
         if: >-
             github.event_name == 'workflow_dispatch' ||
             (github.event.deployment_status.state == 'success' &&
              github.event.deployment_status.environment == 'Production')
         steps:
             - uses: actions/checkout@v4
+
+            - uses: actions/cache/restore@v4
               with:
-                  submodules: true
-                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  path: .indexnow-state
+                  key: indexnow-state-${{ github.sha }}
+                  restore-keys: indexnow-state-
 
             - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
             - uses: actions/setup-node@v4
               with:
-                  node-version-file: '.node-version'
+                  node-version: '20'
                   cache: 'pnpm'
 
             - run: pnpm install --frozen-lockfile
 
-            - name: Ping IndexNow
+            - name: Validate deployed IndexNow delta
+              id: ping
               env:
+                  # Public by protocol: the exact value is served at /<key>.txt.
                   INDEXNOW_KEY: '054e10e6239a45cb2d06e92d669f5b6f'
+                  # B4 must change this only after the six public pages and their
+                  # deployed sitemap pass the indexability release matrix.
+                  INDEXNOW_INDEX_RELEASED: 'false'
+                  INDEXNOW_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+                  INDEXNOW_BOOTSTRAP: ${{ github.event_name == 'workflow_dispatch' && inputs.bootstrap || false }}
+                  INDEXNOW_FULL: ${{ github.event_name == 'workflow_dispatch' && inputs.full || false }}
               run: pnpm tsx scripts/ping-indexnow.ts
+
+            - uses: actions/cache/save@v4
+              if: success() && hashFiles('.indexnow-state/urls.json') != ''
+              with:
+                  path: .indexnow-state
+                  key: indexnow-state-${{ github.sha }}
