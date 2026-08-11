@@ -5,16 +5,33 @@ on:
             - main
             - dev
     workflow_dispatch:
+        inputs:
+            operation:
+                description: Preview deploy, or temporary guarded Split Production environment management
+                type: choice
+                required: true
+                default: preview
+                options:
+                    - preview
+                    - preflight
+                    - apply
+                    - verify
+                    - rollback
+            expected_workflow_sha:
+                description: Exact 40-character commit SHA required for every environment operation
+                type: string
+                required: false
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-    cancel-in-progress: true
+    cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' || inputs.operation == 'preview' }}
 
 permissions:
     contents: read
 
 jobs:
     Deploy-Preview:
+        if: github.event_name == 'pull_request' || inputs.operation == 'preview'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -32,3 +49,373 @@ jobs:
               run: vercel build --target=preview --token=${{ secrets.VERCEL_TOKEN }}
             - name: Deploy Project Artifacts to Vercel
               run: vercel deploy --prebuilt --archive=tgz --target=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
+
+    Manage-Split-Production-Environment:
+        if: github.event_name == 'workflow_dispatch' && inputs.operation != 'preview'
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - name: Guard and manage Split Production environment
+              shell: bash
+              env:
+                  OPERATION: ${{ inputs.operation }}
+                  EXPECTED_WORKFLOW_SHA: ${{ inputs.expected_workflow_sha }}
+                  SPLIT_CONTENT_ORIGIN: ${{ vars.SPLIT_CONTENT_ORIGIN }}
+                  SPLIT_CONTENT_EDGE_MARKER: ${{ secrets.SPLIT_CONTENT_EDGE_MARKER }}
+                  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+              run: |
+                  node <<'NODE'
+                  'use strict'
+
+                  const { createHash } = require('node:crypto')
+                  const { appendFileSync } = require('node:fs')
+
+                  ;(async () => {
+                      const REPOSITORY = 'peanutprotocol/peanut-ui'
+                      const WORKFLOW_REF = 'refs/heads/ops/split-b3a-vercel-production-env'
+                      const DISPATCH_ACTOR = '0xkkonrad'
+                      const DISPATCH_ACTOR_ID = '10008415'
+                      const TEAM_SLUG = 'squirrellabs'
+                      const PROJECT_NAME = 'peanut-wallet'
+                      const GIT_ORG = 'peanutprotocol'
+                      const GIT_REPOSITORY = 'peanut-ui'
+                      const PRODUCTION_BRANCH = 'main'
+                      const EXPECTED_ORIGIN = 'https://peanutsplit.com'
+                      const EXPECTED_MARKER_DIGEST =
+                          '4307ae3e7601ca23faf31181ac9f268fd5c7c6c510d6ab56a49c1abb1a171dc4'
+                      const OWNERSHIP_COMMENT =
+                          'split-b3a-canary; owner=peanutprotocol/peanut-ui#2670; controller=ephemeral-workflow-v1'
+                      const MANAGED_KEYS = new Set([
+                          'SPLIT_CONTENT_ORIGIN',
+                          'SPLIT_CONTENT_EDGE_MARKER',
+                      ])
+                      const EXPECTED_TYPES = new Map([
+                          ['SPLIT_CONTENT_ORIGIN', 'plain'],
+                          ['SPLIT_CONTENT_EDGE_MARKER', 'sensitive'],
+                      ])
+                      const ALLOWED_OPERATIONS = new Set([
+                          'preflight',
+                          'apply',
+                          'verify',
+                          'rollback',
+                      ])
+
+                      const invariant = (condition, message) => {
+                          if (!condition) {
+                              throw new Error(message)
+                          }
+                      }
+
+                      const operation = process.env.OPERATION || ''
+                      const expectedWorkflowSha = process.env.EXPECTED_WORKFLOW_SHA || ''
+                      const marker = process.env.SPLIT_CONTENT_EDGE_MARKER || ''
+                      const origin = process.env.SPLIT_CONTENT_ORIGIN || ''
+                      const token = process.env.VERCEL_TOKEN || ''
+
+                      invariant(process.env.GITHUB_ACTIONS === 'true', 'This operation may run only in GitHub Actions.')
+                      invariant(
+                          process.env.GITHUB_EVENT_NAME === 'workflow_dispatch',
+                          'This operation requires workflow_dispatch.',
+                      )
+                      invariant(
+                          process.env.GITHUB_REPOSITORY === REPOSITORY,
+                          'GitHub repository identity mismatch.',
+                      )
+                      invariant(
+                          process.env.GITHUB_ACTOR === DISPATCH_ACTOR &&
+                              process.env.GITHUB_ACTOR_ID === DISPATCH_ACTOR_ID,
+                          'GitHub dispatch actor mismatch.',
+                      )
+                      invariant(process.env.GITHUB_REF === WORKFLOW_REF, 'Temporary workflow ref mismatch.')
+                      invariant(ALLOWED_OPERATIONS.has(operation), 'Unsupported environment operation.')
+                      invariant(
+                          /^[0-9a-f]{40}$/.test(expectedWorkflowSha) &&
+                              process.env.GITHUB_SHA === expectedWorkflowSha,
+                          'Workflow SHA does not match the explicitly approved commit.',
+                      )
+                      invariant(origin === EXPECTED_ORIGIN, 'Split content origin source does not match policy.')
+                      invariant(
+                          /^[0-9a-f]{64}$/.test(marker) && Buffer.byteLength(marker, 'utf8') === 64,
+                          'Split edge marker source does not match the required format.',
+                      )
+                      invariant(
+                          createHash('sha256').update(marker, 'utf8').digest('hex') ===
+                              EXPECTED_MARKER_DIGEST,
+                          'Split edge marker source does not match the released verifier.',
+                      )
+                      invariant(token.length > 0, 'Vercel token is unavailable.')
+
+                      const apiRequest = async (path, options = {}) => {
+                          const method = options.method || 'GET'
+                          const endpointName = path.split('?')[0]
+                          let response
+
+                          try {
+                              response = await fetch(`https://api.vercel.com${path}`, {
+                                  method,
+                                  headers: {
+                                      Authorization: `Bearer ${token}`,
+                                      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+                                  },
+                                  ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+                                  signal: AbortSignal.timeout(20_000),
+                              })
+                          } catch {
+                              throw new Error(`Vercel API ${method} ${endpointName} network request failed.`)
+                          }
+
+                          if (!response.ok) {
+                              await response.arrayBuffer().catch(() => undefined)
+                              throw new Error(
+                                  `Vercel API ${method} ${endpointName} failed with HTTP ${response.status}.`,
+                              )
+                          }
+
+                          if (response.status === 204) {
+                              return null
+                          }
+
+                          try {
+                              return await response.json()
+                          } catch {
+                              throw new Error(
+                                  `Vercel API ${method} ${endpointName} returned an invalid response.`,
+                              )
+                          }
+                      }
+
+                      const project = await apiRequest(
+                          `/v9/projects/${encodeURIComponent(PROJECT_NAME)}?slug=${encodeURIComponent(TEAM_SLUG)}`,
+                      )
+                      invariant(project && project.name === PROJECT_NAME, 'Vercel project identity mismatch.')
+                      invariant(
+                          typeof project.id === 'string' && project.id.length > 0,
+                          'Vercel project ID is unavailable.',
+                      )
+                      invariant(
+                          typeof project.accountId === 'string' && project.accountId.length > 0,
+                          'Vercel project team ID is unavailable.',
+                      )
+
+                      const team = await apiRequest(
+                          `/v2/teams/${encodeURIComponent(project.accountId)}`,
+                      )
+                      invariant(
+                          team && team.id === project.accountId && team.slug === TEAM_SLUG,
+                          'Vercel team identity mismatch.',
+                      )
+                      invariant(
+                          project.link &&
+                              ['github', 'github-limited'].includes(project.link.type) &&
+                              project.link.org === GIT_ORG &&
+                              project.link.repo === GIT_REPOSITORY,
+                          'Vercel Git link identity mismatch.',
+                      )
+                      invariant(
+                          project.link.productionBranch === PRODUCTION_BRANCH,
+                          'Vercel Production Branch mismatch.',
+                      )
+
+                      const projectPath = encodeURIComponent(project.id)
+                      const teamQuery = `teamId=${encodeURIComponent(team.id)}`
+                      const normalizeTargets = (target) =>
+                          (Array.isArray(target) ? target : [target]).filter(
+                              (entry) => typeof entry === 'string' && entry.length > 0,
+                          )
+                      const hasNoGitBranch = (row) => row.gitBranch == null || row.gitBranch === ''
+                      const hasNoCustomEnvironment = (row) =>
+                          row.customEnvironmentIds == null ||
+                          (Array.isArray(row.customEnvironmentIds) &&
+                              row.customEnvironmentIds.length === 0)
+                      const isManagedProductionKey = (row) =>
+                          row &&
+                          MANAGED_KEYS.has(row.key) &&
+                          normalizeTargets(row.target).includes('production')
+                      const hasOwnedShape = (row) => {
+                          const targets = normalizeTargets(row.target)
+                          return (
+                              isManagedProductionKey(row) &&
+                              row.comment === OWNERSHIP_COMMENT &&
+                              targets.length === 1 &&
+                              targets[0] === 'production' &&
+                              hasNoGitBranch(row) &&
+                              hasNoCustomEnvironment(row)
+                          )
+                      }
+                      const hasDesiredShape = (row) =>
+                          hasOwnedShape(row) && row.type === EXPECTED_TYPES.get(row.key)
+
+                      const listManagedProductionRows = async () => {
+                          const result = await apiRequest(
+                              `/v10/projects/${projectPath}/env?${teamQuery}`,
+                          )
+                          invariant(
+                              !(Number(result && result.hiddenProductionEnvCount) > 0),
+                              'Production environment audit is incomplete because records are hidden.',
+                          )
+                          invariant(
+                              !result || !result.pagination || result.pagination.next == null,
+                              'Production environment audit is incomplete because records are paginated.',
+                          )
+
+                          let rows
+                          if (Array.isArray(result)) {
+                              rows = result
+                          } else if (result && Array.isArray(result.envs)) {
+                              rows = result.envs
+                          } else if (result && typeof result.key === 'string') {
+                              rows = [result]
+                          } else {
+                              throw new Error('Vercel environment list response schema mismatch.')
+                          }
+
+                          return rows.filter(isManagedProductionKey)
+                      }
+
+                      const classifyManagedState = (rows) => {
+                          if (rows.length === 0) {
+                              return 'absent'
+                          }
+
+                          invariant(
+                              rows.length === MANAGED_KEYS.size,
+                              'Managed Production environment state is partial or duplicated.',
+                          )
+                          for (const key of MANAGED_KEYS) {
+                              const matches = rows.filter((row) => row.key === key)
+                              invariant(
+                                  matches.length === 1 && hasDesiredShape(matches[0]),
+                                  `Production environment record for ${key} is foreign or malformed.`,
+                              )
+                          }
+                          return 'managed'
+                      }
+
+                      const deleteOwnedRows = async (rows) => {
+                          invariant(
+                              rows.every(hasOwnedShape),
+                              'Rollback refused to delete a foreign or malformed Production record.',
+                          )
+                          const ids = rows.map((row) => row.id)
+                          invariant(
+                              ids.length > 0 &&
+                                  ids.every((id) => typeof id === 'string' && id.length > 0) &&
+                                  new Set(ids).size === ids.length,
+                              'Rollback record IDs are unavailable or duplicated.',
+                          )
+
+                          const result = await apiRequest(
+                              `/v1/projects/${projectPath}/env?${teamQuery}`,
+                              { method: 'DELETE', body: { ids } },
+                          )
+                          invariant(
+                              result &&
+                                  result.deleted === ids.length &&
+                                  Array.isArray(result.ids) &&
+                                  result.ids.length === ids.length &&
+                                  ids.every((id) => result.ids.includes(id)),
+                              'Vercel batch rollback response did not confirm every owned record.',
+                          )
+                      }
+
+                      let finalState
+                      if (operation === 'preflight') {
+                          finalState = classifyManagedState(await listManagedProductionRows())
+                      } else if (operation === 'verify') {
+                          finalState = classifyManagedState(await listManagedProductionRows())
+                          invariant(finalState === 'managed', 'Managed Production environment is absent.')
+                      } else if (operation === 'rollback') {
+                          const rows = await listManagedProductionRows()
+                          if (rows.length > 0) {
+                              await deleteOwnedRows(rows)
+                          }
+                          invariant(
+                              (await listManagedProductionRows()).length === 0,
+                              'Rollback could not prove that managed Production records are absent.',
+                          )
+                          finalState = 'absent'
+                      } else {
+                          const beforeRows = await listManagedProductionRows()
+                          const beforeState = classifyManagedState(beforeRows)
+                          try {
+                              const result = await apiRequest(
+                                  `/v10/projects/${projectPath}/env?${teamQuery}&upsert=true`,
+                                  {
+                                      method: 'POST',
+                                      body: [
+                                          {
+                                              key: 'SPLIT_CONTENT_ORIGIN',
+                                              value: origin,
+                                              type: 'plain',
+                                              target: ['production'],
+                                              comment: OWNERSHIP_COMMENT,
+                                          },
+                                          {
+                                              key: 'SPLIT_CONTENT_EDGE_MARKER',
+                                              value: marker,
+                                              type: 'sensitive',
+                                              target: ['production'],
+                                              comment: OWNERSHIP_COMMENT,
+                                          },
+                                      ],
+                                  },
+                              )
+                              invariant(
+                                  result && Array.isArray(result.failed) && result.failed.length === 0,
+                                  'Vercel environment upsert reported one or more failures.',
+                              )
+                              finalState = classifyManagedState(
+                                  await listManagedProductionRows(),
+                              )
+                              invariant(
+                                  finalState === 'managed',
+                                  'Upsert could not prove the managed Production state.',
+                              )
+                          } catch (error) {
+                              if (beforeState === 'absent') {
+                                  try {
+                                      const compensationRows = await listManagedProductionRows()
+                                      if (compensationRows.length > 0) {
+                                          await deleteOwnedRows(compensationRows)
+                                      }
+                                      invariant(
+                                          (await listManagedProductionRows()).length === 0,
+                                          'Compensation could not prove an absent state.',
+                                      )
+                                  } catch {
+                                      throw new Error(
+                                          'Apply failed and guarded compensation could not prove cleanup.',
+                                      )
+                                  }
+                              }
+                              throw error
+                          }
+                      }
+
+                      const recordState = finalState === 'managed' ? 'present' : 'absent'
+                      const safeLines = [
+                          `Split Production environment ${operation}: ${finalState}.`,
+                          `repository=${REPOSITORY} project=${PROJECT_NAME} team=${TEAM_SLUG} productionBranch=${PRODUCTION_BRANCH}`,
+                          `SPLIT_CONTENT_ORIGIN state=${recordState} type=plain target=production`,
+                          `SPLIT_CONTENT_EDGE_MARKER state=${recordState} type=sensitive target=production`,
+                          'valuesPrinted=0',
+                      ]
+                      for (const line of safeLines) {
+                          console.log(line)
+                      }
+                      if (process.env.GITHUB_STEP_SUMMARY) {
+                          appendFileSync(
+                              process.env.GITHUB_STEP_SUMMARY,
+                              `${safeLines.map((line) => `- ${line}`).join('\n')}\n`,
+                              'utf8',
+                          )
+                      }
+                  })().catch((error) => {
+                      const message =
+                          error instanceof Error
+                              ? error.message
+                              : 'Unknown guarded environment workflow failure.'
+                      console.error(`::error::${message}`)
+                      process.exitCode = 1
+                  })
+                  NODE
