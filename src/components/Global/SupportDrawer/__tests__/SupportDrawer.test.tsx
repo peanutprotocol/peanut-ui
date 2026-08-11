@@ -47,10 +47,6 @@ jest.mock('@/hooks/useCrispUserData', () => ({
 jest.mock('@/hooks/useCrispTokenId', () => ({
     useCrispTokenId: () => mockUseCrispTokenId(),
 }))
-jest.mock('@/hooks/useCrispProxyUrl', () => ({
-    useCrispProxyUrl: (_data: unknown, _msg: unknown, tokenId?: string) =>
-        tokenId ? `/crisp-proxy?crisp_token_id=${tokenId}` : '/crisp-proxy',
-}))
 jest.mock('../../PeanutLoading', () => ({
     __esModule: true,
     default: () => <div data-testid="peanut-loading" />,
@@ -83,7 +79,7 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
     })
 
-    it('mounts a token-bound iframe once the logged-in user’s token resolves', () => {
+    it('mounts a clean-URL iframe once the logged-in user’s token resolves', () => {
         mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
         mockUseCrispTokenId.mockReturnValue('token-abc')
 
@@ -91,7 +87,8 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
 
         const iframe = supportIframe()
         expect(iframe).toBeInTheDocument()
-        expect(iframe).toHaveAttribute('src', '/crisp-proxy?crisp_token_id=token-abc')
+        // postmortem F5: nothing user-identifying (nor the bearer token) in the URL
+        expect(iframe).toHaveAttribute('src', '/crisp-proxy')
     })
 
     it('mounts the anonymous proxy immediately for a logged-out visitor (no userId, no token)', () => {
@@ -103,6 +100,65 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
         const iframe = supportIframe()
         expect(iframe).toBeInTheDocument()
         expect(iframe).toHaveAttribute('src', '/crisp-proxy')
+    })
+})
+
+describe('SupportDrawer — crisp-proxy init handshake (postmortem F5: no PII in URLs)', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({
+            userId: 'user-abc',
+            username: 'peanut-user',
+            email: 'a@b.com',
+            fullName: 'Ada Lovelace',
+            walletAddressLink: 'https://arbiscan.io/address/0xabc',
+        })
+        mockUseCrispTokenId.mockReset().mockReturnValue('token-abc')
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+    })
+
+    const requestInit = (origin: string) => {
+        const proxyWindow = { postMessage: jest.fn() }
+        const event = new MessageEvent('message', {
+            data: { type: 'CRISP_PROXY_REQUEST_INIT' },
+            origin,
+        })
+        // MessageEvent's init rejects a mock as `source`; define it directly instead
+        Object.defineProperty(event, 'source', { value: proxyWindow })
+        act(() => {
+            window.dispatchEvent(event)
+        })
+        return proxyWindow
+    }
+
+    it('replies to CRISP_PROXY_REQUEST_INIT with the payload, addressed to the asking window', () => {
+        render(<SupportDrawer />)
+
+        const proxyWindow = requestInit(window.location.origin)
+
+        expect(proxyWindow.postMessage).toHaveBeenCalledWith(
+            {
+                type: 'CRISP_PROXY_INIT',
+                payload: expect.objectContaining({
+                    tokenId: 'token-abc',
+                    email: 'a@b.com',
+                    nickname: 'Ada Lovelace',
+                    sessionData: expect.objectContaining({
+                        user_id: 'user-abc',
+                        username: 'peanut-user',
+                        wallet_address: 'https://arbiscan.io/address/0xabc',
+                    }),
+                }),
+            },
+            window.location.origin
+        )
+    })
+
+    it('ignores init requests from a foreign origin', () => {
+        render(<SupportDrawer />)
+
+        const proxyWindow = requestInit('https://evil.example')
+
+        expect(proxyWindow.postMessage).not.toHaveBeenCalled()
     })
 })
 
