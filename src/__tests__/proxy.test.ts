@@ -22,6 +22,7 @@ function releaseDocument(
     options: {
         index?: boolean
         schemaVersion?: 1 | 2 | 3
+        sha256s?: string[]
         manifestPaths?: string[]
         releasedPaths?: string[]
     } = {}
@@ -35,7 +36,7 @@ function releaseDocument(
         index: options.index ?? false,
         manifest: {
             schema_version: options.schemaVersion ?? 1,
-            sha256: MANIFEST_SHA256,
+            sha256s: options.sha256s ?? [MANIFEST_SHA256],
             public_paths: manifestPaths,
         },
         released_paths: releasedPaths,

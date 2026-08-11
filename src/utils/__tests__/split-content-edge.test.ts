@@ -36,6 +36,7 @@ function releaseDocument(
     options: {
         index?: boolean
         schemaVersion?: 1 | 2 | 3
+        sha256s?: string[]
         manifestPaths?: string[]
         releasedPaths?: string[]
     } = {}
@@ -49,7 +50,7 @@ function releaseDocument(
         index: options.index ?? false,
         manifest: {
             schema_version: options.schemaVersion ?? 1,
-            sha256: MANIFEST_SHA256,
+            sha256s: options.sha256s ?? [MANIFEST_SHA256],
             public_paths: manifestPaths,
         },
         released_paths: releasedPaths,
@@ -191,6 +192,12 @@ describe('Split manifest-backed release configuration', () => {
         expect(stage2.state).toBe('ready')
         if (stage2.state === 'ready') expect(stage2.release.indexReleased).toBe(true)
 
+        const overlap = resolveSplitContentRelease(releaseDocument(2, { sha256s: [MANIFEST_SHA256, '2'.repeat(64)] }))
+        expect(overlap.state).toBe('ready')
+        if (overlap.state === 'ready') {
+            expect(overlap.release.manifestSha256s).toEqual([MANIFEST_SHA256, '2'.repeat(64)])
+        }
+
         const futurePaths = [...EXPECTED_CANARY_PATHS, '/en/split', '/en/split/tools'].sort()
         const stage3 = resolveSplitContentRelease(
             releaseDocument(3, { schemaVersion: 2, manifestPaths: futurePaths, releasedPaths: futurePaths })
@@ -205,6 +212,9 @@ describe('Split manifest-backed release configuration', () => {
         ['alternate key order', JSON.stringify({ stage: 1, version: 1 })],
         ['zero digest', releaseDocument(1).replace(MANIFEST_SHA256, '0'.repeat(64))],
         ['uppercase digest', releaseDocument(1).replace(MANIFEST_SHA256, 'A'.repeat(64))],
+        ['duplicate digest', releaseDocument(1, { sha256s: [MANIFEST_SHA256, MANIFEST_SHA256] })],
+        ['unsorted digests', releaseDocument(1, { sha256s: ['2'.repeat(64), MANIFEST_SHA256] })],
+        ['too many digests', releaseDocument(1, { sha256s: ['1'.repeat(64), '2'.repeat(64), '3'.repeat(64)] })],
         [
             'duplicate manifest path',
             releaseDocument(1, { manifestPaths: [EXPECTED_CANARY_PATHS[0], EXPECTED_CANARY_PATHS[0]] }),
@@ -396,6 +406,7 @@ describe('Split B3b request-header boundary', () => {
     })
 
     it('keeps asset validators and ranges without carrying arbitrary headers', () => {
+        const release = readyRelease()
         const forwarded = splitContentForwardHeaders(
             new Headers({
                 'if-modified-since': 'Wed, 21 Oct 2015 07:28:00 GMT',
@@ -405,7 +416,7 @@ describe('Split B3b request-header boundary', () => {
             }),
             'preview.example',
             MARKER,
-            readyRelease()
+            { ...release, manifestSha256s: [MANIFEST_SHA256, '2'.repeat(64)] }
         )
 
         expect(forwarded.get('if-modified-since')).toBe('Wed, 21 Oct 2015 07:28:00 GMT')
@@ -413,5 +424,6 @@ describe('Split B3b request-header boundary', () => {
         expect(forwarded.get('range')).toBe('bytes=0-99')
         expect(forwarded.get('x-arbitrary')).toBeNull()
         expect(forwarded.get('x-forwarded-host')).toBe('preview.example')
+        expect(forwarded.get(SPLIT_MANIFEST_SHA256_HEADER)).toBe(`${MANIFEST_SHA256},${'2'.repeat(64)}`)
     })
 })

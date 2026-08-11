@@ -36,7 +36,7 @@ export type SplitContentEdgeConfig =
 export interface SplitContentRelease {
     stage: 0 | 1 | 2 | 3
     manifestSchemaVersion: 1 | 2 | 3
-    manifestSha256: string
+    manifestSha256s: readonly string[]
     manifestPublicPaths: ReadonlySet<string>
     publicPaths: ReadonlySet<string>
     indexReleased: boolean
@@ -48,7 +48,7 @@ type SplitContentReleaseDocument = {
     index: boolean
     manifest: {
         schema_version: SplitContentRelease['manifestSchemaVersion']
-        sha256: string
+        sha256s: string[]
         public_paths: string[]
     }
     released_paths: string[]
@@ -240,8 +240,11 @@ export function resolveSplitContentRelease(
         typeof manifest !== 'object' ||
         manifest === null ||
         ![1, 2, 3].includes(manifest.schema_version as number) ||
-        typeof manifest.sha256 !== 'string' ||
-        !MANIFEST_SHA256.test(manifest.sha256)
+        !Array.isArray(manifest.sha256s) ||
+        manifest.sha256s.length < 1 ||
+        manifest.sha256s.length > 2 ||
+        manifest.sha256s.some((digest) => typeof digest !== 'string' || !MANIFEST_SHA256.test(digest)) ||
+        manifest.sha256s.some((digest, index) => index > 0 && manifest.sha256s![index - 1] >= digest)
     ) {
         return { state: 'invalid' }
     }
@@ -276,7 +279,7 @@ export function resolveSplitContentRelease(
         index: candidate.index,
         manifest: {
             schema_version: schemaVersion,
-            sha256: manifest.sha256,
+            sha256s: manifest.sha256s,
             public_paths: manifestPaths,
         },
         released_paths: releasedPaths,
@@ -290,7 +293,7 @@ export function resolveSplitContentRelease(
         release: {
             stage,
             manifestSchemaVersion: schemaVersion,
-            manifestSha256: manifest.sha256,
+            manifestSha256s: manifest.sha256s,
             manifestPublicPaths: manifestPathSet,
             publicPaths: new Set(releasedPaths),
             indexReleased: candidate.index,
@@ -359,7 +362,7 @@ export function splitContentForwardHeaders(
     }
     forwarded.set('x-forwarded-host', publicHost)
     forwarded.set(SPLIT_EDGE_MARKER_HEADER, marker)
-    forwarded.set(SPLIT_MANIFEST_SHA256_HEADER, release.manifestSha256)
+    forwarded.set(SPLIT_MANIFEST_SHA256_HEADER, release.manifestSha256s.join(','))
     forwarded.set(SPLIT_INDEX_RELEASE_HEADER, release.indexReleased ? '1' : '0')
     return forwarded
 }

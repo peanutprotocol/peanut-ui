@@ -17,7 +17,7 @@ function releaseDocument(index: boolean): string {
         index,
         manifest: {
             schema_version: 1,
-            sha256: '1'.repeat(64),
+            sha256s: ['1'.repeat(64)],
             public_paths: [...SPLIT_CANARY_GUIDE_PATHS],
         },
         released_paths: [...SPLIT_CANARY_GUIDE_PATHS],
