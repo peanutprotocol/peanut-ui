@@ -2,7 +2,7 @@
 // in capacitor (static export), dynamic routes don't work — use query params instead.
 // on web, use the normal path-based urls.
 
-import { couldBeRecipient, isReservedRoute } from '@/constants/routes'
+import { couldBeRecipient, isPlausibleUsername, isReservedRoute } from '@/constants/routes'
 import { isCapacitor } from './capacitor'
 
 // Deep links are peanut.me links by definition — that's the host the Android
@@ -12,7 +12,7 @@ import { isCapacitor } from './capacitor'
 const APP_HOSTS = /^(.+\.)?peanut\.me$/
 
 export function profileUrl(username: string): string {
-    return isCapacitor() ? `/send?recipient=${encodeURIComponent(username)}` : `/${username}`
+    return isCapacitor() ? `/profile/view?username=${encodeURIComponent(username)}` : `/${username}`
 }
 
 export function sendUrl(username: string): string {
@@ -125,6 +125,16 @@ function mapDeepLinkPath(parsed: URL): string {
     if (segments[0] === 'add-money' || segments[0] === 'withdraw') {
         return rewriteMethodPath(path, extraParams || undefined)
     }
+    /*
+     * `/invite?code=X` — the invite landing page is stripped from the native
+     * export (scripts/native-build.js), so route to the signup flow with the
+     * params riding along; the setup page persists ?code= as the session
+     * inviteCode cookie (same mechanism as the deferred-install hand-off), and
+     * a logged-in session on /setup bounces itself home.
+     */
+    if (isCapacitor() && segments[0] === 'invite') {
+        return appendParams('/setup?step=signup', extraParams)
+    }
     // `/receipt/<id>?kind=X` — the web receipt page is a server component and is
     // stripped from the static export (scripts/native-build.js), so native routes
     // to the client variant. `kind` rides along in extraParams.
@@ -156,6 +166,18 @@ function mapDeepLinkPath(parsed: URL): string {
         if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
         const requestId = parsed.searchParams.get('id')
         if (requestId) return requestPotUrl(requestId)
+        /*
+         * No charge/request params: a bare `/<username>` is the public profile
+         * (mirrors the web catch-all's profile branch); anything else — an
+         * amount segment, `user@chain`, address, ENS — is a payment shape and
+         * goes to the send dispatcher. Without this branch both fell through
+         * to the raw web path, which the static export can't render, and a
+         * scanned or deep-linked profile URL dumped the user at home.
+         */
+        if (segments.length === 1 && isPlausibleUsername(segments[0])) {
+            return appendParams(profileUrl(decodeURIComponent(segments[0])), extraParams)
+        }
+        return appendParams(recipientPayUrl(segments.map(decodeURIComponent).join('/')), extraParams)
     }
 
     return appendParams(path, extraParams)

@@ -12,7 +12,7 @@ import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
-import { getFromCookie } from '@/utils/general.utils'
+import { getFromCookie, saveToCookie, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAuth } from '@/context/authContext'
@@ -113,6 +113,17 @@ function SetupPageContent() {
             // intentionally persist for 30 days. Using it as onboarding state would
             // route a returning user past Landing (the only screen with Log In) onto
             // Signup, unable to log back in (regression from PR #2346).
+            /*
+             * ?code= arrives from an /invite deep link (native maps
+             * peanut.me/invite?code=X here — see native-routes.ts). Persist it
+             * as the same session cookie the web InvitesPage and the
+             * deferred-install hand-off write, so it survives the multi-step
+             * signup and reaches registration.
+             */
+            const codeFromUrl = searchParams.get('code')
+            if (codeFromUrl && toInviteCode(codeFromUrl)) {
+                saveToCookie('inviteCode', toInviteCode(codeFromUrl))
+            }
             const inviteCodeFromCookie = getFromCookie('inviteCode')
             const userInviteCode = inviteCode || inviteCodeFromCookie
             // pwa-sunset notice window: web signups are closed (Landing hides

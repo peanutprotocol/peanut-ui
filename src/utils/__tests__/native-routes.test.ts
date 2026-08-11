@@ -34,8 +34,8 @@ describe('native-routes', () => {
         })
 
         describe('profileUrl', () => {
-            it('should return /send with recipient query param', () => {
-                expect(profileUrl('alice')).toBe('/send?recipient=alice')
+            it('should return the query-param public-profile stand-in', () => {
+                expect(profileUrl('alice')).toBe('/profile/view?username=alice')
             })
         })
 
@@ -334,6 +334,29 @@ describe('native-routes', () => {
 
             it('leaves a three-segment path alone — deeper than any recipient link', () => {
                 expect(deepLinkToNativePath('/alice/10USDC/extra?id=req-123')).toBe('/alice/10USDC/extra?id=req-123')
+            })
+
+            // The invite landing page is stripped from the native export — an
+            // /invite App Link must land on signup with the code riding along.
+            it('maps an invite link onto the signup flow, code preserved', () => {
+                expect(deepLinkToNativePath('https://peanut.me/invite?code=alice')).toBe(
+                    '/setup?step=signup&code=alice'
+                )
+            })
+
+            // A bare profile link (no chargeId/id) previously fell through to the
+            // raw web path — a route the static export doesn't ship — so a scanned
+            // or deep-linked peanut.me/<username> dumped the user at home.
+            it('maps a bare username onto the in-app public profile', () => {
+                expect(deepLinkToNativePath('https://peanut.me/brbalinda')).toBe('/profile/view?username=brbalinda')
+                expect(deepLinkToNativePath('/brbalinda')).toBe('/profile/view?username=brbalinda')
+            })
+
+            it('maps payment-shaped recipient links onto the send dispatcher', () => {
+                expect(deepLinkToNativePath('/alice/10USDC')).toBe('/send?recipient=alice%2F10USDC')
+                expect(deepLinkToNativePath('/0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5@42161/34.4USDC')).toBe(
+                    '/send?recipient=0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5%4042161%2F34.4USDC'
+                )
             })
 
             it.each(['/rewards', '/history'])('leaves the reserved route %s alone even with an id param', (route) => {
