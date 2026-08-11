@@ -5,6 +5,12 @@ on:
             - main
             - dev
     workflow_dispatch:
+        inputs:
+            confirm_remove_a2_preview:
+                description: Remove the exact disposable A2 preview deployment
+                required: true
+                default: false
+                type: boolean
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -15,6 +21,7 @@ permissions:
 
 jobs:
     Deploy-Preview:
+        if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -53,3 +60,17 @@ jobs:
                   --env SPLIT_CONTENT_EDGE_MARKER="$SPLIT_CONTENT_EDGE_MARKER"
                   --env SPLIT_CONTENT_ORIGIN=https://httpbingo.org
                   --token=${{ secrets.VERCEL_TOKEN }}
+
+    Remove-A2-Preview:
+        if: >-
+            github.event_name == 'workflow_dispatch' &&
+            github.ref_name == 'feat/split-a2-edge-canary' &&
+            inputs.confirm_remove_a2_preview
+        runs-on: ubuntu-latest
+        steps:
+            - name: Install pinned Vercel CLI
+              run: npm install --global vercel@58.0.0
+            - name: Remove exact disposable A2 deployment
+              run: >-
+                  vercel remove peanut-wallet-jh2bmmuz0-squirrellabs.vercel.app --yes
+                  --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
