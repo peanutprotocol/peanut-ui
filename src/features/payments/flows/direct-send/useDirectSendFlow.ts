@@ -12,8 +12,9 @@
  * note: no cross-chain, always usdc on arbitrum
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useContext, useMemo } from 'react'
 import { type Address, type Hash } from 'viem'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
@@ -52,6 +53,12 @@ export function useDirectSendFlow() {
     } = useDirectSendFlowContext()
 
     const { user } = useAuth()
+    // Mirrored into the global loading context so useStaleDeploymentReload's
+    // safety gate sees this flow: a resume-triggered reload mid-payment (every
+    // passkey prompt backgrounds the app) would wipe the in-memory step-up
+    // cache and force extra signature prompts — or worse, reload between the
+    // on-chain send and recordPayment.
+    const { setLoadingState } = useContext(loadingStateContext)
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
     const {
@@ -117,6 +124,7 @@ export function useDirectSendFlow() {
         }
 
         setIsLoading(true)
+        setLoadingState('Loading')
         clearError()
 
         try {
@@ -171,6 +179,7 @@ export function useDirectSendFlow() {
             setError({ showError: true, errorMessage })
         } finally {
             setIsLoading(false)
+            setLoadingState('Idle')
         }
     }, [
         recipient,
@@ -188,6 +197,7 @@ export function useDirectSendFlow() {
         setCurrentView,
         setError,
         setIsLoading,
+        setLoadingState,
         clearError,
         toFriendlyError,
         t,
