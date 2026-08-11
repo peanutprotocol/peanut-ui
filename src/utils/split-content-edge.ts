@@ -13,6 +13,8 @@ export const SPLIT_CANARY_GUIDE_PATHS = SPLIT_CANARY_GUIDE_SLUGS.flatMap((slug) 
 export const SPLIT_ASSET_PREFIX = '/split-static'
 export const SPLIT_SITEMAP_PATH = '/split-sitemap.xml'
 export const SPLIT_EDGE_MARKER_HEADER = 'x-peanut-split-edge-marker'
+export const SPLIT_RAW_ROUTE_HEADER = 'x-peanut-split-raw-route'
+export const SPLIT_RAW_ROUTE_VALUE = 'canonical-v1'
 
 export type SplitContentRequestKind = 'html' | 'rsc' | 'asset' | 'sitemap'
 export type SplitContentRoute =
@@ -183,4 +185,13 @@ export function splitContentForwardHeaders(requestHeaders: Headers, publicHost: 
     forwarded.set('x-forwarded-host', publicHost)
     forwarded.set(SPLIT_EDGE_MARKER_HEADER, marker)
     return forwarded
+}
+
+/**
+ * Vercel stamps literal public paths before Next parses and normalizes them.
+ * `vercel.json` first deletes this header from every incoming request, so the
+ * value is platform provenance rather than a caller assertion.
+ */
+export function hasTrustedSplitRawRouteStamp(requestHeaders: Headers): boolean {
+    return requestHeaders.get(SPLIT_RAW_ROUTE_HEADER) === SPLIT_RAW_ROUTE_VALUE
 }

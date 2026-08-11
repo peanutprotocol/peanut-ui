@@ -8,6 +8,7 @@ import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBrid
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import {
     classifySplitContentRequest,
+    hasTrustedSplitRawRouteStamp,
     resolveSplitContentEdgeConfig,
     splitContentForwardHeaders,
 } from '@/utils/split-content-edge'
@@ -172,6 +173,14 @@ function handleSplitContentEdge(request: NextRequest): NextResponse | null {
     }
 
     if (route.action === 'not-found') {
+        return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    // Vercel evaluates the raw incoming pathname before Next applies WHATWG
+    // dot-segment normalization. A literal allowlisted route receives this
+    // stamp; an alias such as /foo/%2e%2e/split-static/a.js does not, even
+    // though Next later presents that alias here as /split-static/a.js.
+    if (!hasTrustedSplitRawRouteStamp(request.headers)) {
         return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
     }
 

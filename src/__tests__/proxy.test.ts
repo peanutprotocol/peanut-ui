@@ -2,10 +2,21 @@
 import { NextRequest } from 'next/server'
 import { getRewrittenUrl, isRewrite, unstable_doesMiddlewareMatch } from 'next/experimental/testing/server'
 import { config, proxy } from '@/proxy'
-import { SPLIT_CANARY_GUIDE_PATHS, SPLIT_EDGE_MARKER_HEADER } from '@/utils/split-content-edge'
+import {
+    SPLIT_CANARY_GUIDE_PATHS,
+    SPLIT_EDGE_MARKER_HEADER,
+    SPLIT_RAW_ROUTE_HEADER,
+    SPLIT_RAW_ROUTE_VALUE,
+} from '@/utils/split-content-edge'
 
 function runProxy(path: string, init?: ConstructorParameters<typeof NextRequest>[1]) {
     return proxy(new NextRequest(`https://peanut.me${path}`, init))
+}
+
+function runCanonicalSplitProxy(path: string, init?: ConstructorParameters<typeof NextRequest>[1]) {
+    const headers = new Headers(init?.headers)
+    headers.set(SPLIT_RAW_ROUTE_HEADER, SPLIT_RAW_ROUTE_VALUE)
+    return runProxy(path, { ...init, headers })
 }
 
 describe('API cache policy', () => {
@@ -49,7 +60,7 @@ describe('Split B2 edge foundation', () => {
     })
 
     it.each(SPLIT_CANARY_GUIDE_PATHS)('rewrites exact canary page %s to the same renderer path', (pathname) => {
-        const response = runProxy(`${pathname}?utm_source=canary`)
+        const response = runCanonicalSplitProxy(`${pathname}?utm_source=canary`)
 
         expect(isRewrite(response)).toBe(true)
         expect(getRewrittenUrl(response)).toBe(`https://renderer.example${pathname}?utm_source=canary`)
@@ -60,7 +71,7 @@ describe('Split B2 edge foundation', () => {
         '/split-static/fonts/peanut.woff2',
         '/split-sitemap.xml',
     ])('rewrites support path and query without remapping it: %s', (path) => {
-        expect(getRewrittenUrl(runProxy(path))).toBe(`https://renderer.example${path}`)
+        expect(getRewrittenUrl(runCanonicalSplitProxy(path))).toBe(`https://renderer.example${path}`)
     })
 
     it.each([
@@ -69,7 +80,7 @@ describe('Split B2 edge foundation', () => {
         ['/split-static/_next/static/chunks/app.js', { range: 'bytes=0-99' }],
         ['/split-sitemap.xml', { accept: 'application/xml' }],
     ] as const)('sanitizes every forwarded request class: %s', (path, classHeaders) => {
-        const response = runProxy(path, {
+        const response = runCanonicalSplitProxy(path, {
             headers: {
                 authorization: 'Bearer private',
                 cookie: 'jwt-token=private',
@@ -77,6 +88,7 @@ describe('Split B2 edge foundation', () => {
                 host: 'spoof.example',
                 'proxy-authorization': 'Basic private',
                 [SPLIT_EDGE_MARKER_HEADER]: 'caller-spoof',
+                [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE,
                 'x-api-key': 'private-key',
                 'x-forwarded-for': 'private-client-ip',
                 'x-forwarded-host': 'spoof.example',
@@ -108,12 +120,13 @@ describe('Split B2 edge foundation', () => {
             expect(response.headers.get(`x-middleware-request-${name}`)).toBeNull()
         }
         expect(response.headers.get(`x-middleware-request-${SPLIT_EDGE_MARKER_HEADER}`)).toBe(marker)
+        expect(response.headers.get(`x-middleware-request-${SPLIT_RAW_ROUTE_HEADER}`)).toBeNull()
         expect(response.headers.get('x-middleware-request-x-forwarded-host')).toBe('peanut.me')
         expect(response.headers.get(SPLIT_EDGE_MARKER_HEADER)).toBeNull()
     })
 
     it('preserves the RSC header, router state, and query through the rewrite', () => {
-        const response = runProxy(`${SPLIT_CANARY_GUIDE_PATHS[0]}?_rsc=opaque`, {
+        const response = runCanonicalSplitProxy(`${SPLIT_CANARY_GUIDE_PATHS[0]}?_rsc=opaque`, {
             headers: {
                 accept: 'text/x-component',
                 rsc: '1',
@@ -178,9 +191,25 @@ describe('Split B2 edge foundation', () => {
         expect(isRewrite(response)).toBe(false)
     })
 
+    it.each([SPLIT_CANARY_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml'])(
+        'rejects normalized alias target %s when the raw-route stamp is absent or spoofed',
+        (pathname) => {
+            for (const spoofedValue of [undefined, 'caller-spoof', `${SPLIT_RAW_ROUTE_VALUE}, caller-spoof`]) {
+                const headers = new Headers()
+                if (spoofedValue) headers.set(SPLIT_RAW_ROUTE_HEADER, spoofedValue)
+                const response = runProxy(pathname, { headers })
+
+                expect(response.status).toBe(404)
+                expect(response.body).toBeNull()
+                expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
+                expect(isRewrite(response)).toBe(false)
+            }
+        }
+    )
+
     it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('rejects %s on every forwarded class', (method) => {
         for (const pathname of [SPLIT_CANARY_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml']) {
-            const response = runProxy(pathname, { method })
+            const response = runCanonicalSplitProxy(pathname, { method })
             expect(response.status).toBe(405)
             expect(response.body).toBeNull()
             expect(response.headers.get('allow')).toBe('GET, HEAD')
@@ -191,7 +220,7 @@ describe('Split B2 edge foundation', () => {
 
     it.each(['GET', 'HEAD'])('allows %s on every forwarded class', (method) => {
         for (const pathname of [SPLIT_CANARY_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml']) {
-            expect(isRewrite(runProxy(pathname, { method }))).toBe(true)
+            expect(isRewrite(runCanonicalSplitProxy(pathname, { method }))).toBe(true)
         }
     })
 
@@ -241,7 +270,7 @@ describe('Split B2 edge foundation', () => {
 
     it('fails closed instead of recursively rewriting to the public origin', () => {
         process.env.SPLIT_CONTENT_ORIGIN = 'https://peanut.me'
-        expect(runProxy(SPLIT_CANARY_GUIDE_PATHS[0]).status).toBe(503)
+        expect(runCanonicalSplitProxy(SPLIT_CANARY_GUIDE_PATHS[0]).status).toBe(503)
     })
 
     it('leaves unrelated product and marketing routes unchanged while configured', () => {

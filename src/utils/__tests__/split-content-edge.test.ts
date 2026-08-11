@@ -2,7 +2,10 @@
 import {
     SPLIT_CANARY_GUIDE_PATHS,
     SPLIT_EDGE_MARKER_HEADER,
+    SPLIT_RAW_ROUTE_HEADER,
+    SPLIT_RAW_ROUTE_VALUE,
     classifySplitContentRequest,
+    hasTrustedSplitRawRouteStamp,
     resolveSplitContentEdgeConfig,
     splitContentForwardHeaders,
 } from '@/utils/split-content-edge'
@@ -129,6 +132,17 @@ describe('Split B2 edge configuration', () => {
 })
 
 describe('Split B2 request-header boundary', () => {
+    it('accepts only the exact Vercel raw-route stamp', () => {
+        expect(hasTrustedSplitRawRouteStamp(new Headers({ [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE }))).toBe(
+            true
+        )
+
+        for (const value of ['', 'caller-spoof', `${SPLIT_RAW_ROUTE_VALUE}, caller-spoof`]) {
+            expect(hasTrustedSplitRawRouteStamp(new Headers({ [SPLIT_RAW_ROUTE_HEADER]: value }))).toBe(false)
+        }
+        expect(hasTrustedSplitRawRouteStamp(new Headers())).toBe(false)
+    })
+
     it('preserves public negotiation and Flight state but replaces all caller routing and credentials', () => {
         const requestHeaders = new Headers({
             accept: 'text/x-component',
@@ -144,6 +158,7 @@ describe('Split B2 request-header boundary', () => {
             'proxy-authorization': 'Basic private',
             rsc: '1',
             [SPLIT_EDGE_MARKER_HEADER]: 'caller-spoof',
+            [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE,
             'x-api-key': 'private-key',
             'x-forwarded-for': 'private-client-ip',
             'x-forwarded-host': 'spoof.example',
@@ -170,6 +185,7 @@ describe('Split B2 request-header boundary', () => {
         })
         expect([...forwarded.values()].join('\n')).not.toContain('private')
         expect([...forwarded.values()].join('\n')).not.toContain('spoof.example')
+        expect(forwarded.get(SPLIT_RAW_ROUTE_HEADER)).toBeNull()
     })
 
     it('keeps asset validators and ranges without carrying arbitrary headers', () => {
