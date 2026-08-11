@@ -1,6 +1,7 @@
 import { defaultCache } from '@serwist/next/worker'
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
 import { NetworkOnly, Serwist } from 'serwist'
+import { splitContentServiceWorkerMatcher } from '@/utils/split-content-edge'
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -30,6 +31,10 @@ const serwist = new Serwist({
     // own versioning + cache headers; let the network handle them. NetworkOnly
     // first so it wins ahead of any defaultCache JS-asset rule.
     runtimeCaching: [
+        {
+            matcher: splitContentServiceWorkerMatcher,
+            handler: new NetworkOnly(),
+        },
         {
             matcher: ({ url }) => url.pathname.startsWith('/relay/'),
             handler: new NetworkOnly(),

@@ -1,0 +1,130 @@
+export const SPLIT_CANARY_LOCALES = ['en', 'es-419', 'pt-br'] as const
+export const SPLIT_CANARY_GUIDE_SLUGS = [
+    'split-a-group-trip-across-countries',
+    'split-expenses-across-currencies',
+] as const
+
+// Source of truth: mono/split-content/_system/generated/manifest.json.
+// B2 deliberately forwards only the six A1 canary outputs, not the namespace.
+export const SPLIT_CANARY_GUIDE_PATHS = SPLIT_CANARY_GUIDE_SLUGS.flatMap((slug) =>
+    SPLIT_CANARY_LOCALES.map((locale) => `/${locale}/split/guides/${slug}`)
+)
+
+export const SPLIT_ASSET_PREFIX = '/split-static'
+export const SPLIT_SITEMAP_PATH = '/split-sitemap.xml'
+export const SPLIT_EDGE_MARKER_HEADER = 'x-peanut-split-edge-marker'
+
+export type SplitContentRequestKind = 'html' | 'rsc' | 'asset' | 'sitemap'
+export type SplitContentRoute =
+    | { action: 'forward'; kind: SplitContentRequestKind }
+    | { action: 'not-found' }
+    | { action: 'pass' }
+
+export type SplitContentEdgeConfig =
+    | { state: 'disabled' }
+    | { state: 'invalid' }
+    | { state: 'ready'; marker: string; origin: URL }
+
+const CANARY_GUIDE_PATHS = new Set<string>(SPLIT_CANARY_GUIDE_PATHS)
+const MINIMUM_MARKER_BYTES = 32
+const PRINTABLE_ASCII = /^[\x21-\x7e]+$/
+
+const FORWARDED_REQUEST_HEADERS = new Set([
+    'accept',
+    'accept-encoding',
+    'accept-language',
+    'cache-control',
+    'if-modified-since',
+    'if-none-match',
+    'next-router-prefetch',
+    'next-router-segment-prefetch',
+    'next-router-state-tree',
+    'next-url',
+    'purpose',
+    'range',
+    'rsc',
+    'sec-purpose',
+    'user-agent',
+    'x-nextjs-data',
+    'x-nextjs-html-request-id',
+    'x-nextjs-postponed',
+])
+
+function isSplitPageNamespace(pathname: string): boolean {
+    if (pathname === '/split' || pathname.startsWith('/split/')) return true
+
+    const segments = pathname.split('/')
+    return segments[0] === '' && Boolean(segments[1]) && segments[2] === 'split'
+}
+
+export function classifySplitContentRequest(pathname: string, rscHeader: string | null): SplitContentRoute {
+    if (CANARY_GUIDE_PATHS.has(pathname)) {
+        return { action: 'forward', kind: rscHeader === '1' ? 'rsc' : 'html' }
+    }
+
+    if (pathname.startsWith(`${SPLIT_ASSET_PREFIX}/`)) return { action: 'forward', kind: 'asset' }
+    if (pathname === SPLIT_SITEMAP_PATH) return { action: 'forward', kind: 'sitemap' }
+
+    if (
+        pathname === SPLIT_ASSET_PREFIX ||
+        pathname.startsWith(`${SPLIT_SITEMAP_PATH}/`) ||
+        isSplitPageNamespace(pathname)
+    ) {
+        return { action: 'not-found' }
+    }
+
+    return { action: 'pass' }
+}
+
+export function isSplitContentPathname(pathname: string): boolean {
+    return classifySplitContentRequest(pathname, null).action !== 'pass'
+}
+
+export function splitContentServiceWorkerMatcher({ url }: { url: URL }): boolean {
+    return isSplitContentPathname(url.pathname)
+}
+
+export function resolveSplitContentEdgeConfig(
+    originValue: string | undefined,
+    markerValue: string | undefined
+): SplitContentEdgeConfig {
+    if (!originValue && !markerValue) return { state: 'disabled' }
+    if (!originValue || !markerValue) return { state: 'invalid' }
+
+    let origin: URL
+    try {
+        origin = new URL(originValue)
+    } catch {
+        return { state: 'invalid' }
+    }
+
+    if (
+        origin.protocol !== 'https:' ||
+        origin.username ||
+        origin.password ||
+        origin.pathname !== '/' ||
+        origin.search ||
+        origin.hash ||
+        !PRINTABLE_ASCII.test(markerValue) ||
+        new TextEncoder().encode(markerValue).byteLength < MINIMUM_MARKER_BYTES
+    ) {
+        return { state: 'invalid' }
+    }
+
+    return { state: 'ready', marker: markerValue, origin }
+}
+
+/**
+ * Build a fresh, deliberately small header set for the renderer. Credentials,
+ * caller-supplied forwarding state, Vercel bypasses, and a spoofed marker are
+ * excluded by construction while HTML negotiation and Next Flight survive.
+ */
+export function splitContentForwardHeaders(requestHeaders: Headers, publicHost: string, marker: string): Headers {
+    const forwarded = new Headers()
+    for (const [name, value] of requestHeaders) {
+        if (FORWARDED_REQUEST_HEADERS.has(name.toLowerCase())) forwarded.append(name, value)
+    }
+    forwarded.set('x-forwarded-host', publicHost)
+    forwarded.set(SPLIT_EDGE_MARKER_HEADER, marker)
+    return forwarded
+}

@@ -6,9 +6,17 @@ import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import {
+    classifySplitContentRequest,
+    resolveSplitContentEdgeConfig,
+    splitContentForwardHeaders,
+} from '@/utils/split-content-edge'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
+
+    const splitContentResponse = handleSplitContentEdge(request)
+    if (splitContentResponse) return splitContentResponse
 
     // /dev/ routes are now accessible in production for testing
     // Uncomment below to block /dev/ routes in production if needed
@@ -110,6 +118,49 @@ export function proxy(request: NextRequest) {
     return response
 }
 
+const SPLIT_BLOCKED_RESPONSE_HEADERS = {
+    'Cache-Control': 'private, no-store',
+    'X-Robots-Tag': 'noindex, nofollow, noarchive',
+}
+
+function handleSplitContentEdge(request: NextRequest): NextResponse | null {
+    const route = classifySplitContentRequest(request.nextUrl.pathname, request.headers.get('rsc'))
+    if (route.action === 'pass') return null
+
+    const edgeConfig = resolveSplitContentEdgeConfig(
+        process.env.SPLIT_CONTENT_ORIGIN,
+        process.env.SPLIT_CONTENT_EDGE_MARKER
+    )
+
+    // A completely unconfigured deployment keeps today's routing byte-for-byte.
+    // Once either value is supplied, the boundary is live and fails closed.
+    if (edgeConfig.state === 'disabled') return null
+    if (edgeConfig.state === 'invalid') {
+        return new NextResponse(null, { status: 503, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    if (route.action === 'not-found') {
+        return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+        return new NextResponse(null, {
+            status: 405,
+            headers: { ...SPLIT_BLOCKED_RESPONSE_HEADERS, Allow: 'GET, HEAD' },
+        })
+    }
+
+    // A self-rewrite can recurse through the edge and must never become a
+    // partially configured public page.
+    if (edgeConfig.origin.origin === request.nextUrl.origin) {
+        return new NextResponse(null, { status: 503, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    const destination = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, edgeConfig.origin)
+    const headers = splitContentForwardHeaders(request.headers, request.nextUrl.host, edgeConfig.marker)
+    return NextResponse.rewrite(destination, { request: { headers } })
+}
+
 const CRAWLER_UA =
     /bot|crawler|spider|crawling|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|linkedinbot|embedly|quora link preview|pinterest|vkshare|redditbot|applebot|semrush|ahrefs|screaming frog/i
 
@@ -174,5 +225,13 @@ export const config = {
         '/link/:path*',
         '/dev/:path*',
         '/qr/:path*',
+        '/split',
+        '/split/:path*',
+        '/:locale/split',
+        '/:locale/split/:path*',
+        '/split-static',
+        '/split-static/:path*',
+        '/split-sitemap.xml',
+        '/split-sitemap.xml/:path*',
     ],
 }

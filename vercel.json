@@ -1,4 +1,5 @@
 {
+    "$schema": "https://openapi.vercel.sh/vercel.json",
     "rewrites": [
         {
             "source": "/",
@@ -16,6 +17,21 @@
             "maxDuration": 300
         }
     },
+    "routes": [
+        {
+            "src": "^/(?:(?:en|es-419|pt-br)/split/guides/(?:split-a-group-trip-across-countries|split-expenses-across-currencies)|split-static/.*|split-sitemap\\.xml)$",
+            "transforms": [
+                {
+                    "type": "response.headers",
+                    "op": "delete",
+                    "target": {
+                        "key": "set-cookie"
+                    }
+                }
+            ],
+            "continue": true
+        }
+    ],
     "headers": [
         {
             "source": "/(.*)",
