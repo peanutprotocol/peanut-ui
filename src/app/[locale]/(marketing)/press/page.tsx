@@ -41,7 +41,6 @@ interface PressFrontmatter {
     company_facts?: string[]
     brand_assets?: PressAssetGroup[]
     team_photos_note?: string
-    team_photos_zip?: string
     team_photos?: string[]
     media_contact?: string
 }
@@ -203,24 +202,17 @@ export default async function PressPage({ params }: PageProps) {
                             {fm.team_photos && fm.team_photos.length > 0 && (
                                 <div className="grid grid-cols-4 gap-2">
                                     {fm.team_photos.map((src) => (
-                                        <img
-                                            key={src}
-                                            src={src}
-                                            alt="Peanut team"
-                                            className="aspect-square rounded-sm border border-n-1 object-cover"
-                                        />
+                                        <a key={src} href={src} target="_blank" rel="noopener noreferrer">
+                                            <img
+                                                src={src}
+                                                alt="Peanut team"
+                                                className="aspect-square rounded-sm border border-n-1 object-cover hover:opacity-80"
+                                            />
+                                        </a>
                                     ))}
                                 </div>
                             )}
                             {fm.team_photos_note && <p className="text-xs text-grey-1">{fm.team_photos_note}</p>}
-                            {fm.team_photos_zip && (
-                                <a
-                                    href={fm.team_photos_zip}
-                                    className="w-fit rounded-sm border border-n-1 px-3 py-1.5 text-xs font-medium text-n-1 hover:bg-primary-3"
-                                >
-                                    Download all (zip)
-                                </a>
-                            )}
                         </section>
                     )}
 
