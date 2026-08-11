@@ -34,7 +34,9 @@ export function LocalRailNudge({ transaction }: { transaction: TransactionDetail
 function LocalRailNudgeBody({ local }: { local: (typeof LOCAL_RAIL_BY_COUNTRY)[string] }) {
     const t = useTranslations('transaction')
     const { data: cardMarkup } = useCardMarkupRate(local.currency)
-    const rate = cardMarkup?.rate ?? CARD_FX_MARKUP_BY_CURRENCY[local.currency]
+    // `null` means the backend published no comparison, so show none. Only a
+    // still-loading `undefined` falls back to the documented assumption.
+    const rate = cardMarkup === undefined ? CARD_FX_MARKUP_BY_CURRENCY[local.currency] : cardMarkup?.rate
     const percent = rate && rate > 0 ? Math.round(rate * 100) : null
     if (!percent) return null
 

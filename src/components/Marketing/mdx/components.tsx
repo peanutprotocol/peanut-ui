@@ -5,6 +5,7 @@ import { FAQ, FAQItem } from './FAQ'
 import { CTA } from './CTA'
 import { Callout } from './Callout'
 import { ExchangeWidget } from './ExchangeWidget'
+import { CompareSavings } from './CompareSavings'
 import { RelatedPages, RelatedLink } from './RelatedPages'
 import { CountryGrid } from './CountryGrid'
 import { ProseStars } from './ProseStars'
@@ -35,6 +36,7 @@ export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxCompone
     return {
         ...mdxComponents,
         CountryGrid: (props) => <CountryGrid {...props} locale={locale} />,
+        CompareSavings: (props) => <CompareSavings {...props} locale={locale} />,
         Steps: (props) => <Steps {...props} locale={locale} />,
         RelatedPages: (props) => <RelatedPages {...props} locale={locale} />,
         FAQ: (props) => <FAQ {...props} locale={locale} />,
@@ -60,6 +62,7 @@ export const mdxComponents: MdxComponentMap = {
     CTA,
     Callout,
     ExchangeWidget,
+    CompareSavings,
     RelatedPages,
     RelatedLink,
     CountryGrid,
