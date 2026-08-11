@@ -8,7 +8,13 @@ import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useVisualViewport } from '@/hooks/useVisualViewport'
 import PeanutLoading from '../PeanutLoading'
 import { Button } from '@/components/0_Bruddle/Button'
-import { SUPPORT_EMAIL, CRISP_LOCALE_BY_APP_LOCALE, type CrispInitPayload } from '@/constants/crisp'
+import {
+    SUPPORT_EMAIL,
+    CRISP_LOCALE_BY_APP_LOCALE,
+    CRISP_PROXY_REQUEST_INIT_MSG,
+    CRISP_PROXY_INIT_MSG,
+    type CrispInitPayload,
+} from '@/constants/crisp'
 import type { AppLocale } from '@/i18n/app/config'
 import { isCapacitor } from '@/utils/capacitor'
 
@@ -30,40 +36,36 @@ const SupportDrawer = () => {
     const [iframeKey, setIframeKey] = useState(0)
 
     const locale = useLocale() as AppLocale
+    const crispLocale = CRISP_LOCALE_BY_APP_LOCALE[locale] ?? 'en'
 
     // The proxy iframe pulls this via the postMessage handshake — user data and the
     // Crisp token never appear in its URL (postmortem F5: a query string leaks into
     // Vercel logs, browser history, Referer headers, and analytics $current_url).
-    // A ref keeps the reply current without re-registering the message listener.
-    const hasSessionData = Boolean(
-        userData.username ||
-        userData.userId ||
-        userData.fullName ||
-        userData.walletAddressLink ||
-        userData.bridgeCustomerLink ||
-        userData.mantecaUserId ||
-        userData.posthogPersonLink
-    )
-    const initPayloadRef = useRef<CrispInitPayload>({ locale: 'en' })
-    initPayloadRef.current = {
-        locale: CRISP_LOCALE_BY_APP_LOCALE[locale] ?? 'en',
+    // A ref keeps the reply current without re-registering the message listener;
+    // written in an effect, not during render, so a discarded render can't leak
+    // an uncommitted identity to the proxy.
+    const initPayload: CrispInitPayload = {
+        locale: crispLocale,
         tokenId: crispTokenId,
-        email: userData.email,
-        nickname: userData.fullName || userData.username,
-        avatar: userData.avatar,
-        sessionData: hasSessionData
-            ? {
-                  username: userData.username || '',
-                  user_id: userData.userId || '',
-                  full_name: userData.fullName || '',
-                  wallet_address: userData.walletAddressLink || '',
-                  bridge_user_id: userData.bridgeCustomerLink || '',
-                  manteca_user_id: userData.mantecaUserId || '',
-                  posthog_person: userData.posthogPersonLink || '',
-              }
-            : undefined,
+        userData,
         prefilledMessage,
     }
+    const initPayloadRef = useRef<CrispInitPayload>(initPayload)
+    useEffect(() => {
+        initPayloadRef.current = initPayload
+    })
+
+    // The handshake pull happens once at iframe boot; later changes (email/name
+    // resolving mid-session, a new prefill) are pushed over the same channel so
+    // Crisp never keeps a stale identity. Token/locale changes remount the iframe
+    // via its key instead — those need a session re-bind, not a data update.
+    const iframeRef = useRef<HTMLIFrameElement | null>(null)
+    useEffect(() => {
+        iframeRef.current?.contentWindow?.postMessage(
+            { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
+            window.location.origin
+        )
+    }, [userData, prefilledMessage])
 
     // Crisp's composer sits at the very bottom of the iframe, so the panel's bottom
     // edge is the thing the iOS keyboard covers. Only measured while the drawer is
@@ -72,7 +74,7 @@ const SupportDrawer = () => {
 
     /*
      * The proxy iframe boots the ENTIRE Next.js app at /crisp-proxy, and its key
-     * recomputes when the token or prefill changes — each change reloads it.
+     * recomputes when the token or locale changes — each change reloads it.
      * Mounted eagerly, that meant a hidden full app instance rebooting over and
      * over behind every screen; on low-memory iPhones the accumulated pressure
      * crashed the WKWebView content process mid-signup, hard-resetting the app
@@ -169,11 +171,11 @@ const SupportDrawer = () => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin) return
 
-            if (event.data?.type === 'CRISP_PROXY_REQUEST_INIT') {
+            if (event.data?.type === CRISP_PROXY_REQUEST_INIT_MSG) {
                 // the proxy iframe asks for its init payload — reply to the asking
                 // window directly (event.source), never broadcast
                 ;(event.source as Window | null)?.postMessage(
-                    { type: 'CRISP_PROXY_INIT', payload: initPayloadRef.current },
+                    { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
                     window.location.origin
                 )
             } else if (event.data?.type === 'CRISP_READY') {
@@ -276,10 +278,11 @@ const SupportDrawer = () => {
                         )}
                         {!isCapacitor() && hasBeenOpened && !isAwaitingToken && (
                             <iframe
-                                // identity or prefill changes must reload the proxy so it
-                                // re-runs the handshake with fresh data — the URL transport
-                                // did this implicitly via a changing src
-                                key={`${iframeKey}:${crispTokenId ?? ''}:${prefilledMessage ?? ''}`}
+                                // token/locale changes need a full session re-bind, so they
+                                // remount the proxy; everything else updates live over the
+                                // postMessage channel (see the push effect above)
+                                key={`${iframeKey}:${crispTokenId ?? ''}:${crispLocale}`}
+                                ref={iframeRef}
                                 src="/crisp-proxy"
                                 className="h-full w-full"
                                 allow="storage-access *"

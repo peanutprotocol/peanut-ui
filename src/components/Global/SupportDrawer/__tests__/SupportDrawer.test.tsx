@@ -140,12 +140,12 @@ describe('SupportDrawer — crisp-proxy init handshake (postmortem F5: no PII in
                 type: 'CRISP_PROXY_INIT',
                 payload: expect.objectContaining({
                     tokenId: 'token-abc',
-                    email: 'a@b.com',
-                    nickname: 'Ada Lovelace',
-                    sessionData: expect.objectContaining({
-                        user_id: 'user-abc',
+                    userData: expect.objectContaining({
+                        userId: 'user-abc',
                         username: 'peanut-user',
-                        wallet_address: 'https://arbiscan.io/address/0xabc',
+                        email: 'a@b.com',
+                        fullName: 'Ada Lovelace',
+                        walletAddressLink: 'https://arbiscan.io/address/0xabc',
                     }),
                 }),
             },

@@ -1,7 +1,13 @@
 'use client'
 
 import { useEffect } from 'react'
-import { CRISP_WEBSITE_ID, type CrispInitPayload } from '@/constants/crisp'
+import {
+    CRISP_WEBSITE_ID,
+    CRISP_PROXY_REQUEST_INIT_MSG,
+    CRISP_PROXY_INIT_MSG,
+    type CrispInitPayload,
+} from '@/constants/crisp'
+import { setCrispUserData } from '@/utils/crisp'
 
 /**
  * Crisp Proxy Page - Same-origin iframe solution for embedded Crisp chat
@@ -18,6 +24,17 @@ import { CRISP_WEBSITE_ID, type CrispInitPayload } from '@/constants/crisp'
  * model also solves the timing problem the old URL transport was built to avoid —
  * the iframe initiates, so the parent can never post before this page listens.
  */
+/** Push identity/metadata/prefill to the widget — used at boot and on later payload updates. */
+function applyUserData(payload: CrispInitPayload | null) {
+    if (!window.$crisp) return
+    // skip the all-empty push for anonymous visitors — nothing to show agents
+    if (payload?.userData && Object.values(payload.userData).some(Boolean)) {
+        setCrispUserData(window.$crisp, payload.userData, payload.prefilledMessage)
+    } else if (payload?.prefilledMessage) {
+        window.$crisp.push(['set', 'message:text', [payload.prefilledMessage]])
+    }
+}
+
 function bootCrisp(payload: CrispInitPayload | null, onSessionLoaded: () => void) {
     // Everything must be queued on the $crisp stub BEFORE l.js is injected, so the
     // widget initializes with the token, locale and identity in one shot.
@@ -64,22 +81,7 @@ function bootCrisp(payload: CrispInitPayload | null, onSessionLoaded: () => void
     // NB: crisp_last_token_id is persisted once Crisp confirms the session actually
     // loaded (notifyParentReady) — not here, so a failed load still resets on Retry.
 
-    if (payload?.email) {
-        window.$crisp.push(['set', 'user:email', [payload.email]])
-    }
-    if (payload?.nickname) {
-        window.$crisp.push(['set', 'user:nickname', [payload.nickname]])
-    }
-    if (payload?.avatar) {
-        window.$crisp.push(['set', 'user:avatar', [payload.avatar]])
-    }
-    // Session metadata for support agents
-    if (payload?.sessionData && Object.keys(payload.sessionData).length > 0) {
-        window.$crisp.push(['set', 'session:data', [Object.entries(payload.sessionData)]])
-    }
-    if (payload?.prefilledMessage) {
-        window.$crisp.push(['set', 'message:text', [payload.prefilledMessage]])
-    }
+    applyUserData(payload)
 
     // Wait for Crisp to be fully ready (session loaded and UI rendered)
     window.$crisp.push(['on', 'session:loaded', onSessionLoaded])
@@ -152,16 +154,25 @@ export default function CrispProxyPage() {
         // first request normally lands; the interval covers a dropped message. If no
         // reply ever comes, the readiness watchdog below reports CRISP_FAILED.
         const requestTimer = setInterval(() => {
-            if (!booted) postToParent({ type: 'CRISP_PROXY_REQUEST_INIT' })
+            if (!booted) postToParent({ type: CRISP_PROXY_REQUEST_INIT_MSG })
             else clearInterval(requestTimer)
         }, 250)
 
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin) return
 
-            if (event.data?.type === 'CRISP_PROXY_INIT') {
+            if (event.data?.type === CRISP_PROXY_INIT_MSG) {
                 clearInterval(requestTimer)
-                boot((event.data.payload as CrispInitPayload | undefined) ?? null)
+                const payload = (event.data.payload as CrispInitPayload | undefined) ?? null
+                if (!booted) {
+                    boot(payload)
+                } else {
+                    // the parent re-sends the payload when it changes (new email/name
+                    // during onboarding, fresh prefill) — apply it live instead of
+                    // remounting the whole embedded app. Token/locale changes remount
+                    // via the iframe key, so those never take this path.
+                    applyUserData(payload)
+                }
             } else if (event.data?.type === 'CRISP_RESET_SESSION' && window.$crisp) {
                 window.CRISP_TOKEN_ID = null
                 window.$crisp.push(['do', 'session:reset'])
@@ -174,7 +185,7 @@ export default function CrispProxyPage() {
             clearInterval(requestTimer)
             boot(null)
         } else {
-            postToParent({ type: 'CRISP_PROXY_REQUEST_INIT' })
+            postToParent({ type: CRISP_PROXY_REQUEST_INIT_MSG })
         }
 
         // Readiness watchdog. session:loaded is the real "chatbox is up" signal, but it
@@ -186,6 +197,8 @@ export default function CrispProxyPage() {
         //    (assume the chatbox rendered — preserves the prior fallback behaviour).
         const readinessTimer = setTimeout(() => {
             if (!booted || window.__crispLoadFailed || !crispScriptLoaded()) {
+                // stop the request loop too — the handshake is declared dead
+                clearInterval(requestTimer)
                 notifyParentFailed()
             } else {
                 notifyParentReady()
