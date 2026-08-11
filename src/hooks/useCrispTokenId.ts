@@ -1,36 +1,33 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/authContext'
-
-const CRISP_TOKEN_SALT = 'peanut-crisp-session-v1'
+import { apiFetch } from '@/utils/api-fetch'
 
 /**
- * Generates a deterministic Crisp session token from a userId using SHA-256.
- * Formatted as UUID-like string for Crisp compatibility.
+ * Fetch the current user's Crisp session token from the API.
+ *
+ * The token binds a browser to a Crisp contact, so whoever holds it can read
+ * and post in that user's support conversation. It must therefore be
+ * unguessable and issued only to the authenticated user. The API derives it
+ * from the caller's auth token with a server-only secret; the browser never
+ * sees the secret. It used to be computed here from a shipped salt plus the
+ * userId, which let anyone reproduce anyone's token.
  *
  * @see https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/session-continuity/
  */
-async function generateCrispToken(userId: string): Promise<string> {
-    const data = new TextEncoder().encode(`${CRISP_TOKEN_SALT}:${userId}`)
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-
-    return [
-        hashHex.slice(0, 8),
-        hashHex.slice(8, 12),
-        hashHex.slice(12, 16),
-        hashHex.slice(16, 20),
-        hashHex.slice(20, 32),
-    ].join('-')
+async function fetchCrispToken(): Promise<string | undefined> {
+    const res = await apiFetch('/user/crisp-token')
+    if (!res.ok) return undefined
+    const data = (await res.json()) as { crispTokenId?: unknown }
+    return typeof data.crispTokenId === 'string' ? data.crispTokenId : undefined
 }
 
-// In-memory cache so the token is available synchronously after first computation,
+// In-memory cache so the token is available synchronously after the first fetch,
 // preventing an undefined→resolved state change that would cause iframe reloads.
 const tokenCache = new Map<string, string>()
 
 /**
- * Hook that returns a stable Crisp token ID derived from the current user's ID.
- * Returns undefined when not authenticated.
+ * Hook that returns a stable Crisp token ID for the current user.
+ * Returns undefined when not authenticated or before the token resolves.
  */
 export function useCrispTokenId(): string | undefined {
     const { userId } = useAuth()
@@ -48,12 +45,20 @@ export function useCrispTokenId(): string | undefined {
             return
         }
 
-        generateCrispToken(userId)
+        let cancelled = false
+        fetchCrispToken()
             .then((token) => {
+                if (cancelled || !token) return
                 tokenCache.set(userId, token)
                 setTokenId(token)
             })
-            .catch(() => setTokenId(undefined))
+            .catch(() => {
+                if (!cancelled) setTokenId(undefined)
+            })
+
+        return () => {
+            cancelled = true
+        }
     }, [userId])
 
     return tokenId
