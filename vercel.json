@@ -1,4 +1,5 @@
 {
+    "$schema": "https://openapi.vercel.sh/vercel.json",
     "rewrites": [
         {
             "source": "/",
@@ -16,6 +17,66 @@
             "maxDuration": 300
         }
     },
+    "routes": [
+        {
+            "src": "^/.*$",
+            "caseSensitive": true,
+            "transforms": [
+                {
+                    "type": "request.headers",
+                    "op": "delete",
+                    "target": {
+                        "key": "x-peanut-split-raw-route"
+                    }
+                },
+                {
+                    "type": "request.headers",
+                    "op": "delete",
+                    "target": {
+                        "key": "x-peanut-split-raw-unsafe"
+                    }
+                }
+            ],
+            "continue": true
+        },
+        {
+            "src": "^(?=/)(?=.*(?:\\\\|%(?:25)*5[cC]|(?:/|%(?:25)*2[fF])(?:\\.|%(?:25)*2[eE]){1,2}(?=/|\\\\|%(?:25)*(?:2[fF]|5[cC])|$))).*$",
+            "caseSensitive": true,
+            "transforms": [
+                {
+                    "type": "request.headers",
+                    "op": "append",
+                    "target": {
+                        "key": "x-peanut-split-raw-unsafe"
+                    },
+                    "args": "unsafe-v1"
+                }
+            ],
+            "continue": true
+        },
+        {
+            "src": "^/(?:en/split/guides/split-a-group-trip-across-countries|split-static/(?!(?:\\.{1,2})(?:/|$))(?:[^/%\\\\]|%5[bBdD])+(?:/(?!(?:\\.{1,2})(?:/|$))(?:[^/%\\\\]|%5[bBdD])+)*|split-sitemap\\.xml)$",
+            "caseSensitive": true,
+            "transforms": [
+                {
+                    "type": "request.headers",
+                    "op": "append",
+                    "target": {
+                        "key": "x-peanut-split-raw-route"
+                    },
+                    "args": "canonical-v1"
+                },
+                {
+                    "type": "response.headers",
+                    "op": "delete",
+                    "target": {
+                        "key": "set-cookie"
+                    }
+                }
+            ],
+            "continue": true
+        }
+    ],
     "headers": [
         {
             "source": "/(.*)",

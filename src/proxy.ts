@@ -6,9 +6,26 @@ import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import {
+    classifySplitContentRequest,
+    hasTrustedSplitRawRouteStamp,
+    hasUnsafeSplitRawRouteStamp,
+    resolveSplitContentEdgeConfig,
+    splitContentForwardHeaders,
+} from '@/utils/split-content-edge'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
+
+    const splitContentResponse = handleSplitContentEdge(request)
+    if (splitContentResponse) return splitContentResponse
+
+    // The final matcher exists only to bring encoded Split aliases to the
+    // firewall. If it catches an unrelated encoded URL that no pre-seam matcher
+    // owned, continue directly to the filesystem/app router so legacy promo and
+    // maintenance behavior remains inert. Encoded URLs inside an original
+    // proxy namespace still take the established path below.
+    if (isSupplementalEncodedMatcherOnly(pathname)) return NextResponse.next()
 
     // /dev/ routes are now accessible in production for testing
     // Uncomment below to block /dev/ routes in production if needed
@@ -110,6 +127,93 @@ export function proxy(request: NextRequest) {
     return response
 }
 
+const SPLIT_BLOCKED_RESPONSE_HEADERS = {
+    'Cache-Control': 'private, no-store',
+    'X-Robots-Tag': 'noindex, nofollow, noarchive',
+}
+
+const LEGACY_PROXY_PATH_PREFIXES = [
+    '/api',
+    '/c',
+    '/claim',
+    '/dev',
+    '/history',
+    '/home',
+    '/link',
+    '/p',
+    '/pay',
+    '/profile',
+    '/qr',
+    '/raffle',
+    '/request',
+    '/send',
+    '/settings',
+    '/setup',
+    '/share',
+] as const
+
+function isSupplementalEncodedMatcherOnly(pathname: string): boolean {
+    if (!/%[0-9a-f]{2}/i.test(pathname)) return false
+    return !LEGACY_PROXY_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+}
+
+function handleSplitContentEdge(request: NextRequest): NextResponse | null {
+    const edgeConfig = resolveSplitContentEdgeConfig(
+        process.env.SPLIT_CONTENT_ORIGIN,
+        process.env.SPLIT_CONTENT_EDGE_MARKER
+    )
+
+    // The platform sees structural hazards before WHATWG normalization and
+    // stamps them with a caller-unforgeable bit. Check it before classifying
+    // nextUrl.pathname, which may already be an unrelated route such as /home.
+    if (hasUnsafeSplitRawRouteStamp(request.headers)) {
+        if (edgeConfig.state === 'disabled') return null
+        if (edgeConfig.state === 'invalid') {
+            return new NextResponse(null, { status: 503, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+        }
+        return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    const route = classifySplitContentRequest(request.nextUrl.pathname, request.headers.get('rsc'))
+    if (route.action === 'pass') return null
+
+    // A completely unconfigured deployment keeps today's routing byte-for-byte.
+    // Once either value is supplied, the boundary is live and fails closed.
+    if (edgeConfig.state === 'disabled') return NextResponse.next()
+    if (edgeConfig.state === 'invalid') {
+        return new NextResponse(null, { status: 503, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    if (route.action === 'not-found') {
+        return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    // Vercel evaluates the raw incoming pathname before Next applies WHATWG
+    // dot-segment normalization. A literal allowlisted route receives this
+    // stamp; an alias such as /foo/%2e%2e/split-static/a.js does not, even
+    // though Next later presents that alias here as /split-static/a.js.
+    if (!hasTrustedSplitRawRouteStamp(request.headers)) {
+        return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+        return new NextResponse(null, {
+            status: 405,
+            headers: { ...SPLIT_BLOCKED_RESPONSE_HEADERS, Allow: 'GET, HEAD' },
+        })
+    }
+
+    // A self-rewrite can recurse through the edge and must never become a
+    // partially configured public page.
+    if (edgeConfig.origin.origin === request.nextUrl.origin) {
+        return new NextResponse(null, { status: 503, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    const destination = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, edgeConfig.origin)
+    const headers = splitContentForwardHeaders(request.headers, request.nextUrl.host, edgeConfig.marker)
+    return NextResponse.rewrite(destination, { request: { headers } })
+}
+
 const CRAWLER_UA =
     /bot|crawler|spider|crawling|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|linkedinbot|embedly|quora link preview|pinterest|vkshare|redditbot|applebot|semrush|ahrefs|screaming frog/i
 
@@ -174,5 +278,20 @@ export const config = {
         '/link/:path*',
         '/dev/:path*',
         '/qr/:path*',
+        '/split',
+        '/split/:path*',
+        '/:locale/split',
+        '/:locale/split/:path*',
+        '/split-static',
+        '/split-static/:path*',
+        '/split-sitemap.xml',
+        '/split-sitemap.xml/:path*',
+        '/((?:[sS][pP][lL][iI][tT](?:-[sS][tT][aA][tT][iI][cC]|-[sS][iI][tT][eE][mM][aA][pP]\\.[xX][mM][lL])?)(?:/.*)?)',
+        '/([^/]+/[sS][pP][lL][iI][tT](?:/.*)?)',
+        {
+            source: '/:path*',
+            has: [{ type: 'header', key: 'x-peanut-split-raw-unsafe', value: 'unsafe-v1' }],
+        },
+        '/((?=.*%[0-9A-Fa-f]{2}).*)',
     ],
 }
