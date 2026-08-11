@@ -23,7 +23,9 @@ on:
                 required: false
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    # Production environment operations share a dedicated, non-cancelling lane. Preview runs use
+    # a disjoint group, so a preview can neither cancel nor overlap an environment mutation.
+    group: ${{ github.event_name == 'workflow_dispatch' && inputs.operation != 'preview' && 'split-b3a-production-env-operations' || format('{0}-{1}', github.workflow, github.event.pull_request.number || github.ref) }}
     cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' || inputs.operation == 'preview' }}
 
 permissions:
@@ -60,6 +62,9 @@ jobs:
               env:
                   OPERATION: ${{ inputs.operation }}
                   EXPECTED_WORKFLOW_SHA: ${{ inputs.expected_workflow_sha }}
+                  # GitHub has no triggering_actor_id context. On the required first attempt,
+                  # github.actor_id is the ID paired with github.triggering_actor.
+                  TRIGGERING_ACTOR_ID: ${{ github.actor_id }}
                   SPLIT_CONTENT_ORIGIN: ${{ vars.SPLIT_CONTENT_ORIGIN }}
                   SPLIT_CONTENT_EDGE_MARKER: ${{ secrets.SPLIT_CONTENT_EDGE_MARKER }}
                   VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -72,7 +77,10 @@ jobs:
 
                   ;(async () => {
                       const REPOSITORY = 'peanutprotocol/peanut-ui'
+                      const REPOSITORY_ID = '667545617'
                       const WORKFLOW_REF = 'refs/heads/ops/split-b3a-vercel-production-env'
+                      const WORKFLOW_IDENTITY =
+                          'peanutprotocol/peanut-ui/.github/workflows/preview.yaml@refs/heads/ops/split-b3a-vercel-production-env'
                       const DISPATCH_ACTOR = '0xkkonrad'
                       const DISPATCH_ACTOR_ID = '10008415'
                       const TEAM_SLUG = 'squirrellabs'
@@ -118,7 +126,8 @@ jobs:
                           'This operation requires workflow_dispatch.',
                       )
                       invariant(
-                          process.env.GITHUB_REPOSITORY === REPOSITORY,
+                          process.env.GITHUB_REPOSITORY === REPOSITORY &&
+                              process.env.GITHUB_REPOSITORY_ID === REPOSITORY_ID,
                           'GitHub repository identity mismatch.',
                       )
                       invariant(
@@ -126,11 +135,25 @@ jobs:
                               process.env.GITHUB_ACTOR_ID === DISPATCH_ACTOR_ID,
                           'GitHub dispatch actor mismatch.',
                       )
+                      invariant(
+                          process.env.GITHUB_RUN_ATTEMPT === '1',
+                          'Workflow reruns are forbidden for environment operations.',
+                      )
+                      invariant(
+                          process.env.GITHUB_TRIGGERING_ACTOR === DISPATCH_ACTOR &&
+                              process.env.TRIGGERING_ACTOR_ID === DISPATCH_ACTOR_ID,
+                          'GitHub triggering actor mismatch.',
+                      )
                       invariant(process.env.GITHUB_REF === WORKFLOW_REF, 'Temporary workflow ref mismatch.')
+                      invariant(
+                          process.env.GITHUB_WORKFLOW_REF === WORKFLOW_IDENTITY,
+                          'GitHub workflow identity mismatch.',
+                      )
                       invariant(ALLOWED_OPERATIONS.has(operation), 'Unsupported environment operation.')
                       invariant(
                           /^[0-9a-f]{40}$/.test(expectedWorkflowSha) &&
-                              process.env.GITHUB_SHA === expectedWorkflowSha,
+                              process.env.GITHUB_SHA === expectedWorkflowSha &&
+                              process.env.GITHUB_WORKFLOW_SHA === expectedWorkflowSha,
                           'Workflow SHA does not match the explicitly approved commit.',
                       )
                       invariant(origin === EXPECTED_ORIGIN, 'Split content origin source does not match policy.')
@@ -218,19 +241,36 @@ jobs:
 
                       const projectPath = encodeURIComponent(project.id)
                       const teamQuery = `teamId=${encodeURIComponent(team.id)}`
+                      const isPlainObject = (value) =>
+                          value !== null && typeof value === 'object' && !Array.isArray(value)
                       const normalizeTargets = (target) =>
-                          (Array.isArray(target) ? target : [target]).filter(
-                              (entry) => typeof entry === 'string' && entry.length > 0,
-                          )
+                          Array.isArray(target)
+                              ? target
+                              : typeof target === 'string'
+                                ? [target]
+                                : []
                       const hasNoGitBranch = (row) => row.gitBranch == null || row.gitBranch === ''
                       const hasNoCustomEnvironment = (row) =>
                           row.customEnvironmentIds == null ||
                           (Array.isArray(row.customEnvironmentIds) &&
                               row.customEnvironmentIds.length === 0)
+                      const hasNoSharedConfigOrSystemBinding = (row) =>
+                          row.configurationId == null &&
+                          row.edgeConfigId == null &&
+                          row.edgeConfigTokenId == null &&
+                          row.contentHint == null &&
+                          row.internalContentHint == null &&
+                          row.sunsetSecretId == null &&
+                          (row.system == null || row.system === false)
                       const isManagedProductionKey = (row) =>
-                          row &&
+                          isPlainObject(row) &&
                           MANAGED_KEYS.has(row.key) &&
                           normalizeTargets(row.target).includes('production')
+                      const isOfficialEnvironmentRecord = (row) =>
+                          isPlainObject(row) &&
+                          typeof row.key === 'string' &&
+                          typeof row.type === 'string' &&
+                          typeof row.value === 'string'
                       const hasOwnedShape = (row) => {
                           const targets = normalizeTargets(row.target)
                           return (
@@ -239,37 +279,63 @@ jobs:
                               targets.length === 1 &&
                               targets[0] === 'production' &&
                               hasNoGitBranch(row) &&
-                              hasNoCustomEnvironment(row)
+                              hasNoCustomEnvironment(row) &&
+                              hasNoSharedConfigOrSystemBinding(row)
                           )
                       }
-                      const hasDesiredShape = (row) =>
-                          hasOwnedShape(row) && row.type === EXPECTED_TYPES.get(row.key)
+                      const hasDesiredShape = (row) => {
+                          const expectedType = EXPECTED_TYPES.get(row.key)
+                          const expectedVisibility = expectedType === 'sensitive' ? 'secret' : 'config'
+                          return (
+                              hasOwnedShape(row) &&
+                              row.type === expectedType &&
+                              (row.visibility == null || row.visibility === expectedVisibility)
+                          )
+                      }
 
                       const listManagedProductionRows = async () => {
                           const result = await apiRequest(
                               `/v10/projects/${projectPath}/env?${teamQuery}`,
                           )
                           invariant(
-                              !(Number(result && result.hiddenProductionEnvCount) > 0),
-                              'Production environment audit is incomplete because records are hidden.',
+                              isPlainObject(result) && Array.isArray(result.envs),
+                              'Vercel environment list response schema mismatch.',
+                          )
+                          const hasHiddenCount = Object.prototype.hasOwnProperty.call(
+                              result,
+                              'hiddenProductionEnvCount',
+                          )
+                          const hasPagination = Object.prototype.hasOwnProperty.call(
+                              result,
+                              'pagination',
                           )
                           invariant(
-                              !result || !result.pagination || result.pagination.next == null,
-                              'Production environment audit is incomplete because records are paginated.',
+                              hasHiddenCount !== hasPagination,
+                              'Vercel environment list response is not one complete official variant.',
+                          )
+                          if (hasHiddenCount) {
+                              invariant(
+                                  result.hiddenProductionEnvCount === 0,
+                                  'Production environment audit is incomplete because records are hidden.',
+                              )
+                          } else {
+                              const pagination = result.pagination
+                              invariant(
+                                  isPlainObject(pagination) &&
+                                      Number.isInteger(pagination.count) &&
+                                      pagination.count >= 0 &&
+                                      pagination.count === result.envs.length &&
+                                      pagination.next === null &&
+                                      pagination.prev === null,
+                                  'Production environment audit is incomplete or pagination is malformed.',
+                              )
+                          }
+                          invariant(
+                              result.envs.every(isOfficialEnvironmentRecord),
+                              'Vercel environment list contains a malformed record.',
                           )
 
-                          let rows
-                          if (Array.isArray(result)) {
-                              rows = result
-                          } else if (result && Array.isArray(result.envs)) {
-                              rows = result.envs
-                          } else if (result && typeof result.key === 'string') {
-                              rows = [result]
-                          } else {
-                              throw new Error('Vercel environment list response schema mismatch.')
-                          }
-
-                          return rows.filter(isManagedProductionKey)
+                          return result.envs.filter(isManagedProductionKey)
                       }
 
                       const classifyManagedState = (rows) => {
@@ -293,13 +359,21 @@ jobs:
 
                       const deleteOwnedRows = async (rows) => {
                           invariant(
-                              rows.every(hasOwnedShape),
+                              Array.isArray(rows) && rows.length >= 1 && rows.length <= MANAGED_KEYS.size,
+                              'Rollback requires one or two managed Production records.',
+                          )
+                          invariant(
+                              rows.every(hasDesiredShape),
                               'Rollback refused to delete a foreign or malformed Production record.',
+                          )
+                          const keys = rows.map((row) => row.key)
+                          invariant(
+                              new Set(keys).size === keys.length,
+                              'Rollback refused duplicated managed Production keys.',
                           )
                           const ids = rows.map((row) => row.id)
                           invariant(
-                              ids.length > 0 &&
-                                  ids.every((id) => typeof id === 'string' && id.length > 0) &&
+                              ids.every((id) => typeof id === 'string' && id.length > 0) &&
                                   new Set(ids).size === ids.length,
                               'Rollback record IDs are unavailable or duplicated.',
                           )
@@ -313,8 +387,32 @@ jobs:
                                   result.deleted === ids.length &&
                                   Array.isArray(result.ids) &&
                                   result.ids.length === ids.length &&
+                                  new Set(result.ids).size === result.ids.length &&
                                   ids.every((id) => result.ids.includes(id)),
                               'Vercel batch rollback response did not confirm every owned record.',
+                          )
+                      }
+
+                      const validateApplyResponse = (result) => {
+                          invariant(
+                              isPlainObject(result) &&
+                                  Array.isArray(result.failed) &&
+                                  result.failed.length === 0,
+                              'Vercel environment upsert reported one or more failures.',
+                          )
+                          invariant(
+                              Array.isArray(result.created) &&
+                                  result.created.length === MANAGED_KEYS.size &&
+                                  result.created.every(
+                                      (row) =>
+                                          isOfficialEnvironmentRecord(row) && hasDesiredShape(row),
+                                  ) &&
+                                  new Set(result.created.map((row) => row.key)).size ===
+                                      MANAGED_KEYS.size &&
+                                  [...MANAGED_KEYS].every((key) =>
+                                      result.created.some((row) => row.key === key),
+                                  ),
+                              'Vercel environment upsert response did not confirm exactly two managed records.',
                           )
                       }
 
@@ -360,10 +458,7 @@ jobs:
                                       ],
                                   },
                               )
-                              invariant(
-                                  result && Array.isArray(result.failed) && result.failed.length === 0,
-                                  'Vercel environment upsert reported one or more failures.',
-                              )
+                              validateApplyResponse(result)
                               finalState = classifyManagedState(
                                   await listManagedProductionRows(),
                               )
