@@ -116,26 +116,32 @@ describe('SupportDrawer — crisp-proxy init handshake (postmortem F5: no PII in
         mockIsCapacitor.mockReset().mockReturnValue(false)
     })
 
-    const requestInit = (origin: string) => {
-        const proxyWindow = { postMessage: jest.fn() }
+    // sends a request "from" the given window; the real proxy iframe's
+    // contentWindow is the only sender the drawer may answer
+    const requestInit = (origin: string, source: object) => {
         const event = new MessageEvent('message', {
             data: { type: 'CRISP_PROXY_REQUEST_INIT' },
             origin,
         })
-        // MessageEvent's init rejects a mock as `source`; define it directly instead
-        Object.defineProperty(event, 'source', { value: proxyWindow })
+        // MessageEvent's init rejects a non-Window `source`; define it directly instead
+        Object.defineProperty(event, 'source', { value: source })
         act(() => {
             window.dispatchEvent(event)
         })
-        return proxyWindow
     }
 
-    it('replies to CRISP_PROXY_REQUEST_INIT with the payload, addressed to the asking window', () => {
+    const mountedProxyWindow = () => {
+        const proxyWindow = (supportIframe() as HTMLIFrameElement).contentWindow as Window
+        return { proxyWindow, postSpy: jest.spyOn(proxyWindow, 'postMessage') }
+    }
+
+    it('replies to CRISP_PROXY_REQUEST_INIT with the payload, addressed to the asking iframe', () => {
         render(<SupportDrawer />)
+        const { proxyWindow, postSpy } = mountedProxyWindow()
 
-        const proxyWindow = requestInit(window.location.origin)
+        requestInit(window.location.origin, proxyWindow)
 
-        expect(proxyWindow.postMessage).toHaveBeenCalledWith(
+        expect(postSpy).toHaveBeenCalledWith(
             {
                 type: 'CRISP_PROXY_INIT',
                 payload: expect.objectContaining({
@@ -155,10 +161,20 @@ describe('SupportDrawer — crisp-proxy init handshake (postmortem F5: no PII in
 
     it('ignores init requests from a foreign origin', () => {
         render(<SupportDrawer />)
+        const { proxyWindow, postSpy } = mountedProxyWindow()
 
-        const proxyWindow = requestInit('https://evil.example')
+        requestInit('https://evil.example', proxyWindow)
 
-        expect(proxyWindow.postMessage).not.toHaveBeenCalled()
+        expect(postSpy).not.toHaveBeenCalled()
+    })
+
+    it('ignores same-origin init requests from a window that is not the mounted proxy iframe', () => {
+        render(<SupportDrawer />)
+        const stranger = { postMessage: jest.fn() }
+
+        requestInit(window.location.origin, stranger)
+
+        expect(stranger.postMessage).not.toHaveBeenCalled()
     })
 })
 

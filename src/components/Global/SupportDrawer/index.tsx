@@ -93,6 +93,13 @@ const SupportDrawer = () => {
         setIframeKey((k) => k + 1)
     }, [])
 
+    // a token/locale change replaces the iframe (see the key below) — clear the
+    // previous proxy's status so the loader shows until the new one reports
+    useEffect(() => {
+        setIsCrispReady(false)
+        setIsCrispFailed(false)
+    }, [crispTokenId, crispLocale])
+
     // A logged-in user's token is computed asynchronously (SHA-256 of their userId).
     // Until it resolves we must NOT load the proxy: a token-less load makes Crisp fall
     // back to the shared anonymous session persisted on client.crisp.chat, which on a
@@ -171,9 +178,13 @@ const SupportDrawer = () => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin) return
 
-            if (event.data?.type === CRISP_PROXY_REQUEST_INIT_MSG) {
-                // the proxy iframe asks for its init payload — reply to the asking
-                // window directly (event.source), never broadcast
+            if (
+                event.data?.type === CRISP_PROXY_REQUEST_INIT_MSG &&
+                event.source === iframeRef.current?.contentWindow
+            ) {
+                // the proxy iframe asks for its init payload — reply only to OUR
+                // mounted iframe (not any same-origin frame), and directly to it,
+                // never broadcast
                 ;(event.source as Window | null)?.postMessage(
                     { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
                     window.location.origin
