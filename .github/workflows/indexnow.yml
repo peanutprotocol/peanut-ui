@@ -1,8 +1,12 @@
 name: Ping IndexNow
 
 on:
-    # Inspect the deployed sitemaps only after a successful production deploy.
-    deployment_status:
+    # A trusted scheduled trigger can persist the validated delta baseline.
+    # This is eventual (nominally within 30 minutes), not deploy-coupled.
+    # Fetching peanut.me means a run always observes deployed production, even
+    # when a main-branch push is still waiting for Vercel.
+    schedule:
+        - cron: '17,47 * * * *'
     # Manual bootstrap/dry-run/full controls remain fail-closed behind the
     # separately committed INDEXNOW_INDEX_RELEASED gate below.
     workflow_dispatch:
@@ -24,27 +28,31 @@ permissions:
     contents: read
 
 concurrency:
-    group: indexnow
+    # State restoration, submission, and persistence form one transaction.
+    group: indexnow-state-main
     cancel-in-progress: false
 
 jobs:
     ping:
         runs-on: ubuntu-latest
-        if: >-
-            github.event_name == 'workflow_dispatch' ||
-            (github.event.deployment_status.state == 'success' &&
-             github.event.deployment_status.environment == 'Production')
+        # workflow_dispatch can target arbitrary refs; keep state in the trusted
+        # default-branch cache scope shared with scheduled runs.
+        if: github.ref == 'refs/heads/main'
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  persist-credentials: false
 
-            - uses: actions/cache/restore@v4
+            - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
               with:
                   path: .indexnow-state
-                  key: indexnow-state-${{ github.sha }}
-                  restore-keys: indexnow-state-
+                  # This probe key is never saved. Prefix restore selects the
+                  # newest content-addressed, validated state transaction.
+                  key: indexnow-state-v1-restore-${{ github.run_id }}-${{ github.run_attempt }}
+                  restore-keys: indexnow-state-v1-
 
             - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version: '20'
                   cache: 'pnpm'
@@ -64,8 +72,10 @@ jobs:
                   INDEXNOW_FULL: ${{ github.event_name == 'workflow_dispatch' && inputs.full || false }}
               run: pnpm tsx scripts/ping-indexnow.ts
 
-            - uses: actions/cache/save@v4
+            - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
               if: success() && hashFiles('.indexnow-state/urls.json') != ''
               with:
                   path: .indexnow-state
-                  key: indexnow-state-${{ github.sha }}
+                  # Cache keys are immutable. Hashing the post-run state makes
+                  # every successful state transition durable and restorable.
+                  key: indexnow-state-v1-${{ hashFiles('.indexnow-state/urls.json') }}

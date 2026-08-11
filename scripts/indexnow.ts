@@ -585,10 +585,6 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
 
     const delta = state ? calculateDelta(deployed.allUrls, state.urls) : { added: deployed.allUrls, deleted: [] }
     const candidates = full ? deployed.allUrls : [...delta.added, ...delta.deleted]
-    const currentKeys = new Set(deployed.allUrls.map(canonicalUrlKey))
-    const currentSplitCandidates = candidates.filter(
-        (url) => isSplitPublicUrl(url) && currentKeys.has(canonicalUrlKey(url))
-    )
 
     if (!dryRun && !indexReleased) {
         logger.log(
@@ -604,7 +600,11 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
         }
     }
 
-    for (const url of currentSplitCandidates) {
+    // A previously accepted Split page can later regress to redirect/noindex.
+    // Gate every currently deployed Split URL before any live submission, not
+    // only URLs present in this run's delta. Deleted Split URLs are absent from
+    // this list and remain eligible for deletion notification.
+    for (const url of deployed.splitUrls) {
         await assertSplitPageIndexable({ fetchImpl: options.fetchImpl, url, timeoutMs })
     }
 
