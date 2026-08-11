@@ -391,7 +391,6 @@ export interface TierInfo {
     transitivePoints: number
     totalPoints: number
     currentTier: number
-    leaderboardRank: number
     nextTierThreshold: number
     pointsToNextTier: number
 }
