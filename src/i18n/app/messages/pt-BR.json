@@ -193,6 +193,10 @@
                 "title": "Ajude a gente a melhorar e <b>ganhe $5!</b>",
                 "description": "Relate um bug. Ganhe uma recompensa! Sem perguntas."
             },
+            "userInterview": {
+                "title": "Ajude a construir Peanut",
+                "description": "Você é um dos nossos usuários mais ativos. Agende um papo de 15 min com a equipe."
+            },
             "kyc": {
                 "title": "Desbloqueie <b>pagamentos com QR</b>",
                 "description": "Confirme sua identidade para pagar códigos QR do <b>Mercado Pago</b> e do <b>PIX</b>"

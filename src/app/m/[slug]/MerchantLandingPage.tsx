@@ -4,14 +4,15 @@ import { Fragment, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
+import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
+import type { CardMarkup } from '@/utils/fx.utils'
+import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
-import { getArsCardMarkup, type CardMarkup } from './card-comparison'
 import type { Merchant, MenuItem } from './merchants'
 
 /** Build a `/invite` URL with the merchant's vanity code + the UTM
@@ -31,31 +32,6 @@ function buildInviteHref(merchant: Merchant, content: 'hero' | 'end_fold'): stri
         },
         { code: merchant.inviteCode }
     )
-}
-
-/** Documented empirical ARS card-vs-Peanut spread + issuer markup — used
- *  as the immediate render value and the fallback when the live fetch fails.
- *  Mirrors `CARD_FX_MARKUP_BY_CURRENCY.ARS` from PR #2108. */
-const ARS_CARD_MARKUP_FALLBACK = 0.0913
-
-/**
- * Client wrapper around the `getArsCardMarkup` server action — keeps the
- * third-party dolarapi.com call off the client and lets Next edge-cache the
- * response for 5min. React-query layers an additional 5min client cache and
- * re-fetches on focus so the displayed savings stays fresh without us having
- * to think about it. Returns the static fallback while loading so the menu
- * cards and banner can render unconditionally.
- */
-function useCardMarkupArs(criptoUsdToArs: number): CardMarkup {
-    const { data } = useQuery({
-        queryKey: ['merchantLpArsCardMarkup', criptoUsdToArs > 0 ? Math.round(criptoUsdToArs) : 0],
-        queryFn: () => getArsCardMarkup(criptoUsdToArs),
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-        refetchOnWindowFocus: true,
-        enabled: criptoUsdToArs > 0,
-    })
-    return data ?? { rate: ARS_CARD_MARKUP_FALLBACK, source: 'static' }
 }
 
 const ctaButtonClassName =
@@ -310,7 +286,17 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
         enabled: fold.showLiveRate,
     })
     const arsPerUnit = currency === 'USD' ? usdArs : eurArs
-    const cardMarkup = useCardMarkupArs(usdArs)
+    // No locked price is passed: the backend computes the markup against the
+    // same market snapshot `usdArs` comes from, so the two agree by
+    // construction. The static entry only covers a backend outage.
+    const { data: markup } = useCardMarkupRate('ARS')
+    // `undefined` is still loading — show the documented assumption so the
+    // cards render. `null` is the backend stating it has no comparison to
+    // publish, and a rate of 0 is how every consumer here renders nothing.
+    const cardMarkup =
+        markup === undefined
+            ? { rate: CARD_FX_MARKUP_BY_CURRENCY.ARS, source: 'static' as const }
+            : (markup ?? { rate: 0, source: 'static' as const })
 
     return (
         <section id="menu" className="relative overflow-hidden bg-secondary-1 px-4 py-24 text-center text-n-1 md:py-32">
@@ -418,7 +404,7 @@ function LiveRateBanner({
     markupSource: CardMarkup['source']
 }) {
     const isLive = usdArs > 0
-    // Only present the savings figure when the markup came from the live BCRA feed —
+    // Only present the savings figure when the markup came from a live observation —
     // the static fallback is an estimate, so don't badge it as a "Live" measurement.
     const savingsPct = markupSource === 'live' && cardMarkup > 0 ? Math.round(cardMarkup * 100) : 0
     const copy = isLive
