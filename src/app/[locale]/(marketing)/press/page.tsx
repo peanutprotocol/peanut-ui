@@ -1,18 +1,33 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
+import Image from 'next/image'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Card } from '@/components/0_Bruddle/Card'
-import { SUPPORTED_LOCALES, getAlternates, isValidLocale } from '@/i18n/config'
+import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
-import { readSingletonContentLocalized } from '@/lib/content'
+import { availableSingletonLocales, readSingletonContentLocalized, singletonLocaleFor } from '@/lib/content'
 
 // Press kit data lives in mono at content/press/{lang}.md frontmatter — singleton
 // content authored by marketing/leadership, shipped via the mirror. Team member
 // data is reused as-is from content/team/{lang}.md (one fact, one place).
+//
+// brand_assets/team_photos hrefs are author-supplied frontmatter that can be
+// pushed straight to mono main without code review — only emit http(s) URLs
+// so a `javascript:` or `data:` value can't reach a rendered href.
+function safeHttpUrl(url: string | undefined): string | undefined {
+    if (!url) return undefined
+    try {
+        const { protocol } = new URL(url, 'https://peanut.me')
+        return protocol === 'https:' || protocol === 'http:' ? url : undefined
+    } catch {
+        return undefined
+    }
+}
+
 interface PressAssetFile {
     name: string
     href: string
@@ -71,15 +86,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const i18n = getTranslations(locale as Locale)
 
+    // A fallback-served page canonicalizes to the locale that owns the prose
+    // (only content/press/en.md exists today) — see src/lib/content.ts.
+    const contentLocale = singletonLocaleFor('press', locale)
+
     return {
         ...metadataHelper({
+            locale: locale as Locale,
             title: `${i18n.pressTitle} | Peanut`,
             description: i18n.pressSubtitle,
-            canonical: `/${locale}/press`,
+            canonical: `/${contentLocale}/press`,
         }),
         alternates: {
-            canonical: `/${locale}/press`,
-            languages: getAlternates('press'),
+            canonical: `/${contentLocale}/press`,
+            languages: getAlternatesFor(availableSingletonLocales('press'), 'press'),
         },
     }
 }
@@ -165,19 +185,23 @@ export default async function PressPage({ params }: PageProps) {
                                     <Card key={group.label} className="gap-3 p-6">
                                         <h3 className="text-sm font-bold text-n-1">{group.label}</h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {group.files.map((file) => (
-                                                <a
-                                                    key={file.href}
-                                                    href={file.href}
-                                                    target={file.href.startsWith('http') ? '_blank' : undefined}
-                                                    rel={
-                                                        file.href.startsWith('http') ? 'noopener noreferrer' : undefined
-                                                    }
-                                                    className="rounded-sm border border-n-1 px-3 py-1.5 text-xs font-medium text-n-1 hover:bg-primary-3"
-                                                >
-                                                    {file.name}
-                                                </a>
-                                            ))}
+                                            {group.files.map((file) => {
+                                                const href = safeHttpUrl(file.href)
+                                                if (!href) return null
+                                                return (
+                                                    <a
+                                                        key={href}
+                                                        href={href}
+                                                        target={href.startsWith('http') ? '_blank' : undefined}
+                                                        rel={
+                                                            href.startsWith('http') ? 'noopener noreferrer' : undefined
+                                                        }
+                                                        className="rounded-sm border border-n-1 px-3 py-1.5 text-xs font-medium text-n-1 hover:bg-primary-3"
+                                                    >
+                                                        {file.name}
+                                                    </a>
+                                                )
+                                            })}
                                         </div>
                                     </Card>
                                 ))}
@@ -201,15 +225,21 @@ export default async function PressPage({ params }: PageProps) {
                             </div>
                             {fm.team_photos && fm.team_photos.length > 0 && (
                                 <div className="grid grid-cols-4 gap-2">
-                                    {fm.team_photos.map((src) => (
-                                        <a key={src} href={src} target="_blank" rel="noopener noreferrer">
-                                            <img
-                                                src={src}
-                                                alt="Peanut team"
-                                                className="aspect-square rounded-sm border border-n-1 object-cover hover:opacity-80"
-                                            />
-                                        </a>
-                                    ))}
+                                    {fm.team_photos.map((src) => {
+                                        const href = safeHttpUrl(src)
+                                        if (!href) return null
+                                        return (
+                                            <a
+                                                key={href}
+                                                href={href}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="relative aspect-square overflow-hidden rounded-sm border border-n-1 hover:opacity-80"
+                                            >
+                                                <Image src={href} alt="Peanut team" fill className="object-cover" />
+                                            </a>
+                                        )
+                                    })}
                                 </div>
                             )}
                             {fm.team_photos_note && <p className="text-xs text-grey-1">{fm.team_photos_note}</p>}
