@@ -565,6 +565,40 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(mockPush).not.toHaveBeenCalledWith('/profile/peanut')
     })
 
+    it('names the campaign and the reason in the unavailable warning, as a string', async () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        mockSearch = 'badge_campaign=utm:pix,retired'
+        mockQueryResult.data = { success: true, attributionResolved: true, onboardingResolved: true, username: '' }
+        mockClaimBadgeCampaigns.mockResolvedValue({
+            transport: 'canonical',
+            pending: [],
+            claims: [
+                { badgeCampaign: 'utm:pix', outcome: 'unknown' },
+                { badgeCampaign: 'retired', outcome: 'expired' },
+            ],
+        })
+
+        render(<InvitesPage />)
+
+        await waitFor(() =>
+            expect(warn).toHaveBeenCalledWith(
+                'Badge campaign unavailable; continuing normally',
+                'utm:pix=unknown, retired=expired'
+            )
+        )
+
+        // The regression this pins. Sentry serializes each console argument, so the
+        // previous object payload reached production as the literal "[object Object]"
+        // and the warning named neither the campaign nor the reason (PEANUT-UI-SJC).
+        const call = warn.mock.calls.find(([message]) => message === 'Badge campaign unavailable; continuing normally')
+        expect(typeof call?.[1]).toBe('string')
+
+        // The message must stay constant, or Sentry opens a new issue per campaign.
+        expect(call?.[0]).toBe('Badge campaign unavailable; continuing normally')
+
+        warn.mockRestore()
+    })
+
     it('returns existing-user login to code-only badge acquisition before normal fallback', async () => {
         mockAuth.user = null
         mockSearch = 'code=offramp'

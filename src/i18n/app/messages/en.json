@@ -193,6 +193,10 @@
                 "title": "Help us improve and <b>get $5!</b>",
                 "description": "Report a bug. Get rewarded! No questions asked."
             },
+            "userInterview": {
+                "title": "Help shape Peanut",
+                "description": "You're one of our most active users. Book a 15-min call with the team."
+            },
             "kyc": {
                 "title": "Unlock <b>QR code payments</b>",
                 "description": "Confirm your ID to pay with <b>Mercado Pago</b> and <b>PIX</b> QR codes"

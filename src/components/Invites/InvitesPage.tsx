@@ -148,12 +148,19 @@ function InvitePageContent() {
                         }
                     }
 
-                    const unavailable = batch.claims.some(isUnavailableBadgeCampaignClaim)
+                    const unavailable = batch.claims.filter(isUnavailableBadgeCampaignClaim)
                     const retryable = batch.pending.length > 0
-                    if (unavailable) {
-                        console.warn('Badge campaign unavailable; continuing normally', {
-                            claims: batch.claims,
-                        })
+                    if (unavailable.length > 0) {
+                        // Pre-joined into ONE string, matching useZeroDev.ts. Sentry's
+                        // console integration serializes each console argument, so an
+                        // object holding an array of claims landed in the issue as the
+                        // literal "[object Object]" — which campaign and why, the only
+                        // two facts worth logging, were both unreadable. Keep the
+                        // message constant so Sentry groups these into one issue.
+                        console.warn(
+                            'Badge campaign unavailable; continuing normally',
+                            unavailable.map(({ badgeCampaign, outcome }) => `${badgeCampaign}=${outcome}`).join(', ')
+                        )
                     }
                     if (retryable) {
                         captureException(new Error('invite-page campaign claim retained for retry'), {

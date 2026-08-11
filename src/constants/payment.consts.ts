@@ -42,17 +42,19 @@ export const MIN_PIX_AMOUNT_BRL = 1
 export const BRIDGE_DEVELOPER_FEE_RATE = 0
 
 /**
- * Static fallback for the card-vs-local-rail markup. The live source of truth
- * is `getCardMarkupRate` in `app/actions/card-comparison.ts` — for ARS that
- * fetches BCRA official live (the spread fluctuates daily), for BRL it just
- * returns the value here (IOF is statutory, slow-moving). These constants
- * cover the static cases AND the eligibility gate (`hasCardMarkupComparison`)
- * — only currencies in this map render the "vs card" surfaces at all.
+ * Static fallback for the card-vs-local-rail markup. The model itself lives in
+ * the backend at `GET /fx/card-markup` (see peanut-api-ts `docs/FX.md`), which
+ * computes ARS live against the official rate and serves BRL from its own
+ * dated table. This map is the client's last resort when that call fails, AND
+ * the eligibility gate (`hasCardMarkupComparison`) — only currencies here
+ * render the "vs card" surfaces at all.
  *
- * - ARS: 9.13% — historical empirical figure for the BCRA-vs-MEP rate spread
- *        + issuer markup. Used only when the live BCRA fetch fails.
- * - BRL: 7% — IOF on foreign card purchases (3.5% as of 2025, phasing to 0
- *        by 2028) + typical issuer FX markup ~3%. No live source today.
+ * Keep the values aligned with the backend's `CARD_MARKUP_STATIC_PCT`.
+ *
+ * - ARS: 9.13% — historical empirical figure for the official-vs-local-rail
+ *        rate spread + issuer markup.
+ * - BRL: 7% — IOF on foreign card purchases (3.5% as of 2026, phasing to 0
+ *        by 2028) + typical issuer FX markup ~3%.
  *
  * Only currencies with a real card-vs-local-rail gap belong here. USD / EUR /
  * GBP / MXN spend doesn't show a meaningful enough delta to be a marketing
