@@ -70,3 +70,33 @@ export function wireErrorCode(error: unknown): string | undefined {
     const code = (error as { code?: unknown }).code
     return typeof code === 'string' && code.length > 0 ? code : undefined
 }
+
+/**
+ * Reads the HTTP status off a thrown value, but ONLY for our own ApiError
+ * (matched by name, not instanceof, to survive serialization boundaries).
+ * Third-party errors carry unrelated numeric fields (ethers `status`,
+ * EIP-1193 codes), so an unguarded read would misclassify them.
+ */
+export function apiErrorStatus(error: unknown): number | undefined {
+    if (!error || typeof error !== 'object') return undefined
+    if ((error as { name?: unknown }).name !== 'ApiError') return undefined
+    const status = (error as { status?: unknown }).status
+    return typeof status === 'number' && Number.isFinite(status) ? status : undefined
+}
+
+/** Builds an ApiError from a failed Response, best-effort parsing the body for
+ *  the backend's `message`/`code`. Never throws. */
+export async function apiErrorFromResponse(response: Response, fallbackMessage: string): Promise<ApiError> {
+    let message = fallbackMessage
+    let code: string | undefined
+    try {
+        const body = await response.text()
+        const parsed = JSON.parse(body) as { message?: unknown; error?: unknown; code?: unknown }
+        if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
+        else if (typeof parsed.error === 'string' && parsed.error) message = parsed.error
+        if (typeof parsed.code === 'string' && parsed.code) code = parsed.code
+    } catch {
+        // unreadable or non-JSON body — keep the fallback message
+    }
+    return new ApiError(message, { status: response.status, code })
+}

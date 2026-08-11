@@ -2824,6 +2824,7 @@
         "sendLinkAlreadyClaimed": "El enlace de envío ya fue reclamado.",
         "lowLiquidity": "Baja liquidez. Prueba con un monto menor o una ruta diferente.",
         "networkBusyTimeout": "La red está congestionada y tu solicitud expiró. Inténtalo de nuevo en un momento.",
+        "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte.",
         "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",
