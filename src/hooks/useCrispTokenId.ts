@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/authContext'
 import { apiFetch } from '@/utils/api-fetch'
 
+/** How many times to retry the token fetch before giving up for this mount. */
+const MAX_ATTEMPTS = 3
+
 /**
  * Fetch the current user's Crisp session token from the API.
  *
@@ -12,12 +15,17 @@ import { apiFetch } from '@/utils/api-fetch'
  * sees the secret. It used to be computed here from a shipped salt plus the
  * userId, which let anyone reproduce anyone's token.
  *
+ * The route echoes the userId it derived the token from. We check it against the
+ * account we are fetching for and discard a mismatch, so a stale auth token
+ * (shared-device account switch) can never bind the widget to the wrong user.
+ *
  * @see https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/session-continuity/
  */
-async function fetchCrispToken(): Promise<string | undefined> {
+async function fetchCrispToken(expectedUserId: string): Promise<string | undefined> {
     const res = await apiFetch('/user/crisp-token')
     if (!res.ok) return undefined
-    const data = (await res.json()) as { crispTokenId?: unknown }
+    const data = (await res.json()) as { crispTokenId?: unknown; userId?: unknown }
+    if (data.userId !== expectedUserId) return undefined
     return typeof data.crispTokenId === 'string' ? data.crispTokenId : undefined
 }
 
@@ -39,22 +47,29 @@ export function useCrispTokenId(): string | undefined {
             return
         }
 
+        // Reset to THIS user's cached token (or undefined) before any fetch, so an
+        // account switch never leaves the previous user's token in state while the
+        // new user's token is still loading.
         const cached = tokenCache.get(userId)
-        if (cached) {
-            setTokenId(cached)
-            return
-        }
+        setTokenId(cached)
+        if (cached) return
 
         let cancelled = false
-        fetchCrispToken()
-            .then((token) => {
-                if (cancelled || !token) return
-                tokenCache.set(userId, token)
-                setTokenId(token)
-            })
-            .catch(() => {
-                if (!cancelled) setTokenId(undefined)
-            })
+        ;(async () => {
+            for (let attempt = 0; attempt < MAX_ATTEMPTS && !cancelled; attempt++) {
+                if (attempt > 0) {
+                    await new Promise((resolve) => setTimeout(resolve, 300 * attempt))
+                    if (cancelled) return
+                }
+                const token = await fetchCrispToken(userId).catch(() => undefined)
+                if (cancelled) return
+                if (token) {
+                    tokenCache.set(userId, token)
+                    setTokenId(token)
+                    return
+                }
+            }
+        })()
 
         return () => {
             cancelled = true
