@@ -3,13 +3,44 @@ import { NextRequest } from 'next/server'
 import { getRewrittenUrl, isRewrite, unstable_doesMiddlewareMatch } from 'next/experimental/testing/server'
 import { config, proxy } from '@/proxy'
 import {
+    SPLIT_CANARY_GUIDE_PATHS,
+    SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION,
     SPLIT_EDGE_MARKER_HEADER,
-    SPLIT_RELEASED_GUIDE_PATHS,
+    SPLIT_ENGLISH_CANARY_PATH,
+    SPLIT_INDEX_RELEASE_HEADER,
+    SPLIT_MANIFEST_SHA256_HEADER,
     SPLIT_RAW_ROUTE_HEADER,
     SPLIT_RAW_ROUTE_VALUE,
     SPLIT_RAW_UNSAFE_HEADER,
     SPLIT_RAW_UNSAFE_VALUE,
 } from '@/utils/split-content-edge'
+
+const MANIFEST_SHA256 = '1'.repeat(64)
+
+function releaseDocument(
+    stage: 0 | 1 | 2 | 3,
+    options: {
+        index?: boolean
+        schemaVersion?: 1 | 2 | 3
+        manifestPaths?: string[]
+        releasedPaths?: string[]
+    } = {}
+): string {
+    const manifestPaths = options.manifestPaths ?? [...SPLIT_CANARY_GUIDE_PATHS]
+    const releasedPaths =
+        options.releasedPaths ?? (stage === 0 ? [] : stage === 1 ? [SPLIT_ENGLISH_CANARY_PATH] : manifestPaths)
+    return JSON.stringify({
+        version: SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION,
+        stage,
+        index: options.index ?? false,
+        manifest: {
+            schema_version: options.schemaVersion ?? 1,
+            sha256: MANIFEST_SHA256,
+            public_paths: manifestPaths,
+        },
+        released_paths: releasedPaths,
+    })
+}
 
 function runProxy(path: string, init?: ConstructorParameters<typeof NextRequest>[1]) {
     return proxy(new NextRequest(`https://peanut.me${path}`, init))
@@ -50,44 +81,109 @@ describe('API cache policy', () => {
     )
 })
 
-describe('Split B3b six-guide production edge', () => {
+describe('Split manifest-backed production edge', () => {
     const marker = 'server-only-test-marker-at-least-32-bytes'
     const previous = {
         marker: process.env.SPLIT_CONTENT_EDGE_MARKER,
         origin: process.env.SPLIT_CONTENT_ORIGIN,
+        release: process.env.SPLIT_CONTENT_RELEASE_DOCUMENT,
     }
 
     beforeEach(() => {
         process.env.SPLIT_CONTENT_EDGE_MARKER = marker
         process.env.SPLIT_CONTENT_ORIGIN = 'https://renderer.example'
+        process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(2)
     })
 
     afterAll(() => {
         restoreEnv('SPLIT_CONTENT_EDGE_MARKER', previous.marker)
         restoreEnv('SPLIT_CONTENT_ORIGIN', previous.origin)
+        restoreEnv('SPLIT_CONTENT_RELEASE_DOCUMENT', previous.release)
     })
 
-    it.each(SPLIT_RELEASED_GUIDE_PATHS)('rewrites exact released page %s to the same renderer path', (pathname) => {
+    it.each(SPLIT_CANARY_GUIDE_PATHS)('rewrites exact released page %s to the same renderer path', (pathname) => {
         const response = runCanonicalSplitProxy(`${pathname}?utm_source=production`)
 
         expect(isRewrite(response)).toBe(true)
         expect(getRewrittenUrl(response)).toBe(`https://renderer.example${pathname}?utm_source=production`)
     })
 
-    it.each([
-        '/split-static/_next/static/chunks/app.js?v=digest',
-        '/split-static/fonts/peanut.woff2',
-        '/split-sitemap.xml',
-    ])('rewrites support path and query without remapping it: %s', (path) => {
-        expect(getRewrittenUrl(runCanonicalSplitProxy(path))).toBe(`https://renderer.example${path}`)
+    it('keeps stage 0 fully dark even when transport credentials are ready', () => {
+        delete process.env.SPLIT_CONTENT_RELEASE_DOCUMENT
+
+        for (const pathname of [SPLIT_ENGLISH_CANARY_PATH, '/split-static/a.js', '/split-sitemap.xml']) {
+            const response = runCanonicalSplitProxy(pathname)
+            expect(response.status).toBe(404)
+            expect(response.body).toBeNull()
+            expect(response.headers.get('cache-control')).toBe('private, no-store')
+            expect(response.headers.get('x-robots-tag')).toContain('noindex')
+            expect(isRewrite(response)).toBe(false)
+        }
+    })
+
+    it('releases exactly one English canary at stage 1', () => {
+        process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(1)
+
+        expect(isRewrite(runCanonicalSplitProxy(SPLIT_ENGLISH_CANARY_PATH))).toBe(true)
+        for (const pathname of SPLIT_CANARY_GUIDE_PATHS.slice(1)) {
+            const response = runCanonicalSplitProxy(pathname)
+            expect(response.status).toBe(404)
+            expect(isRewrite(response)).toBe(false)
+        }
+    })
+
+    it('releases only exact manifest-backed future routes at stage 3', () => {
+        const futurePaths = [
+            ...SPLIT_CANARY_GUIDE_PATHS,
+            '/en/split',
+            '/en/split/alternatives/splitwise',
+            '/en/split/tools',
+            '/en/split/tools/rent',
+        ].sort()
+        process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(3, {
+            schemaVersion: 2,
+            manifestPaths: futurePaths,
+            releasedPaths: futurePaths,
+        })
+
+        for (const pathname of futurePaths) expect(isRewrite(runCanonicalSplitProxy(pathname))).toBe(true)
+        expect(runCanonicalSplitProxy('/en/split/tools/unknown').status).toBe(404)
+        expect(runCanonicalSplitProxy('/es-419/split/tools').status).toBe(404)
+    })
+
+    it('returns a private 503 for a malformed release document', () => {
+        process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = '{'
+        const response = runCanonicalSplitProxy(SPLIT_ENGLISH_CANARY_PATH)
+
+        expect(response.status).toBe(503)
+        expect(response.body).toBeNull()
+        expect(response.headers.get('cache-control')).toBe('private, no-store')
+        expect(response.headers.get('x-robots-tag')).toContain('noindex')
+    })
+
+    it.each(['/split-static/_next/static/chunks/app.js?v=digest', '/split-static/fonts/peanut.woff2'])(
+        'rewrites support path and query without remapping it: %s',
+        (path) => {
+            expect(getRewrittenUrl(runCanonicalSplitProxy(path))).toBe(`https://renderer.example${path}`)
+        }
+    )
+
+    it('keeps the Split sitemap dark until the same release document enables indexing', () => {
+        expect(runCanonicalSplitProxy('/split-sitemap.xml').status).toBe(404)
+        process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(2, { index: true })
+        expect(getRewrittenUrl(runCanonicalSplitProxy('/split-sitemap.xml'))).toBe(
+            'https://renderer.example/split-sitemap.xml'
+        )
     })
 
     it.each([
-        [SPLIT_RELEASED_GUIDE_PATHS[0], {}],
-        [`${SPLIT_RELEASED_GUIDE_PATHS[0]}?_rsc=opaque`, { rsc: '1', 'next-router-state-tree': 'opaque-tree' }],
+        [SPLIT_CANARY_GUIDE_PATHS[0], {}],
+        [`${SPLIT_CANARY_GUIDE_PATHS[0]}?_rsc=opaque`, { rsc: '1', 'next-router-state-tree': 'opaque-tree' }],
         ['/split-static/_next/static/chunks/app.js', { range: 'bytes=0-99' }],
         ['/split-sitemap.xml', { accept: 'application/xml' }],
     ] as const)('sanitizes every forwarded request class: %s', (path, classHeaders) => {
+        const indexReleased = path === '/split-sitemap.xml'
+        if (indexReleased) process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(2, { index: true })
         const response = runCanonicalSplitProxy(path, {
             headers: {
                 authorization: 'Bearer private',
@@ -96,6 +192,8 @@ describe('Split B3b six-guide production edge', () => {
                 host: 'spoof.example',
                 'proxy-authorization': 'Basic private',
                 [SPLIT_EDGE_MARKER_HEADER]: 'caller-spoof',
+                [SPLIT_MANIFEST_SHA256_HEADER]: 'caller-spoof',
+                [SPLIT_INDEX_RELEASE_HEADER]: '1',
                 [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE,
                 'x-api-key': 'private-key',
                 'x-forwarded-for': 'private-client-ip',
@@ -128,6 +226,10 @@ describe('Split B3b six-guide production edge', () => {
             expect(response.headers.get(`x-middleware-request-${name}`)).toBeNull()
         }
         expect(response.headers.get(`x-middleware-request-${SPLIT_EDGE_MARKER_HEADER}`)).toBe(marker)
+        expect(response.headers.get(`x-middleware-request-${SPLIT_MANIFEST_SHA256_HEADER}`)).toBe(MANIFEST_SHA256)
+        expect(response.headers.get(`x-middleware-request-${SPLIT_INDEX_RELEASE_HEADER}`)).toBe(
+            indexReleased ? '1' : '0'
+        )
         expect(response.headers.get(`x-middleware-request-${SPLIT_RAW_ROUTE_HEADER}`)).toBeNull()
         expect(response.headers.get(`x-middleware-request-${SPLIT_RAW_UNSAFE_HEADER}`)).toBeNull()
         expect(response.headers.get('x-middleware-request-x-forwarded-host')).toBe('peanut.me')
@@ -135,7 +237,7 @@ describe('Split B3b six-guide production edge', () => {
     })
 
     it('preserves the RSC header, router state, and query through the rewrite', () => {
-        const response = runCanonicalSplitProxy(`${SPLIT_RELEASED_GUIDE_PATHS[0]}?_rsc=opaque`, {
+        const response = runCanonicalSplitProxy(`${SPLIT_CANARY_GUIDE_PATHS[0]}?_rsc=opaque`, {
             headers: {
                 accept: 'text/x-component',
                 rsc: '1',
@@ -146,7 +248,7 @@ describe('Split B3b six-guide production edge', () => {
             },
         })
 
-        expect(getRewrittenUrl(response)).toBe(`https://renderer.example${SPLIT_RELEASED_GUIDE_PATHS[0]}?_rsc=opaque`)
+        expect(getRewrittenUrl(response)).toBe(`https://renderer.example${SPLIT_CANARY_GUIDE_PATHS[0]}?_rsc=opaque`)
         expect(response.headers.get('x-middleware-request-accept')).toBe('text/x-component')
         expect(response.headers.get('x-middleware-request-rsc')).toBe('1')
         expect(response.headers.get('x-middleware-request-next-router-prefetch')).toBe('1')
@@ -200,7 +302,7 @@ describe('Split B3b six-guide production edge', () => {
         expect(isRewrite(response)).toBe(false)
     })
 
-    it.each([SPLIT_RELEASED_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml'])(
+    it.each([SPLIT_CANARY_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml'])(
         'rejects normalized alias target %s when the raw-route stamp is absent or spoofed',
         (pathname) => {
             for (const spoofedValue of [undefined, 'caller-spoof', `${SPLIT_RAW_ROUTE_VALUE}, caller-spoof`]) {
@@ -230,7 +332,7 @@ describe('Split B3b six-guide production edge', () => {
     )
 
     it('lets the unsafe stamp win over a canonical stamp', () => {
-        const response = runUnsafeRawProxy(SPLIT_RELEASED_GUIDE_PATHS[0], {
+        const response = runUnsafeRawProxy(SPLIT_CANARY_GUIDE_PATHS[0], {
             headers: { [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE },
         })
 
@@ -251,7 +353,8 @@ describe('Split B3b six-guide production edge', () => {
     })
 
     it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('rejects %s on every forwarded class', (method) => {
-        for (const pathname of [SPLIT_RELEASED_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml']) {
+        process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(2, { index: true })
+        for (const pathname of [SPLIT_CANARY_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml']) {
             const response = runCanonicalSplitProxy(pathname, { method })
             expect(response.status).toBe(405)
             expect(response.body).toBeNull()
@@ -262,7 +365,8 @@ describe('Split B3b six-guide production edge', () => {
     })
 
     it.each(['GET', 'HEAD'])('allows %s on every forwarded class', (method) => {
-        for (const pathname of [SPLIT_RELEASED_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml']) {
+        process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(2, { index: true })
+        for (const pathname of [SPLIT_CANARY_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml']) {
             expect(isRewrite(runCanonicalSplitProxy(pathname, { method }))).toBe(true)
         }
     })
@@ -270,9 +374,10 @@ describe('Split B3b six-guide production edge', () => {
     it('is completely inert when both renderer values are absent', () => {
         delete process.env.SPLIT_CONTENT_EDGE_MARKER
         delete process.env.SPLIT_CONTENT_ORIGIN
+        delete process.env.SPLIT_CONTENT_RELEASE_DOCUMENT
 
         for (const pathname of [
-            SPLIT_RELEASED_GUIDE_PATHS[0],
+            SPLIT_CANARY_GUIDE_PATHS[0],
             '/en/%73plit/guides/unknown',
             '/split',
             '/split-static/a.js',
@@ -284,7 +389,7 @@ describe('Split B3b six-guide production edge', () => {
             expect(response.headers.get('x-robots-tag')).toBeNull()
         }
 
-        for (const pathname of [SPLIT_RELEASED_GUIDE_PATHS[0], '/en/%73plit/guides/unknown']) {
+        for (const pathname of [SPLIT_CANARY_GUIDE_PATHS[0], '/en/%73plit/guides/unknown']) {
             const response = runProxy(`${pathname}?promo=x&id=y`)
             expect(response.status).toBe(200)
             expect(response.headers.get('location')).toBeNull()
@@ -305,7 +410,7 @@ describe('Split B3b six-guide production edge', () => {
         restoreEnv('SPLIT_CONTENT_EDGE_MARKER', configuredMarker)
         restoreEnv('SPLIT_CONTENT_ORIGIN', configuredOrigin)
 
-        const response = runProxy(SPLIT_RELEASED_GUIDE_PATHS[0])
+        const response = runProxy(SPLIT_CANARY_GUIDE_PATHS[0])
 
         expect(response.status).toBe(503)
         expect(response.body).toBeNull()
@@ -318,7 +423,7 @@ describe('Split B3b six-guide production edge', () => {
 
     it('fails closed instead of recursively rewriting to the public origin', () => {
         process.env.SPLIT_CONTENT_ORIGIN = 'https://peanut.me'
-        expect(runCanonicalSplitProxy(SPLIT_RELEASED_GUIDE_PATHS[0]).status).toBe(503)
+        expect(runCanonicalSplitProxy(SPLIT_CANARY_GUIDE_PATHS[0]).status).toBe(503)
     })
 
     it('leaves unrelated product and marketing routes unchanged while configured', () => {
@@ -328,7 +433,9 @@ describe('Split B3b six-guide production edge', () => {
     })
 
     it.each([
-        ...SPLIT_RELEASED_GUIDE_PATHS,
+        ...SPLIT_CANARY_GUIDE_PATHS,
+        '/en/split/alternatives/splitwise',
+        '/en/split/tools/rent-split-calculator',
         '/split',
         '/split/unknown',
         '/fr/split/guides/unknown',

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
+import { SPLIT_SITEMAP_PATH, splitContentIndexReleased } from '@/utils/split-content-edge'
 
 const IS_PRODUCTION_DOMAIN = BASE_URL === 'https://peanut.me'
 
@@ -89,6 +90,8 @@ export default function robots(): MetadataRoute.Robots {
             { userAgent: 'SemrushBot', crawlDelay: 10 },
             { userAgent: 'MJ12bot', crawlDelay: 10 },
         ],
-        sitemap: `${BASE_URL}/sitemap.xml`,
+        sitemap: splitContentIndexReleased(process.env.SPLIT_CONTENT_RELEASE_DOCUMENT)
+            ? [`${BASE_URL}/sitemap.xml`, `${BASE_URL}${SPLIT_SITEMAP_PATH}`]
+            : `${BASE_URL}/sitemap.xml`,
     }
 }

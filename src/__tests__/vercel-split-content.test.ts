@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
-    SPLIT_RELEASED_GUIDE_PATHS,
+    SPLIT_CANARY_GUIDE_PATHS,
     SPLIT_RAW_ROUTE_HEADER,
     SPLIT_RAW_ROUTE_VALUE,
     SPLIT_RAW_UNSAFE_HEADER,
@@ -83,7 +83,14 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
     })
 
     it.each([
-        ...SPLIT_RELEASED_GUIDE_PATHS,
+        ...SPLIT_CANARY_GUIDE_PATHS,
+        '/en/split',
+        '/es-419/split',
+        '/pt-br/split',
+        '/en/split/guides/future-guide',
+        '/pt-br/split/alternatives/splitwise',
+        '/en/split/tools',
+        '/en/split/tools/rent-split-calculator',
         '/split-static/_next/static/chunks/app.js',
         '/split-static/fonts/peanut.woff2',
         '/split-static/_next/static/chunks/app/(split-content)/en/split/guides/%5Bslug%5D/page-de3ece0880ae6ac0.js',
@@ -109,6 +116,8 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
         '/split-sitemap.xml/%2e%2e/home',
         '/en/split/guides/split-expenses-across-currencies/%2e%2e/%2e%2e/%2e%2e/%2e%2e/home',
         '/en/split/%2e%2e/%2e%2e/api/exchange-rate',
+        '/en/split/tools/%2e%2e/%2e%2e/home',
+        '/pt-br/split/alternatives/splitwise/%2e%2e/%2e%2e/%2e%2e/home',
         '/split-static/../home',
         '/split-static/./a.js',
         '/split-static/a/../../home',
@@ -146,9 +155,11 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
 
     it.each([
         '/split',
-        '/en/split',
-        '/en/split/guides/unknown',
         '/fr/split/guides/split-expenses-across-currencies',
+        '/es-419/split/tools',
+        '/pt-br/split/tools/rent',
+        '/en/split/guides/Bad-Slug',
+        '/en/split/alternatives/a/b',
         '/en/split/guides/split-expenses-across-currencies/extra',
         '/split-static',
         '/split-sitemap.xml/extra',

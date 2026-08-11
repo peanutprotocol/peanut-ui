@@ -160,7 +160,8 @@ function isSupplementalEncodedMatcherOnly(pathname: string): boolean {
 function handleSplitContentEdge(request: NextRequest): NextResponse | null {
     const edgeConfig = resolveSplitContentEdgeConfig(
         process.env.SPLIT_CONTENT_ORIGIN,
-        process.env.SPLIT_CONTENT_EDGE_MARKER
+        process.env.SPLIT_CONTENT_EDGE_MARKER,
+        process.env.SPLIT_CONTENT_RELEASE_DOCUMENT
     )
 
     // The platform sees structural hazards before WHATWG normalization and
@@ -174,17 +175,30 @@ function handleSplitContentEdge(request: NextRequest): NextResponse | null {
         return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
     }
 
-    const route = classifySplitContentRequest(request.nextUrl.pathname, request.headers.get('rsc'))
+    const route = classifySplitContentRequest(
+        request.nextUrl.pathname,
+        request.headers.get('rsc'),
+        edgeConfig.state === 'ready' && edgeConfig.release ? edgeConfig.release.publicPaths : undefined
+    )
     if (route.action === 'pass') return null
 
     // A completely unconfigured deployment keeps today's routing byte-for-byte.
-    // Once either value is supplied, the boundary is live and fails closed.
+    // Once any Split edge value is supplied, the boundary is live and fails closed.
     if (edgeConfig.state === 'disabled') return NextResponse.next()
     if (edgeConfig.state === 'invalid') {
         return new NextResponse(null, { status: 503, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
     }
 
     if (route.action === 'not-found') {
+        return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+
+    // Origin credentials may be deployed before any public content. Without a
+    // release document this boundary is active but dark (stage 0).
+    if (!edgeConfig.release) {
+        return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
+    }
+    if (route.kind === 'sitemap' && !edgeConfig.release.indexReleased) {
         return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
     }
 
@@ -210,7 +224,12 @@ function handleSplitContentEdge(request: NextRequest): NextResponse | null {
     }
 
     const destination = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, edgeConfig.origin)
-    const headers = splitContentForwardHeaders(request.headers, request.nextUrl.host, edgeConfig.marker)
+    const headers = splitContentForwardHeaders(
+        request.headers,
+        request.nextUrl.host,
+        edgeConfig.marker,
+        edgeConfig.release
+    )
     return NextResponse.rewrite(destination, { request: { headers } })
 }
 

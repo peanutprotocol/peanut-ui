@@ -1,9 +1,9 @@
-import { SPLIT_RELEASED_GUIDE_PATHS, splitContentServiceWorkerMatcher } from '@/utils/split-content-edge'
+import { SPLIT_CANARY_GUIDE_PATHS, splitContentServiceWorkerMatcher } from '@/utils/split-content-edge'
 
 const matches = (pathname: string) => splitContentServiceWorkerMatcher({ url: new URL(pathname, 'https://peanut.me') })
 
 describe('parent service-worker Split isolation', () => {
-    it.each([...SPLIT_RELEASED_GUIDE_PATHS, '/split-static/_next/static/chunks/app.js', '/split-sitemap.xml'])(
+    it.each([...SPLIT_CANARY_GUIDE_PATHS, '/split-static/_next/static/chunks/app.js', '/split-sitemap.xml'])(
         'uses NetworkOnly matching for forwarded path %s',
         (pathname) => {
             expect(matches(pathname)).toBe(true)
@@ -13,7 +13,11 @@ describe('parent service-worker Split isolation', () => {
     it.each([
         '/split',
         '/split/unknown',
+        '/en/split',
         '/en/split/guides/unknown',
+        '/pt-br/split/alternatives/splitwise',
+        '/en/split/tools',
+        '/en/split/tools/rent-split-calculator',
         '/fr/split/guides/split-expenses-across-currencies',
         '/split-static',
         '/split-sitemap.xml/extra',

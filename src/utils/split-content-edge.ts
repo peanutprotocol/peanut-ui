@@ -1,17 +1,22 @@
-// B3b releases exactly the A1 two-slug, three-locale canary matrix. Keep this
-// literal and fail closed for every other path in the owned Split namespace.
-export const SPLIT_RELEASED_GUIDE_PATHS = [
+// These are the current renderer canary outputs, not an authorization list.
+// Production release authorization comes only from SPLIT_CONTENT_RELEASE_DOCUMENT.
+export const SPLIT_CANARY_GUIDE_PATHS = [
     '/en/split/guides/split-a-group-trip-across-countries',
-    '/es-419/split/guides/split-a-group-trip-across-countries',
-    '/pt-br/split/guides/split-a-group-trip-across-countries',
     '/en/split/guides/split-expenses-across-currencies',
+    '/es-419/split/guides/split-a-group-trip-across-countries',
     '/es-419/split/guides/split-expenses-across-currencies',
+    '/pt-br/split/guides/split-a-group-trip-across-countries',
     '/pt-br/split/guides/split-expenses-across-currencies',
 ] as const
+export const SPLIT_ENGLISH_CANARY_PATH = SPLIT_CANARY_GUIDE_PATHS[0]
 
 export const SPLIT_ASSET_PREFIX = '/split-static'
 export const SPLIT_SITEMAP_PATH = '/split-sitemap.xml'
+export const SPLIT_CONTENT_RELEASE_DOCUMENT_ENV = 'SPLIT_CONTENT_RELEASE_DOCUMENT'
+export const SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION = 1
 export const SPLIT_EDGE_MARKER_HEADER = 'x-peanut-split-edge-marker'
+export const SPLIT_MANIFEST_SHA256_HEADER = 'x-peanut-split-manifest-sha256'
+export const SPLIT_INDEX_RELEASE_HEADER = 'x-peanut-split-index-released'
 export const SPLIT_RAW_ROUTE_HEADER = 'x-peanut-split-raw-route'
 export const SPLIT_RAW_ROUTE_VALUE = 'canonical-v1'
 export const SPLIT_RAW_UNSAFE_HEADER = 'x-peanut-split-raw-unsafe'
@@ -26,13 +31,38 @@ export type SplitContentRoute =
 export type SplitContentEdgeConfig =
     | { state: 'disabled' }
     | { state: 'invalid' }
-    | { state: 'ready'; marker: string; origin: URL }
+    | { state: 'ready'; marker: string; origin: URL; release: SplitContentRelease | null }
 
-const RELEASED_GUIDE_PATHS = new Set<string>(SPLIT_RELEASED_GUIDE_PATHS)
+export interface SplitContentRelease {
+    stage: 0 | 1 | 2 | 3
+    manifestSchemaVersion: 1 | 2 | 3
+    manifestSha256: string
+    manifestPublicPaths: ReadonlySet<string>
+    publicPaths: ReadonlySet<string>
+    indexReleased: boolean
+}
+
+type SplitContentReleaseDocument = {
+    version: typeof SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION
+    stage: SplitContentRelease['stage']
+    index: boolean
+    manifest: {
+        schema_version: SplitContentRelease['manifestSchemaVersion']
+        sha256: string
+        public_paths: string[]
+    }
+    released_paths: string[]
+}
+
 const MAXIMUM_PERCENT_DECODE_PASSES = 8
 const MINIMUM_MARKER_BYTES = 32
+const MAXIMUM_RELEASE_DOCUMENT_BYTES = 32 * 1024
+const MAXIMUM_RELEASE_PATHS = 512
 const PRINTABLE_ASCII = /^[\x21-\x7e]+$/
 const PERCENT_ESCAPE = /%[0-9a-f]{2}/i
+const MANIFEST_SHA256 = /^(?!0{64}$)[0-9a-f]{64}$/
+const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PUBLIC_LOCALES = new Set(['en', 'es-419', 'pt-br'])
 
 const FORWARDED_REQUEST_HEADERS = new Set([
     'accept',
@@ -63,8 +93,26 @@ function isSplitPageNamespace(pathname: string): boolean {
     return segments[0] === '' && Boolean(segments[1]) && segments[2] === 'split'
 }
 
-function classifyCanonicalSplitContentRequest(pathname: string, rscHeader: string | null): SplitContentRoute {
-    if (RELEASED_GUIDE_PATHS.has(pathname)) {
+export function isSupportedSplitContentPublicPath(pathname: string): boolean {
+    const segments = pathname.split('/')
+    const locale = segments[1]
+    if (segments[0] !== '' || !PUBLIC_LOCALES.has(locale) || segments[2] !== 'split') return false
+
+    const tail = segments.slice(3)
+    if (tail.length === 0) return true
+    if (tail[0] === 'tools') {
+        return locale === 'en' && (tail.length === 1 || (tail.length === 2 && PUBLIC_SLUG.test(tail[1])))
+    }
+    return tail.length === 2 && (tail[0] === 'guides' || tail[0] === 'alternatives') && PUBLIC_SLUG.test(tail[1])
+}
+
+function classifyCanonicalSplitContentRequest(
+    pathname: string,
+    rscHeader: string | null,
+    releasedPaths: ReadonlySet<string>
+): SplitContentRoute {
+    if (isSupportedSplitContentPublicPath(pathname)) {
+        if (!releasedPaths.has(pathname)) return { action: 'not-found' }
         return { action: 'forward', kind: rscHeader === '1' ? 'rsc' : 'html' }
     }
 
@@ -117,8 +165,12 @@ function normalizeDecodedPathname(pathname: string): string | null {
     }
 }
 
-export function classifySplitContentRequest(pathname: string, rscHeader: string | null): SplitContentRoute {
-    const direct = classifyCanonicalSplitContentRequest(pathname, rscHeader)
+export function classifySplitContentRequest(
+    pathname: string,
+    rscHeader: string | null,
+    releasedPaths: ReadonlySet<string> = new Set()
+): SplitContentRoute {
+    const direct = classifyCanonicalSplitContentRequest(pathname, rscHeader, releasedPaths)
     if (direct.action !== 'pass') return direct
     if (!PERCENT_ESCAPE.test(pathname)) return direct
 
@@ -131,7 +183,7 @@ export function classifySplitContentRequest(pathname: string, rscHeader: string 
     // Encoded aliases of an owned or blocked Split path are never forwarded.
     // Only the literal released public path/assets/sitemap are canonical at the edge.
     for (const candidate of new Set([decoded, normalized])) {
-        if (classifyCanonicalSplitContentRequest(candidate, rscHeader).action !== 'pass') {
+        if (classifyCanonicalSplitContentRequest(candidate, rscHeader, releasedPaths).action !== 'pass') {
             return { action: 'not-found' }
         }
     }
@@ -147,11 +199,116 @@ export function splitContentServiceWorkerMatcher({ url }: { url: URL }): boolean
     return isSplitContentPathname(url.pathname)
 }
 
+function samePaths(left: readonly string[], right: readonly string[]): boolean {
+    return left.length === right.length && left.every((path, index) => path === right[index])
+}
+
+function parseCanonicalPublicPaths(value: unknown, allowEmpty: boolean): string[] | null {
+    if (!Array.isArray(value) || value.length > MAXIMUM_RELEASE_PATHS || (!allowEmpty && value.length === 0)) {
+        return null
+    }
+
+    const paths: string[] = []
+    for (const path of value) {
+        if (typeof path !== 'string' || !isSupportedSplitContentPublicPath(path)) return null
+        if (paths.length > 0 && paths[paths.length - 1] >= path) return null
+        paths.push(path)
+    }
+    return paths
+}
+
+export function resolveSplitContentRelease(
+    value: string | undefined
+): { state: 'closed' } | { state: 'invalid' } | { state: 'ready'; release: SplitContentRelease } {
+    if (value === undefined || value === '') return { state: 'closed' }
+    if (new TextEncoder().encode(value).byteLength > MAXIMUM_RELEASE_DOCUMENT_BYTES) return { state: 'invalid' }
+
+    let parsed: unknown
+    try {
+        parsed = JSON.parse(value)
+    } catch {
+        return { state: 'invalid' }
+    }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return { state: 'invalid' }
+
+    const candidate = parsed as Partial<SplitContentReleaseDocument>
+    const manifest = candidate.manifest as Partial<SplitContentReleaseDocument['manifest']> | undefined
+    if (
+        candidate.version !== SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION ||
+        ![0, 1, 2, 3].includes(candidate.stage as number) ||
+        typeof candidate.index !== 'boolean' ||
+        typeof manifest !== 'object' ||
+        manifest === null ||
+        ![1, 2, 3].includes(manifest.schema_version as number) ||
+        typeof manifest.sha256 !== 'string' ||
+        !MANIFEST_SHA256.test(manifest.sha256)
+    ) {
+        return { state: 'invalid' }
+    }
+
+    const manifestPaths = parseCanonicalPublicPaths(manifest.public_paths, false)
+    const releasedPaths = parseCanonicalPublicPaths(candidate.released_paths, true)
+    if (!manifestPaths || !releasedPaths) return { state: 'invalid' }
+
+    const manifestPathSet = new Set(manifestPaths)
+    if (releasedPaths.some((path) => !manifestPathSet.has(path))) return { state: 'invalid' }
+    if (manifest.schema_version === 1 && manifestPaths.some((path) => !path.includes('/split/guides/'))) {
+        return { state: 'invalid' }
+    }
+
+    const stage = candidate.stage as SplitContentRelease['stage']
+    const schemaVersion = manifest.schema_version as SplitContentRelease['manifestSchemaVersion']
+    if (stage === 0 && (releasedPaths.length !== 0 || candidate.index)) return { state: 'invalid' }
+    if (stage === 1 && (!samePaths(releasedPaths, [SPLIT_ENGLISH_CANARY_PATH]) || candidate.index)) {
+        return { state: 'invalid' }
+    }
+    if (stage === 2 && !samePaths(releasedPaths, SPLIT_CANARY_GUIDE_PATHS)) return { state: 'invalid' }
+    if (stage === 3 && (schemaVersion < 2 || !samePaths(releasedPaths, manifestPaths))) {
+        return { state: 'invalid' }
+    }
+    if (candidate.index && (stage < 2 || !samePaths(releasedPaths, manifestPaths))) {
+        return { state: 'invalid' }
+    }
+
+    const canonical: SplitContentReleaseDocument = {
+        version: SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION,
+        stage,
+        index: candidate.index,
+        manifest: {
+            schema_version: schemaVersion,
+            sha256: manifest.sha256,
+            public_paths: manifestPaths,
+        },
+        released_paths: releasedPaths,
+    }
+    // Byte-canonical JSON rejects duplicate/unknown keys, alternate key order,
+    // whitespace, and coercion before any value reaches routing.
+    if (JSON.stringify(canonical) !== value) return { state: 'invalid' }
+
+    return {
+        state: 'ready',
+        release: {
+            stage,
+            manifestSchemaVersion: schemaVersion,
+            manifestSha256: manifest.sha256,
+            manifestPublicPaths: manifestPathSet,
+            publicPaths: new Set(releasedPaths),
+            indexReleased: candidate.index,
+        },
+    }
+}
+
+export function splitContentIndexReleased(value: string | undefined): boolean {
+    const resolved = resolveSplitContentRelease(value)
+    return resolved.state === 'ready' && resolved.release.indexReleased
+}
+
 export function resolveSplitContentEdgeConfig(
     originValue: string | undefined,
-    markerValue: string | undefined
+    markerValue: string | undefined,
+    releaseValue: string | undefined = undefined
 ): SplitContentEdgeConfig {
-    if (!originValue && !markerValue) return { state: 'disabled' }
+    if (!originValue && !markerValue && !releaseValue) return { state: 'disabled' }
     if (!originValue || !markerValue) return { state: 'invalid' }
 
     let origin: URL
@@ -174,7 +331,15 @@ export function resolveSplitContentEdgeConfig(
         return { state: 'invalid' }
     }
 
-    return { state: 'ready', marker: markerValue, origin }
+    const release = resolveSplitContentRelease(releaseValue)
+    if (release.state === 'invalid') return { state: 'invalid' }
+
+    return {
+        state: 'ready',
+        marker: markerValue,
+        origin,
+        release: release.state === 'ready' ? release.release : null,
+    }
 }
 
 /**
@@ -182,13 +347,20 @@ export function resolveSplitContentEdgeConfig(
  * caller-supplied forwarding state, Vercel bypasses, and a spoofed marker are
  * excluded by construction while HTML negotiation and Next Flight survive.
  */
-export function splitContentForwardHeaders(requestHeaders: Headers, publicHost: string, marker: string): Headers {
+export function splitContentForwardHeaders(
+    requestHeaders: Headers,
+    publicHost: string,
+    marker: string,
+    release: SplitContentRelease
+): Headers {
     const forwarded = new Headers()
     for (const [name, value] of requestHeaders) {
         if (FORWARDED_REQUEST_HEADERS.has(name.toLowerCase())) forwarded.append(name, value)
     }
     forwarded.set('x-forwarded-host', publicHost)
     forwarded.set(SPLIT_EDGE_MARKER_HEADER, marker)
+    forwarded.set(SPLIT_MANIFEST_SHA256_HEADER, release.manifestSha256)
+    forwarded.set(SPLIT_INDEX_RELEASE_HEADER, release.indexReleased ? '1' : '0')
     return forwarded
 }
 
