@@ -317,6 +317,18 @@ describe('fetchCardMarkup — card comparison contract', () => {
         await expect(fetchCardMarkup('BRL')).resolves.toBeNull()
     })
 
+    it.each(['0', '0.0', '0.00'])('treats %s as no comparison, not as a broken contract', async (zero) => {
+        // The wire pattern admits every one of these. Matching only "0" would
+        // send the rest down the invalid path and back to the static claim.
+        mockApiFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ ...staticMarkup, markupPct: zero }),
+        })
+
+        await expect(fetchCardMarkup('BRL')).resolves.toBeNull()
+    })
+
     it('publishes no comparison when a locked price does not beat the card', async () => {
         // The locked price is worse than the card's effective rate, so the real
         // saving is zero or negative. Falling back to the market markup would

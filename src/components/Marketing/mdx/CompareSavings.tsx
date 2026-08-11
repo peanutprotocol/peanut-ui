@@ -28,6 +28,7 @@ interface CompareSavingsProps {
 }
 
 const MAX_PLAUSIBLE_PCT = 50
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
 interface Claim {
     min: number
@@ -52,8 +53,13 @@ function parseClaim({ markupPct, verifiedAt, baseAmount }: CompareSavingsProps):
     // bound has to be positive — there must be some cost to state.
     if (min < 0 || max <= 0 || max >= MAX_PLAUSIBLE_PCT || min > max) return null
 
-    const verified = new Date(verifiedAt)
+    // Date rolls an overflow forward instead of rejecting it: "2026-02-30"
+    // becomes 2 March. The date is hand-authored in MDX, so a typo would
+    // publish a verification date that never happened. Round-trip it.
+    if (!ISO_DATE.test(verifiedAt)) return null
+    const verified = new Date(`${verifiedAt}T00:00:00.000Z`)
     if (Number.isNaN(verified.getTime())) return null
+    if (verified.toISOString().slice(0, 10) !== verifiedAt) return null
 
     const base = baseAmount === undefined ? 500 : Number(baseAmount)
     if (!Number.isFinite(base) || base <= 0) return null

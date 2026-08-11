@@ -199,9 +199,15 @@ function parseCardMarkupResponse(value: unknown, currency: string, lockedPeanutR
 
     // A well-formed zero is the backend stating there is no gap to show. That
     // is an answer, not a fault, and it must not fall back to an assumption.
-    if (data.markupPct === '0') return NONE
-    const markupPct = positiveDecimal(data.markupPct)
-    if (markupPct === null) return INVALID
+    //
+    // Compare the parsed value, not the literal text: the wire pattern also
+    // admits "0.0" and "0.00", and matching only "0" would send those down the
+    // invalid path — straight back to the static claim this branch exists to
+    // prevent.
+    if (typeof data.markupPct !== 'string' || !PLAIN_DECIMAL.test(data.markupPct)) return INVALID
+    const markupPct = Number(data.markupPct)
+    if (!Number.isFinite(markupPct) || markupPct < 0) return INVALID
+    if (markupPct === 0) return NONE
     if (markupPct >= MAX_CARD_MARKUP) return INVALID
     if (data.source === 'static') return { kind: 'markup', markup: { rate: markupPct, source: 'static' } }
 

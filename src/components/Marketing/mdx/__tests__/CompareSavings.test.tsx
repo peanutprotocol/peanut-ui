@@ -75,6 +75,18 @@ describe('CompareSavings', () => {
         expect(screen.getByText(/Wise/).textContent).toContain('August 10, 2026')
     })
 
+    it('rejects a calendar overflow instead of silently moving the verification date', () => {
+        withRate(0)
+
+        // new Date('2026-02-30') is 2 March — a typo would publish a date the
+        // claim was never checked on.
+        render(<CompareSavings competitor="Wise" markupPct="1" verifiedAt="2026-02-30" />)
+
+        const text = screen.getByText(/Wise/).textContent ?? ''
+        expect(text).toContain('2026-02-30')
+        expect(text).not.toContain('March')
+    })
+
     it('never renders empty on an unparsable date', () => {
         withRate(1500)
 
