@@ -936,6 +936,15 @@ describe('release, noindex, and delta gates', () => {
         expect(hasNoindexDirective(htmlDocument(), 'max-image-preview:none')).toBe(false)
         expect(hasNoindexDirective(htmlDocument('', '<meta name="robots" content="noindex">'), null)).toBe(true)
         expect(
+            hasNoindexDirective(htmlDocument('', '<meta http-equiv="x-robots-tag" content="googlebot:noindex">'), null)
+        ).toBe(true)
+        expect(
+            hasNoindexDirective(
+                htmlDocument('', '<meta http-equiv="x-robots-tag" content="max-image-preview:none">'),
+                null
+            )
+        ).toBe(false)
+        expect(
             hasNoindexDirective(htmlDocument('', '<template><meta name="robots" content="noindex"></template>'), null)
         ).toBe(false)
         expect(hasNoindexDirective(htmlDocument('<meta name="robots" content="index,follow">'), null)).toBe(false)

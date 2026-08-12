@@ -608,10 +608,11 @@ function documentBlocksIndexing(root: DefaultTreeAdapterTypes.Element): boolean 
             const attributes = new Map(node.attrs.map(({ name, value }) => [name, value]))
             const name = attributes.get('name')?.toLowerCase()
             const httpEquiv = attributes.get('http-equiv')?.toLowerCase()
-            if (name === 'robots' || name === 'bingbot' || name === 'googlebot' || httpEquiv === 'x-robots-tag') {
-                const content = attributes.get('content')
-                if (content && blocksIndexing(content)) return true
-            }
+            const content = attributes.get('content')
+            if (!content) continue
+            if (httpEquiv === 'x-robots-tag' && xRobotsTagBlocksIndexing(content)) return true
+            if ((name === 'robots' || name === 'bingbot' || name === 'googlebot') && blocksIndexing(content))
+                return true
         }
 
         // parse5 stores template descendants on `content`, not `childNodes`;
