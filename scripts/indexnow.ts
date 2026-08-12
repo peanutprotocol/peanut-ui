@@ -537,9 +537,49 @@ export function writeStateAtomic(
     }
 }
 
+function htmlAttributes(tag: string): Map<string, string | null> | null {
+    const tagName = tag.match(/^<\s*[^\s/>]+/)
+    if (!tagName) return null
+
+    const attributes = new Map<string, string | null>()
+    let index = tagName[0].length
+    while (index < tag.length) {
+        while (/\s/.test(tag[index] ?? '')) index += 1
+        if (tag[index] === '>' || (tag[index] === '/' && tag[index + 1] === '>')) return attributes
+
+        const nameStart = index
+        while (index < tag.length && !/[\s=/>]/.test(tag[index])) index += 1
+        if (nameStart === index) return null
+        const name = tag.slice(nameStart, index).toLowerCase()
+        if (attributes.has(name)) return null
+
+        while (/\s/.test(tag[index] ?? '')) index += 1
+        let value: string | null = null
+        if (tag[index] === '=') {
+            index += 1
+            while (/\s/.test(tag[index] ?? '')) index += 1
+            const quote = tag[index]
+            if (quote === '"' || quote === "'") {
+                index += 1
+                const valueStart = index
+                while (index < tag.length && tag[index] !== quote) index += 1
+                if (index >= tag.length) return null
+                value = tag.slice(valueStart, index)
+                index += 1
+            } else {
+                const valueStart = index
+                while (index < tag.length && !/[\s>]/.test(tag[index])) index += 1
+                if (valueStart === index) return null
+                value = tag.slice(valueStart, index)
+            }
+        }
+        attributes.set(name, value)
+    }
+    return null
+}
+
 function htmlAttribute(tag: string, name: string): string | null {
-    const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i'))
-    return match?.[1] ?? match?.[2] ?? match?.[3] ?? null
+    return htmlAttributes(tag)?.get(name.toLowerCase()) ?? null
 }
 
 export function hasNoindexDirective(html: string, xRobotsTag: string | null): boolean {
@@ -551,7 +591,7 @@ export function hasNoindexDirective(html: string, xRobotsTag: string | null): bo
         const tag = match[0]
         const name = htmlAttribute(tag, 'name')?.toLowerCase()
         const httpEquiv = htmlAttribute(tag, 'http-equiv')?.toLowerCase()
-        if (name !== 'robots' && name !== 'bingbot' && httpEquiv !== 'x-robots-tag') continue
+        if (name !== 'robots' && name !== 'bingbot' && name !== 'googlebot' && httpEquiv !== 'x-robots-tag') continue
         const content = htmlAttribute(tag, 'content')
         if (content && blocksIndexing(content)) return true
     }
@@ -708,8 +748,8 @@ export async function submitIndexNowBatches(options: SubmitOptions): Promise<num
                 redirect: 'manual',
                 signal: controller.signal,
             })
+            if (response.body) await response.body.cancel().catch(() => undefined)
             if (response.status !== 200 && response.status !== 202) {
-                if (response.body) await response.body.cancel().catch(() => undefined)
                 options.logger.error(`IndexNow batch ${batches} failed with ${response.status}`)
                 failures += 1
             } else {
