@@ -1,4 +1,8 @@
-import { SPLIT_CANARY_GUIDE_PATHS, splitContentServiceWorkerMatcher } from '@/utils/split-content-edge'
+import {
+    SPLIT_CANARY_GUIDE_PATHS,
+    SPLIT_CONTENT_RESERVED_PATH_PREFIXES,
+    splitContentServiceWorkerMatcher,
+} from '@/utils/split-content-edge'
 
 const matches = (pathname: string) => splitContentServiceWorkerMatcher({ url: new URL(pathname, 'https://peanut.me') })
 
@@ -18,7 +22,14 @@ describe('parent service-worker Split isolation', () => {
         '/pt-br/split/alternatives/splitwise',
         '/en/split/tools',
         '/en/split/tools/rent-split-calculator',
+        '/es-419/split/tools',
+        '/pt-br/split/tools/rent-split-calculator',
         '/fr/split/guides/split-expenses-across-currencies',
+        '/es/split/guides/future-guide',
+        '/es-es/split/tools/rent-split-calculator',
+        '/pt/split/alternatives/future-alternative',
+        '/sh/split',
+        '/zh-hans-cn/split/guides/future-guide',
         '/split-static',
         '/split-sitemap.xml/extra',
     ])('also keeps negative namespace path %s out of parent caches and fallbacks', (pathname) => {
@@ -37,10 +48,24 @@ describe('parent service-worker Split isolation', () => {
         expect(matches(pathname)).toBe(true)
     })
 
-    it.each(['/home', '/en', '/relay/e/', '/splitter', '/en/splitter/page', '/en/travel%20guide'])(
-        'does not claim unrelated parent path %s',
-        (pathname) => {
-            expect(matches(pathname)).toBe(false)
+    it.each([
+        '/home',
+        '/en',
+        '/relay/e/',
+        '/splitter',
+        '/en/splitter/page',
+        '/en/travel%20guide',
+        '/hugo/split',
+        '/alice/split',
+    ])('does not claim unrelated parent path %s', (pathname) => {
+        expect(matches(pathname)).toBe(false)
+    })
+
+    it.each(SPLIT_CONTENT_RESERVED_PATH_PREFIXES)(
+        'does not claim the existing product namespace %s/split',
+        (prefix) => {
+            expect(matches(`${prefix}/split`)).toBe(false)
+            expect(matches(`${prefix}/%73plit`)).toBe(false)
         }
     )
 })

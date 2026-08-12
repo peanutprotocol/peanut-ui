@@ -4,6 +4,7 @@ import { getRewrittenUrl, isRewrite, unstable_doesMiddlewareMatch } from 'next/e
 import { config, proxy } from '@/proxy'
 import {
     SPLIT_CANARY_GUIDE_PATHS,
+    SPLIT_CONTENT_RESERVED_PATH_PREFIXES,
     SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION,
     SPLIT_EDGE_MARKER_HEADER,
     SPLIT_ENGLISH_CANARY_PATH,
@@ -57,6 +58,10 @@ function runUnsafeRawProxy(path: string, init?: ConstructorParameters<typeof Nex
     const headers = new Headers(init?.headers)
     headers.set(SPLIT_RAW_UNSAFE_HEADER, SPLIT_RAW_UNSAFE_VALUE)
     return runProxy(path, { ...init, headers })
+}
+
+function alternatingCase(value: string): string {
+    return [...value].map((character, index) => (index % 2 === 0 ? character : character.toUpperCase())).join('')
 }
 
 describe('API cache policy', () => {
@@ -144,6 +149,9 @@ describe('Split manifest-backed production edge', () => {
             '/en/split/alternatives/splitwise',
             '/en/split/tools',
             '/en/split/tools/rent',
+            '/es-419/split/tools',
+            '/pt-br/split/tools/mileage-split-calculator',
+            '/zh-hans-cn/split/guides/future-guide',
         ].sort()
         process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(3, {
             schemaVersion: 2,
@@ -153,7 +161,7 @@ describe('Split manifest-backed production edge', () => {
 
         for (const pathname of futurePaths) expect(isRewrite(runCanonicalSplitProxy(pathname))).toBe(true)
         expect(runCanonicalSplitProxy('/en/split/tools/unknown').status).toBe(404)
-        expect(runCanonicalSplitProxy('/es-419/split/tools').status).toBe(404)
+        expect(runCanonicalSplitProxy('/fr/split/tools').status).toBe(404)
     })
 
     it('returns a private 503 for a malformed release document', () => {
@@ -431,16 +439,29 @@ describe('Split manifest-backed production edge', () => {
         expect(runCanonicalSplitProxy(SPLIT_CANARY_GUIDE_PATHS[0]).status).toBe(503)
     })
 
-    it('leaves unrelated product and marketing routes unchanged while configured', () => {
-        for (const pathname of ['/home', '/en', '/splitter', '/en/splitter/page']) {
+    it.each(['/home', '/en', '/splitter', '/en/splitter/page', '/hugo/split', '/alice/split'])(
+        'leaves unrelated product and marketing route %s unchanged while configured',
+        (pathname) => {
             expect(isRewrite(runProxy(pathname))).toBe(false)
         }
+    )
+
+    it.each(SPLIT_CONTENT_RESERVED_PATH_PREFIXES)('never claims the existing product namespace %s/split', (prefix) => {
+        const response = runProxy(`${prefix}/split`)
+
+        expect(response.status).toBe(200)
+        expect(response.headers.get('x-robots-tag')).toBeNull()
+        expect(isRewrite(response)).toBe(false)
     })
 
     it.each([
         ...SPLIT_CANARY_GUIDE_PATHS,
         '/en/split/alternatives/splitwise',
         '/en/split/tools/rent-split-calculator',
+        '/es-es/split/tools/rent-split-calculator',
+        '/fr/split/tools',
+        '/sh/split/guides/future-guide',
+        '/zh-hans-cn/split/guides/future-guide',
         '/split',
         '/split/unknown',
         '/fr/split/guides/unknown',
@@ -450,6 +471,46 @@ describe('Split manifest-backed production edge', () => {
         '/split-sitemap.xml/extra',
     ])('matches Split path %s before filesystem and catch-all routing', (url) => {
         expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(true)
+    })
+
+    it.each(['/pay/split', '/qr/split', '/p/split', '/api/split', '/dev/split', '/c/split'])(
+        'retains the pre-existing proxy matcher for reserved product path %s',
+        (url) => {
+            expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(true)
+        }
+    )
+
+    const supplementalReservedPaths = [
+        ...['app', 'faq', 'kyc', 'lp', 'pay-with', 'sdk'].flatMap((segment) => [
+            `/${segment}/split`,
+            `/${alternatingCase(segment)}/SpLiT`,
+            `/${segment.toUpperCase()}/SPLIT`,
+        ]),
+        ...['api', 'dev', 'pay', 'qr'].flatMap((segment) => [
+            `/${alternatingCase(segment)}/SpLiT`,
+            `/${segment.toUpperCase()}/SPLIT`,
+        ]),
+    ]
+
+    it.each([
+        ...supplementalReservedPaths,
+        '/abcd/split',
+        '/hugo/split',
+        '/alice/split',
+        '/locale/split',
+        '/english/split/guides/unknown',
+    ])('does not add proxy coverage for non-locale first segment %s', (url) => {
+        expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(false)
+    })
+
+    it.each(supplementalReservedPaths)('keeps reserved route %s outside supplemental promo handling', (url) => {
+        expect(
+            unstable_doesMiddlewareMatch({
+                config,
+                nextConfig: {},
+                url: `${url}?promo=x&id=y`,
+            })
+        ).toBe(false)
     })
 
     it.each(['/SPLIT', '/SPLIT/unknown', '/EN/SPLIT/unknown', '/SPLIT-STATIC/a.js', '/SPLIT-SITEMAP.XML'])(

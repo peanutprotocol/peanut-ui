@@ -1,6 +1,10 @@
 /** @jest-environment node */
+import { RESERVED_ROUTES, couldBeRecipient } from '@/constants/routes'
+import { SUPPORTED_LOCALES } from '@/i18n/types'
 import {
     SPLIT_CANARY_GUIDE_PATHS,
+    SPLIT_CONTENT_LEGACY_PROXY_PATH_PREFIXES,
+    SPLIT_CONTENT_RESERVED_PATH_PREFIXES,
     SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION,
     SPLIT_EDGE_MARKER_HEADER,
     SPLIT_ENGLISH_CANARY_PATH,
@@ -70,6 +74,46 @@ describe('Split manifest-backed edge route classification', () => {
         expect(SPLIT_CANARY_GUIDE_PATHS).toEqual(EXPECTED_CANARY_PATHS)
     })
 
+    it('keeps the parent route exemptions explicit and stable', () => {
+        expect(SPLIT_CONTENT_RESERVED_PATH_PREFIXES).toEqual([
+            '/api',
+            '/app',
+            '/c',
+            '/claim',
+            '/dev',
+            '/faq',
+            '/history',
+            '/home',
+            '/kyc',
+            '/link',
+            '/lp',
+            '/p',
+            '/pay',
+            '/pay-with',
+            '/profile',
+            '/qr',
+            '/raffle',
+            '/request',
+            '/sdk',
+            '/send',
+            '/settings',
+            '/setup',
+            '/share',
+        ])
+    })
+
+    it('derives every locale-shaped product collision while leaving current and freed locales available', () => {
+        const locale = /^[a-z]{2,3}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|[0-9]{3}))?$/
+        const availableLocales = new Set([...SUPPORTED_LOCALES, 'es', 'es-es', 'pt', 'sh'])
+        const localeShapedProductPrefixes = RESERVED_ROUTES.filter(
+            (segment) => locale.test(segment) && segment.length <= 12 && !availableLocales.has(segment)
+        ).map((segment) => `/${segment}`)
+
+        expect(SPLIT_CONTENT_RESERVED_PATH_PREFIXES).toEqual(
+            [...new Set([...SPLIT_CONTENT_LEGACY_PROXY_PATH_PREFIXES, ...localeShapedProductPrefixes])].sort()
+        )
+    })
+
     it.each(EXPECTED_CANARY_PATHS)('forwards exact released page %s as HTML', (pathname) => {
         expect(classifySplitContentRequest(pathname, null, releasedPaths)).toEqual({
             action: 'forward',
@@ -106,6 +150,7 @@ describe('Split manifest-backed edge route classification', () => {
         '/en/split/guides/split-expenses-across-currencies/extra',
         '/fr/split/guides/split-expenses-across-currencies',
         '/es-ar/split/guides/split-expenses-across-currencies',
+        '/zh-hans-cn/split/guides/split-expenses-across-currencies',
         '/EN/split/guides/split-expenses-across-currencies',
         '/SPLIT',
         '/SPLIT/anything',
@@ -144,28 +189,57 @@ describe('Split manifest-backed edge route classification', () => {
         '/split-sitemap.xmlx',
         '/en/travel%20guide',
         '/home',
+        '/hugo/split',
+        '/alice/split',
+        ...SPLIT_CONTENT_RESERVED_PATH_PREFIXES.map((prefix) => `${prefix}/split`),
     ])('passes unrelated path %s', (pathname) => {
         expect(classifySplitContentRequest(pathname, null)).toEqual({ action: 'pass' })
     })
+
+    it.each(['hugo', 'alice', 'a123', 'peanut123456'])(
+        'cannot confuse valid recipient username %s with a locale prefix',
+        (username) => {
+            expect(couldBeRecipient(username)).toBe(true)
+            expect(classifySplitContentRequest(`/${username}/split`, null)).toEqual({ action: 'pass' })
+        }
+    )
 
     it.each([
         '/en/split',
         '/es-419/split',
         '/pt-br/split',
+        '/es/split',
+        '/es-es/split',
+        '/pt/split',
+        '/sh/split',
+        '/fr/split',
+        '/de-de/split',
+        '/zh-hans/split',
+        '/zh-hans-cn/split',
+        '/eng-latn-419/split',
         '/en/split/guides/future-guide',
         '/pt-br/split/alternatives/splitwise',
         '/en/split/tools',
         '/en/split/tools/rent-split-calculator',
+        '/es-419/split/tools',
+        '/pt-br/split/tools/rent-split-calculator',
+        '/zh-hans-cn/split/tools/mileage-split-calculator',
     ])('recognizes the finite future manifest route grammar: %s', (pathname) => {
         expect(isSupportedSplitContentPublicPath(pathname)).toBe(true)
     })
 
     it.each([
-        '/fr/split',
         '/EN/split',
+        '/en-US/split',
+        '/e/split',
+        '/engl/split',
+        '/en-latn-us-extra/split',
+        '/eng-latn-4199/split',
+        '/eng-latnn-419/split',
+        '/pay/split',
+        '/qr/split',
+        '/p/split',
         '/en/split/',
-        '/es-419/split/tools',
-        '/pt-br/split/tools/rent',
         '/en/split/guides',
         '/en/split/guides/Bad-Slug',
         '/en/split/alternatives/a/b',
@@ -198,7 +272,13 @@ describe('Split manifest-backed release configuration', () => {
             expect(overlap.release.manifestSha256s).toEqual([MANIFEST_SHA256, '2'.repeat(64)])
         }
 
-        const futurePaths = [...EXPECTED_CANARY_PATHS, '/en/split', '/en/split/tools'].sort()
+        const futurePaths = [
+            ...EXPECTED_CANARY_PATHS,
+            '/en/split',
+            '/en/split/tools',
+            '/es-419/split/tools/rent-split-calculator',
+            '/zh-hans-cn/split/guides/future-guide',
+        ].sort()
         const stage3 = resolveSplitContentRelease(
             releaseDocument(3, { schemaVersion: 2, manifestPaths: futurePaths, releasedPaths: futurePaths })
         )
@@ -239,7 +319,8 @@ describe('Split manifest-backed release configuration', () => {
             }),
         ],
         ['V1 non-guide path', releaseDocument(2, { manifestPaths: [...EXPECTED_CANARY_PATHS, '/en/split'].sort() })],
-        ['unsupported path', releaseDocument(3, { schemaVersion: 2, manifestPaths: ['/fr/split'] })],
+        ['unsupported path', releaseDocument(3, { schemaVersion: 2, manifestPaths: ['/english/split'] })],
+        ['reserved product path', releaseDocument(3, { schemaVersion: 2, manifestPaths: ['/pay/split'] })],
     ])('fails closed for %s', (_label, value) => {
         expect(resolveSplitContentRelease(value)).toEqual({ state: 'invalid' })
         expect(splitContentIndexReleased(value)).toBe(false)

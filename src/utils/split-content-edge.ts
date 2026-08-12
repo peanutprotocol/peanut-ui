@@ -1,3 +1,6 @@
+import { RESERVED_ROUTES } from '@/constants/routes'
+import { SUPPORTED_LOCALES } from '@/i18n/types'
+
 // These are the current renderer canary outputs, not an authorization list.
 // Production release authorization comes only from SPLIT_CONTENT_RELEASE_DOCUMENT.
 export const SPLIT_CANARY_GUIDE_PATHS = [
@@ -21,6 +24,49 @@ export const SPLIT_RAW_ROUTE_HEADER = 'x-peanut-split-raw-route'
 export const SPLIT_RAW_ROUTE_VALUE = 'canonical-v1'
 export const SPLIT_RAW_UNSAFE_HEADER = 'x-peanut-split-raw-unsafe'
 export const SPLIT_RAW_UNSAFE_VALUE = 'unsafe-v1'
+
+const MAXIMUM_PUBLIC_LOCALE_LENGTH = 12
+const PUBLIC_LOCALE = /^[a-z]{2,3}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|[0-9]{3}))?$/
+
+// These namespaces already belong to the parent product. Some of their first
+// segments (for example `pay` and `qr`) are also syntactically locale-shaped,
+// so every Split boundary must exempt the complete shared list explicitly.
+export const SPLIT_CONTENT_LEGACY_PROXY_PATH_PREFIXES = [
+    '/api',
+    '/c',
+    '/claim',
+    '/dev',
+    '/history',
+    '/home',
+    '/link',
+    '/p',
+    '/pay',
+    '/profile',
+    '/qr',
+    '/raffle',
+    '/request',
+    '/send',
+    '/settings',
+    '/setup',
+    '/share',
+] as const
+
+const CURRENT_SPLIT_LOCALES = new Set<string>(SUPPORTED_LOCALES)
+// Their broad legacy redirects deliberately exclude `split` below, so these
+// syntactically valid locales remain available to a future manifest release.
+const SPLIT_REDIRECT_COMPATIBLE_LOCALES = new Set(['es', 'es-es', 'pt', 'sh'])
+export const SPLIT_CONTENT_RESERVED_PATH_PREFIXES = [
+    ...new Set([
+        ...SPLIT_CONTENT_LEGACY_PROXY_PATH_PREFIXES,
+        ...RESERVED_ROUTES.filter(
+            (segment) =>
+                segment.length <= MAXIMUM_PUBLIC_LOCALE_LENGTH &&
+                PUBLIC_LOCALE.test(segment) &&
+                !CURRENT_SPLIT_LOCALES.has(segment) &&
+                !SPLIT_REDIRECT_COMPATIBLE_LOCALES.has(segment)
+        ).map((segment) => `/${segment}`),
+    ]),
+].sort()
 
 export type SplitContentRequestKind = 'html' | 'rsc' | 'asset' | 'sitemap'
 export type SplitContentRoute =
@@ -62,7 +108,7 @@ const PRINTABLE_ASCII = /^[\x21-\x7e]+$/
 const PERCENT_ESCAPE = /%[0-9a-f]{2}/i
 const MANIFEST_SHA256 = /^(?!0{64}$)[0-9a-f]{64}$/
 const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-const PUBLIC_LOCALES = new Set(['en', 'es-419', 'pt-br'])
+const RESERVED_SPLIT_FIRST_SEGMENTS = new Set(SPLIT_CONTENT_RESERVED_PATH_PREFIXES.map((prefix) => prefix.slice(1)))
 
 const FORWARDED_REQUEST_HEADERS = new Set([
     'accept',
@@ -85,23 +131,31 @@ const FORWARDED_REQUEST_HEADERS = new Set([
     'x-nextjs-postponed',
 ])
 
+function isPublicSplitLocale(locale: string): boolean {
+    return (
+        locale.length <= MAXIMUM_PUBLIC_LOCALE_LENGTH &&
+        PUBLIC_LOCALE.test(locale) &&
+        !RESERVED_SPLIT_FIRST_SEGMENTS.has(locale)
+    )
+}
+
 function isSplitPageNamespace(pathname: string): boolean {
     const caseFolded = pathname.toLowerCase()
     if (caseFolded === '/split' || caseFolded.startsWith('/split/')) return true
 
     const segments = caseFolded.split('/')
-    return segments[0] === '' && Boolean(segments[1]) && segments[2] === 'split'
+    return segments[0] === '' && isPublicSplitLocale(segments[1] ?? '') && segments[2] === 'split'
 }
 
 export function isSupportedSplitContentPublicPath(pathname: string): boolean {
     const segments = pathname.split('/')
     const locale = segments[1]
-    if (segments[0] !== '' || !PUBLIC_LOCALES.has(locale) || segments[2] !== 'split') return false
+    if (segments[0] !== '' || !isPublicSplitLocale(locale) || segments[2] !== 'split') return false
 
     const tail = segments.slice(3)
     if (tail.length === 0) return true
     if (tail[0] === 'tools') {
-        return locale === 'en' && (tail.length === 1 || (tail.length === 2 && PUBLIC_SLUG.test(tail[1])))
+        return tail.length === 1 || (tail.length === 2 && PUBLIC_SLUG.test(tail[1]))
     }
     return tail.length === 2 && (tail[0] === 'guides' || tail[0] === 'alternatives') && PUBLIC_SLUG.test(tail[1])
 }

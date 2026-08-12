@@ -7,6 +7,7 @@ import maintenanceConfig from '@/config/underMaintenance.config'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import {
+    SPLIT_CONTENT_LEGACY_PROXY_PATH_PREFIXES,
     classifySplitContentRequest,
     hasTrustedSplitRawRouteStamp,
     hasUnsafeSplitRawRouteStamp,
@@ -132,29 +133,11 @@ const SPLIT_BLOCKED_RESPONSE_HEADERS = {
     'X-Robots-Tag': 'noindex, nofollow, noarchive',
 }
 
-const LEGACY_PROXY_PATH_PREFIXES = [
-    '/api',
-    '/c',
-    '/claim',
-    '/dev',
-    '/history',
-    '/home',
-    '/link',
-    '/p',
-    '/pay',
-    '/profile',
-    '/qr',
-    '/raffle',
-    '/request',
-    '/send',
-    '/settings',
-    '/setup',
-    '/share',
-] as const
-
 function isSupplementalEncodedMatcherOnly(pathname: string): boolean {
     if (!/%[0-9a-f]{2}/i.test(pathname)) return false
-    return !LEGACY_PROXY_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+    return !SPLIT_CONTENT_LEGACY_PROXY_PATH_PREFIXES.some(
+        (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    )
 }
 
 function handleSplitContentEdge(request: NextRequest): NextResponse | null {
@@ -299,14 +282,12 @@ export const config = {
         '/qr/:path*',
         '/split',
         '/split/:path*',
-        '/:locale/split',
-        '/:locale/split/:path*',
+        '/((?!(?:[aA][pP][pPiI]|[dD][eE][vV]|[fF][aA][qQ]|[kK][yY][cC]|[lL][pP]|[pP][aA][yY](?:-[wW][iI][tT][hH])?|[qQ][rR]|[sS][dD][kK])/)[a-zA-Z]{2,3}(?:-[a-zA-Z]{4})?(?:-(?:[a-zA-Z]{2}|[0-9]{3}))?/[sS][pP][lL][iI][tT](?:/.*)?)',
         '/split-static',
         '/split-static/:path*',
         '/split-sitemap.xml',
         '/split-sitemap.xml/:path*',
         '/((?:[sS][pP][lL][iI][tT](?:-[sS][tT][aA][tT][iI][cC]|-[sS][iI][tT][eE][mM][aA][pP]\\.[xX][mM][lL])?)(?:/.*)?)',
-        '/([^/]+/[sS][pP][lL][iI][tT](?:/.*)?)',
         {
             source: '/:path*',
             has: [{ type: 'header', key: 'x-peanut-split-raw-unsafe', value: 'unsafe-v1' }],

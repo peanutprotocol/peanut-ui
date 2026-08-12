@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
     SPLIT_CANARY_GUIDE_PATHS,
+    SPLIT_CONTENT_RESERVED_PATH_PREFIXES,
     SPLIT_RAW_ROUTE_HEADER,
     SPLIT_RAW_ROUTE_VALUE,
     SPLIT_RAW_UNSAFE_HEADER,
@@ -87,10 +88,21 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
         '/en/split',
         '/es-419/split',
         '/pt-br/split',
+        '/es/split',
+        '/es-es/split',
+        '/pt/split',
+        '/sh/split',
+        '/fr/split',
+        '/de-de/split',
+        '/zh-hans/split',
+        '/zh-hans-cn/split',
         '/en/split/guides/future-guide',
+        '/zh-hans-cn/split/guides/future-guide',
         '/pt-br/split/alternatives/splitwise',
         '/en/split/tools',
         '/en/split/tools/rent-split-calculator',
+        '/es-419/split/tools',
+        '/pt-br/split/tools/rent-split-calculator',
         '/split-static/_next/static/chunks/app.js',
         '/split-static/fonts/peanut.woff2',
         '/split-static/_next/static/chunks/app/(split-content)/en/split/guides/%5Bslug%5D/page-de3ece0880ae6ac0.js',
@@ -107,6 +119,32 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
         ).toEqual({
             [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE,
         })
+    })
+
+    it.each(SPLIT_CONTENT_RESERVED_PATH_PREFIXES)(
+        'never stamps or strips upstream Set-Cookie from reserved parent namespace %s/split',
+        (prefix) => {
+            const pathname = `${prefix}/split`
+
+            expect(new RegExp(canonicalSplitRoute.src).test(pathname)).toBe(false)
+            expect(
+                applyRequestHeaderTransforms(pathname, {
+                    [SPLIT_RAW_ROUTE_HEADER]: 'caller-spoof',
+                    [SPLIT_RAW_UNSAFE_HEADER]: 'caller-spoof',
+                })
+            ).toEqual({})
+        }
+    )
+
+    it('mirrors exactly the TypeScript-owned product collision set in its negative lookahead', () => {
+        const reservedLookahead = canonicalSplitRoute.src.match(/^\^\/\(\?:\(\?!\(\?:([a-z|-]+)\)\/\)/)
+
+        expect(
+            reservedLookahead?.[1]
+                .split('|')
+                .map((segment) => `/${segment}`)
+                .sort()
+        ).toEqual(SPLIT_CONTENT_RESERVED_PATH_PREFIXES)
     })
 
     it.each([
@@ -155,10 +193,12 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
 
     it.each([
         '/split',
-        '/fr/split/guides/split-expenses-across-currencies',
-        '/es-419/split/tools',
-        '/pt-br/split/tools/rent',
+        '/hugo/split',
+        '/alice/split',
         '/en/split/guides/Bad-Slug',
+        '/EN/split/guides/future-guide',
+        '/en-US/split/guides/future-guide',
+        '/english/split/guides/future-guide',
         '/en/split/alternatives/a/b',
         '/en/split/guides/split-expenses-across-currencies/extra',
         '/split-static',
