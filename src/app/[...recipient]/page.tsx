@@ -21,7 +21,11 @@ type PageProps = {
 // a "<handle> on Peanut" title. Google indexed thousands of those. Every metadata
 // branch is noindex: profiles, addresses, ENS and request/receipt links are app
 // surface, not search landing pages — no carve-outs.
+// canonical: null suppresses the root layout's inherited `canonical: '/'` —
+// noindex must not ship on pages that canonicalize to the homepage, or the
+// noindex can be attributed to the canonical cluster head (the homepage itself).
 const NOINDEX = { index: false, follow: false } as const
+const NOINDEX_META = { robots: NOINDEX, alternates: { canonical: null } } as const
 
 export async function generateMetadata({ params, searchParams }: PageProps) {
     const resolvedSearchParams = await searchParams
@@ -30,18 +34,18 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
     // Guard: Don't generate metadata for reserved routes (handled by their specific routes)
     const firstSegment = resolvedParams.recipient?.[0]
     if (firstSegment && isReservedRoute(`/${firstSegment}`)) {
-        return { robots: NOINDEX }
+        return { ...NOINDEX_META }
     }
 
     // Guard: Ensure recipient exists
     if (!resolvedParams.recipient?.[0]) {
-        return { robots: NOINDEX }
+        return { ...NOINDEX_META }
     }
 
     // Guard: Don't generate "X on Peanut" metadata for things that can't be recipients
     // (bare locale codes, slugs with dashes, random strings). Lets the 404 page own the tab title.
     if (!couldBeRecipient(firstSegment!)) {
-        return { robots: NOINDEX }
+        return { ...NOINDEX_META }
     }
 
     let title = 'Request Payment | Peanut'
@@ -168,6 +172,7 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
         title,
         description,
         robots: NOINDEX,
+        alternates: { canonical: null },
         ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
         icons: {
             icon: '/favicon.ico',
