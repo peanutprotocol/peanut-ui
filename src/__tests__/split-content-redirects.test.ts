@@ -8,7 +8,7 @@ type Redirect = {
     source: string
     destination: string
     permanent: boolean
-    missing?: Array<{ type: string; key: string; value: string }>
+    missing?: Array<{ type: 'header'; key: string; value: string }>
 }
 
 const redirects = JSON.parse(readFileSync(resolve(process.cwd(), 'redirects.json'), 'utf8')) as Redirect[]

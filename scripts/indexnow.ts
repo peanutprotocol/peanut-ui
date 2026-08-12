@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { TextDecoder } from 'node:util'
 import { parse, type DefaultTreeAdapterTypes } from 'parse5'
 import { SaxesParser } from 'saxes'
 import { isSplitContentPathname, isSupportedSplitContentPublicPath } from '@/utils/split-content-edge'
@@ -475,21 +476,19 @@ export function readValidatedState(stateFile: string): IndexNowState | null {
         // The file can grow after fstat. Read one byte beyond the contract from
         // the same no-follow descriptor so a pathname swap or growth race can
         // neither redirect the read nor bypass the byte limit.
-        const chunks: Buffer[] = []
+        const buffer = new Uint8Array(new ArrayBuffer(MAX_STATE_BYTES + 1))
         let bytesRead = 0
-        while (bytesRead <= MAX_STATE_BYTES) {
-            const buffer = Buffer.allocUnsafe(Math.min(64 * 1024, MAX_STATE_BYTES + 1 - bytesRead))
-            const count = fs.readSync(descriptor, buffer, 0, buffer.length, null)
+        while (bytesRead < buffer.byteLength) {
+            const count = fs.readSync(descriptor, buffer, bytesRead, buffer.byteLength - bytesRead, null)
             if (count === 0) break
             bytesRead += count
-            chunks.push(buffer.subarray(0, count))
         }
         if (bytesRead > MAX_STATE_BYTES) {
             throw new Error(
                 `Invalid IndexNow state at ${stateFile}: expected a file of at most ${MAX_STATE_BYTES} bytes`
             )
         }
-        serialized = Buffer.concat(chunks, bytesRead).toString('utf8')
+        serialized = new TextDecoder().decode(buffer.subarray(0, bytesRead))
     } finally {
         fs.closeSync(descriptor)
     }
