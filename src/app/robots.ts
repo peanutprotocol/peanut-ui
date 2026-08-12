@@ -5,9 +5,10 @@ import { SUPPORTED_LOCALES } from '@/i18n/types'
 const IS_PRODUCTION_DOMAIN = BASE_URL === 'https://peanut.me'
 
 // Paths kept out of the index: the API surface, the SDK bundle, and the
-// auth-gated app routes. Shared by every named crawler group — a group that
-// omits these silently opts that crawler out of ALL disallows, because a
-// user-agent only ever obeys the single most specific group that matches it.
+// auth-gated app routes. Used by the `*` and Googlebot groups; the other named
+// groups below carry their own (narrower) lists. Mind the footgun when editing:
+// a crawler only ever obeys the single most specific group that matches it, so
+// a named group that omits a path silently opts that crawler out of it.
 const DISALLOWED_PATHS = [
     '/api/',
     '/sdk/',
