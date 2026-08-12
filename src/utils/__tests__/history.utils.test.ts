@@ -12,7 +12,13 @@
  * If a future refactor reintroduces a wei assumption here, this fails.
  */
 
-import { completeHistoryEntry, getAvatarUrl, getReceiptUrl, getTransactionSign } from '../history.utils'
+import {
+    completeHistoryEntry,
+    dedupeHistoryEntriesByUuid,
+    getAvatarUrl,
+    getReceiptUrl,
+    getTransactionSign,
+} from '../history.utils'
 import type { HistoryEntry } from '../history.utils'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 
@@ -163,5 +169,37 @@ describe('getAvatarUrl', () => {
 
     it('falls back to undefined (generic avatar) for historical DEPRECATED_SIMPLEFI rows', () => {
         expect(getAvatarUrl(tx('DEPRECATED_SIMPLEFI', 'ARS'))).toBeUndefined()
+    })
+})
+
+/**
+ * The history page concatenates infinite-query pages. If the API cursor serves
+ * an entry on two pages, the row renders twice — byte-identical, so it reads
+ * as a double charge. Real report: a BRL 909.00 PIX payment shown twice with
+ * one debit in the database (2026-07-27).
+ */
+describe('dedupeHistoryEntriesByUuid', () => {
+    const entry = (uuid: string, amount = '1') => ({ uuid, amount })
+
+    it('drops a boundary row the API served on two pages', () => {
+        const page1 = [entry('a'), entry('b'), entry('c')]
+        const page2 = [entry('c'), entry('d')] // 'c' repeated at the page boundary
+
+        expect(dedupeHistoryEntriesByUuid([...page1, ...page2]).map((e) => e.uuid)).toEqual(['a', 'b', 'c', 'd'])
+    })
+
+    it('keeps the first copy, so newer page-1 data wins over a stale refetch', () => {
+        const deduped = dedupeHistoryEntriesByUuid([entry('a', '909.00'), entry('a', '0')])
+
+        expect(deduped).toHaveLength(1)
+        expect(deduped[0].amount).toBe('909.00')
+    })
+
+    it('keeps distinct entries that only look alike', () => {
+        expect(dedupeHistoryEntriesByUuid([entry('a', '5'), entry('b', '5')])).toHaveLength(2)
+    })
+
+    it('handles an empty feed', () => {
+        expect(dedupeHistoryEntriesByUuid([])).toEqual([])
     })
 })

@@ -463,6 +463,29 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
     }
 }
 
+/**
+ * Drops repeats of a history entry the API served on more than one page.
+ *
+ * `useInfiniteQuery` concatenates pages, so anything the cursor hands back
+ * twice renders twice — and the rows are byte-identical, which reads as a
+ * double charge. Real report: a BRL 909.00 PIX payment shown twice, one debit
+ * in the database (2026-07-27).
+ *
+ * The API-side cursor is fixed separately (peanut-api-ts, buildHistoryCursor),
+ * but page overlap has more than one source: the feed sorts on `timestamp`
+ * while the API paginates on `createdAt`, and those differ for Manteca and for
+ * completed intents. Deduping where the pages get flattened covers every
+ * source at once. First uuid wins, order is kept.
+ */
+export function dedupeHistoryEntriesByUuid<T extends { uuid: string }>(entries: T[]): T[] {
+    const seen = new Set<string>()
+    return entries.filter((entry) => {
+        if (seen.has(entry.uuid)) return false
+        seen.add(entry.uuid)
+        return true
+    })
+}
+
 /** Marker `userName` the backend sends for the onboarding test transaction.
  *  Compared against BACKEND data, never against localized copy, so this is
  *  locale-safe — but it is still a magic string the backend owns. Follow-up:
