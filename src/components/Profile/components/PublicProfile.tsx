@@ -7,16 +7,19 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'
+import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
+import posthog from 'posthog-js'
 import ProfileHeader from './ProfileHeader'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
 import { requestUrl } from '@/utils/native-routes'
 import Card from '@/components/Global/Card'
-import { checkIfInternalNavigation } from '@/utils/general.utils'
+import { checkIfInternalNavigation, saveToCookie, toInviteCode } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import ShareButton from '@/components/Global/ShareButton'
 import ActionModal from '@/components/Global/ActionModal'
 import BadgesRow from '@/components/Badges/BadgesRow'
@@ -35,7 +38,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const [showFullName, setShowFullName] = useState<boolean>(false)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [profileBadges, setProfileBadges] = useState<
@@ -53,6 +56,42 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
         if (onSendClick) {
             onSendClick()
         }
+    }
+
+    // migration window: web signup is closed, so the guest CTA has to be able to
+    // hand off to the app stores instead of routing into a dead signup.
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        trackImpressionWhenGuest: !isFetchingUser && !isLoggedIn,
+    })
+
+    // Referral impression, once per settled-guest mount. Gated on isFetchingUser
+    // because every visitor looks logged-out during the pre-auth flash — the
+    // store-handoff hook tracks its own migration impression, not this one.
+    const referralImpressionFired = useRef(false)
+    useEffect(() => {
+        if (isFetchingUser || isLoggedIn || referralImpressionFired.current) return
+        referralImpressionFired.current = true
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, {
+            source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
+            link_type: 'invite_code',
+        })
+    }, [isFetchingUser, isLoggedIn])
+
+    // This card is the crediting door: bare `peanut.me/<username>` links already
+    // shared in the wild land here, so the join CTA writes the profile owner's
+    // invite code before it goes anywhere. Cookie first, on purpose — the store
+    // handoff below leaves the page, and the code has to survive that hop.
+    const handleJoinClick = () => {
+        const code = toInviteCode(username)
+        // session scope, no expiryDays — same contract as InvitesPage's claim.
+        // A durable inviteCode cookie caused the PR #2346 login lockout.
+        saveToCookie('inviteCode', code)
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+            source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
+            link_type: 'invite_code',
+        })
+        if (interceptGuestCta()) return
+        router.push(`/invite?code=${code}`)
     }
 
     useEffect(() => {
@@ -175,18 +214,16 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                                 height={20}
                                             />
                                         </div>
-                                        <p>
-                                            {t('inviteOnlyLine1')}
-                                            <br />
-                                            {t('inviteOnlyLine2')}
-                                        </p>
+                                        <p>{t('invitedLine', { username })}</p>
                                     </div>
-                                    <ShareButton
-                                        generateText={() => Promise.resolve(t('begShareText'))}
-                                        title={t('begForInvite')}
+                                    <Button
+                                        variant="purple"
+                                        shadowSize="4"
+                                        className="w-full"
+                                        onClick={handleJoinClick}
                                     >
-                                        {t('begForInvite')}
-                                    </ShareButton>
+                                        {t('joinCta')}
+                                    </Button>
                                 </div>
                             )}
                         </Card>
@@ -219,6 +256,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         )}
                     </div>
                 )}
+
+                {storeHandoffModal}
 
                 <ActionModal
                     icon="user"

@@ -6,8 +6,11 @@ import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
 import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon, getBadgeShareText } from './badge.utils'
-import { BASE_URL } from '@/constants/general.consts'
+import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
+import { generateInviteCodeLink } from '@/utils/general.utils'
+import { appBaseUrl } from '@/utils/url.utils'
+import posthog from 'posthog-js'
 import { BadgeImage } from './BadgeImage'
 
 export type BadgeStatusDrawerProps = {
@@ -46,8 +49,9 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     const displayDescription = getBadgeDescription(badge.description)
     const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
-    // generate profile link for sharing
-    const profileLink = username ? `${BASE_URL}/${username}` : BASE_URL
+    // the sharer's own invite link, so a guest signup credits them.
+    // `generateInviteCodeLink` has no null guard — keep the ternary.
+    const shareLink = username ? generateInviteCodeLink(username).inviteLink : appBaseUrl()
 
     return (
         <>
@@ -94,13 +98,23 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                         <div className="pb-4">
                             <ShareButton
                                 title=""
+                                onSuccess={() => {
+                                    posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+                                        source: REFERRAL_SOURCES.BADGE_UNLOCK,
+                                        link_type: 'invite_code',
+                                    })
+                                    posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, {
+                                        source: REFERRAL_SOURCES.BADGE_UNLOCK,
+                                        link_type: 'invite_code',
+                                    })
+                                }}
                                 generateText={() =>
                                     Promise.resolve(
-                                        getBadgeShareText(badge.code, displayName, profileLink, {
+                                        getBadgeShareText(badge.code, displayName, shareLink, {
                                             locale,
                                             localizedFallback: t('shareText', {
                                                 badge: displayName,
-                                                link: profileLink,
+                                                link: shareLink,
                                             }),
                                         })
                                     )

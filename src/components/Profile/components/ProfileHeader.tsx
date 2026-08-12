@@ -1,6 +1,10 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { shareableUrl } from '@/utils/url.utils'
+import { useTranslations } from 'next-intl'
+import posthog from 'posthog-js'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
@@ -26,6 +30,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     showShareButton = true,
     haveSentMoneyToUser = false,
 }) => {
+    const t = useTranslations('global')
+    const toast = useToast()
     const { user: authenticatedUser } = useAuth()
     // The self-profile verified badge means "this person's ID was confirmed" —
     // NOT "this person has an enabled payment rail." It reads identityVerification
@@ -35,7 +41,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
 
-    const profileUrl = `${BASE_URL}/${username}`
+    // `shareableUrl` reads the live origin, so preview and staging share themselves
+    // instead of `undefined/<username>` (the old BASE_URL import is non-null-asserted
+    // with no fallback).
+    const profileUrl = shareableUrl(`/${username}`)
 
     return (
         <>
@@ -56,14 +65,21 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     />
                     <CopyToClipboard textToCopy={username} fill="black" iconSize="5" />
                 </div>
-                {/* Username with share drawer */}
-                {showShareButton && (
+                {/* Username with share drawer. `isSelfProfile` guards wrong attribution:
+                    `showShareButton` defaults to true, so a future caller on someone
+                    else's profile would share that other handle. It also hides the pill
+                    while auth resolves, instead of showing `peanut.me/anonymous`. */}
+                {showShareButton && isSelfProfile && (
                     <Button
                         size="large"
                         variant="primary-soft"
                         shadowSize="4"
                         className="flex h-10 w-fit items-center justify-center rounded-full py-3 pl-6 pr-4"
                         onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+                                source: REFERRAL_SOURCES.PROFILE_HEADER,
+                                link_type: 'profile',
+                            })
                             if (navigator.share) {
                                 navigator
                                     .share({
@@ -74,6 +90,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                     })
                             } else {
                                 navigator.clipboard.writeText(profileUrl)
+                                // Desktop fallback: navigator.share is mobile-only.
+                                // Without a toast the click is silent and users assume
+                                // the button is broken.
+                                toast.info(t('shareButton.linkCopied'))
                             }
                         }}
                     >

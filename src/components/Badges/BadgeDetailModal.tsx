@@ -7,7 +7,10 @@ import { BadgeImage } from './BadgeImage'
 import ShareButton from '../Global/ShareButton'
 import { getBadgeShareText } from './badge.utils'
 import { useUserStore } from '@/redux/hooks'
-import { BASE_URL } from '@/constants/general.consts'
+import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { generateInviteCodeLink } from '@/utils/general.utils'
+import { appBaseUrl } from '@/utils/url.utils'
+import posthog from 'posthog-js'
 
 type BadgeDetailModalProps = {
     isOpen: boolean
@@ -25,12 +28,14 @@ export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, lo
     const locale = useLocale()
     const { user: authUser } = useUserStore()
     const username = authUser?.user?.username
-    // the sharer's own public profile — showcases their badges + carries the join CTA
-    const profileUrl = username ? `${BASE_URL}/${username}` : BASE_URL
+    // the sharer's own invite link, so a guest signup credits them. A logged-in
+    // recipient is redirected to /<username> anyway, so the profile form buys
+    // nothing here. `generateInviteCodeLink` has no null guard — keep the ternary.
+    const shareLink = username ? generateInviteCodeLink(username).inviteLink : appBaseUrl()
 
-    const shareText = getBadgeShareText(code, title, profileUrl, {
+    const shareText = getBadgeShareText(code, title, shareLink, {
         locale,
-        localizedFallback: t('shareText', { badge: title, link: profileUrl }),
+        localizedFallback: t('shareText', { badge: title, link: shareLink }),
     })
 
     return (
@@ -55,7 +60,17 @@ export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, lo
                 <ShareButton
                     title=""
                     className="w-full"
-                    onSuccess={onClose}
+                    onSuccess={() => {
+                        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+                            source: REFERRAL_SOURCES.BADGE_DETAIL,
+                            link_type: 'invite_code',
+                        })
+                        posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, {
+                            source: REFERRAL_SOURCES.BADGE_DETAIL,
+                            link_type: 'invite_code',
+                        })
+                        onClose()
+                    }}
                     generateText={() => Promise.resolve(shareText)}
                 >
                     {t('shareAchievement')}
