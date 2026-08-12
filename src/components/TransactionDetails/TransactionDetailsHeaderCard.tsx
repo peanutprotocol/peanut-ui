@@ -37,6 +37,7 @@ interface TransactionDetailsHeaderCardProps {
     transactionType?: TransactionType
     avatarUrl?: string
     haveSentMoneyToUser?: boolean
+    isNameClickable?: boolean
     isAvatarClickable?: boolean
     showProgessBar?: boolean
     progress?: number
@@ -205,6 +206,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     haveSentMoneyToUser = false,
+    isNameClickable = false,
     isAvatarClickable = false,
     showProgessBar = false,
     progress,
@@ -232,10 +234,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     const isTest = isTestTransaction(userName)
     const icon = getIcon(direction, isLinkTransaction, isTest)
 
-    const handleUserPfpClick = () => {
-        if (isAvatarClickable) {
-            router.push(profileUrl(userName))
-        }
+    const handleUserProfileClick = () => {
+        router.push(profileUrl(userName))
     }
 
     const isNoGoalSet = isRequestPotTransaction && goal === 0
@@ -253,7 +253,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                 </div>
             ) : (
                 <div className="flex items-center gap-3">
-                    <div className={twMerge(isAvatarClickable && 'cursor-pointer')} onClick={handleUserPfpClick}>
+                    <div
+                        className={twMerge(isAvatarClickable && 'cursor-pointer')}
+                        onClick={isAvatarClickable ? handleUserProfileClick : undefined}
+                    >
                         {avatarUrl ? (
                             <div className="flex h-16 w-16 items-center justify-center rounded-full">
                                 <Image
@@ -297,7 +300,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                 className="flex items-center gap-1"
                                 haveSentMoneyToUser={haveSentMoneyToUser}
                                 iconSize={18}
-                                onNameClick={isAvatarClickable ? handleUserPfpClick : undefined}
+                                onNameClick={isNameClickable ? handleUserProfileClick : undefined}
                             />
 
                             <div className="ml-auto">

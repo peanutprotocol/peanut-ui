@@ -5,6 +5,7 @@
 
 import {
     hasUserProfile,
+    hasUserProfileAvatar,
     isCardSpend,
     isDirectSendEntry,
     isFxBearingFlow,
@@ -154,7 +155,7 @@ describe('isSplittable', () => {
     })
 })
 
-// gates the clickable counterparty name/avatar in BOTH the history row
+// gates the clickable counterparty name in BOTH the history row
 // (TransactionCard) and the receipt header (TransactionDetailsHeaderCard): any
 // non-link transaction whose peer is a real user with a username deep-links to
 // that Peanut profile, regardless of the receipt's presentation type.
@@ -219,5 +220,18 @@ describe('hasUserProfile', () => {
     // there is no /<uuid> profile page, so it must not be a nav target.
     test('a usernameless user (UUID userId fallback) has no profile', () => {
         expect(hasUserProfile(profileTx('send', { userName: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' }))).toBe(false)
+    })
+
+    test.each(['send', 'request', 'receive'])('a %s user avatar links to the profile', (type) => {
+        expect(hasUserProfileAvatar(profileTx(type))).toBe(true)
+    })
+
+    test('a bank-request flag stays inert even when the counterparty name has a profile', () => {
+        expect(hasUserProfile(profileTx('bank_request_fulfillment'))).toBe(true)
+        expect(hasUserProfileAvatar(profileTx('bank_request_fulfillment'))).toBe(false)
+    })
+
+    test('a non-user avatar never links to a profile', () => {
+        expect(hasUserProfileAvatar(profileTx('send', { isPeerActuallyUser: false }))).toBe(false)
     })
 })

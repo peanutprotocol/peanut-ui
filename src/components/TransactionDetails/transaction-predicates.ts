@@ -138,3 +138,13 @@ export function hasUserProfile(transaction: TransactionDetails): boolean {
         !isUuid(userName)
     )
 }
+
+// these presentation types render the peer's initials/avatar. bank and wallet
+// types render a rail or account icon, which must stay inert even when the
+// counterparty name links to a real profile.
+const USER_PROFILE_AVATAR_TYPES: ReadonlySet<string> = new Set(['send', 'request', 'receive'])
+
+export function hasUserProfileAvatar(transaction: TransactionDetails): boolean {
+    const transactionCardType = transaction.extraDataForDrawer?.transactionCardType
+    return hasUserProfile(transaction) && !!transactionCardType && USER_PROFILE_AVATAR_TYPES.has(transactionCardType)
+}
