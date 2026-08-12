@@ -26,7 +26,7 @@ import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { shareableUrl } from '@/utils/url.utils'
+import { profileShareUrl } from '@/components/Card/share-asset/share.utils'
 import { getShakeClass } from '@/utils/perk.utils'
 import { useHaptic } from 'use-haptic'
 import posthog from 'posthog-js'
@@ -189,14 +189,12 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                     value={hideUsername}
                     onChange={(e) => setHideUsername(e.target.checked)}
                 />
-                {/* Caption link, not a PNG change: the anti-dox toggle and an
-                    unknown username both drop it (the asset falls back to the
-                    'anon' placeholder above — never link to /anon). */}
+                {/* Caption link, not a PNG change — anti-dox rule lives on the helper. */}
                 <ShareAssetActions
                     captureRef={captureRef}
                     source="celebration"
                     ready={assetReady}
-                    shareUrl={hideUsername || !username ? undefined : shareableUrl(`/${username}`)}
+                    shareUrl={profileShareUrl(username, hideUsername)}
                 />
                 <Button onClick={onContinue} variant="stroke" className="w-full">
                     {t('celebration.continueToCard')}

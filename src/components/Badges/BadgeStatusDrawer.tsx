@@ -1,16 +1,21 @@
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
-import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon, getBadgeShareText } from './badge.utils'
-import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import {
+    captureBadgeShare,
+    captureBadgeShareShown,
+    getBadgeDescription,
+    getBadgeDisplayName,
+    getBadgeIcon,
+    getBadgeShareLink,
+    getBadgeShareText,
+} from './badge.utils'
+import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
-import { generateInviteCodeLink } from '@/utils/general.utils'
-import { appBaseUrl } from '@/utils/url.utils'
-import posthog from 'posthog-js'
 import { BadgeImage } from './BadgeImage'
 
 export type BadgeStatusDrawerProps = {
@@ -49,9 +54,14 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     const displayDescription = getBadgeDescription(badge.description)
     const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
-    // the sharer's own invite link, so a guest signup credits them.
-    // `generateInviteCodeLink` has no null guard — keep the ternary.
-    const shareLink = username ? generateInviteCodeLink(username).inviteLink : appBaseUrl()
+    // the sharer's own invite link, so a guest signup credits them (rationale
+    // + null handling live on the helper in badge.utils).
+    const shareLink = getBadgeShareLink(username)
+
+    // Impression leg — see BadgeDetailModal; same funnel contract.
+    useEffect(() => {
+        if (isOpen) captureBadgeShareShown(REFERRAL_SOURCES.BADGE_UNLOCK, shareLink)
+    }, [isOpen, shareLink])
 
     return (
         <>
@@ -98,16 +108,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                         <div className="pb-4">
                             <ShareButton
                                 title=""
-                                onSuccess={() => {
-                                    posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
-                                        source: REFERRAL_SOURCES.BADGE_UNLOCK,
-                                        link_type: 'invite_code',
-                                    })
-                                    posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, {
-                                        source: REFERRAL_SOURCES.BADGE_UNLOCK,
-                                        link_type: 'invite_code',
-                                    })
-                                }}
+                                onSuccess={() => captureBadgeShare(REFERRAL_SOURCES.BADGE_UNLOCK, shareLink)}
                                 generateText={() =>
                                     Promise.resolve(
                                         getBadgeShareText(badge.code, displayName, shareLink, {

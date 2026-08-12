@@ -1278,13 +1278,19 @@ export default function QRPayPage() {
                   })
             : ''
 
+        // The perk gate in both polarities, named once — this screen used to
+        // spell the 3-term expression inline in four places (two per polarity),
+        // which is exactly how a future perk-state change misses one.
+        const rewardClaimable = !!qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed
+        const rewardClaimed = perkClaimed || !!qrPayment?.perk?.claimed
+
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
                 <NavHeader title={tNav('pay')} />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     {/* Only show payment card if reward was not claimed */}
-                    {!perkClaimed && !qrPayment?.perk?.claimed && (
+                    {!rewardClaimed && (
                         <Card className="flex flex-row items-center gap-3 p-4">
                             <div className="flex items-center gap-3">
                                 <div
@@ -1322,7 +1328,7 @@ export default function QRPayPage() {
                     )}
 
                     {/* Reward Eligibility Card - Show before claiming */}
-                    {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
+                    {rewardClaimable && (
                         <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
                             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
@@ -1346,7 +1352,7 @@ export default function QRPayPage() {
                     )}
 
                     {/* Reward Success Banner - Show after claiming */}
-                    {(perkClaimed || qrPayment?.perk?.claimed) && (
+                    {rewardClaimed && (
                         <Card className="flex items-start gap-3 bg-white p-4">
                             <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 p-2">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
@@ -1377,7 +1383,7 @@ export default function QRPayPage() {
 
                     <div className="w-full space-y-5">
                         {/* Show Claim Reward button if eligible and not claimed yet */}
-                        {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed ? (
+                        {rewardClaimable ? (
                             <Button
                                 onPointerDown={startHold}
                                 onPointerUp={cancelHold}
@@ -1431,7 +1437,7 @@ export default function QRPayPage() {
                         ) : (
                             <>
                                 {/* after claiming a reward, primary CTA is "Done" — not "Split this bill" */}
-                                {perkClaimed || qrPayment?.perk?.claimed ? (
+                                {rewardClaimed ? (
                                     <Button shadowSize="4" onClick={() => router.push('/home')}>
                                         {tCommon('goToHome')}
                                     </Button>
@@ -1502,16 +1508,15 @@ export default function QRPayPage() {
                             server-side, and the payment that just succeeded is the gate.
                             Hidden while a reward is still claimable so it cannot compete
                             with the hold-to-claim gesture. */}
-                        {user?.user.username &&
-                            !(qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed) && (
-                                <button
-                                    onClick={() => setShowInviteFriendsModal(true)}
-                                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
-                                >
-                                    <Icon name="invite-heart" size={16} className="text-grey-1" />
-                                    {t('success.inviteFriendsCta')}
-                                </button>
-                            )}
+                        {user?.user.username && !rewardClaimable && (
+                            <button
+                                onClick={() => setShowInviteFriendsModal(true)}
+                                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                            >
+                                <Icon name="invite-heart" size={16} className="text-grey-1" />
+                                {t('success.inviteFriendsCta')}
+                            </button>
+                        )}
                     </div>
                 </div>
                 <TransactionDetailsDrawer
@@ -1520,10 +1525,14 @@ export default function QRPayPage() {
                     transaction={selectedTransaction}
                 />
                 {/* All five referral events (modal shown/dismissed, CTA shown/clicked,
-                    link shared) are fired by the modal — no page-level captures. */}
-                {user?.user.username && (
+                    link shared) are fired by the modal — no page-level captures.
+                    Mounted only while open: the modal's shown-guard is a ref that
+                    lives for the mount, so a persistent mount would swallow the
+                    MODAL_SHOWN/REFERRAL_CTA_SHOWN pair on every re-open — and a
+                    closed modal would reconcile on each 50ms hold-to-claim tick. */}
+                {showInviteFriendsModal && user?.user.username && (
                     <InviteFriendsModal
-                        visible={showInviteFriendsModal}
+                        visible
                         onClose={() => setShowInviteFriendsModal(false)}
                         username={user.user.username}
                         source={REFERRAL_SOURCES.QR_PAY_SUCCESS}

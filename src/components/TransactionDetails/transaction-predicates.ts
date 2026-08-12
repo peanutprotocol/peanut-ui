@@ -124,12 +124,16 @@ const REFERRAL_NUDGE_KINDS: ReadonlySet<string> = new Set([
 /** Directions where the viewer is the RECEIVING side. Several nudge kinds are
  *  role-polymorphic — the same kind renders a different direction depending on
  *  which end of it you are: CRYPTO_WITHDRAW + RECIPIENT → 'add', SEND_LINK +
- *  RECIPIENT → 'claim_external', an OFFRAMP claim → 'bank_claim'. Without this
- *  block the receiving side would get a nudge for a payment it did not make. */
+ *  RECIPIENT → 'claim_external' (viewer claimed someone else's link out to an
+ *  external wallet). Without this block the receiving side would get a nudge
+ *  for a payment it did not make.
+ *
+ *  'bank_claim' is deliberately NOT here: "Claimed to Bank" is only ever
+ *  viewed by the paying sender — an external claimer has no account to view
+ *  from, and a claim by a Peanut user renders as 'send' (fiat-offramp.ts). */
 const INBOUND_DIRECTIONS: ReadonlySet<TransactionDirection> = new Set([
     'receive',
     'add',
-    'bank_claim',
     'bank_deposit',
     'claim_external',
     'request_received',

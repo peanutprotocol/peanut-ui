@@ -3,6 +3,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { shareableUrl } from '@/utils/url.utils'
+import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import React from 'react'
@@ -75,7 +76,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         variant="primary-soft"
                         shadowSize="4"
                         className="flex h-10 w-fit items-center justify-center rounded-full py-3 pl-6 pr-4"
-                        onClick={() => {
+                        onClick={async () => {
                             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                                 source: REFERRAL_SOURCES.PROFILE_HEADER,
                                 link_type: 'profile',
@@ -89,11 +90,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                         console.error('Error sharing:', error)
                                     })
                             } else {
-                                navigator.clipboard.writeText(profileUrl)
                                 // Desktop fallback: navigator.share is mobile-only.
-                                // Without a toast the click is silent and users assume
+                                // The util resolves only after a real copy (secure-
+                                // context aware, textarea fallback), so the toast
+                                // can't claim a write the browser rejected — and
+                                // without one the click is silent and users assume
                                 // the button is broken.
-                                toast.info(t('shareButton.linkCopied'))
+                                const copied = await copyTextToClipboardWithFallback(profileUrl)
+                                if (copied) toast.info(t('shareButton.linkCopied'))
                             }
                         }}
                     >

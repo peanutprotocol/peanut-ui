@@ -204,10 +204,16 @@ describe('hasReferralNudge', () => {
     test.each([
         ['CRYPTO_WITHDRAW seen by the recipient', 'CRYPTO_WITHDRAW', 'add'],
         ['a claimed SEND_LINK seen by the claimer', 'SEND_LINK', 'claim_external'],
-        ['an OFFRAMP claim', 'OFFRAMP', 'bank_claim'],
         ['a request seen by the requester', 'P2P_REQUEST_FULFILL', 'request_received'],
     ] as Array<[string, string, TransactionDirection]>)('%s gets no nudge', (_label, kind, direction) => {
         expect(hasReferralNudge(nudgeTx(kind, direction))).toBe(false)
+    })
+
+    // 'bank_claim' ("Claimed to Bank") is only ever viewed by the paying
+    // sender — the external claimer has no account, and a Peanut-user claim
+    // renders as 'send' — so a completed bank send-link cash-out DOES nudge.
+    test('a bank send-link claimed externally still nudges the sender', () => {
+        expect(hasReferralNudge(nudgeTx('OFFRAMP', 'bank_claim'))).toBe(true)
     })
 
     // The regression the direction allow-list caused: QR pays and card spends

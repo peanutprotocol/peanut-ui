@@ -68,7 +68,7 @@ import ContributorCard from '../Global/Contributors/ContributorCard'
 import { requestsApi } from '@/services/requests'
 import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
-import { generateInviteCodeLink } from '@/utils/general.utils'
+import { copyTextToClipboardWithFallback, generateInviteCodeLink } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
@@ -229,7 +229,9 @@ export const TransactionDetailsReceipt = ({
     // card spends (the txHash short-circuit in useReceiptViewModel); the actual
     // suppressor is `getReceiptUrl` returning undefined. Both the button below
     // and the CTA arithmetic must read this composed value, never the bare flag.
-    const showShareReceipt = !!transaction && shouldShowShareReceipt && !!getReceiptUrl(transaction)
+    const receiptUrl = transaction ? getReceiptUrl(transaction) : undefined
+    const showShareReceipt = shouldShowShareReceipt && !!receiptUrl
+    const showSplitCta = !isPublic && !!transaction && isSplittable(transaction)
 
     // Referral nudge on a completed outbound receipt. Eligibility is kind-based
     // (see hasReferralNudge), so a new outbound flow qualifies the day its kind
@@ -245,13 +247,11 @@ export const TransactionDetailsReceipt = ({
         hasReferralNudge(transaction) &&
         !!user?.user.username
 
-    // 2-CTA ceiling: how many filled action buttons already stack above the
-    // nudge. Below two the nudge keeps the proven filled treatment (send /
-    // withdraw stack neither); at two (a QR pay stacks Split + Share Receipt)
-    // it demotes to an underlined text row so the drawer never shows three
-    // equal-weight CTAs.
-    const stackedCtaCount = Number(!isPublic && !!transaction && isSplittable(transaction)) + Number(showShareReceipt)
-    const referralCtaVariant = stackedCtaCount < 2 ? 'button' : 'text_link'
+    // 2-CTA ceiling: with both Split and Share Receipt already stacked (a QR
+    // pay), the nudge demotes to an underlined text row so the drawer never
+    // shows three equal-weight CTAs. Anything less keeps the proven filled
+    // treatment (send / withdraw stack neither; card spend stacks Split only).
+    const referralCtaVariant = showSplitCta && showShareReceipt ? 'text_link' : 'button'
 
     // One impression per selected transaction. Re-opening the same transaction
     // may not remount the drawer, so this is per-selection, not per-view.
@@ -346,27 +346,48 @@ export const TransactionDetailsReceipt = ({
     }
 
     // Shared by both nudge treatments (filled button + demoted text row).
+    // Outcome, not intent — a cancelled share sheet skips both captures.
+    // CLICKED + SHARED together match what the badge surfaces and
+    // InviteFriendsModal emit for the same successful outcome.
+    const captureInviteShared = () => {
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+            source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
+            link_type: 'invite_code',
+            variant: referralCtaVariant,
+        })
+        posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, {
+            source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
+            link_type: 'invite_code',
+            variant: referralCtaVariant,
+        })
+    }
+    const copyInviteLinkAndCapture = async (inviteLink: string) => {
+        // The util resolves only after a real copy (secure-context aware, with
+        // the textarea fallback), so the toast can't lie about a write the
+        // browser rejected — and a failed copy skips the captures.
+        const copied = await copyTextToClipboardWithFallback(inviteLink)
+        if (!copied) return
+        toast.info(t('toast.inviteLinkCopied'))
+        captureInviteShared()
+    }
     const shareInviteLink = async () => {
         const username = user?.user.username
         if (!username) return
         const { inviteLink } = generateInviteCodeLink(username)
+        if (!navigator.share) {
+            // Desktop: navigator.share is mobile-only.
+            await copyInviteLinkAndCapture(inviteLink)
+            return
+        }
         try {
-            if (navigator.share) {
-                await navigator.share({ url: inviteLink })
-            } else {
-                await navigator.clipboard.writeText(inviteLink)
-                // Desktop fallback: navigator.share is mobile-only. Without a
-                // toast the click is silent and users assume it is broken.
-                toast.info(t('toast.inviteLinkCopied'))
-            }
-            // Outcome, not intent — a cancelled share sheet rejects and skips this.
-            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, {
-                source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
-                link_type: 'invite_code',
-                variant: referralCtaVariant,
-            })
-        } catch {
-            // user cancelled share sheet — ignore
+            await navigator.share({ url: inviteLink })
+            captureInviteShared()
+        } catch (err) {
+            // user cancelled the share sheet — quiet path
+            if (err instanceof Error && err.name === 'AbortError') return
+            // navigator.share exists but rejected (WebView permission policy,
+            // gesture lost across the await) — don't leave a dead button.
+            await copyInviteLinkAndCapture(inviteLink)
         }
     }
 
@@ -858,7 +879,7 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {!isPublic && isSplittable(transaction) && (
+            {showSplitCta && (
                 <Button
                     onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
                     icon="split"
@@ -870,7 +891,7 @@ export const TransactionDetailsReceipt = ({
 
             {showShareReceipt && (
                 <div className="pr-1">
-                    <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={getReceiptUrl(transaction)!}>
+                    <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={receiptUrl!}>
                         {t('actions.shareReceipt')}
                     </ShareButton>
                 </div>

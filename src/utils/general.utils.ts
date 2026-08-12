@@ -416,11 +416,13 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     return formattedAmount
 }
 
-export async function copyTextToClipboardWithFallback(text: string) {
+/** Returns whether a copy actually happened, so callers can keep a success
+ *  toast honest. Failures are still best-effort (Sentry + console, no throw). */
+export async function copyTextToClipboardWithFallback(text: string): Promise<boolean> {
     if (navigator.clipboard && window.isSecureContext) {
         try {
             await navigator.clipboard.writeText(text)
-            return
+            return true
         } catch (err) {
             Sentry.captureException(err)
             console.error('Clipboard API failed, trying fallback method. Error:', err)
@@ -435,11 +437,13 @@ export async function copyTextToClipboardWithFallback(text: string) {
         textarea.style.left = '-9999px'
         document.body.appendChild(textarea)
         textarea.select()
-        document.execCommand('copy')
+        const copied = document.execCommand('copy')
         document.body.removeChild(textarea)
+        return copied
     } catch (err) {
         Sentry.captureException(err)
         console.error('Fallback method failed. Error:', err)
+        return false
     }
 }
 

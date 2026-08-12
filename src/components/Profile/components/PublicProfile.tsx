@@ -64,24 +64,34 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
         trackImpressionWhenGuest: !isFetchingUser && !isLoggedIn,
     })
 
-    // Referral impression, once per settled-guest mount. Gated on isFetchingUser
-    // because every visitor looks logged-out during the pre-auth flash — the
-    // store-handoff hook tracks its own migration impression, not this one.
-    const referralImpressionFired = useRef(false)
+    // Referral impression, once per settled-guest profile. Gated on
+    // isFetchingUser because every visitor looks logged-out during the
+    // pre-auth flash — the store-handoff hook tracks its own migration
+    // impression, not this one. Keyed by username (not a boolean): the
+    // [...recipient] route reuses this component instance across profile
+    // navigations, and a clicks-without-impressions funnel reads as >100% CTR.
+    const referralImpressionForUsername = useRef<string | null>(null)
     useEffect(() => {
-        if (isFetchingUser || isLoggedIn || referralImpressionFired.current) return
-        referralImpressionFired.current = true
+        if (isFetchingUser || isLoggedIn || referralImpressionForUsername.current === username) return
+        referralImpressionForUsername.current = username
         posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
         })
-    }, [isFetchingUser, isLoggedIn])
+    }, [isFetchingUser, isLoggedIn, username])
 
     // This card is the crediting door: bare `peanut.me/<username>` links already
     // shared in the wild land here, so the join CTA writes the profile owner's
     // invite code before it goes anywhere. Cookie first, on purpose — the store
     // handoff below leaves the page, and the code has to survive that hop.
     const handleJoinClick = () => {
+        // Pre-auth flash guard: until auth settles every visitor looks logged
+        // out, and a fast tap here would write someone else's invite code into
+        // an already-authenticated session's cookies.
+        if (isFetchingUser) return
+        // No-op when the Request-gate modal isn't open; closing here keeps the
+        // card door and the modal door on one handler instead of two forks.
+        setShowInviteModal(false)
         const code = toInviteCode(username)
         // session scope, no expiryDays — same contract as InvitesPage's claim.
         // A durable inviteCode cookie caused the PR #2346 login lockout.
@@ -93,6 +103,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
         if (interceptGuestCta()) return
         router.push(`/invite?code=${code}`)
     }
+
+    // One element, two doors: the guest card and the Request-gate modal must
+    // never drift apart — each is a crediting entrance to the same signup.
+    const joinCtaButton = (
+        <Button variant="purple" shadowSize="4" className="w-full" onClick={handleJoinClick}>
+            {t('joinCta')}
+        </Button>
+    )
 
     useEffect(() => {
         usersApi.getByUsername(username).then((apiUser) => {
@@ -216,14 +234,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                         </div>
                                         <p>{t('invitedLine', { username })}</p>
                                     </div>
-                                    <Button
-                                        variant="purple"
-                                        shadowSize="4"
-                                        className="w-full"
-                                        onClick={handleJoinClick}
-                                    >
-                                        {t('joinCta')}
-                                    </Button>
+                                    {joinCtaButton}
                                 </div>
                             )}
                         </Card>
@@ -283,17 +294,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                 {t('begForInvite')}
                             </ShareButton>
                         ) : (
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                className="w-full"
-                                onClick={() => {
-                                    setShowInviteModal(false)
-                                    handleJoinClick()
-                                }}
-                            >
-                                {t('joinCta')}
-                            </Button>
+                            joinCtaButton
                         )
                     }
                 />

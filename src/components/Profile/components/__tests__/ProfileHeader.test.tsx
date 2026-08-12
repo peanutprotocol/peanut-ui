@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import posthog from 'posthog-js'
 import ProfileHeader from '../ProfileHeader'
@@ -86,16 +86,33 @@ describe('ProfileHeader share pill', () => {
         expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
 
-    it('copies the profile url and toasts when the web share api is missing', () => {
+    it('copies the profile url and toasts when the web share api is missing', async () => {
+        // copyTextToClipboardWithFallback only uses navigator.clipboard on a
+        // secure context; jsdom defaults to insecure and would silently take
+        // the execCommand path instead.
+        Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true })
+        mockWriteText.mockResolvedValueOnce(undefined)
         renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
 
         fireEvent.click(sharePill()!)
 
+        // the handler awaits the copy before toasting — success only after a real write
+        await waitFor(() => expect(mockToastInfo).toHaveBeenCalledWith(en.global.shareButton.linkCopied))
         expect(mockWriteText).toHaveBeenCalledWith(`${ORIGIN}/satoshi`)
-        expect(mockToastInfo).toHaveBeenCalledWith(en.global.shareButton.linkCopied)
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PROFILE_HEADER,
             link_type: 'profile',
         })
+    })
+
+    it('does not toast when the clipboard write is rejected', async () => {
+        Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true })
+        mockWriteText.mockRejectedValueOnce(new Error('denied'))
+        renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+
+        fireEvent.click(sharePill()!)
+
+        await waitFor(() => expect(mockWriteText).toHaveBeenCalled())
+        expect(mockToastInfo).not.toHaveBeenCalled()
     })
 })
