@@ -207,8 +207,8 @@
         "permanent": true
     },
     {
-        "source": "/:locale(en|es-419|es-ar|pt-br)/:path*/",
-        "destination": "/:locale/:path*",
+        "source": "/:locale(en|es-419|es-ar|pt-br)/:path+/",
+        "destination": "/:locale/:path+",
         "permanent": true
     }
 ]
