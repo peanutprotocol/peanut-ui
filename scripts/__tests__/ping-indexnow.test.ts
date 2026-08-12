@@ -18,6 +18,7 @@ import {
     parseSitemapXml,
     readValidatedState,
     runIndexNow,
+    submitIndexNowBatches,
     validatePublicUrl,
     writeStateAtomic,
     type IndexNowLogger,
@@ -378,11 +379,22 @@ describe('strict deployed sitemap parsing', () => {
         await expect(collectDeployedUrls({ fetchImpl, timeoutMs: 1_000 })).rejects.toThrow('Split URL with a query')
     })
 
+    test.each([`${NEW_ROOT_URL}?campaign=1`, `${NEW_ROOT_URL}?`])(
+        'rejects query-bearing root sitemap URL %p',
+        async (url) => {
+            const routes = deployedRoutes([HOME, url])
+            const { fetchImpl } = createFetch(routes)
+            await expect(collectDeployedUrls({ fetchImpl, timeoutMs: 1_000 })).rejects.toThrow(
+                'deployed sitemap URL 2 must not contain a query'
+            )
+        }
+    )
+
     test('rejects a query-bearing Split URL even when it appears in the root sitemap', async () => {
         const routes = deployedRoutes([HOME, `${SIX_SPLIT_URLS[0]}?preview=1`])
         const { fetchImpl } = createFetch(routes)
         await expect(collectDeployedUrls({ fetchImpl, timeoutMs: 1_000 })).rejects.toThrow(
-            'deployed Split URL contains a query'
+            'deployed sitemap URL 2 must not contain a query'
         )
     })
 
@@ -432,6 +444,15 @@ describe('validated and atomic state', () => {
             JSON.stringify({
                 version: 1,
                 urls: [`${SIX_SPLIT_URLS[0]}?preview=1`],
+                writtenAt: '2026-08-11T18:00:00.000Z',
+                reason: 'bootstrap',
+            }),
+        ],
+        [
+            'query-bearing ordinary URL',
+            JSON.stringify({
+                version: 1,
+                urls: [`${NEW_ROOT_URL}?campaign=1`],
                 writtenAt: '2026-08-11T18:00:00.000Z',
                 reason: 'bootstrap',
             }),
@@ -503,6 +524,15 @@ describe('validated and atomic state', () => {
         )
         expect(fs.existsSync(file)).toBe(false)
     })
+
+    test.each([`${NEW_ROOT_URL}?campaign=1`, `${NEW_ROOT_URL}?`])(
+        'refuses to write query-bearing ordinary URL %p to durable state',
+        (url) => {
+            const file = statePath()
+            expect(() => writeStateAtomic(file, [url], 'bootstrap')).toThrow('must not contain a query')
+            expect(fs.existsSync(file)).toBe(false)
+        }
+    )
 
     test('explicit root-only bootstrap writes one complete state file and calls no API', async () => {
         const file = statePath()
@@ -911,6 +941,24 @@ describe('release, noindex, and delta gates', () => {
 })
 
 describe('IndexNow payload, batching, errors, and state advancement', () => {
+    test.each([`${NEW_ROOT_URL}?campaign=1`, `${NEW_ROOT_URL}?`])(
+        'rejects query-bearing submission URL %p before the API call',
+        async (url) => {
+            const { fetchImpl, mock } = createFetch(new Map(), [{ status: 200 }])
+            await expect(
+                submitIndexNowBatches({
+                    fetchImpl,
+                    endpoint: INDEXNOW_ENDPOINT,
+                    key: TEST_KEY,
+                    urls: [url],
+                    timeoutMs: 1_000,
+                    logger,
+                })
+            ).rejects.toThrow('must not contain a query')
+            expect(apiCalls(mock)).toHaveLength(0)
+        }
+    )
+
     test.each([200, 202])('accepts exact protocol success status %s and advances state atomically', async (status) => {
         const file = statePath()
         const split = SIX_SPLIT_URLS[0]
