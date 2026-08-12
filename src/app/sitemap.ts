@@ -113,7 +113,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             })
         }
 
-        // Receive money pages — corridor origins that have a receive-from article
+        // Receive money pages — every published receive-from article (independent of corridors)
         for (const source of RECEIVE_SOURCES) {
             if (!hasPageContent('receive-from', source, locale)) continue
             pages.push({
