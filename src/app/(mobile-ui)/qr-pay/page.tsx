@@ -45,10 +45,11 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureException } from '@sentry/nextjs'
 import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
 import { QrKycState } from '@/constants/kyc.consts'
 import ActionModal from '@/components/Global/ActionModal'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
@@ -285,6 +286,7 @@ export default function QRPayPage() {
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
     const [perkClaimed, setPerkClaimed] = useState(false)
+    const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false)
     const [holdProgress, setHoldProgress] = useState(0)
     const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -1491,6 +1493,25 @@ export default function QRPayPage() {
                                 </Button>
                             </>
                         )}
+
+                        {/* Invite row. Underlined text, not a button, so the stack stays
+                            at two filled CTAs. In the reward-claimed branch it is also the
+                            button the "invite friends to earn even more" line above has
+                            always lacked. Deliberately NOT gated on isActivated (the
+                            receipt nudge is): on a first QR pay that flag is still false
+                            server-side, and the payment that just succeeded is the gate.
+                            Hidden while a reward is still claimable so it cannot compete
+                            with the hold-to-claim gesture. */}
+                        {user?.user.username &&
+                            !(qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed) && (
+                                <button
+                                    onClick={() => setShowInviteFriendsModal(true)}
+                                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                                >
+                                    <Icon name="invite-heart" size={16} className="text-grey-1" />
+                                    {t('success.inviteFriendsCta')}
+                                </button>
+                            )}
                     </div>
                 </div>
                 <TransactionDetailsDrawer
@@ -1498,6 +1519,16 @@ export default function QRPayPage() {
                     onClose={closeTransactionDetails}
                     transaction={selectedTransaction}
                 />
+                {/* All five referral events (modal shown/dismissed, CTA shown/clicked,
+                    link shared) are fired by the modal — no page-level captures. */}
+                {user?.user.username && (
+                    <InviteFriendsModal
+                        visible={showInviteFriendsModal}
+                        onClose={() => setShowInviteFriendsModal(false)}
+                        username={user.user.username}
+                        source={REFERRAL_SOURCES.QR_PAY_SUCCESS}
+                    />
+                )}
             </div>
         )
     }

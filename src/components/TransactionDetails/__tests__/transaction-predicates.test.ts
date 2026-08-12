@@ -4,6 +4,7 @@
 // `extraData.kind` pinned to a canonical TransactionIntentKind value.
 
 import {
+    hasReferralNudge,
     hasUserProfile,
     isCardSpend,
     isDirectSendEntry,
@@ -18,6 +19,7 @@ import {
 } from '../transaction-predicates'
 import type { TransactionDetails } from '../transactionTransformer'
 import type { IntentKind } from '../strategies/registry'
+import type { TransactionDirection } from '../transaction-types'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
@@ -151,6 +153,77 @@ describe('isSplittable', () => {
     test('non-QR / non-card kinds are never splittable', () => {
         expect(isSplittable(txWithStatus('DIRECT_TRANSFER', 'completed'))).toBe(false)
         expect(isSplittable(txWithStatus('SEND_LINK', 'completed'))).toBe(false)
+    })
+})
+
+// Gates the invite-friends nudge on a completed receipt. Kind-based on purpose:
+// the receipt used to gate it on a hand-kept `['send','withdraw','bank_withdraw']`
+// direction allow-list, which silently dropped every QR pay AND every card spend
+// (both are `direction: 'qr_payment'`). The table below is the test that would
+// have caught that — it walks every IntentKind, so adding a kind without deciding
+// its nudge status is a red test, not a silent miss.
+describe('hasReferralNudge', () => {
+    const nudgeTx = (kind: string, direction: TransactionDirection): TransactionDetails =>
+        ({
+            direction,
+            extraDataForDrawer: { originalType: 'TRANSACTION_INTENT', kind },
+        }) as unknown as TransactionDetails
+
+    // Every IntentKind member × the direction that kind renders for the payer,
+    // plus whether it earns a nudge. Keyed by IntentKind (not an array) so a new
+    // kind is a TS error until someone decides its nudge status here. `false`
+    // rows are the deliberate exclusions: CARD_AUTH_REVERSAL (the charge never
+    // stuck), ONRAMP (a deposit, not a payment), CRYPTO_DEPOSIT / REFUND /
+    // PERK_REWARD (inbound — money arrived).
+    const NUDGE_BY_KIND: Record<IntentKind, { direction: TransactionDirection; expected: boolean }> = {
+        DIRECT_TRANSFER: { direction: 'send', expected: true },
+        SEND_LINK: { direction: 'send', expected: true },
+        SEND_LINK_CLAIM: { direction: 'send', expected: true },
+        P2P_REQUEST_FULFILL: { direction: 'send', expected: true },
+        QR_PAY: { direction: 'qr_payment', expected: true },
+        CRYPTO_WITHDRAW: { direction: 'withdraw', expected: true },
+        OFFRAMP: { direction: 'bank_withdraw', expected: true },
+        CARD_SPEND_AUTH: { direction: 'qr_payment', expected: true },
+        CARD_SPEND_CLEAR: { direction: 'qr_payment', expected: true },
+        CARD_AUTH_REVERSAL: { direction: 'qr_payment', expected: false },
+        ONRAMP: { direction: 'bank_deposit', expected: false },
+        CRYPTO_DEPOSIT: { direction: 'add', expected: false },
+        REFUND: { direction: 'receive', expected: false },
+        PERK_REWARD: { direction: 'receive', expected: false },
+    }
+
+    test.each(Object.entries(NUDGE_BY_KIND).map(([kind, row]) => ({ kind, ...row })))(
+        'kind=$kind direction=$direction → $expected',
+        ({ kind, direction, expected }) => {
+            expect(hasReferralNudge(nudgeTx(kind, direction))).toBe(expected)
+        }
+    )
+
+    // Role-polymorphic kinds: the SAME kind renders a different direction for the
+    // receiving side, which must never be nudged for a payment it did not make.
+    test.each([
+        ['CRYPTO_WITHDRAW seen by the recipient', 'CRYPTO_WITHDRAW', 'add'],
+        ['a claimed SEND_LINK seen by the claimer', 'SEND_LINK', 'claim_external'],
+        ['an OFFRAMP claim', 'OFFRAMP', 'bank_claim'],
+        ['a request seen by the requester', 'P2P_REQUEST_FULFILL', 'request_received'],
+    ] as Array<[string, string, TransactionDirection]>)('%s gets no nudge', (_label, kind, direction) => {
+        expect(hasReferralNudge(nudgeTx(kind, direction))).toBe(false)
+    })
+
+    // The regression the direction allow-list caused: QR pays and card spends
+    // share `direction: 'qr_payment'`, so neither was ever eligible.
+    test('QR pays and card spends both qualify despite sharing direction qr_payment', () => {
+        expect(hasReferralNudge(nudgeTx('QR_PAY', 'qr_payment'))).toBe(true)
+        expect(hasReferralNudge(nudgeTx('CARD_SPEND_CLEAR', 'qr_payment'))).toBe(true)
+    })
+
+    // A card refund keeps the spend kind on legacy rows but arrives inbound.
+    test('a card refund (spend kind, direction receive) gets no nudge', () => {
+        expect(hasReferralNudge(nudgeTx('CARD_SPEND_CLEAR', 'receive'))).toBe(false)
+    })
+
+    test('an unknown kind gets no nudge', () => {
+        expect(hasReferralNudge(nudgeTx('SOME_OTHER_KIND', 'send'))).toBe(false)
     })
 })
 
