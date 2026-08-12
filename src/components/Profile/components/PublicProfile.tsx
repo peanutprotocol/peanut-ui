@@ -13,6 +13,7 @@ import Image from 'next/image'
 import posthog from 'posthog-js'
 import ProfileHeader from './ProfileHeader'
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { invitesApi } from '@/services/invites'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
 import { requestUrl } from '@/utils/native-routes'
@@ -41,6 +42,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const { user, isFetchingUser } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
     const [showInviteModal, setShowInviteModal] = useState(false)
+    const [isJoining, setIsJoining] = useState(false)
     const [profileBadges, setProfileBadges] = useState<
         Array<{
             code: string
@@ -81,33 +83,45 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     }, [isFetchingUser, isLoggedIn, username])
 
     // This card is the crediting door: bare `peanut.me/<username>` links already
-    // shared in the wild land here, so the join CTA writes the profile owner's
-    // invite code before it goes anywhere. Cookie first, on purpose — the store
-    // handoff below leaves the page, and the code has to survive that hop.
-    const handleJoinClick = () => {
+    // shared in the wild land here, so the join CTA validates the owner's code
+    // and persists it BEFORE the store handoff can leave the page — the code
+    // has to survive that hop.
+    const handleJoinClick = async () => {
         // Pre-auth flash guard: until auth settles every visitor looks logged
         // out, and a fast tap here would write someone else's invite code into
         // an already-authenticated session's cookies.
-        if (isFetchingUser) return
+        if (isFetchingUser || isJoining) return
         // No-op when the Request-gate modal isn't open; closing here keeps the
         // card door and the modal door on one handler instead of two forks.
         setShowInviteModal(false)
-        const code = toInviteCode(username)
-        // session scope, no expiryDays — same contract as InvitesPage's claim.
-        // A durable inviteCode cookie caused the PR #2346 login lockout.
-        saveToCookie('inviteCode', code)
-        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
-            source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
-            link_type: 'invite_code',
-        })
-        if (interceptGuestCta()) return
-        router.push(`/invite?code=${code}`)
+        setIsJoining(true)
+        try {
+            const code = toInviteCode(username)
+            // Validate BEFORE persisting — same contract as InvitesPage's claim,
+            // which only writes the cookie once the backend resolves the code. A
+            // profile can exist without being a claimable invite (inviter not
+            // onboarded), and a poisoned cookie outlives this page: the accept
+            // retry upgrades it to 30 days and setup's skipInviteGate then routes
+            // past the only screen with Log In — the PR #2346 lockout shape.
+            // Session scope, no expiryDays, for the same reason.
+            const { onboardingResolved, username: inviterUsername } = await invitesApi.validateInviteCode(code)
+            if (onboardingResolved && inviterUsername) saveToCookie('inviteCode', code)
+            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+                source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
+                link_type: 'invite_code',
+            })
+            if (interceptGuestCta()) return
+            // Unresolvable codes still navigate — /invite owns the error screen.
+            router.push(`/invite?code=${code}`)
+        } finally {
+            setIsJoining(false)
+        }
     }
 
     // One element, two doors: the guest card and the Request-gate modal must
     // never drift apart — each is a crediting entrance to the same signup.
     const joinCtaButton = (
-        <Button variant="purple" shadowSize="4" className="w-full" onClick={handleJoinClick}>
+        <Button variant="purple" shadowSize="4" className="w-full" disabled={isJoining} onClick={handleJoinClick}>
             {t('joinCta')}
         </Button>
     )

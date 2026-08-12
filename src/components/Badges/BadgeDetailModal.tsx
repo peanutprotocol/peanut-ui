@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { StaticImageData } from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import ActionModal from '../Global/ActionModal'
@@ -30,10 +30,18 @@ export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, lo
     // + null handling live on the helper in badge.utils).
     const shareLink = getBadgeShareLink(username)
 
-    // Impression leg: every open is a genuine exposure of the share CTA, so
-    // the badge funnel divides by real impressions like every other source.
+    // Impression leg: once per OPEN, not per shareLink change — the username
+    // can resolve mid-open (redux hydration), and re-firing would count one
+    // exposure twice, split across two link_type buckets.
+    const impressionLatch = useRef(false)
     useEffect(() => {
-        if (isOpen) captureBadgeShareShown(REFERRAL_SOURCES.BADGE_DETAIL, shareLink)
+        if (!isOpen) {
+            impressionLatch.current = false
+            return
+        }
+        if (impressionLatch.current) return
+        impressionLatch.current = true
+        captureBadgeShareShown(REFERRAL_SOURCES.BADGE_DETAIL, shareLink)
     }, [isOpen, shareLink])
 
     const shareText = getBadgeShareText(code, title, shareLink, {

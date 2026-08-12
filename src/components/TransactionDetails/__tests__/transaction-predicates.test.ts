@@ -209,11 +209,18 @@ describe('hasReferralNudge', () => {
         expect(hasReferralNudge(nudgeTx(kind, direction))).toBe(false)
     })
 
-    // 'bank_claim' ("Claimed to Bank") is only ever viewed by the paying
-    // sender — the external claimer has no account, and a Peanut-user claim
-    // renders as 'send' — so a completed bank send-link cash-out DOES nudge.
-    test('a bank send-link claimed externally still nudges the sender', () => {
-        expect(hasReferralNudge(nudgeTx('OFFRAMP', 'bank_claim'))).toBe(true)
+    // 'bank_claim' has two possible viewers (the paying sender when claimed
+    // externally, AND a Peanut user viewing their own claim-to-bank), and the
+    // direction alone cannot tell them apart — blocked until the predicate
+    // can see the viewer role.
+    test('a bank send-link claim gets no nudge (viewer role is ambiguous)', () => {
+        expect(hasReferralNudge(nudgeTx('OFFRAMP', 'bank_claim'))).toBe(false)
+    })
+
+    // 'bank_request_fulfillment' only ever renders for userRole SENDER — the
+    // viewer is paying a request via bank rails (p2p-send.ts).
+    test('a bridge-fulfilled request nudges the payer', () => {
+        expect(hasReferralNudge(nudgeTx('P2P_REQUEST_FULFILL', 'bank_request_fulfillment'))).toBe(true)
     })
 
     // The regression the direction allow-list caused: QR pays and card spends

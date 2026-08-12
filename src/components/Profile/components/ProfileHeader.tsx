@@ -6,7 +6,7 @@ import { shareableUrl } from '@/utils/url.utils'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
@@ -47,6 +47,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     // with no fallback).
     const profileUrl = shareableUrl(`/${username}`)
 
+    // Impression leg, once per mount — every other REFERRAL_SOURCES surface
+    // emits SHOWN, and a clicks-only source reads as infinite CTR in PostHog.
+    const pillVisible = showShareButton && isSelfProfile
+    const impressionFired = useRef(false)
+    useEffect(() => {
+        if (!pillVisible || impressionFired.current) return
+        impressionFired.current = true
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, {
+            source: REFERRAL_SOURCES.PROFILE_HEADER,
+            link_type: 'profile',
+        })
+    }, [pillVisible])
+
     return (
         <>
             <div className={twMerge('flex flex-col items-center space-y-2', className)}>
@@ -70,22 +83,26 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     `showShareButton` defaults to true, so a future caller on someone
                     else's profile would share that other handle. It also hides the pill
                     while auth resolves, instead of showing `peanut.me/anonymous`. */}
-                {showShareButton && isSelfProfile && (
+                {pillVisible && (
                     <Button
                         size="large"
                         variant="primary-soft"
                         shadowSize="4"
                         className="flex h-10 w-fit items-center justify-center rounded-full py-3 pl-6 pr-4"
                         onClick={async () => {
-                            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
-                                source: REFERRAL_SOURCES.PROFILE_HEADER,
-                                link_type: 'profile',
-                            })
+                            // Outcome, not intent — matches the receipt and badge
+                            // surfaces, so profile_header clicks stay comparable.
+                            const captureShared = () =>
+                                posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+                                    source: REFERRAL_SOURCES.PROFILE_HEADER,
+                                    link_type: 'profile',
+                                })
                             if (navigator.share) {
                                 navigator
                                     .share({
                                         url: profileUrl,
                                     })
+                                    .then(captureShared)
                                     .catch((error) => {
                                         console.error('Error sharing:', error)
                                     })
@@ -97,7 +114,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                 // without one the click is silent and users assume
                                 // the button is broken.
                                 const copied = await copyTextToClipboardWithFallback(profileUrl)
-                                if (copied) toast.info(t('shareButton.linkCopied'))
+                                if (!copied) return
+                                toast.info(t('shareButton.linkCopied'))
+                                captureShared()
                             }
                         }}
                     >

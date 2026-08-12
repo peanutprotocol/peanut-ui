@@ -1,5 +1,5 @@
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
@@ -58,9 +58,16 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     // + null handling live on the helper in badge.utils).
     const shareLink = getBadgeShareLink(username)
 
-    // Impression leg — see BadgeDetailModal; same funnel contract.
+    // Impression leg — once per open, latched; see BadgeDetailModal.
+    const impressionLatch = useRef(false)
     useEffect(() => {
-        if (isOpen) captureBadgeShareShown(REFERRAL_SOURCES.BADGE_UNLOCK, shareLink)
+        if (!isOpen) {
+            impressionLatch.current = false
+            return
+        }
+        if (impressionLatch.current) return
+        impressionLatch.current = true
+        captureBadgeShareShown(REFERRAL_SOURCES.BADGE_UNLOCK, shareLink)
     }, [isOpen, shareLink])
 
     return (

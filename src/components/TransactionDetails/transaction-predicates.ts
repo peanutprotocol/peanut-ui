@@ -128,12 +128,20 @@ const REFERRAL_NUDGE_KINDS: ReadonlySet<string> = new Set([
  *  external wallet). Without this block the receiving side would get a nudge
  *  for a payment it did not make.
  *
- *  'bank_claim' is deliberately NOT here: "Claimed to Bank" is only ever
- *  viewed by the paying sender — an external claimer has no account to view
- *  from, and a claim by a Peanut user renders as 'send' (fiat-offramp.ts). */
+ *  'bank_claim' is ambiguous at the direction level: the SENDER whose link was
+ *  claimed externally sees it (payer — a nudge would be right), but so does a
+ *  Peanut user viewing their OWN claim-to-bank (fiat-offramp.ts only rewrites
+ *  to 'send' on the sender side). Blocked until the predicate can see the
+ *  viewer role — a missed nudge is cheaper than nudging the receiving side.
+ *
+ *  'bank_request_fulfillment' is deliberately NOT here: the strategy assigns
+ *  it only to userRole SENDER ("Viewer is paying via bank rails",
+ *  p2p-send.ts). Note DIRECTION_TO_SIGN disagrees ('+') — pre-existing
+ *  inconsistency, flagged in the PR. */
 const INBOUND_DIRECTIONS: ReadonlySet<TransactionDirection> = new Set([
     'receive',
     'add',
+    'bank_claim',
     'bank_deposit',
     'claim_external',
     'request_received',

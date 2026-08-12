@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
 import posthog from 'posthog-js'
 import PublicProfile from '../PublicProfile'
@@ -9,12 +9,16 @@ import en from '@/i18n/app/messages/en.json'
 const mockPush = jest.fn()
 const mockSaveToCookie = jest.fn()
 const mockGetByUsername = jest.fn()
+const mockValidateInviteCode = jest.fn()
 const mockInterceptGuestCta = jest.fn(() => false)
 let mockAuth: { user: null | { user: { username: string; hasAppAccess: boolean } }; isFetchingUser: boolean }
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, back: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/services/users', () => ({ usersApi: { getByUsername: (u: string) => mockGetByUsername(u) } }))
+jest.mock('@/services/invites', () => ({
+    invitesApi: { validateInviteCode: (c: string) => mockValidateInviteCode(c) },
+}))
 jest.mock('@/hooks/useGuestStoreHandoff', () => ({
     useGuestStoreHandoff: () => ({
         interceptGuestCta: () => mockInterceptGuestCta(),
@@ -58,6 +62,13 @@ beforeEach(() => {
     mockAuth = { user: null, isFetchingUser: false }
     mockInterceptGuestCta.mockReturnValue(false)
     mockGetByUsername.mockResolvedValue(null)
+    // the door validates before persisting; default = resolvable inviter
+    mockValidateInviteCode.mockResolvedValue({
+        success: true,
+        attributionResolved: true,
+        onboardingResolved: true,
+        username: 'satoshi',
+    })
 })
 
 describe('PublicProfile guest door', () => {
@@ -70,12 +81,13 @@ describe('PublicProfile guest door', () => {
 
         fireEvent.click(screen.getByRole('button', { name: JOIN_CTA }))
 
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
+        expect(mockValidateInviteCode).toHaveBeenCalledWith('satoshi')
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
         })
-        expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi')
     })
 
     it('still writes the invite cookie when the store handoff swallows the click', async () => {
@@ -86,7 +98,7 @@ describe('PublicProfile guest door', () => {
 
         // the handoff leaves the page for the app store, so the code has to be
         // persisted before the intercept runs
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        await waitFor(() => expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi'))
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
@@ -134,7 +146,25 @@ describe('PublicProfile guest door', () => {
         const joinButtons = screen.getAllByRole('button', { name: JOIN_CTA })
         fireEvent.click(joinButtons[joinButtons.length - 1])
 
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
-        expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi')
+    })
+
+    it('does not persist a code the backend cannot resolve', async () => {
+        // a profile can exist without being a claimable invite (inviter not
+        // onboarded) — a poisoned cookie outlives this page (PR #2346 shape)
+        mockValidateInviteCode.mockResolvedValue({
+            success: true,
+            attributionResolved: false,
+            onboardingResolved: false,
+            username: '',
+        })
+        renderWithIntl(<PublicProfile username="Satoshi" />)
+
+        fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
+
+        // still navigates — /invite owns the error screen — but writes nothing
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
+        expect(mockSaveToCookie).not.toHaveBeenCalled()
     })
 })
