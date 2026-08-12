@@ -162,10 +162,16 @@ describe('isSplittable', () => {
 describe('hasUserProfile', () => {
     const profileTx = (
         transactionCardType: string | undefined,
-        opts?: { userName?: string; isLinkTransaction?: boolean; isPeerActuallyUser?: boolean }
+        opts?: {
+            userName?: string
+            nameKey?: TransactionDetails['nameKey']
+            isLinkTransaction?: boolean
+            isPeerActuallyUser?: boolean
+        }
     ): TransactionDetails =>
         ({
             userName: opts?.userName ?? 'natalia',
+            nameKey: opts?.nameKey,
             isPeerActuallyUser: opts?.isPeerActuallyUser ?? true,
             extraDataForDrawer: {
                 originalType: 'TRANSACTION_INTENT',
@@ -208,6 +214,18 @@ describe('hasUserProfile', () => {
 
     test('a missing username has no profile', () => {
         expect(hasUserProfile(profileTx('send', { userName: '' }))).toBe(false)
+    })
+
+    test('a generated fallback label has no profile even if the peer flag is wrong', () => {
+        expect(
+            hasUserProfile(
+                profileTx('bank_request_fulfillment', {
+                    userName: 'Recipient',
+                    nameKey: 'name.recipient',
+                    isPeerActuallyUser: true,
+                })
+            )
+        ).toBe(false)
     })
 
     // A non-user peer (raw address, bank account, or a system copy string like

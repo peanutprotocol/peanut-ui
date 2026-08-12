@@ -126,14 +126,16 @@ export function isMantecaOnrampEntry(transaction: TransactionDetails): boolean {
 // the peer has a profile when the transformer identifies a real Peanut user
 // with a username. presentation types must not narrow that fact: bank-fulfilled
 // requests and future flows can also have a real user as their peer. links, raw
-// addresses, and userId fallbacks do not resolve to profile pages. this rule is
-// shared by the history row and receipt header so the surfaces cannot drift.
+// addresses, userId fallbacks, and generated labels do not resolve to profile
+// pages. this rule is shared by the history row and receipt header so the
+// surfaces cannot drift.
 export function hasUserProfile(transaction: TransactionDetails): boolean {
     const userName = transaction.userName
     return (
         !!transaction.isPeerActuallyUser &&
         !transaction.extraDataForDrawer?.isLinkTransaction &&
         !!userName &&
+        !transaction.nameKey &&
         !isCryptoAddress(userName) &&
         !isUuid(userName)
     )
