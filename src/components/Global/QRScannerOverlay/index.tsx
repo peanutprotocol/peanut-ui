@@ -232,7 +232,14 @@ export default function QRScannerOverlay() {
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
         const normalized = data.toLowerCase()
-        const recognized = recognizeQr(normalized)
+        // Recognize the RAW scan, never `normalized`. Base58 chain addresses carry
+        // meaning in their case: an uppercase L is a valid Solana character but a
+        // lowercase l is not, and every Tron address starts with an uppercase T.
+        // Lowercasing first therefore made ~half of all Solana addresses and every
+        // Tron address unrecognizable. `normalized` stays for routing below, where
+        // hex and ENS are case-insensitive anyway. recognizeQr lowercases the
+        // branches that need it (Peanut URL, PIX) itself.
+        const recognized = recognizeQr(data)
 
         const getLogData = () => {
             if (recognized === EQrType.PIX_KEY) {
