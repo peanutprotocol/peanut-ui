@@ -833,6 +833,7 @@ describe('release, noindex, and delta gates', () => {
         expect(hasNoindexDirective('<meta name="robots" content="index,follow">', null)).toBe(false)
         expect(hasNoindexDirective('<meta data-name="robots" data-content="noindex">', null)).toBe(false)
         expect(hasNoindexDirective("<meta data-text=' name=robots content=noindex'>", null)).toBe(false)
+        expect(hasNoindexDirective('<meta name="robots" name="description" content="noindex">', null)).toBe(true)
     })
 
     test('direct indexability check accepts a clean direct HTML page', async () => {
@@ -903,6 +904,10 @@ describe('release, noindex, and delta gates', () => {
         [
             'canonical relation with only a data href',
             `<html><head><link rel="canonical" data-href="${SIX_SPLIT_URLS[0]}"></head></html>`,
+        ],
+        [
+            'valid canonical plus malformed link attributes',
+            `<html><head><link rel="canonical" href="${SIX_SPLIT_URLS[0]}"><link rel="preload" rel="stylesheet"></head></html>`,
         ],
     ])('rejects a %s canonical contract', async (_label, html) => {
         const split = SIX_SPLIT_URLS[0]

@@ -578,10 +578,6 @@ function htmlAttributes(tag: string): Map<string, string | null> | null {
     return null
 }
 
-function htmlAttribute(tag: string, name: string): string | null {
-    return htmlAttributes(tag)?.get(name.toLowerCase()) ?? null
-}
-
 export function hasNoindexDirective(html: string, xRobotsTag: string | null): boolean {
     const blocksIndexing = (value: string): boolean => /(?:^|[\s,;])(?:noindex|none)(?:$|[\s,;])/i.test(value)
 
@@ -589,10 +585,12 @@ export function hasNoindexDirective(html: string, xRobotsTag: string | null): bo
 
     for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
         const tag = match[0]
-        const name = htmlAttribute(tag, 'name')?.toLowerCase()
-        const httpEquiv = htmlAttribute(tag, 'http-equiv')?.toLowerCase()
+        const attributes = htmlAttributes(tag)
+        if (!attributes) return true
+        const name = attributes.get('name')?.toLowerCase()
+        const httpEquiv = attributes.get('http-equiv')?.toLowerCase()
         if (name !== 'robots' && name !== 'bingbot' && name !== 'googlebot' && httpEquiv !== 'x-robots-tag') continue
-        const content = htmlAttribute(tag, 'content')
+        const content = attributes.get('content')
         if (content && blocksIndexing(content)) return true
     }
     return false
@@ -607,9 +605,14 @@ function canonicalLinks(html: string): string[] {
     const links: string[] = []
     for (const match of head.matchAll(/<link\b[^>]*>/gi)) {
         const tag = match[0]
-        const relations = htmlAttribute(tag, 'rel')?.toLowerCase().split(/\s+/) ?? []
+        const attributes = htmlAttributes(tag)
+        if (!attributes) {
+            links.push('')
+            continue
+        }
+        const relations = attributes.get('rel')?.toLowerCase().split(/\s+/) ?? []
         if (!relations.includes('canonical')) continue
-        const href = htmlAttribute(tag, 'href')
+        const href = attributes.get('href')
         links.push(href ?? '')
     }
     return links
