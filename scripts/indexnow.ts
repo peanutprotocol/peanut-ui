@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { SaxesParser } from 'saxes'
+import { isSupportedSplitContentPublicPath } from '@/utils/split-content-edge'
 
 export const PRODUCTION_ORIGIN = 'https://peanut.me'
 export const ROBOTS_URL = `${PRODUCTION_ORIGIN}/robots.txt`
@@ -20,7 +21,6 @@ const MAX_SITEMAP_URLS = 50_000
 const DEFAULT_TIMEOUT_MS = 30_000
 const STATE_VERSION = 1
 const INDEXNOW_KEY_PATTERN = /^[A-Za-z0-9-]{8,128}$/
-const SPLIT_PATH_PATTERN = /^\/(?:en|es-419|pt-br)\/split(?:\/|$)/
 
 export interface IndexNowState {
     version: typeof STATE_VERSION
@@ -125,7 +125,7 @@ export function validatePublicUrl(value: unknown, label = 'URL'): string {
 }
 
 function isSplitPathUrl(value: string): boolean {
-    return SPLIT_PATH_PATTERN.test(new URL(value).pathname)
+    return isSupportedSplitContentPublicPath(new URL(value).pathname)
 }
 
 function hasQueryDelimiter(value: string): boolean {

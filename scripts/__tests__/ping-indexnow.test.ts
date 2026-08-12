@@ -15,6 +15,7 @@ import {
     collectDeployedUrls,
     fetchSitemapUrls,
     hasNoindexDirective,
+    isSplitPublicUrl,
     parseSitemapXml,
     readValidatedState,
     runIndexNow,
@@ -370,6 +371,34 @@ describe('strict deployed sitemap parsing', () => {
         await expect(collectDeployedUrls({ fetchImpl, timeoutMs: 1_000 })).rejects.toThrow(
             'outside the owned Split namespace'
         )
+    })
+
+    test('accepts future manifest-backed locale and route families without an IndexNow code change', async () => {
+        const futureSplitUrls = [
+            `${PRODUCTION_ORIGIN}/de/split`,
+            `${PRODUCTION_ORIGIN}/zh-hans-cn/split/guides/future-guide`,
+            `${PRODUCTION_ORIGIN}/fr/split/alternatives/venmo`,
+            `${PRODUCTION_ORIGIN}/de/split/tools`,
+            `${PRODUCTION_ORIGIN}/de/split/tools/rent-split-calculator`,
+        ]
+        const routes = deployedRoutes([HOME], futureSplitUrls)
+        const { fetchImpl } = createFetch(routes)
+
+        await expect(collectDeployedUrls({ fetchImpl, timeoutMs: 1_000 })).resolves.toMatchObject({
+            splitSitemapUrls: futureSplitUrls,
+            splitUrls: futureSplitUrls,
+            allUrls: [HOME, ...futureSplitUrls],
+        })
+    })
+
+    test.each([
+        `${PRODUCTION_ORIGIN}/pay/split`,
+        `${PRODUCTION_ORIGIN}/qr/split/tools/rent`,
+        `${PRODUCTION_ORIGIN}/english/split/guides/future-guide`,
+        `${PRODUCTION_ORIGIN}/EN/split/guides/future-guide`,
+        `${PRODUCTION_ORIGIN}/de/split/unknown/future-guide`,
+    ])('does not classify a product, malformed locale, or unsupported route as Split: %s', (url) => {
+        expect(isSplitPublicUrl(url)).toBe(false)
     })
 
     test.each(['?preview=1', '?'])('rejects a query-bearing Split sitemap URL suffix %p', async (suffix) => {
