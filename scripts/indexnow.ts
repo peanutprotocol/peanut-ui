@@ -138,8 +138,8 @@ export function isSplitPublicUrl(value: string): boolean {
 
 function validateIndexNowUrl(value: unknown, label: string): string {
     const url = validatePublicUrl(value, label)
-    if (isSplitPathUrl(url) && hasQueryDelimiter(url)) {
-        throw new Error(`${label} must not contain a query for a Split page`)
+    if (hasQueryDelimiter(url)) {
+        throw new Error(`${label} must not contain a query`)
     }
     return url
 }
@@ -426,10 +426,11 @@ export async function collectDeployedUrls(options: {
         }
     }
 
-    const allUrls = dedupeUrls([...rootUrls, ...splitSitemapUrls])
-    if (allUrls.some((url) => isSplitPathUrl(url) && hasQueryDelimiter(url))) {
-        throw new Error('A deployed Split URL contains a query')
-    }
+    const allUrls = dedupeUrls(
+        [...rootUrls, ...splitSitemapUrls].map((url, index) =>
+            validateIndexNowUrl(url, `deployed sitemap URL ${index + 1}`)
+        )
+    )
     return {
         rootUrls: dedupeUrls(rootUrls),
         splitSitemapUrls: dedupeUrls(splitSitemapUrls),
