@@ -468,8 +468,8 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
  *
  * `useInfiniteQuery` concatenates pages, so anything the cursor hands back
  * twice renders twice — and the rows are byte-identical, which reads as a
- * double charge. Real report: a BRL 909.00 PIX payment shown twice, one debit
- * in the database (2026-07-27).
+ * double charge. Users have reported exactly that on a PIX payment the ledger
+ * had only debited once.
  *
  * The API cursor is over-inclusive on purpose — it is keyed on the later of
  * the two timestamps so that no entry can fall through the crack between

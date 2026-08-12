@@ -175,8 +175,8 @@ describe('getAvatarUrl', () => {
 /**
  * The history page concatenates infinite-query pages. If the API cursor serves
  * an entry on two pages, the row renders twice — byte-identical, so it reads
- * as a double charge. Real report: a BRL 909.00 PIX payment shown twice with
- * one debit in the database (2026-07-27).
+ * as a double charge. Users have reported exactly that on a PIX payment the
+ * ledger had only debited once.
  */
 describe('dedupeHistoryEntriesByUuid', () => {
     const entry = (uuid: string, amount = '1') => ({ uuid, amount })
