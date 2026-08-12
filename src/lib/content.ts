@@ -270,6 +270,27 @@ export function readSingletonContentLocalized<T = Record<string, unknown>>(
     return null
 }
 
+// --- Content freshness ---
+
+/**
+ * `generated_at` from a content file's frontmatter, as a Date.
+ *
+ * Mind the type/runtime mismatch: ContentFrontmatter declares `generated_at?: string`, but
+ * gray-matter runs js-yaml, which parses unquoted YAML timestamps into JS Date objects — both
+ * the bare `2026-03-27` form and the full `2026-03-20T17:10:00Z` form. Quoted values still
+ * arrive as strings, so both shapes are accepted here. Missing or unparseable values return
+ * undefined so callers can fall back to a default of their own.
+ */
+export function contentGeneratedAt(content: MarkdownContent<ContentFrontmatter> | null): Date | undefined {
+    const value: unknown = content?.frontmatter?.generated_at
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? undefined : value
+    if (typeof value === 'string' && value.trim() !== '') {
+        const parsed = new Date(value)
+        return Number.isNaN(parsed.getTime()) ? undefined : parsed
+    }
+    return undefined
+}
+
 // --- Content hub: cross-intent listing ---
 
 export type ContentItemType = 'blog' | 'stories' | 'use-cases' | 'compare'
