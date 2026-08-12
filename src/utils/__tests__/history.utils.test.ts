@@ -188,11 +188,20 @@ describe('dedupeHistoryEntriesByUuid', () => {
         expect(dedupeHistoryEntriesByUuid([...page1, ...page2]).map((e) => e.uuid)).toEqual(['a', 'b', 'c', 'd'])
     })
 
-    it('keeps the first copy, so newer page-1 data wins over a stale refetch', () => {
-        const deduped = dedupeHistoryEntriesByUuid([entry('a', '909.00'), entry('a', '0')])
+    it('keeps the first position but the freshest copy', () => {
+        // Page 2 is fetched after page 1, so its copy of a repeated entry has
+        // the newer status. Position must not move, or rows jump on scroll.
+        const page1 = [
+            { uuid: 'a', status: 'PENDING' },
+            { uuid: 'b', status: 'COMPLETED' },
+        ]
+        const page2 = [{ uuid: 'a', status: 'COMPLETED' }]
 
-        expect(deduped).toHaveLength(1)
-        expect(deduped[0].amount).toBe('909.00')
+        const deduped = dedupeHistoryEntriesByUuid([...page1, ...page2])
+
+        expect(deduped).toHaveLength(2)
+        expect(deduped[0]).toEqual({ uuid: 'a', status: 'COMPLETED' })
+        expect(deduped[1].uuid).toBe('b')
     })
 
     it('keeps distinct entries that only look alike', () => {

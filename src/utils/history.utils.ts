@@ -471,19 +471,20 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
  * double charge. Real report: a BRL 909.00 PIX payment shown twice, one debit
  * in the database (2026-07-27).
  *
- * The API-side cursor is fixed separately (peanut-api-ts, buildHistoryCursor),
- * but page overlap has more than one source: the feed sorts on `timestamp`
- * while the API paginates on `createdAt`, and those differ for Manteca and for
- * completed intents. Deduping where the pages get flattened covers every
- * source at once. First uuid wins, order is kept.
+ * The API cursor is over-inclusive on purpose — it is keyed on the later of
+ * the two timestamps so that no entry can fall through the crack between
+ * pages, and re-serving the boundary row is the price. Page overlap has other
+ * sources too (`openRequestLinks` is re-queried on every page), so deduping
+ * where the pages get flattened covers all of them at once.
+ *
+ * Keeps the FIRST position but the LAST copy: a later page is fetched later,
+ * so its copy of a repeated entry carries the fresher status. `Map` gives both
+ * — re-setting a key updates the value without moving it.
  */
 export function dedupeHistoryEntriesByUuid<T extends { uuid: string }>(entries: T[]): T[] {
-    const seen = new Set<string>()
-    return entries.filter((entry) => {
-        if (seen.has(entry.uuid)) return false
-        seen.add(entry.uuid)
-        return true
-    })
+    const byUuid = new Map<string, T>()
+    for (const entry of entries) byUuid.set(entry.uuid, entry)
+    return [...byUuid.values()]
 }
 
 /** Marker `userName` the backend sends for the onboarding test transaction.
