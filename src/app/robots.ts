@@ -5,10 +5,11 @@ import { SUPPORTED_LOCALES } from '@/i18n/types'
 const IS_PRODUCTION_DOMAIN = BASE_URL === 'https://peanut.me'
 
 // Paths kept out of the index: the API surface, the SDK bundle, and the
-// auth-gated app routes. Used by the `*` and Googlebot groups; the other named
-// groups below carry their own (narrower) lists. Mind the footgun when editing:
-// a crawler only ever obeys the single most specific group that matches it, so
-// a named group that omits a path silently opts that crawler out of it.
+// auth-gated app routes. Used by the `*`, Googlebot, and AI-crawler groups;
+// Twitterbot is the one deliberate exemption (see its comment). Mind the
+// footgun when editing: a crawler only ever obeys the single most specific
+// group that matches it, so a named group that omits a path silently opts
+// that crawler out of it.
 const DISALLOWED_PATHS = [
     '/api/',
     '/sdk/',
@@ -47,7 +48,11 @@ export default function robots(): MetadataRoute.Robots {
 
     return {
         rules: [
-            // Allow Twitterbot to fetch OG images for link previews
+            // Twitterbot is DELIBERATELY unrestricted (empty disallow): it
+            // fetches user-shared app URLs (claim links, payment requests,
+            // receipts) to render link-preview cards on X, and it does not
+            // index. Restricting it would break card unfurls on exactly the
+            // links users share most.
             {
                 userAgent: 'Twitterbot',
                 allow: ['/api/og'],
@@ -66,7 +71,10 @@ export default function robots(): MetadataRoute.Robots {
                 disallow: DISALLOWED_PATHS,
             },
 
-            // AI search engine crawlers — explicitly welcome
+            // AI search engine crawlers — explicitly welcome on all marketing
+            // and content pages, blocked from the same app/transactional
+            // surface as everyone else (they have no business in claim links,
+            // receipts, or KYC — and their answers should cite content pages).
             {
                 userAgent: [
                     'GPTBot',
@@ -77,7 +85,7 @@ export default function robots(): MetadataRoute.Robots {
                     'Applebot-Extended',
                 ],
                 allow: ['/'],
-                disallow: ['/api/', '/home', '/profile', '/settings', '/setup', '/dev/'],
+                disallow: DISALLOWED_PATHS,
             },
 
             // Default rules for all crawlers
