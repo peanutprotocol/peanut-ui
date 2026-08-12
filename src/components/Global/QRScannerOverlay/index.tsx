@@ -232,7 +232,14 @@ export default function QRScannerOverlay() {
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
         const normalized = data.toLowerCase()
-        const recognized = recognizeQr(normalized)
+        // Recognize the RAW scan: in base58 the case IS the address (a lowercase l
+        // is not a Solana character, and Tron anchors on an uppercase T), so
+        // lowercasing first lost ~half of all Solana and every Tron address.
+        // Retry lowercased only when the payload is all-uppercase — QR alphanumeric
+        // mode encodes uppercase only, so that case came from the encoder. Any
+        // lowercase letter means the case is the user's, and a mixed-case EIP-55
+        // checksum must stay rejectable instead of laundered into a payable address.
+        const recognized = recognizeQr(data) ?? (data === data.toUpperCase() ? recognizeQr(normalized) : null)
 
         const getLogData = () => {
             if (recognized === EQrType.PIX_KEY) {
