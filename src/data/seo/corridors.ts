@@ -3,6 +3,7 @@
 // Sources (all in the public mirror):
 //   content/countries/{slug}/{lang}.md      — country hub article + frontmatter
 //   content/send-to/{dst}/from/{src}/{lang}.md — corridor article + frontmatter
+//   content/receive-from/{slug}/{lang}.md   — receive-from article + frontmatter
 //
 // Country display names come from the `name:` field denormalized at
 // generation time (see mono/content/_system/templates/country-hub.md); absent
@@ -19,6 +20,7 @@
 import {
     listContentSlugs,
     listCorridorOrigins,
+    listPublishedSlugs,
     readCorridorContent,
     readPageContent,
     readPageContentLocalized,
@@ -73,24 +75,29 @@ function loadCorridors(): Corridor[] {
 }
 
 /**
- * Origins for the receive-money-from pages. The set is the corridor origins,
- * but only those that actually have a receive-from article — an origin present
- * in CORRIDORS.from but missing content/receive-from/{slug}/en.md would 404
- * (this is how colombia & mexico shipped as live 404s in May 2026). The
- * receive-from content tree is authored independently of corridors, so the two
- * sets don't line up automatically.
+ * Origins for the receive-money-from pages: every published receive-from
+ * article, read straight off the content tree.
+ *
+ * The invariant that matters is "the route has something to render" — an entry
+ * with no content/receive-from/{slug}/en.md would 404 (this is how colombia &
+ * mexico shipped as live 404s in May 2026), so publication is still gated on
+ * content presence.
+ *
+ * This used to seed from CORRIDORS.from and intersect with the content tree.
+ * That was strictly narrower than it needed to be: receive-from is authored
+ * independently of corridors, so the intersection silently dropped 10 authored
+ * countries (australia, india, kenya, malaysia, netherlands, pakistan,
+ * philippines, saudi-arabia, singapore, united-arab-emirates) whose articles
+ * were live but unreachable. Corridor membership was never a rendering
+ * requirement for these pages — only the article is.
  */
-function loadReceiveSources(corridors: Corridor[]): string[] {
-    const origins = [...new Set(corridors.map((c) => c.from))]
-    return origins.filter((slug) => {
-        const content = readPageContent<{ published?: boolean }>('receive-from', slug, 'en')
-        return content !== null && content.frontmatter.published !== false
-    })
+function loadReceiveSources(): string[] {
+    return listPublishedSlugs('receive-from')
 }
 
 export const COUNTRIES_SEO: Record<string, CountrySEO> = loadCountries()
 export const CORRIDORS: Corridor[] = loadCorridors()
-export const RECEIVE_SOURCES: string[] = loadReceiveSources(CORRIDORS)
+export const RECEIVE_SOURCES: string[] = loadReceiveSources()
 
 /**
  * Get the country display name for a slug at the given locale. Reads

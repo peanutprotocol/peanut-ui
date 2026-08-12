@@ -9,6 +9,9 @@ export const metadata = generateMeta({
         'Join Card Pioneers for early access to the Peanut Card. Reserve your spot with $10, earn $5 for every friend who joins, and spend your dollars globally.',
     keywords:
         'peanut card, card pioneers, crypto card, digital dollars, global spending, early access, referral rewards, international card',
+    // Without this the page inherits the root layout's `canonical: '/'` and
+    // declares the homepage as its canonical while sitting in the sitemap.
+    canonical: '/lp/card',
 })
 
 export default function CardLPPage() {
