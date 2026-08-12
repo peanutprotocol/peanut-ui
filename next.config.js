@@ -298,6 +298,18 @@ let nextConfig = {
         return config
     },
     reactStrictMode: false,
+    // Do NOT remove. Next's built-in trailing-slash redirect is global, and the
+    // PostHog reverse proxy below (/relay/*) is hit with trailing slashes by the
+    // SDK's POSTs (/relay/decide/, /relay/e/). A 308 on those either drops the
+    // body or costs every event an extra round trip, so the automatic redirect
+    // stays off.
+    //
+    // The SEO problem it leaves behind — /en/help/ and /en/help both returning
+    // 200 — is solved narrowly instead: redirects.json ends with a
+    // `/:locale(en|es-419|es-ar|pt-br)/:path*/` -> slashless permanent (308)
+    // redirect, which only covers the locale-prefixed marketing tree and cannot
+    // touch /relay, /monitoring, /passkeys or the recipient catch-all. Keep that
+    // locale list in sync with SUPPORTED_LOCALES (src/i18n/types.ts).
     skipTrailingSlashRedirect: true,
     async rewrites() {
         return {
