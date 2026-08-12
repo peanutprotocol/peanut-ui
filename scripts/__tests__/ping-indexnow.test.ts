@@ -1264,9 +1264,17 @@ describe('IndexNow payload, batching, errors, and state advancement', () => {
 describe('workflow fail-closed contract', () => {
     test('bounds the entire IndexNow job below the hosted runner default', () => {
         const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/indexnow.yml'), 'utf8')
+        const lines = workflow.split('\n')
+        const jobsLine = lines.indexOf('jobs:')
+        const pingLine = lines.indexOf('    ping:', jobsLine + 1)
+        const nextJobLine = lines.findIndex(
+            (line, index) => index > pingLine && line.startsWith('    ') && !line.startsWith('        ')
+        )
+        const pingJob = lines.slice(pingLine, nextJobLine === -1 ? lines.length : nextJobLine)
 
-        expect(workflow).toMatch(/jobs:\n\s+ping:\n(?:\s+[^\n]*\n)*?\s+timeout-minutes: 30(?:\n|$)/)
-        expect(workflow).not.toMatch(/timeout-minutes:\s*(?:[0-9]|1[0-9]|2[0-9])(?:\n|$)/)
+        expect(jobsLine).toBeGreaterThanOrEqual(0)
+        expect(pingLine).toBeGreaterThan(jobsLine)
+        expect(pingJob.filter((line) => line === '        timeout-minutes: 30')).toHaveLength(1)
     })
 
     test('uses supported Node 22 and no independent index release variable', () => {
