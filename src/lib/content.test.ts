@@ -1,4 +1,4 @@
-import { listAllContent } from '@/lib/content'
+import { contentGeneratedAt, listAllContent, readPageContent, type ContentFrontmatter } from '@/lib/content'
 
 describe('listAllContent', () => {
     it('returns items across all 4 hub types for en', () => {
@@ -49,5 +49,34 @@ describe('listAllContent', () => {
             const curr = new Date(blogItems[i].date ?? 0).getTime()
             expect(prev).toBeGreaterThanOrEqual(curr)
         }
+    })
+})
+
+describe('contentGeneratedAt', () => {
+    // gray-matter runs js-yaml, which turns unquoted YAML timestamps into Date objects even
+    // though ContentFrontmatter types generated_at as a string — both shapes must work.
+    it('accepts a Date (the usual runtime shape from unquoted YAML)', () => {
+        const at = contentGeneratedAt({ frontmatter: { generated_at: new Date('2026-03-27') } as never, body: '' })
+        expect(at?.toISOString().split('T')[0]).toBe('2026-03-27')
+    })
+
+    it('accepts a quoted string date', () => {
+        const at = contentGeneratedAt({ frontmatter: { generated_at: '2026-03-20T17:10:00Z' } as never, body: '' })
+        expect(at?.toISOString()).toBe('2026-03-20T17:10:00.000Z')
+    })
+
+    it('returns undefined for null content, a missing field, or an unparseable value', () => {
+        expect(contentGeneratedAt(null)).toBeUndefined()
+        expect(contentGeneratedAt({ frontmatter: {} as never, body: '' })).toBeUndefined()
+        expect(contentGeneratedAt({ frontmatter: { generated_at: 'not-a-date' } as never, body: '' })).toBeUndefined()
+        expect(contentGeneratedAt({ frontmatter: { generated_at: '' } as never, body: '' })).toBeUndefined()
+    })
+
+    it('reads a real date off a real content file', () => {
+        const at = contentGeneratedAt(readPageContent<ContentFrontmatter>('help', 'delete-account', 'en'))
+        expect(at).toBeInstanceOf(Date)
+        // A real authored date, not the build clock.
+        expect(at!.getTime()).toBeLessThan(Date.now())
+        expect(at!.getUTCFullYear()).toBeGreaterThanOrEqual(2026)
     })
 })
