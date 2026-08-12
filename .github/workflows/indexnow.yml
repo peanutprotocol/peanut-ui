@@ -35,6 +35,7 @@ concurrency:
 jobs:
     ping:
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         # workflow_dispatch can target arbitrary refs; keep state in the trusted
         # default-branch cache scope shared with scheduled runs.
         if: github.ref == 'refs/heads/main'

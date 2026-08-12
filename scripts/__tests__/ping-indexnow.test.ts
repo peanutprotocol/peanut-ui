@@ -932,6 +932,12 @@ describe('release, noindex, and delta gates', () => {
         expect(hasNoindexDirective(htmlDocument('<meta name="robots" content="none">'), null)).toBe(true)
         expect(hasNoindexDirective(htmlDocument('<meta name="googlebot" content="noindex">'), null)).toBe(true)
         expect(hasNoindexDirective(htmlDocument(), 'bingbot: none')).toBe(true)
+        expect(hasNoindexDirective(htmlDocument(), 'googlebot: noindex, follow')).toBe(true)
+        expect(hasNoindexDirective(htmlDocument(), 'max-image-preview:none')).toBe(false)
+        expect(hasNoindexDirective(htmlDocument('', '<meta name="robots" content="noindex">'), null)).toBe(true)
+        expect(
+            hasNoindexDirective(htmlDocument('', '<template><meta name="robots" content="noindex"></template>'), null)
+        ).toBe(false)
         expect(hasNoindexDirective(htmlDocument('<meta name="robots" content="index,follow">'), null)).toBe(false)
         expect(hasNoindexDirective(htmlDocument('<meta data-name="robots" data-content="noindex">'), null)).toBe(false)
         expect(hasNoindexDirective(htmlDocument("<meta data-text=' name=robots content=noindex'>"), null)).toBe(false)
@@ -948,6 +954,29 @@ describe('release, noindex, and delta gates', () => {
             new Map([[split, { status: 200, contentType: 'text/html; charset=utf-8', body: indexableHtml(split) }]])
         )
         await expect(assertSplitPageIndexable({ fetchImpl, url: split, timeoutMs: 1_000 })).resolves.toBeUndefined()
+    })
+
+    test('direct indexability check rejects a body robots meta even with a clean head canonical', async () => {
+        const split = SIX_SPLIT_URLS[0]
+        const { fetchImpl } = createFetch(
+            new Map([
+                [
+                    split,
+                    {
+                        status: 200,
+                        contentType: 'text/html; charset=utf-8',
+                        body: htmlDocument(
+                            `<link rel="canonical" href="${split}">`,
+                            '<meta name="robots" content="noindex">'
+                        ),
+                    },
+                ],
+            ])
+        )
+
+        await expect(assertSplitPageIndexable({ fetchImpl, url: split, timeoutMs: 1_000 })).rejects.toThrow(
+            'still noindex'
+        )
     })
 
     test('stops a chunked Split page at the response byte limit', async () => {
@@ -1224,6 +1253,13 @@ describe('IndexNow payload, batching, errors, and state advancement', () => {
 })
 
 describe('workflow fail-closed contract', () => {
+    test('bounds the entire IndexNow job below the hosted runner default', () => {
+        const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/indexnow.yml'), 'utf8')
+
+        expect(workflow).toMatch(/jobs:\n\s+ping:\n(?:\s+[^\n]*\n)*?\s+timeout-minutes: 30(?:\n|$)/)
+        expect(workflow).not.toMatch(/timeout-minutes:\s*(?:[0-9]|1[0-9]|2[0-9])(?:\n|$)/)
+    })
+
     test('uses supported Node 22 and no independent index release variable', () => {
         const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/indexnow.yml'), 'utf8')
         expect(workflow).toContain("node-version: '22'")

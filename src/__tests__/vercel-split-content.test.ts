@@ -119,6 +119,12 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
         ).toEqual({
             [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE,
         })
+        expect(
+            applyResponseHeaderTransforms(pathname, [
+                ['set-cookie', 'first=1'],
+                ['set-cookie', 'second=2'],
+            ])
+        ).toEqual([])
     })
 
     it.each(SPLIT_CONTENT_RESERVED_PATH_PREFIXES)(
@@ -133,6 +139,15 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
                     [SPLIT_RAW_UNSAFE_HEADER]: 'caller-spoof',
                 })
             ).toEqual({})
+            expect(
+                applyResponseHeaderTransforms(pathname, [
+                    ['set-cookie', 'first=1'],
+                    ['set-cookie', 'second=2'],
+                ])
+            ).toEqual([
+                ['set-cookie', 'first=1'],
+                ['set-cookie', 'second=2'],
+            ])
         }
     )
 
@@ -247,5 +262,28 @@ describe('Vercel Split raw-route and response sanitation contract', () => {
         }
 
         return Object.fromEntries(headers)
+    }
+
+    function applyResponseHeaderTransforms(
+        pathname: string,
+        initial: Array<[string, string]>
+    ): Array<[string, string]> {
+        const headers = [...initial]
+
+        for (const route of transformRoutes) {
+            if (!new RegExp(route.src, route.caseSensitive === false ? 'i' : undefined).test(pathname)) continue
+            for (const transform of route.transforms) {
+                if (transform.type !== 'response.headers') continue
+                if (transform.op === 'delete') {
+                    for (let index = headers.length - 1; index >= 0; index -= 1) {
+                        if (headers[index][0].toLowerCase() === transform.target.key.toLowerCase()) {
+                            headers.splice(index, 1)
+                        }
+                    }
+                }
+            }
+        }
+
+        return headers
     }
 })

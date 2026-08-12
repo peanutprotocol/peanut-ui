@@ -291,7 +291,21 @@ describe('Split manifest-backed release configuration', () => {
         ['malformed JSON', '{'],
         ['noncanonical whitespace', `${releaseDocument(1)} `],
         ['unknown key', releaseDocument(1, { unknownTopLevelKey: true })],
-        ['alternate key order', JSON.stringify({ stage: 1, version: 1 })],
+        ['missing required fields', JSON.stringify({ stage: 1, version: 1 })],
+        [
+            'alternate key order',
+            JSON.stringify({
+                stage: 1,
+                version: SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION,
+                index: false,
+                manifest: {
+                    schema_version: 1,
+                    sha256s: [MANIFEST_SHA256],
+                    public_paths: EXPECTED_CANARY_PATHS,
+                },
+                released_paths: [SPLIT_ENGLISH_CANARY_PATH],
+            }),
+        ],
         ['zero digest', releaseDocument(1, { sha256s: ['0'.repeat(64)] })],
         ['uppercase digest', releaseDocument(1, { sha256s: ['A'.repeat(64)] })],
         ['duplicate digest', releaseDocument(1, { sha256s: [MANIFEST_SHA256, MANIFEST_SHA256] })],

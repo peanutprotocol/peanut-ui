@@ -23,6 +23,8 @@ const MAX_SITEMAP_URLS = 50_000
 const DEFAULT_TIMEOUT_MS = 30_000
 const STATE_VERSION = 1
 const INDEXNOW_KEY_PATTERN = /^[A-Za-z0-9-]{8,128}$/
+const INDEXING_BLOCKED_PATTERN = /(?:^|[\s,;])(?:noindex|none)(?:$|[\s,;])/i
+const CRAWLER_INDEXING_BLOCKED_PATTERN = /(?:^|[\s,;])(?:googlebot|bingbot):\s*(?:noindex|none)(?:$|[\s,;])/i
 
 export interface IndexNowState {
     version: typeof STATE_VERSION
@@ -579,9 +581,7 @@ export function writeStateAtomic(
 }
 
 export function hasNoindexDirective(html: string, xRobotsTag: string | null): boolean {
-    const blocksIndexing = (value: string): boolean => /(?:^|[\s,;])(?:noindex|none)(?:$|[\s,;])/i.test(value)
-
-    if (xRobotsTag && blocksIndexing(xRobotsTag)) return true
+    if (xRobotsTag && xRobotsTagBlocksIndexing(xRobotsTag)) return true
     const parsed = parseIndexabilityHtml(html)
     return parsed === null || parsed.noindex
 }
@@ -589,6 +589,39 @@ export function hasNoindexDirective(html: string, xRobotsTag: string | null): bo
 interface ParsedIndexabilityHtml {
     canonicals: string[]
     noindex: boolean
+}
+
+function blocksIndexing(value: string): boolean {
+    return INDEXING_BLOCKED_PATTERN.test(value)
+}
+
+function xRobotsTagBlocksIndexing(value: string): boolean {
+    return blocksIndexing(value) || CRAWLER_INDEXING_BLOCKED_PATTERN.test(value)
+}
+
+function documentBlocksIndexing(root: DefaultTreeAdapterTypes.Element): boolean {
+    const pending: DefaultTreeAdapterTypes.Element[] = [root]
+
+    while (pending.length > 0) {
+        const node = pending.pop()!
+        if (node.tagName === 'meta') {
+            const attributes = new Map(node.attrs.map(({ name, value }) => [name, value]))
+            const name = attributes.get('name')?.toLowerCase()
+            const httpEquiv = attributes.get('http-equiv')?.toLowerCase()
+            if (name === 'robots' || name === 'bingbot' || name === 'googlebot' || httpEquiv === 'x-robots-tag') {
+                const content = attributes.get('content')
+                if (content && blocksIndexing(content)) return true
+            }
+        }
+
+        // parse5 stores template descendants on `content`, not `childNodes`;
+        // intentionally do not traverse inert template content.
+        for (const child of node.childNodes) {
+            if ('tagName' in child) pending.push(child)
+        }
+    }
+
+    return false
 }
 
 function parseIndexabilityHtml(html: string): ParsedIndexabilityHtml | null {
@@ -607,11 +640,9 @@ function parseIndexabilityHtml(html: string): ParsedIndexabilityHtml | null {
     const head = htmlElement?.childNodes.find(
         (node): node is DefaultTreeAdapterTypes.Element => 'tagName' in node && node.tagName === 'head'
     )
-    if (!head?.sourceCodeLocation?.startTag || !head.sourceCodeLocation.endTag) return null
+    if (!htmlElement || !head?.sourceCodeLocation?.startTag || !head.sourceCodeLocation.endTag) return null
 
     const canonicals: string[] = []
-    let noindex = false
-    const blocksIndexing = (value: string): boolean => /(?:^|[\s,;])(?:noindex|none)(?:$|[\s,;])/i.test(value)
     for (const node of head.childNodes) {
         if (!('tagName' in node)) continue
         const attributes = new Map(node.attrs.map(({ name, value }) => [name, value]))
@@ -619,17 +650,8 @@ function parseIndexabilityHtml(html: string): ParsedIndexabilityHtml | null {
             const relations = attributes.get('rel')?.toLowerCase().split(/\s+/) ?? []
             if (relations.includes('canonical')) canonicals.push(attributes.get('href') ?? '')
         }
-        if (node.tagName === 'meta') {
-            const name = attributes.get('name')?.toLowerCase()
-            const httpEquiv = attributes.get('http-equiv')?.toLowerCase()
-            if (name !== 'robots' && name !== 'bingbot' && name !== 'googlebot' && httpEquiv !== 'x-robots-tag') {
-                continue
-            }
-            const content = attributes.get('content')
-            if (content && blocksIndexing(content)) noindex = true
-        }
     }
-    return { canonicals, noindex }
+    return { canonicals, noindex: documentBlocksIndexing(htmlElement) }
 }
 
 export async function assertSplitPageIndexable(options: {
@@ -656,7 +678,7 @@ export async function assertSplitPageIndexable(options: {
 
     const html = await readResponseTextLimited(response, MAX_PAGE_BYTES, url, options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
     const xRobotsTag = response.headers.get('x-robots-tag')
-    if (xRobotsTag && /(?:^|[\s,;])(?:noindex|none)(?:$|[\s,;])/i.test(xRobotsTag)) {
+    if (xRobotsTag && xRobotsTagBlocksIndexing(xRobotsTag)) {
         throw new Error(`${url} is still noindex; refusing IndexNow submission`)
     }
     const indexability = parseIndexabilityHtml(html)
