@@ -16,6 +16,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
 import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
+import { shareableUrl } from '@/utils/url.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { CardUnlockHistoryEntry } from './cardUnlock.types'
@@ -84,7 +85,15 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}
                         />
-                        <ShareAssetActions captureRef={captureRef} source="history-replay" ready={assetReady} />
+                        {/* Caption link, not a PNG change: the anti-dox toggle and
+                            an unknown username both drop it (the asset falls back
+                            to the 'anon' placeholder above — never link to /anon). */}
+                        <ShareAssetActions
+                            captureRef={captureRef}
+                            source="history-replay"
+                            ready={assetReady}
+                            shareUrl={hideUsername || !username ? undefined : shareableUrl(`/${username}`)}
+                        />
                     </div>
                 </div>
             </DrawerContent>

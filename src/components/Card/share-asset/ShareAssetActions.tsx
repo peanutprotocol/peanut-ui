@@ -23,7 +23,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { captureShareAsset, canShareImageFiles, downloadBlob, ShareAssetCaptureError } from './captureShareAsset'
-import { shareCardOnTwitter } from './share.utils'
+import { composeShareCaption, shareCardOnTwitter } from './share.utils'
 import { pickWinCaption } from './winCaptions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -75,9 +75,20 @@ interface Props {
      *  capturing would snapshot a blank card, so both buttons stay disabled.
      *  Defaults to true so callers that don't wire the signal aren't blocked. */
     ready?: boolean
+    /** The sharer's own profile URL (peanut.me/<handle>) appended to the share
+     *  caption. Omit when the anti-dox hideUsername toggle is on or the
+     *  username is unknown — the caption then ships link-free, exactly as
+     *  before. */
+    shareUrl?: string
 }
 
-export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'peanut-card.png', ready = true }) => {
+export const ShareAssetActions: FC<Props> = ({
+    captureRef,
+    source,
+    filename = 'peanut-card.png',
+    ready = true,
+    shareUrl,
+}) => {
     const t = useTranslations('card.share')
     const [isSharing, setIsSharing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
@@ -87,6 +98,10 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
     // shared timelines don't fill with one identical line. Stable for this
     // mount so Share + the desktop intent post the same caption.
     const [caption] = useState(pickWinCaption)
+    // DERIVED, not state: `shareUrl` flips whenever the user toggles the
+    // hide-username checkbox AFTER mount, and a state snapshot would post the
+    // handle the user just opted out of. The caption itself stays pinned.
+    const text = composeShareCaption(caption, shareUrl)
 
     const handleShare = async (): Promise<void> => {
         setError(null)
@@ -102,18 +117,22 @@ export const ShareAssetActions: FC<Props> = ({ captureRef, source, filename = 'p
                 posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
                     source,
                     method: 'twitter-intent-fallback',
+                    link_type: shareUrl ? 'profile' : 'none',
                 })
-                shareCardOnTwitter(caption)
+                shareCardOnTwitter(text)
                 return
             }
             const node = captureRef.current
             if (!node) throw new Error('share asset not yet rendered — try again in a moment')
             const blob = await captureShareAsset(node)
             const file = new File([blob], filename, { type: 'image/png' })
-            await navigator.share({ text: caption, files: [file] })
+            // The link rides inside `text` — no separate `url` member (several
+            // native targets drop it when `files` is present).
+            await navigator.share({ text, files: [file] })
             posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
                 source,
                 method: 'native-share-with-file',
+                link_type: shareUrl ? 'profile' : 'none',
             })
         } catch (err) {
             // AbortError = user cancelled the share sheet. Quiet path.
