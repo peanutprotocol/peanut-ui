@@ -1,9 +1,9 @@
 /**
  * Fail-closed IndexNow entrypoint.
  *
- * URLs come only from the deployed peanut.me root sitemap and the optional
- * deployed Split sitemap. A real API request additionally requires the explicit
- * INDEXNOW_INDEX_RELEASED=true gate. The committed workflow keeps that gate off.
+ * URLs come only from the deployed peanut.me root and Split sitemaps. A live
+ * request requires production robots.txt to advertise both exact sitemap URLs,
+ * every Split page to be indexable and self-canonical, and the public key proof.
  */
 
 import { runIndexNowFromEnvironment } from './indexnow'
