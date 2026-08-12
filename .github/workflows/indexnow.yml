@@ -20,7 +20,7 @@ on:
                 type: boolean
                 default: false
             full:
-                description: 'Plan the full deployed URL set instead of the delta'
+                description: 'Plan the full deployed URL set (plus pending deletion notifications) instead of the delta'
                 type: boolean
                 default: false
 

@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { ReadableStream } from 'node:stream/web'
 import {
+    DEFAULT_STATE_FILE,
     INDEXNOW_ENDPOINT,
     MAX_STATE_BYTES,
     MAX_STATE_URLS,
@@ -18,7 +19,9 @@ import {
     isSplitPublicUrl,
     parseSitemapXml,
     readValidatedState,
+    resolveIndexNowEnvironmentOptions,
     runIndexNow,
+    runIndexNowFromEnvironment,
     submitIndexNowBatches,
     validatePublicUrl,
     writeStateAtomic,
@@ -120,16 +123,24 @@ function deployedRoutes(rootUrls: string[], split: ResponseSpec | string[] = [])
     ])
 }
 
-function robotsText(includeSplit = true): string {
-    return [`Sitemap: ${ROOT_SITEMAP_URL}`, ...(includeSplit ? [`Sitemap: ${SPLIT_SITEMAP_URL}`] : [])].join('\n')
+interface AdvertisedSitemaps {
+    root?: boolean
+    split?: boolean
+}
+
+function robotsText({ root = true, split = true }: AdvertisedSitemaps = {}): string {
+    return [
+        ...(root ? [`Sitemap: ${ROOT_SITEMAP_URL}`] : []),
+        ...(split ? [`Sitemap: ${SPLIT_SITEMAP_URL}`] : []),
+    ].join('\n')
 }
 
 function htmlDocument(head = '', body = ''): string {
     return `<!doctype html><html><head>${head}</head><body>${body}</body></html>`
 }
 
-function addReleasedGate(routes: Map<string, RouteSpec>, includeSplit = true): void {
-    routes.set(ROBOTS_URL, { status: 200, contentType: 'text/plain; charset=utf-8', body: robotsText(includeSplit) })
+function addReleasedGate(routes: Map<string, RouteSpec>, advertised: AdvertisedSitemaps = {}): void {
+    routes.set(ROBOTS_URL, { status: 200, contentType: 'text/plain; charset=utf-8', body: robotsText(advertised) })
     routes.set(TEST_KEY_URL, { status: 200, contentType: 'text/plain', body: TEST_KEY })
 }
 
@@ -144,6 +155,17 @@ function addIndexablePages(routes: Map<string, RouteSpec>, urls: string[]): void
 function addReleasedProof(routes: Map<string, RouteSpec>, urls: string[]): void {
     addReleasedGate(routes)
     addIndexablePages(routes, urls)
+}
+
+// Steady state before the Split release: robots.txt advertises the root sitemap
+// only. No Split sitemap route is registered, so any attempt to read it fails
+// the run instead of passing silently.
+function darkSplitRoutes(rootUrls: string[]): Map<string, RouteSpec> {
+    const routes = new Map<string, RouteSpec>([
+        [ROOT_SITEMAP_URL, { status: 200, contentType: 'application/xml; charset=utf-8', body: sitemapXml(rootUrls) }],
+    ])
+    addReleasedGate(routes, { split: false })
+    return routes
 }
 
 const logger: IndexNowLogger = {
@@ -180,6 +202,14 @@ function baseOptions(
 
 function apiCalls(mock: jest.Mock): Array<[RequestInfo | URL, RequestInit | undefined]> {
     return mock.mock.calls.filter(([, init]) => init?.method === 'POST')
+}
+
+function requestedUrls(mock: jest.Mock): string[] {
+    return mock.mock.calls.map(([input]) => String(input))
+}
+
+function submittedUrls(mock: jest.Mock): string[] {
+    return apiCalls(mock).flatMap(([, init]) => (JSON.parse(String(init?.body)) as { urlList: string[] }).urlList)
 }
 
 afterEach(() => {
@@ -687,26 +717,28 @@ describe('validated and atomic state', () => {
 
     test('a missing state never causes an automatic full submission', async () => {
         const file = statePath()
-        const { fetchImpl, mock } = createFetch(
-            new Map([[ROBOTS_URL, { status: 200, contentType: 'text/plain', body: robotsText(false) }]])
-        )
-        const result = await runIndexNow(baseOptions(fetchImpl, file))
-        expect(result.mode).toBe('gate-closed')
-        expect(mock).toHaveBeenCalledTimes(1)
-        expect(apiCalls(mock)).toHaveLength(0)
-        expect(fs.existsSync(file)).toBe(false)
-    })
-
-    test('a released run with missing state fails closed before any API request', async () => {
-        const file = statePath()
         const split = SIX_SPLIT_URLS[0]
         const routes = deployedRoutes([HOME, NEW_ROOT_URL], [split])
         addReleasedProof(routes, [split])
         const { fetchImpl, mock } = createFetch(routes, [{ status: 200 }])
 
-        await expect(runIndexNow(baseOptions(fetchImpl, file))).rejects.toThrow('No validated IndexNow state exists')
+        const result = await runIndexNow(baseOptions(fetchImpl, file))
+        expect(result).toMatchObject({ mode: 'no-baseline', candidates: [], added: [], deleted: [] })
         expect(apiCalls(mock)).toHaveLength(0)
         expect(fs.existsSync(file)).toBe(false)
+    })
+
+    test('a scheduled delta run without a baseline exits clean and names the bootstrap dispatch', async () => {
+        const file = statePath()
+        const { fetchImpl, mock } = createFetch(darkSplitRoutes([HOME, NEW_ROOT_URL]), [{ status: 200 }])
+
+        const result = await runIndexNow(baseOptions(fetchImpl, file))
+        expect(result.mode).toBe('no-baseline')
+        expect(apiCalls(mock)).toHaveLength(0)
+        expect(fs.existsSync(file)).toBe(false)
+        const logged = (logger.log as jest.Mock).mock.calls.flat().join('\n')
+        expect(logged).toContain('bootstrap=true')
+        expect(logged).toContain('dry_run=false')
     })
 
     test('a released run with corrupt state fails closed before any API request', async () => {
@@ -751,12 +783,12 @@ describe('validated and atomic state', () => {
 })
 
 describe('release, noindex, and delta gates', () => {
-    test('deployed robots without the Split sitemap closes the live gate before state or sitemap reads', async () => {
+    test('deployed robots without the root sitemap closes the live gate before state or sitemap reads', async () => {
         const file = statePath()
         writeStateAtomic(file, [HOME], 'bootstrap')
         const before = fs.readFileSync(file, 'utf8')
         const routes = new Map<string, RouteSpec>([
-            [ROBOTS_URL, { status: 200, contentType: 'text/plain', body: robotsText(false) }],
+            [ROBOTS_URL, { status: 200, contentType: 'text/plain', body: robotsText({ root: false }) }],
         ])
         const { fetchImpl, mock } = createFetch(routes)
 
@@ -770,13 +802,44 @@ describe('release, noindex, and delta gates', () => {
     test.each([
         ['missing', { status: 404, contentType: 'text/plain', body: '' }],
         ['HTML', { status: 200, contentType: 'text/html', body: robotsText() }],
-        ['root-only', { status: 200, contentType: 'text/plain', body: robotsText(false) }],
+        ['empty', { status: 200, contentType: 'text/plain', body: '' }],
+        ['Split-only', { status: 200, contentType: 'text/plain', body: robotsText({ root: false }) }],
     ] satisfies Array<[string, ResponseSpec]>)('keeps the live gate closed for %s robots', async (_label, spec) => {
         const file = statePath()
         const { fetchImpl, mock } = createFetch(new Map([[ROBOTS_URL, spec]]))
         await expect(runIndexNow(baseOptions(fetchImpl, file))).resolves.toMatchObject({ mode: 'gate-closed' })
         expect(mock).toHaveBeenCalledTimes(1)
         expect(fs.existsSync(file)).toBe(false)
+    })
+
+    test('submits the root delta while robots.txt still keeps the Split sitemap dark', async () => {
+        const file = statePath()
+        writeStateAtomic(file, [HOME], 'bootstrap')
+        const { fetchImpl, mock } = createFetch(darkSplitRoutes([HOME, NEW_ROOT_URL]), [{ status: 200 }])
+
+        const result = await runIndexNow(baseOptions(fetchImpl, file))
+        expect(result).toMatchObject({ mode: 'submitted', added: [NEW_ROOT_URL], candidates: [NEW_ROOT_URL] })
+        expect(JSON.parse(String(apiCalls(mock)[0][1]?.body)).urlList).toEqual([NEW_ROOT_URL])
+        expect(requestedUrls(mock)).not.toContain(SPLIT_SITEMAP_URL)
+        expect(readValidatedState(file)).toMatchObject({ urls: [HOME, NEW_ROOT_URL], reason: 'submission' })
+    })
+
+    test.each([
+        [false, [NEW_ROOT_URL]],
+        [true, [HOME, NEW_ROOT_URL]],
+    ])('never submits a state Split URL while the Split sitemap is unadvertised (full: %p)', async (full, expected) => {
+        const file = statePath()
+        const split = SIX_SPLIT_URLS[0]
+        writeStateAtomic(file, [HOME, split], 'submission')
+        const { fetchImpl, mock } = createFetch(darkSplitRoutes([HOME, NEW_ROOT_URL]), [{ status: 200 }])
+
+        const result = await runIndexNow(baseOptions(fetchImpl, file, { full }))
+        expect(result).toMatchObject({ mode: 'submitted', deleted: [], candidates: expected })
+        expect(submittedUrls(mock)).toEqual(expected)
+        expect(submittedUrls(mock).filter((url) => new URL(url).pathname.includes('/split'))).toEqual([])
+        // The dark Split entry stays in the baseline instead of being dropped
+        // without ever being notified.
+        expect(readValidatedState(file)?.urls).toEqual([HOME, NEW_ROOT_URL, split])
     })
 
     test('requires a nonempty direct-200 strict XML Split sitemap after robots opens the gate', async () => {
@@ -1245,6 +1308,21 @@ describe('IndexNow payload, batching, errors, and state advancement', () => {
         expect(readValidatedState(file)?.urls).toEqual([HOME, split])
     })
 
+    test('full mode notifies a deletion the state write is about to forget', async () => {
+        const file = statePath()
+        const split = SIX_SPLIT_URLS[0]
+        const retired = `${PRODUCTION_ORIGIN}/en/retired-page`
+        writeStateAtomic(file, [HOME, retired, split], 'submission')
+        const routes = deployedRoutes([HOME], [split])
+        addReleasedProof(routes, [split])
+        const { fetchImpl, mock } = createFetch(routes, [{ status: 200 }])
+
+        const result = await runIndexNow(baseOptions(fetchImpl, file, { full: true }))
+        expect(result).toMatchObject({ mode: 'submitted', deleted: [retired], candidates: [HOME, split, retired] })
+        expect(submittedUrls(mock)).toEqual([HOME, split, retired])
+        expect(readValidatedState(file)?.urls).toEqual([HOME, split])
+    })
+
     test('dry-run never calls the API or changes an existing state file', async () => {
         const file = statePath()
         const split = SIX_SPLIT_URLS[0]
@@ -1258,6 +1336,93 @@ describe('IndexNow payload, batching, errors, and state advancement', () => {
         expect(result.mode).toBe('dry-run')
         expect(apiCalls(mock)).toHaveLength(0)
         expect(fs.readFileSync(file, 'utf8')).toBe(before)
+    })
+})
+
+describe('production entrypoint environment mapping', () => {
+    const FLAGS = {
+        INDEXNOW_DRY_RUN: 'dryRun',
+        INDEXNOW_BOOTSTRAP: 'bootstrap',
+        INDEXNOW_FULL: 'full',
+    } as const
+
+    test('defaults every option to the safe value and to the workflow-hashed state path', () => {
+        expect(resolveIndexNowEnvironmentOptions({}, [])).toEqual({
+            stateFile: path.join(process.cwd(), DEFAULT_STATE_FILE),
+            key: undefined,
+            dryRun: false,
+            bootstrap: false,
+            full: false,
+        })
+
+        // The cache gate keys on this exact path; a rename here silently stops
+        // every state transition from being saved.
+        const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/indexnow.yml'), 'utf8')
+        expect(DEFAULT_STATE_FILE).toBe('.indexnow-state/urls.json')
+        expect(workflow).toContain(`hashFiles('${DEFAULT_STATE_FILE}')`)
+        expect(workflow).toContain(`path: ${path.dirname(DEFAULT_STATE_FILE)}`)
+    })
+
+    test.each([undefined, ''])('falls back to the default state path for INDEXNOW_STATE_FILE %p', (value) => {
+        expect(resolveIndexNowEnvironmentOptions({ INDEXNOW_STATE_FILE: value }, []).stateFile).toBe(
+            path.join(process.cwd(), DEFAULT_STATE_FILE)
+        )
+    })
+
+    test('passes an explicit state file and key straight through', () => {
+        expect(
+            resolveIndexNowEnvironmentOptions({ INDEXNOW_STATE_FILE: '/tmp/other.json', INDEXNOW_KEY: TEST_KEY }, [])
+        ).toMatchObject({ stateFile: '/tmp/other.json', key: TEST_KEY })
+    })
+
+    test.each(Object.keys(FLAGS) as Array<keyof typeof FLAGS>)('maps %s to its exact boolean', (name) => {
+        const flag = FLAGS[name]
+        expect(resolveIndexNowEnvironmentOptions({ [name]: 'true' }, [])[flag]).toBe(true)
+        expect(resolveIndexNowEnvironmentOptions({ [name]: 'false' }, [])[flag]).toBe(false)
+        expect(resolveIndexNowEnvironmentOptions({ [name]: '' }, [])[flag]).toBe(false)
+        expect(resolveIndexNowEnvironmentOptions({}, [])[flag]).toBe(false)
+        for (const invalid of ['True', 'TRUE', '1', 'yes', ' true', 'false ']) {
+            expect(() => resolveIndexNowEnvironmentOptions({ [name]: invalid }, [])).toThrow(
+                `${name} must be exactly "true" or "false"`
+            )
+        }
+    })
+
+    test('rejects CLI arguments instead of accepting them as a URL source', () => {
+        expect(() => resolveIndexNowEnvironmentOptions({}, [`${PRODUCTION_ORIGIN}/en/attacker`])).toThrow(
+            'CLI URL arguments are disabled'
+        )
+    })
+
+    test('runs the delta described by the environment and never writes state in dry-run', async () => {
+        const file = statePath()
+        const split = SIX_SPLIT_URLS[0]
+        writeStateAtomic(file, [HOME], 'bootstrap')
+        const before = fs.readFileSync(file, 'utf8')
+        const routes = deployedRoutes([HOME, NEW_ROOT_URL], [split])
+        addReleasedProof(routes, [split])
+        const { fetchImpl, mock } = createFetch(routes, [{ status: 200 }])
+        jest.replaceProperty(process, 'argv', ['node', 'scripts/ping-indexnow.ts'])
+
+        await expect(
+            runIndexNowFromEnvironment(
+                { INDEXNOW_STATE_FILE: file, INDEXNOW_KEY: TEST_KEY, INDEXNOW_DRY_RUN: 'true' },
+                fetchImpl,
+                logger
+            )
+        ).resolves.toMatchObject({ mode: 'dry-run', candidates: [NEW_ROOT_URL, split] })
+        expect(apiCalls(mock)).toHaveLength(0)
+        expect(fs.readFileSync(file, 'utf8')).toBe(before)
+    })
+
+    test('refuses CLI arguments handed to the production entrypoint before any request', async () => {
+        const { fetchImpl, mock } = createFetch(new Map())
+        jest.replaceProperty(process, 'argv', ['node', 'scripts/ping-indexnow.ts', `${PRODUCTION_ORIGIN}/en/attacker`])
+
+        await expect(runIndexNowFromEnvironment({}, fetchImpl, logger)).rejects.toThrow(
+            'CLI URL arguments are disabled'
+        )
+        expect(mock).not.toHaveBeenCalled()
     })
 })
 

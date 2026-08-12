@@ -11,6 +11,8 @@ export const ROOT_SITEMAP_URL = `${PRODUCTION_ORIGIN}/sitemap.xml`
 export const SPLIT_SITEMAP_URL = `${PRODUCTION_ORIGIN}/split-sitemap.xml`
 export const INDEXNOW_ENDPOINT = 'https://api.indexnow.org/indexnow'
 export const MAX_URLS_PER_REQUEST = 10_000
+// The workflow cache gate hashes this exact repository-relative path.
+export const DEFAULT_STATE_FILE = '.indexnow-state/urls.json'
 
 const SITEMAP_NAMESPACE = 'http://www.sitemaps.org/schemas/sitemap/0.9'
 const MAX_SITEMAP_BYTES = 10 * 1024 * 1024
@@ -62,7 +64,7 @@ export interface DeployedUrls {
 }
 
 export interface IndexNowRunResult {
-    mode: 'gate-closed' | 'dry-run' | 'bootstrap' | 'noop' | 'submitted'
+    mode: 'gate-closed' | 'no-baseline' | 'dry-run' | 'bootstrap' | 'noop' | 'submitted'
     currentUrls: string[]
     added: string[]
     deleted: string[]
@@ -130,6 +132,10 @@ export function validatePublicUrl(value: unknown, label = 'URL'): string {
 
 function isSplitPathUrl(value: string): boolean {
     return isSupportedSplitContentPublicPath(new URL(value).pathname)
+}
+
+function isSplitNamespaceUrl(value: string): boolean {
+    return isSplitContentPathname(new URL(value).pathname)
 }
 
 function hasQueryDelimiter(value: string): boolean {
@@ -401,11 +407,13 @@ export async function collectDeployedUrls(options: {
     fetchImpl: typeof fetch
     rootSitemapUrl?: string
     splitSitemapUrl?: string
+    includeSplitSitemap?: boolean
     splitSitemapRequired?: boolean
     timeoutMs?: number
 }): Promise<DeployedUrls> {
     const rootSitemapUrl = options.rootSitemapUrl ?? ROOT_SITEMAP_URL
     const splitSitemapUrl = options.splitSitemapUrl ?? SPLIT_SITEMAP_URL
+    const includeSplitSitemap = options.includeSplitSitemap ?? true
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
 
     const rootUrls = await fetchSitemapUrls({
@@ -414,18 +422,20 @@ export async function collectDeployedUrls(options: {
         optional: false,
         timeoutMs,
     })
-    const splitSitemapUrls = await fetchSitemapUrls({
-        fetchImpl: options.fetchImpl,
-        url: splitSitemapUrl,
-        optional: !(options.splitSitemapRequired ?? false),
-        timeoutMs,
-    })
+    const splitSitemapUrls = includeSplitSitemap
+        ? await fetchSitemapUrls({
+              fetchImpl: options.fetchImpl,
+              url: splitSitemapUrl,
+              optional: !(options.splitSitemapRequired ?? false),
+              timeoutMs,
+          })
+        : []
 
     const validatedRootUrls = rootUrls.map((url, index) =>
         validateIndexNowUrl(url, `deployed sitemap URL ${index + 1}`)
     )
     for (const url of validatedRootUrls) {
-        if (isSplitContentPathname(new URL(url).pathname)) {
+        if (isSplitNamespaceUrl(url)) {
             throw new Error(`${rootSitemapUrl} must not contain a URL from the renderer-owned Split namespace: ${url}`)
         }
     }
@@ -708,24 +718,24 @@ function sitemapDirectives(robots: string): Set<string> {
     return directives
 }
 
-async function deployedRobotsReleasesIndexing(options: {
+// A non-200 or non-text/plain robots.txt advertises nothing, so every gate
+// derived from this set stays closed. An unreadable one (network error,
+// oversize, invalid UTF-8) throws instead and fails the whole run.
+async function deployedRobotsSitemapDirectives(options: {
     fetchImpl: typeof fetch
     robotsUrl: string
-    rootSitemapUrl: string
-    splitSitemapUrl: string
     timeoutMs: number
-}): Promise<boolean> {
+}): Promise<Set<string>> {
     const response = await fetchDirect({
         fetchImpl: options.fetchImpl,
         url: options.robotsUrl,
         accept: 'text/plain',
         timeoutMs: options.timeoutMs,
     })
-    if (response.status !== 200 || !isPlainTextContentType(response.headers.get('content-type'))) return false
+    if (response.status !== 200 || !isPlainTextContentType(response.headers.get('content-type'))) return new Set()
 
     const robots = await readResponseTextLimited(response, MAX_ROBOTS_BYTES, options.robotsUrl, options.timeoutMs)
-    const sitemaps = sitemapDirectives(robots)
-    return sitemaps.has(options.rootSitemapUrl) && sitemaps.has(options.splitSitemapUrl)
+    return sitemapDirectives(robots)
 }
 
 function calculateDelta(current: string[], previous: string[]): { added: string[]; deleted: string[] } {
@@ -855,14 +865,16 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
         }
     }
 
-    const indexReleased = await deployedRobotsReleasesIndexing({
+    // Deployed robots.txt owns both gates independently: advertising the root
+    // sitemap opens the run at all, and advertising the Split sitemap is the
+    // Split release signal that puts Split URLs in scope. While Split is dark
+    // the run still submits root URLs and never reaches a Split URL.
+    const advertisedSitemaps = await deployedRobotsSitemapDirectives({
         fetchImpl: options.fetchImpl,
         robotsUrl,
-        rootSitemapUrl,
-        splitSitemapUrl,
         timeoutMs,
     })
-    if (!indexReleased) {
+    if (!advertisedSitemaps.has(rootSitemapUrl)) {
         logger.log('IndexNow release gate is closed in deployed robots.txt; submitted none and changed no state.')
         return {
             mode: 'gate-closed',
@@ -873,12 +885,14 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
             batches: 0,
         }
     }
+    const splitReleased = advertisedSitemaps.has(splitSitemapUrl)
 
     const deployed = await collectDeployedUrls({
         fetchImpl: options.fetchImpl,
         rootSitemapUrl,
         splitSitemapUrl,
-        splitSitemapRequired: true,
+        includeSplitSitemap: splitReleased,
+        splitSitemapRequired: splitReleased,
         timeoutMs,
     })
 
@@ -894,11 +908,30 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
 
     const state = readValidatedState(options.stateFile)
     if (!state && !full) {
-        throw new Error('No validated IndexNow state exists; run explicit bootstrap or explicit full mode')
+        logger.log(
+            'No validated IndexNow baseline exists; dispatch this workflow with bootstrap=true and dry_run=false to record one. Submitted none and changed no state.'
+        )
+        return {
+            mode: 'no-baseline',
+            currentUrls: deployed.allUrls,
+            added: [],
+            deleted: [],
+            candidates: [],
+            batches: 0,
+        }
     }
 
-    const delta = state ? calculateDelta(deployed.allUrls, state.urls) : { added: deployed.allUrls, deleted: [] }
-    const candidates = full ? deployed.allUrls : [...delta.added, ...delta.deleted]
+    const previousUrls = state?.urls ?? []
+    // Split URLs recorded by an earlier release stay in the baseline while the
+    // Split sitemap is unadvertised: they are neither resubmitted nor reported
+    // as deletions, so no Split URL can reach the API before robots.txt says so.
+    const currentUrls = splitReleased
+        ? deployed.allUrls
+        : dedupeUrls([...deployed.allUrls, ...previousUrls.filter(isSplitNamespaceUrl)])
+    const delta = calculateDelta(currentUrls, previousUrls)
+    // Full mode still owes a deletion notification for everything the baseline
+    // holds and the deployed sitemaps no longer list; the state write drops it.
+    const candidates = full ? dedupeUrls([...deployed.allUrls, ...delta.deleted]) : [...delta.added, ...delta.deleted]
 
     if (dryRun) {
         logger.log(
@@ -906,7 +939,7 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
         )
         return {
             mode: 'dry-run',
-            currentUrls: deployed.allUrls,
+            currentUrls,
             added: delta.added,
             deleted: delta.deleted,
             candidates,
@@ -918,7 +951,7 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
         logger.log('IndexNow delta is empty; submitted none and changed no state.')
         return {
             mode: 'noop',
-            currentUrls: deployed.allUrls,
+            currentUrls,
             added: delta.added,
             deleted: delta.deleted,
             candidates,
@@ -934,11 +967,11 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
         timeoutMs,
         logger,
     })
-    writeStateAtomic(options.stateFile, deployed.allUrls, 'submission', options.now)
+    writeStateAtomic(options.stateFile, currentUrls, 'submission', options.now)
     logger.log(`IndexNow submission complete: ${candidates.length} URL(s) in ${batches} batch(es).`)
     return {
         mode: 'submitted',
-        currentUrls: deployed.allUrls,
+        currentUrls,
         added: delta.added,
         deleted: delta.deleted,
         candidates,
@@ -946,21 +979,30 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
     }
 }
 
-export async function runIndexNowFromEnvironment(
-    environment: NodeJS.ProcessEnv = process.env,
-    fetchImpl: typeof fetch = fetch,
-    logger: IndexNowLogger = console
-): Promise<IndexNowRunResult> {
-    if (process.argv.slice(2).length > 0) {
+export function resolveIndexNowEnvironmentOptions(
+    environment: Record<string, string | undefined>,
+    cliArguments: readonly string[]
+): Pick<IndexNowOptions, 'stateFile' | 'key' | 'dryRun' | 'bootstrap' | 'full'> {
+    if (cliArguments.length > 0) {
         throw new Error('CLI URL arguments are disabled; deployed sitemaps are the only URL source')
     }
-    return runIndexNow({
-        fetchImpl,
-        stateFile: environment.INDEXNOW_STATE_FILE || path.join(process.cwd(), '.indexnow-state/urls.json'),
+    return {
+        stateFile: environment.INDEXNOW_STATE_FILE || path.join(process.cwd(), DEFAULT_STATE_FILE),
         key: environment.INDEXNOW_KEY,
         dryRun: assertBooleanEnvironment('INDEXNOW_DRY_RUN', environment.INDEXNOW_DRY_RUN),
         bootstrap: assertBooleanEnvironment('INDEXNOW_BOOTSTRAP', environment.INDEXNOW_BOOTSTRAP),
         full: assertBooleanEnvironment('INDEXNOW_FULL', environment.INDEXNOW_FULL),
+    }
+}
+
+export async function runIndexNowFromEnvironment(
+    environment: Record<string, string | undefined> = process.env,
+    fetchImpl: typeof fetch = fetch,
+    logger: IndexNowLogger = console
+): Promise<IndexNowRunResult> {
+    return runIndexNow({
+        fetchImpl,
         logger,
+        ...resolveIndexNowEnvironmentOptions(environment, process.argv.slice(2)),
     })
 }
