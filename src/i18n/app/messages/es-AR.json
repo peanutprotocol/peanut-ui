@@ -195,6 +195,8 @@
             "allSetDescription": "Ahora enviá o solicitá plata para empezar.",
             "joinPeanut": "¡Unite a Peanut!",
             "inviteOnlyLine2": "¡Andá y rogale a tu amigo por un enlace de invitación!",
+            "invitedLine": "Peanut es solo por invitación — y {username} tiene una invitación para vos.",
+            "joinCta": "Reclamá tu invitación",
             "begShareText": "Bro… estoy de rodillas. Peanut es solo por invitación y me quedé afuera. Salvame la vida y mandame tu invitación",
             "activityPrivateNote": "La actividad solo es visible para vos, no es pública."
         }
@@ -450,7 +452,8 @@
             "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para reclamar tu recompensa.",
             "holdToClaim": "¡Ganaste una recompensa! Mantené presionado para reclamarla.",
             "earnedInviteFriends": "¡Ganaste ${amount}! Invitá amigos para ganar aún más.",
-            "inviteFriends": "Invitá amigos para ganar aún más recompensas."
+            "inviteFriends": "Invitá amigos para ganar aún más recompensas.",
+            "inviteFriendsCta": "Invitá amigos y ganá"
         },
         "errors": {
             "pixRecurring": "Este código QR es de un pago recurrente (PIX Automático). Peanut no admite pagos PIX recurrentes — pedí un código QR de PIX normal.",
