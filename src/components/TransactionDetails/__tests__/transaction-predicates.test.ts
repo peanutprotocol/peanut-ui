@@ -154,10 +154,10 @@ describe('isSplittable', () => {
     })
 })
 
-// Gates the clickable counterparty name/avatar in BOTH the history row
-// (TransactionCard) and the receipt header (TransactionDetailsHeaderCard): only
-// a non-link send/request/receive to a real username (not a raw address) deep-
-// links to a Peanut profile.
+// gates the clickable counterparty name/avatar in BOTH the history row
+// (TransactionCard) and the receipt header (TransactionDetailsHeaderCard): any
+// non-link transaction whose peer is a real user with a username deep-links to
+// that Peanut profile, regardless of the receipt's presentation type.
 describe('hasUserProfile', () => {
     const profileTx = (
         transactionCardType: string | undefined,
@@ -173,16 +173,23 @@ describe('hasUserProfile', () => {
             },
         }) as unknown as TransactionDetails
 
-    test.each(['send', 'request', 'receive'])('a %s to a real username has a profile', (type) => {
-        expect(hasUserProfile(profileTx(type))).toBe(true)
-    })
-
-    test.each(['withdraw', 'add', 'card_pay', 'bank_withdraw', 'claim_external'])(
-        'a %s has no peer profile',
+    test.each(['send', 'request', 'receive', 'bank_request_fulfillment', 'add'])(
+        'a %s to a real username has a profile',
         (type) => {
-            expect(hasUserProfile(profileTx(type))).toBe(false)
+            expect(hasUserProfile(profileTx(type))).toBe(true)
         }
     )
+
+    test.each(['pay', 'card_pay', 'withdraw', 'bank_withdraw', 'claim_external'])(
+        'a non-user %s counterparty has no peer profile',
+        (type) => {
+            expect(hasUserProfile(profileTx(type, { isPeerActuallyUser: false }))).toBe(false)
+        }
+    )
+
+    test('an unknown presentation type does not hide a real user profile', () => {
+        expect(hasUserProfile(profileTx(undefined))).toBe(true)
+    })
 
     test('a link send has no user profile behind it', () => {
         expect(hasUserProfile(profileTx('send', { isLinkTransaction: true }))).toBe(false)
