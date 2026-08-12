@@ -326,6 +326,22 @@ const cases: TestCase[] = [
         }),
         expect: { direction: 'bank_request_fulfillment', transactionCardType: 'bank_request_fulfillment' },
     },
+    {
+        name: 'P2P_REQUEST_FULFILL × SENDER × bridge fulfilment does not treat the viewer as the peer',
+        entry: baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            senderAccount: aliceUser,
+            recipientAccount: { identifier: 'external-recipient', type: 'MERCHANT', isUser: false },
+            extraData: { kind: 'P2P_REQUEST_FULFILL', fulfillmentType: 'bridge' },
+            isVerified: true,
+        }),
+        expect: {
+            direction: 'bank_request_fulfillment',
+            transactionCardType: 'bank_request_fulfillment',
+            userName: 'external-recipient',
+            isPeerActuallyUser: false,
+        },
+    },
 
     // ───── CARD_SPEND_AUTH / CARD_AUTH_REVERSAL ─────
     {
