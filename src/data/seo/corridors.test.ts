@@ -1,21 +1,33 @@
 import fs from 'fs'
 import path from 'path'
+import matter from 'gray-matter'
 import { RECEIVE_SOURCES } from './corridors'
 
 const RECEIVE_FROM_DIR = path.join(process.cwd(), 'src/content/content/receive-from')
 
+beforeAll(() => {
+    if (!fs.existsSync(RECEIVE_FROM_DIR)) {
+        throw new Error(
+            `content tree missing at ${RECEIVE_FROM_DIR} — the src/content submodule is not ` +
+                'initialized in this checkout. Run: git submodule update --init'
+        )
+    }
+})
+
 /** Re-derive the expected set straight off the filesystem, independently of
  *  the content lib the loader uses — a guard that reuses the loader's own
- *  helper would only prove it equals itself. */
+ *  helper would only prove it equals itself. gray-matter is used directly (not
+ *  via the lib) so YAML semantics match what the loader's parser actually does
+ *  (`published: False`, trailing comments, nesting). */
 function publishedReceiveFromSlugs(): string[] {
     return fs
         .readdirSync(RECEIVE_FROM_DIR)
+        .filter((slug) => slug !== 'index')
         .filter((slug) => fs.statSync(path.join(RECEIVE_FROM_DIR, slug)).isDirectory())
         .filter((slug) => fs.existsSync(path.join(RECEIVE_FROM_DIR, slug, 'en.md')))
         .filter((slug) => {
             const raw = fs.readFileSync(path.join(RECEIVE_FROM_DIR, slug, 'en.md'), 'utf8')
-            const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw)?.[1] ?? ''
-            return !/^published:\s*false\s*$/m.test(frontmatter)
+            return matter(raw).data.published !== false
         })
 }
 

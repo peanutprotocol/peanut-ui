@@ -92,7 +92,9 @@ function loadCorridors(): Corridor[] {
  * requirement for these pages — only the article is.
  */
 function loadReceiveSources(): string[] {
-    return listPublishedSlugs('receive-from')
+    // 'index' skip: guards against a meta directory landing in the content
+    // tree becoming a live route (sitemap.ts applies the same skip elsewhere).
+    return listPublishedSlugs('receive-from').filter((slug) => slug !== 'index')
 }
 
 export const COUNTRIES_SEO: Record<string, CountrySEO> = loadCountries()
