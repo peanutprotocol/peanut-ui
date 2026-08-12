@@ -828,8 +828,11 @@ describe('release, noindex, and delta gates', () => {
         expect(hasNoindexDirective('<html></html>', 'max-snippet:20; noindex')).toBe(true)
         expect(hasNoindexDirective('<META CONTENT=noindex NAME=robots>', null)).toBe(true)
         expect(hasNoindexDirective('<meta name="robots" content="none">', null)).toBe(true)
+        expect(hasNoindexDirective('<meta name="googlebot" content="noindex">', null)).toBe(true)
         expect(hasNoindexDirective('<html></html>', 'bingbot: none')).toBe(true)
         expect(hasNoindexDirective('<meta name="robots" content="index,follow">', null)).toBe(false)
+        expect(hasNoindexDirective('<meta data-name="robots" data-content="noindex">', null)).toBe(false)
+        expect(hasNoindexDirective("<meta data-text=' name=robots content=noindex'>", null)).toBe(false)
     })
 
     test('direct indexability check accepts a clean direct HTML page', async () => {
@@ -884,6 +887,22 @@ describe('release, noindex, and delta gates', () => {
         [
             'second canonical without href',
             `<html><head><link rel="canonical" href="${SIX_SPLIT_URLS[0]}"><link rel="canonical"></head></html>`,
+        ],
+        [
+            'data attributes that resemble canonical attributes',
+            `<html><head><link data-rel="canonical" data-href="${SIX_SPLIT_URLS[0]}"></head></html>`,
+        ],
+        [
+            'canonical text embedded in another attribute',
+            `<html><head><link data-text=' rel="canonical" href="${SIX_SPLIT_URLS[0]}"'></head></html>`,
+        ],
+        [
+            'duplicate rel attribute',
+            `<html><head><link rel="alternate" rel="canonical" href="${SIX_SPLIT_URLS[0]}"></head></html>`,
+        ],
+        [
+            'canonical relation with only a data href',
+            `<html><head><link rel="canonical" data-href="${SIX_SPLIT_URLS[0]}"></head></html>`,
         ],
     ])('rejects a %s canonical contract', async (_label, html) => {
         const split = SIX_SPLIT_URLS[0]
