@@ -259,18 +259,42 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
                 {storeHandoffModal}
 
+                {/* Request-gate modal. A logged-out guest gets the same crediting door
+                    as the join card above — the beg copy would send them off to ask for
+                    the very link this page can hand them. The beg flow stays for the
+                    logged-in-without-access case: they already have an account, so the
+                    profile owner's code can't credit them through signup. */}
                 <ActionModal
                     icon="user"
                     title={t('noInviteTitle')}
-                    description={`${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}`}
+                    description={
+                        isLoggedIn ? `${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}` : t('invitedLine', { username })
+                    }
                     visible={showInviteModal}
                     onClose={() => {
                         setShowInviteModal(false)
                     }}
                     content={
-                        <ShareButton generateText={() => Promise.resolve(t('begShareText'))} title={t('begForInvite')}>
-                            {t('begForInvite')}
-                        </ShareButton>
+                        isLoggedIn ? (
+                            <ShareButton
+                                generateText={() => Promise.resolve(t('begShareText'))}
+                                title={t('begForInvite')}
+                            >
+                                {t('begForInvite')}
+                            </ShareButton>
+                        ) : (
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                className="w-full"
+                                onClick={() => {
+                                    setShowInviteModal(false)
+                                    handleJoinClick()
+                                }}
+                            >
+                                {t('joinCta')}
+                            </Button>
+                        )
                     }
                 />
             </div>

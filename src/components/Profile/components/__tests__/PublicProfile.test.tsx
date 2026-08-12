@@ -1,5 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react'
-import type { ComponentProps } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import posthog from 'posthog-js'
 import PublicProfile from '../PublicProfile'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
@@ -32,7 +32,18 @@ jest.mock('../ProfileHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Badges/BadgesRow', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Home/HomeHistory', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Global/ActionModal', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/ActionModal', () => ({
+    __esModule: true,
+    // Renders description + content when visible so the guest Request-gate
+    // modal (the second crediting door) is assertable.
+    default: ({ visible, description, content }: { visible?: boolean; description?: string; content?: ReactNode }) =>
+        visible ? (
+            <div data-testid="action-modal">
+                <p>{description}</p>
+                {content}
+            </div>
+        ) : null,
+}))
 jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
@@ -108,5 +119,22 @@ describe('PublicProfile guest door', () => {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
         })
+    })
+
+    it('routes a guest through the crediting door from the Request-gate modal too', async () => {
+        renderWithIntl(<PublicProfile username="Satoshi" />)
+
+        // Request opens the invite-gate modal for guests — it must offer the
+        // same crediting door as the join card, not the old beg-for-an-invite
+        // dead end.
+        fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
+        const modal = await screen.findByTestId('action-modal')
+        expect(modal).toHaveTextContent(en.profile.publicProfile.invitedLine.replace('{username}', 'Satoshi'))
+
+        const joinButtons = screen.getAllByRole('button', { name: JOIN_CTA })
+        fireEvent.click(joinButtons[joinButtons.length - 1])
+
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi')
     })
 })
