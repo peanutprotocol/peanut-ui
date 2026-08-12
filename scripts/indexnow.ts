@@ -3,6 +3,7 @@ import path from 'node:path'
 import { SaxesParser } from 'saxes'
 
 export const PRODUCTION_ORIGIN = 'https://peanut.me'
+export const ROBOTS_URL = `${PRODUCTION_ORIGIN}/robots.txt`
 export const ROOT_SITEMAP_URL = `${PRODUCTION_ORIGIN}/sitemap.xml`
 export const SPLIT_SITEMAP_URL = `${PRODUCTION_ORIGIN}/split-sitemap.xml`
 export const INDEXNOW_ENDPOINT = 'https://api.indexnow.org/indexnow'
@@ -11,6 +12,11 @@ export const MAX_URLS_PER_REQUEST = 10_000
 const SITEMAP_NAMESPACE = 'http://www.sitemaps.org/schemas/sitemap/0.9'
 const MAX_SITEMAP_BYTES = 10 * 1024 * 1024
 const MAX_PAGE_BYTES = 5 * 1024 * 1024
+const MAX_ROBOTS_BYTES = 512 * 1024
+const MAX_KEY_FILE_BYTES = 512
+export const MAX_STATE_BYTES = 20 * 1024 * 1024
+export const MAX_STATE_URLS = 100_000
+const MAX_SITEMAP_URLS = 50_000
 const DEFAULT_TIMEOUT_MS = 30_000
 const STATE_VERSION = 1
 const INDEXNOW_KEY_PATTERN = /^[A-Za-z0-9-]{8,128}$/
@@ -32,10 +38,10 @@ export interface IndexNowOptions {
     fetchImpl: typeof fetch
     stateFile: string
     key?: string
-    indexReleased?: boolean
     dryRun?: boolean
     bootstrap?: boolean
     full?: boolean
+    robotsUrl?: string
     rootSitemapUrl?: string
     splitSitemapUrl?: string
     endpoint?: string
@@ -76,6 +82,8 @@ interface SubmitOptions {
     logger: IndexNowLogger
 }
 
+class ResponseBodyLimitError extends Error {}
+
 function assertBooleanEnvironment(name: string, value: string | undefined): boolean {
     if (value === undefined || value === '') return false
     if (value === 'true') return true
@@ -92,32 +100,48 @@ export function validatePublicUrl(value: unknown, label = 'URL'): string {
         throw new Error(`${label} must be a non-empty, trimmed string`)
     }
     if (/[\u0000-\u0020\u007f]/.test(value) || /%(?![0-9A-Fa-f]{2})/.test(value)) {
-        throw new Error(`${label} is not RFC-3986 encoded: ${value}`)
+        throw new Error(`${label} is not RFC-3986 encoded`)
     }
 
     let parsed: URL
     try {
         parsed = new URL(value)
     } catch {
-        throw new Error(`${label} is malformed: ${value}`)
+        throw new Error(`${label} is malformed`)
     }
 
     if (parsed.protocol !== 'https:' || parsed.hostname !== 'peanut.me' || parsed.port !== '') {
-        throw new Error(`${label} must use the exact https://peanut.me origin: ${value}`)
+        throw new Error(`${label} must use the exact https://peanut.me origin`)
     }
     if (parsed.username !== '' || parsed.password !== '' || parsed.hash !== '') {
-        throw new Error(`${label} must not contain credentials or a fragment: ${value}`)
+        throw new Error(`${label} must not contain credentials or a fragment`)
     }
 
     const serialized = parsed.href
     if (serialized !== value && !(value === PRODUCTION_ORIGIN && serialized === `${PRODUCTION_ORIGIN}/`)) {
-        throw new Error(`${label} must already be canonically encoded: ${value}`)
+        throw new Error(`${label} must already be canonically encoded`)
     }
     return value
 }
 
-export function isSplitPublicUrl(value: string): boolean {
+function isSplitPathUrl(value: string): boolean {
     return SPLIT_PATH_PATTERN.test(new URL(value).pathname)
+}
+
+function hasQueryDelimiter(value: string): boolean {
+    return new URL(value).href.includes('?')
+}
+
+export function isSplitPublicUrl(value: string): boolean {
+    return isSplitPathUrl(value) && !hasQueryDelimiter(value)
+}
+
+function validateIndexNowUrl(value: unknown, label: string): string {
+    const url = validatePublicUrl(value, label)
+    if (isSplitPathUrl(url) && hasQueryDelimiter(url)) {
+        throw new Error(`${label} must not contain a query for a Split page`)
+    }
+    return url
 }
 
 function dedupeUrls(urls: string[]): string[] {
@@ -214,6 +238,9 @@ export function parseSitemapXml(xml: string, source: string): string[] {
     parser.on('closetag', () => {
         if (locationDepth === depth) {
             const location = validatePublicUrl(locationText.trim(), `${source} <loc>`)
+            if (urls.length >= MAX_SITEMAP_URLS) {
+                throw new Error(`${source} exceeds the ${MAX_SITEMAP_URLS}-URL sitemap limit`)
+            }
             urls.push(location)
             currentUrlHasLocation = true
             locationDepth = null
@@ -233,12 +260,11 @@ export function parseSitemapXml(xml: string, source: string): string[] {
 
     try {
         parser.write(xml.replace(/^\uFEFF/, '')).close()
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        throw new Error(`Invalid sitemap XML from ${source}: ${message}`)
+    } catch {
+        throw new Error(`Invalid sitemap XML from ${source}`)
     }
     if (parserError !== null) {
-        throw new Error(`Invalid sitemap XML from ${source}: ${(parserError as Error).message}`)
+        throw new Error(`Invalid sitemap XML from ${source}`)
     }
     if (!sawRoot || !closedRoot || depth !== 0) {
         throw new Error(`Invalid sitemap XML from ${source}: incomplete <urlset>`)
@@ -272,10 +298,74 @@ async function fetchDirect(options: {
         }
         return response
     } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        throw new Error(`Request failed for ${options.url}: ${message}`)
+        if (error instanceof Error && error.name === 'AbortError') {
+            throw new Error(`Request timed out for ${options.url}`)
+        }
+        throw new Error(`Request failed for ${options.url}`)
     } finally {
         clearTimeout(timeout)
+    }
+}
+
+async function readResponseTextLimited(
+    response: Response,
+    maximumBytes: number,
+    source: string,
+    timeoutMs = DEFAULT_TIMEOUT_MS
+): Promise<string> {
+    const contentLength = response.headers.get('content-length')
+    if (contentLength !== null) {
+        if (!/^(?:0|[1-9]\d*)$/.test(contentLength)) {
+            throw new Error(`${source} returned an invalid Content-Length`)
+        }
+        const declaredLength = Number(contentLength)
+        if (!Number.isSafeInteger(declaredLength) || declaredLength < 0) {
+            throw new Error(`${source} returned an invalid Content-Length`)
+        }
+        if (declaredLength > maximumBytes) {
+            throw new Error(`${source} exceeds the ${maximumBytes}-byte response limit`)
+        }
+    }
+
+    if (!response.body) {
+        return ''
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8', { fatal: true })
+    let timedOut = false
+    const timeout = setTimeout(() => {
+        timedOut = true
+        void reader.cancel().catch(() => undefined)
+    }, timeoutMs)
+    let bytesRead = 0
+    let text = ''
+    try {
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            bytesRead += value.byteLength
+            if (bytesRead > maximumBytes) {
+                await reader.cancel().catch(() => undefined)
+                throw new ResponseBodyLimitError(`${source} exceeds the ${maximumBytes}-byte response limit`)
+            }
+            text += decoder.decode(value, { stream: true })
+        }
+        if (timedOut) throw new Error(`Response body timed out for ${source}`)
+        text += decoder.decode()
+        return text
+    } catch (error) {
+        if (timedOut) throw new Error(`Response body timed out for ${source}`)
+        if (error instanceof ResponseBodyLimitError) throw error
+        const errorName =
+            typeof error === 'object' && error !== null && 'name' in error ? String(error.name) : undefined
+        if (errorName === 'TypeError' || errorName === 'EncodingError') {
+            throw new Error(`${source} is not valid UTF-8`)
+        }
+        throw new Error(`Response body read failed for ${source}`)
+    } finally {
+        clearTimeout(timeout)
+        reader.releaseLock()
     }
 }
 
@@ -295,14 +385,10 @@ export async function fetchSitemapUrls(options: SitemapFetchOptions): Promise<st
         throw new Error(`${options.url} returned a non-XML content type`)
     }
 
-    const declaredLength = Number(response.headers.get('content-length'))
-    if (Number.isFinite(declaredLength) && declaredLength > MAX_SITEMAP_BYTES) {
-        throw new Error(`${options.url} exceeds the ${MAX_SITEMAP_BYTES}-byte sitemap limit`)
-    }
-
-    const urls = parseSitemapXml(await response.text(), options.url)
+    const xml = await readResponseTextLimited(response, MAX_SITEMAP_BYTES, options.url, options.timeoutMs)
+    const urls = parseSitemapXml(xml, options.url)
     if (!options.optional && urls.length === 0) {
-        throw new Error(`${options.url} is the required root sitemap and must not be empty`)
+        throw new Error(`${options.url} is required and must not be empty`)
     }
     return urls
 }
@@ -311,6 +397,7 @@ export async function collectDeployedUrls(options: {
     fetchImpl: typeof fetch
     rootSitemapUrl?: string
     splitSitemapUrl?: string
+    splitSitemapRequired?: boolean
     timeoutMs?: number
 }): Promise<DeployedUrls> {
     const rootSitemapUrl = options.rootSitemapUrl ?? ROOT_SITEMAP_URL
@@ -326,17 +413,23 @@ export async function collectDeployedUrls(options: {
     const splitSitemapUrls = await fetchSitemapUrls({
         fetchImpl: options.fetchImpl,
         url: splitSitemapUrl,
-        optional: true,
+        optional: !(options.splitSitemapRequired ?? false),
         timeoutMs,
     })
 
     for (const url of splitSitemapUrls) {
-        if (!isSplitPublicUrl(url)) {
+        if (!isSplitPathUrl(url)) {
             throw new Error(`${splitSitemapUrl} contains a URL outside the owned Split namespace: ${url}`)
+        }
+        if (hasQueryDelimiter(url)) {
+            throw new Error(`${splitSitemapUrl} contains a Split URL with a query`)
         }
     }
 
     const allUrls = dedupeUrls([...rootUrls, ...splitSitemapUrls])
+    if (allUrls.some((url) => isSplitPathUrl(url) && hasQueryDelimiter(url))) {
+        throw new Error('A deployed Split URL contains a query')
+    }
     return {
         rootUrls: dedupeUrls(rootUrls),
         splitSitemapUrls: dedupeUrls(splitSitemapUrls),
@@ -348,20 +441,36 @@ export async function collectDeployedUrls(options: {
 export function readValidatedState(stateFile: string): IndexNowState | null {
     if (!fs.existsSync(stateFile)) return null
 
+    let stateStat: fs.Stats
+    try {
+        stateStat = fs.lstatSync(stateFile)
+    } catch {
+        throw new Error(`Invalid IndexNow state at ${stateFile}: could not inspect the file`)
+    }
+    if (!stateStat.isFile() || stateStat.size > MAX_STATE_BYTES) {
+        throw new Error(`Invalid IndexNow state at ${stateFile}: expected a file of at most ${MAX_STATE_BYTES} bytes`)
+    }
+
     let parsed: unknown
     try {
         parsed = JSON.parse(fs.readFileSync(stateFile, 'utf8'))
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        throw new Error(`Invalid IndexNow state at ${stateFile}: ${message}`)
+    } catch {
+        throw new Error(`Invalid IndexNow state at ${stateFile}: could not parse JSON`)
     }
 
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
         throw new Error(`Invalid IndexNow state at ${stateFile}: expected an object`)
     }
     const candidate = parsed as Partial<IndexNowState>
+    const stateKeys = Object.keys(candidate).sort()
+    if (JSON.stringify(stateKeys) !== JSON.stringify(['reason', 'urls', 'version', 'writtenAt'])) {
+        throw new Error(`Invalid IndexNow state at ${stateFile}: unexpected fields`)
+    }
     if (candidate.version !== STATE_VERSION || !Array.isArray(candidate.urls)) {
         throw new Error(`Invalid IndexNow state at ${stateFile}: unsupported version or URL list`)
+    }
+    if (candidate.urls.length > MAX_STATE_URLS) {
+        throw new Error(`Invalid IndexNow state at ${stateFile}: exceeds the ${MAX_STATE_URLS}-URL limit`)
     }
     if (candidate.reason !== 'bootstrap' && candidate.reason !== 'submission') {
         throw new Error(`Invalid IndexNow state at ${stateFile}: invalid reason`)
@@ -372,7 +481,7 @@ export function readValidatedState(stateFile: string): IndexNowState | null {
 
     let urls: string[]
     try {
-        urls = candidate.urls.map((url, index) => validatePublicUrl(url, `state URL ${index + 1}`))
+        urls = candidate.urls.map((url, index) => validateIndexNowUrl(url, `state URL ${index + 1}`))
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         throw new Error(`Invalid IndexNow state at ${stateFile}: ${message}`)
@@ -394,7 +503,10 @@ export function writeStateAtomic(
     reason: IndexNowState['reason'],
     now: () => Date = () => new Date()
 ): void {
-    const validatedUrls = urls.map((url, index) => validatePublicUrl(url, `state URL ${index + 1}`))
+    if (urls.length > MAX_STATE_URLS) {
+        throw new Error(`Refusing to write more than ${MAX_STATE_URLS} URLs to IndexNow state`)
+    }
+    const validatedUrls = urls.map((url, index) => validateIndexNowUrl(url, `state URL ${index + 1}`))
     if (dedupeUrls(validatedUrls).length !== validatedUrls.length) {
         throw new Error('Refusing to write duplicate URLs to IndexNow state')
     }
@@ -405,11 +517,19 @@ export function writeStateAtomic(
         writtenAt: now().toISOString(),
         reason,
     }
+    const serializedState = `${JSON.stringify(state)}\n`
+    if (Buffer.byteLength(serializedState, 'utf8') > MAX_STATE_BYTES) {
+        throw new Error(`Refusing to write more than ${MAX_STATE_BYTES} bytes to IndexNow state`)
+    }
     const directory = path.dirname(stateFile)
     const temporaryFile = path.join(directory, `.${path.basename(stateFile)}.${process.pid}.${Date.now()}.tmp`)
     fs.mkdirSync(directory, { recursive: true })
+    const directoryStat = fs.lstatSync(directory)
+    if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) {
+        throw new Error(`Refusing to write IndexNow state through a non-directory or symbolic link: ${directory}`)
+    }
     try {
-        fs.writeFileSync(temporaryFile, `${JSON.stringify(state)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 })
+        fs.writeFileSync(temporaryFile, serializedState, { encoding: 'utf8', flag: 'wx', mode: 0o600 })
         fs.renameSync(temporaryFile, stateFile)
     } finally {
         if (fs.existsSync(temporaryFile)) fs.unlinkSync(temporaryFile)
@@ -437,6 +557,23 @@ export function hasNoindexDirective(html: string, xRobotsTag: string | null): bo
     return false
 }
 
+function canonicalLinks(html: string): string[] {
+    const withoutComments = html.replace(/<!--[\s\S]*?-->/g, '')
+    const withoutRawText = withoutComments.replace(/<(script|style|template|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+    const head = withoutRawText.match(/<head\b[^>]*>([\s\S]*?)<\/head\s*>/i)?.[1]
+    if (head === undefined) return []
+
+    const links: string[] = []
+    for (const match of head.matchAll(/<link\b[^>]*>/gi)) {
+        const tag = match[0]
+        const relations = htmlAttribute(tag, 'rel')?.toLowerCase().split(/\s+/) ?? []
+        if (!relations.includes('canonical')) continue
+        const href = htmlAttribute(tag, 'href')
+        links.push(href ?? '')
+    }
+    return links
+}
+
 export async function assertSplitPageIndexable(options: {
     fetchImpl: typeof fetch
     url: string
@@ -459,13 +596,48 @@ export async function assertSplitPageIndexable(options: {
         throw new Error(`${url} returned a non-HTML content type`)
     }
 
-    const html = await response.text()
-    if (Buffer.byteLength(html, 'utf8') > MAX_PAGE_BYTES) {
-        throw new Error(`${url} exceeds the ${MAX_PAGE_BYTES}-byte page verification limit`)
-    }
+    const html = await readResponseTextLimited(response, MAX_PAGE_BYTES, url, options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
     if (hasNoindexDirective(html, response.headers.get('x-robots-tag'))) {
         throw new Error(`${url} is still noindex; refusing IndexNow submission`)
     }
+    const canonicals = canonicalLinks(html)
+    if (canonicals.length !== 1 || canonicals[0] !== url) {
+        throw new Error(`${url} must contain exactly one absolute self-canonical link`)
+    }
+}
+
+function isPlainTextContentType(contentType: string | null): boolean {
+    return contentType?.split(';', 1)[0].trim().toLowerCase() === 'text/plain'
+}
+
+function sitemapDirectives(robots: string): Set<string> {
+    const directives = new Set<string>()
+    for (const line of robots.replace(/^\uFEFF/, '').split(/\r?\n/)) {
+        const withoutComment = line.split('#', 1)[0].trim()
+        const match = withoutComment.match(/^sitemap\s*:\s*(\S+)\s*$/i)
+        if (match) directives.add(match[1])
+    }
+    return directives
+}
+
+async function deployedRobotsReleasesIndexing(options: {
+    fetchImpl: typeof fetch
+    robotsUrl: string
+    rootSitemapUrl: string
+    splitSitemapUrl: string
+    timeoutMs: number
+}): Promise<boolean> {
+    const response = await fetchDirect({
+        fetchImpl: options.fetchImpl,
+        url: options.robotsUrl,
+        accept: 'text/plain',
+        timeoutMs: options.timeoutMs,
+    })
+    if (response.status !== 200 || !isPlainTextContentType(response.headers.get('content-type'))) return false
+
+    const robots = await readResponseTextLimited(response, MAX_ROBOTS_BYTES, options.robotsUrl, options.timeoutMs)
+    const sitemaps = sitemapDirectives(robots)
+    return sitemaps.has(options.rootSitemapUrl) && sitemaps.has(options.splitSitemapUrl)
 }
 
 function calculateDelta(current: string[], previous: string[]): { added: string[]; deleted: string[] } {
@@ -484,13 +656,41 @@ function validateKey(key: string | undefined): string {
     return key
 }
 
+async function assertIndexNowKeyPublished(options: {
+    fetchImpl: typeof fetch
+    key: string
+    timeoutMs: number
+}): Promise<void> {
+    const url = `${PRODUCTION_ORIGIN}/${options.key}.txt`
+    const response = await fetchDirect({
+        fetchImpl: options.fetchImpl,
+        url,
+        accept: 'text/plain',
+        timeoutMs: options.timeoutMs,
+    })
+    if (response.status !== 200 || !isPlainTextContentType(response.headers.get('content-type'))) {
+        throw new Error(`${url} must return direct 200 text/plain before IndexNow submission`)
+    }
+    const publishedKey = await readResponseTextLimited(response, MAX_KEY_FILE_BYTES, url, options.timeoutMs)
+    if (publishedKey !== options.key) {
+        throw new Error(`${url} must contain exactly the configured IndexNow key`)
+    }
+}
+
 export async function submitIndexNowBatches(options: SubmitOptions): Promise<number> {
     const key = validateKey(options.key)
+    if (options.urls.length > MAX_STATE_URLS) {
+        throw new Error(`Refusing to submit more than ${MAX_STATE_URLS} IndexNow URLs`)
+    }
+    const urls = options.urls.map((url, index) => validateIndexNowUrl(url, `submission URL ${index + 1}`))
+    if (dedupeUrls(urls).length !== urls.length) {
+        throw new Error('Refusing to submit duplicate IndexNow URLs')
+    }
     let failures = 0
     let batches = 0
 
-    for (let start = 0; start < options.urls.length; start += MAX_URLS_PER_REQUEST) {
-        const batch = options.urls.slice(start, start + MAX_URLS_PER_REQUEST)
+    for (let start = 0; start < urls.length; start += MAX_URLS_PER_REQUEST) {
+        const batch = urls.slice(start, start + MAX_URLS_PER_REQUEST)
         batches += 1
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), options.timeoutMs)
@@ -508,17 +708,15 @@ export async function submitIndexNowBatches(options: SubmitOptions): Promise<num
                 signal: controller.signal,
             })
             if (response.status !== 200 && response.status !== 202) {
-                const detail = (await response.text()).slice(0, 500)
-                options.logger.error(
-                    `IndexNow batch ${batches} failed with ${response.status}${detail ? `: ${detail}` : ''}`
-                )
+                if (response.body) await response.body.cancel().catch(() => undefined)
+                options.logger.error(`IndexNow batch ${batches} failed with ${response.status}`)
                 failures += 1
             } else {
                 options.logger.log(`IndexNow batch ${batches} accepted (${response.status}, ${batch.length} URLs)`)
             }
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error)
-            options.logger.error(`IndexNow batch ${batches} request failed: ${message}`)
+            const suffix = error instanceof Error && error.name === 'AbortError' ? ' timed out' : ' failed'
+            options.logger.error(`IndexNow batch ${batches} request${suffix}`)
             failures += 1
         } finally {
             clearTimeout(timeout)
@@ -531,25 +729,26 @@ export async function submitIndexNowBatches(options: SubmitOptions): Promise<num
 
 export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRunResult> {
     const logger = options.logger ?? console
-    const indexReleased = options.indexReleased ?? false
     const dryRun = options.dryRun ?? false
     const bootstrap = options.bootstrap ?? false
     const full = options.full ?? false
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    const robotsUrl = options.robotsUrl ?? ROBOTS_URL
+    const rootSitemapUrl = options.rootSitemapUrl ?? ROOT_SITEMAP_URL
+    const splitSitemapUrl = options.splitSitemapUrl ?? SPLIT_SITEMAP_URL
 
     if (bootstrap && (dryRun || full)) {
         throw new Error('INDEXNOW_BOOTSTRAP cannot be combined with dry-run or full mode')
     }
 
-    const deployed = await collectDeployedUrls({
-        fetchImpl: options.fetchImpl,
-        rootSitemapUrl: options.rootSitemapUrl,
-        splitSitemapUrl: options.splitSitemapUrl,
-        timeoutMs,
-    })
-    const state = readValidatedState(options.stateFile)
-
     if (bootstrap) {
+        const deployed = await collectDeployedUrls({
+            fetchImpl: options.fetchImpl,
+            rootSitemapUrl,
+            splitSitemapUrl,
+            timeoutMs,
+        })
+        const state = readValidatedState(options.stateFile)
         if (state) {
             throw new Error('Bootstrap requires missing IndexNow state; refusing to replace an existing baseline')
         }
@@ -568,45 +767,50 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
         }
     }
 
-    if (!state && !full) {
-        if (!dryRun && !indexReleased) {
-            logger.log('IndexNow release gate is closed and no baseline exists; submitted none.')
-            return {
-                mode: 'gate-closed',
-                currentUrls: deployed.allUrls,
-                added: [],
-                deleted: [],
-                candidates: [],
-                batches: 0,
-            }
+    const indexReleased = await deployedRobotsReleasesIndexing({
+        fetchImpl: options.fetchImpl,
+        robotsUrl,
+        rootSitemapUrl,
+        splitSitemapUrl,
+        timeoutMs,
+    })
+    if (!indexReleased) {
+        logger.log('IndexNow release gate is closed in deployed robots.txt; submitted none and changed no state.')
+        return {
+            mode: 'gate-closed',
+            currentUrls: [],
+            added: [],
+            deleted: [],
+            candidates: [],
+            batches: 0,
         }
+    }
+
+    const deployed = await collectDeployedUrls({
+        fetchImpl: options.fetchImpl,
+        rootSitemapUrl,
+        splitSitemapUrl,
+        splitSitemapRequired: true,
+        timeoutMs,
+    })
+
+    // A previously accepted Split page can later regress to redirect/noindex.
+    // Gate every currently deployed Split URL before reading state or making a
+    // live submission. Deleted Split URLs remain eligible for notification.
+    for (const url of deployed.splitUrls) {
+        await assertSplitPageIndexable({ fetchImpl: options.fetchImpl, url, timeoutMs })
+    }
+
+    const key = validateKey(options.key)
+    await assertIndexNowKeyPublished({ fetchImpl: options.fetchImpl, key, timeoutMs })
+
+    const state = readValidatedState(options.stateFile)
+    if (!state && !full) {
         throw new Error('No validated IndexNow state exists; run explicit bootstrap or explicit full mode')
     }
 
     const delta = state ? calculateDelta(deployed.allUrls, state.urls) : { added: deployed.allUrls, deleted: [] }
     const candidates = full ? deployed.allUrls : [...delta.added, ...delta.deleted]
-
-    if (!dryRun && !indexReleased) {
-        logger.log(
-            `IndexNow release gate is closed; withheld ${candidates.length} candidate URL(s) and changed no state.`
-        )
-        return {
-            mode: 'gate-closed',
-            currentUrls: deployed.allUrls,
-            added: delta.added,
-            deleted: delta.deleted,
-            candidates,
-            batches: 0,
-        }
-    }
-
-    // A previously accepted Split page can later regress to redirect/noindex.
-    // Gate every currently deployed Split URL before any live submission, not
-    // only URLs present in this run's delta. Deleted Split URLs are absent from
-    // this list and remain eligible for deletion notification.
-    for (const url of deployed.splitUrls) {
-        await assertSplitPageIndexable({ fetchImpl: options.fetchImpl, url, timeoutMs })
-    }
 
     if (dryRun) {
         logger.log(
@@ -637,7 +841,7 @@ export async function runIndexNow(options: IndexNowOptions): Promise<IndexNowRun
     const batches = await submitIndexNowBatches({
         fetchImpl: options.fetchImpl,
         endpoint: options.endpoint ?? INDEXNOW_ENDPOINT,
-        key: validateKey(options.key),
+        key,
         urls: candidates,
         timeoutMs,
         logger,
@@ -666,7 +870,6 @@ export async function runIndexNowFromEnvironment(
         fetchImpl,
         stateFile: environment.INDEXNOW_STATE_FILE || path.join(process.cwd(), '.indexnow-state/urls.json'),
         key: environment.INDEXNOW_KEY,
-        indexReleased: assertBooleanEnvironment('INDEXNOW_INDEX_RELEASED', environment.INDEXNOW_INDEX_RELEASED),
         dryRun: assertBooleanEnvironment('INDEXNOW_DRY_RUN', environment.INDEXNOW_DRY_RUN),
         bootstrap: assertBooleanEnvironment('INDEXNOW_BOOTSTRAP', environment.INDEXNOW_BOOTSTRAP),
         full: assertBooleanEnvironment('INDEXNOW_FULL', environment.INDEXNOW_FULL),
