@@ -232,14 +232,24 @@ export default function QRScannerOverlay() {
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
         const normalized = data.toLowerCase()
-        // Recognize the RAW scan, never `normalized`. Base58 chain addresses carry
-        // meaning in their case: an uppercase L is a valid Solana character but a
-        // lowercase l is not, and every Tron address starts with an uppercase T.
-        // Lowercasing first therefore made ~half of all Solana addresses and every
-        // Tron address unrecognizable. `normalized` stays for routing below, where
-        // hex and ENS are case-insensitive anyway. recognizeQr lowercases the
-        // branches that need it (Peanut URL, PIX) itself.
-        const recognized = recognizeQr(data)
+        // Recognize the RAW scan first. Base58 chain addresses carry meaning in
+        // their case: an uppercase L is a valid Solana character but a lowercase l
+        // is not, and every Tron address starts with an uppercase T. Lowercasing
+        // up front made ~half of all Solana addresses and every Tron address
+        // unrecognizable.
+        //
+        // Retry lowercased ONLY for an all-uppercase payload. QR alphanumeric mode
+        // encodes uppercase only and is much denser, so bech32 addresses, BOLT-11
+        // invoices and hex addresses are often uppercased by the encoder — that
+        // case is an artifact and carries no information. A payload with any
+        // lowercase letter kept its original case, so a mixed-case EIP-55 checksum
+        // is real and viem must stay free to reject a bad one: silently lowercasing
+        // those turned a corrupted address into a valid-looking payment target.
+        //
+        // `normalized` stays for routing below, where hex and ENS are
+        // case-insensitive anyway, and recognizeQr lowercases the branches that
+        // need it (Peanut URL, PIX) itself.
+        const recognized = recognizeQr(data) ?? (data === data.toUpperCase() ? recognizeQr(normalized) : null)
 
         const getLogData = () => {
             if (recognized === EQrType.PIX_KEY) {
