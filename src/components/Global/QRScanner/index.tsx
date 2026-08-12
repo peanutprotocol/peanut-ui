@@ -100,6 +100,50 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     )
 }
 
+function PasteActions({
+    onPaste,
+    detectedAddress,
+    onUseDetected,
+    showPasteChip,
+    onUsePasteChip,
+}: {
+    onPaste: () => void
+    detectedAddress: string | null
+    onUseDetected: () => void
+    showPasteChip: boolean
+    onUsePasteChip: () => void
+}) {
+    const t = useTranslations('global')
+    return (
+        <>
+            <button
+                onClick={onPaste}
+                className="justify mx-auto mt-10 flex items-center gap-1.5 text-center text-white underline underline-offset-2"
+            >
+                <Icon name="paste" fill="white" height={16} width={16} />
+                <span className="text-sm">{t('qrScanner.clickToPaste')}</span>
+            </button>
+            {detectedAddress ? (
+                <button
+                    onClick={onUseDetected}
+                    className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                >
+                    <Icon name="wallet" fill="white" height={16} width={16} />
+                    <span className="text-sm font-semibold">{printableAddress(detectedAddress)}</span>
+                </button>
+            ) : showPasteChip ? (
+                <button
+                    onClick={onUsePasteChip}
+                    className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                >
+                    <Icon name="paste" fill="white" height={16} width={16} />
+                    <span className="text-sm font-semibold">{t('qrScanner.useCopiedCode')}</span>
+                </button>
+            ) : null}
+        </>
+    )
+}
+
 function ScanRegionOverlay({
     onPaste,
     detectedAddress,
@@ -136,36 +180,27 @@ function ScanRegionOverlay({
                         />
                     ))}
                 </div>
-                <button
-                    onClick={onPaste}
-                    className="justify mx-auto mt-10 flex items-center gap-1.5 text-center text-white underline underline-offset-2"
-                >
-                    <Icon name="paste" fill="white" height={16} width={16} />
-                    <span className="text-sm">{t('qrScanner.clickToPaste')}</span>
-                </button>
-                {detectedAddress ? (
-                    <button
-                        onClick={onUseDetected}
-                        className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
-                    >
-                        <Icon name="wallet" fill="white" height={16} width={16} />
-                        <span className="text-sm font-semibold">{printableAddress(detectedAddress)}</span>
-                    </button>
-                ) : showPasteChip ? (
-                    <button
-                        onClick={onUsePasteChip}
-                        className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
-                    >
-                        <Icon name="wallet" fill="white" height={16} width={16} />
-                        <span className="text-sm font-semibold">{t('qrScanner.useCopiedAddress')}</span>
-                    </button>
-                ) : null}
+                <PasteActions
+                    onPaste={onPaste}
+                    detectedAddress={detectedAddress}
+                    onUseDetected={onUseDetected}
+                    showPasteChip={showPasteChip}
+                    onUsePasteChip={onUsePasteChip}
+                />
             </div>
         </div>
     )
 }
 
-function ErrorView({ message, onClose }: { message: string; onClose: () => void }) {
+function ErrorView({
+    message,
+    onClose,
+    children,
+}: {
+    message: string
+    onClose: () => void
+    children?: React.ReactNode
+}) {
     const tCommon = useTranslations('common')
     return (
         <div className="p-4 text-center text-white">
@@ -173,6 +208,7 @@ function ErrorView({ message, onClose }: { message: string; onClose: () => void 
             <button onClick={onClose} className="mt-4 rounded bg-white px-4 py-2 text-black">
                 {tCommon('close')}
             </button>
+            {children}
         </div>
     )
 }
@@ -246,29 +282,26 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         }
     }
 
+    /*
+     * The iOS chip is a nudge, not a filter: hasStrings() reports only THAT the
+     * clipboard has text, never what it is. Extracting an EVM address here and
+     * rejecting everything else therefore turned the chip into a dead end for
+     * the payloads the scanner exists to accept — a pasted Pix copia-e-cola was
+     * refused as "not a wallet address". Hand the raw text to the same scan path
+     * as "Click to paste" and let recognizeQr decide.
+     */
     const handleUsePasteChip = async () => {
         const text = await readClipboardText()
         if (!text) {
             setShowPasteChip(false)
-            if (text === '') toast.error(t('qrScanner.clipboardEmpty'))
             return
         }
-        const address = extractPaymentValue(text, 'evmAddress')
-        if (!address) {
-            setShowPasteChip(false)
-            toast.error(t('qrScanner.pastedTextNotAnAddress'))
-            return
-        }
-        await scanValue(address)
+        await scanValue(text)
     }
 
     const handlePaste = async () => {
         const text = await readClipboardText()
-        if (text === null) return
-        if (!text) {
-            toast.error(t('qrScanner.clipboardEmpty'))
-            return
-        }
+        if (!text) return
         await scanValue(text)
     }
 
@@ -278,9 +311,25 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         <div className="qr-scanner-container fixed left-0 top-0 z-50 flex h-full w-full flex-col bg-black">
             {/* modal uses !z-[60] to appear above this z-50 scanner portal (Dialog portals to body) */}
             {isPermissionDenied ? (
-                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
+                /*
+                 * The camera states offer paste too, rather than dead-ending. Pasting a
+                 * Pix code needs no camera, but the paste UI lived only in the happy
+                 * path — so on native, where the OS camera grant is a sticky
+                 * per-install decision, declining it removed the app's only entry point
+                 * for a copied Pix code. The modal owns the whole screen here, so the
+                 * action has to sit inside it to be reachable.
+                 */
+                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} onPaste={handlePaste} />
             ) : error ? (
-                <ErrorView message={error} onClose={close} />
+                <ErrorView message={error} onClose={close}>
+                    <PasteActions
+                        onPaste={handlePaste}
+                        detectedAddress={detectedAddress}
+                        onUseDetected={() => scanValue(detectedAddress!)}
+                        showPasteChip={showPasteChip}
+                        onUsePasteChip={handleUsePasteChip}
+                    />
+                </ErrorView>
             ) : (
                 <>
                     <video

@@ -2450,12 +2450,11 @@
                 "iosSafari2": "Paso 2: toca “Ajustes del sitio web”",
                 "iosSafari3": "Paso 3: configura la cámara en “Permitir”"
             },
-            "useCopiedAddress": "Usar dirección copiada",
+            "useCopiedCode": "Usar código copiado",
             "paymentMethods": {
                 "evmName": "ETH y EVMs",
                 "evmAlt": "Ethereum y EVMs"
-            },
-            "pastedTextNotAnAddress": "El texto copiado no es una dirección de billetera"
+            }
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "Estamos trabajando en una integración.",
