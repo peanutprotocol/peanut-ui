@@ -373,6 +373,9 @@ importers:
       openapi-typescript:
         specifier: ^7.13.0
         version: 7.13.0(typescript@5.9.3)
+      parse5:
+        specifier: 7.3.0
+        version: 7.3.0
       postcss:
         specifier: ^8.4.49
         version: 8.5.6

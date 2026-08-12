@@ -8,6 +8,7 @@ import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBrid
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import {
     SPLIT_CONTENT_LEGACY_PROXY_PATH_PREFIXES,
+    SPLIT_EDGE_MARKER_HEADER,
     classifySplitContentRequest,
     hasTrustedSplitRawRouteStamp,
     hasUnsafeSplitRawRouteStamp,
@@ -200,9 +201,10 @@ function handleSplitContentEdge(request: NextRequest): NextResponse | null {
         })
     }
 
-    // A self-rewrite can recurse through the edge and must never become a
-    // partially configured public page.
-    if (edgeConfig.origin.origin === request.nextUrl.origin) {
+    // A self-rewrite or a renderer request returning through another project
+    // alias can recurse through the edge. Only a fresh public ingress may be
+    // rewritten into the renderer with the internal marker.
+    if (edgeConfig.origin.origin === request.nextUrl.origin || request.headers.has(SPLIT_EDGE_MARKER_HEADER)) {
         return new NextResponse(null, { status: 503, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
     }
 

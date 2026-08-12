@@ -204,7 +204,6 @@ describe('Split manifest-backed production edge', () => {
                 forwarded: 'for=private;host=spoof.example',
                 host: 'spoof.example',
                 'proxy-authorization': 'Basic private',
-                [SPLIT_EDGE_MARKER_HEADER]: 'caller-spoof',
                 [SPLIT_MANIFEST_SHA256_HEADER]: 'caller-spoof',
                 [SPLIT_INDEX_RELEASE_HEADER]: '1',
                 [SPLIT_RAW_ROUTE_HEADER]: SPLIT_RAW_ROUTE_VALUE,
@@ -270,6 +269,26 @@ describe('Split manifest-backed production edge', () => {
         expect(response.headers.get('x-middleware-request-next-url')).toBe('/en/split/guides/previous')
     })
 
+    it.each(['caller-spoof', marker])('stops an inbound renderer marker before any rewrite: %s', (inboundMarker) => {
+        const response = runCanonicalSplitProxy(SPLIT_CANARY_GUIDE_PATHS[0], {
+            headers: { [SPLIT_EDGE_MARKER_HEADER]: inboundMarker },
+        })
+
+        expect(response.status).toBe(503)
+        expect(response.body).toBeNull()
+        expect(response.headers.get('cache-control')).toBe('private, no-store')
+        expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
+        expect(isRewrite(response)).toBe(false)
+    })
+
+    it('keeps an inbound renderer marker inert on an unrelated product route', () => {
+        const response = runProxy('/home', { headers: { [SPLIT_EDGE_MARKER_HEADER]: marker } })
+
+        expect(response.status).toBe(200)
+        expect(response.headers.get('x-robots-tag')).toBeNull()
+        expect(isRewrite(response)).toBe(false)
+    })
+
     it.each([
         '/split',
         '/split/anything',
@@ -309,6 +328,35 @@ describe('Split manifest-backed production edge', () => {
         const response = runProxy(pathname)
 
         expect(response.status).toBe(404)
+        expect(response.body).toBeNull()
+        expect(response.headers.get('cache-control')).toBe('private, no-store')
+        expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
+        expect(isRewrite(response)).toBe(false)
+    })
+
+    it.each([
+        '/es/%73plit/guides/unknown',
+        '/pt/s%70lit/tools/unknown',
+        '/es-es/%2573plit/guides/unknown',
+        '/sh/%73plit/guides/unknown',
+        '/es/foo%5c..%5csplit/guides/unknown',
+        '/sh/foo\\..\\split/guides/unknown',
+    ])('fails a freed-locale raw Split alias closed after redirects decline it: %s', (pathname) => {
+        const response = runProxy(pathname)
+
+        expect(response.status).toBe(404)
+        expect(response.body).toBeNull()
+        expect(response.headers.get('cache-control')).toBe('private, no-store')
+        expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
+        expect(isRewrite(response)).toBe(false)
+    })
+
+    it('fails a freed-locale raw Split alias closed under partial configuration', () => {
+        delete process.env.SPLIT_CONTENT_EDGE_MARKER
+
+        const response = runProxy('/es/%73plit/guides/unknown')
+
+        expect(response.status).toBe(503)
         expect(response.body).toBeNull()
         expect(response.headers.get('cache-control')).toBe('private, no-store')
         expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
@@ -392,6 +440,8 @@ describe('Split manifest-backed production edge', () => {
         for (const pathname of [
             SPLIT_CANARY_GUIDE_PATHS[0],
             '/en/%73plit/guides/unknown',
+            '/es/%73plit/guides/unknown',
+            '/sh/foo\\..\\split/guides/unknown',
             '/split',
             '/split-static/a.js',
             '/split-sitemap.xml',
@@ -412,6 +462,13 @@ describe('Split manifest-backed production edge', () => {
         expect(unsafeResponse.status).toBe(200)
         expect(isRewrite(unsafeResponse)).toBe(false)
         expect(unsafeResponse.headers.get('x-robots-tag')).toBeNull()
+
+        const markerResponse = runProxy(SPLIT_CANARY_GUIDE_PATHS[0], {
+            headers: { [SPLIT_EDGE_MARKER_HEADER]: marker },
+        })
+        expect(markerResponse.status).toBe(200)
+        expect(isRewrite(markerResponse)).toBe(false)
+        expect(markerResponse.headers.get('x-robots-tag')).toBeNull()
     })
 
     it.each([

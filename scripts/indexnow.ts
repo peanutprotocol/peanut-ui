@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { parse, type DefaultTreeAdapterTypes } from 'parse5'
 import { SaxesParser } from 'saxes'
-import { isSupportedSplitContentPublicPath } from '@/utils/split-content-edge'
+import { isSplitContentPathname, isSupportedSplitContentPublicPath } from '@/utils/split-content-edge'
 
 export const PRODUCTION_ORIGIN = 'https://peanut.me'
 export const ROBOTS_URL = `${PRODUCTION_ORIGIN}/robots.txt`
@@ -417,7 +418,19 @@ export async function collectDeployedUrls(options: {
         timeoutMs,
     })
 
-    for (const url of splitSitemapUrls) {
+    const validatedRootUrls = rootUrls.map((url, index) =>
+        validateIndexNowUrl(url, `deployed sitemap URL ${index + 1}`)
+    )
+    for (const url of validatedRootUrls) {
+        if (isSplitContentPathname(new URL(url).pathname)) {
+            throw new Error(`${rootSitemapUrl} must not contain a URL from the renderer-owned Split namespace: ${url}`)
+        }
+    }
+
+    const validatedSplitSitemapUrls = splitSitemapUrls.map((url, index) =>
+        validatePublicUrl(url, `deployed sitemap URL ${rootUrls.length + index + 1}`)
+    )
+    for (const url of validatedSplitSitemapUrls) {
         if (!isSplitPathUrl(url)) {
             throw new Error(`${splitSitemapUrl} contains a URL outside the owned Split namespace: ${url}`)
         }
@@ -426,35 +439,64 @@ export async function collectDeployedUrls(options: {
         }
     }
 
-    const allUrls = dedupeUrls(
-        [...rootUrls, ...splitSitemapUrls].map((url, index) =>
-            validateIndexNowUrl(url, `deployed sitemap URL ${index + 1}`)
-        )
-    )
+    const allUrls = dedupeUrls([...validatedRootUrls, ...validatedSplitSitemapUrls])
     return {
-        rootUrls: dedupeUrls(rootUrls),
-        splitSitemapUrls: dedupeUrls(splitSitemapUrls),
+        rootUrls: dedupeUrls(validatedRootUrls),
+        splitSitemapUrls: dedupeUrls(validatedSplitSitemapUrls),
         splitUrls: allUrls.filter(isSplitPublicUrl),
         allUrls,
     }
 }
 
 export function readValidatedState(stateFile: string): IndexNowState | null {
-    if (!fs.existsSync(stateFile)) return null
-
-    let stateStat: fs.Stats
+    let descriptor: number
     try {
-        stateStat = fs.lstatSync(stateFile)
-    } catch {
+        descriptor = fs.openSync(stateFile, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK)
+    } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code
+        if (code === 'ENOENT') return null
+        if (code === 'ELOOP') {
+            throw new Error(
+                `Invalid IndexNow state at ${stateFile}: expected a file of at most ${MAX_STATE_BYTES} bytes`
+            )
+        }
         throw new Error(`Invalid IndexNow state at ${stateFile}: could not inspect the file`)
     }
-    if (!stateStat.isFile() || stateStat.size > MAX_STATE_BYTES) {
-        throw new Error(`Invalid IndexNow state at ${stateFile}: expected a file of at most ${MAX_STATE_BYTES} bytes`)
+
+    let serialized: string
+    try {
+        const stateStat = fs.fstatSync(descriptor)
+        if (!stateStat.isFile() || stateStat.size > MAX_STATE_BYTES) {
+            throw new Error(
+                `Invalid IndexNow state at ${stateFile}: expected a file of at most ${MAX_STATE_BYTES} bytes`
+            )
+        }
+
+        // The file can grow after fstat. Read one byte beyond the contract from
+        // the same no-follow descriptor so a pathname swap or growth race can
+        // neither redirect the read nor bypass the byte limit.
+        const chunks: Buffer[] = []
+        let bytesRead = 0
+        while (bytesRead <= MAX_STATE_BYTES) {
+            const buffer = Buffer.allocUnsafe(Math.min(64 * 1024, MAX_STATE_BYTES + 1 - bytesRead))
+            const count = fs.readSync(descriptor, buffer, 0, buffer.length, null)
+            if (count === 0) break
+            bytesRead += count
+            chunks.push(buffer.subarray(0, count))
+        }
+        if (bytesRead > MAX_STATE_BYTES) {
+            throw new Error(
+                `Invalid IndexNow state at ${stateFile}: expected a file of at most ${MAX_STATE_BYTES} bytes`
+            )
+        }
+        serialized = Buffer.concat(chunks, bytesRead).toString('utf8')
+    } finally {
+        fs.closeSync(descriptor)
     }
 
     let parsed: unknown
     try {
-        parsed = JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+        parsed = JSON.parse(serialized)
     } catch {
         throw new Error(`Invalid IndexNow state at ${stateFile}: could not parse JSON`)
     }
@@ -537,85 +579,58 @@ export function writeStateAtomic(
     }
 }
 
-function htmlAttributes(tag: string): Map<string, string | null> | null {
-    const tagName = tag.match(/^<\s*[^\s/>]+/)
-    if (!tagName) return null
-
-    const attributes = new Map<string, string | null>()
-    let index = tagName[0].length
-    while (index < tag.length) {
-        while (/\s/.test(tag[index] ?? '')) index += 1
-        if (tag[index] === '>' || (tag[index] === '/' && tag[index + 1] === '>')) return attributes
-
-        const nameStart = index
-        while (index < tag.length && !/[\s=/>]/.test(tag[index])) index += 1
-        if (nameStart === index) return null
-        const name = tag.slice(nameStart, index).toLowerCase()
-        if (attributes.has(name)) return null
-
-        while (/\s/.test(tag[index] ?? '')) index += 1
-        let value: string | null = null
-        if (tag[index] === '=') {
-            index += 1
-            while (/\s/.test(tag[index] ?? '')) index += 1
-            const quote = tag[index]
-            if (quote === '"' || quote === "'") {
-                index += 1
-                const valueStart = index
-                while (index < tag.length && tag[index] !== quote) index += 1
-                if (index >= tag.length) return null
-                value = tag.slice(valueStart, index)
-                index += 1
-            } else {
-                const valueStart = index
-                while (index < tag.length && !/[\s>]/.test(tag[index])) index += 1
-                if (valueStart === index) return null
-                value = tag.slice(valueStart, index)
-            }
-        }
-        attributes.set(name, value)
-    }
-    return null
-}
-
 export function hasNoindexDirective(html: string, xRobotsTag: string | null): boolean {
     const blocksIndexing = (value: string): boolean => /(?:^|[\s,;])(?:noindex|none)(?:$|[\s,;])/i.test(value)
 
     if (xRobotsTag && blocksIndexing(xRobotsTag)) return true
-
-    for (const match of html.matchAll(/<meta\b[^>]*>/gi)) {
-        const tag = match[0]
-        const attributes = htmlAttributes(tag)
-        if (!attributes) return true
-        const name = attributes.get('name')?.toLowerCase()
-        const httpEquiv = attributes.get('http-equiv')?.toLowerCase()
-        if (name !== 'robots' && name !== 'bingbot' && name !== 'googlebot' && httpEquiv !== 'x-robots-tag') continue
-        const content = attributes.get('content')
-        if (content && blocksIndexing(content)) return true
-    }
-    return false
+    const parsed = parseIndexabilityHtml(html)
+    return parsed === null || parsed.noindex
 }
 
-function canonicalLinks(html: string): string[] {
-    const withoutComments = html.replace(/<!--[\s\S]*?-->/g, '')
-    const withoutRawText = withoutComments.replace(/<(script|style|template|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
-    const head = withoutRawText.match(/<head\b[^>]*>([\s\S]*?)<\/head\s*>/i)?.[1]
-    if (head === undefined) return []
+interface ParsedIndexabilityHtml {
+    canonicals: string[]
+    noindex: boolean
+}
 
-    const links: string[] = []
-    for (const match of head.matchAll(/<link\b[^>]*>/gi)) {
-        const tag = match[0]
-        const attributes = htmlAttributes(tag)
-        if (!attributes) {
-            links.push('')
-            continue
+function parseIndexabilityHtml(html: string): ParsedIndexabilityHtml | null {
+    let malformed = false
+    const document = parse(html, {
+        sourceCodeLocationInfo: true,
+        onParseError: () => {
+            malformed = true
+        },
+    })
+    if (malformed) return null
+
+    const htmlElement = document.childNodes.find(
+        (node): node is DefaultTreeAdapterTypes.Element => 'tagName' in node && node.tagName === 'html'
+    )
+    const head = htmlElement?.childNodes.find(
+        (node): node is DefaultTreeAdapterTypes.Element => 'tagName' in node && node.tagName === 'head'
+    )
+    if (!head?.sourceCodeLocation?.startTag || !head.sourceCodeLocation.endTag) return null
+
+    const canonicals: string[] = []
+    let noindex = false
+    const blocksIndexing = (value: string): boolean => /(?:^|[\s,;])(?:noindex|none)(?:$|[\s,;])/i.test(value)
+    for (const node of head.childNodes) {
+        if (!('tagName' in node)) continue
+        const attributes = new Map(node.attrs.map(({ name, value }) => [name, value]))
+        if (node.tagName === 'link') {
+            const relations = attributes.get('rel')?.toLowerCase().split(/\s+/) ?? []
+            if (relations.includes('canonical')) canonicals.push(attributes.get('href') ?? '')
         }
-        const relations = attributes.get('rel')?.toLowerCase().split(/\s+/) ?? []
-        if (!relations.includes('canonical')) continue
-        const href = attributes.get('href')
-        links.push(href ?? '')
+        if (node.tagName === 'meta') {
+            const name = attributes.get('name')?.toLowerCase()
+            const httpEquiv = attributes.get('http-equiv')?.toLowerCase()
+            if (name !== 'robots' && name !== 'bingbot' && name !== 'googlebot' && httpEquiv !== 'x-robots-tag') {
+                continue
+            }
+            const content = attributes.get('content')
+            if (content && blocksIndexing(content)) noindex = true
+        }
     }
-    return links
+    return { canonicals, noindex }
 }
 
 export async function assertSplitPageIndexable(options: {
@@ -641,11 +656,18 @@ export async function assertSplitPageIndexable(options: {
     }
 
     const html = await readResponseTextLimited(response, MAX_PAGE_BYTES, url, options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
-    if (hasNoindexDirective(html, response.headers.get('x-robots-tag'))) {
+    const xRobotsTag = response.headers.get('x-robots-tag')
+    if (xRobotsTag && /(?:^|[\s,;])(?:noindex|none)(?:$|[\s,;])/i.test(xRobotsTag)) {
         throw new Error(`${url} is still noindex; refusing IndexNow submission`)
     }
-    const canonicals = canonicalLinks(html)
-    if (canonicals.length !== 1 || canonicals[0] !== url) {
+    const indexability = parseIndexabilityHtml(html)
+    if (indexability === null) {
+        throw new Error(`${url} must contain exactly one absolute self-canonical link`)
+    }
+    if (indexability.noindex) {
+        throw new Error(`${url} is still noindex; refusing IndexNow submission`)
+    }
+    if (indexability.canonicals.length !== 1 || indexability.canonicals[0] !== url) {
         throw new Error(`${url} must contain exactly one absolute self-canonical link`)
     }
 }

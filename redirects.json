@@ -10,9 +10,16 @@
         "permanent": true
     },
     {
-        "source": "/es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)",
+        "source": "/es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)",
         "destination": "/es-419/:path",
-        "permanent": true
+        "permanent": true,
+        "missing": [
+            {
+                "type": "header",
+                "key": "x-peanut-split-raw-unsafe",
+                "value": "unsafe-v1"
+            }
+        ]
     },
     {
         "source": "/pt",
@@ -20,9 +27,16 @@
         "permanent": true
     },
     {
-        "source": "/pt/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)",
+        "source": "/pt/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)",
         "destination": "/pt-br/:path",
-        "permanent": true
+        "permanent": true,
+        "missing": [
+            {
+                "type": "header",
+                "key": "x-peanut-split-raw-unsafe",
+                "value": "unsafe-v1"
+            }
+        ]
     },
     {
         "source": "/es-es",
@@ -30,9 +44,16 @@
         "permanent": true
     },
     {
-        "source": "/es-es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)",
+        "source": "/es-es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)",
         "destination": "/es-419/:path",
-        "permanent": true
+        "permanent": true,
+        "missing": [
+            {
+                "type": "header",
+                "key": "x-peanut-split-raw-unsafe",
+                "value": "unsafe-v1"
+            }
+        ]
     },
     {
         "source": "/support",
@@ -111,9 +132,16 @@
         "permanent": false
     },
     {
-        "source": "/sh/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)",
+        "source": "/sh/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)",
         "destination": "/card",
-        "permanent": false
+        "permanent": false,
+        "missing": [
+            {
+                "type": "header",
+                "key": "x-peanut-split-raw-unsafe",
+                "value": "unsafe-v1"
+            }
+        ]
     },
     {
         "source": "/pints",

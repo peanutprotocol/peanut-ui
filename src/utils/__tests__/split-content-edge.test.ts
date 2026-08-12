@@ -43,12 +43,14 @@ function releaseDocument(
         sha256s?: string[]
         manifestPaths?: string[]
         releasedPaths?: string[]
+        unknownTopLevelKey?: boolean
     } = {}
 ): string {
     const manifestPaths = options.manifestPaths ?? EXPECTED_CANARY_PATHS
     const releasedPaths =
         options.releasedPaths ?? (stage === 0 ? [] : stage === 1 ? [SPLIT_ENGLISH_CANARY_PATH] : manifestPaths)
     return JSON.stringify({
+        ...(options.unknownTopLevelKey ? { unknown: true } : {}),
         version: SPLIT_CONTENT_RELEASE_DOCUMENT_VERSION,
         stage,
         index: options.index ?? false,
@@ -288,10 +290,10 @@ describe('Split manifest-backed release configuration', () => {
     it.each([
         ['malformed JSON', '{'],
         ['noncanonical whitespace', `${releaseDocument(1)} `],
-        ['unknown key', releaseDocument(1).replace('{', '{"unknown":true,')],
+        ['unknown key', releaseDocument(1, { unknownTopLevelKey: true })],
         ['alternate key order', JSON.stringify({ stage: 1, version: 1 })],
-        ['zero digest', releaseDocument(1).replace(MANIFEST_SHA256, '0'.repeat(64))],
-        ['uppercase digest', releaseDocument(1).replace(MANIFEST_SHA256, 'A'.repeat(64))],
+        ['zero digest', releaseDocument(1, { sha256s: ['0'.repeat(64)] })],
+        ['uppercase digest', releaseDocument(1, { sha256s: ['A'.repeat(64)] })],
         ['duplicate digest', releaseDocument(1, { sha256s: [MANIFEST_SHA256, MANIFEST_SHA256] })],
         ['unsorted digests', releaseDocument(1, { sha256s: ['2'.repeat(64), MANIFEST_SHA256] })],
         ['too many digests', releaseDocument(1, { sha256s: ['1'.repeat(64), '2'.repeat(64), '3'.repeat(64)] })],

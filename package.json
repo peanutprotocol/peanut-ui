@@ -167,6 +167,7 @@
         "jest-transform-stub": "^2.0.0",
         "knip": "^5.37.1",
         "openapi-typescript": "^7.13.0",
+        "parse5": "7.3.0",
         "postcss": "^8.4.49",
         "postcss-import": "^16.1.0",
         "prettier": "^3.3.3",

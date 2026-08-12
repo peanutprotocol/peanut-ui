@@ -124,13 +124,17 @@ function robotsText(includeSplit = true): string {
     return [`Sitemap: ${ROOT_SITEMAP_URL}`, ...(includeSplit ? [`Sitemap: ${SPLIT_SITEMAP_URL}`] : [])].join('\n')
 }
 
+function htmlDocument(head = '', body = ''): string {
+    return `<!doctype html><html><head>${head}</head><body>${body}</body></html>`
+}
+
 function addReleasedGate(routes: Map<string, RouteSpec>, includeSplit = true): void {
     routes.set(ROBOTS_URL, { status: 200, contentType: 'text/plain; charset=utf-8', body: robotsText(includeSplit) })
     routes.set(TEST_KEY_URL, { status: 200, contentType: 'text/plain', body: TEST_KEY })
 }
 
 function indexableHtml(url: string): string {
-    return `<html><head><link rel="canonical" href="${url}"></head></html>`
+    return htmlDocument(`<link rel="canonical" href="${url}">`)
 }
 
 function addIndexablePages(routes: Map<string, RouteSpec>, urls: string[]): void {
@@ -179,6 +183,7 @@ function apiCalls(mock: jest.Mock): Array<[RequestInfo | URL, RequestInit | unde
 }
 
 afterEach(() => {
+    jest.restoreAllMocks()
     jest.clearAllMocks()
     for (const directory of temporaryDirectories) fs.rmSync(directory, { recursive: true, force: true })
     temporaryDirectories = []
@@ -353,12 +358,26 @@ describe('strict deployed sitemap parsing', () => {
         }
     )
 
-    test('deduplicates root and Split URLs while preserving deployed order', async () => {
+    test.each([
+        SIX_SPLIT_URLS[0],
+        `${PRODUCTION_ORIGIN}/EN/split/guides/unknown`,
+        `${PRODUCTION_ORIGIN}/en/split/unknown/future`,
+        `${PRODUCTION_ORIGIN}/split-static/a.js`,
+        SPLIT_SITEMAP_URL,
+    ])('rejects renderer-owned URL %s leaked into the root sitemap', async (split) => {
+        const routes = deployedRoutes([HOME, split], [SIX_SPLIT_URLS[0]])
+        const { fetchImpl } = createFetch(routes)
+        await expect(collectDeployedUrls({ fetchImpl, timeoutMs: 1_000 })).rejects.toThrow(
+            'renderer-owned Split namespace'
+        )
+    })
+
+    test('deduplicates within each owner sitemap while preserving deployed order', async () => {
         const split = SIX_SPLIT_URLS[0]
-        const routes = deployedRoutes([HOME, split], [split, split])
+        const routes = deployedRoutes([HOME, HOME], [split, split])
         const { fetchImpl } = createFetch(routes)
         await expect(collectDeployedUrls({ fetchImpl, timeoutMs: 1_000 })).resolves.toEqual({
-            rootUrls: [HOME, split],
+            rootUrls: [HOME],
             splitSitemapUrls: [split],
             splitUrls: [split],
             allUrls: [HOME, split],
@@ -526,6 +545,60 @@ describe('validated and atomic state', () => {
         )
         fs.symlinkSync(target, file)
         expect(() => readValidatedState(file)).toThrow('expected a file')
+    })
+
+    test('reads and validates through one descriptor when the pathname is swapped after open', () => {
+        const file = statePath()
+        const replacement = path.join(path.dirname(path.dirname(file)), 'replacement.json')
+        fs.mkdirSync(path.dirname(file), { recursive: true })
+        fs.writeFileSync(
+            file,
+            JSON.stringify({ version: 1, urls: [HOME], writtenAt: '2026-08-11T18:00:00.000Z', reason: 'bootstrap' })
+        )
+        fs.writeFileSync(
+            replacement,
+            JSON.stringify({
+                version: 1,
+                urls: ['https://evil.example/page'],
+                writtenAt: '2026-08-11T18:00:00.000Z',
+                reason: 'bootstrap',
+            })
+        )
+        const realFstat = fs.fstatSync.bind(fs)
+        jest.spyOn(fs, 'fstatSync').mockImplementationOnce((descriptor) => {
+            fs.unlinkSync(file)
+            fs.symlinkSync(replacement, file)
+            return realFstat(descriptor)
+        })
+
+        expect(readValidatedState(file)).toMatchObject({ urls: [HOME], reason: 'bootstrap' })
+    })
+
+    test('enforces the byte bound when an opened state file grows after fstat', () => {
+        const file = statePath()
+        fs.mkdirSync(path.dirname(file), { recursive: true })
+        fs.writeFileSync(file, '{}')
+        const realFstat = fs.fstatSync.bind(fs)
+        jest.spyOn(fs, 'fstatSync').mockImplementationOnce((descriptor) => {
+            const originalStat = realFstat(descriptor)
+            fs.truncateSync(file, MAX_STATE_BYTES + 1)
+            return originalStat
+        })
+
+        expect(() => readValidatedState(file)).toThrow(`at most ${MAX_STATE_BYTES} bytes`)
+    })
+
+    test('closes the no-follow descriptor when descriptor validation fails', () => {
+        const file = statePath()
+        fs.mkdirSync(path.dirname(file), { recursive: true })
+        fs.writeFileSync(file, '{}')
+        const close = jest.spyOn(fs, 'closeSync')
+        jest.spyOn(fs, 'fstatSync').mockImplementationOnce(() => {
+            throw new Error('adversarial fstat failure')
+        })
+
+        expect(() => readValidatedState(file)).toThrow('adversarial fstat failure')
+        expect(close).toHaveBeenCalledWith(expect.any(Number))
     })
 
     test('refuses to write state through a symbolic-link directory', () => {
@@ -798,7 +871,7 @@ describe('release, noindex, and delta gates', () => {
                 status: 200,
                 contentType: 'text/html',
                 headers: { 'x-robots-tag': 'noindex, nofollow' },
-                body: '<html></html>',
+                body: htmlDocument(),
             },
         ],
         [
@@ -806,7 +879,7 @@ describe('release, noindex, and delta gates', () => {
             {
                 status: 200,
                 contentType: 'text/html',
-                body: '<html><head><meta content="follow, NOINDEX" name="robots"></head></html>',
+                body: htmlDocument('<meta content="follow, NOINDEX" name="robots">'),
             },
         ],
         [
@@ -814,7 +887,7 @@ describe('release, noindex, and delta gates', () => {
             {
                 status: 200,
                 contentType: 'text/html',
-                body: "<html><head><meta name='bingbot' content='noindex'></head></html>",
+                body: htmlDocument("<meta name='bingbot' content='noindex'>"),
             },
         ],
     ] satisfies Array<[string, ResponseSpec]>)('refuses a Split page carrying %s noindex', async (_label, page) => {
@@ -854,15 +927,19 @@ describe('release, noindex, and delta gates', () => {
     })
 
     test('recognizes header and reordered/meta quoting noindex forms', () => {
-        expect(hasNoindexDirective('<html></html>', 'max-snippet:20; noindex')).toBe(true)
-        expect(hasNoindexDirective('<META CONTENT=noindex NAME=robots>', null)).toBe(true)
-        expect(hasNoindexDirective('<meta name="robots" content="none">', null)).toBe(true)
-        expect(hasNoindexDirective('<meta name="googlebot" content="noindex">', null)).toBe(true)
-        expect(hasNoindexDirective('<html></html>', 'bingbot: none')).toBe(true)
-        expect(hasNoindexDirective('<meta name="robots" content="index,follow">', null)).toBe(false)
-        expect(hasNoindexDirective('<meta data-name="robots" data-content="noindex">', null)).toBe(false)
-        expect(hasNoindexDirective("<meta data-text=' name=robots content=noindex'>", null)).toBe(false)
-        expect(hasNoindexDirective('<meta name="robots" name="description" content="noindex">', null)).toBe(true)
+        expect(hasNoindexDirective(htmlDocument(), 'max-snippet:20; noindex')).toBe(true)
+        expect(hasNoindexDirective(htmlDocument('<META CONTENT=noindex NAME=robots>'), null)).toBe(true)
+        expect(hasNoindexDirective(htmlDocument('<meta name="robots" content="none">'), null)).toBe(true)
+        expect(hasNoindexDirective(htmlDocument('<meta name="googlebot" content="noindex">'), null)).toBe(true)
+        expect(hasNoindexDirective(htmlDocument(), 'bingbot: none')).toBe(true)
+        expect(hasNoindexDirective(htmlDocument('<meta name="robots" content="index,follow">'), null)).toBe(false)
+        expect(hasNoindexDirective(htmlDocument('<meta data-name="robots" data-content="noindex">'), null)).toBe(false)
+        expect(hasNoindexDirective(htmlDocument("<meta data-text=' name=robots content=noindex'>"), null)).toBe(false)
+        expect(
+            hasNoindexDirective(htmlDocument('<meta name="robots" name="description" content="noindex">'), null)
+        ).toBe(true)
+        expect(hasNoindexDirective(htmlDocument('<meta name="robots" content="no&#105;ndex">'), null)).toBe(true)
+        expect(hasNoindexDirective('<!doctype html><html><head><!-- unterminated', null)).toBe(true)
     })
 
     test('direct indexability check accepts a clean direct HTML page', async () => {
@@ -894,7 +971,7 @@ describe('release, noindex, and delta gates', () => {
 
     test('accepts a reordered canonical link with a canonical relation token', async () => {
         const split = SIX_SPLIT_URLS[0]
-        const html = `<HTML><HEAD><LINK HREF='${split}' REL='alternate CANONICAL'></HEAD><BODY></BODY></HTML>`
+        const html = `<!doctype html><HTML><HEAD><LINK HREF='${split}' REL='alternate CANONICAL'></HEAD><BODY></BODY></HTML>`
         const { fetchImpl } = createFetch(
             new Map([[split, { status: 200, contentType: 'text/html; charset=utf-8', body: html }]])
         )
@@ -902,41 +979,46 @@ describe('release, noindex, and delta gates', () => {
     })
 
     test.each([
-        ['missing', '<html><head></head></html>'],
+        ['missing', htmlDocument()],
         [
             'duplicate',
-            `<html><head><link rel="canonical" href="${SIX_SPLIT_URLS[0]}"><link rel="canonical" href="${SIX_SPLIT_URLS[0]}"></head></html>`,
+            htmlDocument(
+                `<link rel="canonical" href="${SIX_SPLIT_URLS[0]}"><link rel="canonical" href="${SIX_SPLIT_URLS[0]}">`
+            ),
         ],
-        ['non-self', `<html><head><link rel="canonical" href="${SIX_SPLIT_URLS[1]}"></head></html>`],
-        ['comment-only', `<html><head><!-- <link rel="canonical" href="${SIX_SPLIT_URLS[0]}"> --></head></html>`],
+        ['non-self', htmlDocument(`<link rel="canonical" href="${SIX_SPLIT_URLS[1]}">`)],
+        ['comment-only', htmlDocument(`<!-- <link rel="canonical" href="${SIX_SPLIT_URLS[0]}"> -->`)],
         [
             'script-only',
-            `<html><head><script>const fake = '<link rel="canonical" href="${SIX_SPLIT_URLS[0]}">'</script></head></html>`,
+            htmlDocument(`<script>const fake = '<link rel="canonical" href="${SIX_SPLIT_URLS[0]}">'</script>`),
         ],
-        ['body-only', `<html><head></head><body><link rel="canonical" href="${SIX_SPLIT_URLS[0]}"></body></html>`],
+        ['template-only', htmlDocument(`<template><link rel="canonical" href="${SIX_SPLIT_URLS[0]}"></template>`)],
+        ['body-only', htmlDocument('', `<link rel="canonical" href="${SIX_SPLIT_URLS[0]}">`)],
+        ['unterminated comment', `<!doctype html><html><head><!-- <link rel="canonical" href="${SIX_SPLIT_URLS[0]}">`],
+        [
+            'unterminated script',
+            `<!doctype html><html><head><script><link rel="canonical" href="${SIX_SPLIT_URLS[0]}">`,
+        ],
         [
             'second canonical without href',
-            `<html><head><link rel="canonical" href="${SIX_SPLIT_URLS[0]}"><link rel="canonical"></head></html>`,
+            htmlDocument(`<link rel="canonical" href="${SIX_SPLIT_URLS[0]}"><link rel="canonical">`),
         ],
         [
             'data attributes that resemble canonical attributes',
-            `<html><head><link data-rel="canonical" data-href="${SIX_SPLIT_URLS[0]}"></head></html>`,
+            htmlDocument(`<link data-rel="canonical" data-href="${SIX_SPLIT_URLS[0]}">`),
         ],
         [
             'canonical text embedded in another attribute',
-            `<html><head><link data-text=' rel="canonical" href="${SIX_SPLIT_URLS[0]}"'></head></html>`,
+            htmlDocument(`<link data-text=' rel="canonical" href="${SIX_SPLIT_URLS[0]}"'>`),
         ],
-        [
-            'duplicate rel attribute',
-            `<html><head><link rel="alternate" rel="canonical" href="${SIX_SPLIT_URLS[0]}"></head></html>`,
-        ],
+        ['duplicate rel attribute', htmlDocument(`<link rel="alternate" rel="canonical" href="${SIX_SPLIT_URLS[0]}">`)],
         [
             'canonical relation with only a data href',
-            `<html><head><link rel="canonical" data-href="${SIX_SPLIT_URLS[0]}"></head></html>`,
+            htmlDocument(`<link rel="canonical" data-href="${SIX_SPLIT_URLS[0]}">`),
         ],
         [
             'valid canonical plus malformed link attributes',
-            `<html><head><link rel="canonical" href="${SIX_SPLIT_URLS[0]}"><link rel="preload" rel="stylesheet"></head></html>`,
+            htmlDocument(`<link rel="canonical" href="${SIX_SPLIT_URLS[0]}"><link rel="preload" rel="stylesheet">`),
         ],
     ])('rejects a %s canonical contract', async (_label, html) => {
         const split = SIX_SPLIT_URLS[0]
@@ -983,7 +1065,7 @@ describe('release, noindex, and delta gates', () => {
         routes.set(split, {
             status: 200,
             contentType: 'text/html',
-            body: '<meta name="robots" content="noindex">',
+            body: htmlDocument('<meta name="robots" content="noindex">'),
         })
         const { fetchImpl, mock } = createFetch(routes, [{ status: 200 }])
 
