@@ -70,15 +70,15 @@ const ctaButtonClassName =
 
 function ScarcityCounter() {
     const t = useTranslations('shhhhh.hero')
-    const [count, setCount] = useState(21)
+    const [count, setCount] = useState(51)
     useEffect(() => {
-        const timer = setTimeout(() => setCount(20), 2500)
+        const timer = setTimeout(() => setCount(50), 2500)
         return () => clearTimeout(timer)
     }, [])
     return (
         <motion.span
             className="mx-1 inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1"
-            animate={count === 20 ? { scale: [1, 1.18, 1] } : {}}
+            animate={count === 50 ? { scale: [1, 1.18, 1] } : {}}
             transition={{ duration: 0.5, ease: 'easeOut' }}
         >
             {t('onlyCount', { count })}

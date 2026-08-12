@@ -1,10 +1,5 @@
 import { Suspense } from 'react'
 import { LandingPageClient } from './LandingPageClient'
-import Manteca from './Manteca'
-import { RegulatedRails } from './RegulatedRails'
-import { YourMoney } from './yourMoney'
-import { SecurityBuiltIn } from './securityBuiltIn'
-import { SendInSeconds } from './sendInSeconds'
 import Footer from './Footer'
 import { faqSchema } from '@/lib/seo/schemas'
 import { singletonLocaleFor } from '@/lib/content'
@@ -39,11 +34,6 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     marqueeMessages={marqueeMessages}
                     locale={locale}
                     strings={landingStrings(getTranslations(locale))}
-                    mantecaSlot={<Manteca locale={locale} />}
-                    regulatedRailsSlot={<RegulatedRails locale={locale} />}
-                    yourMoneySlot={<YourMoney locale={locale} />}
-                    securitySlot={<SecurityBuiltIn locale={locale} />}
-                    sendInSecondsSlot={<SendInSeconds locale={locale} />}
                     footerSlot={<Footer locale={locale} />}
                 />
             </Suspense>

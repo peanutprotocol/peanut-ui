@@ -5,28 +5,33 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { LandingStrings } from './landingStrings'
-import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { useTranslations } from 'next-intl'
-import { trackStoreClick } from '@/utils/migration.utils'
+
+/** Scroll distance before the bar comes up. */
+const SHOW_AFTER_PX = 300
+
+/** Distance from the document bottom where the footer takes over. */
+const BOTTOM_GUARD_PX = 100
+
+/**
+ * The bar repeats the CTAs of these two beats, so it steps aside while either
+ * one is on screen. Ids are set by WorksToday and NotForYou.
+ */
+const OWN_CTA_SECTION_IDS = ['works-today', 'not-for-you']
 
 export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
-    const [visible, setVisible] = useState(false)
+    const [scrolledPast, setScrolledPast] = useState(false)
+    const [ownCtaOnScreen, setOwnCtaOnScreen] = useState(false)
     const rafId = useRef(0)
-    const lastVisible = useRef(false)
-    const migrationOn = useMigrationFlag()
-    const tMigration = useTranslations('migration')
-    const { deviceType } = useDeviceType()
-    const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
+    const lastScrolledPast = useRef(false)
 
     useEffect(() => {
         const check = () => {
-            const next = window.scrollY >= 300
+            const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - BOTTOM_GUARD_PX
+            const next = window.scrollY >= SHOW_AFTER_PX && !atBottom
 
-            if (next !== lastVisible.current) {
-                lastVisible.current = next
-                setVisible(next)
+            if (next !== lastScrolledPast.current) {
+                lastScrolledPast.current = next
+                setScrolledPast(next)
             }
         }
 
@@ -43,42 +48,49 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
         }
     }, [])
 
+    useEffect(() => {
+        const sections = OWN_CTA_SECTION_IDS.map((id) => document.getElementById(id)).filter(
+            (section): section is HTMLElement => section !== null
+        )
+        if (!sections.length) return
+
+        const onScreen = new Set<Element>()
+        const observer = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) onScreen.add(entry.target)
+                else onScreen.delete(entry.target)
+            }
+            setOwnCtaOnScreen(onScreen.size > 0)
+        })
+
+        sections.forEach((section) => observer.observe(section))
+        return () => observer.disconnect()
+    }, [])
+
     return (
         <AnimatePresence>
-            {visible && (
+            {scrolledPast && !ownCtaOnScreen && (
                 <motion.div
                     initial={{ y: 80, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 80, opacity: 0 }}
                     transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                    className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
+                    className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 flex items-center gap-2 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
                 >
-                    {migrationOn ? (
-                        // this bar is md:hidden so the visitor is on a phone —
-                        // deep-link their store during the migration window
-                        <a
-                            href={STORE_URL[store]}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="pointer-events-auto block"
-                            onClick={() => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO)}
+                    <Link href="/setup" className="pointer-events-auto flex-[58]">
+                        <Button variant="purple" shadowSize="4" className="w-full px-2 py-3 text-base font-extrabold">
+                            {strings.signUpNow}
+                        </Button>
+                    </Link>
+                    <Link href="/shhhhh" className="pointer-events-auto flex-[42]">
+                        <Button
+                            variant="stroke"
+                            shadowSize="4"
+                            className="w-full whitespace-nowrap px-2 py-3 text-sm font-extrabold"
                         >
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                icon={store === 'ios' ? 'apple-logo' : 'google-play'}
-                                className="w-full py-3 text-base font-extrabold uppercase"
-                            >
-                                {tMigration('downloadNow')}
-                            </Button>
-                        </a>
-                    ) : (
-                        <Link href="/setup" className="pointer-events-auto block">
-                            <Button variant="purple" shadowSize="4" className="w-full py-3 text-base font-extrabold">
-                                {strings.signUpNow}
-                            </Button>
-                        </Link>
-                    )}
+                            {strings.tryTheDoor}
+                        </Button>
+                    </Link>
                 </motion.div>
             )}
         </AnimatePresence>

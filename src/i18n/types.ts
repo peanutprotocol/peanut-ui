@@ -149,6 +149,60 @@ export interface Translations {
     landingWallOfLove: string
     landingWallOfLoveBody: string
 
+    // Landing page — card beat (closed-beta card, /shhhhh door)
+    // The bridge line and the body wrap inline elements (a /setup link, the
+    // scarcity counter), so each is split around the element it wraps.
+    landingCardBeatBridgeBefore: string
+    landingCardBeatBridgeLink: string
+    landingCardBeatBridgeAfter: string
+    landingCardBeatKicker: string
+    landingCardBeatHeading: string
+    landingCardBeatTagline: string
+    landingCardBeatBodyBefore: string
+    landingCardBeatCounterLabel: string // "only {count}"
+    landingCardBeatBodyAfter: string
+    landingCardBeatCustody: string
+    landingCardBeatTrust: string
+    landingCardBeatWaitlistLink: string
+    landingCardBeatStatMerchants: string
+    landingCardBeatStatBalance: string
+    landingCardBeatStatCard: string
+    landingCardBeatStatMonthlyFees: string
+    landingTryTheDoor: string // shared by the card beat, the ending beat and the sticky bar
+
+    // Landing page — manifesto beat
+    landingManifestoHeading: string
+    landingManifestoSubline: string
+
+    // Landing page — problem beat (the pointer arrow is drawn by the component)
+    landingProblemHeading: string
+    landingProblemProse: string
+    landingProblemPointerPassport: string
+    landingProblemPointerRate: string
+    landingProblemPointerMoneyOut: string
+
+    // Landing page — what-works-today beat
+    landingWorksTodayHeading: string
+    landingWorksTodaySubline: string
+    landingWorksTodayPayLocalTitle: string
+    landingWorksTodayMoneyOut: string
+    landingWorksTodayChipEurPix: string
+    landingWorksTodayChipUsdMercadoPago: string
+    landingWorksTodayDropLinkTitle: string
+    landingWorksTodayRateTitle: string
+    landingWorksTodaySecurityTitle: string
+    landingWorksTodaySecurityBody: string
+
+    // Landing page — ending beat
+    landingNotForYouHeading: string
+    landingNotForYouBody: string
+    landingNotForYouSignUpLink: string
+
+    // Landing page — closed-beta marquee strip
+    landingMarqueeClosedBeta: string
+    landingMarqueeShhhh: string
+    landingMarqueeWordTravels: string
+
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
     legalHeroSubtitlePrivacy: string
     legalHeroSubtitleTerms: string

@@ -36,9 +36,6 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // Homepage
         { path: '', priority: 1.0, changeFrequency: 'weekly' },
 
-        // Product pages
-        { path: '/lp/card', priority: 0.9, changeFrequency: 'weekly' },
-
         // Public pages
         { path: '/careers', priority: 0.7, changeFrequency: 'monthly' },
         { path: '/exchange', priority: 0.7, changeFrequency: 'weekly' },
