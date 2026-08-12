@@ -1,15 +1,21 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
-import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
 import { useVisualViewport } from '@/hooks/useVisualViewport'
 import PeanutLoading from '../PeanutLoading'
 import { Button } from '@/components/0_Bruddle/Button'
-import { SUPPORT_EMAIL } from '@/constants/crisp'
+import {
+    SUPPORT_EMAIL,
+    CRISP_LOCALE_BY_APP_LOCALE,
+    CRISP_PROXY_REQUEST_INIT_MSG,
+    CRISP_PROXY_INIT_MSG,
+    type CrispInitPayload,
+} from '@/constants/crisp'
+import type { AppLocale } from '@/i18n/app/config'
 import { isCapacitor } from '@/utils/capacitor'
 
 const DISMISS_THRESHOLD = 100
@@ -29,7 +35,37 @@ const SupportDrawer = () => {
     // Bumping this key remounts the iframe, giving the user a clean retry.
     const [iframeKey, setIframeKey] = useState(0)
 
-    const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage, crispTokenId)
+    const locale = useLocale() as AppLocale
+    const crispLocale = CRISP_LOCALE_BY_APP_LOCALE[locale] ?? 'en'
+
+    // The proxy iframe pulls this via the postMessage handshake — user data and the
+    // Crisp token never appear in its URL (postmortem F5: a query string leaks into
+    // Vercel logs, browser history, Referer headers, and analytics $current_url).
+    // A ref keeps the reply current without re-registering the message listener;
+    // written in an effect, not during render, so a discarded render can't leak
+    // an uncommitted identity to the proxy.
+    const initPayload: CrispInitPayload = {
+        locale: crispLocale,
+        tokenId: crispTokenId,
+        userData,
+        prefilledMessage,
+    }
+    const initPayloadRef = useRef<CrispInitPayload>(initPayload)
+    useEffect(() => {
+        initPayloadRef.current = initPayload
+    })
+
+    // The handshake pull happens once at iframe boot; later changes (email/name
+    // resolving mid-session, a new prefill) are pushed over the same channel so
+    // Crisp never keeps a stale identity. Token/locale changes remount the iframe
+    // via its key instead — those need a session re-bind, not a data update.
+    const iframeRef = useRef<HTMLIFrameElement | null>(null)
+    useEffect(() => {
+        iframeRef.current?.contentWindow?.postMessage(
+            { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
+            window.location.origin
+        )
+    }, [userData, prefilledMessage])
 
     // Crisp's composer sits at the very bottom of the iframe, so the panel's bottom
     // edge is the thing the iOS keyboard covers. Only measured while the drawer is
@@ -37,8 +73,8 @@ const SupportDrawer = () => {
     const { height: visibleHeight, keyboardInset } = useVisualViewport(isSupportModalOpen)
 
     /*
-     * The proxy iframe boots the ENTIRE Next.js app at /crisp-proxy, and its src
-     * recomputes from a dozen async user-data fields — every change reloads it.
+     * The proxy iframe boots the ENTIRE Next.js app at /crisp-proxy, and its key
+     * recomputes when the token or locale changes — each change reloads it.
      * Mounted eagerly, that meant a hidden full app instance rebooting over and
      * over behind every screen; on low-memory iPhones the accumulated pressure
      * crashed the WKWebView content process mid-signup, hard-resetting the app
@@ -56,6 +92,13 @@ const SupportDrawer = () => {
         setIsCrispReady(false)
         setIframeKey((k) => k + 1)
     }, [])
+
+    // a token/locale change replaces the iframe (see the key below) — clear the
+    // previous proxy's status so the loader shows until the new one reports
+    useEffect(() => {
+        setIsCrispReady(false)
+        setIsCrispFailed(false)
+    }, [crispTokenId, crispLocale])
 
     // A logged-in user's token is computed asynchronously (SHA-256 of their userId).
     // Until it resolves we must NOT load the proxy: a token-less load makes Crisp fall
@@ -128,12 +171,25 @@ const SupportDrawer = () => {
         setDragOffset(0)
     }, [dragOffset, setIsSupportModalOpen])
 
-    // listen for crisp ready once — persists across open/close cycles
+    // listen for crisp messages once — persists across open/close cycles.
+    // Registered at drawer mount, long before the iframe can mount (hasBeenOpened
+    // gate), so the proxy's init request can never race past this listener.
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin) return
 
-            if (event.data?.type === 'CRISP_READY') {
+            if (
+                event.data?.type === CRISP_PROXY_REQUEST_INIT_MSG &&
+                event.source === iframeRef.current?.contentWindow
+            ) {
+                // the proxy iframe asks for its init payload — reply only to OUR
+                // mounted iframe (not any same-origin frame), and directly to it,
+                // never broadcast
+                ;(event.source as Window | null)?.postMessage(
+                    { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
+                    window.location.origin
+                )
+            } else if (event.data?.type === 'CRISP_READY') {
                 setIsCrispReady(true)
                 setIsCrispFailed(false)
             } else if (event.data?.type === 'CRISP_FAILED') {
@@ -233,8 +289,12 @@ const SupportDrawer = () => {
                         )}
                         {!isCapacitor() && hasBeenOpened && !isAwaitingToken && (
                             <iframe
-                                key={iframeKey}
-                                src={crispProxyUrl}
+                                // token/locale changes need a full session re-bind, so they
+                                // remount the proxy; everything else updates live over the
+                                // postMessage channel (see the push effect above)
+                                key={`${iframeKey}:${crispTokenId ?? ''}:${crispLocale}`}
+                                ref={iframeRef}
+                                src="/crisp-proxy"
                                 className="h-full w-full"
                                 allow="storage-access *"
                                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-storage-access-by-user-activation"
