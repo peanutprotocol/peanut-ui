@@ -112,7 +112,16 @@ export function extractPaymentValue(text: string, kind: PasteFieldKind): string 
 function extractPixKey(text: string): string | null {
     const trimmed = text.trim()
 
-    if (isPixEmvcoQr(trimmed) && validatePixKey(trimmed).valid) return trimmed
+    if (isPixEmvcoQr(trimmed)) {
+        /*
+         * An EMV payload is all-or-nothing. The substring search below finds the
+         * key, txid or amount digits INSIDE the payload, so falling through for a
+         * payload that fails validation (bad length, recurring) would swap the
+         * user's copia-e-cola code for a fragment of itself — dropping the amount
+         * and merchant the code encodes while still looking like a valid key.
+         */
+        return validatePixKey(trimmed).valid ? trimmed : null
+    }
 
     const candidates = [
         text.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)?.[0],
