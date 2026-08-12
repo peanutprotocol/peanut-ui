@@ -11,11 +11,16 @@ import {
 } from '@/data/seo'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
 import {
+    contentGeneratedAt,
     hasCorridorContent,
     hasPageContent,
     hasSingletonContent,
     listContentSlugs,
     listPublishedSlugs,
+    readCorridorContent,
+    readPageContent,
+    readSingletonContent,
+    type ContentFrontmatter,
 } from '@/lib/content'
 
 // TODO (infra): Update GitHub org, Twitter bio, LinkedIn, npm package.json → peanut.me
@@ -23,6 +28,23 @@ import {
 
 /** Build date used for non-content pages that don't have their own date. */
 const BUILD_DATE = new Date()
+
+// --- lastmod sources ---
+// Content-backed URLs report the `generated_at` of the exact file that serves them, so a
+// rebuild no longer bumps every lastmod to the deploy timestamp. These read through the same
+// cache the has*Content() guards already populate, so they cost no extra file reads.
+// Each returns undefined when the file is missing or carries no usable date, in which case
+// the caller falls back to BUILD_DATE — that covers the hand-built pages (homepage, /lp/card,
+// /careers, /exchange, legal) and the index pages that aren't backed by a single file.
+
+const pageDate = (intent: string, slug: string, locale: string): Date | undefined =>
+    contentGeneratedAt(readPageContent<ContentFrontmatter>(intent, slug, locale))
+
+const corridorDate = (destination: string, origin: string, locale: string): Date | undefined =>
+    contentGeneratedAt(readCorridorContent<ContentFrontmatter>(destination, origin, locale))
+
+const singletonDate = (intent: string, locale: string): Date | undefined =>
+    contentGeneratedAt(readSingletonContent<ContentFrontmatter>(intent, locale))
 
 async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
     type SitemapEntry = {
@@ -61,7 +83,12 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // Country hub pages
         for (const country of Object.keys(COUNTRIES_SEO)) {
             if (!hasPageContent('countries', country, locale)) continue
-            pages.push({ path: `/${locale}/${country}`, priority: 0.9 * basePriority, changeFrequency: 'weekly' })
+            pages.push({
+                path: `/${locale}/${country}`,
+                priority: 0.9 * basePriority,
+                changeFrequency: 'weekly',
+                lastModified: pageDate('countries', country, locale),
+            })
         }
 
         // Send-money-to country pages
@@ -71,6 +98,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/send-money-to/${country}`,
                 priority: 0.8 * basePriority,
                 changeFrequency: 'weekly',
+                lastModified: pageDate('send-to', country, locale),
             })
         }
 
@@ -81,6 +109,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/send-money-from/${corridor.from}/to/${corridor.to}`,
                 priority: 0.85 * basePriority,
                 changeFrequency: 'weekly',
+                lastModified: corridorDate(corridor.to, corridor.from, locale),
             })
         }
 
@@ -91,6 +120,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/receive-money-from/${source}`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'weekly',
+                lastModified: pageDate('receive-from', source, locale),
             })
         }
 
@@ -101,6 +131,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/compare/peanut-vs-${slug}`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: pageDate('compare', slug, locale),
             })
         }
 
@@ -114,6 +145,8 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/deposit/from-${exchange}`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'monthly',
+                // Undefined for the i18n-only exchanges (no MDX at all) → BUILD_DATE.
+                lastModified: pageDate('deposit', exchange, locale),
             })
         }
         for (const rail of Object.keys(DEPOSIT_RAILS)) {
@@ -122,6 +155,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/deposit/via-${rail}`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: pageDate('deposit', rail, locale),
             })
         }
 
@@ -132,6 +166,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/pay-with/${method}`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: pageDate('pay-with', method, locale),
             })
         }
 
@@ -147,6 +182,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/help/${slug}`,
                 priority: 0.6 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: pageDate('help', slug, locale),
             })
         }
 
@@ -157,6 +193,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/use-cases/${slug}`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: pageDate('use-cases', slug, locale),
             })
         }
 
@@ -168,6 +205,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/stories/${slug}`,
                 priority: 0.6 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: pageDate('stories', slug, locale),
             })
         }
         // Stories index
@@ -184,6 +222,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/withdraw/${slug}`,
                 priority: 0.6 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: pageDate('withdraw', slug, locale),
             })
         }
 
@@ -193,6 +232,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/supported-networks`,
                 priority: 0.6 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: singletonDate('supported-networks', locale),
             })
         }
 
@@ -202,6 +242,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/pricing`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: singletonDate('pricing', locale),
             })
         }
 
@@ -223,6 +264,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
                 path: `/${locale}/blog/${slug}`,
                 priority: 0.6 * basePriority,
                 changeFrequency: 'monthly',
+                lastModified: pageDate('blog', slug, locale),
             })
         }
 
