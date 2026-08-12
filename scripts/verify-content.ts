@@ -81,10 +81,12 @@ function listDirs(dir: string): string[] {
  * agree with each other on a slug that 404s at runtime (e.g. colombia, mexico).
  */
 function gateReceiveSources(): string[] {
-    return listDirs(path.join(CONTENT_DIR, 'receive-from')).filter((slug) => {
-        const en = path.join(CONTENT_DIR, 'receive-from', slug, 'en.md')
-        return fs.existsSync(en) && isPublished(fs.readFileSync(en, 'utf-8'))
-    })
+    return listDirs(path.join(CONTENT_DIR, 'receive-from'))
+        .filter((slug) => slug !== 'index')
+        .filter((slug) => {
+            const en = path.join(CONTENT_DIR, 'receive-from', slug, 'en.md')
+            return fs.existsSync(en) && isPublished(fs.readFileSync(en, 'utf-8'))
+        })
 }
 
 function getAllMdFiles(dir: string): string[] {
