@@ -10,7 +10,7 @@
         "permanent": true
     },
     {
-        "source": "/es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)",
+        "source": "/es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)",
         "destination": "/es-419/:path",
         "permanent": true,
         "missing": [
@@ -27,7 +27,7 @@
         "permanent": true
     },
     {
-        "source": "/pt/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)",
+        "source": "/pt/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)",
         "destination": "/pt-br/:path",
         "permanent": true,
         "missing": [
@@ -44,7 +44,7 @@
         "permanent": true
     },
     {
-        "source": "/es-es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)",
+        "source": "/es-es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)",
         "destination": "/es-419/:path",
         "permanent": true,
         "missing": [
@@ -132,7 +132,7 @@
         "permanent": false
     },
     {
-        "source": "/sh/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)",
+        "source": "/sh/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)",
         "destination": "/card",
         "permanent": false,
         "missing": [

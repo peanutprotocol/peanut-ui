@@ -66,7 +66,7 @@ describe('legacy locale redirects preserve the future Split namespace', () => {
     it.each(['es', 'pt', 'es-es', 'sh'])(
         'does not redirect /%s/split or any case-variant descendant before the Split edge',
         async (source) => {
-            for (const suffix of ['split', 'split/guides/future-guide', 'SPLIT/tools/future-tool']) {
+            for (const suffix of ['split', 'split/anything', 'split/guides/future-guide', 'SPLIT/tools/future-tool']) {
                 const response = await configuredResponse(`/${source}/${suffix}`)
 
                 expect(response.status).toBe(200)
@@ -90,10 +90,10 @@ describe('legacy locale redirects preserve the future Split namespace', () => {
                 .filter(({ source }) => ['/es/', '/pt/', '/es-es/', '/sh/'].some((prefix) => source.startsWith(prefix)))
                 .map(({ source }) => source)
         ).toEqual([
-            '/es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)',
-            '/pt/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)',
-            '/es-es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)',
-            '/sh/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/%]+(?:/[^/%]+)*)',
+            '/es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)',
+            '/pt/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)',
+            '/es-es/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)',
+            '/sh/:path((?![sS][pP][lL][iI][tT](?:/|$))[^/]+(?:/[^/]+)*)',
         ])
     })
 
@@ -114,16 +114,55 @@ describe('legacy locale redirects preserve the future Split namespace', () => {
         }
     })
 
-    it.each(['es', 'pt', 'es-es', 'sh'])(
-        'declines every percent-escaped descendant below /%s before redirect evaluation',
-        async (source) => {
-            for (const suffix of ['%73plit/guides/future', 's%70lit/tools/future', '%2573plit/guides/future']) {
+    it.each(localeAliases)(
+        'keeps percent-escaped legacy paths below /%s redirecting with every escape byte intact',
+        async (source, destination) => {
+            for (const suffix of [
+                'tarifas-y-comisi%C3%B3n',
+                'tarifas-y-comisi%c3%b3n',
+                'caf%C3%A9/men%C3%BA',
+                '100%25-gratis',
+                'legacy%20page',
+            ]) {
                 const response = await configuredResponse(`/${source}/${suffix}`)
-                expect(response.status).toBe(200)
-                expect(getRedirectUrl(response)).toBeNull()
+
+                expect(response.status).toBe(308)
+                expect(getRedirectUrl(response)).toBe(`https://peanut.me/${destination}/${suffix}`)
             }
         }
     )
+
+    it('keeps percent-escaped legacy sh shortlinks pointed at the card page', async () => {
+        for (const pathname of ['/sh/ab%20cd', '/sh/AB%2Fcd', '/sh/ab%20cd/ef%20gh']) {
+            const response = await configuredResponse(pathname)
+
+            expect(response.status).toBe(307)
+            expect(getRedirectUrl(response)).toBe('https://peanut.me/card')
+        }
+    })
+
+    // Observed engine behavior, deliberately accepted: the capture is matched
+    // against the still-escaped path, so only a literal `split` first segment is
+    // carved out and encoded aliases redirect instead. Nothing is served as
+    // content here — the redirected form still meets the Split firewall, which
+    // fails closed on the decoded namespace.
+    it.each(localeAliases)('redirects, never serves, encoded split aliases below /%s', async (source, destination) => {
+        for (const suffix of ['%73plit/x', 's%70lit/tools/future', '%2573plit/guides/future']) {
+            const response = await configuredResponse(`/${source}/${suffix}`)
+
+            expect(response.status).toBe(308)
+            expect(getRedirectUrl(response)).toBe(`https://peanut.me/${destination}/${suffix}`)
+        }
+    })
+
+    it('redirects, never serves, encoded split aliases below /sh', async () => {
+        for (const suffix of ['%73plit/x', 's%70lit/tools/future', '%2573plit/guides/future']) {
+            const response = await configuredResponse(`/sh/${suffix}`)
+
+            expect(response.status).toBe(307)
+            expect(getRedirectUrl(response)).toBe('https://peanut.me/card')
+        }
+    })
 
     it.each(['es', 'sh'])(
         'declines unsafe stamped dot and backslash aliases below /%s so the proxy can fail closed',
@@ -142,6 +181,16 @@ describe('legacy locale redirects preserve the future Split namespace', () => {
             }
         }
     )
+
+    // The stamp is the only guard on those shapes: unstamped, `%2e%2e` even
+    // escapes the locale prefix, so the `missing` condition — not the source
+    // grammar — is what keeps traversal-shaped requests out of the table.
+    it('leaves the unsafe-path stamp as the sole guard on escaped traversal below /es', async () => {
+        expect(getRedirectUrl(await configuredResponse('/es/%2e%2e/split/x'))).toBe('https://peanut.me/split/x')
+        expect(getRedirectUrl(await configuredResponse('/es/foo%5c..%5csplit/x'))).toBe(
+            'https://peanut.me/es-419/foo%5c..%5csplit/x'
+        )
+    })
 
     it('keeps malformed double-slash aliases outside the custom redirects', async () => {
         for (const source of ['es', 'pt', 'es-es', 'sh']) {
