@@ -24,14 +24,20 @@ import { setCrispUserData } from '@/utils/crisp'
  * model also solves the timing problem the old URL transport was built to avoid —
  * the iframe initiates, so the parent can never post before this page listens.
  */
-/** Push identity/metadata/prefill to the widget — used at boot and on later payload updates. */
-function applyUserData(payload: CrispInitPayload | null) {
+/**
+ * Push identity/metadata to the widget — used at boot and on later payload updates.
+ * `withPrefill` guards message:text: re-pushing an unchanged prefill on a routine
+ * metadata refresh would overwrite whatever the user is typing in the composer,
+ * so only boot and a genuinely new prefill may set it.
+ */
+function applyUserData(payload: CrispInitPayload | null, withPrefill: boolean) {
     if (!window.$crisp) return
+    const prefill = withPrefill ? payload?.prefilledMessage : undefined
     // skip the all-empty push for anonymous visitors — nothing to show agents
     if (payload?.userData && Object.values(payload.userData).some(Boolean)) {
-        setCrispUserData(window.$crisp, payload.userData, payload.prefilledMessage)
-    } else if (payload?.prefilledMessage) {
-        window.$crisp.push(['set', 'message:text', [payload.prefilledMessage]])
+        setCrispUserData(window.$crisp, payload.userData, prefill)
+    } else if (prefill) {
+        window.$crisp.push(['set', 'message:text', [prefill]])
     }
 }
 
@@ -81,7 +87,7 @@ function bootCrisp(payload: CrispInitPayload | null, onSessionLoaded: () => void
     // NB: crisp_last_token_id is persisted once Crisp confirms the session actually
     // loaded (notifyParentReady) — not here, so a failed load still resets on Retry.
 
-    applyUserData(payload)
+    applyUserData(payload, true)
 
     // Wait for Crisp to be fully ready (session loaded and UI rendered)
     window.$crisp.push(['on', 'session:loaded', onSessionLoaded])
@@ -103,6 +109,10 @@ export default function CrispProxyPage() {
         // window), so per-window scope is right.
         let booted = false
         let bootedTokenId = ''
+        // last prefill actually applied — lets updates distinguish "new prefill from a
+        // new support entry point" (apply) from "same prefill riding along on a
+        // metadata refresh" (never re-apply, it would clobber the user's typing)
+        let appliedPrefill: string | undefined
 
         // Report readiness to the parent (SupportDrawer). A READY may supersede an earlier
         // FAILED: on a slow connection the 8s watchdog can post FAILED before the chatbox
@@ -141,6 +151,7 @@ export default function CrispProxyPage() {
             if (booted) return
             booted = true
             bootedTokenId = payload?.tokenId ?? ''
+            appliedPrefill = payload?.prefilledMessage
             // Already booted by a previous effect run (React strict mode re-runs the
             // effect): adopt the state instead of clobbering the $crisp queue and
             // injecting l.js twice. The watchdog below then judges the live widget.
@@ -171,7 +182,9 @@ export default function CrispProxyPage() {
                     // during onboarding, fresh prefill) — apply it live instead of
                     // remounting the whole embedded app. Token/locale changes remount
                     // via the iframe key, so those never take this path.
-                    applyUserData(payload)
+                    const prefillChanged = payload?.prefilledMessage !== appliedPrefill
+                    applyUserData(payload, prefillChanged)
+                    if (prefillChanged) appliedPrefill = payload?.prefilledMessage
                 }
             } else if (event.data?.type === 'CRISP_RESET_SESSION' && window.$crisp) {
                 window.CRISP_TOKEN_ID = null
