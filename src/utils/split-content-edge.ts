@@ -360,10 +360,40 @@ export function splitContentIndexReleased(value: string | undefined): boolean {
     return resolved.state === 'ready' && resolved.release.indexReleased
 }
 
+// Single-slot memo of the last resolved triple. The environment is fixed for an
+// isolate's lifetime, so re-validating the release document (decode, parse,
+// canonical re-encode, set construction) on every matched request is pure edge
+// CPU. Any change to the triple recomputes; the resolved value is never mutated.
+let memoizedEdgeConfig: {
+    originValue: string | undefined
+    markerValue: string | undefined
+    releaseValue: string | undefined
+    config: SplitContentEdgeConfig
+} | null = null
+
 export function resolveSplitContentEdgeConfig(
     originValue: string | undefined,
     markerValue: string | undefined,
     releaseValue: string | undefined = undefined
+): SplitContentEdgeConfig {
+    if (
+        memoizedEdgeConfig !== null &&
+        memoizedEdgeConfig.originValue === originValue &&
+        memoizedEdgeConfig.markerValue === markerValue &&
+        memoizedEdgeConfig.releaseValue === releaseValue
+    ) {
+        return memoizedEdgeConfig.config
+    }
+
+    const config = computeSplitContentEdgeConfig(originValue, markerValue, releaseValue)
+    memoizedEdgeConfig = { originValue, markerValue, releaseValue, config }
+    return config
+}
+
+function computeSplitContentEdgeConfig(
+    originValue: string | undefined,
+    markerValue: string | undefined,
+    releaseValue: string | undefined
 ): SplitContentEdgeConfig {
     if (!originValue && !markerValue && !releaseValue) return { state: 'disabled' }
     if (!originValue || !markerValue) return { state: 'invalid' }

@@ -248,6 +248,28 @@ describe('Split manifest-backed production edge', () => {
         expect(response.headers.get(SPLIT_EDGE_MARKER_HEADER)).toBeNull()
     })
 
+    it.each([
+        ['html', SPLIT_CANARY_GUIDE_PATHS[0], {}],
+        ['rsc', SPLIT_CANARY_GUIDE_PATHS[0], { rsc: '1' }],
+        ['asset', '/split-static/a.js', {}],
+    ] as const)('marks every %s forward noindex while the release withholds indexing', (_kind, path, headers) => {
+        const response = runCanonicalSplitProxy(path, { headers })
+
+        expect(isRewrite(response)).toBe(true)
+        expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow, noarchive')
+    })
+
+    it.each([SPLIT_CANARY_GUIDE_PATHS[0], '/split-static/a.js', '/split-sitemap.xml'])(
+        'drops the response noindex on %s once the same document releases indexing',
+        (pathname) => {
+            process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(2, { index: true })
+            const response = runCanonicalSplitProxy(pathname)
+
+            expect(isRewrite(response)).toBe(true)
+            expect(response.headers.get('x-robots-tag')).toBeNull()
+        }
+    )
+
     it('preserves the RSC header, router state, and query through the rewrite', () => {
         const response = runCanonicalSplitProxy(`${SPLIT_CANARY_GUIDE_PATHS[0]}?_rsc=opaque`, {
             headers: {
@@ -592,6 +614,34 @@ describe('Split manifest-backed production edge', () => {
 
     it.each(encodedSplitPaths)('matches encoded Split path %s before filesystem and catch-all routing', (url) => {
         expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(true)
+    })
+
+    it.each([
+        '/_next/static/chunks/app/%5Blocale%5D/(marketing)/page-abc.js',
+        '/_next/static/chunks/app/%5Blocale%5D/split/page-abc.js',
+        '/_next/static/media/logo%2Ea1b2.png',
+    ])('never invokes the proxy for this app own encoded build asset %s', (url) => {
+        expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(false)
+    })
+
+    it.each(['/split-static/_next/static/media/x%5B1%5D.js', '/en/%73plit/guides/x'])(
+        'keeps encoded Split path %s matched despite the build-asset exclusion',
+        (url) => {
+            expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(true)
+        }
+    )
+
+    it('keeps unsafe raw-path coverage of build-asset paths the encoded matcher excludes', () => {
+        const url = '/_next/image%2e'
+        expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(false)
+        expect(
+            unstable_doesMiddlewareMatch({
+                config,
+                nextConfig: {},
+                url,
+                headers: { [SPLIT_RAW_UNSAFE_HEADER]: SPLIT_RAW_UNSAFE_VALUE },
+            })
+        ).toBe(true)
     })
 
     it.each(['/en/travel%20guide', '/es-419/pagar%20con/efectivo'])(

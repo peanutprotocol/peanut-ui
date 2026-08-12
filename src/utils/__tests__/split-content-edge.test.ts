@@ -415,6 +415,33 @@ describe('Split edge transport configuration', () => {
         expect(resolveSplitContentEdgeConfig('https://renderer.example', MARKER, '{')).toEqual({ state: 'invalid' })
     })
 
+    it('resolves an unchanged environment triple once instead of on every request', () => {
+        const document = releaseDocument(2)
+        const first = resolveSplitContentEdgeConfig('https://renderer.example', MARKER, document)
+
+        expect(resolveSplitContentEdgeConfig('https://renderer.example', MARKER, document)).toBe(first)
+        expect(resolveSplitContentEdgeConfig('https://renderer.example', MARKER, releaseDocument(2))).toBe(first)
+    })
+
+    it.each([
+        ['origin', 'https://other-renderer.example', MARKER, releaseDocument(2), 2],
+        ['marker', 'https://renderer.example', `other-${MARKER}`, releaseDocument(2), 2],
+        ['release document', 'https://renderer.example', MARKER, releaseDocument(1), 1],
+        ['absent release document', 'https://renderer.example', MARKER, undefined, null],
+    ] as const)('recomputes when the %s changes', (_label, origin, marker, document, stage) => {
+        const baseline = resolveSplitContentEdgeConfig('https://renderer.example', MARKER, releaseDocument(2))
+        const changed = resolveSplitContentEdgeConfig(origin, marker, document)
+
+        expect(changed).not.toBe(baseline)
+        expect(changed.state).toBe('ready')
+        if (changed.state === 'ready') {
+            expect(changed.origin.origin).toBe(origin)
+            expect(changed.marker).toBe(marker)
+            expect(changed.release?.stage ?? null).toBe(stage)
+        }
+        expect(resolveSplitContentEdgeConfig('https://renderer.example', MARKER, releaseDocument(2))).toEqual(baseline)
+    })
+
     it('requires at least 32 printable ASCII bytes for the header marker', () => {
         expect(resolveSplitContentEdgeConfig('https://renderer.example', 'a'.repeat(31))).toEqual({ state: 'invalid' })
         expect(resolveSplitContentEdgeConfig('https://renderer.example', 'a'.repeat(32)).state).toBe('ready')

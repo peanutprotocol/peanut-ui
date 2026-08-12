@@ -215,7 +215,12 @@ function handleSplitContentEdge(request: NextRequest): NextResponse | null {
         edgeConfig.marker,
         edgeConfig.release
     )
-    return NextResponse.rewrite(destination, { request: { headers } })
+    const forwarded = NextResponse.rewrite(destination, { request: { headers } })
+    // Before the index release the renderer is told to emit robots noindex via
+    // SPLIT_INDEX_RELEASE_HEADER. Stamp the response too, so an unreleased page
+    // stays out of the index even if the renderer ignores that request header.
+    if (!edgeConfig.release.indexReleased) forwarded.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
+    return forwarded
 }
 
 const CRAWLER_UA =
@@ -294,6 +299,9 @@ export const config = {
             source: '/:path*',
             has: [{ type: 'header', key: 'x-peanut-split-raw-unsafe', value: 'unsafe-v1' }],
         },
-        '/((?=.*%[0-9A-Fa-f]{2}).*)',
+        // Encoded aliases only. `_next/` is excluded because Next percent-encodes
+        // bracketed route segments in its own chunk URLs, which would otherwise
+        // invoke this proxy on every static asset of every page.
+        '/((?!_next/)(?=.*%[0-9A-Fa-f]{2}).*)',
     ],
 }
