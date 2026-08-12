@@ -195,7 +195,7 @@ function handleSplitContentEdge(request: NextRequest): NextResponse | null {
 
     // Origin credentials may be deployed before any public content. Without a
     // release document this boundary is active but dark (stage 0).
-    if (!edgeConfig.release) {
+    if (!edgeConfig.release || edgeConfig.release.stage === 0) {
         return new NextResponse(null, { status: 404, headers: SPLIT_BLOCKED_RESPONSE_HEADERS })
     }
     if (route.kind === 'sitemap' && !edgeConfig.release.indexReleased) {

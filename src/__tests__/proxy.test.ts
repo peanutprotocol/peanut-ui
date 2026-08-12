@@ -109,18 +109,22 @@ describe('Split manifest-backed production edge', () => {
         expect(getRewrittenUrl(response)).toBe(`https://renderer.example${pathname}?utm_source=production`)
     })
 
-    it('keeps stage 0 fully dark even when transport credentials are ready', () => {
-        delete process.env.SPLIT_CONTENT_RELEASE_DOCUMENT
+    it.each([undefined, releaseDocument(0)])(
+        'keeps both missing and explicit stage 0 fully dark even when transport credentials are ready',
+        (release) => {
+            if (release === undefined) delete process.env.SPLIT_CONTENT_RELEASE_DOCUMENT
+            else process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = release
 
-        for (const pathname of [SPLIT_ENGLISH_CANARY_PATH, '/split-static/a.js', '/split-sitemap.xml']) {
-            const response = runCanonicalSplitProxy(pathname)
-            expect(response.status).toBe(404)
-            expect(response.body).toBeNull()
-            expect(response.headers.get('cache-control')).toBe('private, no-store')
-            expect(response.headers.get('x-robots-tag')).toContain('noindex')
-            expect(isRewrite(response)).toBe(false)
+            for (const pathname of [SPLIT_ENGLISH_CANARY_PATH, '/split-static/a.js', '/split-sitemap.xml']) {
+                const response = runCanonicalSplitProxy(pathname)
+                expect(response.status).toBe(404)
+                expect(response.body).toBeNull()
+                expect(response.headers.get('cache-control')).toBe('private, no-store')
+                expect(response.headers.get('x-robots-tag')).toContain('noindex')
+                expect(isRewrite(response)).toBe(false)
+            }
         }
-    })
+    )
 
     it('releases exactly one English canary at stage 1', () => {
         process.env.SPLIT_CONTENT_RELEASE_DOCUMENT = releaseDocument(1)
