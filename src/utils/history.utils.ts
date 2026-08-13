@@ -473,17 +473,35 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
  *
  * The API cursor is over-inclusive on purpose — it is keyed on the later of
  * the two timestamps so that no entry can fall through the crack between
- * pages, and re-serving the boundary row is the price. Page overlap has other
- * sources too (`openRequestLinks` is re-queried on every page), so deduping
- * where the pages get flattened covers all of them at once.
+ * pages, and re-serving the boundary row is the price. `openRequestLinks` is
+ * re-queried on every page with no exclusion at all, so it repeats too.
+ * Deduping where the pages get flattened covers both.
  *
- * Keeps the FIRST position but the LAST copy: a later page is fetched later,
- * so its copy of a repeated entry carries the fresher status. `Map` gives both
- * — re-setting a key updates the value without moving it.
+ * It does NOT cover the send-link claim websocket push, which keys the entry
+ * by `fullSendLink.pubKey` while the REST row for the same transaction uses
+ * the intent id. Those two never collide, so that pair still renders twice
+ * until the next refetch — it needs the uuids aligned on the API side.
+ *
+ * Keeps the FIRST copy. Earlier in the flattened array means closer to page 0,
+ * and for both known repeat sources the earlier copy is the better one:
+ *   - websocket updates are PREPENDED to page 0, so the freshest copy of an
+ *     entry is the first one, not the last. Last-wins let an in-flight page-2
+ *     response overwrite a just-pushed COMPLETED row with its stale PENDING
+ *     copy, visibly regressing the status.
+ *   - request-pot rollups reuse `link.uuid` on every page holding any of that
+ *     pot's charges, and each copy only aggregates its own page window. The
+ *     page-1 copy carries the most recent charge and the larger total; taking
+ *     the later one shrinks the collected amount and moves the row.
+ * A page-1 row that was PENDING when fetched and COMPLETED by the time page 2
+ * arrives keeps the stale status until the next refetch (30s staleTime). That
+ * is not a regression — before this dedupe both rows rendered and the stale
+ * one was already among them.
  */
 export function dedupeHistoryEntriesByUuid<T extends { uuid: string }>(entries: T[]): T[] {
     const byUuid = new Map<string, T>()
-    for (const entry of entries) byUuid.set(entry.uuid, entry)
+    for (const entry of entries) {
+        if (!byUuid.has(entry.uuid)) byUuid.set(entry.uuid, entry)
+    }
     return [...byUuid.values()]
 }
 

@@ -188,20 +188,30 @@ describe('dedupeHistoryEntriesByUuid', () => {
         expect(dedupeHistoryEntriesByUuid([...page1, ...page2]).map((e) => e.uuid)).toEqual(['a', 'b', 'c', 'd'])
     })
 
-    it('keeps the first position but the freshest copy', () => {
-        // Page 2 is fetched after page 1, so its copy of a repeated entry has
-        // the newer status. Position must not move, or rows jump on scroll.
-        const page1 = [
-            { uuid: 'a', status: 'PENDING' },
+    it('keeps a websocket-prepended copy over a stale one from a later page', () => {
+        // The websocket prepends full updated entries to page 0, so for that
+        // source the FRESHEST copy is the first one. An in-flight page-2
+        // response carrying the pre-update row must not overwrite it.
+        const page0 = [
+            { uuid: 'a', status: 'COMPLETED' }, // just pushed over the socket
             { uuid: 'b', status: 'COMPLETED' },
         ]
-        const page2 = [{ uuid: 'a', status: 'COMPLETED' }]
+        const page2 = [{ uuid: 'a', status: 'PENDING' }] // already in flight, stale
 
-        const deduped = dedupeHistoryEntriesByUuid([...page1, ...page2])
+        const deduped = dedupeHistoryEntriesByUuid([...page0, ...page2])
 
         expect(deduped).toHaveLength(2)
         expect(deduped[0]).toEqual({ uuid: 'a', status: 'COMPLETED' })
-        expect(deduped[1].uuid).toBe('b')
+    })
+
+    it('keeps the fuller request-pot rollup from the earlier page', () => {
+        // Rollups reuse link.uuid on every page holding any of that pot's
+        // charges, and each copy aggregates only its own page window. The
+        // earlier copy holds the most recent charge and the larger total.
+        const page1 = [{ uuid: 'pot-1', totalAmountCollected: 250 }]
+        const page2 = [{ uuid: 'pot-1', totalAmountCollected: 40 }]
+
+        expect(dedupeHistoryEntriesByUuid([...page1, ...page2])).toEqual([{ uuid: 'pot-1', totalAmountCollected: 250 }])
     })
 
     it('keeps distinct entries that only look alike', () => {
