@@ -82,10 +82,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
         })
     }, [isFetchingUser, isLoggedIn, username])
 
-    // This card is the crediting door: bare `peanut.me/<username>` links already
-    // shared in the wild land here, so the join CTA validates the owner's code
-    // and persists it BEFORE the store handoff can leave the page — the code
-    // has to survive that hop.
+    // Every public profile is deliberately an invite door — bare
+    // `peanut.me/<username>` links credit their owner retroactively. Intentional
+    // design (Konrad, Aug 2026), not an accident to clean up.
     const handleJoinClick = async () => {
         // Pre-auth flash guard: until auth settles every visitor looks logged
         // out, and a fast tap here would write someone else's invite code into
@@ -95,23 +94,37 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
         // card door and the modal door on one handler instead of two forks.
         setShowInviteModal(false)
         setIsJoining(true)
+        const code = toInviteCode(username)
+        // Start the validation but do NOT await it yet — the intercept below has
+        // to run inside the click gesture.
+        const validation = invitesApi.validateInviteCode(code)
+        // Synchronous, first: the store handoff calls window.open, which iOS
+        // blocks once it sits in a promise continuation (same fix as
+        // PendingVerificationTasks). It opens `_blank`, so THIS tab lives on and
+        // the cookie write below still lands. True store-hop attribution
+        // (deferred payload in openStore) is TASK-21044.
+        const intercepted = interceptGuestCta()
         try {
-            const code = toInviteCode(username)
-            // Validate BEFORE persisting — same contract as InvitesPage's claim,
-            // which only writes the cookie once the backend resolves the code. A
-            // profile can exist without being a claimable invite (inviter not
-            // onboarded), and a poisoned cookie outlives this page: the accept
-            // retry upgrades it to 30 days and setup's skipInviteGate then routes
-            // past the only screen with Log In — the PR #2346 lockout shape.
-            // Session scope, no expiryDays, for the same reason.
-            const { onboardingResolved, username: inviterUsername } = await invitesApi.validateInviteCode(code)
-            if (onboardingResolved && inviterUsername) saveToCookie('inviteCode', code)
+            const { onboardingResolved, username: inviterUsername } = await validation.catch(() => ({
+                onboardingResolved: false,
+                username: '',
+            }))
+            // Credit ONLY when the code resolves to the profile owner themself.
+            // The API's typo-fallback can resolve a waitlisted handle to a
+            // DIFFERENT real user (profile `maria23` → user `maria`), and that
+            // click must never write a cookie — no credit on a mismatch.
+            // Session scope, no expiryDays: a poisoned cookie outlives this page,
+            // the accept retry upgrades it to 30 days, and setup's skipInviteGate
+            // then routes past the only screen with Log In (PR #2346 lockout).
+            const resolvedToOwner = !!onboardingResolved && inviterUsername === code
+            if (resolvedToOwner) saveToCookie('inviteCode', code)
             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                 source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
-                link_type: 'invite_code',
+                link_type: resolvedToOwner ? 'invite_code' : 'none',
             })
-            if (interceptGuestCta()) return
-            // Unresolvable codes still navigate — /invite owns the error screen.
+            if (intercepted) return
+            // Unresolvable or mismatched codes still navigate — /invite owns the
+            // messaging.
             router.push(`/invite?code=${code}`)
         } finally {
             setIsJoining(false)

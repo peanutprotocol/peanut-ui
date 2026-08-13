@@ -57,6 +57,24 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 
 const JOIN_CTA = en.profile.publicProfile.joinCta
 
+type ValidateResult = {
+    success: boolean
+    attributionResolved: boolean
+    onboardingResolved: boolean
+    username: string
+}
+
+// A validation the test settles by hand, so the ordering between the store
+// handoff and the awaited response is assertable.
+const deferValidation = () => {
+    let settle: (result: ValidateResult) => void = () => {}
+    const promise = new Promise<ValidateResult>((resolve) => {
+        settle = resolve
+    })
+    mockValidateInviteCode.mockReturnValue(promise)
+    return settle
+}
+
 beforeEach(() => {
     jest.clearAllMocks()
     mockAuth = { user: null, isFetchingUser: false }
@@ -90,14 +108,27 @@ describe('PublicProfile guest door', () => {
         })
     })
 
-    it('still writes the invite cookie when the store handoff swallows the click', async () => {
+    it('hands off to the store inside the click, and still writes the cookie after', async () => {
         mockInterceptGuestCta.mockReturnValue(true)
+        const settleValidation = deferValidation()
         renderWithIntl(<PublicProfile username="Satoshi" />)
 
         fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
 
-        // the handoff leaves the page for the app store, so the code has to be
-        // persisted before the intercept runs
+        // gesture-first: the handoff calls window.open, which iOS blocks once it
+        // runs in a promise continuation — so it must fire before the validation
+        // response lands, not after it
+        expect(mockInterceptGuestCta).toHaveBeenCalled()
+        expect(mockSaveToCookie).not.toHaveBeenCalled()
+
+        settleValidation({
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            username: 'satoshi',
+        })
+
+        // the handoff opens `_blank`, so this tab lives on and the cookie lands
         await waitFor(() => expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi'))
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
@@ -166,5 +197,44 @@ describe('PublicProfile guest door', () => {
         // still navigates — /invite owns the error screen — but writes nothing
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
         expect(mockSaveToCookie).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+            source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
+            link_type: 'none',
+        })
+    })
+
+    it('does not credit a code that resolves to somebody other than the profile owner', async () => {
+        // the backend's typo-fallback can resolve a waitlisted handle to a
+        // different real user — `maria23`'s visitor must never credit `maria`
+        mockValidateInviteCode.mockResolvedValue({
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            username: 'maria',
+        })
+        renderWithIntl(<PublicProfile username="Maria23" />)
+
+        fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
+
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=maria23'))
+        expect(mockSaveToCookie).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+            source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
+            link_type: 'none',
+        })
+    })
+
+    it('navigates without a cookie when the validation call itself fails', async () => {
+        mockValidateInviteCode.mockRejectedValue(new Error('network down'))
+        renderWithIntl(<PublicProfile username="Satoshi" />)
+
+        fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
+
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
+        expect(mockSaveToCookie).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+            source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
+            link_type: 'none',
+        })
     })
 })
