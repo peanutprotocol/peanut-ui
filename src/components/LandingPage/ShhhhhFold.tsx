@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import { ScarcityCounter } from './ScarcityCounter'
 
 // The card face renders nothing on the server and rasterises four canvases on
 // mount, so it stays out of the first chunk. The host box reserves the aspect
@@ -21,9 +20,9 @@ const ScaledPixelatedCardFace = dynamic(
 const PINK = '#FF90E8'
 
 /**
- * The homepage door to /shhhhh. Distils §1 of the /shhhhh page — same catalog,
- * same counter — and every click here goes to /shhhhh. The fold makes the
- * offer; the page does the work (sign-in, badge check, waitlist).
+ * The homepage door to /shhhhh: wordmark, tagline, the door itself, the card.
+ * Every click here goes to /shhhhh — the fold makes the offer and the page
+ * does the work (the pitch, the scarcity count, sign-in, badge check, waitlist).
  */
 export function ShhhhhFold() {
     const t = useTranslations('shhhhh.hero')
@@ -41,12 +40,6 @@ export function ShhhhhFold() {
 
                     <p className="font-roboto-flex-extrabold mt-5 max-w-xl text-2xl font-extraBlack uppercase leading-tight md:text-3xl">
                         {t('tagline')}
-                    </p>
-
-                    <p className="font-roboto-flex mt-5 max-w-xl text-lg leading-relaxed md:text-xl">
-                        {t.rich('body', {
-                            counter: () => <ScarcityCounter label={(count) => t('onlyCount', { count })} />,
-                        })}
                     </p>
 
                     <div className="mt-8 flex flex-wrap items-center gap-5 md:gap-6">

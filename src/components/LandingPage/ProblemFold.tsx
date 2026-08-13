@@ -1,6 +1,6 @@
 import Image from 'next/image'
-import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
-import NoHiddenFeesHand from '@/assets/illustrations/no-hidden-fees-hand.svg'
+import HandsPeace from '@/assets/illustrations/hands-peace.png'
+import StackCoin from '@/assets/illustrations/stack-coin.png'
 import type { LandingStrings } from './landingStrings'
 
 const bgColor = '#F9F4F0'
@@ -26,8 +26,7 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
             id: 'cross-border',
             title: problem.crossBorderTitle,
             body: problem.crossBorderBody,
-            // the marquee's thumbs-up, turned over: the verification verdict
-            icon: <Image src={HandThumbsUp} alt="" aria-hidden className={`${iconClass} rotate-180`} />,
+            icon: <Image src={HandsPeace} alt="" aria-hidden className={iconClass} />,
         },
         {
             id: 'send-home',
@@ -43,8 +42,7 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
             id: 'paid-abroad',
             title: problem.paidAbroadTitle,
             body: problem.paidAbroadBody,
-            // the pinch hand from the no-hidden-fees art
-            icon: <Image src={NoHiddenFeesHand} alt="" aria-hidden className={iconClass} />,
+            icon: <Image src={StackCoin} alt="" aria-hidden className={iconClass} />,
         },
     ]
 
