@@ -14,6 +14,7 @@ export interface LandingStrings {
     heroNoLocalId: string
     zeroFees: string
     seeMarkupOn: string
+    learnMore: string
     dropLinkHeading: string
     dropLinkBody: string
     currencyPlaceholder: string
@@ -51,6 +52,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
         heroNoLocalId: i18n.landingHeroNoLocalId,
         zeroFees: i18n.landingZeroFees,
         seeMarkupOn: i18n.landingSeeMarkupOn,
+        learnMore: i18n.landingLearnMore,
         dropLinkHeading: i18n.landingDropLinkHeading,
         dropLinkBody: i18n.landingDropLinkBody,
         currencyPlaceholder: i18n.landingCurrencyPlaceholder,

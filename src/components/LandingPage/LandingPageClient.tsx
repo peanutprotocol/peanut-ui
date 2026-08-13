@@ -98,13 +98,26 @@ export function LandingPageClient({
 
     // Memoized: this component re-renders per scroll frame during the button
     // animation — don't rebuild the FAQ array + rich answer element each time.
-    const faqQuestions = useMemo(
-        () =>
-            faqData.questions.map((q) =>
-                q.id === SUPPORTED_RAILS_FAQ_ID ? { ...q, answerContent: <SupportedRailsFaqAnswer /> } : q
-            ),
-        [faqData.questions]
-    )
+    const faqQuestions = useMemo(() => {
+        // The questions come from the content system, which must not carry code
+        // concerns, so the article each one continues into is mapped here by id.
+        // "Why Peanut?" and "My question is not here" are left out on purpose:
+        // the first has no single article behind it, the second already links
+        // the help centre in its own answer.
+        const learnMore: Record<string, string> = {
+            '1': `/${locale}/help/what-are-digital-dollars`,
+            '2': `/${locale}/help/verification`,
+            '3': `/${locale}/help/passkeys`,
+            '4': `/${locale}/help/security-custody`,
+            '5': `/${locale}/help/fees-pricing`,
+            [SUPPORTED_RAILS_FAQ_ID]: `/${locale}/help/supported-geographies`,
+        }
+        return faqData.questions.map((q) => ({
+            ...q,
+            ...(q.id === SUPPORTED_RAILS_FAQ_ID ? { answerContent: <SupportedRailsFaqAnswer /> } : {}),
+            ...(learnMore[q.id] ? { learnMoreHref: learnMore[q.id] } : {}),
+        }))
+    }, [faqData.questions, locale])
 
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
@@ -323,7 +336,12 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             <div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>
             <Marquee {...marqueeProps} />
-            <FAQs heading={faqData.heading} questions={faqQuestions} marquee={faqData.marquee} />
+            <FAQs
+                heading={faqData.heading}
+                questions={faqQuestions}
+                learnMoreLabel={strings.learnMore}
+                marquee={faqData.marquee}
+            />
             <Marquee {...marqueeProps} />
             {footerSlot}
             <StickyMobileCTA strings={strings} />
