@@ -78,6 +78,7 @@ const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
     ARBITRUM: 'Peanut × Arbitrum. Fast chains, faster money 🔵',
     MANICERO: 'Small maní, big energy. I earned the Manicero badge 🥜',
     TOUCHED_GRASS: 'Touched grass badge. Proof that I do go outside 🌱',
+    SURF_UP: "Caught the wave early. Surf's up 🏄",
     OFFRAMP_USER: 'I migrated to Peanut. New home, same money, one shiny badge 🥜',
     PSYOPS_DIVISION: 'Enlisted in the Peanut Psyops Division. The influence game is real 🧠',
     EVENT_ALUMNI: 'Old school. I was in the room before most of you 🎟️',
