@@ -1,14 +1,12 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import type { ComponentProps } from 'react'
+import { fireEvent, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import posthog from 'posthog-js'
 import ProfileHeader from '../ProfileHeader'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
-import en from '@/i18n/app/messages/en.json'
 
-const mockToastInfo = jest.fn()
-const mockWriteText = jest.fn()
 let mockAuthUsername: string | undefined
+const mockShareButton = jest.fn()
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockAuthUsername ? { user: { username: mockAuthUsername } } : null }),
@@ -16,11 +14,14 @@ jest.mock('@/context/authContext', () => ({
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isVerified: false }),
 }))
-jest.mock('@/components/0_Bruddle/Toast', () => ({
-    useToast: () => ({ info: mockToastInfo }),
-}))
-jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children, onClick }: ComponentProps<'button'>) => <button onClick={onClick}>{children}</button>,
+// The share mechanics (copy, toast, share sheet, AbortError) belong to
+// ShareButton's own suite; here only the url + onSuccess wiring is under test.
+jest.mock('@/components/Global/ShareButton', () => ({
+    __esModule: true,
+    default: (props: { children?: ReactNode; onSuccess?: () => void }) => {
+        mockShareButton(props)
+        return <button onClick={props.onSuccess}>{props.children}</button>
+    },
 }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({ __esModule: true, default: () => null }))
@@ -34,13 +35,6 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 // deterministic — `shareableUrl` reads window.location.origin under jsdom.
 const ORIGIN = 'https://peanut.example.org'
 const originalLocation = window.location
-const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
-const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share')
-
-function restoreProperty(target: object, key: string, descriptor?: PropertyDescriptor) {
-    if (descriptor) Object.defineProperty(target, key, descriptor)
-    else delete (target as Record<string, unknown>)[key]
-}
 
 beforeAll(() => {
     Object.defineProperty(window, 'location', { value: new URL(ORIGIN), writable: true })
@@ -49,70 +43,44 @@ beforeAll(() => {
 beforeEach(() => {
     jest.clearAllMocks()
     mockAuthUsername = 'satoshi'
-    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined })
-    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: mockWriteText } })
 })
 
 afterAll(() => {
     Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
-    restoreProperty(navigator, 'clipboard', originalClipboard)
-    restoreProperty(navigator, 'share', originalShare)
 })
 
 const sharePill = () => screen.queryByRole('button', { name: 'peanut.example.org/satoshi' })
 
 describe('ProfileHeader share pill', () => {
-    it('renders on the signed-in user own profile', () => {
+    // Wrong-attribution guard: `showShareButton` defaults to true, so a caller
+    // on someone else's profile would otherwise hand out that other handle. The
+    // unresolved case would show `peanut.me/anonymous`.
+    test.each([
+        ['the signed-in user own profile', 'satoshi', 'satoshi', true],
+        ['someone else profile', 'hal', 'satoshi', false],
+        ['a profile while auth is unresolved', undefined, 'anonymous', false],
+    ] as Array<[string, string | undefined, string, boolean]>)(
+        'on %s the pill is rendered: %s → %s',
+        (_label, authUsername, profileUsername, visible) => {
+            mockAuthUsername = authUsername
+            renderWithIntl(<ProfileHeader name="Satoshi" username={profileUsername} showShareButton />)
+
+            if (visible) expect(sharePill()).toBeInTheDocument()
+            else expect(screen.queryByRole('button')).not.toBeInTheDocument()
+        }
+    )
+
+    it('shares the profile url and captures the click only on a successful share', () => {
         renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
 
-        expect(sharePill()).toBeInTheDocument()
-    })
-
-    it('stays hidden on someone else profile even when the caller asks for it', () => {
-        mockAuthUsername = 'hal'
-        renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
-
-        // wrong-attribution guard: sharing here would hand out `hal`'s pill copy
-        // pointing at satoshi's profile.
-        expect(sharePill()).not.toBeInTheDocument()
-        expect(screen.queryByRole('button')).not.toBeInTheDocument()
-    })
-
-    it('stays hidden while auth is unresolved', () => {
-        // the self-profile call site falls back to `anonymous` until /get-user lands
-        mockAuthUsername = undefined
-        renderWithIntl(<ProfileHeader name="anonymous" username="anonymous" showShareButton />)
-
-        expect(screen.queryByRole('button')).not.toBeInTheDocument()
-    })
-
-    it('copies the profile url and toasts when the web share api is missing', async () => {
-        // copyTextToClipboardWithFallback only uses navigator.clipboard on a
-        // secure context; jsdom defaults to insecure and would silently take
-        // the execCommand path instead.
-        Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true })
-        mockWriteText.mockResolvedValueOnce(undefined)
-        renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+        expect(mockShareButton).toHaveBeenCalledWith(expect.objectContaining({ url: `${ORIGIN}/satoshi` }))
+        expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, expect.anything())
 
         fireEvent.click(sharePill()!)
 
-        // the handler awaits the copy before toasting — success only after a real write
-        await waitFor(() => expect(mockToastInfo).toHaveBeenCalledWith(en.global.shareButton.linkCopied))
-        expect(mockWriteText).toHaveBeenCalledWith(`${ORIGIN}/satoshi`)
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PROFILE_HEADER,
             link_type: 'profile',
         })
-    })
-
-    it('does not toast when the clipboard write is rejected', async () => {
-        Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true })
-        mockWriteText.mockRejectedValueOnce(new Error('denied'))
-        renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
-
-        fireEvent.click(sharePill()!)
-
-        await waitFor(() => expect(mockWriteText).toHaveBeenCalled())
-        expect(mockToastInfo).not.toHaveBeenCalled()
     })
 })

@@ -64,6 +64,19 @@ type ValidateResult = {
     username: string
 }
 
+const unresolvable: ValidateResult = {
+    success: true,
+    attributionResolved: false,
+    onboardingResolved: false,
+    username: '',
+}
+const resolvesToMaria: ValidateResult = {
+    success: true,
+    attributionResolved: true,
+    onboardingResolved: true,
+    username: 'maria',
+}
+
 // A validation the test settles by hand, so the ordering between the store
 // handoff and the awaited response is assertable.
 const deferValidation = () => {
@@ -181,60 +194,29 @@ describe('PublicProfile guest door', () => {
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
     })
 
-    it('does not persist a code the backend cannot resolve', async () => {
-        // a profile can exist without being a claimable invite (inviter not
-        // onboarded) — a poisoned cookie outlives this page (PR #2346 shape)
-        mockValidateInviteCode.mockResolvedValue({
-            success: true,
-            attributionResolved: false,
-            onboardingResolved: false,
-            username: '',
-        })
-        renderWithIntl(<PublicProfile username="Satoshi" />)
+    // Three ways a code fails to credit. All three still navigate — /invite owns
+    // the messaging — but a poisoned cookie outlives this page (PR #2346 shape),
+    // so none of them may write one. `null` = the validation call itself fails.
+    test.each([
+        ['the backend cannot resolve it', 'Satoshi', 'satoshi', unresolvable],
+        // the API's typo-fallback resolves a waitlisted `maria23` to real user `maria`
+        ['it resolves to somebody other than the profile owner', 'Maria23', 'maria23', resolvesToMaria],
+        ['the validation call itself fails', 'Satoshi', 'satoshi', null],
+    ] as Array<[string, string, string, ValidateResult | null]>)(
+        'navigates without a cookie when %s',
+        async (_label, profileUsername, expectedCode, validation) => {
+            if (validation) mockValidateInviteCode.mockResolvedValue(validation)
+            else mockValidateInviteCode.mockRejectedValue(new Error('network down'))
+            renderWithIntl(<PublicProfile username={profileUsername} />)
 
-        fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
+            fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
 
-        // still navigates — /invite owns the error screen — but writes nothing
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
-        expect(mockSaveToCookie).not.toHaveBeenCalled()
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
-            source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
-            link_type: 'none',
-        })
-    })
-
-    it('does not credit a code that resolves to somebody other than the profile owner', async () => {
-        // the backend's typo-fallback can resolve a waitlisted handle to a
-        // different real user — `maria23`'s visitor must never credit `maria`
-        mockValidateInviteCode.mockResolvedValue({
-            success: true,
-            attributionResolved: true,
-            onboardingResolved: true,
-            username: 'maria',
-        })
-        renderWithIntl(<PublicProfile username="Maria23" />)
-
-        fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
-
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=maria23'))
-        expect(mockSaveToCookie).not.toHaveBeenCalled()
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
-            source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
-            link_type: 'none',
-        })
-    })
-
-    it('navigates without a cookie when the validation call itself fails', async () => {
-        mockValidateInviteCode.mockRejectedValue(new Error('network down'))
-        renderWithIntl(<PublicProfile username="Satoshi" />)
-
-        fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
-
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
-        expect(mockSaveToCookie).not.toHaveBeenCalled()
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
-            source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
-            link_type: 'none',
-        })
-    })
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/invite?code=${expectedCode}`))
+            expect(mockSaveToCookie).not.toHaveBeenCalled()
+            expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
+                source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
+                link_type: 'none',
+            })
+        }
+    )
 })

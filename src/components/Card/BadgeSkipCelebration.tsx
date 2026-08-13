@@ -189,7 +189,6 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                     value={hideUsername}
                     onChange={(e) => setHideUsername(e.target.checked)}
                 />
-                {/* Caption link, not a PNG change — anti-dox rule lives on the helper. */}
                 <ShareAssetActions
                     captureRef={captureRef}
                     source="celebration"

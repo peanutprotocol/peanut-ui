@@ -95,20 +95,15 @@ export function isPerkReward(transaction: TransactionDetails): boolean {
 }
 
 /** Kinds that earn an invite-friends nudge on a completed receipt: the user
- *  just paid or moved money out, which is the moment the referral offer lands.
- *  Link sends and claims, wallet-to-wallet transfers, request fulfilments,
- *  crypto withdrawals, bank off-ramps, QR pays and card spends.
+ *  just paid or moved money out.
  *
- *  Kind-based for the same reason as {@link isFxBearingFlow}: the receipt used
- *  to gate the nudge on a hand-kept `['send','withdraw','bank_withdraw']`
- *  direction allow-list, which silently dropped every QR pay AND every card
- *  spend — both arrive as `direction: 'qr_payment'` (strategies/intent/card.ts).
- *  That is the exact "forgot to add the new direction" bug class this file
- *  exists to kill.
+ *  Kind-based for the same reason as {@link isFxBearingFlow}: gating on a
+ *  hand-kept `['send','withdraw','bank_withdraw']` direction allow-list silently
+ *  dropped every QR pay AND every card spend — both arrive as
+ *  `direction: 'qr_payment'` (strategies/intent/card.ts).
  *
  *  Out on purpose: CARD_AUTH_REVERSAL (the charge never stuck), ONRAMP (a
- *  deposit, not a payment), PERK_REWARD / CRYPTO_DEPOSIT / REFUND (inbound —
- *  money arrived, nothing to brag about). */
+ *  deposit, not a payment), PERK_REWARD / CRYPTO_DEPOSIT / REFUND (inbound). */
 const REFERRAL_NUDGE_KINDS: ReadonlySet<string> = new Set([
     'SEND_LINK',
     'SEND_LINK_CLAIM',
@@ -122,22 +117,14 @@ const REFERRAL_NUDGE_KINDS: ReadonlySet<string> = new Set([
 ])
 
 /** Directions where the viewer is the RECEIVING side. Several nudge kinds are
- *  role-polymorphic — the same kind renders a different direction depending on
- *  which end of it you are: CRYPTO_WITHDRAW + RECIPIENT → 'add', SEND_LINK +
- *  RECIPIENT → 'claim_external' (viewer claimed someone else's link out to an
- *  external wallet). Without this block the receiving side would get a nudge
- *  for a payment it did not make.
+ *  role-polymorphic: CRYPTO_WITHDRAW + RECIPIENT → 'add', SEND_LINK + RECIPIENT
+ *  → 'claim_external'. Without this block the receiving side would be nudged for
+ *  a payment it did not make.
  *
- *  'bank_claim' is ambiguous at the direction level: the SENDER whose link was
- *  claimed externally sees it (payer — a nudge would be right), but so does a
- *  Peanut user viewing their OWN claim-to-bank (fiat-offramp.ts only rewrites
- *  to 'send' on the sender side). Blocked until the predicate can see the
- *  viewer role — a missed nudge is cheaper than nudging the receiving side.
- *
- *  'bank_request_fulfillment' is deliberately NOT here: the strategy assigns
- *  it only to userRole SENDER ("Viewer is paying via bank rails",
- *  p2p-send.ts). Note DIRECTION_TO_SIGN disagrees ('+') — pre-existing
- *  inconsistency, flagged in the PR. */
+ *  'bank_claim' is ambiguous — the paying sender AND a user viewing their own
+ *  claim-to-bank both see it — so it stays blocked until the predicate can see
+ *  the viewer role. 'bank_request_fulfillment' is deliberately absent: the
+ *  strategy assigns it only to userRole SENDER (p2p-send.ts). */
 const INBOUND_DIRECTIONS: ReadonlySet<TransactionDirection> = new Set([
     'receive',
     'add',

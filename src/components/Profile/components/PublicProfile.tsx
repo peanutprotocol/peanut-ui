@@ -66,12 +66,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
         trackImpressionWhenGuest: !isFetchingUser && !isLoggedIn,
     })
 
-    // Referral impression, once per settled-guest profile. Gated on
-    // isFetchingUser because every visitor looks logged-out during the
-    // pre-auth flash — the store-handoff hook tracks its own migration
-    // impression, not this one. Keyed by username (not a boolean): the
-    // [...recipient] route reuses this component instance across profile
-    // navigations, and a clicks-without-impressions funnel reads as >100% CTR.
+    // Gated on isFetchingUser: every visitor looks logged-out during the pre-auth
+    // flash. Keyed by username because the [...recipient] route reuses this
+    // component instance across profile navigations.
     const referralImpressionForUsername = useRef<string | null>(null)
     useEffect(() => {
         if (isFetchingUser || isLoggedIn || referralImpressionForUsername.current === username) return
@@ -82,40 +79,30 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
         })
     }, [isFetchingUser, isLoggedIn, username])
 
-    // Every public profile is deliberately an invite door — bare
-    // `peanut.me/<username>` links credit their owner retroactively. Intentional
-    // design (Konrad, Aug 2026), not an accident to clean up.
+    // Every public profile is deliberately an invite door (Konrad, Aug 2026) —
+    // bare `peanut.me/<username>` links credit their owner retroactively.
     const handleJoinClick = async () => {
-        // Pre-auth flash guard: until auth settles every visitor looks logged
-        // out, and a fast tap here would write someone else's invite code into
-        // an already-authenticated session's cookies.
+        // A tap during the pre-auth flash would write someone else's invite code
+        // into an already-authenticated session's cookies.
         if (isFetchingUser || isJoining) return
-        // No-op when the Request-gate modal isn't open; closing here keeps the
-        // card door and the modal door on one handler instead of two forks.
         setShowInviteModal(false)
         setIsJoining(true)
         const code = toInviteCode(username)
-        // Start the validation but do NOT await it yet — the intercept below has
-        // to run inside the click gesture.
+        // Started but NOT awaited: the handoff calls window.open, which iOS blocks
+        // in a promise continuation, so it has to run inside the click gesture. It
+        // opens `_blank`, so this tab lives on and the cookie write below lands
+        // (true store-hop attribution: TASK-21044).
         const validation = invitesApi.validateInviteCode(code)
-        // Synchronous, first: the store handoff calls window.open, which iOS
-        // blocks once it sits in a promise continuation (same fix as
-        // PendingVerificationTasks). It opens `_blank`, so THIS tab lives on and
-        // the cookie write below still lands. True store-hop attribution
-        // (deferred payload in openStore) is TASK-21044.
         const intercepted = interceptGuestCta()
         try {
             const { onboardingResolved, username: inviterUsername } = await validation.catch(() => ({
                 onboardingResolved: false,
                 username: '',
             }))
-            // Credit ONLY when the code resolves to the profile owner themself.
-            // The API's typo-fallback can resolve a waitlisted handle to a
-            // DIFFERENT real user (profile `maria23` → user `maria`), and that
-            // click must never write a cookie — no credit on a mismatch.
-            // Session scope, no expiryDays: a poisoned cookie outlives this page,
-            // the accept retry upgrades it to 30 days, and setup's skipInviteGate
-            // then routes past the only screen with Log In (PR #2346 lockout).
+            // Credit ONLY the profile owner: the API's typo-fallback resolves a
+            // waitlisted handle to a DIFFERENT real user (`maria23` → `maria`).
+            // Session scope, no expiryDays — a poisoned cookie outlives this page
+            // and locks setup past the only screen with Log In (PR #2346).
             const resolvedToOwner = !!onboardingResolved && inviterUsername === code
             if (resolvedToOwner) saveToCookie('inviteCode', code)
             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
@@ -123,16 +110,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 link_type: resolvedToOwner ? 'invite_code' : 'none',
             })
             if (intercepted) return
-            // Unresolvable or mismatched codes still navigate — /invite owns the
-            // messaging.
+            // Unresolvable and mismatched codes still navigate — /invite owns the messaging.
             router.push(`/invite?code=${code}`)
         } finally {
             setIsJoining(false)
         }
     }
 
-    // One element, two doors: the guest card and the Request-gate modal must
-    // never drift apart — each is a crediting entrance to the same signup.
+    // One element, two doors — the guest card and the Request-gate modal.
     const joinCtaButton = (
         <Button variant="purple" shadowSize="4" className="w-full" disabled={isJoining} onClick={handleJoinClick}>
             {t('joinCta')}
@@ -297,11 +282,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
                 {storeHandoffModal}
 
-                {/* Request-gate modal. A logged-out guest gets the same crediting door
-                    as the join card above — the beg copy would send them off to ask for
-                    the very link this page can hand them. The beg flow stays for the
-                    logged-in-without-access case: they already have an account, so the
-                    profile owner's code can't credit them through signup. */}
+                {/* A logged-out guest gets the crediting door; the beg flow stays for
+                    the logged-in-without-access case, where the owner's code can no
+                    longer credit them through signup. */}
                 <ActionModal
                     icon="user"
                     title={t('noInviteTitle')}

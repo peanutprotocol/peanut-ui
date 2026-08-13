@@ -1767,7 +1767,6 @@
             }
         },
         "toast": {
-            "inviteLinkCopied": "Link de convite copiado!",
             "linkCancelled": "Link cancelado com sucesso!",
             "linkCancelledRefresh": "Link cancelado! Atualize para ver o saldo atualizado.",
             "cancelLinkFailed": "Não foi possível cancelar o link. Tente de novo."

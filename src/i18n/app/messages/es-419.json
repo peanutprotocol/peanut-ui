@@ -1767,7 +1767,6 @@
             }
         },
         "toast": {
-            "inviteLinkCopied": "¡Enlace de invitación copiado!",
             "linkCancelled": "¡Enlace cancelado con éxito!",
             "linkCancelledRefresh": "¡Enlace cancelado! Actualiza para ver tu saldo al día.",
             "cancelLinkFailed": "No se pudo cancelar el enlace. Inténtalo de nuevo."

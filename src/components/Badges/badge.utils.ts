@@ -111,32 +111,24 @@ export function getBadgeDescription(description?: string | null): string | null 
     return description?.trim() || null
 }
 
-// The link every badge share carries: the sharer's own invite link, so a guest
-// signup credits them. A logged-in recipient of /invite?code=<u> is redirected
-// to the profile anyway, so the invite form costs registered clickers nothing.
+// The sharer's own invite link, so a guest signup credits them.
 // `generateInviteCodeLink` has no null guard — the ternary is load-bearing.
 export function getBadgeShareLink(username: string | null | undefined): string {
     return username ? generateInviteCodeLink(username).inviteLink : appBaseUrl()
 }
 
-// link_type must report what the share ACTUALLY carried: when the username
-// hasn't resolved yet the link degrades to the bare origin, and tagging that
-// 'invite_code' would poison the which-link-shape-converts comparison the
-// REFERRAL_SOURCES doc comment promises.
-function badgeShareLinkType(shareLink: string): 'invite_code' | 'none' {
-    return shareLink.includes('/invite?code=') ? 'invite_code' : 'none'
+// link_type reports what the share ACTUALLY carried: without a username the
+// link degrades to the bare origin, which is not an invite code.
+const shareLinkType = (username: string | null | undefined) => (username ? 'invite_code' : 'none')
+
+// One wire contract for both badge surfaces — add properties here, not at the
+// call sites.
+export function captureBadgeShareShown(source: string, username: string | null | undefined): void {
+    posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source, link_type: shareLinkType(username) })
 }
 
-// One wire contract for badge-share analytics: both badge surfaces (detail
-// modal, unlock drawer) emit the same SHOWN impression on open and the same
-// CLICKED + SHARED pair on a successful share, differing only by source.
-// Add properties here, not at call sites.
-export function captureBadgeShareShown(source: string, shareLink: string): void {
-    posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source, link_type: badgeShareLinkType(shareLink) })
-}
-
-export function captureBadgeShare(source: string, shareLink: string): void {
-    const link_type = badgeShareLinkType(shareLink)
+export function captureBadgeShare(source: string, username: string | null | undefined): void {
+    const link_type = shareLinkType(username)
     posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, { source, link_type })
     posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source, link_type })
 }

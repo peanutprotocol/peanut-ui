@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import type { StaticImageData } from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import ActionModal from '../Global/ActionModal'
 import { BadgeImage } from './BadgeImage'
 import ShareButton from '../Global/ShareButton'
-import { captureBadgeShare, captureBadgeShareShown, getBadgeShareLink, getBadgeShareText } from './badge.utils'
+import { captureBadgeShare, getBadgeShareLink, getBadgeShareText } from './badge.utils'
+import { useBadgeShareImpression } from './useBadgeShareImpression'
 import { useUserStore } from '@/redux/hooks'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 
@@ -26,23 +26,9 @@ export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, lo
     const locale = useLocale()
     const { user: authUser } = useUserStore()
     const username = authUser?.user?.username
-    // the sharer's own invite link, so a guest signup credits them (rationale
-    // + null handling live on the helper in badge.utils).
+    // the sharer's own invite link, so a guest signup credits them
     const shareLink = getBadgeShareLink(username)
-
-    // Impression leg: once per OPEN, not per shareLink change — the username
-    // can resolve mid-open (redux hydration), and re-firing would count one
-    // exposure twice, split across two link_type buckets.
-    const impressionLatch = useRef(false)
-    useEffect(() => {
-        if (!isOpen) {
-            impressionLatch.current = false
-            return
-        }
-        if (impressionLatch.current) return
-        impressionLatch.current = true
-        captureBadgeShareShown(REFERRAL_SOURCES.BADGE_DETAIL, shareLink)
-    }, [isOpen, shareLink])
+    useBadgeShareImpression(isOpen, REFERRAL_SOURCES.BADGE_DETAIL, username)
 
     const shareText = getBadgeShareText(code, title, shareLink, {
         locale,
@@ -72,7 +58,7 @@ export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, lo
                     title=""
                     className="w-full"
                     onSuccess={() => {
-                        captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, shareLink)
+                        captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, username)
                         onClose()
                     }}
                     generateText={() => Promise.resolve(shareText)}

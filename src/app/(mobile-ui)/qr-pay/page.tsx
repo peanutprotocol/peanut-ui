@@ -1278,11 +1278,7 @@ export default function QRPayPage() {
                   })
             : ''
 
-        // The perk gate in both polarities, named once — this screen used to
-        // spell the 3-term expression inline in four places (two per polarity),
-        // which is exactly how a future perk-state change misses one.
         const rewardClaimable = !!qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed
-        const rewardClaimed = perkClaimed || !!qrPayment?.perk?.claimed
 
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
@@ -1290,7 +1286,7 @@ export default function QRPayPage() {
                 <NavHeader title={tNav('pay')} />
                 <div className="my-auto flex h-full flex-col justify-center space-y-4">
                     {/* Only show payment card if reward was not claimed */}
-                    {!rewardClaimed && (
+                    {!perkClaimed && !qrPayment?.perk?.claimed && (
                         <Card className="flex flex-row items-center gap-3 p-4">
                             <div className="flex items-center gap-3">
                                 <div
@@ -1352,7 +1348,7 @@ export default function QRPayPage() {
                     )}
 
                     {/* Reward Success Banner - Show after claiming */}
-                    {rewardClaimed && (
+                    {(perkClaimed || qrPayment?.perk?.claimed) && (
                         <Card className="flex items-start gap-3 bg-white p-4">
                             <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 p-2">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
@@ -1437,7 +1433,7 @@ export default function QRPayPage() {
                         ) : (
                             <>
                                 {/* after claiming a reward, primary CTA is "Done" — not "Split this bill" */}
-                                {rewardClaimed ? (
+                                {perkClaimed || qrPayment?.perk?.claimed ? (
                                     <Button shadowSize="4" onClick={() => router.push('/home')}>
                                         {tCommon('goToHome')}
                                     </Button>
@@ -1500,14 +1496,10 @@ export default function QRPayPage() {
                             </>
                         )}
 
-                        {/* Invite row. Underlined text, not a button, so the stack stays
-                            at two filled CTAs. In the reward-claimed branch it is also the
-                            button the "invite friends to earn even more" line above has
-                            always lacked. Deliberately NOT gated on isActivated (the
-                            receipt nudge is): on a first QR pay that flag is still false
-                            server-side, and the payment that just succeeded is the gate.
-                            Hidden while a reward is still claimable so it cannot compete
-                            with the hold-to-claim gesture. */}
+                        {/* Underlined text, not a button, so the stack stays at two filled
+                            CTAs. Not gated on isActivated (the receipt nudge is): on a first
+                            QR pay that flag is still false server-side. Hidden while a reward
+                            is claimable so it cannot compete with the hold-to-claim gesture. */}
                         {user?.user.username && !rewardClaimable && (
                             <button
                                 onClick={() => setShowInviteFriendsModal(true)}
@@ -1524,12 +1516,10 @@ export default function QRPayPage() {
                     onClose={closeTransactionDetails}
                     transaction={selectedTransaction}
                 />
-                {/* All five referral events (modal shown/dismissed, CTA shown/clicked,
-                    link shared) are fired by the modal — no page-level captures.
-                    Mounted only while open: the modal's shown-guard is a ref that
-                    lives for the mount, so a persistent mount would swallow the
-                    MODAL_SHOWN/REFERRAL_CTA_SHOWN pair on every re-open — and a
-                    closed modal would reconcile on each 50ms hold-to-claim tick. */}
+                {/* Mounted only while open: the modal's shown-guard is a ref that lives
+                    for the mount, so a persistent mount would swallow the MODAL_SHOWN /
+                    REFERRAL_CTA_SHOWN pair on every re-open. The modal fires every
+                    referral capture; this page fires none. */}
                 {showInviteFriendsModal && user?.user.username && (
                     <InviteFriendsModal
                         visible

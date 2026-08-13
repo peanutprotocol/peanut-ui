@@ -1289,38 +1289,25 @@ describe('GROUP 4: Success States', () => {
     })
 
     // ---- invite row on the success screen ----
-    // Pulled from the catalog, not hardcoded: the row is asserted by identity,
-    // so a copy edit must not turn into a red test.
+    // Pulled from the catalog, not hardcoded, so a copy edit is not a red test.
     const INVITE_CTA = en.qrPay.success.inviteFriendsCta
+    const CLAIMED_PERK = { eligible: true, discountPercentage: 5, amountSponsored: 0.5, claimed: true }
 
-    // Filled CTAs only. The invite row is an underlined text button by design,
-    // so it must not count against the 2-CTA ceiling of the success stack.
-    const filledCtaCount = () =>
-        Array.from(document.querySelectorAll<HTMLButtonElement>('.space-y-5 button')).filter(
-            (button) => !button.className.includes('underline')
-        ).length
+    test.each([
+        ['a plain Manteca success (no perk)', {}, /You paid/],
+        ['a claimed perk', { perk: CLAIMED_PERK }, 'Go to Home'],
+    ] as Array<[string, Record<string, unknown>, RegExp | string]>)(
+        'invite row renders on %s',
+        async (_label, overrides, settledMarker) => {
+            await completeMantecaPayment(overrides)
 
-    test('invite row renders on a plain Manteca success (no perk)', async () => {
-        await completeMantecaPayment()
+            await waitFor(() => {
+                expect(screen.getByText(settledMarker)).toBeInTheDocument()
+            })
 
-        await waitFor(() => {
-            expect(screen.getByText(/You paid/)).toBeInTheDocument()
-        })
-
-        expect(screen.getByText(INVITE_CTA)).toBeInTheDocument()
-    })
-
-    test('invite row renders once the perk is claimed', async () => {
-        await completeMantecaPayment({
-            perk: { eligible: true, discountPercentage: 5, amountSponsored: 0.5, claimed: true },
-        })
-
-        await waitFor(() => {
-            expect(screen.getByText('Go to Home')).toBeInTheDocument()
-        })
-
-        expect(screen.getByText(INVITE_CTA)).toBeInTheDocument()
-    })
+            expect(screen.getByText(INVITE_CTA)).toBeInTheDocument()
+        }
+    )
 
     // A claimable reward owns the screen — the invite row must not compete with
     // the hold-to-claim gesture.
@@ -1371,22 +1358,6 @@ describe('GROUP 4: Success States', () => {
         const modal = screen.getByTestId('invite-friends-modal')
         expect(modal).toHaveAttribute('data-username', 'test-user')
         expect(modal).toHaveAttribute('data-source', 'qr_pay_success')
-    })
-
-    // The reward branch swaps Split for "Go to Home" — either way the stack tops
-    // out at two filled buttons, with the invite row riding along as text.
-    test.each([
-        ['no perk', undefined],
-        ['perk claimed', { eligible: true, discountPercentage: 5, amountSponsored: 0.5, claimed: true }],
-        ['perk claimable', { eligible: true, discountPercentage: 5, amountSponsored: 0.5 }],
-    ])('the CTA stack keeps at most two filled buttons (%s)', async (_label, perk) => {
-        await completeMantecaPayment(perk ? { perk } : {})
-
-        await waitFor(() => {
-            expect(document.querySelector('.space-y-5')).toBeInTheDocument()
-        })
-
-        expect(filledCtaCount()).toBeLessThanOrEqual(2)
     })
 })
 

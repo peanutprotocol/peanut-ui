@@ -1,5 +1,5 @@
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
@@ -7,13 +7,13 @@ import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
 import {
     captureBadgeShare,
-    captureBadgeShareShown,
     getBadgeDescription,
     getBadgeDisplayName,
     getBadgeIcon,
     getBadgeShareLink,
     getBadgeShareText,
 } from './badge.utils'
+import { useBadgeShareImpression } from './useBadgeShareImpression'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
 import { BadgeImage } from './BadgeImage'
@@ -54,21 +54,9 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     const displayDescription = getBadgeDescription(badge.description)
     const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
-    // the sharer's own invite link, so a guest signup credits them (rationale
-    // + null handling live on the helper in badge.utils).
+    // the sharer's own invite link, so a guest signup credits them
     const shareLink = getBadgeShareLink(username)
-
-    // Impression leg — once per open, latched; see BadgeDetailModal.
-    const impressionLatch = useRef(false)
-    useEffect(() => {
-        if (!isOpen) {
-            impressionLatch.current = false
-            return
-        }
-        if (impressionLatch.current) return
-        impressionLatch.current = true
-        captureBadgeShareShown(REFERRAL_SOURCES.BADGE_UNLOCK, shareLink)
-    }, [isOpen, shareLink])
+    useBadgeShareImpression(isOpen, REFERRAL_SOURCES.BADGE_UNLOCK, username)
 
     return (
         <>
@@ -115,7 +103,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                         <div className="pb-4">
                             <ShareButton
                                 title=""
-                                onSuccess={() => captureBadgeShare(REFERRAL_SOURCES.BADGE_UNLOCK, shareLink)}
+                                onSuccess={() => captureBadgeShare(REFERRAL_SOURCES.BADGE_UNLOCK, username)}
                                 generateText={() =>
                                     Promise.resolve(
                                         getBadgeShareText(badge.code, displayName, shareLink, {

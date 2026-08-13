@@ -156,12 +156,6 @@ describe('isSplittable', () => {
     })
 })
 
-// Gates the invite-friends nudge on a completed receipt. Kind-based on purpose:
-// the receipt used to gate it on a hand-kept `['send','withdraw','bank_withdraw']`
-// direction allow-list, which silently dropped every QR pay AND every card spend
-// (both are `direction: 'qr_payment'`). The table below is the test that would
-// have caught that — it walks every IntentKind, so adding a kind without deciding
-// its nudge status is a red test, not a silent miss.
 describe('hasReferralNudge', () => {
     const nudgeTx = (kind: string, direction: TransactionDirection): TransactionDetails =>
         ({
@@ -169,12 +163,9 @@ describe('hasReferralNudge', () => {
             extraDataForDrawer: { originalType: 'TRANSACTION_INTENT', kind },
         }) as unknown as TransactionDetails
 
-    // Every IntentKind member × the direction that kind renders for the payer,
-    // plus whether it earns a nudge. Keyed by IntentKind (not an array) so a new
-    // kind is a TS error until someone decides its nudge status here. `false`
-    // rows are the deliberate exclusions: CARD_AUTH_REVERSAL (the charge never
-    // stuck), ONRAMP (a deposit, not a payment), CRYPTO_DEPOSIT / REFUND /
-    // PERK_REWARD (inbound — money arrived).
+    // Every IntentKind × the direction it renders for the payer. Keyed by
+    // IntentKind (not an array) so a new kind is a TS error until someone
+    // decides its nudge status here.
     const NUDGE_BY_KIND: Record<IntentKind, { direction: TransactionDirection; expected: boolean }> = {
         DIRECT_TRANSFER: { direction: 'send', expected: true },
         SEND_LINK: { direction: 'send', expected: true },
@@ -209,25 +200,13 @@ describe('hasReferralNudge', () => {
         expect(hasReferralNudge(nudgeTx(kind, direction))).toBe(false)
     })
 
-    // 'bank_claim' has two possible viewers (the paying sender when claimed
-    // externally, AND a Peanut user viewing their own claim-to-bank), and the
-    // direction alone cannot tell them apart — blocked until the predicate
-    // can see the viewer role.
     test('a bank send-link claim gets no nudge (viewer role is ambiguous)', () => {
         expect(hasReferralNudge(nudgeTx('OFFRAMP', 'bank_claim'))).toBe(false)
     })
 
-    // 'bank_request_fulfillment' only ever renders for userRole SENDER — the
-    // viewer is paying a request via bank rails (p2p-send.ts).
+    // 'bank_request_fulfillment' only ever renders for userRole SENDER (p2p-send.ts).
     test('a bridge-fulfilled request nudges the payer', () => {
         expect(hasReferralNudge(nudgeTx('P2P_REQUEST_FULFILL', 'bank_request_fulfillment'))).toBe(true)
-    })
-
-    // The regression the direction allow-list caused: QR pays and card spends
-    // share `direction: 'qr_payment'`, so neither was ever eligible.
-    test('QR pays and card spends both qualify despite sharing direction qr_payment', () => {
-        expect(hasReferralNudge(nudgeTx('QR_PAY', 'qr_payment'))).toBe(true)
-        expect(hasReferralNudge(nudgeTx('CARD_SPEND_CLEAR', 'qr_payment'))).toBe(true)
     })
 
     // A card refund keeps the spend kind on legacy rows but arrives inbound.

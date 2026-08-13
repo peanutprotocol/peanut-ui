@@ -68,7 +68,7 @@ import ContributorCard from '../Global/Contributors/ContributorCard'
 import { requestsApi } from '@/services/requests'
 import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
-import { copyTextToClipboardWithFallback, generateInviteCodeLink } from '@/utils/general.utils'
+import { generateInviteCodeLink } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
@@ -86,6 +86,14 @@ const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> =
     iban: 'IBAN',
     clabe: 'CLABE',
 }
+
+// One wire shape for all three legs of the referral nudge. Module-level so the
+// impression effect can call it without re-running on every render.
+const referralNudgeProps = (variant: 'button' | 'text_link') => ({
+    source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
+    link_type: 'invite_code',
+    variant,
+})
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -225,47 +233,46 @@ export const TransactionDetailsReceipt = ({
         return null
     }, [transaction])
 
-    // Share-Receipt visibility. `shouldShowShareReceipt` on its own is TRUE for
-    // card spends (the txHash short-circuit in useReceiptViewModel); the actual
-    // suppressor is `getReceiptUrl` returning undefined. Both the button below
-    // and the CTA arithmetic must read this composed value, never the bare flag.
+    // `shouldShowShareReceipt` alone is TRUE for card spends (the txHash
+    // short-circuit in useReceiptViewModel); `getReceiptUrl` returning undefined
+    // is the real suppressor, so the CTA arithmetic must read the composite.
     const receiptUrl = transaction ? getReceiptUrl(transaction) : undefined
     const showShareReceipt = shouldShowShareReceipt && !!receiptUrl
     const showSplitCta = !isPublic && !!transaction && isSplittable(transaction)
 
-    // Referral nudge on a completed outbound receipt. Eligibility is kind-based
-    // (see hasReferralNudge), so a new outbound flow qualifies the day its kind
-    // is added — there is no direction allow-list left to forget. PERK_REWARD is
-    // absent from that allow-list, which subsumes the old `!isPerkReward` term.
-    // `!isPublic` stays: on a public receipt the *viewer's* username would credit
-    // a bystander for someone else's payment.
+    // `!isPublic`: on a public receipt the *viewer's* username would credit a
+    // bystander for someone else's payment.
+    const inviteUsername = user?.user.username
     const showReferralNudge =
         !isPublic &&
         isActivated &&
         !!transaction &&
         transaction.status === 'completed' &&
         hasReferralNudge(transaction) &&
-        !!user?.user.username
+        !!inviteUsername
+    const inviteLink = inviteUsername ? generateInviteCodeLink(inviteUsername).inviteLink : ''
 
-    // 2-CTA ceiling: with both Split and Share Receipt already stacked (a QR
-    // pay), the nudge demotes to an underlined text row so the drawer never
-    // shows three equal-weight CTAs. Anything less keeps the proven filled
-    // treatment (send / withdraw stack neither; card spend stacks Split only).
+    // With Split and Share Receipt both stacked (a QR pay) the nudge demotes to
+    // an underlined text row, so the drawer never shows three equal-weight CTAs.
     const referralCtaVariant = showSplitCta && showShareReceipt ? 'text_link' : 'button'
 
-    // One impression per selected transaction. Re-opening the same transaction
-    // may not remount the drawer, so this is per-selection, not per-view.
+    // Outcome, not intent — ShareButton calls onSuccess only after a real share
+    // or copy, so a cancelled share sheet captures nothing.
+    const captureInviteShared = () => {
+        const props = referralNudgeProps(referralCtaVariant)
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, props)
+        posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, props)
+    }
+
+    // Per selected transaction, not per view: re-opening the same transaction
+    // may not remount the drawer.
     const nudgeTransactionId = transaction?.id
     const referralImpressionForId = useRef<string | null>(null)
     useEffect(() => {
         if (!showReferralNudge || !nudgeTransactionId) return
         if (referralImpressionForId.current === nudgeTransactionId) return
         referralImpressionForId.current = nudgeTransactionId
-        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, {
-            source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
-            link_type: 'invite_code',
-            variant: referralCtaVariant,
-        })
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, referralNudgeProps(referralCtaVariant))
     }, [showReferralNudge, nudgeTransactionId, referralCtaVariant])
 
     if (!transaction) return null
@@ -344,53 +351,6 @@ export const TransactionDetailsReceipt = ({
             }
         }
     }
-
-    // Shared by both nudge treatments (filled button + demoted text row).
-    // Outcome, not intent — a cancelled share sheet skips both captures.
-    // CLICKED + SHARED together match what the badge surfaces and
-    // InviteFriendsModal emit for the same successful outcome.
-    const captureInviteShared = () => {
-        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
-            source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
-            link_type: 'invite_code',
-            variant: referralCtaVariant,
-        })
-        posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, {
-            source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
-            link_type: 'invite_code',
-            variant: referralCtaVariant,
-        })
-    }
-    const copyInviteLinkAndCapture = async (inviteLink: string) => {
-        // The util resolves only after a real copy (secure-context aware, with
-        // the textarea fallback), so the toast can't lie about a write the
-        // browser rejected — and a failed copy skips the captures.
-        const copied = await copyTextToClipboardWithFallback(inviteLink)
-        if (!copied) return
-        toast.info(t('toast.inviteLinkCopied'))
-        captureInviteShared()
-    }
-    const shareInviteLink = async () => {
-        const username = user?.user.username
-        if (!username) return
-        const { inviteLink } = generateInviteCodeLink(username)
-        if (!navigator.share) {
-            // Desktop: navigator.share is mobile-only.
-            await copyInviteLinkAndCapture(inviteLink)
-            return
-        }
-        try {
-            await navigator.share({ url: inviteLink })
-            captureInviteShared()
-        } catch (err) {
-            // user cancelled the share sheet — quiet path
-            if (err instanceof Error && err.name === 'AbortError') return
-            // navigator.share exists but rejected (WebView permission policy,
-            // gesture lost across the await) — don't leave a dead button.
-            await copyInviteLinkAndCapture(inviteLink)
-        }
-    }
-
     // Special rendering for PERK_REWARD type
     const isPerkReward = isPerkRewardTransaction(transaction)
     const perkRewardData = transaction.extraDataForDrawer?.perkReward
@@ -905,27 +865,32 @@ export const TransactionDetailsReceipt = ({
                 onClose={onClose}
             />
 
-            {/* Referral nudge for activated users on a completed outbound receipt.
-                Which flows qualify is decided by kind (hasReferralNudge), so QR pays
-                and card spends are in — the direction allow-list this replaced dropped
-                both silently. Which treatment they get is decided by stackedCtaCount:
-                below two stacked action buttons the nudge stays a filled button; at two
-                it demotes to the underlined text row directly above "Issues with this
-                transaction?", keeping the drawer at two equal-weight CTAs. */}
             {showReferralNudge &&
                 (referralCtaVariant === 'button' ? (
-                    <Button variant="primary-soft" shadowSize="4" onClick={shareInviteLink}>
+                    <ShareButton
+                        url={inviteLink}
+                        title=""
+                        variant="primary-soft"
+                        showIcon={false}
+                        onSuccess={captureInviteShared}
+                    >
                         <Icon name="invite-heart" size={16} />
                         <span className="text-sm font-medium">{t('actions.inviteFriends')}</span>
-                    </Button>
+                    </ShareButton>
                 ) : (
-                    <button
-                        onClick={shareInviteLink}
-                        className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                    // Plain utilities beat the `.btn*` component classes (Tailwind
+                    // emits components before utilities), so no `!important` needed.
+                    <ShareButton
+                        url={inviteLink}
+                        title=""
+                        variant="transparent"
+                        showIcon={false}
+                        onSuccess={captureInviteShared}
+                        className="h-auto gap-2 p-0 text-sm font-medium text-grey-1 underline shadow-none hover:text-black active:translate-x-0 active:translate-y-0"
                     >
                         <Icon name="invite-heart" size={16} className="text-grey-1" />
                         {t('actions.inviteFriends')}
-                    </button>
+                    </ShareButton>
                 ))}
 
             {/* support link section or passkey docs for test transactions */}
