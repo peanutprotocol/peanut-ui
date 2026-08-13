@@ -19,7 +19,7 @@
 // first render tripped React #418 on phones (device is WEB on the server).
 
 import { useEffect, useState } from 'react'
-import { notFound } from 'next/navigation'
+import { notFound, useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -27,6 +27,7 @@ import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import { STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 
 const FLAG_WAIT_MS = 4000
@@ -34,9 +35,18 @@ const FLAG_WAIT_MS = 4000
 export default function SmartStoreRedirect() {
     const t = useTranslations('migration')
     const { deviceType } = useDeviceType()
+    const router = useRouter()
 
     const [mounted, setMounted] = useState(false)
     useEffect(() => setMounted(true), [])
+
+    // universal links (paths: ["*"]) open this page INSIDE the native app when
+    // an installed user scans a download QR — there's no store to bounce to,
+    // so send them home instead of redirecting them out to the store.
+    const inNativeApp = mounted && isCapacitor()
+    useEffect(() => {
+        if (inNativeApp) router.replace('/home')
+    }, [inNativeApp, router])
 
     // wait for posthog to deliver flags (or time out) before judging the flag
     const [flagsSettled, setFlagsSettled] = useState(false)
@@ -66,13 +76,21 @@ export default function SmartStoreRedirect() {
 
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
-        if (!settled || !migrationOn || !targetStore) return
+        if (inNativeApp || !settled || !migrationOn || !targetStore) return
         setRedirecting(true)
         window.location.replace(STORE_URL[targetStore])
         // if the store didn't take over (blocked, offline), settle to buttons
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-    }, [settled, migrationOn, targetStore])
+    }, [inNativeApp, settled, migrationOn, targetStore])
+
+    if (inNativeApp) {
+        return (
+            <div className="flex min-h-[100dvh] w-full items-center justify-center bg-white">
+                <Loading />
+            </div>
+        )
+    }
 
     if (settled && !migrationOn) notFound()
 
