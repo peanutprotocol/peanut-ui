@@ -14,9 +14,10 @@ const ScaledPixelatedCardFace = dynamic(
     { ssr: false }
 )
 
-// On a black ground the card's black drop shadow and the button's black shadow
-// both disappear, so both carry the brand pink here instead. Deliberate
-// deviation from the all-black-shadow rule — it only applies on this fold.
+// On a black ground a black drop shadow is invisible, so the card and the
+// button both carry brand pink here. Deliberate deviation from the
+// all-black-shadow rule, and it applies on this fold only. The button repeats
+// the hex in its class because Tailwind only sees literals.
 const PINK = '#FF90E8'
 
 /**
@@ -70,7 +71,7 @@ export function ShhhhhFold() {
                     {/* blurAll: closed-beta tease — card shape recognisable, logos +
                         number unreadable. Rotation sits on the wrapper so the inner
                         host still measures its layout width for the fit-to-width scale. */}
-                    <Link href="/shhhhh" aria-label={t('tryTheDoor')} className="-rotate-12">
+                    <Link href="/shhhhh" aria-label={t('tryTheDoor')} className="inline-block -rotate-12">
                         <div className="aspect-[400/252] w-[min(20rem,72vw)] md:w-[min(25rem,30vw)]">
                             <ScaledPixelatedCardFace last4="????" blurAll shadowColor={PINK} />
                         </div>
