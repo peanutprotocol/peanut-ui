@@ -14,6 +14,7 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import { getValidRedirectUrl, saveRedirectUrl, saveToCookie } from '@/utils/general.utils'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
@@ -57,6 +58,13 @@ function InvitePageContent() {
 
     // Track if we should show content (prevents flash)
     const [shouldShowContent, setShouldShowContent] = useState(false)
+
+    // migration window: guest CTAs hand off to the stores like the other guest
+    // entry points (claim/request/pay). shouldShowContent is the settled guest
+    // state — the pre-auth flash never counts an impression.
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        trackImpressionWhenGuest: shouldShowContent && !user?.user,
+    })
 
     const {
         data: inviteCodeData,
@@ -249,6 +257,11 @@ function InvitePageContent() {
         // typed claim result is consumed after registration.
         if (hasUrlBadgeCampaigns) queuePendingBadgeCampaigns(urlBadgeCampaigns)
 
+        // during the migration window guests go to the stores, not signup —
+        // cookie/queue bookkeeping above still runs so a keep-web signup or
+        // post-install link re-tap recovers the invite context.
+        if (!user?.user && interceptGuestCta()) return
+
         const signupUrl = redirectUri
             ? `/setup?step=signup&redirect_uri=${encodeURIComponent(redirectUri)}`
             : '/setup?step=signup'
@@ -336,6 +349,7 @@ function InvitePageContent() {
                     </div>
                 </div>
             </div>
+            {storeHandoffModal}
             <UnsupportedBrowserModal allowClose={false} />
         </InvitesPageLayout>
     )
