@@ -26,8 +26,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import { STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
-import { isCapacitor } from '@/utils/capacitor'
+import { isNativeBridge } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 
 const FLAG_WAIT_MS = 4000
@@ -37,20 +38,23 @@ export default function SmartStoreRedirect() {
     const { deviceType } = useDeviceType()
     const router = useRouter()
 
-    const [mounted, setMounted] = useState(false)
-    useEffect(() => setMounted(true), [])
-
-    // universal links (paths: ["*"]) open this page INSIDE the native app when
-    // an installed user scans a download QR — there's no store to bounce to,
+    // universal links (paths: ["*"]) open this page inside the native app when
+    // an installed user scans a download qr — there's no store to bounce to,
     // so send them home instead of redirecting them out to the store.
-    const inNativeApp = mounted && isCapacitor()
+    // isNativeBridge, not isCapacitor: capacitor-flavored web builds bake
+    // NEXT_PUBLIC_CAPACITOR_BUILD=true with no bridge, and those visitors
+    // still need the store page.
+    const [mounted, setMounted] = useState(false)
     useEffect(() => {
-        if (inNativeApp) router.replace('/home')
-    }, [inNativeApp, router])
+        setMounted(true)
+        if (isNativeBridge()) router.replace('/home')
+    }, [router])
+    const inNativeApp = mounted && isNativeBridge()
 
     // wait for posthog to deliver flags (or time out) before judging the flag
     const [flagsSettled, setFlagsSettled] = useState(false)
     useEffect(() => {
+        if (isNativeBridge()) return // redirecting home — flag irrelevant
         if (isPwaSunsetOn()) {
             setFlagsSettled(true)
             return
@@ -84,13 +88,7 @@ export default function SmartStoreRedirect() {
         return () => clearTimeout(fallback)
     }, [inNativeApp, settled, migrationOn, targetStore])
 
-    if (inNativeApp) {
-        return (
-            <div className="flex min-h-[100dvh] w-full items-center justify-center bg-white">
-                <Loading />
-            </div>
-        )
-    }
+    if (inNativeApp) return <PeanutLoading coverFullScreen />
 
     if (settled && !migrationOn) notFound()
 

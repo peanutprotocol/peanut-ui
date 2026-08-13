@@ -7,8 +7,10 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 //
 // the hook keeps its state in a module-level store (init runs once per page),
 // so tests share one module instance and drive a fresh evaluateVisibility via
-// refreshPermissionState() — every branch of the evaluation ends in a
-// definitive setState, so each test's outcome is recomputed from its own mocks.
+// refreshPermissionState(). tests that assert the modal stays CLOSED first
+// prove it would show under pristine mocks (baseline true), then flip the
+// mocks and re-evaluate — a false can then only be a fresh recompute, never
+// leftover store state or a silent early-return on adapter failure.
 
 const mockAdapter = {
     init: jest.fn().mockResolvedValue(undefined),
@@ -44,19 +46,29 @@ jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: { user: { userI
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 
+import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { useNotifications } from '../useNotifications'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const daysAgo = (days: number) => new Date(Date.now() - days * DAY_MS).toISOString()
+const expiredSnooze = () => daysAgo(NOTIF_PROMPT_SNOOZE_DAYS + 6)
+const freshSnooze = () => daysAgo(1)
 
-async function renderAndEvaluate() {
-    const rendered = renderHook(() => useNotifications())
-    await waitFor(() => expect(rendered.result.current.oneSignalInitialized).toBe(true))
-    // force a full evaluateVisibility pass under THIS test's mocks (the shared
-    // module store may carry showPermissionModal from a previous test)
+type Rendered = ReturnType<typeof renderHook<ReturnType<typeof useNotifications>, unknown>>
+
+async function reEvaluate(rendered: Rendered) {
     await act(async () => {
         await rendered.result.current.refreshPermissionState()
     })
+}
+
+// render with pristine mocks (no prefs, default permission) and prove the
+// modal shows — the baseline every stays-closed assertion is measured against
+async function renderWithShowingBaseline() {
+    const rendered = renderHook(() => useNotifications())
+    await waitFor(() => expect(rendered.result.current.oneSignalInitialized).toBe(true))
+    await reEvaluate(rendered)
+    expect(rendered.result.current.showPermissionModal).toBe(true)
     return rendered
 }
 
@@ -70,57 +82,65 @@ describe('useNotifications dismissal / snooze logic', () => {
     })
 
     it('shows the modal for a user who never dismissed it', async () => {
-        const { result } = await renderAndEvaluate()
-        expect(result.current.showPermissionModal).toBe(true)
+        await renderWithShowingBaseline()
     })
 
     it('converts legacy notifModalClosed to a timestamp exactly once', async () => {
-        mockPrefs = { notifModalClosed: true }
+        const rendered = await renderWithShowingBaseline()
 
-        const { result } = await renderAndEvaluate()
+        mockPrefs = { notifModalClosed: true }
+        await reEvaluate(rendered)
+
         expect(mockPrefs?.notifModalClosedAt).toEqual(expect.any(String))
         // legacy dismissal converts to a snooze that starts now → stays closed
-        expect(result.current.showPermissionModal).toBe(false)
+        expect(rendered.result.current.showPermissionModal).toBe(false)
 
         // re-evaluate: the timestamp is already there, no second write
         const conversionWrites = () =>
             mockUpdateUserPreferences.mock.calls.filter(([, partial]) => 'notifModalClosedAt' in partial)
         expect(conversionWrites()).toHaveLength(1)
-        await act(async () => {
-            await result.current.refreshPermissionState()
-        })
+        await reEvaluate(rendered)
         expect(conversionWrites()).toHaveLength(1)
     })
 
     it('flag off: an expired snooze stays closed forever', async () => {
-        mockPrefs = { notifModalClosedAt: daysAgo(20) }
+        const rendered = await renderWithShowingBaseline()
 
-        const { result } = await renderAndEvaluate()
-        expect(result.current.showPermissionModal).toBe(false)
+        mockPrefs = { notifModalClosedAt: expiredSnooze() }
+        await reEvaluate(rendered)
+
+        expect(rendered.result.current.showPermissionModal).toBe(false)
     })
 
     it('flag on: an expired snooze re-asks', async () => {
         mockIsPwaSunsetOn.mockReturnValue(true)
-        mockPrefs = { notifModalClosedAt: daysAgo(20) }
+        mockPrefs = { notifModalClosedAt: expiredSnooze() }
 
-        const { result } = await renderAndEvaluate()
-        expect(result.current.showPermissionModal).toBe(true)
+        const rendered = renderHook(() => useNotifications())
+        await waitFor(() => expect(rendered.result.current.oneSignalInitialized).toBe(true))
+        await reEvaluate(rendered)
+
+        expect(rendered.result.current.showPermissionModal).toBe(true)
     })
 
     it('flag on: a fresh snooze stays closed', async () => {
         mockIsPwaSunsetOn.mockReturnValue(true)
-        mockPrefs = { notifModalClosedAt: daysAgo(1) }
+        const rendered = await renderWithShowingBaseline()
 
-        const { result } = await renderAndEvaluate()
-        expect(result.current.showPermissionModal).toBe(false)
+        mockPrefs = { notifModalClosedAt: freshSnooze() }
+        await reEvaluate(rendered)
+
+        expect(rendered.result.current.showPermissionModal).toBe(false)
     })
 
     it('granted permission hides the modal regardless of dismissal state', async () => {
+        const rendered = await renderWithShowingBaseline()
+
         mockAdapter.getPermission.mockResolvedValue('granted')
         mockIsPwaSunsetOn.mockReturnValue(true)
-        mockPrefs = { notifModalClosedAt: daysAgo(20) }
+        mockPrefs = { notifModalClosedAt: expiredSnooze() }
+        await reEvaluate(rendered)
 
-        const { result } = await renderAndEvaluate()
-        expect(result.current.showPermissionModal).toBe(false)
+        expect(rendered.result.current.showPermissionModal).toBe(false)
     })
 })

@@ -14,6 +14,7 @@ const mockQueuePendingBadgeCampaigns = jest.fn((badgeCampaigns: readonly string[
 const mockSaveToCookie = jest.fn()
 const mockSaveRedirectUrl = jest.fn()
 const mockInterceptGuestCta = jest.fn(() => false)
+const mockUseGuestStoreHandoff = jest.fn()
 
 let mockSearch = ''
 let mockAuth: {
@@ -53,7 +54,10 @@ jest.mock('@/redux/slices/setup-slice', () => ({
 }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/hooks/useGuestStoreHandoff', () => ({
-    useGuestStoreHandoff: () => ({ interceptGuestCta: mockInterceptGuestCta, storeHandoffModal: null }),
+    useGuestStoreHandoff: (opts: { trackImpressionWhenGuest?: boolean }) => {
+        mockUseGuestStoreHandoff(opts)
+        return { interceptGuestCta: mockInterceptGuestCta, storeHandoffModal: null }
+    },
 }))
 jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: (badgeCampaigns: readonly string[]) => mockClaimBadgeCampaigns(badgeCampaigns),
@@ -645,6 +649,29 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice')
         expect(mockInterceptGuestCta).toHaveBeenCalledTimes(1)
         expect(mockPush).not.toHaveBeenCalledWith('/setup?step=signup')
+        // the CTA rendered for a settled guest — the impression must be armed
+        const lastOpts = mockUseGuestStoreHandoff.mock.calls.at(-1)?.[0]
+        expect(lastOpts?.trackImpressionWhenGuest).toBe(true)
+    })
+
+    it('never arms the guest impression on the invalid-invite error view', async () => {
+        mockAuth.user = null
+        mockSearch = 'code=bad'
+        mockQueryResult.data = {
+            success: false,
+            attributionResolved: false,
+            onboardingResolved: false,
+            username: '',
+        }
+        mockQueryResult.isError = true
+
+        render(<InvitesPage />)
+        expect(await screen.findByText('Invalid Invite Code')).toBeInTheDocument()
+
+        // no CTA on this view → counting it would skew the TASK-20939 funnel
+        for (const [opts] of mockUseGuestStoreHandoff.mock.calls) {
+            expect(opts?.trackImpressionWhenGuest).toBe(false)
+        }
     })
 
     it('does not persist a bad inviter alongside a valid campaign', async () => {
