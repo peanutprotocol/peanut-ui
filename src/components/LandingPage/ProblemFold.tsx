@@ -1,6 +1,14 @@
+import Image from 'next/image'
+import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
+import NoHiddenFeesHand from '@/assets/illustrations/no-hidden-fees-hand.svg'
 import type { LandingStrings } from './landingStrings'
 
 const bgColor = '#F9F4F0'
+
+// One height for all three marks so the card tops line up. The glyph needs a
+// bigger type size than the drawings to reach the same optical weight — a
+// Knerd "%" only fills about two thirds of its em box.
+const iconClass = 'h-11 w-auto'
 
 // Card tilts, in source order. Small and alternating, so the row reads as
 // hand-placed rather than as a broken grid.
@@ -18,53 +26,25 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
             id: 'cross-border',
             title: problem.crossBorderTitle,
             body: problem.crossBorderBody,
-            icon: (
-                <>
-                    <circle cx="22" cy="22" r="19" fill="none" stroke="#000" strokeWidth="3" />
-                    <circle cx="22" cy="22" r="13" fill="none" stroke="#000" strokeWidth="2" strokeDasharray="4 4" />
-                    <path
-                        d="M22 13l2.4 6.2 6.6.4-5.1 4.2 1.7 6.4L22 26.7l-5.6 3.5 1.7-6.4-5.1-4.2 6.6-.4z"
-                        fill="#000"
-                    />
-                </>
-            ),
+            // the marquee's thumbs-up, turned over: the verification verdict
+            icon: <Image src={HandThumbsUp} alt="" aria-hidden className={`${iconClass} rotate-180`} />,
         },
         {
             id: 'send-home',
             title: problem.sendHomeTitle,
             body: problem.sendHomeBody,
             icon: (
-                <>
-                    <circle cx="13" cy="13" r="7" fill="none" stroke="#000" strokeWidth="3.4" />
-                    <circle cx="31" cy="31" r="7" fill="none" stroke="#000" strokeWidth="3.4" />
-                    <path d="M34 8L10 36" stroke="#000" strokeWidth="3.4" strokeLinecap="round" />
-                </>
+                <span aria-hidden className="h-11 font-knerd-outline text-[3.9rem] leading-[2.75rem]">
+                    %
+                </span>
             ),
         },
         {
             id: 'paid-abroad',
             title: problem.paidAbroadTitle,
             body: problem.paidAbroadBody,
-            icon: (
-                <>
-                    <path
-                        d="M4 15h28m-7-7 7 7-7 7"
-                        fill="none"
-                        stroke="#000"
-                        strokeWidth="3.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                    <path
-                        d="M40 29H12m7-7-7 7 7 7"
-                        fill="none"
-                        stroke="#000"
-                        strokeWidth="3.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                </>
-            ),
+            // the pinch hand from the no-hidden-fees art
+            icon: <Image src={NoHiddenFeesHand} alt="" aria-hidden className={iconClass} />,
         },
     ]
 
@@ -85,9 +65,7 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
                             key={card.id}
                             className={`shadow-4 rounded-sm border-2 border-n-1 bg-white px-5 py-6 md:px-7 md:py-7 ${tilts[i]}`}
                         >
-                            <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden>
-                                {card.icon}
-                            </svg>
+                            <div className="flex h-11 items-center">{card.icon}</div>
                             <h3 className="font-roboto-flex-extrabold mt-4 text-xl font-extraBlack uppercase leading-tight md:text-2xl">
                                 {card.title}
                             </h3>
