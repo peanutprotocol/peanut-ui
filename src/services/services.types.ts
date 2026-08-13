@@ -95,6 +95,12 @@ export interface RequestProps {
     tokenSymbol: string
     tokenDecimals: number
     recipientAddress: string
+    /**
+     * ENS name the payer typed, when they typed one. Recorded on the charge and
+     * re-resolved server-side at settlement to award the ENS badge — never
+     * trusted as given, so an unset or wrong value simply earns nothing.
+     */
+    recipientEnsName?: string
     requesteeUsername?: string
 }
 
