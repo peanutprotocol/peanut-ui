@@ -17,14 +17,24 @@ const starConfigs = [
     { className: 'absolute bottom-20 right-44', delay: '0.6s', rotate: '22deg' },
 ]
 
-const Manteca = ({ locale = DEFAULT_LOCALE }: { locale?: Locale }) => {
+// Cream, as on /quests. The homepage passes blue instead — there it follows
+// RegulatedRails, which is already cream.
+const DEFAULT_BG_COLOR = '#F9F4F0'
+
+const Manteca = ({
+    locale = DEFAULT_LOCALE,
+    backgroundColor = DEFAULT_BG_COLOR,
+}: {
+    locale?: Locale
+    backgroundColor?: string
+}) => {
     const i18n = getTranslations(locale)
 
     return (
         <section
             id="qr-pay"
             className="relative overflow-hidden py-20 text-n-1 md:min-h-[850px] lg:min-h-[750px]"
-            style={{ backgroundColor: '#F9F4F0' }}
+            style={{ backgroundColor }}
         >
             <div className="hidden md:block">
                 <CloudsCss />

@@ -1,0 +1,82 @@
+'use client'
+
+import dynamic from 'next/dynamic'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
+import { ScarcityCounter } from './ScarcityCounter'
+
+// The card face renders nothing on the server and rasterises four canvases on
+// mount, so it stays out of the first chunk. The host box reserves the aspect
+// ratio, which keeps the fold from shifting when the chunk lands.
+const ScaledPixelatedCardFace = dynamic(
+    () => import('@/components/Card/share-asset/ScaledPixelatedCardFace').then((m) => m.ScaledPixelatedCardFace),
+    { ssr: false }
+)
+
+// On a black ground the card's black drop shadow and the button's black shadow
+// both disappear, so both carry the brand pink here instead. Deliberate
+// deviation from the all-black-shadow rule — it only applies on this fold.
+const PINK = '#FF90E8'
+
+/**
+ * The homepage door to /shhhhh. Distils §1 of the /shhhhh page — same catalog,
+ * same counter — and every click here goes to /shhhhh. The fold makes the
+ * offer; the page does the work (sign-in, badge check, waitlist).
+ */
+export function ShhhhhFold() {
+    const t = useTranslations('shhhhh.hero')
+
+    return (
+        <section id="the-door" className="relative overflow-hidden bg-n-1 px-4 py-20 text-white md:py-28">
+            <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-9 md:grid-cols-[1.1fr_0.9fr] md:gap-13">
+                <div className="min-w-0">
+                    <Link
+                        href="/shhhhh"
+                        className="font-roboto-flex-extrabold inline-block text-headingMedium font-extraBlack leading-none md:text-headingLarge"
+                    >
+                        {t('wordmark')}
+                    </Link>
+
+                    <p className="font-roboto-flex-extrabold mt-5 max-w-xl text-2xl font-extraBlack uppercase leading-tight md:text-3xl">
+                        {t('tagline')}
+                    </p>
+
+                    <p className="font-roboto-flex mt-5 max-w-xl text-lg leading-relaxed md:text-xl">
+                        {t.rich('body', {
+                            counter: () => <ScarcityCounter label={(count) => t('onlyCount', { count })} />,
+                        })}
+                    </p>
+
+                    <div className="mt-8 flex flex-wrap items-center gap-5 md:gap-6">
+                        <Link href="/shhhhh">
+                            {/* no shadowSize: that prop only paints black. The pink
+                                shadow is an arbitrary class so the base
+                                `active:shadow-none` still flattens it on press. */}
+                            <Button className="!w-auto bg-white px-7 py-3 text-base font-extrabold shadow-[0.25rem_0.25rem_0_#FF90E8] hover:bg-white/90 active:translate-y-[4px] md:px-9 md:text-lg">
+                                {t('tryTheDoor')}
+                            </Button>
+                        </Link>
+                        <Link
+                            href="/shhhhh"
+                            className="font-roboto-flex text-base font-extraBlack underline underline-offset-4"
+                        >
+                            {t('orJoinWaitlist')}
+                        </Link>
+                    </div>
+                </div>
+
+                <div className="flex min-w-0 justify-center md:justify-end">
+                    {/* blurAll: closed-beta tease — card shape recognisable, logos +
+                        number unreadable. Rotation sits on the wrapper so the inner
+                        host still measures its layout width for the fit-to-width scale. */}
+                    <Link href="/shhhhh" aria-label={t('tryTheDoor')} className="-rotate-12">
+                        <div className="aspect-[400/252] w-[min(20rem,72vw)] md:w-[min(25rem,30vw)]">
+                            <ScaledPixelatedCardFace last4="????" blurAll shadowColor={PINK} />
+                        </div>
+                    </Link>
+                </div>
+            </div>
+        </section>
+    )
+}

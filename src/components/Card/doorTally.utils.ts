@@ -13,7 +13,7 @@
 
 /**
  * Admissions per week in the closed beta (product/card.md). Drives the
- * ScarcityCounter pill on the homepage card beat and on /shhhhh, so both
+ * ScarcityCounter pill on the homepage door fold and on /shhhhh, so both
  * surfaces quote the same number.
  */
 export const ADMISSIONS_PER_WEEK = 50

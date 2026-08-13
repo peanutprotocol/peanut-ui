@@ -35,51 +35,22 @@ const DEFAULT_LABELS: ExchangeRateWidgetLabels = {
     arrivesMinutes: 'Should arrive in minutes.',
 }
 
-interface IExchangeRateWidgetBaseProps {
+interface IExchangeRateWidgetProps {
+    ctaLabel: string
+    ctaIcon: IconName
+    ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
     labels?: Partial<ExchangeRateWidgetLabels>
-    /** Hides the bank-fee / Peanut-fee rows and the "should arrive in…" line. */
-    hideFees?: boolean
-    /** Currency pair the widget opens on before the URL says otherwise. */
-    defaultFrom?: string
-    defaultTo?: string
 }
 
-// The CTA is all-or-nothing: a caller either owns the button or hides it, so
-// the label/icon/action trio only exists on the branch that renders it.
-type IExchangeRateWidgetProps = IExchangeRateWidgetBaseProps &
-    (
-        | {
-              hideCta: true
-              ctaLabel?: never
-              ctaIcon?: never
-              ctaAction?: never
-          }
-        | {
-              hideCta?: false
-              ctaLabel: string
-              ctaIcon: IconName
-              ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
-          }
-    )
-
-const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
-    ctaLabel,
-    ctaIcon,
-    ctaAction,
-    labels,
-    hideCta,
-    hideFees,
-    defaultFrom = 'USD',
-    defaultTo = 'EUR',
-}) => {
+const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction, labels }) => {
     const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
     // Next.js navigation so URL updates don't (occasionally) scroll the page
     // to the top through the parent Suspense boundary.
     const [query, setQuery] = useQueryStates(
         {
-            from: parseAsString.withDefault(defaultFrom),
-            to: parseAsString.withDefault(defaultTo),
+            from: parseAsString.withDefault('USD'),
+            to: parseAsString.withDefault('EUR'),
             amount: parseAsFloat.withDefault(10),
         },
         { shallow: true, history: 'replace', scroll: false }
@@ -342,7 +313,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 )}
             </div>
 
-            {!hideFees && typeof destinationAmount === 'number' && destinationAmount > 0 && (
+            {typeof destinationAmount === 'number' && destinationAmount > 0 && (
                 <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">
                     <div className="flex items-center justify-between">
                         <h2 className="text-left text-sm font-normal">{l.bankFee}</h2>
@@ -356,19 +327,17 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 </div>
             )}
 
-            {!hideCta && (
-                <Button
-                    onClick={() => ctaAction(sourceCurrency, destinationCurrency)}
-                    icon={ctaIcon}
-                    iconSize={13}
-                    shadowSize="4"
-                    className="w-full text-base font-bold"
-                >
-                    {ctaLabel}
-                </Button>
-            )}
+            <Button
+                onClick={() => ctaAction(sourceCurrency, destinationCurrency)}
+                icon={ctaIcon}
+                iconSize={13}
+                shadowSize="4"
+                className="w-full text-base font-bold"
+            >
+                {ctaLabel}
+            </Button>
 
-            {!hideFees && typeof destinationAmount === 'number' && destinationAmount > 0 && (
+            {typeof destinationAmount === 'number' && destinationAmount > 0 && (
                 <div className="flex items-center gap-1">
                     <Icon name="info" className="text-gray-1" size={14} />
                     <p className="text-xs text-gray-1">{deliveryTimeText}</p>

@@ -16,6 +16,7 @@ interface LandingFrontmatter {
     hero?: {
         primary_cta?: { label?: string; href?: string; subtext?: string }
     }
+    marquee?: string[]
     faqs?: {
         heading?: string
         questions?: Array<{ id: string; question: string; answer: string }>
@@ -32,6 +33,7 @@ export interface LandingContent {
         questions: Array<{ id: string; question: string; answer: string }>
         marquee: { visible: boolean; message: string }
     }
+    marqueeMessages: string[]
 }
 
 // Fallback used if the singleton MD is missing (e.g. submodule hasn't synced).
@@ -40,6 +42,7 @@ export interface LandingContent {
 const DEFAULTS: LandingContent = {
     heroConfig: { primaryCta: { label: 'SIGN UP', href: '/setup' } },
     faqData: { heading: 'FAQ.', questions: [], marquee: { visible: false, message: 'Peanut' } },
+    marqueeMessages: [],
 }
 
 // Code-defined FAQ item advertising supported networks/tokens/bank rails.
@@ -94,5 +97,6 @@ function readLandingContent(locale: Locale): LandingContent {
                     ? fm.faqs.marquee
                     : DEFAULTS.faqData.marquee,
         },
+        marqueeMessages: (fm.marquee ?? DEFAULTS.marqueeMessages).filter((m): m is string => typeof m === 'string'),
     }
 }

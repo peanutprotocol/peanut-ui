@@ -9,9 +9,9 @@ import { ADMISSIONS_PER_WEEK } from '@/components/Card/doorTally.utils'
 const COUNTER_START = ADMISSIONS_PER_WEEK + 1
 
 /**
- * "Only N a week" scarcity pill, shared by the homepage card beat and the
- * /shhhhh hero. `label` builds the copy for a given count — each surface has
- * its own catalog, so the interpolation stays at the call site.
+ * "Only N a week" scarcity pill, shared by the homepage door fold and the
+ * /shhhhh hero. `label` builds the copy for a given count — the caller owns
+ * the interpolation, so the pill never has to know which catalog it is in.
  */
 export function ScarcityCounter({ label }: { label: (count: number) => string }) {
     const prefersReducedMotion = useReducedMotion()

@@ -183,8 +183,6 @@ export default function ShhhhhLandingPage() {
         const badgeCampaigns = badgeCampaignsFromSearchParams(new URLSearchParams(window.location.search))
 
         posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, {
-            // same event as the homepage card beat; the surface splits the two
-            surface: 'shhhhh',
             signed_in: !!user,
             campaign_tags: badgeCampaigns,
         })
