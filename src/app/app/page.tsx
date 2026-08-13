@@ -19,14 +19,16 @@
 // first render tripped React #418 on phones (device is WEB on the server).
 
 import { useEffect, useState } from 'react'
-import { notFound } from 'next/navigation'
+import { notFound, useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import { STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { isNativeBridge } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 
 const FLAG_WAIT_MS = 4000
@@ -34,13 +36,25 @@ const FLAG_WAIT_MS = 4000
 export default function SmartStoreRedirect() {
     const t = useTranslations('migration')
     const { deviceType } = useDeviceType()
+    const router = useRouter()
 
+    // universal links (paths: ["*"]) open this page inside the native app when
+    // an installed user scans a download qr — there's no store to bounce to,
+    // so send them home instead of redirecting them out to the store.
+    // isNativeBridge, not isCapacitor: capacitor-flavored web builds bake
+    // NEXT_PUBLIC_CAPACITOR_BUILD=true with no bridge, and those visitors
+    // still need the store page.
     const [mounted, setMounted] = useState(false)
-    useEffect(() => setMounted(true), [])
+    useEffect(() => {
+        setMounted(true)
+        if (isNativeBridge()) router.replace('/home')
+    }, [router])
+    const inNativeApp = mounted && isNativeBridge()
 
     // wait for posthog to deliver flags (or time out) before judging the flag
     const [flagsSettled, setFlagsSettled] = useState(false)
     useEffect(() => {
+        if (isNativeBridge()) return // redirecting home — flag irrelevant
         if (isPwaSunsetOn()) {
             setFlagsSettled(true)
             return
@@ -66,13 +80,15 @@ export default function SmartStoreRedirect() {
 
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
-        if (!settled || !migrationOn || !targetStore) return
+        if (inNativeApp || !settled || !migrationOn || !targetStore) return
         setRedirecting(true)
         window.location.replace(STORE_URL[targetStore])
         // if the store didn't take over (blocked, offline), settle to buttons
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-    }, [settled, migrationOn, targetStore])
+    }, [inNativeApp, settled, migrationOn, targetStore])
+
+    if (inNativeApp) return <PeanutLoading coverFullScreen />
 
     if (settled && !migrationOn) notFound()
 
