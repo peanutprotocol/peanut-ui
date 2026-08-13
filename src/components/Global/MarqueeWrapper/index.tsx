@@ -41,7 +41,7 @@ const wordClass = 'text-lg font-bold uppercase md:text-xl'
 function MarqueeWord({ item }: { item: MarqueeItem }) {
     if (typeof item === 'string') return <div className={wordClass}>{item}</div>
     return (
-        <Link href={item.href} className={`${wordClass} underline underline-offset-4 hover:no-underline`}>
+        <Link href={item.href} className={`${wordClass} underline-offset-4 hover:underline`}>
             {item.label}
         </Link>
     )

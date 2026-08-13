@@ -35,7 +35,7 @@ export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
                     <p className="font-roboto-flex text-left text-xl font-light md:text-4xl md:font-normal">
                         {bodyParts.map((part, index) =>
                             part.href ? (
-                                <Link key={index} href={part.href} className="underline hover:no-underline">
+                                <Link key={index} href={part.href} className="underline-offset-4 hover:underline">
                                     {part.text}
                                 </Link>
                             ) : (

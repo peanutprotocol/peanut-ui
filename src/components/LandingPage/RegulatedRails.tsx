@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import { MarqueeWrapper } from '../Global/MarqueeWrapper'
 import BBVA_ICON from '@/assets/icons/bbva-logo.svg'
 import BRUBANK_ICON from '@/assets/icons/brubank-logo.svg'
@@ -17,17 +18,28 @@ import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 const bgColor = '#F9F4F0'
 
+/**
+ * `path` is the locale-prefixed page that honestly explains what this partner
+ * does with Peanut. A logo with nothing truthful to point at stays unlinked —
+ * Brubank and Stripe have no article covering their rail, so they do.
+ *
+ * `onWhite` gives a logo a white card behind it: these two are the only marks
+ * in the set that are not a heavy wordmark, and they disappear on the pink.
+ */
 const logos = [
-    { logo: BBVA_ICON, alt: 'BBVA' },
+    { logo: BBVA_ICON, alt: 'BBVA', path: 'help/deposit-bank' },
     { logo: BRUBANK_ICON, alt: 'Brubank' },
-    { logo: N26_ICON, alt: 'N26' },
-    { logo: SANTANDER_ICON, alt: 'Santander' },
-    { logo: REVOLUT_ICON, alt: 'Revolut' },
+    { logo: N26_ICON, alt: 'N26', path: 'help/deposit-bank' },
+    { logo: SANTANDER_ICON, alt: 'Santander', path: 'help/deposit-bank' },
+    { logo: REVOLUT_ICON, alt: 'Revolut', path: 'compare/peanut-vs-revolut' },
     { logo: STRIPE_ICON, alt: 'Stripe' },
-    { logo: MERCADO_PAGO_ICON, alt: 'Mercado Pago' },
-    { logo: PIX_ICON, alt: 'PIX' },
-    { logo: WISE_ICON, alt: 'Wise' },
+    { logo: MERCADO_PAGO_ICON, alt: 'Mercado Pago', path: 'help/mercadopago-qr', onWhite: true },
+    { logo: PIX_ICON, alt: 'PIX', path: 'brazil', onWhite: true },
+    { logo: WISE_ICON, alt: 'Wise', path: 'compare/peanut-vs-wise' },
 ]
+
+const tileClass = 'btn btn-purple btn-shadow-primary-4 mx-7 mb-2 flex h-26 w-48 items-center gap-2'
+const linkedTileClass = `${tileClass} transition-transform hover:-translate-y-0.5 hover:opacity-90`
 
 const regulatedRailsClouds = [
     { top: '20%', width: 200, speed: '38s', direction: 'ltr' as const },
@@ -58,7 +70,7 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                 </h1>
                 <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">{i18n.landingRailsBody}</p>
 
-                <h6 className="font-roboto-flex mt-3 text-xs md:text-lg">
+                <h6 className="font-roboto-flex mt-3 text-right text-xs md:text-lg">
                     <a
                         href={`/${locale}/help/supported-geographies`}
                         target="_blank"
@@ -75,14 +87,26 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                     {i18n.landingWorksWith}
                 </p>
                 <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none">
-                    {logos.map((logo) => (
-                        <div
-                            key={logo.alt}
-                            className="btn btn-purple btn-shadow-primary-4 mx-7 mb-2 flex h-26 w-48 items-center gap-2"
-                        >
-                            <Image src={logo.logo} alt={logo.alt} width={101} height={32} />
-                        </div>
-                    ))}
+                    {logos.map((logo) => {
+                        const mark = (
+                            <Image
+                                src={logo.logo}
+                                alt={logo.alt}
+                                width={101}
+                                height={32}
+                                className={logo.onWhite ? 'rounded-sm border border-n-1 bg-white px-3 py-2' : ''}
+                            />
+                        )
+                        return logo.path ? (
+                            <Link key={logo.alt} href={`/${locale}/${logo.path}`} className={linkedTileClass}>
+                                {mark}
+                            </Link>
+                        ) : (
+                            <div key={logo.alt} className={tileClass}>
+                                {mark}
+                            </div>
+                        )
+                    })}
                 </MarqueeWrapper>
             </div>
         </section>
