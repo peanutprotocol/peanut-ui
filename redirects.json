@@ -45,6 +45,11 @@
         "permanent": false
     },
     {
+        "source": "/help/:path*",
+        "destination": "/en/help/:path*",
+        "permanent": true
+    },
+    {
         "source": "/terms",
         "destination": "/en/terms",
         "permanent": false
@@ -53,6 +58,26 @@
         "source": "/privacy",
         "destination": "/en/privacy",
         "permanent": false
+    },
+    {
+        "source": "/pricing",
+        "destination": "/en/pricing",
+        "permanent": true
+    },
+    {
+        "source": "/stories",
+        "destination": "/en/stories",
+        "permanent": true
+    },
+    {
+        "source": "/stories/:path*",
+        "destination": "/en/stories/:path*",
+        "permanent": true
+    },
+    {
+        "source": "/content",
+        "destination": "/en/content",
+        "permanent": true
     },
     {
         "source": "/:slug(card-terms-us|card-terms-international|card-esign|card-privacy|card-prohibited-activities)",
@@ -75,6 +100,17 @@
             {
                 "type": "host",
                 "value": "docs.peanut.me"
+            }
+        ],
+        "destination": "https://peanut.me/en/help",
+        "permanent": true
+    },
+    {
+        "source": "/:path*",
+        "has": [
+            {
+                "type": "host",
+                "value": "docs.peanut.to"
             }
         ],
         "destination": "https://peanut.me/en/help",
@@ -173,6 +209,11 @@
     {
         "source": "/:locale/deposit/from-spei",
         "destination": "/:locale/deposit/via-spei",
+        "permanent": true
+    },
+    {
+        "source": "/:locale(en|es-419|es-ar|pt-br)/:path+/",
+        "destination": "/:locale/:path+",
         "permanent": true
     }
 ]

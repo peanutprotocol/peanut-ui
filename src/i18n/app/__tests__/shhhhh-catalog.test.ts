@@ -2,13 +2,7 @@ import { APP_LOCALES } from '../config'
 import { loadMessages } from '../messages'
 import es419 from '../messages/es-419.json'
 import esAR from '../messages/es-AR.json'
-
-function leafPaths(obj: Record<string, unknown>, prefix = ''): string[] {
-    return Object.entries(obj).flatMap(([key, value]) => {
-        const path = prefix ? `${prefix}.${key}` : key
-        return typeof value === 'object' && value !== null ? leafPaths(value as Record<string, unknown>, path) : [path]
-    })
-}
+import { leafPaths } from './catalog-helpers'
 
 describe('/shhhhh catalog', () => {
     it.each(APP_LOCALES)('%s keeps the <counter> tag the hero interpolates', async (locale) => {

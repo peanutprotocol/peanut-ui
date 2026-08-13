@@ -123,26 +123,30 @@ export function isMantecaOnrampEntry(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'ONRAMP') && transaction.extraDataForDrawer?.provider === 'MANTECA'
 }
 
-// The counterparty is a real Peanut user with a public profile: a non-link
-// send / request / receive whose peer is an actual user (isPeerActuallyUser)
-// identified by a real username — not a raw crypto address (EVM/Solana/Tron,
-// the same rule VerifiedUserLabel renders by) and not a userId fallback
-// (usernameless users surface their UUID in `userName`, which has no profile
-// page). System copy strings ('Request', 'Recipient', reaper-fail text) are
-// already excluded because the transformer sets isPeerActuallyUser=false for
-// them. What a consumer does with the fact (clickable name, avatar, send-again
-// button) is the call site's business. Shared by the history row
-// (TransactionCard) and the receipt header (TransactionDetailsHeaderCard) —
-// keep the rule here so the two surfaces can't drift.
+// the peer has a profile when the transformer identifies a real Peanut user
+// with a username. presentation types must not narrow that fact: bank-fulfilled
+// requests and future flows can also have a real user as their peer. links, raw
+// addresses, userId fallbacks, and generated labels do not resolve to profile
+// pages. this rule is shared by the history row and receipt header so the
+// surfaces cannot drift.
 export function hasUserProfile(transaction: TransactionDetails): boolean {
-    const type = transaction.extraDataForDrawer?.transactionCardType
     const userName = transaction.userName
     return (
         !!transaction.isPeerActuallyUser &&
         !transaction.extraDataForDrawer?.isLinkTransaction &&
         !!userName &&
+        !transaction.nameKey &&
         !isCryptoAddress(userName) &&
-        !isUuid(userName) &&
-        (type === 'send' || type === 'request' || type === 'receive')
+        !isUuid(userName)
     )
+}
+
+// these presentation types render the peer's initials/avatar. bank and wallet
+// types render a rail or account icon, which must stay inert even when the
+// counterparty name links to a real profile.
+const USER_PROFILE_AVATAR_TYPES: ReadonlySet<string> = new Set(['send', 'request', 'receive'])
+
+export function hasUserProfileAvatar(transaction: TransactionDetails): boolean {
+    const transactionCardType = transaction.extraDataForDrawer?.transactionCardType
+    return hasUserProfile(transaction) && !!transactionCardType && USER_PROFILE_AVATAR_TYPES.has(transactionCardType)
 }

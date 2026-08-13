@@ -74,14 +74,19 @@ function listDirs(dir: string): string[] {
 }
 
 /**
- * Receive-money-from pages render only for corridor origins that actually have
- * a receive-from article. Mirrors RECEIVE_SOURCES in src/data/seo/corridors.ts.
+ * Receive-money-from pages render for every published receive-from article.
+ * Mirrors RECEIVE_SOURCES in src/data/seo/corridors.ts (listPublishedSlugs):
+ * publication is gated on the article existing, not on corridor membership.
  * Without this gate, both the route index and the sitemap "expected URLs" would
  * agree with each other on a slug that 404s at runtime (e.g. colombia, mexico).
  */
-function gateReceiveSources(corridors: Array<{ from: string; to: string }>): string[] {
-    const origins = [...new Set(corridors.map((c) => c.from))]
-    return origins.filter((slug) => fs.existsSync(path.join(CONTENT_DIR, 'receive-from', slug, 'en.md')))
+function gateReceiveSources(): string[] {
+    return listDirs(path.join(CONTENT_DIR, 'receive-from'))
+        .filter((slug) => slug !== 'index')
+        .filter((slug) => {
+            const en = path.join(CONTENT_DIR, 'receive-from', slug, 'en.md')
+            return fs.existsSync(en) && isPublished(fs.readFileSync(en, 'utf-8'))
+        })
 }
 
 function getAllMdFiles(dir: string): string[] {
@@ -193,7 +198,7 @@ function discoverRoutes(): Set<string> {
             corridors.push({ to: dest, from: origin })
         }
     }
-    const receiveSources = gateReceiveSources(corridors)
+    const receiveSources = gateReceiveSources()
 
     // Check which routes actually have page.tsx files
     const hasRoute = (routePath: string) => {
@@ -705,7 +710,7 @@ function expectedSitemapUrls(): string[] {
         const fromDir = path.join(CONTENT_DIR, 'send-to', dest, 'from')
         for (const origin of listDirs(fromDir)) corridors.push({ from: origin, to: dest })
     }
-    const receiveSources = gateReceiveSources(corridors)
+    const receiveSources = gateReceiveSources()
 
     for (const locale of SUPPORTED_LOCALES) {
         for (const slug of countrySlugs) {
