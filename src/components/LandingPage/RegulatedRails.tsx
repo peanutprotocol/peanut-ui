@@ -38,7 +38,10 @@ const logos = [
     { logo: WISE_ICON, alt: 'Wise', path: 'compare/peanut-vs-wise' },
 ]
 
-const tileClass = 'btn btn-purple btn-shadow-primary-4 mx-7 mb-2 flex h-26 w-48 items-center gap-2'
+// my-2, not mb-2: react-fast-marquee's container is overflow-x:hidden, which
+// makes the Y axis compute to auto — it clips. Without top margin the tile sits
+// flush against that edge and the hover lift shaves its top border off.
+const tileClass = 'btn btn-purple btn-shadow-primary-4 mx-7 my-2 flex h-26 w-48 items-center gap-2'
 const linkedTileClass = `${tileClass} transition-transform hover:-translate-y-0.5 hover:opacity-90`
 
 const regulatedRailsClouds = [
