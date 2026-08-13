@@ -62,11 +62,11 @@ jest.mock('next/image', () => ({
     },
 }))
 
-/** A completed P2P send to username `natalia` — the eligible (clickable) case. */
-function eligibleTx(): TransactionDetails {
+/** a completed payment to username `natalia` — the eligible (clickable) case. */
+function eligibleTx(transactionCardType: 'send' | 'bank_request_fulfillment' = 'send'): TransactionDetails {
     return {
         id: 'tx-1',
-        direction: 'send',
+        direction: transactionCardType === 'bank_request_fulfillment' ? 'bank_request_fulfillment' : 'send',
         status: 'completed',
         userName: 'natalia',
         isPeerActuallyUser: true,
@@ -77,15 +77,15 @@ function eligibleTx(): TransactionDetails {
         totalAmountCollected: 0,
         isRequestPotLink: false,
         extraDataForDrawer: {
-            transactionCardType: 'send',
+            transactionCardType,
             isLinkTransaction: false,
         },
     } as unknown as TransactionDetails
 }
 
-function renderCard(transaction: TransactionDetails) {
+function renderCard(transaction: TransactionDetails, type: 'send' | 'bank_request_fulfillment' = 'send') {
     return render(
-        <TransactionCard type="send" name="natalia" amount={10} status="completed" transaction={transaction} />
+        <TransactionCard type={type} name="natalia" amount={10} status="completed" transaction={transaction} />
     )
 }
 
@@ -105,6 +105,15 @@ describe('TransactionCard — clickable counterparty name', () => {
         expect(openTransactionDetails).not.toHaveBeenCalled()
     })
 
+    it('AC1b: a bank-fulfilled request payer name navigates to the Peanut profile', () => {
+        renderCard(eligibleTx('bank_request_fulfillment'), 'bank_request_fulfillment')
+
+        fireEvent.click(screen.getByText('natalia'))
+
+        expect(push).toHaveBeenCalledWith('/natalia')
+        expect(openTransactionDetails).not.toHaveBeenCalled()
+    })
+
     it('AC2: clicking elsewhere on the card (the amount) opens the drawer', () => {
         renderCard(eligibleTx())
 
@@ -116,7 +125,7 @@ describe('TransactionCard — clickable counterparty name', () => {
     })
 
     // Ineligible rows: the name must not be a nav target. Eligibility itself
-    // (link tx / raw address / card type / empty username) is exhaustively
+    // (link tx / raw address / non-user peer / empty username) is exhaustively
     // locked by transaction-predicates.test.ts; here we only confirm the
     // component honors it — one representative ineligible case (a link tx).
     it('AC3 (ineligible — link tx): the name is not a nav target — clicking it does not navigate', () => {

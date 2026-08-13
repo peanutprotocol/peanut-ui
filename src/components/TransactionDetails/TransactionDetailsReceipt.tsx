@@ -46,6 +46,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import {
     hasReferralNudge,
     hasUserProfile,
+    hasUserProfileAvatar,
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
@@ -325,10 +326,11 @@ export const TransactionDetailsReceipt = ({
         amountDisplay = t('amountCollected', { amount: formattedTotalAmountCollected })
     }
 
-    // Show profile button only if it's a send/request/receive to a real Peanut
-    // user (not a link or a raw address). Shared with the history row — see
-    // hasUserProfile.
-    const isAvatarClickable = hasUserProfile(transaction)
+    // the counterparty name links whenever the peer has a real profile. the
+    // avatar links only when it visually represents that user; bank flags and
+    // account icons stay inert.
+    const isNameClickable = hasUserProfile(transaction)
+    const isAvatarClickable = hasUserProfileAvatar(transaction)
 
     const closeRequestLink = async () => {
         if (isPendingRequester && setIsLoading && onClose) {
@@ -388,6 +390,7 @@ export const TransactionDetailsReceipt = ({
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
+                isNameClickable={isNameClickable}
                 isAvatarClickable={isAvatarClickable}
                 showProgessBar={transaction.isRequestPotLink}
                 goal={Number(transaction.amount)}

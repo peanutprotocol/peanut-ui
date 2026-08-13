@@ -6,6 +6,7 @@
 import {
     hasReferralNudge,
     hasUserProfile,
+    hasUserProfileAvatar,
     isCardSpend,
     isDirectSendEntry,
     isFxBearingFlow,
@@ -219,17 +220,23 @@ describe('hasReferralNudge', () => {
     })
 })
 
-// Gates the clickable counterparty name/avatar in BOTH the history row
-// (TransactionCard) and the receipt header (TransactionDetailsHeaderCard): only
-// a non-link send/request/receive to a real username (not a raw address) deep-
-// links to a Peanut profile.
+// gates the clickable counterparty name in BOTH the history row
+// (TransactionCard) and the receipt header (TransactionDetailsHeaderCard): any
+// non-link transaction whose peer is a real user with a username deep-links to
+// that Peanut profile, regardless of the receipt's presentation type.
 describe('hasUserProfile', () => {
     const profileTx = (
         transactionCardType: string | undefined,
-        opts?: { userName?: string; isLinkTransaction?: boolean; isPeerActuallyUser?: boolean }
+        opts?: {
+            userName?: string
+            nameKey?: TransactionDetails['nameKey']
+            isLinkTransaction?: boolean
+            isPeerActuallyUser?: boolean
+        }
     ): TransactionDetails =>
         ({
             userName: opts?.userName ?? 'natalia',
+            nameKey: opts?.nameKey,
             isPeerActuallyUser: opts?.isPeerActuallyUser ?? true,
             extraDataForDrawer: {
                 originalType: 'TRANSACTION_INTENT',
@@ -238,16 +245,23 @@ describe('hasUserProfile', () => {
             },
         }) as unknown as TransactionDetails
 
-    test.each(['send', 'request', 'receive'])('a %s to a real username has a profile', (type) => {
-        expect(hasUserProfile(profileTx(type))).toBe(true)
-    })
-
-    test.each(['withdraw', 'add', 'card_pay', 'bank_withdraw', 'claim_external'])(
-        'a %s has no peer profile',
+    test.each(['send', 'request', 'receive', 'bank_request_fulfillment', 'add'])(
+        'a %s to a real username has a profile',
         (type) => {
-            expect(hasUserProfile(profileTx(type))).toBe(false)
+            expect(hasUserProfile(profileTx(type))).toBe(true)
         }
     )
+
+    test.each(['pay', 'card_pay', 'withdraw', 'bank_withdraw', 'claim_external'])(
+        'a non-user %s counterparty has no peer profile',
+        (type) => {
+            expect(hasUserProfile(profileTx(type, { isPeerActuallyUser: false }))).toBe(false)
+        }
+    )
+
+    test('an unknown presentation type does not hide a real user profile', () => {
+        expect(hasUserProfile(profileTx(undefined))).toBe(true)
+    })
 
     test('a link send has no user profile behind it', () => {
         expect(hasUserProfile(profileTx('send', { isLinkTransaction: true }))).toBe(false)
@@ -267,6 +281,18 @@ describe('hasUserProfile', () => {
         expect(hasUserProfile(profileTx('send', { userName: '' }))).toBe(false)
     })
 
+    test('a generated fallback label has no profile even if the peer flag is wrong', () => {
+        expect(
+            hasUserProfile(
+                profileTx('bank_request_fulfillment', {
+                    userName: 'Recipient',
+                    nameKey: 'name.recipient',
+                    isPeerActuallyUser: true,
+                })
+            )
+        ).toBe(false)
+    })
+
     // A non-user peer (raw address, bank account, or a system copy string like
     // 'Request'/reaper-fail text) is authoritatively flagged by the transformer.
     test('a non-user peer has no profile even for a send/request/receive', () => {
@@ -277,5 +303,18 @@ describe('hasUserProfile', () => {
     // there is no /<uuid> profile page, so it must not be a nav target.
     test('a usernameless user (UUID userId fallback) has no profile', () => {
         expect(hasUserProfile(profileTx('send', { userName: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d' }))).toBe(false)
+    })
+
+    test.each(['send', 'request', 'receive'])('a %s user avatar links to the profile', (type) => {
+        expect(hasUserProfileAvatar(profileTx(type))).toBe(true)
+    })
+
+    test('a bank-request flag stays inert even when the counterparty name has a profile', () => {
+        expect(hasUserProfile(profileTx('bank_request_fulfillment'))).toBe(true)
+        expect(hasUserProfileAvatar(profileTx('bank_request_fulfillment'))).toBe(false)
+    })
+
+    test('a non-user avatar never links to a profile', () => {
+        expect(hasUserProfileAvatar(profileTx('send', { isPeerActuallyUser: false }))).toBe(false)
     })
 })

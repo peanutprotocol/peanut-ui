@@ -14,6 +14,7 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import { getValidRedirectUrl, saveRedirectUrl, saveToCookie } from '@/utils/general.utils'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
@@ -82,6 +83,22 @@ function InvitePageContent() {
         [urlBadgeCampaigns, legacyAcquisition]
     )
     const hasAcquisitionBadgeCampaigns = acquisitionBadgeCampaigns.length > 0
+
+    // Invalid invite code (only reachable when an invite code was supplied).
+    // A badge-campaign-only link has no inviter to validate. When a code is present,
+    // it must validate independently; badge campaigns never make a bad inviter valid.
+    const hasValidInvite = !!inviteCode && !!inviteCodeData?.onboardingResolved && !!inviteCodeData.username
+    const isDeadBareLink = !inviteCode && !hasUrlBadgeCampaigns
+    const showsInvalidInvite =
+        !!inviteCode && !hasUrlBadgeCampaigns && !legacyAcquisition && (isError || !hasValidInvite)
+
+    // migration window: guest CTAs hand off to the stores like the other guest
+    // entry points (claim/request/pay). impression fires only when the CTA
+    // actually renders — never on the pre-auth flash, the invalid-invite error
+    // view, or the dead-bare-link redirect.
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        trackImpressionWhenGuest: shouldShowContent && !user?.user && !isDeadBareLink && !showsInvalidInvite,
+    })
 
     // track invite page view (ref guard prevents duplicate fires when shouldShowContent toggles)
     const hasTrackedPageView = useRef(false)
@@ -236,7 +253,6 @@ function InvitePageContent() {
             campaign_tags: acquisitionBadgeCampaigns,
         })
 
-        const hasValidInvite = !!inviteCode && !!inviteCodeData?.onboardingResolved && !!inviteCodeData.username
         const hasBackendLegacyAcceptance = !!inviteCode && !!inviteCodeData?.success && !!legacyAcquisition
         if (hasValidInvite || hasBackendLegacyAcceptance) {
             dispatch(setupActions.setInviteCode(inviteCode))
@@ -248,6 +264,16 @@ function InvitePageContent() {
         // Backend legacy acquisition is processed by `/invites/accept`, whose
         // typed claim result is consumed after registration.
         if (hasUrlBadgeCampaigns) queuePendingBadgeCampaigns(urlBadgeCampaigns)
+
+        // during the migration window guests go to the stores, not signup —
+        // cookie/queue bookkeeping above still runs so a keep-web signup or
+        // post-install link re-tap recovers the invite context.
+        if (!user?.user && interceptGuestCta()) {
+            // keep the mid-flow destination (e.g. a pending claim) recoverable
+            // after the store round-trip, same as handleLoginWithBadgeCampaign
+            if (safeRedirectUri) saveRedirectUrl()
+            return
+        }
 
         const signupUrl = redirectUri
             ? `/setup?step=signup&redirect_uri=${encodeURIComponent(redirectUri)}`
@@ -269,7 +295,6 @@ function InvitePageContent() {
         void handleLoginClick()
     }
 
-    const isDeadBareLink = !inviteCode && !hasUrlBadgeCampaigns
     useEffect(() => {
         if (isDeadBareLink) router.replace('/')
     }, [isDeadBareLink, router])
@@ -278,11 +303,7 @@ function InvitePageContent() {
         return <PeanutLoading coverFullScreen />
     }
 
-    // Invalid invite code (only reachable when an invite code was supplied).
-    // A badge-campaign-only link has no inviter to validate. When a code is present,
-    // it must validate independently; badge campaigns never make a bad inviter valid.
-    const hasValidInvite = !!inviteCode && !!inviteCodeData?.onboardingResolved && !!inviteCodeData.username
-    if (inviteCode && !hasUrlBadgeCampaigns && !legacyAcquisition && (isError || !hasValidInvite)) {
+    if (showsInvalidInvite) {
         return (
             <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
                 <ValidationErrorView
@@ -336,6 +357,7 @@ function InvitePageContent() {
                     </div>
                 </div>
             </div>
+            {storeHandoffModal}
             <UnsupportedBrowserModal allowClose={false} />
         </InvitesPageLayout>
     )
