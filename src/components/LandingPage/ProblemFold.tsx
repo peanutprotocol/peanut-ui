@@ -1,6 +1,6 @@
 import Image from 'next/image'
-import HandsPeace from '@/assets/illustrations/hands-peace.png'
-import StackCoin from '@/assets/illustrations/stack-coin.png'
+import HandPeace from '@/assets/illustrations/hand-peace.svg'
+import StackCoin from '@/assets/illustrations/stack-coin.svg'
 import type { LandingStrings } from './landingStrings'
 
 const bgColor = '#F9F4F0'
@@ -26,7 +26,7 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
             id: 'cross-border',
             title: problem.crossBorderTitle,
             body: problem.crossBorderBody,
-            icon: <Image src={HandsPeace} alt="" aria-hidden className={iconClass} />,
+            icon: <Image src={HandPeace} alt="" aria-hidden className={iconClass} />,
         },
         {
             id: 'send-home',
