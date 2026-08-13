@@ -33,7 +33,7 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { HistoryEntry, HistoryResponse } from '@/hooks/useTransactionHistory'
 import { AccountType } from '@/interfaces/interfaces'
-import { completeHistoryEntry } from '@/utils/history.utils'
+import { completeHistoryEntry, dedupeHistoryEntriesByUuid } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
@@ -161,7 +161,12 @@ const HistoryPage = () => {
         },
     })
 
-    const allEntries = useMemo(() => historyData?.pages.flatMap((page) => page.entries) ?? [], [historyData])
+    // Deduped: page overlap on the API cursor would otherwise render the same
+    // payment twice in a row, which reads as a double charge.
+    const allEntries = useMemo(
+        () => dedupeHistoryEntriesByUuid(historyData?.pages.flatMap((page) => page.entries) ?? []),
+        [historyData]
+    )
 
     const combinedAndSortedEntries = useMemo(() => {
         if (isLoading) {

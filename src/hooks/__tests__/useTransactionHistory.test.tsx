@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import type { ReactNode } from 'react'
@@ -57,5 +57,40 @@ describe('useTransactionHistory', () => {
         const { result } = renderHook(() => useTransactionHistory({ mode: 'infinite', enabled: false }), { wrapper })
         // useInfiniteQuery result — exposes fetchNextPage.
         expect(result.current).toHaveProperty('fetchNextPage')
+    })
+
+    // The API re-serves the same window when a cursor cannot advance —
+    // `openRequestLinks` is re-queried on every page with no exclusion, so a
+    // user with `limit`-many open request links gets an identical page every
+    // time. Duplicate rows used to grow the list and push the infinite-scroll
+    // loader out of the viewport; deduping removed that pacing, so an
+    // unchanged cursor would spin fetchNextPage in an unbounded loop.
+    it('stops paginating when the cursor does not advance', async () => {
+        const { serverFetch } = jest.requireMock('@/utils/api-fetch')
+        serverFetch.mockImplementation(() =>
+            Promise.resolve({
+                ok: true,
+                statusText: 'OK',
+                // Same cursor forever, hasMore never goes false.
+                json: () => Promise.resolve({ entries: [], cursor: 'STUCK::same', hasMore: true }),
+            })
+        )
+
+        const wrapper = makeWrapper()
+        const { result } = renderHook(() => useTransactionHistory({ mode: 'infinite', limit: 20 }), { wrapper })
+
+        await waitFor(() => expect(result.current.data?.pages).toHaveLength(1))
+        // First page still advances: the initial param is undefined, so the
+        // cursor is new information.
+        expect(result.current.hasNextPage).toBe(true)
+
+        await act(async () => {
+            await result.current.fetchNextPage()
+        })
+
+        // Second page came back with the same cursor it was asked for, so
+        // pagination stops instead of looping.
+        await waitFor(() => expect(result.current.hasNextPage).toBe(false))
+        expect(result.current.data?.pages).toHaveLength(2)
     })
 })
