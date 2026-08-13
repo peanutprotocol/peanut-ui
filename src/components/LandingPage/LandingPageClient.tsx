@@ -237,20 +237,39 @@ export function LandingPageClient({
         }
     }, [handleScrollDelta])
 
-    const marqueeProps = { visible: true, message: marqueeMessages }
+    // Only the words with a real article behind them become links; the rest
+    // stay plain text. Words come from the content system's marquee list, so an
+    // edit there just drops out of this map and renders unlinked.
+    const marqueeProps = useMemo(() => {
+        const hrefs: Record<string, string> = {
+            'No transfer fees': `/${locale}/pricing`,
+            USD: `/${locale}/help/what-are-digital-dollars`,
+            EUR: `/${locale}/help/send-euros-argentina`,
+            'USDT/USDC': `/${locale}/blog/stablecoin-balance-visa-merchants`,
+            GLOBAL: `/${locale}/help/supported-geographies`,
+            'SELF-CUSTODIAL': `/${locale}/help/security-custody`,
+            // app route, not a locale-prefixed marketing page
+            '24/7': '/support',
+        }
+        return {
+            visible: true,
+            message: marqueeMessages.map((word) => (hrefs[word] ? { label: word, href: hrefs[word] } : word)),
+        }
+    }, [marqueeMessages, locale])
 
     // Memoized for the same reason as faqQuestions above — this component
     // re-renders per scroll frame while the send button grows.
     const doorMarqueeProps = useMemo(
         () => ({
             visible: true,
+            // the whole strip is the door: every word goes to /shhhhh
             message: [
                 tDoorMarquee('iykyk'),
                 tDoorMarquee('wordTravels'),
                 tDoorMarquee('closedBeta'),
                 tDoorMarquee('shhhh'),
                 tDoorMarquee('peanutClub'),
-            ],
+            ].map((label) => ({ label, href: '/shhhhh' })),
         }),
         [tDoorMarquee]
     )
