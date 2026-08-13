@@ -171,13 +171,15 @@ export function NoFees({
                     labels={strings.exchange}
                 />
 
+                {/* The route adds the "peanut-vs-" prefix to every compare slug and
+                    sets dynamicParams = false, so an unprefixed slug 404s. */}
                 <ContextualLinks
                     className="mt-6"
                     label={strings.seeMarkupOn}
                     links={[
-                        { label: 'Wise', href: `/${locale}/compare/wise` },
-                        { label: 'PayPal', href: `/${locale}/compare/paypal` },
-                        { label: 'Western Union', href: `/${locale}/compare/western-union` },
+                        { label: 'Wise', href: `/${locale}/compare/peanut-vs-wise` },
+                        { label: 'PayPal', href: `/${locale}/compare/peanut-vs-paypal` },
+                        { label: 'Western Union', href: `/${locale}/compare/peanut-vs-western-union` },
                     ]}
                 />
             </div>

@@ -1,15 +1,12 @@
 'use client'
 
 import { useFooterVisibility } from '@/context/footerVisibility'
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Suspense, useMemo, type ReactNode } from 'react'
 import { FAQs } from '@/components/LandingPage/faq'
 import { Hero } from '@/components/LandingPage/hero'
 import { Marquee } from '@/components/LandingPage/marquee'
 import { CardBeat } from '@/components/LandingPage/CardBeat'
-import { Manifesto } from '@/components/LandingPage/Manifesto'
-import { ProblemProse } from '@/components/LandingPage/ProblemProse'
 import { WorksToday } from '@/components/LandingPage/WorksToday'
-import { NotForYou } from '@/components/LandingPage/NotForYou'
 import { SupportedRailsFaqAnswer } from '@/components/LandingPage/SupportedRailsFaqAnswer'
 import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
@@ -22,17 +19,13 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
 import { trackStoreClick } from '@/utils/migration.utils'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 type FAQQuestion = {
     id: string
     question: string
     answer: string
 }
-
-// The first strip runs a short set instead of the full content-system one, so
-// the words stay readable next to the hero. Picked out of that same set rather
-// than hardcoded, so editing content/landing/*.md still moves them.
-const FIRST_STRIP_WORDS = ['Instant', '24/7', 'USD', 'EUR', 'GLOBAL']
 
 type LandingPageClientProps = {
     heroConfig: {
@@ -43,19 +36,24 @@ type LandingPageClientProps = {
         questions: FAQQuestion[]
         marquee: { visible: boolean; message: string }
     }
-    marqueeMessages: string[]
     locale: Locale
     strings: LandingStrings
-    // Server-rendered slots
+    // Server-rendered slots — the beats with no client state stay off the
+    // client bundle and arrive as markup.
+    manifestoSlot: ReactNode
+    problemSlot: ReactNode
+    notForYouSlot: ReactNode
     footerSlot: ReactNode
 }
 
 export function LandingPageClient({
     heroConfig,
     faqData,
-    marqueeMessages,
     locale,
     strings,
+    manifestoSlot,
+    problemSlot,
+    notForYouSlot,
     footerSlot,
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
@@ -65,6 +63,9 @@ export function LandingPageClient({
     const tMigration = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const isDesktop = deviceType === DeviceType.WEB
+    // Kill switch: the card beat and the closed-beta strip that follows it are
+    // one promise, so they go dark together.
+    const cardBeatOn = !underMaintenanceConfig.disableCardBeat
 
     // pwa-sunset hero CTAs are device-based: phones get one "Download now"
     // with their store's mark deep-linking to it; desktop drops the primary
@@ -96,19 +97,7 @@ export function LandingPageClient({
         [faqData.questions]
     )
 
-    const [buttonVisible, setButtonVisible] = useState(true)
-
-    useEffect(() => {
-        if (isFooterVisible) {
-            setButtonVisible(false)
-        } else {
-            setButtonVisible(true)
-        }
-    }, [isFooterVisible])
-
-    const marqueeProps = { visible: true, message: marqueeMessages }
-    const firstStripWords = marqueeMessages.filter((message) => FIRST_STRIP_WORDS.includes(message))
-    const firstStripProps = { visible: true, message: firstStripWords.length ? firstStripWords : marqueeMessages }
+    const buttonVisible = !isFooterVisible
 
     return (
         <>
@@ -130,21 +119,25 @@ export function LandingPageClient({
                     ) : undefined
                 }
             />
-            <Marquee {...firstStripProps} />
-            <CardBeat strings={strings} />
-            <Marquee visible message={strings.marqueeClosedBeta} />
-            <Manifesto strings={strings} />
-            <ProblemProse strings={strings} />
-            <Marquee {...marqueeProps} />
+            <Marquee message={strings.marqueeFirst} />
+            {cardBeatOn && (
+                <>
+                    <CardBeat strings={strings} />
+                    <Marquee message={strings.marqueeClosedBeta} />
+                </>
+            )}
+            {manifestoSlot}
+            {problemSlot}
+            <Marquee message={strings.marqueeDefault} />
             {/* Suspense needed: WorksToday renders ExchangeRateWidget which uses useSearchParams().
                Without this boundary, the entire LandingPageClient suspends during SSR,
                sending an empty HTML shell to crawlers and killing SEO. */}
             <Suspense>
                 <WorksToday strings={strings} locale={locale} />
             </Suspense>
-            <Marquee {...marqueeProps} />
-            <NotForYou strings={strings} />
-            <Marquee {...marqueeProps} />
+            <Marquee message={strings.marqueeDefault} />
+            {notForYouSlot}
+            <Marquee message={strings.marqueeDefault} />
             <FAQs heading={faqData.heading} questions={faqQuestions} marquee={faqData.marquee} />
             {footerSlot}
             <StickyMobileCTA strings={strings} />

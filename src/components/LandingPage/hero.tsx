@@ -81,7 +81,6 @@ type HeroProps = {
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
-    buttonScale?: number
     /** replaces the primary button entirely (store-button pair on desktop during the migration window) */
     customCta?: React.ReactNode
 }
@@ -93,12 +92,11 @@ const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
     rotate: 0.75,
 })
 
-const getAnimateAnimation = (variant: 'primary' | 'secondary', buttonVisible?: boolean, buttonScale?: number) => ({
+const getAnimateAnimation = (variant: 'primary' | 'secondary', buttonVisible?: boolean) => ({
     opacity: buttonVisible ? 1 : 0,
     translateY: buttonVisible ? 0 : 20,
     translateX: buttonVisible ? 0 : 20,
     rotate: buttonVisible ? 0 : 1,
-    scale: buttonScale || 1,
     pointerEvents: buttonVisible ? ('auto' as const) : ('none' as const),
 })
 
@@ -113,21 +111,13 @@ const transitionConfig = { type: 'spring', damping: 15 } as const
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({
-    primaryCta,
-    secondaryCta,
-    buttonVisible,
-    buttonScale = 1,
-    customCta,
-    strings,
-    locale,
-}: HeroProps) {
+export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, locale }: HeroProps) {
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <motion.div
                 className={getButtonContainerClasses(variant)}
                 initial={getInitialAnimation(variant)}
-                animate={getAnimateAnimation(variant, buttonVisible, buttonScale)}
+                animate={getAnimateAnimation(variant, buttonVisible)}
                 whileHover={getHoverAnimation(variant)}
                 transition={transitionConfig}
             >
@@ -156,7 +146,7 @@ export function Hero({
         <motion.div
             className={getButtonContainerClasses('primary')}
             initial={getInitialAnimation('primary')}
-            animate={getAnimateAnimation('primary', buttonVisible, buttonScale)}
+            animate={getAnimateAnimation('primary', buttonVisible)}
             transition={transitionConfig}
         >
             {customCta}

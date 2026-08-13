@@ -8,6 +8,7 @@ import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
+import { ScarcityCounter } from '@/components/LandingPage/ScarcityCounter'
 import { useAuth } from '@/context/authContext'
 import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFace'
 import { inflateWaitlistPosition } from '@/components/Card/doorTally.utils'
@@ -67,24 +68,6 @@ const badges: Array<{ code: string; name: string; src: string }> = [
 
 const ctaButtonClassName =
     '!w-auto bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl'
-
-function ScarcityCounter() {
-    const t = useTranslations('shhhhh.hero')
-    const [count, setCount] = useState(51)
-    useEffect(() => {
-        const timer = setTimeout(() => setCount(50), 2500)
-        return () => clearTimeout(timer)
-    }, [])
-    return (
-        <motion.span
-            className="mx-1 inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1"
-            animate={count === 50 ? { scale: [1, 1.18, 1] } : {}}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-            {t('onlyCount', { count })}
-        </motion.span>
-    )
-}
 
 function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
     const t = useTranslations('shhhhh.hero')
@@ -200,6 +183,8 @@ export default function ShhhhhLandingPage() {
         const badgeCampaigns = badgeCampaignsFromSearchParams(new URLSearchParams(window.location.search))
 
         posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, {
+            // same event as the homepage card beat; the surface splits the two
+            surface: 'shhhhh',
             signed_in: !!user,
             campaign_tags: badgeCampaigns,
         })
@@ -302,7 +287,9 @@ export default function ShhhhhLandingPage() {
                             {t('hero.tagline')}
                         </p>
                         <p className="font-roboto-flex mt-6 max-w-xl text-xl leading-relaxed md:text-2xl">
-                            {t.rich('hero.body', { counter: () => <ScarcityCounter /> })}
+                            {t.rich('hero.body', {
+                                counter: () => <ScarcityCounter label={(count) => t('hero.onlyCount', { count })} />,
+                            })}
                         </p>
                         {isJoined ? (
                             <div className="mt-8 flex justify-center md:justify-start">

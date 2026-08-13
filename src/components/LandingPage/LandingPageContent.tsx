@@ -1,5 +1,8 @@
 import { Suspense } from 'react'
 import { LandingPageClient } from './LandingPageClient'
+import { Manifesto } from './Manifesto'
+import { ProblemProse } from './ProblemProse'
+import { NotForYou } from './NotForYou'
 import Footer from './Footer'
 import { faqSchema } from '@/lib/seo/schemas'
 import { singletonLocaleFor } from '@/lib/content'
@@ -13,7 +16,8 @@ import type { Locale } from '@/i18n/types'
 // landing route. Reads the filesystem via getLandingContent, so this must stay
 // a server component.
 export function LandingPageContent({ locale }: { locale: Locale }) {
-    const { heroConfig, faqData, marqueeMessages } = getLandingContent(locale)
+    const { heroConfig, faqData } = getLandingContent(locale)
+    const strings = landingStrings(getTranslations(locale))
     // inLanguage reflects the language the FAQ prose actually resolved to —
     // until mono ships landing translations, that's English on every locale.
     const faqJsonLd = faqSchema(
@@ -31,9 +35,11 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                 <LandingPageClient
                     heroConfig={heroConfig}
                     faqData={faqData}
-                    marqueeMessages={marqueeMessages}
                     locale={locale}
-                    strings={landingStrings(getTranslations(locale))}
+                    strings={strings}
+                    manifestoSlot={<Manifesto strings={strings} />}
+                    problemSlot={<ProblemProse strings={strings} />}
+                    notForYouSlot={<NotForYou strings={strings} />}
                     footerSlot={<Footer locale={locale} />}
                 />
             </Suspense>

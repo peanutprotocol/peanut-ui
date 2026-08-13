@@ -1,18 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
-import { useAuth } from '@/context/authContext'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { printableUsdc } from '@/utils/balance.utils'
-import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
 import type { Locale } from '@/i18n/types'
 import type { LandingStrings } from './landingStrings'
 
-const tileClassName = 'rounded-sm border-2 border-n-1 bg-white p-5.5 shadow-[4px_4px_0_#000] md:p-7'
+const tileClassName = 'rounded-sm border-2 border-n-1 bg-white p-5.5 shadow-4 md:p-7'
 const tileTitleClassName = 'font-roboto-flex-extrabold text-lg font-extraBlack uppercase leading-tight md:text-xl'
 const tileBodyClassName = 'font-roboto-flex text-base leading-relaxed'
 const chipClassName =
@@ -30,29 +24,13 @@ const comparePages = [
 export function WorksToday({ strings, locale }: { strings: LandingStrings; locale: Locale }) {
     const { worksToday } = strings
     const corridorChips = [worksToday.payLocalChipEurPix, worksToday.payLocalChipUsdMercadoPago]
-    const router = useRouter()
-    const { user } = useAuth()
-    const { fetchBalance, balance } = useWallet()
-
-    // Same CTA behaviour the widget had on the fees beat: signed-out visitors go
-    // to signup, signed-in ones land on the route their balance allows.
-    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
-        if (!user) {
-            router.push('/setup')
-            return
-        }
-        const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
-        router.push(getExchangeRateWidgetRedirectRoute(sourceCurrency, destinationCurrency, formattedBalance))
-    }
-
-    useEffect(() => {
-        if (user) {
-            fetchBalance()
-        }
-    }, [user])
 
     return (
-        <section id="works-today" className="relative overflow-hidden bg-green-1 px-4 py-18 text-n-1 md:py-28">
+        <section
+            id="works-today"
+            data-own-cta
+            className="relative overflow-hidden bg-green-1 px-4 py-18 text-n-1 md:py-28"
+        >
             <div className="mx-auto max-w-6xl">
                 <h2 className="font-roboto-flex-extrabold text-4xl font-extraBlack uppercase md:text-heading">
                     {worksToday.heading}
@@ -83,10 +61,13 @@ export function WorksToday({ strings, locale }: { strings: LandingStrings; local
 
                     <div className={`${tileClassName} md:col-span-2`}>
                         <h3 className={tileTitleClassName}>{worksToday.rateTitle}</h3>
+                        {/* Rate only — the beat already ends on one CTA, and the
+                            fee rows repeat a claim the marquee just made. */}
                         <ExchangeRateWidget
-                            ctaIcon="arrow-up-right"
-                            ctaLabel={strings.sendMoney}
-                            ctaAction={handleCtaAction}
+                            hideCta
+                            hideFees
+                            defaultFrom="USD"
+                            defaultTo="BRL"
                             labels={strings.exchange}
                         />
                         <div className="mt-4 flex flex-wrap items-center gap-2">

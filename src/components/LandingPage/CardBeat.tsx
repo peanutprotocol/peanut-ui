@@ -1,55 +1,41 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { motion, useReducedMotion } from 'framer-motion'
 import posthog from 'posthog-js'
 import Star from '@/assets/illustrations/star.svg'
 import { Button } from '@/components/0_Bruddle/Button'
-import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
+import { ScarcityCounter } from './ScarcityCounter'
 import type { LandingStrings } from './landingStrings'
 
-// Weekly admission rate for the closed beta (product/card.md). The counter
-// starts one above and ticks down once, so the number reads as live.
-const ADMISSIONS_PER_WEEK = 50
-const COUNTER_START = ADMISSIONS_PER_WEEK + 1
+// The card face renders nothing on the server and rasterises four canvases on
+// mount, so it stays out of the first chunk. The host box reserves the
+// aspect ratio, which keeps the beat from shifting when the chunk lands.
+const ScaledPixelatedCardFace = dynamic(
+    () => import('@/components/Card/share-asset/ScaledPixelatedCardFace').then((m) => m.ScaledPixelatedCardFace),
+    { ssr: false }
+)
 
-function ScarcityCounter({ label }: { label: string }) {
-    const prefersReducedMotion = useReducedMotion()
-    const [count, setCount] = useState(COUNTER_START)
-
-    useEffect(() => {
-        if (prefersReducedMotion) {
-            setCount(ADMISSIONS_PER_WEEK)
-            return
-        }
-        const timer = setTimeout(() => setCount(ADMISSIONS_PER_WEEK), 2500)
-        return () => clearTimeout(timer)
-    }, [prefersReducedMotion])
-
-    const ticked = count === ADMISSIONS_PER_WEEK
-
-    return (
-        <motion.span
-            className="mx-1 inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1"
-            animate={ticked && !prefersReducedMotion ? { scale: [1, 1.18, 1] } : {}}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-            {/* local interpolation — importing t() from @/i18n would pull every
-                locale catalog into this client bundle */}
-            {label.replace('{count}', String(count))}
-        </motion.span>
-    )
-}
+// Stat tiles are positional, so they carry literal ids — a translated label
+// changing must not change React's key.
+const CARD_BEAT_STATS = ['merchants', 'balance', 'card', 'monthlyFees'] as const
 
 export function CardBeat({ strings }: { strings: LandingStrings }) {
     const { cardBeat } = strings
     const { user } = useAuth()
     const router = useRouter()
+
+    // Numerals aren't translatable; the labels beside them are.
+    const stats = {
+        merchants: { value: '150M+', label: cardBeat.statMerchants },
+        balance: { value: '1', label: cardBeat.statBalance },
+        card: { value: '1', label: cardBeat.statCard },
+        monthlyFees: { value: '0', label: cardBeat.statMonthlyFees },
+    }
 
     const handleDoorClick = () => {
         posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, { surface: 'home_card_beat', signed_in: !!user })
@@ -57,7 +43,11 @@ export function CardBeat({ strings }: { strings: LandingStrings }) {
     }
 
     return (
-        <section id="card-beat" className="relative overflow-hidden bg-primary-1 px-4 py-18 text-n-1 md:py-28">
+        <section
+            id="card-beat"
+            data-own-cta
+            className="relative overflow-hidden bg-primary-1 px-4 py-18 text-n-1 md:py-28"
+        >
             <Image
                 src={Star}
                 alt=""
@@ -99,7 +89,11 @@ export function CardBeat({ strings }: { strings: LandingStrings }) {
 
                         <p className="font-roboto-flex mt-4 max-w-[46ch] text-lg leading-relaxed">
                             {cardBeat.bodyBefore}
-                            <ScarcityCounter label={cardBeat.counterLabel} />
+                            {/* local interpolation — importing t() from @/i18n would
+                                pull every locale catalog into this client bundle */}
+                            <ScarcityCounter
+                                label={(count) => cardBeat.counterLabel.replace('{count}', String(count))}
+                            />
                             {cardBeat.bodyAfter}
                         </p>
                         <p className="font-roboto-flex mt-4 max-w-[46ch] text-lg leading-relaxed">{cardBeat.custody}</p>
@@ -123,7 +117,7 @@ export function CardBeat({ strings }: { strings: LandingStrings }) {
                             </Link>
                         </div>
 
-                        <div className="mt-6 inline-flex items-center rounded-sm border-2 border-n-1 bg-white px-3 py-2 text-[0.6875rem] font-extraBlack uppercase tracking-[0.11em] shadow-[4px_4px_0_#000]">
+                        <div className="shadow-4 mt-6 inline-flex items-center rounded-sm border-2 border-n-1 bg-white px-3 py-2 text-[0.6875rem] font-extraBlack uppercase tracking-[0.11em]">
                             {cardBeat.trust}
                         </div>
                     </div>
@@ -133,31 +127,25 @@ export function CardBeat({ strings }: { strings: LandingStrings }) {
                             number unreadable. Rotation sits on the wrapper so the inner
                             host still measures its layout width for the fit-to-width scale. */}
                         <div className="-rotate-12">
-                            <div className="w-[min(20rem,72vw)] md:w-[min(25rem,30vw)]">
+                            <div className="aspect-[400/252] w-[min(20rem,72vw)] md:w-[min(25rem,30vw)]">
                                 <ScaledPixelatedCardFace last4="????" blurAll />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Numerals aren't translatable; the labels beside them are. 150M+
-                    leads so it takes the top-left cell of the 2x2 mobile grid. */}
+                {/* 150M+ leads so it takes the top-left cell of the 2x2 mobile grid. */}
                 <div className="mt-8 grid grid-cols-2 gap-3 md:mt-11 md:grid-cols-4 md:gap-4.5">
-                    {[
-                        { value: '150M+', label: cardBeat.statMerchants },
-                        { value: '1', label: cardBeat.statBalance },
-                        { value: '1', label: cardBeat.statCard },
-                        { value: '0', label: cardBeat.statMonthlyFees },
-                    ].map((stat) => (
+                    {CARD_BEAT_STATS.map((id) => (
                         <div
-                            key={stat.label}
-                            className="rounded-sm border-2 border-n-1 bg-white px-3 py-4.5 text-center shadow-[4px_4px_0_#000]"
+                            key={id}
+                            className="shadow-4 rounded-sm border-2 border-n-1 bg-white px-3 py-4.5 text-center"
                         >
                             <div className="font-roboto-flex-extrabold text-3xl font-extraBlack leading-none md:text-5xl">
-                                {stat.value}
+                                {stats[id].value}
                             </div>
                             <div className="font-roboto-flex mt-2 text-[0.6875rem] font-extraBlack uppercase leading-tight tracking-wider">
-                                {stat.label}
+                                {stats[id].label}
                             </div>
                         </div>
                     ))}

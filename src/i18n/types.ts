@@ -134,20 +134,6 @@ export interface Translations {
     // Landing page — CTAs and inputs
     landingSendNow: string
     landingSignUpNow: string
-    landingCurrencyPlaceholder: string
-
-    // Landing page — Peanut Card section
-    landingCardHeading: string
-    landingCardBody: string
-    landingCardBullet1: string
-    landingCardBullet2: string
-    landingCardBullet3: string
-    landingCardDisclaimer: string
-    landingCardCta: string
-
-    // Landing page — testimonials
-    landingWallOfLove: string
-    landingWallOfLoveBody: string
 
     // Landing page — card beat (closed-beta card, /shhhhh door)
     // The bridge line and the body wrap inline elements (a /setup link, the
@@ -198,10 +184,17 @@ export interface Translations {
     landingNotForYouBody: string
     landingNotForYouSignUpLink: string
 
-    // Landing page — closed-beta marquee strip
+    // Landing page — marquee strips
     landingMarqueeClosedBeta: string
     landingMarqueeShhhh: string
     landingMarqueeWordTravels: string
+    landingMarqueeInstant: string
+    landingMarquee247: string
+    landingMarqueeUsd: string
+    landingMarqueeEur: string
+    landingMarqueeStablecoins: string
+    landingMarqueeGlobal: string
+    landingMarqueeSelfCustodial: string
 
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
     legalHeroSubtitlePrivacy: string

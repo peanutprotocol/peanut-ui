@@ -39,6 +39,9 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // Public pages
         { path: '/careers', priority: 0.7, changeFrequency: 'monthly' },
         { path: '/exchange', priority: 0.7, changeFrequency: 'weekly' },
+        // The only card landing URL left — /lp/card is a 308 to it, so the
+        // target has to be listed.
+        { path: '/shhhhh', priority: 0.7, changeFrequency: 'weekly' },
 
         // Legal — the bare /privacy and /terms are redirects; list the real URLs.
         { path: '/en/privacy', priority: 0.5, changeFrequency: 'yearly' },

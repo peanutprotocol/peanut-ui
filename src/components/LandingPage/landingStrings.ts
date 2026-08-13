@@ -22,16 +22,6 @@ export interface LandingStrings {
     seeMarkupOn: string
     dropLinkHeading: string
     dropLinkBody: string
-    currencyPlaceholder: string
-    cardHeading: string
-    cardBody: string
-    cardBullet1: string
-    cardBullet2: string
-    cardBullet3: string
-    cardDisclaimer: string
-    cardCta: string
-    wallOfLove: string
-    wallOfLoveBody: string
     /** Door CTA shared by CardBeat, NotForYou and StickyMobileCTA. */
     tryTheDoor: string
     cardBeat: LandingCardBeatStrings
@@ -39,6 +29,10 @@ export interface LandingStrings {
     problem: LandingProblemStrings
     worksToday: LandingWorksTodayStrings
     notForYou: LandingNotForYouStrings
+    /** Words of the strip right under the hero — short, so they stay readable there. */
+    marqueeFirst: string[]
+    /** Words of every other marquee strip, in order. */
+    marqueeDefault: string[]
     /** Words of the closed-beta marquee strip, in order. */
     marqueeClosedBeta: string[]
     /** Passed straight through to ExchangeRateWidget's `labels`. */
@@ -67,16 +61,6 @@ export function landingStrings(i18n: Translations): LandingStrings {
         seeMarkupOn: i18n.landingSeeMarkupOn,
         dropLinkHeading: i18n.landingDropLinkHeading,
         dropLinkBody: i18n.landingDropLinkBody,
-        currencyPlaceholder: i18n.landingCurrencyPlaceholder,
-        cardHeading: i18n.landingCardHeading,
-        cardBody: i18n.landingCardBody,
-        cardBullet1: i18n.landingCardBullet1,
-        cardBullet2: i18n.landingCardBullet2,
-        cardBullet3: i18n.landingCardBullet3,
-        cardDisclaimer: i18n.landingCardDisclaimer,
-        cardCta: i18n.landingCardCta,
-        wallOfLove: i18n.landingWallOfLove,
-        wallOfLoveBody: i18n.landingWallOfLoveBody,
         tryTheDoor: i18n.landingTryTheDoor,
         cardBeat: {
             // The catalogs keep every value trimmed (i18n/__tests__/messages.test.ts)
@@ -130,6 +114,22 @@ export function landingStrings(i18n: Translations): LandingStrings {
             body: i18n.landingNotForYouBody,
             signUpLink: i18n.landingNotForYouSignUpLink,
         },
+        marqueeFirst: [
+            i18n.landingMarqueeInstant,
+            i18n.landingMarquee247,
+            i18n.landingMarqueeUsd,
+            i18n.landingMarqueeEur,
+            i18n.landingMarqueeGlobal,
+        ],
+        marqueeDefault: [
+            i18n.landingMarqueeInstant,
+            i18n.landingMarquee247,
+            i18n.landingMarqueeUsd,
+            i18n.landingMarqueeEur,
+            i18n.landingMarqueeStablecoins,
+            i18n.landingMarqueeGlobal,
+            i18n.landingMarqueeSelfCustodial,
+        ],
         marqueeClosedBeta: [i18n.landingMarqueeClosedBeta, i18n.landingMarqueeShhhh, i18n.landingMarqueeWordTravels],
         exchange: {
             youSend: i18n.exchangeYouSend,
