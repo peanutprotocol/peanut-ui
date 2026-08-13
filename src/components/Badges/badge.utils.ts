@@ -85,7 +85,7 @@ const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
     ETHFLORIPA_HUB: 'Ilha da Magia, baby. Coconuts and consensus 🥥',
     IRL_NOMADS: 'Nomad mode on. My office is wherever the wifi is ☕',
     WAITLIST_SKIP: "Got the skip pass. It's not what you know, it's who invites you 🔑",
-    ENS: 'Paid at an ENS name, not a 0x address. Names over numbers 🔷',
+    ENS: 'One ENS name, no address to copy. Money still landed 🔷',
 }
 
 // Share text is:
