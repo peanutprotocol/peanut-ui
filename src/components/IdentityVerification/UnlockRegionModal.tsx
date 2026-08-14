@@ -5,6 +5,7 @@ import ActionModal from '../Global/ActionModal'
 import InfoCard from '../Global/InfoCard'
 import { Icon } from '../Global/Icons/Icon'
 import { type Region } from '@/utils/regions.utils'
+import { useRegionLabel } from '@/hooks/useRegionLabel'
 import React from 'react'
 
 interface StartVerificationModalProps {
@@ -25,6 +26,8 @@ const UnlockRegionModal = ({
     const t = useTranslations('identity')
     const tKyc = useTranslations('kyc')
     const tCommon = useTranslations('common')
+    const regionLabel = useRegionLabel()
+    const regionName = selectedRegion && regionLabel(selectedRegion).name
 
     const bold = { b: (chunks: React.ReactNode) => <b>{chunks}</b> }
     const qrPayments = <p key="qr">{t.rich('qrPayments', bold)}</p>
@@ -54,7 +57,7 @@ const UnlockRegionModal = ({
         <ActionModal
             visible={visible}
             onClose={onClose}
-            title={selectedRegion?.name ? t('unlockTitle', { region: selectedRegion.name }) : t('unlockTitleGeneric')}
+            title={regionName ? t('unlockTitle', { region: regionName }) : t('unlockTitleGeneric')}
             description={<p>{t.rich('unlockDescription', bold)}</p>}
             descriptionClassName="text-black"
             icon="shield"

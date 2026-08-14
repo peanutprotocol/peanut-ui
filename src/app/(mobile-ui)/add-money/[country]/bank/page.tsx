@@ -46,7 +46,8 @@ import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { getRegionIntent } from '@/utils/regions.utils'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 // Step type for URL state
 type BridgeBankStep = 'inputAmount' | 'showDetails'
@@ -57,6 +58,7 @@ type BridgeBankStep = 'inputAmount' | 'showDetails'
 function BridgeBankOnrampPage() {
     const params = useParams()
     const _searchParams = useSearchParams()
+    const locale = useLocale()
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
 
@@ -514,7 +516,7 @@ function BridgeBankOnrampPage() {
                     variant={resolveKycModalVariant(gate)}
                     providerMessage={getGateUserMessage(gate)}
                     reasonCode={getGateReasonCode(gate)}
-                    regionName={selectedCountry?.title}
+                    regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                 />
 
                 <AdvisoryPreemptModal {...advisoryModalProps} />

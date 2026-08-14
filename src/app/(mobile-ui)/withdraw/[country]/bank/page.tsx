@@ -49,11 +49,13 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 type View = 'INITIAL' | 'SUCCESS'
 
 export default function WithdrawBankPage() {
+    const locale = useLocale()
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
@@ -97,6 +99,7 @@ export default function WithdrawBankPage() {
     // PENDING rail in an unrelated jurisdiction can't block this page.
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
+    const countryFromPath = getCountryFromPath(country)
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -616,7 +619,7 @@ export default function WithdrawBankPage() {
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
-                regionName={getCountryFromPath(country)?.title}
+                regionName={countryFromPath && localizedCountryTitle(locale, countryFromPath)}
             />
             <AdvisoryPreemptModal {...advisoryModalProps} />
 

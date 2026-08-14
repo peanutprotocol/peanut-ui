@@ -28,6 +28,19 @@
         "next": "Next",
         "notFound": "Not Found",
         "countryNotFound": "Country not found",
+        "regions": {
+            "europe": "Europe",
+            "north-america": "North America",
+            "latam": "LATAM",
+            "rest-of-the-world": "Rest of the world",
+            "argentina": "Argentina",
+            "brazil": "Brazil",
+            "mexico": "Mexico",
+            "descriptions": {
+                "argentina": "Only Mercado Pago QR payments",
+                "brazil": "Only PIX QR payments"
+            }
+        },
         "tryDifferentCountry": "Please try a different country.",
         "status": {
             "completed": "Completed",
@@ -395,7 +408,6 @@
         "unlockedRegions": "Unlocked regions",
         "lockedRegions": "Locked regions",
         "otherRegions": "Other regions",
-        "restOfWorld": "Rest of the world",
         "cardLimits": {
             "title": "Card limits",
             "manage": "Manage card limits",
@@ -1911,7 +1923,201 @@
         "shareText": "I earned {badge} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n{link}",
         "toastSingle": "Badge unlocked: {name}",
         "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}} 🎉",
-        "toastTapToView": "— tap to view"
+        "toastTapToView": "— tap to view",
+        "catalog": {
+            "FIRST_INVITE": {
+                "name": "First Invite",
+                "description": "Brought a friend to the table. One down, a whole network to go."
+            },
+            "SECOND_INVITE": {
+                "name": "Second Invite",
+                "description": "Word's getting around — two friends in and rising."
+            },
+            "THIRD_INVITE": {
+                "name": "Third Invite",
+                "description": "Three friends, no misses. Tip your hat."
+            },
+            "MINI_INFLUENCER": {
+                "name": "Mini Influencer",
+                "description": "Built a little fan club, one invite at a time."
+            },
+            "INFLUENCER_25": {
+                "name": "Influencer",
+                "description": "Twenty-five strong. The likes keep rolling in."
+            },
+            "MEGA_INFLUENCER": {
+                "name": "Mega Influencer",
+                "description": "A hundred friends in. You're kind of a big deal now."
+            },
+            "DUNBAR": {
+                "name": "Dunbar",
+                "description": "150 — more people than you can remember. They hit Dunbar's number."
+            },
+            "MOST_INVITES": {
+                "name": "Most Invites",
+                "description": "Onboarded more users than Coinbase ads!"
+            },
+            "CERTIFIED_YAPPER": {
+                "name": "Certified Yapper",
+                "description": "Certified loud. They talked about Peanut so we didn't have to."
+            },
+            "GIGA_YAPPER": {
+                "name": "Giga Yapper",
+                "description": "Giga loud. They don't mention Peanut, they broadcast it."
+            },
+            "FIRST_CRUMB": {
+                "name": "First Dollar",
+                "description": "First dollar earned. Proof it pays."
+            },
+            "DOUBLE_DIGITS": {
+                "name": "Double Digits",
+                "description": "Crossed into double digits. Real money now."
+            },
+            "CARD_FIRST_SWIPE": {
+                "name": "First Swipe",
+                "description": "You put your card to work."
+            },
+            "CARD_SPENT_1K": {
+                "name": "$1K Club",
+                "description": "$1K swiped — you put your money where your card is."
+            },
+            "CARD_PIONEER": {
+                "name": "Card Pioneer",
+                "description": "You reserved your spot for the Peanut Card. Pioneer perks await!"
+            },
+            "FOUNDING_PIONEER": {
+                "name": "Founding Pioneer",
+                "description": "You were building Peanut before it had a launch."
+            },
+            "VERIFIED": {
+                "name": "Verified",
+                "description": "ID checked, identity confirmed. You're officially verified."
+            },
+            "BETA_TESTER": {
+                "name": "Beta Tester",
+                "description": "You broke things so others don't have to. Welcome to the chaos club — Beta Tester badge unlocked."
+            },
+            "OG_2025_10_12": {
+                "name": "OG",
+                "description": "You are a real OG. You were with Peanut before it was cool."
+            },
+            "CARD_CLOSED_BETA": {
+                "name": "Closed Beta",
+                "description": "IYKYK. They were testing the card before you knew it existed."
+            },
+            "CARD_ALPHA": {
+                "name": "Closed Alpha Tester",
+                "description": "You tested the Card while it was still held together with tape and hope."
+            },
+            "BUG_WHISPERER": {
+                "name": "Bug Whisperer",
+                "description": "You found a real bug, reported it, and stayed. We owe you a beer."
+            },
+            "SUPPORT_SURVIVOR": {
+                "name": "Support Survivor",
+                "description": "You found a real bug, reported it, and stayed. We owe you a beer."
+            },
+            "SHHHHH": {
+                "name": "Shhhhh",
+                "description": "You know the secret."
+            },
+            "NOT_SO_SHHHH": {
+                "name": "Loud Mouth",
+                "description": "You couldn't keep it quiet — and you got paid for it."
+            },
+            "ARBITRUM": {
+                "name": "Arbitrum Native",
+                "description": "Found on Arbitrum — mutual onboarding achieved."
+            },
+            "FOUNDER_HOUSE": {
+                "name": "Founder Haus",
+                "description": "You were at Founder Haus. On-chain energy, off-chain handshakes."
+            },
+            "ETHFLORIPA_HUB": {
+                "name": "EthFloripa Hub",
+                "description": "Ilha da Magia, baby. Coconuts and consensus."
+            },
+            "IRL_NOMADS": {
+                "name": "Nomad Mode",
+                "description": "No fixed address, just good coffee and better wifi. Certified Nomad."
+            },
+            "EVENT_ALUMNI": {
+                "name": "Event Alumni",
+                "description": "Old school. You were in the room before most."
+            },
+            "TOUCHED_GRASS": {
+                "name": "Touched Grass",
+                "description": "You logged off and touched real grass with Peanut."
+            },
+            "OFFRAMP_USER": {
+                "name": "Offramp User",
+                "description": "You migrated to Peanut. We welcomed you."
+            },
+            "PSYOPS_DIVISION": {
+                "name": "Psyops Division",
+                "description": "Enlisted in the Psyops Division. Welcome to the influence game."
+            },
+            "TOKEN_NATION_SP_2026": {
+                "name": "Token Nation 2026",
+                "description": "São Paulo, baby. You came, you claimed, you tagged the wall."
+            },
+            "FESTA_JUNINA_2026": {
+                "name": "Arraiá Approved",
+                "description": "You danced the quadrilha with us. Arraiá unlocked."
+            },
+            "MANICERO": {
+                "name": "Manicero",
+                "description": "Small maní. Big energy. Manicero."
+            },
+            "NITA": {
+                "name": "Nita's Recommendation",
+                "description": "Nita sent you. You skipped the card line on her word."
+            },
+            "NAIJA": {
+                "name": "9JA",
+                "description": "Naija no dey carry last. You were here first."
+            },
+            "TERERE": {
+                "name": "Tereré",
+                "description": "Tereré unlocked. You were there for round one."
+            },
+            "DEVCONNECT_BA_2025": {
+                "name": "Devconnect 2025",
+                "description": "Not anon. Touched grass, shook hands, breathed the same air as Vitalik."
+            },
+            "SEEDLING_DEVCONNECT_BA_2025": {
+                "name": "Seedling",
+                "description": "You are working with us to spread the word about Peanut."
+            },
+            "ARBIVERSE_DEVCONNECT_BA_2025": {
+                "name": "Peanut 🤝 Arbiverse",
+                "description": "You joined us at the amazing Arbiverse booth at Devconnect 2025."
+            },
+            "PRODUCT_HUNT": {
+                "name": "Product Hunt",
+                "description": "Hope Dealer. Your upvote felt like a VC term sheet!"
+            },
+            "MOST_RESTAURANTS_DEVCON": {
+                "name": "Most Restaurants Devcon",
+                "description": "You are a real gourmet!"
+            },
+            "BIG_SPENDER_5K": {
+                "name": "Big Spender 5K",
+                "description": "You are a top spender."
+            },
+            "MOST_PAYMENTS_DEVCON": {
+                "name": "Most Payments Devcon",
+                "description": "Money Machine - You move money like it's light work. Most payments made!"
+            },
+            "BIGGEST_REQUEST_POT": {
+                "name": "Biggest Request Pot",
+                "description": "High Roller or Master Beggar? You created the pot with the highest number of contributors."
+            },
+            "WAITLIST_SKIP": {
+                "name": "Skip Pass",
+                "description": "You skipped the waitlist. A friend handed you the key and you walked right in."
+            }
+        }
     },
     "notifications": {
         "title": "Notifications",

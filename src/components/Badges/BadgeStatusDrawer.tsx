@@ -5,14 +5,8 @@ import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
-import {
-    captureBadgeShare,
-    getBadgeDescription,
-    getBadgeDisplayName,
-    getBadgeIcon,
-    getBadgeShareLink,
-    getBadgeShareText,
-} from './badge.utils'
+import { captureBadgeShare, getBadgeIcon, getBadgeShareLink, getBadgeShareText } from './badge.utils'
+import { useBadgeCopy } from './useBadgeCopy'
 import { useBadgeShareImpression } from './useBadgeShareImpression'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
@@ -36,6 +30,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     const locale = useLocale()
     const format = useFormatter()
     const { user: authUser } = useAuth()
+    const badgeCopy = useBadgeCopy()
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const username = authUser?.user.username
     const earnedAt = badge.earnedAt ? new Date(badge.earnedAt) : undefined
@@ -50,8 +45,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                   hour12: false,
               })
             : undefined
-    const displayName = getBadgeDisplayName(badge.code, badge.name)
-    const displayDescription = getBadgeDescription(badge.description)
+    const { name: displayName, description: displayDescription } = badgeCopy(badge.code, badge.name, badge.description)
     const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
     // the sharer's own invite link, so a guest signup credits them
