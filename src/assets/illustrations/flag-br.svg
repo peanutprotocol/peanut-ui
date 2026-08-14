@@ -1,0 +1,17 @@
+<svg width="180" height="120" viewBox="0 0 180 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="flagBrClip"><rect width="180" height="120" rx="5"/></clipPath>
+<clipPath id="flagBrDisc"><circle cx="90" cy="60" r="30"/></clipPath>
+</defs>
+<g clip-path="url(#flagBrClip)">
+<rect width="180" height="120" fill="#177D32"/>
+<path d="M90,15L165,60L90,105L15,60Z" fill="#FFC900" stroke="#000000" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="90" cy="60" r="30" fill="#013690"/>
+<g clip-path="url(#flagBrDisc)">
+<path fill="#FFFFFF" d="M66.0,48.4L66.9,50.8L69.4,50.9L67.4,52.5L68.1,54.9L66.0,53.5L63.9,54.9L64.6,52.5L62.6,50.9L65.1,50.8ZM88.0,39.2L89.2,42.4L92.6,42.5L89.9,44.6L90.8,47.9L88.0,46.0L85.2,47.9L86.1,44.6L83.4,42.5L86.8,42.4ZM110.0,40.6L110.8,42.8L113.2,42.9L111.4,44.4L112.0,46.8L110.0,45.4L108.0,46.8L108.6,44.4L106.8,42.9L109.2,42.8ZM76.0,73.6L77.1,76.5L80.2,76.6L77.8,78.6L78.6,81.6L76.0,79.8L73.4,81.6L74.2,78.6L71.8,76.6L74.9,76.5ZM92.0,79.2L93.2,82.4L96.6,82.5L93.9,84.6L94.8,87.9L92.0,86.0L89.2,87.9L90.1,84.6L87.4,82.5L90.8,82.4ZM106.0,76.6L106.8,78.8L109.2,78.9L107.4,80.4L108.0,82.8L106.0,81.4L104.0,82.8L104.6,80.4L102.8,78.9L105.2,78.8Z"/>
+<path transform="rotate(12,90,60)" d="M30,71.9A146,146 0 0 1 150,71.9L150,83.5A135.5,135.5 0 0 0 30,83.5Z" fill="#FFFFFF" stroke="#000000" stroke-width="3"/>
+</g>
+<circle cx="90" cy="60" r="30" fill="none" stroke="#000000" stroke-width="3"/>
+</g>
+<rect x="1.5" y="1.5" width="177" height="117" rx="5" fill="none" stroke="#000000" stroke-width="3"/>
+</svg>
