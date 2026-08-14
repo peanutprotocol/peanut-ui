@@ -125,6 +125,14 @@ function mapDeepLinkPath(parsed: URL): string {
     if (segments[0] === 'add-money' || segments[0] === 'withdraw') {
         return rewriteMethodPath(path, extraParams || undefined)
     }
+    // `/invite?code=X` — the invite landing page is pruned from the native
+    // export (scripts/native-build.js), so App Links landing on it hit a
+    // chunk-error reload loop. Route straight to signup; the code travels via
+    // the session invite cookie written in openDeepLink (side effect can't
+    // live here — this mapper runs during render).
+    if (isCapacitor() && segments[0] === 'invite') {
+        return '/setup?step=signup'
+    }
     // `/receipt/<id>?kind=X` — the web receipt page is a server component and is
     // stripped from the static export (scripts/native-build.js), so native routes
     // to the client variant. `kind` rides along in extraParams.

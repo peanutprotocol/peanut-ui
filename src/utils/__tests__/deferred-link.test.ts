@@ -126,6 +126,14 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         })
     })
 
+    it('invite argument overrides the cookie (claim CTA knows the code pre-cookie)', () => {
+        saveToCookie('inviteCode', 'cookiecode')
+        expect(parseDeferredPayload(buildDeferredPayload('/home', 'sendercode'))).toEqual({
+            invite: 'sendercode',
+            dest: '/home',
+        })
+    })
+
     it('defaults dest to the current path + query and skips absent fields', () => {
         window.history.replaceState({}, '', '/claim/ABC?x=2')
         const parsed = parseDeferredPayload(buildDeferredPayload())

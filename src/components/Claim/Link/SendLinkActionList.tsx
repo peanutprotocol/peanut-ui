@@ -190,11 +190,15 @@ export default function SendLinkActionList({
 
     const handleContinueWithPeanut = () => {
         // migration window: web signups are closed — hand the guest to the
-        // app stores instead (QR modal on desktop, store link on mobile)
-        if (!isLoggedIn && interceptGuestCta()) return
+        // app stores instead (QR modal on desktop, store link on mobile).
+        // the sender's invite code rides the deferred hand-off explicitly —
+        // no cookie is written until /invite, which a guest never reaches.
+        // dest defaults to this claim path (the #p= secret never rides).
+        const rawUsername = claimLinkData?.sender?.username
+        const guestInvite = isInviteLink && rawUsername ? toInviteCode(rawUsername) : undefined
+        if (!isLoggedIn && interceptGuestCta({ invite: guestInvite })) return
         addParamStep('claim')
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
-        const rawUsername = claimLinkData?.sender?.username
         if (isInviteLink && !userHasAppAccess && rawUsername) {
             const inviteCode = toInviteCode(rawUsername)
             dispatch(setupActions.setInviteCode(inviteCode))

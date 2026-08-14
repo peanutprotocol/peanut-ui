@@ -324,6 +324,14 @@ describe('native-routes', () => {
                 )
             })
 
+            // The invite landing page is pruned from the native export, so an
+            // App Link onto it must land on signup instead of a chunk-error
+            // loop. The code itself rides the invite cookie (openDeepLink).
+            it('rewrites /invite to signup — the landing page is not in the export', () => {
+                expect(deepLinkToNativePath('https://peanut.me/invite?code=kushagra')).toBe('/setup?step=signup')
+                expect(deepLinkToNativePath('/invite')).toBe('/setup?step=signup')
+            })
+
             // The claim-link password lives in the fragment and is never sent to
             // the server (see peanut-link.utils.ts), so dropping it here yields a
             // link that resolves to a claim page with no way to claim.
@@ -390,6 +398,10 @@ describe('native-routes', () => {
         describe('web mode', () => {
             beforeEach(() => {
                 mockIsCapacitor.mockReturnValue(false)
+            })
+
+            it('keeps /invite on the web — the landing page exists there', () => {
+                expect(deepLinkToNativePath('https://peanut.me/invite?code=kushagra')).toBe('/invite?code=kushagra')
             })
 
             it('keeps the path-based receipt url', () => {
