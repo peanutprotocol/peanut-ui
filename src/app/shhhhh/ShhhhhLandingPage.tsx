@@ -16,6 +16,7 @@ import { cardApi } from '@/services/card'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
+import { getBadgeIcon } from '@/components/Badges/badge.utils'
 import { captureException } from '@sentry/nextjs'
 import {
     destinationForShhhhhClaims,
@@ -59,21 +60,22 @@ const statLabelKeys = ['statMerchants', 'statBalance', 'statCard', 'statMiddleme
 
 const faqKeys = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const
 
-// The full skip set from the API's badge registry (SKIP_BADGE_CODES): every
-// badge that grants `skip:card-queue`, in either launch phase.
-const badges: Array<{ code: string; name: string; src: string }> = [
-    { code: 'OG_2025_10_12', name: 'Peanut OG', src: '/badges/og_v1.svg' },
-    { code: 'DEVCONNECT_BA_2025', name: 'Devconnect BA', src: '/badges/devconnect_2025.svg' },
-    { code: 'ARBIVERSE_DEVCONNECT_BA_2025', name: 'Arbiverse', src: '/badges/arbiverse_devconnect.svg' },
-    { code: 'SEEDLING_DEVCONNECT_BA_2025', name: 'Seedling', src: '/badges/seedlings_devconnect.svg' },
-    { code: 'EVENT_ALUMNI', name: 'Event Alumni', src: '/badges/event_alumni.svg' },
-    { code: 'CARD_PIONEER', name: 'Founding Pioneer', src: '/badges/founding_pioneer.svg' },
-    { code: 'OFFRAMP_USER', name: 'Offramp User', src: '/badges/offramp_user.png' },
-    { code: 'NAIJA', name: '9JA', src: '/badges/naija.svg' },
-    { code: 'TERERE', name: 'Tereré', src: '/badges/terere.svg' },
-    { code: 'ACAI_POWERED', name: 'Açaí Powered', src: '/badges/acai_powered.svg' },
-    { code: 'NITA', name: 'Nita', src: '/badges/nita.svg' },
-    { code: 'WAITLIST_SKIP', name: 'Skip Pass', src: '/badges/skip_pass.svg' },
+// The full skip set: keep the codes in sync with SKIP_BADGE_CODES
+// (peanut-api-ts src/card/waitlist.ts, pinned in waitlist.test.ts). Icons come
+// from the generated badge-asset manifest, names are marketing-shortened.
+const badges: Array<{ code: string; name: string }> = [
+    { code: 'OG_2025_10_12', name: 'Peanut OG' },
+    { code: 'DEVCONNECT_BA_2025', name: 'Devconnect BA' },
+    { code: 'ARBIVERSE_DEVCONNECT_BA_2025', name: 'Arbiverse' },
+    { code: 'SEEDLING_DEVCONNECT_BA_2025', name: 'Seedling' },
+    { code: 'EVENT_ALUMNI', name: 'Event Alumni' },
+    { code: 'CARD_PIONEER', name: 'Founding Pioneer' },
+    { code: 'OFFRAMP_USER', name: 'Offramp User' },
+    { code: 'NAIJA', name: '9JA' },
+    { code: 'TERERE', name: 'Tereré' },
+    { code: 'ACAI_POWERED', name: 'Açaí Powered' },
+    { code: 'NITA', name: 'Nita' },
+    { code: 'WAITLIST_SKIP', name: 'Skip Pass' },
 ]
 
 const ctaButtonClassName =
@@ -463,7 +465,7 @@ export default function ShhhhhLandingPage() {
                                     >
                                         <div className="relative aspect-square w-full">
                                             <Image
-                                                src={b.src}
+                                                src={getBadgeIcon(b.code)}
                                                 alt={b.name}
                                                 fill
                                                 className="object-contain"
