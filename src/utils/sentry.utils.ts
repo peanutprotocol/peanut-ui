@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { type JSONValue } from '../interfaces/interfaces'
-import { reportNetworkError, reportNetworkOk } from './connectivity'
+import { reportNetworkError } from './connectivity'
 
 /**
  * Endpoint + status combinations to skip reporting.
@@ -441,9 +441,6 @@ export const fetchWithSentry = async (
     try {
         const response = await attemptFetch()
 
-        // A response came back — the backend is reachable, clear any failure streak.
-        reportNetworkOk()
-
         if (!response.ok) {
             // Skip both the console warn AND Sentry submission for expected
             // non-2xx responses (username availability 404, get-user-from-cookie
@@ -519,7 +516,7 @@ export const fetchWithSentry = async (
                 })
             })
 
-            const userError = new Error('Service temporarily unavailable. Please try again.')
+            const userError = new Error("We couldn't reach Peanut — check your internet connection and try again.")
             userError.name = 'ServiceUnavailableError'
             userError.cause = timeoutError
             throw userError

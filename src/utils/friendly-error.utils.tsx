@@ -79,6 +79,7 @@ export type FriendlyErrorCode =
     | 'sendLinkAlreadyClaimed'
     | 'lowLiquidity'
     | 'networkBusyTimeout'
+    | 'connectionTimeout'
     | 'genericSupport'
     // Mapped from backend wire codes — see WIRE_CODE_MAP below.
     | 'staleCardApproval'
@@ -245,7 +246,10 @@ export const friendlyError = (error: unknown): FriendlyError => {
     // we set ourselves rather than walking `.cause` generically: extractErrorParts
     // feeds three call paths and a recursive walk would silently reclassify
     // every wrapped error in the app.
-    if (name === 'ServiceUnavailableError') return code('networkBusyTimeout')
+    // fetchWithSentry sets this name when the request never REACHED the server
+    // (timeout / DNS / refused) — that's the user's connection, not a busy
+    // network, so it gets connection-aware copy instead of networkBusyTimeout.
+    if (name === 'ServiceUnavailableError') return code('connectionTimeout')
     if (
         text.includes('took too long to respond') ||
         text.includes('The request timed out') ||

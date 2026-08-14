@@ -1,10 +1,15 @@
 import { act, renderHook } from '@testing-library/react'
 import { useConnectivity } from '../useConnectivity'
-import { reportNetworkError, reportNetworkOk } from '@/utils/connectivity'
+import { FAILURE_WINDOW_MS, reportNetworkError, resetConnectivity } from '@/utils/connectivity'
 
 beforeEach(() => {
-    reportNetworkOk()
+    jest.useFakeTimers()
+    resetConnectivity()
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
+})
+
+afterEach(() => {
+    jest.useRealTimers()
 })
 
 describe('useConnectivity', () => {
@@ -28,7 +33,26 @@ describe('useConnectivity', () => {
         expect(result.current.show).toBe(true)
     })
 
-    it('clears once a request succeeds again', () => {
+    // The bug this hook exists to fix: on a flaky connection parallel requests
+    // interleave successes with failures. Successes must NOT reset the count
+    // (the old consecutive counter did, so the banner never fired — TASK-21108).
+    it('still trips when failures are spread out inside the window', () => {
+        const { result } = renderHook(() => useConnectivity())
+
+        act(() => {
+            reportNetworkError()
+        })
+        act(() => {
+            jest.advanceTimersByTime(10_000)
+        })
+        act(() => {
+            reportNetworkError()
+        })
+
+        expect(result.current.isApiUnreachable).toBe(true)
+    })
+
+    it('clears once the failures age out of the window', () => {
         const { result } = renderHook(() => useConnectivity())
 
         act(() => {
@@ -38,7 +62,7 @@ describe('useConnectivity', () => {
         expect(result.current.show).toBe(true)
 
         act(() => {
-            reportNetworkOk()
+            jest.advanceTimersByTime(FAILURE_WINDOW_MS + 100)
         })
         expect(result.current.show).toBe(false)
     })

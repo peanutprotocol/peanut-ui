@@ -215,14 +215,17 @@ describe('backend wire codes', () => {
         expect(friendlyError(walletRejection)).toEqual({ kind: 'code', code: 'userRejectedRequest' })
     })
 
-    test('ServiceUnavailableError keeps the retryable timeout code', () => {
-        // fetchWithSentry rethrows this with the real timeout on `.cause`, which
-        // the classifier does not walk — without the name match it collapsed to
-        // the generic support fallback.
-        const wrapped = Object.assign(new Error('Service temporarily unavailable. Please try again.'), {
-            name: 'ServiceUnavailableError',
-        })
-        expect(friendlyError(wrapped)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
+    test('ServiceUnavailableError maps to connection-aware copy', () => {
+        // fetchWithSentry sets this name when the request never reached the
+        // server — the classifier matches the name (it does not walk `.cause`)
+        // and must blame the connection, not a busy network.
+        const wrapped = Object.assign(
+            new Error("We couldn't reach Peanut — check your internet connection and try again."),
+            {
+                name: 'ServiceUnavailableError',
+            }
+        )
+        expect(friendlyError(wrapped)).toEqual({ kind: 'code', code: 'connectionTimeout' })
     })
 
     test('the SDK transactionHash fetch failure is now localized, not passed through', () => {

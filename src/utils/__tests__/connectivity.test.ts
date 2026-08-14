@@ -1,40 +1,62 @@
-import { getConsecutiveFailures, reportNetworkError, reportNetworkOk, subscribeConnectivity } from '../connectivity'
+import {
+    FAILURE_WINDOW_MS,
+    getMsUntilNextExpiry,
+    getRecentFailures,
+    reportNetworkError,
+    resetConnectivity,
+    subscribeConnectivity,
+} from '../connectivity'
 
 // Module state is shared across tests, so reset to a known-good state each time.
 beforeEach(() => {
-    reportNetworkOk()
+    jest.useFakeTimers()
+    resetConnectivity()
+})
+
+afterEach(() => {
+    jest.useRealTimers()
 })
 
 describe('connectivity', () => {
-    it('counts consecutive failures and resets on a success', () => {
-        expect(getConsecutiveFailures()).toBe(0)
+    it('counts failures inside the window', () => {
+        expect(getRecentFailures()).toBe(0)
 
         reportNetworkError()
         reportNetworkError()
-        expect(getConsecutiveFailures()).toBe(2)
-
-        reportNetworkOk()
-        expect(getConsecutiveFailures()).toBe(0)
+        expect(getRecentFailures()).toBe(2)
     })
 
-    it('notifies subscribers on failure and on recovery', () => {
+    it('expires failures once they age out of the window', () => {
+        reportNetworkError()
+        jest.advanceTimersByTime(FAILURE_WINDOW_MS / 2)
+        reportNetworkError()
+        expect(getRecentFailures()).toBe(2)
+
+        jest.advanceTimersByTime(FAILURE_WINDOW_MS / 2)
+        expect(getRecentFailures()).toBe(1)
+
+        jest.advanceTimersByTime(FAILURE_WINDOW_MS / 2)
+        expect(getRecentFailures()).toBe(0)
+    })
+
+    it('reports when the oldest failure will expire', () => {
+        expect(getMsUntilNextExpiry()).toBeNull()
+
+        reportNetworkError()
+        jest.advanceTimersByTime(10_000)
+        reportNetworkError()
+
+        expect(getMsUntilNextExpiry()).toBe(FAILURE_WINDOW_MS - 10_000)
+    })
+
+    it('notifies subscribers on each failure', () => {
         const seen: number[] = []
-        const unsubscribe = subscribeConnectivity(() => seen.push(getConsecutiveFailures()))
+        const unsubscribe = subscribeConnectivity(() => seen.push(getRecentFailures()))
 
         reportNetworkError()
         reportNetworkError()
-        reportNetworkOk()
 
-        expect(seen).toEqual([1, 2, 0])
-        unsubscribe()
-    })
-
-    it('does not emit a redundant reset when already healthy', () => {
-        const unsubscribe = subscribeConnectivity(() => {
-            throw new Error('should not be called when already at 0 failures')
-        })
-
-        expect(() => reportNetworkOk()).not.toThrow()
+        expect(seen).toEqual([1, 2])
         unsubscribe()
     })
 
