@@ -1,9 +1,11 @@
 import mantecaIphone from '@/assets/iphone-ss/manteca_ss.webp'
 import Image from 'next/image'
-import Link from 'next/link'
-import MEPA_ARGENTINA_LOGO from '@/assets/logos/mepa-arg.svg'
-import PIX_BRZ_LOGO from '@/assets/logos/pix-brz.svg'
+import MERCADO_PAGO_ICON from '@/assets/icons/mercado-pago-logo.svg'
+import PIX_ICON from '@/assets/icons/pix-logo.svg'
+import FLAG_AR from '@/assets/illustrations/flag-ar.svg'
+import FLAG_BR from '@/assets/illustrations/flag-br.svg'
 import Star from '@/assets/illustrations/star.svg'
+import { PartnerLockup } from './PartnerLockup'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { getTranslations } from '@/i18n'
@@ -66,36 +68,37 @@ const Manteca = ({
                 <h3 className="font-roboto-flex mt-6 text-center text-xl md:text-2xl">{i18n.landingPayLocalBody}</h3>
             </div>
 
-            {/* Mobile layout */}
-            <div className="mt-4 flex flex-col items-center justify-center gap-4 md:hidden">
-                <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
-
-                <div className="flex gap-8">
-                    <Link href={`/${locale}/pay-with/mercadopago`} aria-label={i18n.landingMercadoPagoAria}>
-                        <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={100} height={100} />
-                    </Link>
-                    <Link href={`/${locale}/pay-with/pix`} aria-label={i18n.landingPixAria}>
-                        <Image src={PIX_BRZ_LOGO} alt="Pix Brz" width={100} height={100} />
-                    </Link>
+            <div className="relative mx-auto mt-8 flex flex-col items-center gap-8 md:mt-12 md:flex-row md:justify-center md:gap-20 lg:gap-36">
+                {/* On mobile the two lockups sit side by side above the phone, so the
+                    sticky CTA covers the screenshot rather than either link. `md:contents`
+                    drops this wrapper on desktop so they flank the phone instead. */}
+                <div className="flex justify-center gap-6 md:contents">
+                    <PartnerLockup
+                        className="md:order-1"
+                        flag={FLAG_AR}
+                        flagAlt="Argentina"
+                        logo={MERCADO_PAGO_ICON}
+                        logoAlt="Mercado Pago"
+                        href={`/${locale}/pay-with/mercadopago`}
+                        ariaLabel={i18n.landingMercadoPagoAria}
+                        learnMore={i18n.landingLearnMore}
+                    />
+                    <PartnerLockup
+                        className="md:order-3"
+                        flag={FLAG_BR}
+                        flagAlt="Brazil"
+                        logo={PIX_ICON}
+                        logoAlt="PIX"
+                        href={`/${locale}/pay-with/pix`}
+                        ariaLabel={i18n.landingPixAria}
+                        learnMore={i18n.landingLearnMore}
+                    />
                 </div>
+
+                <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} className="md:order-2" />
             </div>
 
-            {/* Desktop layout */}
-            <div className="mx-auto mt-12 hidden flex-col items-center justify-center gap-8 md:flex">
-                <div className="flex items-center justify-center gap-20 lg:gap-36">
-                    <Link href={`/${locale}/pay-with/mercadopago`} aria-label={i18n.landingMercadoPagoAria}>
-                        <Image src={MEPA_ARGENTINA_LOGO} alt="Mepa Argentina" width={170} height={170} />
-                    </Link>
-                    <Image src={mantecaIphone} alt="Mercado pago payment" width={250} height={250} />
-                    <Link href={`/${locale}/pay-with/pix`} aria-label={i18n.landingPixAria}>
-                        <Image src={PIX_BRZ_LOGO} alt="Pix Brazil" width={170} height={170} />
-                    </Link>
-                </div>
-
-                <p className="font-roboto-flex text-center text-sm opacity-70">{i18n.landingPayLocalSettles}</p>
-            </div>
-
-            <p className="font-roboto-flex relative mt-12 text-center text-sm opacity-70 md:hidden">
+            <p className="font-roboto-flex relative mt-10 text-center text-sm opacity-70">
                 {i18n.landingPayLocalSettles}
             </p>
         </section>
