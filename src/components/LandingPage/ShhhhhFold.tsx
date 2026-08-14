@@ -58,6 +58,10 @@ export function ShhhhhFold() {
                             {t('orJoinWaitlist')}
                         </Link>
                     </div>
+
+                    <p className="font-roboto-flex mt-6 max-w-xl text-xs leading-relaxed text-white/60 md:text-sm">
+                        {t('disclaimer')}
+                    </p>
                 </div>
 
                 <div className="flex min-w-0 justify-center md:justify-end">

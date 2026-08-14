@@ -3089,6 +3089,7 @@
             "onlyCount": "só {count}",
             "tryTheDoor": "TESTE A PORTA",
             "orJoinWaitlist": "ou entre na lista de espera →",
+            "disclaimer": "Verificação obrigatória para todos os titulares do cartão. Sem tarifas mensais ou anuais. Tarifas e limites padrão se aplicam conforme os termos do titular. Programa beta.",
             "joinError": "Não conseguimos te colocar na lista de espera. Teste a porta de novo."
         },
         "waitlist": {
