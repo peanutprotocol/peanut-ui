@@ -101,7 +101,6 @@ export interface Translations {
     landingPayLocalHeading: string
     landingPayLocalSubheading: string
     landingPayLocalBody: string
-    landingPayLocalSettles: string
     landingMercadoPagoAria: string
     landingPixAria: string
 
