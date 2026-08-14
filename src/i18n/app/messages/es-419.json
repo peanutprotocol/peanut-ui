@@ -2901,7 +2901,7 @@
             "badgeBody": "Te saltas la fila. Estamos habilitando a quienes tengan:",
             "badgeFooter": "Inicia sesión, revisamos las insignias de tu cuenta y pasas directo a la verificación. ¿Todavía no tienes cuenta de peanut? Regístrate primero: toma un minuto.",
             "noBadgeTitle": "Sin insignia.",
-            "noBadgeBody": "Únete a la lista de espera. Dejamos entrar a 20 personas por semana.",
+            "noBadgeBody": "Únete a la lista de espera. Dejamos entrar a 50 personas por semana.",
             "noBadgeFooter": "Anota tu nombre en la lista y te avisamos cuando llegue tu turno."
         },
         "notForYou": {
@@ -2929,7 +2929,7 @@
             },
             "q5": {
                 "question": "¿CUÁNTO DURA LA LISTA DE ESPERA?",
-                "answer": "Durante la beta cerrada dejamos entrar a unas 20 personas por semana. El orden importa. Las insignias saltan la fila por completo."
+                "answer": "Durante la beta cerrada dejamos entrar a unas 50 personas por semana. El orden importa. Las insignias saltan la fila por completo."
             },
             "q6": {
                 "question": "¿DÓNDE PUEDO CONSEGUIR LA TARJETA?",

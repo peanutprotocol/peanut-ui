@@ -2901,7 +2901,7 @@
             "badgeBody": "You skip the line. We're whitelisting holders of:",
             "badgeFooter": "Sign in, we check the badges on your account, you go straight to verification. No peanut account yet? Sign up first — takes a minute.",
             "noBadgeTitle": "No badge.",
-            "noBadgeBody": "Join the waitlist. We let people in 20 a week.",
+            "noBadgeBody": "Join the waitlist. We let people in 50 a week.",
             "noBadgeFooter": "Put your name on the list and we'll holler when your turn comes up."
         },
         "notForYou": {
@@ -2929,7 +2929,7 @@
             },
             "q5": {
                 "question": "HOW LONG IS THE WAITLIST?",
-                "answer": "We're letting in about 20 people a week during closed beta. Order matters. Badges skip the line entirely."
+                "answer": "We're letting in about 50 people a week during closed beta. Order matters. Badges skip the line entirely."
             },
             "q6": {
                 "question": "WHERE CAN I GET THE CARD?",

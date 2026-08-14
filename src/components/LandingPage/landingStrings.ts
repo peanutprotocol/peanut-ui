@@ -1,5 +1,6 @@
 import en from '@/i18n/en.json'
 import { type Translations } from '@/i18n/types'
+import type { LandingProblemStrings } from './landing.types'
 
 // Narrowed copy bag handed from the server landing page down through
 // LandingPageClient. Keeps the client bundle from importing all locale
@@ -13,6 +14,7 @@ export interface LandingStrings {
     heroNoLocalId: string
     zeroFees: string
     seeMarkupOn: string
+    learnMore: string
     dropLinkHeading: string
     dropLinkBody: string
     currencyPlaceholder: string
@@ -25,6 +27,7 @@ export interface LandingStrings {
     cardCta: string
     wallOfLove: string
     wallOfLoveBody: string
+    problem: LandingProblemStrings
     /** Passed straight through to ExchangeRateWidget's `labels`. */
     exchange: {
         youSend: string
@@ -49,6 +52,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
         heroNoLocalId: i18n.landingHeroNoLocalId,
         zeroFees: i18n.landingZeroFees,
         seeMarkupOn: i18n.landingSeeMarkupOn,
+        learnMore: i18n.landingLearnMore,
         dropLinkHeading: i18n.landingDropLinkHeading,
         dropLinkBody: i18n.landingDropLinkBody,
         currencyPlaceholder: i18n.landingCurrencyPlaceholder,
@@ -61,6 +65,15 @@ export function landingStrings(i18n: Translations): LandingStrings {
         cardCta: i18n.landingCardCta,
         wallOfLove: i18n.landingWallOfLove,
         wallOfLoveBody: i18n.landingWallOfLoveBody,
+        problem: {
+            heading: i18n.landingProblemHeading,
+            crossBorderTitle: i18n.landingProblemCrossBorderTitle,
+            crossBorderBody: i18n.landingProblemCrossBorderBody,
+            sendHomeTitle: i18n.landingProblemSendHomeTitle,
+            sendHomeBody: i18n.landingProblemSendHomeBody,
+            paidAbroadTitle: i18n.landingProblemPaidAbroadTitle,
+            paidAbroadBody: i18n.landingProblemPaidAbroadBody,
+        },
         exchange: {
             youSend: i18n.exchangeYouSend,
             recipientGets: i18n.exchangeRecipientGets,

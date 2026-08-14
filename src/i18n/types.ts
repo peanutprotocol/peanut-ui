@@ -97,7 +97,6 @@ export interface Translations {
     landingPayLocalHeading: string
     landingPayLocalSubheading: string
     landingPayLocalBody: string
-    landingPayLocalSettles: string
     landingMercadoPagoAria: string
     landingPixAria: string
 
@@ -144,6 +143,15 @@ export interface Translations {
     // Landing page — testimonials
     landingWallOfLove: string
     landingWallOfLoveBody: string
+
+    // Landing page — problem fold (three named cards, icons drawn by the component)
+    landingProblemHeading: string
+    landingProblemCrossBorderTitle: string
+    landingProblemCrossBorderBody: string
+    landingProblemSendHomeTitle: string
+    landingProblemSendHomeBody: string
+    landingProblemPaidAbroadTitle: string
+    landingProblemPaidAbroadBody: string
 
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
     legalHeroSubtitlePrivacy: string

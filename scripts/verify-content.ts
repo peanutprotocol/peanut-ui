@@ -152,7 +152,7 @@ function discoverRoutes(): Set<string> {
     const routes = new Set<string>()
 
     // Static pages
-    for (const p of ['/', '/careers', '/exchange', '/privacy', '/terms', '/lp/card']) {
+    for (const p of ['/', '/careers', '/exchange', '/privacy', '/terms']) {
         routes.add(p)
     }
 
