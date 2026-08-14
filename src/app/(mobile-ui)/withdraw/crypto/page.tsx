@@ -268,14 +268,8 @@ export default function WithdrawCryptoPage() {
                         tokenDecimals: Number(completeWithdrawData.token.decimals),
                         recipientAddress: completeWithdrawData.address,
                         // Withdrawing to a name is still paying at one, and the
-                        // input keeps the name that produced this address. Send
-                        // it only while the two still agree: the name re-resolves
-                        // per destination chain, so an out-of-date pairing would
-                        // describe an address this withdraw is not paying.
-                        ...(validateEnsName(recipient.name) &&
-                        recipient.address.toLowerCase() === completeWithdrawData.address.toLowerCase()
-                            ? { recipientEnsName: recipient.name!.toLowerCase() }
-                            : {}),
+                        // input keeps the name that produced this address.
+                        ...(validateEnsName(recipient.name) ? { recipientEnsName: recipient.name!.toLowerCase() } : {}),
                     },
                     transactionType: 'WITHDRAW',
                 }

@@ -108,8 +108,8 @@ export const useChargeManager = (): UseChargeManagerReturn => {
 
             // We resolve ENS client-side and send the address, so the name is
             // lost before any money moves — and the server needs it to award the
-            // ENS badge (it re-resolves and requires a match, so a wrong one just
-            // earns nothing). A name has a dot; `alice` and `0x…` do not.
+            // ENS badge. The server takes it on trust (the badge grants nothing),
+            // so this is the only filter: a name has a dot; `alice` and `0x…` do not.
             const recipientEnsName = params.recipientEnsName?.trim().toLowerCase()
 
             const createPayload: {
