@@ -68,8 +68,10 @@ export default function SendWithPeanutCta({
         // if auth is required and user is not logged in, redirect to signup
         if (requiresAuth && !isLoggedIn) {
             // migration window: web signups are closed — hand the guest to the
-            // app stores instead (QR modal on desktop, store link on mobile)
-            if (interceptGuestCta()) return
+            // app stores instead (QR modal on desktop, store link on mobile).
+            // the inviter rides the deferred hand-off, mirroring the web path
+            // below that routes to /invite?code=<inviter>
+            if (interceptGuestCta({ invite: inviterUsername ? toInviteCode(inviterUsername) : undefined })) return
             const redirectUri = encodeURIComponent(
                 window.location.pathname + window.location.search + window.location.hash
             )
