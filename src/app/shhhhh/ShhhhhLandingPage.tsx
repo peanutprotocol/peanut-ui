@@ -59,10 +59,21 @@ const statLabelKeys = ['statMerchants', 'statBalance', 'statCard', 'statMiddleme
 
 const faqKeys = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const
 
+// The full skip set from the API's badge registry (SKIP_BADGE_CODES): every
+// badge that grants `skip:card-queue`, in either launch phase.
 const badges: Array<{ code: string; name: string; src: string }> = [
     { code: 'OG_2025_10_12', name: 'Peanut OG', src: '/badges/og_v1.svg' },
     { code: 'DEVCONNECT_BA_2025', name: 'Devconnect BA', src: '/badges/devconnect_2025.svg' },
     { code: 'ARBIVERSE_DEVCONNECT_BA_2025', name: 'Arbiverse', src: '/badges/arbiverse_devconnect.svg' },
+    { code: 'SEEDLING_DEVCONNECT_BA_2025', name: 'Seedling', src: '/badges/seedlings_devconnect.svg' },
+    { code: 'EVENT_ALUMNI', name: 'Event Alumni', src: '/badges/event_alumni.svg' },
+    { code: 'CARD_PIONEER', name: 'Founding Pioneer', src: '/badges/founding_pioneer.svg' },
+    { code: 'OFFRAMP_USER', name: 'Offramp User', src: '/badges/offramp_user.png' },
+    { code: 'NAIJA', name: '9JA', src: '/badges/naija.svg' },
+    { code: 'TERERE', name: 'Tereré', src: '/badges/terere.svg' },
+    { code: 'ACAI_POWERED', name: 'Açaí Powered', src: '/badges/acai_powered.svg' },
+    { code: 'NITA', name: 'Nita', src: '/badges/nita.svg' },
+    { code: 'WAITLIST_SKIP', name: 'Skip Pass', src: '/badges/skip_pass.svg' },
 ]
 
 const ctaButtonClassName =
