@@ -16,7 +16,7 @@ import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
-import { trackStoreClick } from '@/utils/migration.utils'
+import { openStore } from '@/utils/migration.utils'
 
 type FAQQuestion = {
     id: string
@@ -82,8 +82,12 @@ export function LandingPageClient({
             icon: store === 'ios' ? 'apple-logo' : 'google-play',
             // keep the content-system subtext (e.g. "Join +10,000 cool people")
             subtext: heroConfig.primaryCta.subtext,
-            // the anchor navigates; only track here
-            onClick: () => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO),
+            // route the tap through openStore so the deferred hand-off rides
+            // (tracks internally); href stays as the non-click fallback
+            onClick: (e) => {
+                e.preventDefault()
+                openStore(store, MIGRATION_SURFACES.LANDING_HERO)
+            },
         }
     }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
 

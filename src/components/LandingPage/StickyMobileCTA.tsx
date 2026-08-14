@@ -9,7 +9,7 @@ import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
-import { trackStoreClick } from '@/utils/migration.utils'
+import { openStore } from '@/utils/migration.utils'
 
 export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const [visible, setVisible] = useState(false)
@@ -61,7 +61,12 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="pointer-events-auto block"
-                            onClick={() => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO)}
+                            onClick={(e) => {
+                                // route through openStore so the deferred
+                                // hand-off rides; href is the fallback
+                                e.preventDefault()
+                                openStore(store, MIGRATION_SURFACES.LANDING_HERO)
+                            }}
                         >
                             <Button
                                 variant="purple"
