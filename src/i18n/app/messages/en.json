@@ -2868,6 +2868,7 @@
             "onlyCount": "only {count}",
             "tryTheDoor": "TRY THE DOOR",
             "orJoinWaitlist": "or join the waitlist →",
+            "disclaimer": "Verification required for all cardholders. No monthly or annual fees. Standard fees and limits apply per the cardholder terms. Beta programme.",
             "joinError": "Couldn't join the waitlist — try the door again."
         },
         "waitlist": {
