@@ -517,7 +517,11 @@ export const fetchWithSentry = async (
             })
 
             const userError = new Error("We couldn't reach Peanut — check your internet connection and try again.")
-            userError.name = 'ServiceUnavailableError'
+            // distinct name from the generic catch below: this path is a
+            // timeout, so the request provably never reached the server and
+            // connection-blaming copy is safe. the generic path also wraps
+            // CORS/CSP/TypeError failures where it is not.
+            userError.name = 'ConnectionTimeoutError'
             userError.cause = timeoutError
             throw userError
         }

@@ -1,10 +1,10 @@
 import { act, renderHook } from '@testing-library/react'
 import { useConnectivity } from '../useConnectivity'
-import { FAILURE_WINDOW_MS, reportNetworkError, resetConnectivity } from '@/utils/connectivity'
+import { __resetConnectivityForTests, FAILURE_WINDOW_MS, reportNetworkError } from '@/utils/connectivity'
 
 beforeEach(() => {
     jest.useFakeTimers()
-    resetConnectivity()
+    __resetConnectivityForTests()
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
 })
 

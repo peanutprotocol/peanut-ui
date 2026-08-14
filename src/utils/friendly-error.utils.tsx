@@ -246,10 +246,13 @@ export const friendlyError = (error: unknown): FriendlyError => {
     // we set ourselves rather than walking `.cause` generically: extractErrorParts
     // feeds three call paths and a recursive walk would silently reclassify
     // every wrapped error in the app.
-    // fetchWithSentry sets this name when the request never REACHED the server
-    // (timeout / DNS / refused) — that's the user's connection, not a busy
-    // network, so it gets connection-aware copy instead of networkBusyTimeout.
-    if (name === 'ServiceUnavailableError') return code('connectionTimeout')
+    // fetchWithSentry sets ConnectionTimeoutError only on its timeout path,
+    // where the request provably never reached the server — that's the user's
+    // connection, so blame it. ServiceUnavailableError is its generic catch
+    // (DNS/refused, but also CORS/CSP/TypeError, which can be OUR outage) —
+    // keep the neutral retryable copy there.
+    if (name === 'ConnectionTimeoutError') return code('connectionTimeout')
+    if (name === 'ServiceUnavailableError') return code('networkBusyTimeout')
     if (
         text.includes('took too long to respond') ||
         text.includes('The request timed out') ||

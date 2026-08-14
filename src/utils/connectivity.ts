@@ -9,54 +9,53 @@
 // fires many requests in parallel, so on a flaky connection successes
 // interleave with failures — a consecutive counter reset by any success never
 // reaches its threshold, which kept the banner permanently dark (TASK-21108).
-// Entries expire on their own; a success does not clear them.
+// A success does not clear the count; each failure expires on its own timer
+// (store-owned expiry, same shape as useSubmissionWindow), so subscribers are
+// always notified when the count changes — no consumer-side timer math.
 
-type Listener = () => void
-
-const listeners = new Set<Listener>()
+const listeners = new Set<() => void>()
 
 export const FAILURE_WINDOW_MS = 60_000
 
-let failureTimes: number[] = []
+// Treat the API as unreachable at this many failures inside the window; lives
+// here next to the window so the whole policy reads in one place.
+export const FAILURE_THRESHOLD = 2
+
+let recentFailures = 0
+const expiryTimers = new Set<ReturnType<typeof setTimeout>>()
 
 function emit(): void {
     listeners.forEach((fn) => fn())
 }
 
-function prune(now: number): void {
-    failureTimes = failureTimes.filter((t) => now - t < FAILURE_WINDOW_MS)
-}
-
 // A request never reached the server (timeout / DNS / connection refused).
 export function reportNetworkError(): void {
-    const now = Date.now()
-    prune(now)
-    failureTimes.push(now)
+    recentFailures += 1
+    const timer = setTimeout(() => {
+        expiryTimers.delete(timer)
+        recentFailures -= 1
+        emit()
+    }, FAILURE_WINDOW_MS)
+    expiryTimers.add(timer)
     emit()
 }
 
 // Failures inside the current window.
 export function getRecentFailures(): number {
-    prune(Date.now())
-    return failureTimes.length
+    return recentFailures
 }
 
-// ms until the oldest in-window failure ages out, or null when there are none.
-export function getMsUntilNextExpiry(): number | null {
-    const now = Date.now()
-    prune(now)
-    if (failureTimes.length === 0) return null
-    return FAILURE_WINDOW_MS - (now - failureTimes[0])
-}
-
-// test-only: module state is shared across tests
-export function resetConnectivity(): void {
-    failureTimes = []
-}
-
-export function subscribeConnectivity(fn: Listener): () => void {
+export function subscribeConnectivity(fn: () => void): () => void {
     listeners.add(fn)
     return () => {
         listeners.delete(fn)
     }
+}
+
+// test-only: module state is shared across tests
+export function __resetConnectivityForTests(): void {
+    expiryTimers.forEach((t) => clearTimeout(t))
+    expiryTimers.clear()
+    recentFailures = 0
+    listeners.clear()
 }
