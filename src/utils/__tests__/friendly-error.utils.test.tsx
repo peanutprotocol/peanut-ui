@@ -220,7 +220,7 @@ describe('backend wire codes', () => {
         // request provably never reached the server — the classifier matches
         // the name (it does not walk `.cause`) and blames the connection.
         const wrapped = Object.assign(
-            new Error("We couldn't reach Peanut — check your internet connection and try again."),
+            new Error('Peanut is taking too long to respond — check your connection and try again.'),
             {
                 name: 'ConnectionTimeoutError',
             }

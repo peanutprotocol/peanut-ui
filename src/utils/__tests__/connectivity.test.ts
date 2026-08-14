@@ -1,5 +1,6 @@
 import {
     __resetConnectivityForTests,
+    clearRecentFailures,
     FAILURE_WINDOW_MS,
     getRecentFailures,
     reportNetworkError,
@@ -17,18 +18,27 @@ afterEach(() => {
 })
 
 describe('connectivity', () => {
-    it('counts failures inside the window', () => {
+    it('counts distinct failing endpoints inside the window', () => {
         expect(getRecentFailures()).toBe(0)
 
-        reportNetworkError()
-        reportNetworkError()
+        reportNetworkError('/users/me')
+        reportNetworkError('/users/history')
         expect(getRecentFailures()).toBe(2)
     })
 
-    it('expires each failure once it ages out of the window', () => {
-        reportNetworkError()
+    it('dedupes retries of the same endpoint to one failure', () => {
+        // React Query FAST retries: 3 attempts on one slow route must not
+        // read as an app-wide connectivity problem.
+        reportNetworkError('/users/history')
+        reportNetworkError('/users/history')
+        reportNetworkError('/users/history')
+        expect(getRecentFailures()).toBe(1)
+    })
+
+    it('expires failures once they age out of the window', () => {
+        reportNetworkError('/a')
         jest.advanceTimersByTime(FAILURE_WINDOW_MS / 2)
-        reportNetworkError()
+        reportNetworkError('/b')
         expect(getRecentFailures()).toBe(2)
 
         jest.advanceTimersByTime(FAILURE_WINDOW_MS / 2)
@@ -38,16 +48,42 @@ describe('connectivity', () => {
         expect(getRecentFailures()).toBe(0)
     })
 
-    it('notifies subscribers on each failure AND on each expiry', () => {
+    it('prunes on read, not only via timers (freeze/sleep safety)', () => {
+        reportNetworkError('/a')
+        reportNetworkError('/b')
+        // simulate suspended timers: advance the clock without running them
+        jest.setSystemTime(Date.now() + FAILURE_WINDOW_MS + 1000)
+        expect(getRecentFailures()).toBe(0)
+    })
+
+    it('clearRecentFailures drops the window and notifies', () => {
+        let calls = 0
+        const unsubscribe = subscribeConnectivity(() => {
+            calls += 1
+        })
+        reportNetworkError('/a')
+        reportNetworkError('/b')
+
+        clearRecentFailures()
+        expect(getRecentFailures()).toBe(0)
+        expect(calls).toBe(3)
+
+        // no-op when already empty — no redundant emit
+        clearRecentFailures()
+        expect(calls).toBe(3)
+        unsubscribe()
+    })
+
+    it('notifies subscribers on each failure and after expiry', () => {
         const seen: number[] = []
         const unsubscribe = subscribeConnectivity(() => seen.push(getRecentFailures()))
 
-        reportNetworkError()
-        reportNetworkError()
+        reportNetworkError('/a')
+        reportNetworkError('/b')
         expect(seen).toEqual([1, 2])
 
-        jest.advanceTimersByTime(FAILURE_WINDOW_MS)
-        expect(seen).toEqual([1, 2, 1, 0])
+        jest.advanceTimersByTime(FAILURE_WINDOW_MS + 100)
+        expect(seen[seen.length - 1]).toBe(0)
         unsubscribe()
     })
 
@@ -56,9 +92,9 @@ describe('connectivity', () => {
         const unsubscribe = subscribeConnectivity(() => {
             calls += 1
         })
-        reportNetworkError()
+        reportNetworkError('/a')
         unsubscribe()
-        reportNetworkError()
+        reportNetworkError('/b')
 
         expect(calls).toBe(1)
     })

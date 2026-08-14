@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { FAILURE_THRESHOLD, getRecentFailures, subscribeConnectivity } from '@/utils/connectivity'
+import { FAILURE_THRESHOLD, clearRecentFailures, getRecentFailures, subscribeConnectivity } from '@/utils/connectivity'
 
 export interface ConnectivityState {
     isOffline: boolean
@@ -19,7 +19,13 @@ export function useConnectivity(): ConnectivityState {
     useEffect(() => {
         setIsOnline(navigator.onLine)
 
-        const handleOnline = () => setIsOnline(true)
+        const handleOnline = () => {
+            setIsOnline(true)
+            // the recorded failures belong to the connection that just died —
+            // without this the banner flips from "offline" to "trouble
+            // reaching Peanut" for up to a window after reconnecting.
+            clearRecentFailures()
+        }
         const handleOffline = () => setIsOnline(false)
         window.addEventListener('online', handleOnline)
         window.addEventListener('offline', handleOffline)

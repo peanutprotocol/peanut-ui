@@ -489,8 +489,9 @@ export const fetchWithSentry = async (
         return response
     } catch (error: unknown) {
         // fetch rejected (timeout / DNS / connection refused) — the request never
-        // reached the backend, so flag a connectivity failure.
-        reportNetworkError()
+        // completed, so flag a connectivity failure. keyed by sanitized url so
+        // React Query retries of one slow route dedupe to a single endpoint.
+        reportNetworkError(sanitizeUrl(url))
         // console.info, not error: captureConsoleIntegration would turn an
         // error-level log into a second Sentry event on top of the explicit
         // captures below.
@@ -516,11 +517,12 @@ export const fetchWithSentry = async (
                 })
             })
 
-            const userError = new Error("We couldn't reach Peanut — check your internet connection and try again.")
-            // distinct name from the generic catch below: this path is a
-            // timeout, so the request provably never reached the server and
-            // connection-blaming copy is safe. the generic path also wraps
-            // CORS/CSP/TypeError failures where it is not.
+            const userError = new Error('Peanut is taking too long to respond — check your connection and try again.')
+            // distinct name from the generic catch below: this path is our own
+            // AbortController firing, which an overloaded backend can trigger
+            // on a healthy connection — so the copy names both possibilities
+            // instead of blaming the user's internet. the generic path also
+            // wraps CORS/CSP/TypeError failures and stays fully neutral.
             userError.name = 'ConnectionTimeoutError'
             userError.cause = timeoutError
             throw userError
