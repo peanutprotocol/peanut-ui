@@ -2900,6 +2900,8 @@
             "badgeTitle": "Tem um selo.",
             "badgeBody": "Você fura a fila. Estamos liberando quem tiver:",
             "badgeFooter": "Entre, conferimos os selos da sua conta e você vai direto para a verificação. Ainda não tem conta no peanut? Crie uma primeiro — leva um minuto.",
+            "badgeShowMore": "+{count} mais →",
+            "badgeShowLess": "mostrar menos",
             "noBadgeTitle": "Sem selo.",
             "noBadgeBody": "Entre na lista de espera. Liberamos 20 pessoas por semana.",
             "noBadgeFooter": "Coloque seu nome na lista e a gente avisa quando chegar sua vez."
