@@ -1210,6 +1210,7 @@
             "body": "Una tarjeta aceptada en más de 150 millones de comercios que aceptan Visa. Vamos dejando entrar a los usuarios beta de a poco: <counter></counter> por semana. Si tenés la insignia correcta, te saltás la fila por completo.",
             "tryTheDoor": "PROBÁ LA PUERTA",
             "orJoinWaitlist": "o sumate a la lista de espera →",
+            "disclaimer": "Verificación requerida para todos los titulares de tarjeta. Sin cuotas mensuales ni anuales. Se aplican tarifas y límites estándar según los términos del titular. Programa beta.",
             "joinError": "No pudimos sumarte a la lista de espera. Probá la puerta de nuevo."
         },
         "whatItDoes": {
