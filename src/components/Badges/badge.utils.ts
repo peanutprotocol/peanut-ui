@@ -76,6 +76,7 @@ const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
     CARD_CLOSED_BETA: 'I was testing the Peanut card before you knew it existed. IYKYK 🤫💳',
     CARD_ALPHA: 'I tested the Peanut card while it was still held together with tape and hope 🩹💳',
     ARBITRUM: 'Peanut × Arbitrum. Fast chains, faster money 🔵',
+    TRON: 'Peanut × Tron. I came in on the rail most dollars already ride 🔺',
     MANICERO: 'Small maní, big energy. I earned the Manicero badge 🥜',
     TOUCHED_GRASS: 'Touched grass badge. Proof that I do go outside 🌱',
     SURF_UP: "Caught the wave early. Surf's up 🏄",
