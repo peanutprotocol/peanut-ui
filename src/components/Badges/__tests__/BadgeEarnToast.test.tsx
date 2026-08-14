@@ -107,6 +107,15 @@ describe('BadgeEarnToast', () => {
 
         const { container } = render(mockToast.mock.calls[0][0].content)
         expect(container.querySelector('img')).toHaveAttribute('src', '/badges/backend_product_hunt.webp')
+        // a code in `badges.catalog` renders the localized name, not the backend one
+        expect(screen.getByText(/Product Hunt/)).toBeInTheDocument()
+    })
+
+    it('falls back to the backend name for a code with no catalog entry', () => {
+        mockPending = [badge('FUTURE_BADGE', 'Backend Name')]
+        render(<BadgeEarnToast />)
+
+        render(mockToast.mock.calls[0][0].content)
         expect(screen.getByText(/Backend Name/)).toBeInTheDocument()
     })
 

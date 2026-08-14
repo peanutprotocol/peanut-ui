@@ -7,7 +7,8 @@ import { Tooltip } from '../Tooltip'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Global/Icons/Icon'
-import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeIcon } from './badge.utils'
+import { useBadgeCopy } from './useBadgeCopy'
 import { BadgeImage } from './BadgeImage'
 
 type UIBadge = {
@@ -35,6 +36,7 @@ interface BadgesRowProps {
  */
 const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) => {
     const t = useTranslations('badges')
+    const badgeCopy = useBadgeCopy()
     const viewportRef = useRef<HTMLDivElement>(null)
     const [visibleCount, setVisibleCount] = useState<number>(4)
     const [startIdx, setStartIdx] = useState<number>(0)
@@ -101,10 +103,17 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                     aria-label={t('collectionLabel')}
                 >
                     {visibleBadges.map((badge) => {
-                        const displayDescription = getBadgeDescription(
-                            isSelfProfile ? badge.description : (badge.publicDescription ?? badge.description)
+                        // Same precedence as before, with the localized string standing
+                        // in for `badge.description`: the backend's third-person
+                        // `publicDescription` still wins when you are not the owner.
+                        const { name: displayName, description: selfDescription } = badgeCopy(
+                            badge.code,
+                            badge.name,
+                            badge.description
                         )
-                        const displayName = getBadgeDisplayName(badge.code, badge.name)
+                        const displayDescription = isSelfProfile
+                            ? selfDescription
+                            : (badge.publicDescription ?? selfDescription)
 
                         return (
                             <Tooltip

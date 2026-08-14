@@ -3,7 +3,8 @@
 import type { StaticImageData } from 'next/image'
 import NavHeader from '../Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeIcon } from './badge.utils'
+import { useBadgeCopy } from './useBadgeCopy'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
@@ -19,6 +20,7 @@ type BadgeView = { code: string; title: string; description: string; logo: strin
 
 export const Badges = () => {
     const t = useTranslations('badges')
+    const badgeCopy = useBadgeCopy()
     const onBack = useSafeBack('/profile')
     const { user: authUser } = useUserStore()
     const { fetchUser } = useAuth()
@@ -34,13 +36,16 @@ export const Badges = () => {
     const badges: BadgeView[] = useMemo(() => {
         // get badges from user object and map to card fields
         const raw = authUser?.user?.badges || []
-        return raw.map((b) => ({
-            code: b.code,
-            title: getBadgeDisplayName(b.code, b.name),
-            description: getBadgeDescription(b.description) || '',
-            logo: getBadgeIcon(b.code, b.iconUrl),
-        }))
-    }, [authUser?.user?.badges])
+        return raw.map((b) => {
+            const copy = badgeCopy(b.code, b.name, b.description)
+            return {
+                code: b.code,
+                title: copy.name,
+                description: copy.description || '',
+                logo: getBadgeIcon(b.code, b.iconUrl),
+            }
+        })
+    }, [authUser?.user?.badges, badgeCopy])
 
     if (!badges.length) {
         return (

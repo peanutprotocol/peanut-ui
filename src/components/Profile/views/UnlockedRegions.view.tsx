@@ -14,6 +14,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { deriveRegionAccess, getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
+import { useRegionLabel } from '@/hooks/useRegionLabel'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
@@ -376,33 +377,38 @@ interface RegionsListProps {
     onRegionClick?: (region: Region) => void
 }
 const RegionsList = ({ regions, isLocked, onRegionClick }: RegionsListProps) => {
+    const regionLabel = useRegionLabel()
+
     return (
         <div className="mt-3">
-            {regions.map((region, index) => (
-                <ActionListCard
-                    key={region.path}
-                    leftIcon={
-                        <Image
-                            src={region.icon}
-                            alt={region.name}
-                            width={36}
-                            height={36}
-                            className="size-8 rounded-full object-cover"
-                        />
-                    }
-                    position={getCardPosition(index, regions.length)}
-                    title={region.name}
-                    onClick={() => {
-                        if (isLocked && onRegionClick) {
-                            onRegionClick(region)
+            {regions.map((region, index) => {
+                const label = regionLabel(region)
+                return (
+                    <ActionListCard
+                        key={region.path}
+                        leftIcon={
+                            <Image
+                                src={region.icon}
+                                alt={label.name}
+                                width={36}
+                                height={36}
+                                className="size-8 rounded-full object-cover"
+                            />
                         }
-                    }}
-                    isDisabled={!isLocked}
-                    description={region.description}
-                    descriptionClassName="text-xs"
-                    rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
-                />
-            ))}
+                        position={getCardPosition(index, regions.length)}
+                        title={label.name}
+                        onClick={() => {
+                            if (isLocked && onRegionClick) {
+                                onRegionClick(region)
+                            }
+                        }}
+                        isDisabled={!isLocked}
+                        description={label.description}
+                        descriptionClassName="text-xs"
+                        rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
+                    />
+                )
+            })}
         </div>
     )
 }
