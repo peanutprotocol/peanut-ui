@@ -14,12 +14,14 @@ interface QRBottomDrawerProps {
     className?: string
 }
 
+// module scope: a per-render array changes identity every render, which makes
+// vaul's snap-sync effect refire and re-apply the transform transition
+const snapPoints = [0.75, 1]
+
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const contentRef = useRef<HTMLDivElement>(null)
-
-    const snapPoints = [0.75, 1]
     const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[0])
 
     const handleSnapPointChange = (snapPoint: number | string | null) => {
@@ -34,8 +36,16 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                 activeSnapPoint={activeSnapPoint}
                 setActiveSnapPoint={handleSnapPointChange}
                 modal={false}
+                // drag-down at the first snap point otherwise calls vaul's closeDrawer(),
+                // which collides with the forced open={true} (close/reopen flicker + a
+                // 500ms window where vaul ignores all drags after the reopen)
+                dismissible={false}
             >
-                <DrawerContent className={`min-h-[200px] p-5 ${className || ''}`}>
+                {/* touch-none: modal={false} disables vaul's scroll prevention, so without
+                    it the browser claims the swipe as a scroll and fires pointercancel —
+                    the drag aborts and the drawer needs a second swipe. content fits the
+                    drawer at full snap, so no inner scrolling is lost. */}
+                <DrawerContent className={`min-h-[200px] touch-none p-5 ${className || ''}`}>
                     <DrawerTitle className="mb-8 space-y-2">
                         <h2 className="text-lg font-bold">
                             {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
