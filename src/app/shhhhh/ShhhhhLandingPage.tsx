@@ -160,6 +160,7 @@ export default function ShhhhhLandingPage() {
     const [joinedPosition, setJoinedPosition] = useState<number | null | undefined>(undefined)
     const [ctaBusy, setCtaBusy] = useState(false)
     const [joinError, setJoinError] = useState(false)
+    const [showAllBadges, setShowAllBadges] = useState(false)
     const isJoined = joinedPosition !== undefined
 
     const joinWaitlist = useCallback(async () => {
@@ -458,7 +459,7 @@ export default function ShhhhhLandingPage() {
                                 {t('howToGetIn.badgeBody')}
                             </p>
                             <div className="mt-6 grid grid-cols-3 gap-3">
-                                {badges.map((b) => (
+                                {(showAllBadges ? badges : badges.slice(0, 3)).map((b) => (
                                     <div
                                         key={b.code}
                                         className="flex flex-col items-center gap-2 rounded-sm border-2 border-n-1 bg-primary-3 p-3 shadow-[3px_3px_0_#000]"
@@ -478,12 +479,22 @@ export default function ShhhhhLandingPage() {
                                     </div>
                                 ))}
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowAllBadges((v) => !v)}
+                                aria-expanded={showAllBadges}
+                                className="font-roboto-flex mt-4 text-sm font-bold underline underline-offset-4"
+                            >
+                                {showAllBadges
+                                    ? t('howToGetIn.badgeShowLess')
+                                    : t('howToGetIn.badgeShowMore', { count: badges.length - 3 })}
+                            </button>
                             <p className="font-roboto-flex mt-5 text-base leading-relaxed">
                                 {t('howToGetIn.badgeFooter')}
                             </p>
                         </div>
 
-                        <div className="rounded-sm border-2 border-n-1 bg-white p-8 shadow-[10px_10px_0_#000] md:p-10">
+                        <div className="rounded-sm border-2 border-n-1 bg-white p-8 shadow-[10px_10px_0_#000] md:self-start md:p-10">
                             <div
                                 className="font-roboto-flex-extrabold text-6xl font-extraBlack text-primary-1"
                                 style={{ WebkitTextStroke: '2px #000' }}
