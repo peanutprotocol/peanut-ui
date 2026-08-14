@@ -6,7 +6,12 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import { deriveRegionAccess, pendingBankRailRegionPaths, type Region } from '@/utils/regions.utils'
+import {
+    deriveRegionAccess,
+    pendingBankRailRegionPaths,
+    REST_OF_THE_WORLD_REGION,
+    type Region,
+} from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useLimits } from '@/hooks/useLimits'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -52,7 +57,7 @@ const LimitsPageView = () => {
     // rest of world is rendered on its own below, never from the locked list
     const restOfWorldName = regionLabel({
         path: 'rest-of-the-world',
-        name: 'Rest of the world',
+        name: REST_OF_THE_WORLD_REGION,
         icon: REST_OF_WORLD_GLOBE_ICON,
     }).name
 

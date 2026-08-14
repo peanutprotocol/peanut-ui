@@ -2134,7 +2134,7 @@
         "migrationSetupTitle": "Receba alertas de dinheiro",
         "migrationSetupDescription": "Avisamos na hora quando o dinheiro chegar ou alguém pedir um pagamento.",
         "enable": "Ativar notificações",
-        "requesting": "Cobrando...",
+        "requesting": "Solicitando...",
         "notNow": "Agora não"
     },
     "kyc": {
