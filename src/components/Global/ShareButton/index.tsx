@@ -102,24 +102,28 @@ const ShareButton = ({
             onSuccess?.()
         } catch (error) {
             const err = error instanceof Error ? error : new Error(String(error))
-            // Only show error toast for actual sharing failures (not user cancellations)
-            if (err.name !== 'AbortError') {
-                console.error('Sharing error:', error)
-                Sentry.captureException(error)
-
-                // If we didn't copy earlier, try now
-                if (!copied) {
-                    const contentToCopy = shareUrl || shareText || ''
-                    const fallbackCopied = await copyTextToClipboardWithFallback(contentToCopy)
-                    if (fallbackCopied) {
-                        toast.info(shareUrl ? t('shareButton.linkCopied') : t('shareButton.textCopied'))
-                    } else {
-                        toast.error(t('shareButton.sharingFailed'))
-                    }
-                }
-
-                onError?.(err)
+            // A cancelled share sheet is still a success when the copy above
+            // already landed and toasted — the content is on the clipboard.
+            if (err.name === 'AbortError') {
+                if (copied) onSuccess?.()
+                return
             }
+
+            console.error('Sharing error:', error)
+            Sentry.captureException(error)
+
+            // If we didn't copy earlier, try now
+            if (!copied) {
+                const contentToCopy = shareUrl || shareText || ''
+                const fallbackCopied = await copyTextToClipboardWithFallback(contentToCopy)
+                if (fallbackCopied) {
+                    toast.info(shareUrl ? t('shareButton.linkCopied') : t('shareButton.textCopied'))
+                } else {
+                    toast.error(t('shareButton.sharingFailed'))
+                }
+            }
+
+            onError?.(err)
         }
     }, [url, generateUrl, generateText, title, text, onSuccess, onError, t, toast])
 

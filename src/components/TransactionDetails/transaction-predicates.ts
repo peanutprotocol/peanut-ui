@@ -10,6 +10,7 @@
 
 import { isCryptoAddress, isUuid } from '@/utils/general.utils'
 import { type TransactionDetails } from './transactionTransformer'
+import type { TransactionDirection } from './transaction-types'
 import type { IntentKind } from './strategies/registry'
 
 function kindOf(transaction: TransactionDetails): string | undefined {
@@ -91,6 +92,52 @@ export function isFxBearingFlow(transaction: TransactionDetails): boolean {
 
 export function isPerkReward(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'PERK_REWARD')
+}
+
+/** Kinds that earn an invite-friends nudge on a completed receipt: the user
+ *  just paid or moved money out.
+ *
+ *  Kind-based for the same reason as {@link isFxBearingFlow}: gating on a
+ *  hand-kept `['send','withdraw','bank_withdraw']` direction allow-list silently
+ *  dropped every QR pay AND every card spend — both arrive as
+ *  `direction: 'qr_payment'` (strategies/intent/card.ts).
+ *
+ *  Out on purpose: CARD_AUTH_REVERSAL (the charge never stuck), ONRAMP (a
+ *  deposit, not a payment), PERK_REWARD / CRYPTO_DEPOSIT / REFUND (inbound). */
+const REFERRAL_NUDGE_KINDS: ReadonlySet<string> = new Set([
+    'SEND_LINK',
+    'SEND_LINK_CLAIM',
+    'DIRECT_TRANSFER',
+    'P2P_REQUEST_FULFILL',
+    'CRYPTO_WITHDRAW',
+    'OFFRAMP',
+    'QR_PAY',
+    'CARD_SPEND_AUTH',
+    'CARD_SPEND_CLEAR',
+])
+
+/** Directions where the viewer is the RECEIVING side. Several nudge kinds are
+ *  role-polymorphic: CRYPTO_WITHDRAW + RECIPIENT → 'add', SEND_LINK + RECIPIENT
+ *  → 'claim_external'. Without this block the receiving side would be nudged for
+ *  a payment it did not make.
+ *
+ *  'bank_claim' is ambiguous — the paying sender AND a user viewing their own
+ *  claim-to-bank both see it — so it stays blocked until the predicate can see
+ *  the viewer role. 'bank_request_fulfillment' is deliberately absent: the
+ *  strategy assigns it only to userRole SENDER (p2p-send.ts). */
+const INBOUND_DIRECTIONS: ReadonlySet<TransactionDirection> = new Set([
+    'receive',
+    'add',
+    'bank_claim',
+    'bank_deposit',
+    'claim_external',
+    'request_received',
+    'request_sent',
+])
+
+export function hasReferralNudge(transaction: TransactionDetails): boolean {
+    const k = kindOf(transaction)
+    return !!k && REFERRAL_NUDGE_KINDS.has(k) && !INBOUND_DIRECTIONS.has(transaction.direction)
 }
 
 // SEND_LINK kind covers the entire link lifecycle: created, claimed,

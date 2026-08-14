@@ -5,8 +5,16 @@ import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
-import { getBadgeDescription, getBadgeDisplayName, getBadgeIcon, getBadgeShareText } from './badge.utils'
-import { BASE_URL } from '@/constants/general.consts'
+import {
+    captureBadgeShare,
+    getBadgeDescription,
+    getBadgeDisplayName,
+    getBadgeIcon,
+    getBadgeShareLink,
+    getBadgeShareText,
+} from './badge.utils'
+import { useBadgeShareImpression } from './useBadgeShareImpression'
+import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
 import { BadgeImage } from './BadgeImage'
 
@@ -46,8 +54,9 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     const displayDescription = getBadgeDescription(badge.description)
     const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
-    // generate profile link for sharing
-    const profileLink = username ? `${BASE_URL}/${username}` : BASE_URL
+    // the sharer's own invite link, so a guest signup credits them
+    const shareLink = getBadgeShareLink(username)
+    useBadgeShareImpression(isOpen, REFERRAL_SOURCES.BADGE_UNLOCK, username)
 
     return (
         <>
@@ -94,13 +103,14 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                         <div className="pb-4">
                             <ShareButton
                                 title=""
+                                onSuccess={() => captureBadgeShare(REFERRAL_SOURCES.BADGE_UNLOCK, username)}
                                 generateText={() =>
                                     Promise.resolve(
-                                        getBadgeShareText(badge.code, displayName, profileLink, {
+                                        getBadgeShareText(badge.code, displayName, shareLink, {
                                             locale,
                                             localizedFallback: t('shareText', {
                                                 badge: displayName,
-                                                link: profileLink,
+                                                link: shareLink,
                                             }),
                                         })
                                     )

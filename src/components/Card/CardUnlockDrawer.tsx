@@ -16,6 +16,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
 import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
+import { profileShareUrl } from '@/components/Card/share-asset/share.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { CardUnlockHistoryEntry } from './cardUnlock.types'
@@ -84,7 +85,12 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}
                         />
-                        <ShareAssetActions captureRef={captureRef} source="history-replay" ready={assetReady} />
+                        <ShareAssetActions
+                            captureRef={captureRef}
+                            source="history-replay"
+                            ready={assetReady}
+                            shareUrl={profileShareUrl(username, hideUsername)}
+                        />
                     </div>
                 </div>
             </DrawerContent>

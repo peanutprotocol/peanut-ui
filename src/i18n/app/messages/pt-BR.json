@@ -363,6 +363,8 @@
             "joinPeanut": "Entre no Peanut!",
             "inviteOnlyLine1": "O Peanut é só por convite.",
             "inviteOnlyLine2": "Vá implorar um link de convite para o seu amigo!",
+            "invitedLine": "O Peanut é só por convite — e {username} tem um convite para você.",
+            "joinCta": "Resgate seu convite",
             "begShareText": "Mano… estou de joelhos. O Peanut é só por convite e fiquei de fora. Salva minha vida e me manda seu convite",
             "begForInvite": "Implorar por um convite",
             "activityPrivateNote": "A atividade é visível só para você, não é pública.",
@@ -985,6 +987,7 @@
             "holdToClaim": "Você ganhou uma recompensa! Segure para resgatar.",
             "earnedInviteFriends": "Você ganhou ${amount}! Convide amigos para ganhar ainda mais.",
             "inviteFriends": "Convide amigos para ganhar ainda mais recompensas.",
+            "inviteFriendsCta": "Convide amigos e ganhe",
             "savedVsCardCents": "você economizou ~{count, plural, one {# centavo} other {# centavos}} comparado ao cartão!",
             "savedVsCardDollars": "você economizou ~${amount} comparado ao cartão!",
             "claimReward": "Resgatar recompensa",
@@ -1764,7 +1767,6 @@
             }
         },
         "toast": {
-            "inviteLinkCopied": "Link de convite copiado!",
             "linkCancelled": "Link cancelado com sucesso!",
             "linkCancelledRefresh": "Link cancelado! Atualize para ver o saldo atualizado.",
             "cancelLinkFailed": "Não foi possível cancelar o link. Tente de novo."

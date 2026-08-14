@@ -1,13 +1,17 @@
-import { Button } from '@/components/0_Bruddle/Button'
-import { BASE_URL } from '@/components/Global/DirectSendQR/utils'
 import { Icon } from '@/components/Global/Icons/Icon'
-import React from 'react'
+import ShareButton from '@/components/Global/ShareButton'
+import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { shareableUrl } from '@/utils/url.utils'
+import posthog from 'posthog-js'
+import React, { useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
+
+const REFERRAL_PILL_PROPS = { source: REFERRAL_SOURCES.PROFILE_HEADER, link_type: 'profile' } as const
 
 interface ProfileHeaderProps {
     name: string
@@ -35,7 +39,25 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
 
-    const profileUrl = `${BASE_URL}/${username}`
+    // `shareableUrl` reads the live origin, so preview and staging share
+    // themselves — the old BASE_URL import is non-null-asserted with no fallback.
+    const profileUrl = shareableUrl(`/${username}`)
+
+    // Once per continuous visibility, re-armed when the pill hides: the
+    // [...recipient] route reuses this component instance across profile
+    // navigations, so a mount-scoped latch would undercount self → other →
+    // self round trips.
+    const pillVisible = showShareButton && isSelfProfile
+    const impressionFired = useRef(false)
+    useEffect(() => {
+        if (!pillVisible) {
+            impressionFired.current = false
+            return
+        }
+        if (impressionFired.current) return
+        impressionFired.current = true
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, REFERRAL_PILL_PROPS)
+    }, [pillVisible])
 
     return (
         <>
@@ -56,32 +78,23 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     />
                     <CopyToClipboard textToCopy={username} fill="black" iconSize="5" />
                 </div>
-                {/* Username with share drawer */}
-                {showShareButton && (
-                    <Button
-                        size="large"
+                {/* `isSelfProfile` guards wrong attribution: `showShareButton`
+                    defaults to true, so a caller on someone else's profile would
+                    share that other handle. */}
+                {pillVisible && (
+                    <ShareButton
+                        url={profileUrl}
+                        title=""
                         variant="primary-soft"
-                        shadowSize="4"
-                        className="flex h-10 w-fit items-center justify-center rounded-full py-3 pl-6 pr-4"
-                        onClick={() => {
-                            if (navigator.share) {
-                                navigator
-                                    .share({
-                                        url: profileUrl,
-                                    })
-                                    .catch((error) => {
-                                        console.error('Error sharing:', error)
-                                    })
-                            } else {
-                                navigator.clipboard.writeText(profileUrl)
-                            }
-                        }}
+                        showIcon={false}
+                        onSuccess={() => posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)}
+                        className="h-10 w-fit rounded-full py-3 pl-6 pr-4"
                     >
                         <div className="text-sm font-semibold">{profileUrl.replace('https://', '')}</div>
                         <div className="-ml-2">
                             <Icon name="share" size={16} fill="black" />
                         </div>
-                    </Button>
+                    </ShareButton>
                 )}
             </div>
         </>
