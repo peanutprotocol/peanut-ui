@@ -44,12 +44,13 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
             >
                 {/* modal={false} turns off vaul's scroll prevention. without touch-none the
                     browser claims the swipe as a scroll, fires pointercancel, and the drawer
-                    needs two swipes. scrollAreaClassName repeats it on the inner scroll
-                    wrapper — the outer class stops governing touches once content overflows
-                    that wrapper (small viewports, large OS text). */}
+                    needs two swipes. the inner scroll wrapper needs its own copy — the outer
+                    class stops governing touches once content overflows that wrapper (small
+                    viewports, large OS text). only while collapsed: at full snap the wrapper
+                    must scroll again, or overflowing content is unreachable. */}
                 <DrawerContent
                     className={`min-h-[200px] touch-none p-5 ${className || ''}`}
-                    scrollAreaClassName="touch-none"
+                    scrollAreaClassName={activeSnapPoint === snapPoints[0] ? 'touch-none' : undefined}
                 >
                     <DrawerTitle className="mb-8 space-y-2">
                         <h2 className="text-lg font-bold">
