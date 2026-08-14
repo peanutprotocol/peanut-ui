@@ -1230,7 +1230,7 @@
             "badgeTitle": "Tenés una insignia.",
             "badgeBody": "Te saltás la fila. Estamos habilitando a quienes tengan:",
             "badgeFooter": "Iniciá sesión, revisamos las insignias de tu cuenta y pasás directo a la verificación. ¿Todavía no tenés cuenta de peanut? Registrate primero: toma un minuto.",
-            "noBadgeBody": "Sumate a la lista de espera. Dejamos entrar a 20 personas por semana.",
+            "noBadgeBody": "Sumate a la lista de espera. Dejamos entrar a 50 personas por semana.",
             "noBadgeFooter": "Anotá tu nombre en la lista y te avisamos cuando llegue tu turno."
         },
         "notForYou": {

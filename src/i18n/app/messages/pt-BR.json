@@ -3125,7 +3125,7 @@
             "badgeShowMore": "+{count} mais →",
             "badgeShowLess": "mostrar menos",
             "noBadgeTitle": "Sem selo.",
-            "noBadgeBody": "Entre na lista de espera. Liberamos 20 pessoas por semana.",
+            "noBadgeBody": "Entre na lista de espera. Liberamos 50 pessoas por semana.",
             "noBadgeFooter": "Coloque seu nome na lista e a gente avisa quando chegar sua vez."
         },
         "notForYou": {
@@ -3153,7 +3153,7 @@
             },
             "q5": {
                 "question": "QUANTO TEMPO DEMORA A LISTA DE ESPERA?",
-                "answer": "Durante o beta fechado, liberamos cerca de 20 pessoas por semana. A ordem importa. Os selos furam a fila por completo."
+                "answer": "Durante o beta fechado, liberamos cerca de 50 pessoas por semana. A ordem importa. Os selos furam a fila por completo."
             },
             "q6": {
                 "question": "ONDE POSSO CONSEGUIR O CARTÃO?",

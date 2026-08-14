@@ -91,12 +91,16 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     {feature.description}
                                 </p>
                                 {feature.learnMoreHref && (
-                                    <a
-                                        href={feature.learnMoreHref}
-                                        className="font-roboto-flex mt-4 inline-block text-base text-n-1 underline hover:no-underline md:text-lg"
-                                    >
-                                        {i18n.landingLearnMore} →
-                                    </a>
+                                    // max-w matches the paragraph above, so the link
+                                    // lands on that right edge instead of the wider cell
+                                    <p className="mt-4 w-full max-w-[360px] text-right">
+                                        <a
+                                            href={feature.learnMoreHref}
+                                            className="font-roboto-flex text-base text-n-1 underline hover:no-underline md:text-lg"
+                                        >
+                                            {i18n.landingLearnMore} →
+                                        </a>
+                                    </p>
                                 )}
                                 {feature.id === 3 && (
                                     <div className="mt-6">

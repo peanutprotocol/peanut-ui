@@ -3125,7 +3125,7 @@
             "badgeShowMore": "+{count} more →",
             "badgeShowLess": "show less",
             "noBadgeTitle": "No badge.",
-            "noBadgeBody": "Join the waitlist. We let people in 20 a week.",
+            "noBadgeBody": "Join the waitlist. We let people in 50 a week.",
             "noBadgeFooter": "Put your name on the list and we'll holler when your turn comes up."
         },
         "notForYou": {
@@ -3153,7 +3153,7 @@
             },
             "q5": {
                 "question": "HOW LONG IS THE WAITLIST?",
-                "answer": "We're letting in about 20 people a week during closed beta. Order matters. Badges skip the line entirely."
+                "answer": "We're letting in about 50 people a week during closed beta. Order matters. Badges skip the line entirely."
             },
             "q6": {
                 "question": "WHERE CAN I GET THE CARD?",
