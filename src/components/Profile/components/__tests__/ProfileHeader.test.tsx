@@ -70,6 +70,27 @@ describe('ProfileHeader share pill', () => {
         }
     )
 
+    // The [...recipient] route reuses the component instance across profile
+    // navigations, so the impression must re-arm when the pill hides — a
+    // mount-scoped latch undercounts self → other → self round trips.
+    it('fires the impression once per visibility, re-armed when the pill hides', () => {
+        const shownCalls = () =>
+            (posthog.capture as jest.Mock).mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN)
+
+        const { rerender } = renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+        expect(shownCalls()).toHaveLength(1)
+
+        // same visibility period: no double fire
+        rerender(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+        expect(shownCalls()).toHaveLength(1)
+
+        // navigate to someone else's profile (pill hides), then back to self
+        rerender(<ProfileHeader name="Hal" username="hal" showShareButton />)
+        expect(shownCalls()).toHaveLength(1)
+        rerender(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+        expect(shownCalls()).toHaveLength(2)
+    })
+
     it('shares the profile url and captures the click only on a successful share', () => {
         renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
 

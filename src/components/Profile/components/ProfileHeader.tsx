@@ -43,10 +43,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     // themselves — the old BASE_URL import is non-null-asserted with no fallback.
     const profileUrl = shareableUrl(`/${username}`)
 
+    // Once per continuous visibility, re-armed when the pill hides: the
+    // [...recipient] route reuses this component instance across profile
+    // navigations, so a mount-scoped latch would undercount self → other →
+    // self round trips.
     const pillVisible = showShareButton && isSelfProfile
     const impressionFired = useRef(false)
     useEffect(() => {
-        if (!pillVisible || impressionFired.current) return
+        if (!pillVisible) {
+            impressionFired.current = false
+            return
+        }
+        if (impressionFired.current) return
         impressionFired.current = true
         posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, REFERRAL_PILL_PROPS)
     }, [pillVisible])
