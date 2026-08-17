@@ -185,6 +185,11 @@ export const ANALYTICS_EVENTS = {
     // Withdraw refused with 409 STALE_CARD_APPROVAL — stored session-key
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
+    // One-tap mixed spend via per-transaction ephemeral session key
+    // (SESSION_KEY_SPEND flag). A fallback means the passkey path took over —
+    // `reason` says why; watch this before widening the flag.
+    SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
+    SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',
 
     // ── Card: waitlist + early-access funnel (M2 Card Waitlist Launch) ──
     // /shhhhh closed-beta landing page → /card.

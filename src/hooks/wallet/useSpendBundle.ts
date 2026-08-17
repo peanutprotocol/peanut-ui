@@ -13,6 +13,9 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
+import { peanutPublicClient } from '@/app/actions/clients'
+import { sessionKeySpendEnabled } from '@/constants/session-key-spend.consts'
+import { tryMixedEphemeralSpend } from './mixedEphemeralSpend'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from './useGrantSessionKey'
@@ -105,7 +108,7 @@ export interface SpendBundleResult {
  * See plan file for the full rationale.
  */
 export const useSpendBundle = () => {
-    const { getClientForChain, rebuildClientForChain } = useKernelClient()
+    const { getClientForChain, rebuildClientForChain, getPatchedSudoValidator } = useKernelClient()
     const { handleSendUserOpEncoded } = useZeroDev()
     const { user } = useAuth()
     const { overview } = useRainCardOverview()
@@ -263,6 +266,61 @@ export const useSpendBundle = () => {
                     // shortfall Rain signed over.
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
+
+                /*
+                 * One-tap variant (dark flag): a per-transaction ephemeral key
+                 * signs both the admin EIP-712 and the UserOp after a single
+                 * enable-signature tap. Falls through to the passkey path on
+                 * any failure — safe even for ambiguous post-broadcast errors
+                 * because both attempts reuse THIS prep, and the coordinator's
+                 * adminNonce lets only one of them execute (the loser's batch
+                 * reverts atomically). See mixedEphemeralSpend.ts.
+                 */
+                if (sessionKeySpendEnabled()) {
+                    posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind })
+                    modals?.setIsSecurityVerificationOpen?.(true)
+                    let attempt: Awaited<ReturnType<typeof tryMixedEphemeralSpend>>
+                    try {
+                        const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
+                        attempt = await tryMixedEphemeralSpend({
+                            publicClient: peanutPublicClient,
+                            chain: PEANUT_WALLET_CHAIN,
+                            patchedSudoValidator,
+                            accountAddress: activeClient.account!.address,
+                            prep,
+                            recipient,
+                            requiredUsdcAmount,
+                            subsequentCalls,
+                        })
+                    } finally {
+                        modals?.setIsSecurityVerificationOpen?.(false)
+                    }
+                    if (attempt.ok) {
+                        const mixedTxHash =
+                            (attempt.receipt?.transactionHash as Hex | undefined) ??
+                            (attempt.userOpHash as Hex | undefined)
+                        if (mixedTxHash) {
+                            rainApi
+                                .stampWithdrawal({ preparationId: prep.preparationId, txHash: mixedTxHash })
+                                .catch(() => {})
+                        }
+                        posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, {
+                            strategy,
+                            kind,
+                            engine: 'session-key',
+                        })
+                        return {
+                            strategy,
+                            userOpHash: attempt.userOpHash,
+                            receipt: attempt.receipt,
+                            intentId: prep.preparationId,
+                        }
+                    }
+                    posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_FALLBACK, {
+                        kind,
+                        reason: attempt.reason.slice(0, 200),
+                    })
+                }
 
                 const adminSignature = (await activeClient.account!.signTypedData(
                     buildRainWithdrawTypedData(prep, chainIdNum)

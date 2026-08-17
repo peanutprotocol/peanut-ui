@@ -207,14 +207,23 @@ describe('runCollateralSpendPreflight', () => {
         expect(h.grant).not.toHaveBeenCalled()
     })
 
-    it('mixed + unmigrated wrapper: migrates under the overlay, returns rebuilt client, then grant-checks', async () => {
+    it('mixed + unmigrated wrapper: migrates under the overlay, returns rebuilt client, never grants', async () => {
         const h = preflightHarness({ account: unmigratedWrapper(), overview: CARD_OVERVIEW(false) })
         const result = await runCollateralSpendPreflight({ ...h.args, strategy: 'mixed' })
         expect(h.sendNoopUserOp).toHaveBeenCalledTimes(1)
         expect(h.rebuildClient).toHaveBeenCalledTimes(1)
         expect(result).toBe(h.rebuilt)
         expect(h.overlayStates).toEqual([true, false]) // overlay opened then always closed
-        expect(h.grant).toHaveBeenCalledTimes(1) // approval missing → inline grant
+        // The granted key is consumed only by the backend's collateral-only
+        // submit; mixed broadcasts a root-signed UserOp and never touches the
+        // stored approval — the old gate here charged a passkey tap for nothing.
+        expect(h.grant).not.toHaveBeenCalled()
+    })
+
+    it('collateral-only with missing approval still grant-checks', async () => {
+        const h = preflightHarness({ account: { address: '0xplain' }, overview: CARD_OVERVIEW(false) })
+        await runCollateralSpendPreflight({ ...h.args, strategy: 'collateral-only' })
+        expect(h.grant).toHaveBeenCalledTimes(1)
     })
 
     it('mixed + plain (patched) account: zero migration behavior', async () => {
