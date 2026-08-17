@@ -30,7 +30,7 @@ function linkifyText(text: string) {
                 key={match.index}
                 href={match[2]}
                 {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                className="text-black underline hover:text-accent"
+                className="text-black underline hover:text-violet-3"
             >
                 {match[1]}
             </a>
@@ -57,7 +57,7 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                                     +
                                 </span>
                             </summary>
-                            <div className="mt-4 text-lg font-semibold leading-6 text-n-1 md:text-xl">
+                            <div className="mt-4 text-lg leading-6 font-semibold text-n-1 md:text-xl">
                                 {faq.answerContent ?? <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>}
                                 {faq.calModal && (
                                     <a
