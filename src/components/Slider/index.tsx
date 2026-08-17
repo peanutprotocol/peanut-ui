@@ -53,7 +53,7 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
             <SliderPrimitive.Root
                 ref={ref}
                 className={twMerge(
-                    'btn shadow-4 relative flex h-12 w-full touch-none items-center rounded-sm p-0 select-none',
+                    'btn relative flex h-12 w-full touch-none items-center rounded-sm p-0 shadow-4 select-none',
                     className
                 )}
                 max={100}

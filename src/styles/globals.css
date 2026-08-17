@@ -243,18 +243,20 @@
     --text-button-s--font-weight: 700;
     --text-display: 3.75rem;
 
-    /* semantic radius + border weights (figma) */
+    /* semantic radius (figma). border weights live in @layer base :root —
+       --border-width-* is a live v4 namespace, so defining s/m/l here would
+       emit .border-s/.border-l width utilities that hijack the core logical
+       border-inline-start/left utilities (tooltip arrows use bare border-l). */
     --radius-round: 999px;
-    --border-width-s: 1.5px;
-    --border-width-m: 2px;
-    --border-width-l: 2.5px;
 
     /* motion tokens — durations from real app usage, spring from the gift
-       arrival curve. respect prefers-reduced-motion in consumers. */
-    --duration-instant: 100ms;
-    --duration-fast: 200ms;
-    --duration-moderate: 300ms;
-    --duration-slow: 500ms;
+       arrival curve. respect prefers-reduced-motion in consumers.
+       --transition-duration-* is the v4 namespace behind duration-* utilities
+       (bare --duration-* generates nothing and gets tree-shaken). */
+    --transition-duration-instant: 100ms;
+    --transition-duration-fast: 200ms;
+    --transition-duration-moderate: 300ms;
+    --transition-duration-slow: 500ms;
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --ease-sharp: cubic-bezier(0.87, 0, 0.13, 1);
 
@@ -299,7 +301,7 @@
         var(--font-sniglet), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-condensed: var(--font-roboto);
-    --font-condensed--font-variation-settings: '"wdth" 50';
+    --font-condensed--font-variation-settings: 'wdth' 50;
 
     /* v3 fontSize overrides + the text-h* scale */
     --text-0: 0px;
@@ -684,10 +686,25 @@
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
+/* shadow-4 is used with variants (sm:shadow-4, hover:shadow-4) — a plain
+   @layer components class can't take variants in v4, so it lives here as a
+   real utility. its siblings (shadow-2, shadow-primary/secondary-*) stay in
+   the components layer below; promote one only when a variant needs it. */
+@utility shadow-4 {
+    @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
+}
+
 @layer base {
     /* Nudge browser to prefer light mode for native controls (scrollbars, inputs, etc) */
     :root {
         color-scheme: light;
+
+        /* figma border-weight tokens (var() consumers only) — kept out of
+           @theme so no border-s/m/l width utilities get generated (border-s
+           and border-l would shadow the core logical-property utilities) */
+        --border-width-s: 1.5px;
+        --border-width-m: 2px;
+        --border-width-l: 2.5px;
     }
 
     html,
@@ -900,9 +917,6 @@
     }
     .shadow-2 {
         @apply shadow-[0.125rem_0.125rem_0_#000000] dark:shadow-[0.125rem_0.125rem_0_rgba(255,255,255,.25)];
-    }
-    .shadow-4 {
-        @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
     }
     .shadow-primary-4 {
         @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];

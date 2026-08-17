@@ -41,7 +41,7 @@ export default function ColorsPage() {
         <DocPage>
             <DocHeader
                 title="Colors"
-                description="Color tokens from tailwind.config.js. Tap any swatch to copy the class name."
+                description="Color tokens from the @theme block in globals.css. Tap any swatch to copy the class name."
             />
 
             <DesignNote type="warning">

@@ -59,7 +59,7 @@ const Toast: React.FC<ToastMessage> = ({ type = 'info', message, content, classN
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             className={twMerge(
                 'border-2 px-6 py-1',
-                'card shadow-4 max-w-[calc(100vw_-_2rem)] md:max-w-md',
+                'card max-w-[calc(100vw_-_2rem)] shadow-4 md:max-w-md',
                 colors[type],
                 className
             )}

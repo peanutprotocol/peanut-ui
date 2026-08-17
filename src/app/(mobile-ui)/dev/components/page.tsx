@@ -1355,7 +1355,7 @@ export default function ComponentsPage() {
                                 <p className="font-bold">shadows</p>
                                 <div className="mt-2 flex gap-3">
                                     <div className="shadow-2 rounded-sm border border-n-1 px-3 py-2">.shadow-2</div>
-                                    <div className="shadow-4 rounded-sm border border-n-1 px-3 py-2">.shadow-4</div>
+                                    <div className="rounded-sm border border-n-1 px-3 py-2 shadow-4">.shadow-4</div>
                                 </div>
                             </div>
                             <div className="rounded-sm border border-n-1 p-3">

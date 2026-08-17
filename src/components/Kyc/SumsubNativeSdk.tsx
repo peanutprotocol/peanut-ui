@@ -155,7 +155,7 @@ export const SumsubNativeSdk = ({
             visible
             onClose={onClose}
             classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
-            classOverlay="bg-black bg-opacity-50"
+            classOverlay="bg-black/50"
             video={false}
             className="z-[100] !p-0 md:!p-6"
             classButtonClose="hidden"
