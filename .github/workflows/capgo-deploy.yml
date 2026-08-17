@@ -38,6 +38,8 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Full history: the bundle version's patch is the commit count.
+                  fetch-depth: 0
 
             - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 
@@ -68,6 +70,13 @@ jobs:
                     echo "name=staging" >> $GITHUB_OUTPUT
                   fi
 
+            - name: Resolve bundle version
+              id: version
+              run: |
+                  VERSION="$(node scripts/capgo-bundle-version.mjs)"
+                  echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+                  echo "Uploading as bundle version $VERSION"
+
             - name: Upload bundle to Capgo
               # Commit message via env, never inline — a multi-line message (or one
               # with quotes) injected into the run script breaks --comment quoting.
@@ -85,13 +94,33 @@ jobs:
                     --apikey "$CAPGO_API_KEY" \
                     --key-data-v2 "$CAPGO_PRIVATE_KEY" \
                     --path ./out \
+                    --bundle "${{ steps.version.outputs.name }}" \
                     --auto-min-update-version \
                     --version-exists-ok \
                     --comment "$COMMENT"
+
+            # --version-exists-ok turns "this version is already uploaded" into a
+            # silent no-op, which is what we want for a re-run of the same commit
+            # and never what we want otherwise. Assert the channel really serves
+            # the version this run built, so a no-op that ships nothing is red.
+            - name: Verify channel serves the new bundle
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  CHANNEL: ${{ steps.channel.outputs.name }}
+                  EXPECTED: ${{ steps.version.outputs.name }}
+              run: |
+                  CURRENT="$(npx @capgo/cli@latest channel currentBundle "$CHANNEL" \
+                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -n1 || true)"
+                  if [ "$CURRENT" != "$EXPECTED" ]; then
+                    echo "ERROR: channel $CHANNEL serves '${CURRENT:-<none>}', expected $EXPECTED — nothing shipped" >&2
+                    exit 1
+                  fi
+                  echo "Channel $CHANNEL now serves $EXPECTED"
 
             - name: Deployment summary
               run: |
                   echo "## OTA Deployment" >> $GITHUB_STEP_SUMMARY
                   echo "- **Channel:** ${{ steps.channel.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Bundle version:** ${{ steps.version.outputs.name }}" >> $GITHUB_STEP_SUMMARY
                   echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
                   echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
