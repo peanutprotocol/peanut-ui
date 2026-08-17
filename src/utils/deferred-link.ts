@@ -102,22 +102,29 @@ function stripLocalePrefix(path: string): string {
  * builds the payload querystring from the current web context: locale from the
  * /{locale}/ path prefix, invite/badge campaign from their existing cookies, dest
  * from the argument (defaults to the current path + query, locale stripped).
+ * `invite` overrides the cookie for surfaces that know the code before any
+ * cookie is written (the claim page's invite-link CTA).
  */
-export function buildDeferredPayload(dest?: string): string {
+export function buildDeferredPayload(dest?: string, invite?: string): string {
     const params = new URLSearchParams({ [MARKER]: '1' })
 
     const firstSegment = window.location.pathname.split('/').filter(Boolean)[0]
     if (firstSegment && isValidLocale(firstSegment)) params.set('lang', firstSegment)
 
-    const invite = getFromCookie('inviteCode')
-    if (typeof invite === 'string' && invite) params.set('invite', invite)
+    const inviteCode = invite || getFromCookie('inviteCode')
+    if (typeof inviteCode === 'string' && inviteCode) params.set('invite', inviteCode)
 
     for (const badgeCampaign of getPendingBadgeCampaigns()) {
         params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
     }
 
+    // a page whose url carries the claim secret in the fragment (#p=) must not
+    // ride as a default dest: the fragment never rides (by design), so the
+    // restored claim page would render unclaimable. the working path is the
+    // user re-tapping the original link — a universal link with the hash intact.
+    const secretOnPage = dest === undefined && window.location.hash.startsWith('#p=')
     const destination = dest ?? stripLocalePrefix(window.location.pathname) + window.location.search
-    if (destination && destination !== '/') params.set('dest', destination)
+    if (destination && destination !== '/' && !secretOnPage) params.set('dest', destination)
 
     return params.toString()
 }

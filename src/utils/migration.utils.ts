@@ -10,6 +10,7 @@ import {
 } from '@/constants/migration.consts'
 import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
+import { buildDeferredPayload, copyIOSHandoff, playStoreUrlWithReferrer } from '@/utils/deferred-link'
 
 /**
  * Flag read with a dev-only localStorage override. Local dev never inits
@@ -61,13 +62,75 @@ export function getMigrationCutoverTime(): number {
 }
 
 /** track a store CTA click without navigating (for anchors that navigate themselves). */
-export function trackStoreClick(store: StoreKind, surface: MigrationSurface) {
-    posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, { surface, store })
+export function trackStoreClick(store: StoreKind, surface: MigrationSurface, handoff = false) {
+    posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, { surface, store, handoff })
 }
 
-/** navigate to the app store, tracking which surface sent the user there. */
-export function openStore(store: StoreKind, surface: MigrationSurface) {
-    trackStoreClick(store, surface)
-    // fire-and-forget: native Browser plugin or window.open on web
+/** context a bounce surface knows before any cookie is written (claim page invite CTA). */
+export interface StoreHandoff {
+    invite?: string
+    dest?: string
+}
+
+/**
+ * navigate to the app store, tracking which surface sent the user there.
+ * on web the deferred deep-link payload (TASK-20772) rides along: android via
+ * the Play install referrer, iOS via the clipboard hand-off. both the clipboard
+ * write and the store open must stay inside the tap gesture — no awaits here.
+ */
+export function openStore(store: StoreKind, surface: MigrationSurface, handoff?: StoreHandoff) {
+    // a native guest is already in the app — nothing to hand off
+    if (isCapacitor()) {
+        trackStoreClick(store, surface)
+        void openExternalUrl(STORE_URL[store])
+        return
+    }
+
+    let payload = ''
+    try {
+        payload = buildDeferredPayload(handoff?.dest, handoff?.invite)
+    } catch {
+        // a payload failure must never block the store bounce itself
+    }
+    trackStoreClick(store, surface, !!payload)
+
+    if (store === 'android') {
+        void openExternalUrl(payload ? playStoreUrlWithReferrer(payload) : STORE_URL[store])
+        return
+    }
+    // clipboard write is prompt-free on the web side; the app asks on first launch
+    if (payload) void copyIOSHandoff(payload).catch(() => {})
     void openExternalUrl(STORE_URL[store])
+}
+
+/**
+ * href for a store CTA that is a real anchor and navigates itself: android
+ * carries the hand-off in the url; iOS can't (the clipboard needs the tap) —
+ * pair with onStoreAnchorClick. never preventDefault such an anchor: its own
+ * navigation is the fallback that still works where window.open is suppressed
+ * (in-app browsers, strict popup blockers).
+ */
+export function storeAnchorHref(store: StoreKind): string {
+    if (!isCapacitor() && store === 'android') {
+        try {
+            return playStoreUrlWithReferrer(buildDeferredPayload())
+        } catch {
+            // fall through to the bare url — the bounce itself never breaks
+        }
+    }
+    return STORE_URL[store]
+}
+
+/** tracking + iOS clipboard hand-off for a self-navigating store anchor. */
+export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) {
+    if (isCapacitor()) {
+        trackStoreClick(store, surface)
+        return
+    }
+    let payload = ''
+    try {
+        payload = buildDeferredPayload()
+    } catch {}
+    trackStoreClick(store, surface, !!payload)
+    if (store === 'ios' && payload) void copyIOSHandoff(payload).catch(() => {})
 }

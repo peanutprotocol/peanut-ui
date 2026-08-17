@@ -104,10 +104,12 @@ function mapDeepLink(url: string): string | null {
     // a claim link's password lives in `#p=<password>` and never reaches the
     // server, so a mapper that drops it turns the link into an unclaimable one.
     // Appending once is the only shape a new route branch can't forget.
-    return `${mapDeepLinkPath(parsed)}${parsed.hash}`
+    const mapped = mapDeepLinkPath(parsed)
+    return mapped === null ? null : `${mapped}${parsed.hash}`
 }
 
-function mapDeepLinkPath(parsed: URL): string {
+// null = the path has no native stand-in and must not be navigated to
+function mapDeepLinkPath(parsed: URL): string | null {
     const path = parsed.pathname
     const extraParams = parsed.search.replace(/^\?/, '')
     const segments = path.split('/').filter(Boolean)
@@ -125,6 +127,14 @@ function mapDeepLinkPath(parsed: URL): string {
     if (segments[0] === 'add-money' || segments[0] === 'withdraw') {
         return rewriteMethodPath(path, extraParams || undefined)
     }
+    // `/invite?code=X` — the invite landing page is pruned from the native
+    // export (scripts/native-build.js), so App Links landing on it hit a
+    // chunk-error reload loop. Route straight to signup; the code travels via
+    // the session invite cookie written in openDeepLink (side effect can't
+    // live here — this mapper runs during render).
+    if (isCapacitor() && segments[0] === 'invite') {
+        return '/setup?step=signup'
+    }
     // `/receipt/<id>?kind=X` — the web receipt page is a server component and is
     // stripped from the static export (scripts/native-build.js), so native routes
     // to the client variant. `kind` rides along in extraParams.
@@ -132,13 +142,19 @@ function mapDeepLinkPath(parsed: URL): string {
         const id = decodeURIComponent(segments[1])
         return appendParams(isCapacitor() ? `/receipt?id=${encodeURIComponent(id)}` : path, extraParams)
     }
-    // `/<username>?chargeId=<uuid>` — the catch-all profile route is disabled in
-    // native builds; /pay-request is its stand-in (see (mobile-ui)/pay-request).
-    // Gated by the same reserved-route/recipient rules the web catch-all uses, so
-    // `/rewards?chargeId=x` stays on /rewards instead of landing on /pay-request.
-    if (isCapacitor() && segments.length === 1 && !isReservedRoute(path) && couldBeRecipient(segments[0])) {
-        const chargeId = parsed.searchParams.get('chargeId')
-        if (chargeId) return chargePayUrl(chargeId)
+    // Non-reserved paths only exist on the web: the root recipient catch-all
+    // ([...recipient]) is pruned from the native export, so a passthrough here
+    // chunk-errors — the /invite class of dead end. Rewrite what has an in-app
+    // stand-in, drop the rest (null = the caller does not navigate).
+    if (isCapacitor() && !isReservedRoute(path)) {
+        if (couldBeRecipient(segments[0])) {
+            const chargeId = parsed.searchParams.get('chargeId')
+            if (chargeId) return chargePayUrl(chargeId)
+            // usernames, addresses and semantic pay paths (user@chain/amount)
+            // all funnel into /send?recipient= — SendRouterView dispatches
+            return recipientPayUrl(decodeURIComponent(segments.join('/')))
+        }
+        return null
     }
 
     return appendParams(path, extraParams)
