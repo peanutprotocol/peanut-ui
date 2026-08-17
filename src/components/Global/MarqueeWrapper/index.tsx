@@ -45,7 +45,7 @@ export function MarqueeComp({
     backgroundColor?: string
 }) {
     return (
-        <div className="border-y-1 border-white shadow">
+        <div className="border-white shadow">
             <MarqueeWrapper backgroundColor={backgroundColor} direction="left" className="border-y-2 border-n-1">
                 {Array.isArray(message)
                     ? message.map((msg, index) => (

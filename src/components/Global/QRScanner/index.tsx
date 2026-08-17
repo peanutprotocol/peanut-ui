@@ -82,7 +82,7 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
         <div className="fixed top-8 left-0 z-50 grid w-full grid-flow-col items-center py-2 text-center text-white">
             <Button
                 variant="transparent-light"
-                className="mx-auto flex h-8 w-8 items-center justify-center border-1 border-white p-0"
+                className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                 onClick={onClose}
             >
                 <Icon name="cancel" size={18} fill="white" />
@@ -90,7 +90,7 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
             <span className="text-3xl font-extrabold">{t('qrScanner.scanToPay')}</span>
             <Button
                 variant="transparent-light"
-                className="mx-auto flex h-8 w-8 items-center justify-center border-1 border-white p-0"
+                className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                 onClick={onToggleCamera}
             >
                 <Icon name="camera-flip" fill="white" height={24} width={24} />
