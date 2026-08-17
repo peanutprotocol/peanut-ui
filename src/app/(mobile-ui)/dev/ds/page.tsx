@@ -108,6 +108,10 @@ export default function DesignSystemPage() {
                         (#FF90E8), not purple
                     </li>
                     <li>size=&quot;large&quot; is h-10 (shorter than default h-13)</li>
+                    <li>
+                        Card deposits: say &quot;starter balance&quot; — never &quot;card balance&quot; or &quot;Peanut
+                        rewards&quot;
+                    </li>
                 </ul>
             </div>
         </DocPage>

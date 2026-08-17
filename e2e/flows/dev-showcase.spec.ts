@@ -13,16 +13,6 @@ import { captureStep, collectConsoleLogs } from '../utils/capture'
 import { dismissModals } from '../utils/dismiss-modals'
 
 test.describe('Dev showcase (design system)', () => {
-    test('/dev/components landing', async ({ page }, testInfo) => {
-        const c = collectConsoleLogs(page)
-        await page.goto('/dev/components', { waitUntil: 'domcontentloaded' })
-        await dismissModals(page)
-        await captureStep(page, testInfo, { name: '01-dev-components' })
-        await page.waitForTimeout(2000)
-        await captureStep(page, testInfo, { name: '02-dev-components-settled' })
-        c.flush(testInfo, 'dev-components')
-    })
-
     test('/dev — root dev page', async ({ page }, testInfo) => {
         const c = collectConsoleLogs(page)
         await page.goto('/dev', { waitUntil: 'domcontentloaded' })
@@ -33,8 +23,7 @@ test.describe('Dev showcase (design system)', () => {
 
     test('/dev/ds — design system root', async ({ page }, testInfo) => {
         const c = collectConsoleLogs(page)
-        const res = await page.goto('/dev/ds', { waitUntil: 'domcontentloaded' }).catch(() => null)
-        if (!res) return // not all repos have this route
+        await page.goto('/dev/ds', { waitUntil: 'domcontentloaded' })
         await dismissModals(page)
         await captureStep(page, testInfo, { name: '01-ds-root' })
         await page.waitForTimeout(1500)
