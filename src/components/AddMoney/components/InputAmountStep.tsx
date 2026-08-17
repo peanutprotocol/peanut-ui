@@ -5,6 +5,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import { useCurrency } from '@/hooks/useCurrency'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
@@ -54,8 +55,16 @@ const InputAmountStep = ({
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
 
+    // The rate fetch can hold this screen for tens of seconds on a slow mobile
+    // network. Keep the header mounted so "back" always works instead of the
+    // page reading as frozen (#1848).
     if (currencyData?.isLoading) {
-        return <PeanutLoading />
+        return (
+            <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <PeanutLoading />
+            </div>
+        )
     }
 
     // FX fetch failed (e.g. provider outage): price is null but not loading.
@@ -125,7 +134,7 @@ const InputAmountStep = ({
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                 {error && !limitsValidation?.isBlocking && <ErrorAlert description={error} />}
                 {rateUnavailable && !error && !limitsValidation?.isBlocking && (
-                    <ErrorAlert description={t('errors.rateUnavailable')} />
+                    <RateUnavailable onRetry={() => currencyData?.refetch()} />
                 )}
             </div>
         </div>
