@@ -45,9 +45,7 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
                 <div className="mx-auto my-4 h-1.5 w-10 rounded-full bg-black" />
                 <div className="flex w-full justify-center">
-                    <div className="max-h-[80vh] w-full overflow-auto pb-[env(safe-area-inset-bottom)] md:max-w-xl">
-                        {children}
-                    </div>
+                    <div className="max-h-[80vh] w-full overflow-auto pb-safe-bottom md:max-w-xl">{children}</div>
                 </div>
             </DrawerPrimitive.Content>
         </DrawerPortal>

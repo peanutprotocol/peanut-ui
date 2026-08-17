@@ -128,6 +128,18 @@ describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
     })
 })
 
+describe('ApplicationStatusScreen — pending', () => {
+    // The pending variant carries no CTA of its own, so its back button is the
+    // screen's ONLY control. A caller that omits onPrev leaves the user with a
+    // spinner and nothing to tap — the "app froze after verification" report.
+    it('wires onPrev to the back button', () => {
+        const onPrev = jest.fn()
+        render(<ApplicationStatusScreen variant="pending" onPrev={onPrev} />)
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(onPrev).toHaveBeenCalledTimes(1)
+    })
+})
+
 describe('ApplicationStatusScreen — upload error', () => {
     it('renders the inline error under the upload CTA', () => {
         render(

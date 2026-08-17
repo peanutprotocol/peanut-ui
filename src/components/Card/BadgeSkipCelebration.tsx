@@ -27,7 +27,7 @@ import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPix
 import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { getShakeClass } from '@/utils/perk.utils'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { TierLevel } from '@/components/Card/share-asset/shareAsset.types'
@@ -62,7 +62,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
     // Gate the Share/Save buttons until the card face's async hand <canvas>
     // mounts — otherwise an early capture snapshots a blank card.
     const [assetReady, setAssetReady] = useState(false)
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const captureRef = useRef<HTMLDivElement | null>(null)
     const hasBadge = !!badgeCode
     // Falls back to the generic skip headline for an unmapped badge, and to the

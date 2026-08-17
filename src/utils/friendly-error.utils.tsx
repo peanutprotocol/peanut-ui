@@ -1,4 +1,4 @@
-import { API_ERROR_CODES, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
+import { API_ERROR_CODES, apiErrorStatus, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
 
 /** Safely extract a string-form of an unknown error + its `.message` if any.
  *  Lets the matchers below use `string` methods without unsafe property access
@@ -79,6 +79,7 @@ export type FriendlyErrorCode =
     | 'sendLinkAlreadyClaimed'
     | 'lowLiquidity'
     | 'networkBusyTimeout'
+    | 'sessionExpired'
     | 'genericSupport'
     // Mapped from backend wire codes — see WIRE_CODE_MAP below.
     | 'staleCardApproval'
@@ -165,6 +166,16 @@ export const friendlyError = (error: unknown): FriendlyError => {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]
         if (mapped) return code(mapped)
     }
+
+    /*
+     * HTTP status off our own ApiError (name-guarded — see apiErrorStatus).
+     * Sits after the wire codes (a code is more specific than a status) and
+     * before the message matchers, so an auth failure can never collapse into
+     * the "contact support" fallback: a 401 means re-login, not a bug report.
+     */
+    const status = apiErrorStatus(error)
+    if (status === 401 || status === 403) return code('sessionExpired')
+    if (status !== undefined && status >= 500) return code('networkBusyTimeout')
 
     // Rain card-collateral errors — pre-contract fallback: surface the
     // backend's already user-friendly English verbatim. Now sits behind the

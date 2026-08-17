@@ -156,12 +156,40 @@ module.exports = [
                     message:
                         "Don't pass a string literal to toast.* — copy must come from next-intl. Import the right namespace with useTranslations and pass t('…'). If the value genuinely isn't copy (an id, a URL), assign it to a named const first.",
                 },
+                {
+                    // iOS has never implemented the Vibration API — not in any version,
+                    // Safari or WKWebView — so navigator.vibrate() is a permanent no-op
+                    // there, and the `'vibrate' in navigator` guard that usually wraps it
+                    // makes the failure completely silent. On Android it works but only
+                    // above a duration threshold no call site was passing. Every native
+                    // haptic in the app was dead this way until 1.0.48.
+                    selector: "CallExpression[callee.object.name='navigator'][callee.property.name='vibrate']",
+                    message:
+                        "Don't call navigator.vibrate() directly — it is a permanent no-op on iOS (no Vibration API in any version) and silently does nothing. Use notifyHaptic / impactHaptic / vibrateHaptic / cancelHaptic from '@/utils/haptics', which drive @capacitor/haptics on native, or useAppHaptic() from '@/hooks/useAppHaptic' for a light tap in a component.",
+                },
+                {
+                    // Settling a promise WITH a Capacitor plugin object probes its .then,
+                    // and the registerPlugin proxy answers any property with a
+                    // native-method wrapper that never invokes the callbacks it is handed
+                    // — so the promise stays pending forever and even the .catch is dead.
+                    // Shipped twice: getPreferences() (1.0.44) and the Crisp helper
+                    // (1.0.45–1.0.47). Return { Plugin } instead.
+                    selector: 'ReturnStatement > Identifier[name=/^(Capacitor[A-Z]|Preferences$)/]',
+                    message:
+                        'Never return a Capacitor plugin object across an await/then boundary — resolving a promise with it probes .then, which the plugin proxy turns into a native call that never settles the promise. Wrap it: `return { Plugin }` and destructure at the call site. See src/utils/crisp.ts and src/utils/auth-token.ts.',
+                },
             ],
         },
     },
     {
         // The hook itself wraps router.back() — exempt.
         files: ['src/hooks/useSafeBack.ts', 'src/hooks/__tests__/useSafeBack.test.ts'],
+        rules: { 'no-restricted-syntax': 'off' },
+    },
+    {
+        // The one module allowed to touch the Vibration API: it is the web
+        // fallback behind the haptics helpers everything else must use.
+        files: ['src/utils/haptics.ts'],
         rules: { 'no-restricted-syntax': 'off' },
     },
     {

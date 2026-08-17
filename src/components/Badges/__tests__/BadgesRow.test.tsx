@@ -41,7 +41,11 @@ describe('BadgesRow', () => {
             badge('NEWEST', '2024-12-01T00:00:00.000Z'),
         ]
 
-        render(<BadgesRow badges={badges} />)
+        render(
+            <IntlWrapper>
+                <BadgesRow badges={badges} />
+            </IntlWrapper>
+        )
 
         expect(badges.map((b) => b.code)).toEqual(['OLDEST', 'MIDDLE', 'NEWEST'])
     })

@@ -36,6 +36,7 @@ import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
+import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 const PointsPage = () => {
     const t = useTranslations('rewards')
@@ -95,6 +96,14 @@ const PointsPage = () => {
         enabled: !!tierInfo?.data,
     })
 
+    // Guideline 3.1.5(ii): the referral programme is unreachable in the iOS app,
+    // including by deep link — hiding only the entry points would leave /rewards
+    // one URL away.
+    const hideReferralRewards = isReferralRewardsHidden()
+    useEffect(() => {
+        if (hideReferralRewards) router.replace('/home')
+    }, [hideReferralRewards, router])
+
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.POINTS_PAGE_VIEWED)
     }, [])
@@ -103,6 +112,8 @@ const PointsPage = () => {
         // re-fetch user to get the latest invitees list for showing heart icon
         fetchUser()
     }, [])
+
+    if (hideReferralRewards) return null
 
     if (isLoading || isTierInfoLoading || !tierInfo?.data) {
         return <PeanutLoading />

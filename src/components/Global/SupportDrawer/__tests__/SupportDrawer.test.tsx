@@ -27,6 +27,7 @@ const mockUseCrispTokenId = jest.fn()
 const mockIsCapacitor = isCapacitor as jest.Mock
 
 const nativeCrisp = {
+    configure: jest.fn(),
     setUser: jest.fn(),
     setTokenID: jest.fn(),
     setString: jest.fn(),

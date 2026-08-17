@@ -67,25 +67,28 @@
                 <data android:pathPrefix="/badges/" />
                 <data android:path="/profile" />
                 <data android:pathPrefix="/profile/" />
+                <data android:path="/invite" />
+                <data android:pathPrefix="/invite/" />
             </intent-filter>
 
         </activity>
 
+        <!-- Subclassed (not androidx.core.content.FileProvider directly): the
+             manifest merger keys providers by android:name, and the Crisp SDK
+             declares the androidx class for its own upload provider. Declaring
+             it here too used to collide, and the tools:replace workaround
+             stripped Crisp's authority — crashing "Take a photo" in support
+             chat. The authority stays ${applicationId}.fileprovider because
+             @capacitor/camera hardcodes that suffix. -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="me.peanut.wallet.PeanutFileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
-            android:grantUriPermissions="true"
-            tools:replace="android:authorities">
+            android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"
-                tools:replace="android:resource" />
+                android:resource="@xml/file_paths" />
         </provider>
-            <!-- CapacitorPasskey auto-configuration -->
-        <meta-data
-            android:name="asset_statements"
-            android:resource="@string/capacitor_passkey_asset_statements" />
 
         <!-- Don't let OneSignal fire its own ACTION_VIEW for a notification's
              launch URL. The tap opens the app and useNativePlugins routes on the
@@ -95,6 +98,30 @@
         <meta-data
             android:name="com.onesignal.suppressLaunchURLs"
             android:value="true" />
+
+        <!-- Status-bar tint behind the ic_stat_onesignal_default silhouette (brand yellow) -->
+        <meta-data
+            android:name="com.onesignal.NotificationAccentColor.DEFAULT"
+            android:value="FFFFC900" />
+
+        <!-- Sentry native crash reporting (TASK-20964). Captures what the JS-layer
+             SDK in the WebView can't: process crashes, ANRs, Java/Kotlin plugin
+             exceptions — and tracks native sessions, which is what makes
+             crash-free-session % measurable per release. DSN comes from a manifest
+             placeholder (android/app/build.gradle ← SENTRY_DSN_ANDROID env, set in
+             android-release.yml); an empty DSN leaves the SDK disabled, so local
+             builds without the env stay silent. Auto-init, session tracking and
+             ANR detection are SDK defaults — no code needed. -->
+        <meta-data
+            android:name="io.sentry.dsn"
+            android:value="${sentryDsn}" />
+        <meta-data
+            android:name="io.sentry.environment"
+            android:value="native" />
+            <!-- CapacitorPasskey auto-configuration -->
+        <meta-data
+            android:name="asset_statements"
+            android:resource="@string/capacitor_passkey_asset_statements" />
     </application>
 
     <!-- Phone-only: require a telephony radio so Play filters out Wi-Fi-only

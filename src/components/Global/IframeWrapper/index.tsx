@@ -122,7 +122,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
 
         window.addEventListener('message', handleMessage)
         return () => window.removeEventListener('message', handleMessage)
-    }, [onClose])
+    }, [onClose, visible])
 
     return (
         <Modal
@@ -145,7 +145,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             preventClose={true}
             hideOverlay={false}
         >
-            <div className="flex h-full flex-col gap-2 p-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+            <div className="flex h-full flex-col gap-2 p-0 pt-safe-top">
                 <div className="h-full w-full flex-grow overflow-scroll">
                     <iframe
                         key={src}

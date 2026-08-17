@@ -161,6 +161,14 @@ module.exports = {
                 '-1.2em': '-1.2em',
                 '-2.4em': '-2.4em',
                 '-3.6em': '-3.6em',
+                // Safe-area insets — see the :root contract in styles/globals.css.
+                // The env() step in the fallback chain is load-bearing: an undefined
+                // custom property invalidates the whole declaration, so a
+                // min-h-[calc(...)] would silently collapse to `auto`.
+                'safe-top': 'var(--safe-top, env(safe-area-inset-top, 0px))',
+                'safe-right': 'var(--safe-right, env(safe-area-inset-right, 0px))',
+                'safe-bottom': 'var(--safe-bottom, env(safe-area-inset-bottom, 0px))',
+                'safe-left': 'var(--safe-left, env(safe-area-inset-left, 0px))',
             },
             transitionDuration: {
                 DEFAULT: '200ms',

@@ -100,9 +100,15 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
 
     useEffect(() => {
         if (!dismissible || !userId) return
+        // Pre-fingerprint native builds (≤1.0.50) persisted this preference as a
+        // comma-joined STRING of task keys. Those dismissals can't be mapped to
+        // fingerprints, so drop them (the card resurfaces once) — without the
+        // guard a later dismiss would spread the string char-by-char into the
+        // stored array.
+        const stored = getUserPreferences(userId)?.pendingVerificationTasksDismissed
         setStoredDismissals({
             forUserId: userId,
-            keys: getUserPreferences(userId)?.pendingVerificationTasksDismissed ?? [],
+            keys: Array.isArray(stored) ? stored : [],
         })
     }, [dismissible, userId])
 

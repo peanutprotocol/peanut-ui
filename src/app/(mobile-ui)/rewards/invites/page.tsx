@@ -20,10 +20,11 @@ import { type PointsInvite } from '@/services/services.types'
 import { formatPoints } from '@/utils/format.utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
+import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 const InvitesPage = () => {
     const t = useTranslations('rewards')
@@ -54,6 +55,14 @@ const InvitesPage = () => {
         duration: 1.8,
         enabled: !isLoading && !isError,
     })
+
+    // Guideline 3.1.5(ii) — see /rewards; the deep link has to close too.
+    const hideReferralRewards = isReferralRewardsHidden()
+    useEffect(() => {
+        if (hideReferralRewards) router.replace('/home')
+    }, [hideReferralRewards, router])
+
+    if (hideReferralRewards) return null
 
     if (isLoading) {
         return <PeanutLoading />

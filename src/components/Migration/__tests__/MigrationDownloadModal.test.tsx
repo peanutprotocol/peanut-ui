@@ -26,6 +26,8 @@ jest.mock('@/hooks/useMigrationFlag', () => ({
 let mockIsCapacitor = false
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockIsCapacitor,
+    // mobile-release's mascot picker calls this at module scope
+    isAndroidNative: () => false,
     openExternalUrl: jest.fn(),
 }))
 

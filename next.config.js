@@ -426,9 +426,10 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
         // Upload a larger set of source maps for prettier stack traces (increases build time)
         widenClientFileUpload: true,
 
-        // Automatically annotate React components to show their full name in breadcrumbs and session replay
+        // Off: annotation stamps data-sentry-* attributes on every DOM node, which
+        // its only consumer (session replay) doesn't run — pure DOM weight.
         reactComponentAnnotation: {
-            enabled: true,
+            enabled: false,
         },
 
         // Uncomment to route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
