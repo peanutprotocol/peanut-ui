@@ -300,15 +300,6 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-condensed: var(--font-roboto);
     --font-condensed--font-variation-settings: '"wdth" 50';
-    --font-knerd-outline:
-        var(--font-knerd-outline), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-knerd-filled:
-        var(--font-knerd-filled), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-roboto:
-        var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
 
     /* v3 fontSize overrides + the text-h* scale */
     --text-0: 0px;
@@ -468,6 +459,25 @@
             transform: scale(1) rotate(0deg);
         }
     }
+}
+
+/* font utilities whose v3 theme key matches the next/font css var name —
+   defining them in @theme would shadow the next/font var on :root and
+   self-reference (font falls back to system). plain utilities instead. */
+@utility font-roboto {
+    font-family:
+        var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+@utility font-knerd-outline {
+    font-family:
+        var(--font-knerd-outline), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+@utility font-knerd-filled {
+    font-family:
+        var(--font-knerd-filled), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
 /* v3-parity: bare `rounded` was 0.25rem in v3 (v4 dropped the bare form) */
