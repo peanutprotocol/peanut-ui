@@ -57,6 +57,7 @@ export const DEDICATED_ROUTES = [
     'lp',
     'exchange',
     'shhhhh',
+    'creator-contest',
 
     // Future SEO routes (pre-register so catch-all doesn't intercept)
     'send-money-to',
