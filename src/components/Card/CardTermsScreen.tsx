@@ -1,11 +1,13 @@
 'use client'
 import { type FC, type ReactNode, useEffect, useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
+import { toMarketingLocale } from '@/i18n/localeBridge'
+import type { Locale as MarketingLocale } from '@/i18n/types'
 
 interface Props {
     isUsResident: boolean
@@ -19,13 +21,16 @@ interface Props {
 const CARD_PARTNER_NAME = 'Peanut'
 
 // US and international cardholders accept different card-terms documents.
-const LINKS = {
-    eSign: 'https://peanut.me/en/card-esign',
+// The marketing pages are locale-routed and fall back to English prose when a
+// legal doc has no translation yet, so linking the user's own locale is always
+// safe — hardcoding /en/ was not.
+const linksFor = (locale: MarketingLocale) => ({
+    eSign: `https://peanut.me/${locale}/card-esign`,
     issuerPrivacy: 'https://www.third-national.com/privacypolicy',
-    cardTermsUs: 'https://peanut.me/en/card-terms-us',
-    cardTermsInternational: 'https://peanut.me/en/card-terms-international',
-    accountOpeningPrivacy: 'https://peanut.me/en/card-privacy',
-}
+    cardTermsUs: `https://peanut.me/${locale}/card-terms-us`,
+    cardTermsInternational: `https://peanut.me/${locale}/card-terms-international`,
+    accountOpeningPrivacy: `https://peanut.me/${locale}/card-privacy`,
+})
 
 interface Term {
     id: string
@@ -42,14 +47,17 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
     const t = useTranslations('card.terms')
     const tCard = useTranslations('card')
     const tCommon = useTranslations('common')
+    const locale = useLocale()
     const [checked, setChecked] = useState<Record<string, boolean>>({})
     const [submitting, setSubmitting] = useState(false)
+
+    const links = useMemo(() => linksFor(toMarketingLocale(locale)), [locale])
 
     const terms = useMemo<Term[]>(() => {
         const esignTerm: Term = {
             id: 'esign',
             label: t.rich('esign', {
-                link: (chunks) => <ExternalLink href={LINKS.eSign}>{chunks}</ExternalLink>,
+                link: (chunks) => <ExternalLink href={links.eSign}>{chunks}</ExternalLink>,
             }),
         }
         const cardTermsIssuerTerm: Term = {
@@ -57,11 +65,11 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
             label: t.rich('cardTermsIssuer', {
                 partner: CARD_PARTNER_NAME,
                 terms: (chunks) => (
-                    <ExternalLink href={isUsResident ? LINKS.cardTermsUs : LINKS.cardTermsInternational}>
+                    <ExternalLink href={isUsResident ? links.cardTermsUs : links.cardTermsInternational}>
                         {chunks}
                     </ExternalLink>
                 ),
-                privacy: (chunks) => <ExternalLink href={LINKS.issuerPrivacy}>{chunks}</ExternalLink>,
+                privacy: (chunks) => <ExternalLink href={links.issuerPrivacy}>{chunks}</ExternalLink>,
             }),
         }
         const accuracyTerm: Term = { id: 'accuracy', label: t('accuracy', { partner: CARD_PARTNER_NAME }) }
@@ -73,11 +81,11 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
         const accountOpeningPrivacyTerm: Term = {
             id: 'accountOpeningPrivacy',
             label: t.rich('accountOpeningPrivacy', {
-                link: (chunks) => <ExternalLink href={LINKS.accountOpeningPrivacy}>{chunks}</ExternalLink>,
+                link: (chunks) => <ExternalLink href={links.accountOpeningPrivacy}>{chunks}</ExternalLink>,
             }),
         }
         return [esignTerm, accountOpeningPrivacyTerm, cardTermsIssuerTerm, accuracyTerm, solicitationTerm]
-    }, [isUsResident, t])
+    }, [isUsResident, t, links])
 
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_VIEWED, {

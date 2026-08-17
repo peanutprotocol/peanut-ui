@@ -515,7 +515,8 @@
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Intentalo de nuevo o contactá a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Intentalo de nuevo o contactá a soporte.",
             "walletNotReady": "La billetera no está lista — volvé a intentarlo en un momento",
-            "unexpectedStrategy": "Estrategia de retiro inesperada — contactá a soporte"
+            "unexpectedStrategy": "Estrategia de retiro inesperada — contactá a soporte",
+            "cardDetailsLoading": "Los datos de la tarjeta todavía se están cargando — volvé a intentarlo en un momento"
         },
         "countryConfirm": {
             "noCandidatesBody": "No pudimos confirmar tu país de residencia con tu verificación. Nuestro equipo lo resolverá — escribile a soporte para continuar.",
@@ -721,7 +722,10 @@
         "bridge": {
             "depositMessageInfo": "Asegurate de ingresar este mensaje exacto como concepto o descripción de la transferencia. Si no se incluye, el depósito no se puede procesar."
         },
-        "enjoyPeanut": "¡Disfrutá Peanut!"
+        "enjoyPeanut": "¡Disfrutá Peanut!",
+        "cardRows": {
+            "settlementAdjustedNotice": "El monto final fue {amount} mayor que la retención inicial. Es común con propinas y totales actualizados. ¿No lo reconocés? Contactá al comercio."
+        }
     },
     "history": {
         "errorDescription": "Contactá a soporte.",

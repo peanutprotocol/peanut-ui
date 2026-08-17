@@ -1127,7 +1127,8 @@
             "balanceReturnFailed": "Could not return your card balance. Please try again or contact support.",
             "authorizationFailed": "Card authorization failed. Please try again or contact support.",
             "walletNotReady": "Wallet not ready — please retry in a moment",
-            "unexpectedStrategy": "Unexpected withdrawal strategy — please contact support"
+            "unexpectedStrategy": "Unexpected withdrawal strategy — please contact support",
+            "cardDetailsLoading": "Card details still loading — please retry in a moment"
         },
         "countryConfirm": {
             "noCandidatesTitle": "We need to check your details",
@@ -1251,6 +1252,8 @@
             "autoRenewTitle": "Card auto renews soon",
             "autoRenewBody": "Your card will automatically renew in {days, plural, one {# day} other {# days}}, expiration date will change.",
             "dismiss": "Dismiss",
+            "balanceDueTitle": "{amount} will be debited based on your next deposit",
+            "balanceDueBody": "A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. We'll cover the difference automatically.",
             "payAsCreditTitle": "Pay as credit",
             "payAsCreditBody": "When a terminal asks debit or credit, choose credit — your Peanut card runs on the credit network.",
             "managementTitle": "Card management",
@@ -1782,7 +1785,8 @@
             "evidenceRequested": "Evidence requested",
             "flagAlt": "{country} flag",
             "initialHold": "Initial hold",
-            "adjustment": "Adjustment"
+            "adjustment": "Adjustment",
+            "settlementAdjustedNotice": "The final amount was {amount} higher than the initial hold. This is common with tips and updated totals. Don’t recognize it? Contact the merchant."
         },
         "dispute": {
             "pending": "Disputed — Awaiting review",
