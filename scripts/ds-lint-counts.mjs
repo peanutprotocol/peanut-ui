@@ -20,7 +20,7 @@ const BASELINE_PATH = join(ROOT, 'scripts', 'ds-lint-baseline.json')
 
 // allowlist for every metric: image-generation surfaces render standalone html
 // with no tailwind, raw values are the tool there, not debt.
-const GLOBAL_ALLOW = ['components/og/', 'ImageGeneration/']
+const GLOBAL_ALLOW = ['components/og/', 'app/api/og/', 'ImageGeneration/']
 
 // extra allowlist for raw-hex only: canvas/D3/mermaid surfaces paint
 // programmatically, plus the ds showcase pages that display the palette itself.
@@ -36,8 +36,8 @@ const HEX_ALLOW = [
 const HEX_RE = /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g
 const INLINE_STYLE_RE = /style=\{\{/g
 // stock tailwind text sizes that the text-h* scale replaces
-const STOCK_TEXT_RE = /\btext-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl)\b/g
-const DS_TEXT_RE = /\btext-h[0-9]\b/g
+const STOCK_TEXT_RE = /\btext-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl)\b/g
+const DS_TEXT_RE = /\btext-h(?:10|[1-9])\b/g
 // stock tailwind palette colors — the DS palette is n-*, grey-*, purple-*,
 // primary-*, secondary-* etc., so any stock-palette class in a view is non-DS
 const STOCK_PALETTE_RE =
@@ -103,11 +103,18 @@ const mode = process.argv[2] ?? ''
 if (mode === '--json') {
     console.log(JSON.stringify(counts, null, 2))
 } else if (mode === '--write-baseline') {
-    writeFileSync(BASELINE_PATH, JSON.stringify(counts, null, 2) + '\n')
+    // 4-space indent matches prettier (tabWidth 4) so a regen never fails the format gate
+    writeFileSync(BASELINE_PATH, JSON.stringify(counts, null, 4) + '\n')
     console.log(`baseline written to ${relative(ROOT, BASELINE_PATH)}`)
     console.log(JSON.stringify(counts, null, 2))
 } else if (mode === '--check') {
     const baseline = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'))
+    // a missing key would compare as `count > undefined` = false and silently pass
+    const missing = DEBT_KEYS.filter((k) => typeof baseline[k] !== 'number')
+    if (missing.length) {
+        console.error(`ds-lint ratchet: baseline is missing ${missing.join(', ')} — rerun with --write-baseline.`)
+        process.exit(1)
+    }
     const regressions = DEBT_KEYS.filter((k) => counts[k] > baseline[k])
     for (const k of DEBT_KEYS) {
         const delta = counts[k] - baseline[k]
@@ -120,6 +127,10 @@ if (mode === '--json') {
         process.exit(1)
     }
     console.log('\nds-lint ratchet ok — no metric increased.')
+} else if (mode !== '') {
+    // a typo'd flag must not silently degrade the ratchet to a green no-op
+    console.error(`unknown mode '${mode}' — use --json, --write-baseline, --check, or no flag.`)
+    process.exit(1)
 } else {
     console.log('design-system lint counts (src/, tests excluded)\n')
     console.log(
