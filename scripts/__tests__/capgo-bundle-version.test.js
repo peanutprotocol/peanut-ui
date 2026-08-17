@@ -16,36 +16,58 @@ function run({ cwd = REPO_ROOT, script = SCRIPT_PATH, env = {} } = {}) {
     })
 }
 
+// CI checks this repo out shallow, so the commit-count cases get their own
+// repo with a known history instead of asserting against the checkout.
+function makeRepo(version, commits) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'capgo-version-'))
+    fs.mkdirSync(path.join(dir, 'scripts'))
+    fs.copyFileSync(SCRIPT_PATH, path.join(dir, 'scripts', 'capgo-bundle-version.mjs'))
+    fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version }))
+    const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: 'ignore' })
+    git('init', '-q')
+    for (let i = 0; i < commits; i++) {
+        git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', `c${i}`)
+    }
+    return dir
+}
+
+function runIn(dir, env) {
+    return run({ cwd: dir, script: path.join(dir, 'scripts', 'capgo-bundle-version.mjs'), env })
+}
+
 describe('capgo bundle version', () => {
     const nativeVersion = require(path.join(REPO_ROOT, 'package.json')).version
+    const repos = []
+
+    afterAll(() => repos.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true })))
+
+    function repo(version, commits) {
+        const dir = makeRepo(version, commits)
+        repos.push(dir)
+        return dir
+    }
 
     it('derives <major>.<minor>.<commit-count> from package.json', () => {
-        const commitCount = execFileSync('git', ['rev-list', '--count', 'HEAD'], {
-            cwd: REPO_ROOT,
-            encoding: 'utf-8',
-        }).trim()
-        const [major, minor] = nativeVersion.split('.')
-
-        const result = run()
+        const result = runIn(repo('2.3.1', 12))
 
         expect(result.status).toBe(0)
-        expect(result.stdout.trim()).toBe(`${major}.${minor}.${commitCount}`)
+        expect(result.stdout.trim()).toBe('2.3.12')
     })
 
     // The whole point of the derived version: Capgo drops bundles that sort
     // below the installed native version, and no-ops on a version it already has.
-    it('derives a version above the native one', () => {
-        const [, , patch] = nativeVersion.split('.')
-        const [, , derivedPatch] = run().stdout.trim().split('.')
+    it('fails on a shallow clone instead of shipping a version under the native one', () => {
+        const result = runIn(repo('1.0.8', 1))
 
-        expect(Number(derivedPatch)).toBeGreaterThan(Number(patch))
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('fetch-depth: 0')
     })
 
     it('honours CAPGO_BUNDLE_VERSION', () => {
-        const result = run({ env: { CAPGO_BUNDLE_VERSION: '1.2.3' } })
+        const result = run({ env: { CAPGO_BUNDLE_VERSION: '9.9.9' } })
 
         expect(result.status).toBe(0)
-        expect(result.stdout.trim()).toBe('1.2.3')
+        expect(result.stdout.trim()).toBe('9.9.9')
     })
 
     it('rejects an override below the native version', () => {
@@ -60,24 +82,5 @@ describe('capgo bundle version', () => {
 
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('plain X.Y.Z semver')
-    })
-
-    it('fails on a shallow clone instead of shipping version 1.0.1', () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'capgo-version-'))
-        try {
-            fs.mkdirSync(path.join(dir, 'scripts'))
-            fs.copyFileSync(SCRIPT_PATH, path.join(dir, 'scripts', 'capgo-bundle-version.mjs'))
-            fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version: nativeVersion }))
-            const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: 'ignore' })
-            git('init', '-q')
-            git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'one')
-
-            const result = run({ cwd: dir, script: path.join(dir, 'scripts', 'capgo-bundle-version.mjs') })
-
-            expect(result.status).toBe(1)
-            expect(result.stderr).toContain('fetch-depth: 0')
-        } finally {
-            fs.rmSync(dir, { recursive: true, force: true })
-        }
     })
 })
