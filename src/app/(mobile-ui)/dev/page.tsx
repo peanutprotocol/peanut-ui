@@ -10,12 +10,6 @@ export default function DevToolsPage() {
     // static: true → plain <a> (file in public/, not an app route — Next Link can't client-navigate to it)
     const tools: { name: string; description: string; path: string; icon: IconName; static?: boolean }[] = [
         {
-            name: 'Points Leaderboard',
-            description: 'Real-time leaderboard with customizable time filters for event competitions',
-            path: '/dev/leaderboard',
-            icon: 'trophy',
-        },
-        {
             name: 'Full Graph',
             description:
                 'Interactive force-directed graph visualization of all users, invites, and P2P activity (admin only)',

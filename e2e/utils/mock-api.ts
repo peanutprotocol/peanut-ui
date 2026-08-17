@@ -20,7 +20,6 @@ const MOCK_TIER_INFO = {
     transitivePoints: 300,
     totalPoints: 500,
     currentTier: 1,
-    leaderboardRank: 42,
     nextTierThreshold: 1000,
     pointsToNextTier: 500,
 }
