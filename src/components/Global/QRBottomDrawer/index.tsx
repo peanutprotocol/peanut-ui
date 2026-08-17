@@ -37,17 +37,18 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                 modal={false}
                 // drag-down at the first snap point otherwise calls vaul's closeDrawer().
                 // that collides with the forced open={true}: close/reopen flicker, then a
-                // 500ms window where vaul ignores all drags. dismissible={false} prevents it.
-                // vaul 1.1.2 note: a fast down-flick at the first snap then hits a benign
-                // out-of-bounds snap index inside vaul. re-test that path on a vaul upgrade.
+                // 500ms window where vaul ignores all drags. with dismissible={false} vaul
+                // ignores drag-down at the collapsed snap — the drawer does not move.
+                // vaul 1.1.2 note: releasing that drag hits a benign out-of-bounds snap
+                // index inside vaul. re-test that path on a vaul upgrade.
                 dismissible={false}
             >
                 {/* modal={false} turns off vaul's scroll prevention. without touch-none the
-                    browser claims the swipe as a scroll, fires pointercancel, and the drawer
-                    needs two swipes. the inner scroll wrapper needs its own copy — the outer
-                    class stops governing touches once content overflows that wrapper (small
-                    viewports, large OS text). only while collapsed: at full snap the wrapper
-                    must scroll again, or overflowing content is unreachable. */}
+                    browser claims a swipe as a scroll, fires pointercancel, and the drawer
+                    needs two swipes. the touch-action walk stops at the shared overflow-auto
+                    wrapper (even when nothing overflows), so the outer class only covers the
+                    drag handle area. content touches need the wrapper's own copy, applied
+                    only while collapsed so overflowing content can scroll at full snap. */}
                 <DrawerContent
                     className={`min-h-[200px] touch-none p-5 ${className || ''}`}
                     scrollAreaClassName={activeSnapPoint === snapPoints[0] ? 'touch-none' : undefined}
