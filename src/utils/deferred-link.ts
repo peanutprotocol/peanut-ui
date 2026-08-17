@@ -118,8 +118,13 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
         params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
     }
 
+    // a page whose url carries the claim secret in the fragment (#p=) must not
+    // ride as a default dest: the fragment never rides (by design), so the
+    // restored claim page would render unclaimable. the working path is the
+    // user re-tapping the original link — a universal link with the hash intact.
+    const secretOnPage = dest === undefined && window.location.hash.startsWith('#p=')
     const destination = dest ?? stripLocalePrefix(window.location.pathname) + window.location.search
-    if (destination && destination !== '/') params.set('dest', destination)
+    if (destination && destination !== '/' && !secretOnPage) params.set('dest', destination)
 
     return params.toString()
 }

@@ -312,6 +312,23 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('/alice?chargeId=charge-123')).toBe('/pay-request?chargeId=charge-123')
             })
 
+            // the root recipient catch-all is pruned from the native export —
+            // a passthrough would chunk-error, so recipient paths funnel into
+            // /send?recipient= and anything unmappable is dropped (null)
+            it('funnels a bare profile path into /send?recipient=', () => {
+                expect(deepLinkToNativePath('/kushagra')).toBe('/send?recipient=kushagra')
+            })
+
+            it('funnels a semantic pay path (user@chain/amount) into /send?recipient=', () => {
+                expect(deepLinkToNativePath('/alice@42161/10usdc')).toBe(
+                    `/send?recipient=${encodeURIComponent('alice@42161/10usdc')}`
+                )
+            })
+
+            it('drops a non-recipient web-only path instead of passing it through', () => {
+                expect(deepLinkToNativePath('/not-a-valid.username')).toBeNull()
+            })
+
             it('leaves a static in-app route untouched', () => {
                 expect(deepLinkToNativePath('https://peanut.me/history')).toBe('/history')
             })

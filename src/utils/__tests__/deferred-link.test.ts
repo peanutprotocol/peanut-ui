@@ -145,6 +145,15 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         expect(parseDeferredPayload(buildDeferredPayload())).toEqual({ lang: 'es-419', dest: '/claim/ABC?x=2' })
     })
 
+    it('omits the default dest when the page url carries a claim secret (#p=)', () => {
+        window.history.replaceState({}, '', '/claim?c=42161&i=99')
+        window.location.hash = '#p=s3cr3t'
+        expect(parseDeferredPayload(buildDeferredPayload())).toEqual({})
+        // an explicit dest still rides — only the default is suppressed
+        expect(parseDeferredPayload(buildDeferredPayload('/home'))).toEqual({ dest: '/home' })
+        window.location.hash = ''
+    })
+
     it('omits dest for the root path and non-locale first segments', () => {
         window.history.replaceState({}, '', '/')
         expect(parseDeferredPayload(buildDeferredPayload())).toEqual({})

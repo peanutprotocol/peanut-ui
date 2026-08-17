@@ -39,7 +39,14 @@ jest.mock('@/utils/deferred-link', () => ({
 
 import { MIGRATION_CUTOVER_DATE, MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { openExternalUrl } from '@/utils/capacitor'
-import { getMigrationCutoverTime, isPwaSunsetOn, openStore, shouldShowSunsetBlock } from '@/utils/migration.utils'
+import {
+    getMigrationCutoverTime,
+    isPwaSunsetOn,
+    onStoreAnchorClick,
+    openStore,
+    shouldShowSunsetBlock,
+    storeAnchorHref,
+} from '@/utils/migration.utils'
 
 const mockOpenExternalUrl = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>
 
@@ -163,5 +170,34 @@ describe('openStore deferred hand-off', () => {
         expect(mockBuildPayload).not.toHaveBeenCalled()
         expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
         expect(mockOpenExternalUrl).toHaveBeenCalledWith(STORE_URL.ios)
+    })
+})
+
+describe('store anchor helpers (self-navigating CTAs)', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockBuildPayload.mockReturnValue('pnutdl=1')
+    })
+
+    it('android anchor href carries the referrer payload', () => {
+        expect(storeAnchorHref('android')).toBe(`play://listing?referrer=${encodeURIComponent('pnutdl=1')}`)
+    })
+
+    it('ios anchor href stays bare — the clipboard rides on click instead', () => {
+        expect(storeAnchorHref('ios')).toBe(STORE_URL.ios)
+        onStoreAnchorClick('ios', MIGRATION_SURFACES.LANDING_HERO)
+        expect(mockCopyIOSHandoff).toHaveBeenCalledWith('pnutdl=1')
+    })
+
+    it('android click only tracks — the href already carries the payload', () => {
+        onStoreAnchorClick('android', MIGRATION_SURFACES.LANDING_HERO)
+        expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+    })
+
+    it('a payload failure falls back to the bare store url', () => {
+        mockBuildPayload.mockImplementation(() => {
+            throw new Error('no window')
+        })
+        expect(storeAnchorHref('android')).toBe(STORE_URL.android)
     })
 })

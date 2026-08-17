@@ -16,7 +16,7 @@ import { useAuth } from '@/context/authContext'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { EInviteType } from '@/services/services.types'
-import { saveRedirectUrl, saveToLocalStorage, toInviteCode } from '@/utils/general.utils'
+import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
@@ -79,7 +79,7 @@ export default function SendWithPeanutCta({
                 const inviteCode = toInviteCode(inviterUsername)
                 dispatch(setupActions.setInviteCode(inviteCode))
                 dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
-                router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
+                router.push(inviteFlowUrl(inviteCode, redirectUri))
             } else {
                 saveRedirectUrl()
                 router.push('/setup')

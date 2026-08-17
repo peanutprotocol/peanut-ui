@@ -102,3 +102,35 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
     if (payload) void copyIOSHandoff(payload).catch(() => {})
     void openExternalUrl(STORE_URL[store])
 }
+
+/**
+ * href for a store CTA that is a real anchor and navigates itself: android
+ * carries the hand-off in the url; iOS can't (the clipboard needs the tap) —
+ * pair with onStoreAnchorClick. never preventDefault such an anchor: its own
+ * navigation is the fallback that still works where window.open is suppressed
+ * (in-app browsers, strict popup blockers).
+ */
+export function storeAnchorHref(store: StoreKind): string {
+    if (!isCapacitor() && store === 'android') {
+        try {
+            return playStoreUrlWithReferrer(buildDeferredPayload())
+        } catch {
+            // fall through to the bare url — the bounce itself never breaks
+        }
+    }
+    return STORE_URL[store]
+}
+
+/** tracking + iOS clipboard hand-off for a self-navigating store anchor. */
+export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) {
+    if (isCapacitor()) {
+        trackStoreClick(store, surface)
+        return
+    }
+    let payload = ''
+    try {
+        payload = buildDeferredPayload()
+    } catch {}
+    trackStoreClick(store, surface, !!payload)
+    if (store === 'ios' && payload) void copyIOSHandoff(payload).catch(() => {})
+}

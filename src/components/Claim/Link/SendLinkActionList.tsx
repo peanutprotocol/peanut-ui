@@ -18,7 +18,7 @@
 import StatusBadge from '../../Global/Badges/StatusBadge'
 import IconStack from '../../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { toInviteCode } from '@/utils/general.utils'
+import { toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import { useContext, useMemo, useState } from 'react'
@@ -203,7 +203,7 @@ export default function SendLinkActionList({
             const inviteCode = toInviteCode(rawUsername)
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
-            router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
+            router.push(inviteFlowUrl(inviteCode, redirectUri))
         } else {
             router.push(`/setup?redirect_uri=${redirectUri}`)
         }

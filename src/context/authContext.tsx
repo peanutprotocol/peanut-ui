@@ -267,6 +267,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Passive auth expiry does not run this cleanup and retains retries.
         clearPendingBadgeCampaigns()
 
+        // The invite cookie routes /setup past Landing — the only screen with
+        // Log In. A signed-in native user who tapped a friend's invite App Link
+        // has it set; leaving it through logout would strand them on Signup,
+        // unable to log back in until the process dies (session cookie).
+        removeFromCookie('inviteCode')
+
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.
         clearStepUpToken()
