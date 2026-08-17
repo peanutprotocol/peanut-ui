@@ -10,6 +10,7 @@ export const TIERS = [
     { label: 'Foundations', href: '/dev/ds/foundations', icon: 'bulb' as IconName },
     { label: 'Primitives', href: '/dev/ds/primitives', icon: 'switch' as IconName },
     { label: 'Patterns', href: '/dev/ds/patterns', icon: 'docs' as IconName },
+    { label: 'Audit', href: '/dev/ds/audit', icon: 'search' as IconName },
     { label: 'Playground', href: '/dev/ds/playground', icon: 'bulb' as IconName },
 ]
 
@@ -44,8 +45,16 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'Cards (Global)', icon: 'docs', href: '/dev/ds/patterns/cards-global' },
         { label: 'AmountInput', icon: 'dollar', href: '/dev/ds/patterns/amount-input' },
     ],
+    audit: [
+        { label: 'Code Audit', icon: 'docs', href: '/dev/ds/audit' },
+        { label: 'App Divergences', icon: 'search', href: '/dev/ds/audit/app' },
+        { label: 'Big Components', icon: 'switch', href: '/dev/ds/audit/components' },
+    ],
+    // Playground items are standalone harnesses that live under /dev (not /dev/ds), so
+    // clicking one leaves the doc-site chrome. The /dev/ds/playground index links to them.
     playground: [
-        { label: 'Shake & Confetti', icon: 'gift', href: '/dev/ds/playground/shake-test' },
-        { label: 'Perk Success', icon: 'check-circle', href: '/dev/ds/playground/perk-success' },
+        { label: 'Shake & Confetti', icon: 'gift', href: '/dev/shake-test' },
+        { label: 'Perk Success', icon: 'check-circle', href: '/dev/perk-success-test' },
+        { label: 'Share Builder', icon: 'copy', href: '/dev/share-builder' },
     ],
 }
