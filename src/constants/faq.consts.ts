@@ -1,4 +1,6 @@
 import { OTHER_SUPPORTED_CHAINS, SUPPORTED_EVM_CHAINS } from '@/constants/rhino.consts'
+import { getTranslations, t } from '@/i18n'
+import { type Locale } from '@/i18n/types'
 import { chainDisplayName } from '@/utils/chain-display.utils'
 
 /**
@@ -21,12 +23,17 @@ export const FIAT_RAILS = [
 ] as const
 
 const EVM_CHAIN_LIST = SUPPORTED_EVM_CHAINS.map(chainDisplayName).join(', ')
-const OTHER_CHAIN_LIST = OTHER_SUPPORTED_CHAINS.map(chainDisplayName).join(' and ')
 const FIAT_RAIL_LIST = FIAT_RAILS.map((rail) => `${rail.name} (${rail.currency}, ${rail.region})`).join(', ')
 
-export const SUPPORTED_RAILS_FAQ_QUESTION = 'Which networks, tokens and banks does Peanut support?'
-
-export const SUPPORTED_RAILS_FAQ_ANSWER =
-    `Crypto: deposit and withdraw USDC and USDT on ${SUPPORTED_EVM_CHAINS.length} EVM networks with a single address (${EVM_CHAIN_LIST}), plus ${OTHER_CHAIN_LIST}. ETH is also supported on EVM networks; Tron is USDT-only. ` +
-    `Banks & local payment apps: ${FIAT_RAIL_LIST}. ` +
-    'Deposits are free — Peanut covers the gas.'
+export function supportedRailsFaq(locale: Locale): { question: string; answer: string } {
+    const translations = getTranslations(locale)
+    return {
+        question: translations.landingSupportedRailsFaqQuestion,
+        answer: t(translations.landingSupportedRailsFaqAnswer, {
+            evmCount: String(SUPPORTED_EVM_CHAINS.length),
+            evmList: EVM_CHAIN_LIST,
+            otherList: OTHER_SUPPORTED_CHAINS.map(chainDisplayName).join(` ${translations.listJoinAnd} `),
+            railList: FIAT_RAIL_LIST,
+        }),
+    }
+}
