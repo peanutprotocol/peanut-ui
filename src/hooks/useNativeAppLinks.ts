@@ -72,6 +72,7 @@ export function useNativeAppLinks() {
 
                 const backListener = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
                     if (canGoBack) {
+                        // eslint-disable-next-line no-restricted-syntax -- native canGoBack guards the call, and the no-history branch must minimize the app (Android convention), which useSafeBack's URL fallback can't express
                         router.back()
                     } else {
                         App.minimizeApp()
