@@ -1620,6 +1620,7 @@ export interface paths {
                             tokenSymbol?: string;
                             tokenDecimals?: number;
                             recipientAddress?: string;
+                            recipientEnsName?: string;
                             requesteeUsername?: string;
                             tokenAmount?: string;
                         };
@@ -1645,6 +1646,7 @@ export interface paths {
                             tokenSymbol?: string;
                             tokenDecimals?: number;
                             recipientAddress?: string;
+                            recipientEnsName?: string;
                             requesteeUsername?: string;
                             tokenAmount?: string;
                         };
@@ -1670,6 +1672,7 @@ export interface paths {
                             tokenSymbol: string;
                             tokenDecimals: number;
                             recipientAddress: string;
+                            recipientEnsName?: string;
                             requesteeUsername?: string;
                             tokenAmount?: string;
                         };
