@@ -1143,7 +1143,8 @@
             "balanceReturnFailed": "Não conseguimos devolver o saldo do seu cartão. Tente de novo ou fale com o suporte.",
             "authorizationFailed": "A autorização do cartão falhou. Tente de novo ou fale com o suporte.",
             "walletNotReady": "A carteira não está pronta — tente de novo em um instante",
-            "unexpectedStrategy": "Estratégia de saque inesperada — fale com o suporte"
+            "unexpectedStrategy": "Estratégia de saque inesperada — fale com o suporte",
+            "cardDetailsLoading": "Os dados do cartão ainda estão carregando — tente de novo em um instante"
         },
         "countryConfirm": {
             "noCandidatesTitle": "Precisamos conferir seus dados",
@@ -1267,6 +1268,8 @@
             "autoRenewTitle": "Seu cartão renova em breve",
             "autoRenewBody": "Seu cartão vai renovar automaticamente em {days, plural, one {# dia} other {# dias}}, a data de validade vai mudar.",
             "dismiss": "Dispensar",
+            "balanceDueTitle": "{amount} serão debitados no seu próximo depósito",
+            "balanceDueBody": "Um pagamento recente com o cartão ficou maior que o valor reservado no momento da compra. Isso acontece com gorjetas ou totais atualizados. A gente cobre a diferença automaticamente.",
             "payAsCreditTitle": "Pague como crédito",
             "payAsCreditBody": "Quando a maquininha perguntar débito ou crédito, escolha crédito — seu cartão Peanut roda na rede de crédito.",
             "managementTitle": "Gerenciar cartão",
@@ -1797,7 +1800,8 @@
             "evidenceRequested": "Comprovação solicitada",
             "flagAlt": "Bandeira de {country}",
             "initialHold": "Retenção inicial",
-            "adjustment": "Ajuste"
+            "adjustment": "Ajuste",
+            "settlementAdjustedNotice": "O valor final ficou {amount} maior que a reserva inicial. Isso é comum com gorjetas e totais atualizados. Não reconhece? Fale com o estabelecimento."
         },
         "dispute": {
             "pending": "Contestada — Aguardando análise",

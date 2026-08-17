@@ -1143,7 +1143,8 @@
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "walletNotReady": "La billetera no está lista — vuelve a intentarlo en un momento",
-            "unexpectedStrategy": "Estrategia de retiro inesperada — contacta a soporte"
+            "unexpectedStrategy": "Estrategia de retiro inesperada — contacta a soporte",
+            "cardDetailsLoading": "Los datos de la tarjeta aún se están cargando — vuelve a intentarlo en un momento"
         },
         "countryConfirm": {
             "noCandidatesTitle": "Necesitamos revisar tus datos",
@@ -1267,6 +1268,8 @@
             "autoRenewTitle": "Tu tarjeta se renueva pronto",
             "autoRenewBody": "Tu tarjeta se renovará automáticamente en {days, plural, one {# día} other {# días}}, la fecha de vencimiento cambiará.",
             "dismiss": "Descartar",
+            "balanceDueTitle": "Se debitarán {amount} de tu próximo depósito",
+            "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. Cubrimos la diferencia automáticamente.",
             "payAsCreditTitle": "Paga como crédito",
             "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elige crédito — tu tarjeta Peanut corre en la red de crédito.",
             "managementTitle": "Gestión de la tarjeta",
@@ -1797,7 +1800,8 @@
             "evidenceRequested": "Evidencia solicitada",
             "flagAlt": "Bandera de {country}",
             "initialHold": "Retención inicial",
-            "adjustment": "Ajuste"
+            "adjustment": "Ajuste",
+            "settlementAdjustedNotice": "El monto final fue {amount} mayor que la retención inicial. Es común con propinas y totales actualizados. ¿No lo reconoces? Contacta al comercio."
         },
         "dispute": {
             "pending": "En disputa — Esperando revisión",
