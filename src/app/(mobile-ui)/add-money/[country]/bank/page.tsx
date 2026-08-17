@@ -469,9 +469,7 @@ function BridgeBankOnrampPage() {
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
                         <ErrorAlert description={error.errorMessage} />
                     )}
-                    {localCurrency !== 'USD' && isRateError && (
-                        <ErrorAlert description="We couldn't load the exchange rate. Please try again in a moment." />
-                    )}
+                    {localCurrency !== 'USD' && isRateError && <ErrorAlert description={t('errors.rateUnavailable')} />}
                 </div>
 
                 <OnrampConfirmationModal
