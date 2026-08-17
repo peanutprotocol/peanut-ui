@@ -84,7 +84,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
     return (
         <span
             className={twMerge(
-                'inline-block whitespace-nowrap rounded-full',
+                'inline-block rounded-full whitespace-nowrap',
                 'font-roboto font-semibold',
                 getSizeClasses(),
                 getStatusStyles(),

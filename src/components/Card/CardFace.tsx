@@ -88,7 +88,7 @@ const CardFace: FC<Props> = ({
                 alt=""
                 aria-hidden
                 className={twMerge(
-                    'pointer-events-none absolute bottom-0 right-0 h-[90%] w-auto select-none transition-transform duration-500',
+                    'pointer-events-none absolute right-0 bottom-0 h-[90%] w-auto transition-transform duration-500 select-none',
                     detailsShown && 'translate-x-full translate-y-full'
                 )}
                 priority
@@ -154,7 +154,7 @@ const CardFace: FC<Props> = ({
                             {/* Registered cardholder name — PII, kept out of session
                              * recordings like the other revealed fields. */}
                             {revealed.cardholderName && (
-                                <span className="ph-no-capture mt-1 text-sm font-bold uppercase tracking-wide">
+                                <span className="ph-no-capture mt-1 text-sm font-bold tracking-wide uppercase">
                                     {revealed.cardholderName}
                                 </span>
                             )}
@@ -217,7 +217,7 @@ const CardFace: FC<Props> = ({
                             {/* Retry eye inline with the message — hand is still present
                              * in the error state, so keep the control in the left zone. */}
                             <div className="flex items-start gap-3">
-                                <span className="text-sm font-bold leading-snug">{error}</span>
+                                <span className="text-sm leading-snug font-bold">{error}</span>
                                 {onToggleReveal && (
                                     <button
                                         type="button"

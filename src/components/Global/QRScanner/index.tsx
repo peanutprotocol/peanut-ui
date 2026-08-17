@@ -69,7 +69,7 @@ function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name
     return (
         <div className="flex max-w-26 items-center gap-1">
             <Image src={src} alt={alt} height={24} priority />
-            <span className="break-normal text-left text-xs font-black uppercase leading-none tracking-wider text-white">
+            <span className="text-left text-xs leading-none font-black tracking-wider break-normal text-white uppercase">
                 {name}
             </span>
         </div>
@@ -79,10 +79,10 @@ function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name
 function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onToggleCamera: () => void }) {
     const t = useTranslations('global')
     return (
-        <div className="fixed left-0 top-8 z-50 grid w-full grid-flow-col items-center py-2 text-center text-white">
+        <div className="fixed top-8 left-0 z-50 grid w-full grid-flow-col items-center py-2 text-center text-white">
             <Button
                 variant="transparent-light"
-                className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex h-8 w-8 items-center justify-center border-1 border-white p-0"
                 onClick={onClose}
             >
                 <Icon name="cancel" size={18} fill="white" />
@@ -90,7 +90,7 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
             <span className="text-3xl font-extrabold">{t('qrScanner.scanToPay')}</span>
             <Button
                 variant="transparent-light"
-                className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex h-8 w-8 items-center justify-center border-1 border-white p-0"
                 onClick={onToggleCamera}
             >
                 <Icon name="camera-flip" fill="white" height={24} width={24} />
@@ -274,7 +274,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     if (!isScanning) return null
 
     return createPortal(
-        <div className="qr-scanner-container fixed left-0 top-0 z-50 flex h-full w-full flex-col bg-black">
+        <div className="qr-scanner-container fixed top-0 left-0 z-50 flex h-full w-full flex-col bg-black">
             {/* modal uses !z-[60] to appear above this z-50 scanner portal (Dialog portals to body) */}
             {isPermissionDenied ? (
                 <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />

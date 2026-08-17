@@ -320,12 +320,12 @@ export default function LeaderboardPage() {
                     <div className="mb-4">
                         <span className="text-sm text-grey-1">Last update: {lastUpdate.toLocaleTimeString()}</span>
                     </div>
-                    <div className="mx-auto max-w-2xl rounded-xl bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 p-6 shadow-lg">
+                    <div className="from-yellow-400 via-yellow-500 to-yellow-600 mx-auto max-w-2xl rounded-xl bg-gradient-to-r p-6 shadow-lg">
                         <div className="flex items-center justify-center gap-3">
                             <span className="text-5xl">💰</span>
                             <div className="text-left">
                                 <p className="text-3xl font-black text-white">$50 PRIZE</p>
-                                <p className="text-lg font-semibold text-yellow-100">for the top scorer!</p>
+                                <p className="text-yellow-100 text-lg font-semibold">for the top scorer!</p>
                             </div>
                             <span className="text-5xl">🏆</span>
                         </div>
@@ -363,7 +363,7 @@ export default function LeaderboardPage() {
                                         {entry.rank <= 3 ? (
                                             <Icon name="star" size={32} className={getTrophyColor(entry.rank)} />
                                         ) : (
-                                            <span className="text-2xl font-bold text-gray-400">#{entry.rank}</span>
+                                            <span className="text-gray-400 text-2xl font-bold">#{entry.rank}</span>
                                         )}
                                     </div>
 
@@ -386,17 +386,17 @@ export default function LeaderboardPage() {
                                 {/* Rank Badge for Top 3 */}
                                 <div className="flex items-center gap-4">
                                     {entry.rank === 1 && (
-                                        <span className="rounded-full bg-yellow-100 px-4 py-2 text-sm font-bold text-yellow-800">
+                                        <span className="bg-yellow-100 text-yellow-800 rounded-full px-4 py-2 text-sm font-bold">
                                             🥇 1st Place
                                         </span>
                                     )}
                                     {entry.rank === 2 && (
-                                        <span className="rounded-full bg-gray-100 px-4 py-2 text-sm font-bold text-grey-1">
+                                        <span className="bg-gray-100 rounded-full px-4 py-2 text-sm font-bold text-grey-1">
                                             🥈 2nd Place
                                         </span>
                                     )}
                                     {entry.rank === 3 && (
-                                        <span className="rounded-full bg-orange-100 px-4 py-2 text-sm font-bold text-orange-700">
+                                        <span className="bg-orange-100 text-orange-700 rounded-full px-4 py-2 text-sm font-bold">
                                             🥉 3rd Place
                                         </span>
                                     )}
@@ -448,7 +448,7 @@ export default function LeaderboardPage() {
                                 size="small"
                                 variant="stroke"
                                 onClick={handleSetNow}
-                                className="whitespace-nowrap px-3 py-1"
+                                className="px-3 py-1 whitespace-nowrap"
                             >
                                 SINCE NOW
                             </Button>
@@ -456,7 +456,7 @@ export default function LeaderboardPage() {
                                 type="datetime-local"
                                 value={customTime}
                                 onChange={(e) => handleCustomTimeChange(e.target.value)}
-                                className="w-48 rounded-md border border-gray-3 px-2 py-1 text-sm focus:border-primary-1 focus:outline-none focus:ring-1 focus:ring-primary-1"
+                                className="w-48 rounded-md border border-gray-3 px-2 py-1 text-sm focus:border-primary-1 focus:ring-1 focus:ring-primary-1 focus:outline-none"
                             />
                             <Button
                                 size="small"

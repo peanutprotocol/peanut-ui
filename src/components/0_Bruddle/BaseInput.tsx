@@ -22,7 +22,7 @@ const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
             <div className="relative w-full">
                 <input ref={ref} className={twMerge(c, !!rightContent && 'pr-15 md:pr-18')} {...props} />
                 {rightContent && (
-                    <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">{rightContent}</div>
+                    <div className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2">{rightContent}</div>
                 )}
             </div>
         )

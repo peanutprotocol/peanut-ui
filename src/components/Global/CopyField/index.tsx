@@ -40,7 +40,7 @@ const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: Cop
                 className={twMerge(
                     'h-10 w-fit',
                     disabled &&
-                        'cursor-not-allowed bg-gray-200 text-black opacity-80 focus-within:bg-gray-300 focus-within:text-black active:bg-gray-300 active:text-black'
+                        'bg-gray-200 focus-within:bg-gray-300 active:bg-gray-300 cursor-not-allowed text-black opacity-80 focus-within:text-black active:text-black'
                 )}
                 onClick={handleClick}
                 shadowSize={shadowSize}

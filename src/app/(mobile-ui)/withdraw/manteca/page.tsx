@@ -787,12 +787,12 @@ function MantecaBankWithdrawFlow() {
                                     height={48}
                                     className="h-12 w-12 rounded-full object-cover"
                                 />
-                                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
                                     <Icon name="bank" size={12} />
                                 </div>
                             </div>
                             <div>
-                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                <p className="text-gray-600 flex items-center gap-1 text-center text-sm">
                                     <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
                                 <p className="text-2xl font-bold">
@@ -853,7 +853,7 @@ function MantecaBankWithdrawFlow() {
                                 />
                             )}
 
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <div className="text-gray-600 flex items-center gap-2 text-sm">
                                 <Icon name="info" size={16} />
                                 <span>{t('manteca.ownAccountOnly')}</span>
                             </div>
@@ -898,12 +898,12 @@ function MantecaBankWithdrawFlow() {
                                     height={48}
                                     className="h-12 w-12 rounded-full object-cover"
                                 />
-                                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
                                     <Icon name="bank" size={12} />
                                 </div>
                             </div>
                             <div>
-                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                <p className="text-gray-600 flex items-center gap-1 text-center text-sm">
                                     <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
                                 <p className="text-2xl font-bold">

@@ -175,13 +175,13 @@ const ValidatedInput = ({
                 className={twMerge(
                     'relative w-full rounded-sm border border-n-1 bg-white focus:border-primary-1 dark:border-white',
                     value && !isValidating && !isValid && debouncedValue === value
-                        ? ' border-error dark:border-error'
+                        ? 'border-error dark:border-error'
                         : '',
                     className
                 )}
                 translate="no"
             >
-                <div className="absolute left-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1">
+                <div className="absolute top-1/2 left-1 z-10 flex -translate-y-1/2 items-center gap-1">
                     {infoText && (
                         <div className="notranslate flex h-6 w-6 items-center justify-center bg-white">
                             <MoreInfo text={infoText} />
@@ -205,9 +205,7 @@ const ValidatedInput = ({
                                 : undefined
                         }
                         className={twMerge(
-                            `notranslate h-12 w-full border-0 bg-white 
-                        pr-1 text-sm font-medium outline-none focus:outline-none
-                        active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
+                            `notranslate h-12 w-full border-0 bg-white pr-1 text-sm font-medium outline-none focus:outline-none active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
                             !!infoText ? 'pl-0' : 'pl-4'
                         )}
                         placeholder={placeholder}
@@ -240,7 +238,7 @@ const ValidatedInput = ({
                                 </div>
                             ) : !!isSetupFlow && !!isValid && !isInputChanging ? (
                                 <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-secondary-8">
-                                    <Icon size={12} className=" rounded-full p-0 text-white" name="check" />
+                                    <Icon size={12} className="rounded-full p-0 text-white" name="check" />
                                 </div>
                             ) : (
                                 <button
@@ -248,7 +246,7 @@ const ValidatedInput = ({
                                         e.preventDefault()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
-                                    className="flex h-full w-6 items-center justify-center pr-2 dark:bg-n-1 md:w-8 md:pr-0"
+                                    className="flex h-full w-6 items-center justify-center pr-2 md:w-8 md:pr-0 dark:bg-n-1"
                                 >
                                     <Icon className="h-6 w-6 dark:fill-white" name="cancel" />
                                 </button>

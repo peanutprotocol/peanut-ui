@@ -50,7 +50,7 @@ const LinkSendSuccessView = () => {
     }, [resetLinkSendFlow])
 
     return (
-        <div className="flex  w-full flex-col justify-start space-y-8">
+        <div className="flex w-full flex-col justify-start space-y-8">
             <NavHeader
                 icon="cancel"
                 title={tNav('send')}

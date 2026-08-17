@@ -120,7 +120,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                         bare span is ignored by assistive tech (generic role). */}
                     {hasUnreadSupport && (
                         <IndicatorDot
-                            className="absolute -right-1 -top-1"
+                            className="absolute -top-1 -right-1"
                             role="status"
                             aria-label={t('supportUnread')}
                         />

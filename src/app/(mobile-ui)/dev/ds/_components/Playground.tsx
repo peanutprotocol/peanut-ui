@@ -28,13 +28,13 @@ export function Playground({ importPath, defaults, controls, render, codeTemplat
         <div className="space-y-4">
             {/* Preview */}
             <div className="rounded-sm border border-gray-3 bg-white p-6">
-                <div className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-2">Preview</div>
+                <div className="mb-3 text-xs font-bold tracking-wider text-gray-2 uppercase">Preview</div>
                 <div className="flex items-center justify-center rounded-sm bg-gray-3/30 py-8">{render(props)}</div>
             </div>
 
             {/* Controls */}
             <div className="rounded-sm border border-gray-3 bg-gray-3/20 p-4">
-                <div className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-2">Controls</div>
+                <div className="mb-3 text-xs font-bold tracking-wider text-gray-2 uppercase">Controls</div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {controls.map((control) => (
                         <ControlField

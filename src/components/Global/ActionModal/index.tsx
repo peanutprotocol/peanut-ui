@@ -145,7 +145,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                     <input
                                         type="checkbox"
                                         className={twMerge(
-                                            'h-4 w-4 rounded border-gray-300 text-primary-1 shadow-sm focus:border-primary-3 focus:ring focus:ring-primary-2 focus:ring-opacity-50 dark:border-gray-600 dark:bg-n-2 dark:ring-offset-n-1 dark:checked:bg-primary-1 dark:focus:ring-primary-1',
+                                            'border-gray-300 focus:ring-opacity-50 dark:border-gray-600 h-4 w-4 rounded text-primary-1 shadow-sm focus:border-primary-3 focus:ring focus:ring-primary-2 dark:bg-n-2 dark:ring-offset-n-1 dark:checked:bg-primary-1 dark:focus:ring-primary-1',
                                             checkbox.inputClassName
                                         )}
                                         checked={checkbox.checked}

@@ -16,7 +16,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 
-const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
+const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl leading-6 font-extrabold">{text}</h3>
 
 const InstallPWA = ({
     canInstall,

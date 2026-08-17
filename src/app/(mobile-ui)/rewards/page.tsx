@@ -122,7 +122,7 @@ const PointsPage = () => {
         <PageContainer className="flex flex-col">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <section className="mx-auto mb-auto mt-10 w-full space-y-4">
+            <section className="mx-auto mt-10 mb-auto w-full space-y-4">
                 {/* rewards hero — pending claimable as primary, lifetime as secondary */}
                 <Card className="flex flex-col gap-4 p-6">
                     {cashStatus?.success &&

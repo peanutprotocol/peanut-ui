@@ -36,7 +36,7 @@ export default function AmountInputPage() {
                             <span className="text-lg font-bold text-grey-1">&asymp; ETH 0.00</span>
                             <span className="text-sm text-grey-1">Balance: $ 42.50</span>
                         </div>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-grey-1"></div>
+                        <div className="absolute top-1/2 right-4 -translate-y-1/2 text-grey-1"></div>
                     </div>
                     <p className="text-xs text-grey-1">
                         The input uses a transparent background with auto-sizing width. A fake blinking caret (primary-1

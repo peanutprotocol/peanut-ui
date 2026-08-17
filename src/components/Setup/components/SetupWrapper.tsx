@@ -272,7 +272,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:h-[100dvh] md:justify-center md:space-y-4',
                         // signup: panel hugs its content so the hero absorbs the slack
                         // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
                         layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',
@@ -290,7 +290,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                         {headingTitle && (
                             <h1
                                 className={twMerge(
-                                    'w-full text-left text-xl font-extrabold leading-tight',
+                                    'w-full text-left text-xl leading-tight font-extrabold',
                                     sunsetLanding && 'md:text-center',
                                     titleClassName
                                 )}

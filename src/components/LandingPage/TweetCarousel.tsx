@@ -146,10 +146,10 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
                     <PlayOverlay />
                 </div>
             ) : (
-                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-n-1 bg-gradient-to-br from-yellow-100 via-yellow-50 to-amber-100">
+                <div className="from-yellow-100 via-yellow-50 relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-n-1 bg-gradient-to-br to-amber-100">
                     <div className="absolute inset-0 opacity-10">
-                        <div className="absolute -left-4 -top-4 text-7xl">🥜</div>
-                        <div className="absolute -bottom-4 -right-4 text-7xl">🥜</div>
+                        <div className="absolute -top-4 -left-4 text-7xl">🥜</div>
+                        <div className="absolute -right-4 -bottom-4 text-7xl">🥜</div>
                     </div>
                     <span className="text-6xl drop-shadow-sm">🥜</span>
                 </div>
@@ -202,7 +202,7 @@ const Column = ({ column }: { column: ColumnType }) => {
 
     if (column.type === 'featured') {
         return (
-            <div className="ml-3 pr-1 pt-[2px]" style={{ height: columnHeight }}>
+            <div className="ml-3 pt-[2px] pr-1" style={{ height: columnHeight }}>
                 <FeaturedCard tweet={column.tweet} />
             </div>
         )
@@ -210,7 +210,7 @@ const Column = ({ column }: { column: ColumnType }) => {
 
     if (column.type === 'tiny') {
         return (
-            <div className="ml-3 flex flex-col gap-4 pr-1 pt-[2px]" style={{ height: columnHeight }}>
+            <div className="ml-3 flex flex-col gap-4 pt-[2px] pr-1" style={{ height: columnHeight }}>
                 {column.tweets.map((tweet) => (
                     <TinyCard key={tweet.url} tweet={tweet} />
                 ))}
@@ -219,7 +219,7 @@ const Column = ({ column }: { column: ColumnType }) => {
     }
 
     return (
-        <div className="ml-3 flex flex-col gap-4 pr-1 pt-[2px]" style={{ height: columnHeight }}>
+        <div className="ml-3 flex flex-col gap-4 pt-[2px] pr-1" style={{ height: columnHeight }}>
             {column.tweets.map((tweet) => (
                 <StandardCard key={tweet.url} tweet={tweet} />
             ))}
@@ -338,7 +338,7 @@ const TweetCarousel = ({ strings }: { strings: LandingStrings }) => {
     if (columns.length === 0) return null
 
     return (
-        <section id="testimonials" className="w-full bg-primary-1 pb-10 pt-12 md:pb-14 md:pt-16">
+        <section id="testimonials" className="w-full bg-primary-1 pt-12 pb-10 md:pt-16 md:pb-14">
             <div className="mx-auto max-w-7xl px-4 pb-8">
                 <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-n-1 lg:text-headingMedium">
                     {strings.wallOfLove}

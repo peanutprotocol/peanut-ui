@@ -85,7 +85,7 @@ export const SendRouterView = () => {
                         <div
                             key={index}
                             style={{ zIndex: index }}
-                            className="size-6 min-h-6 min-w-6 animate-pulse rounded-full bg-gray-200"
+                            className="bg-gray-200 size-6 min-h-6 min-w-6 animate-pulse rounded-full"
                         />
                     ))}
                 </div>

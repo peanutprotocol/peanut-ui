@@ -94,7 +94,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                 />
                             )}
                             {chainDetails.iconURI && !chainLogoPlaceholder && !chainImageError && (
-                                <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
                                     <Image
                                         src={chainDetails.iconURI}
                                         alt={`${chainDetails.name} logo`}

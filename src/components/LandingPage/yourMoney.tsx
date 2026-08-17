@@ -10,7 +10,7 @@ export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     return (
         <section id="global-cash" className="bg-secondary-1 px-4 py-12 text-n-1 md:py-16">
             <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-7 md:flex-row">
-                <div className="mb-12 mt-4 w-full space-y-6 text-center md:mb-20 md:mt-6 md:w-1/2 md:text-left">
+                <div className="mt-4 mb-12 w-full space-y-6 text-center md:mt-6 md:mb-20 md:w-1/2 md:text-left">
                     <h1 className="font-roboto-flex-extrabold text-6xl font-extraBlack md:text-6xl lg:text-headingMedium">
                         {i18n.landingGlobalCashLine1}
                         <br /> {i18n.landingGlobalCashLine2}

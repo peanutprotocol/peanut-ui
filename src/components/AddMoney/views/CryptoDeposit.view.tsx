@@ -198,7 +198,7 @@ const CryptoDepositView = ({
                                     )}
                                 </div>
                                 <div className="flex items-start justify-between gap-2">
-                                    <p className="break-all text-sm">
+                                    <p className="text-sm break-all">
                                         <span className="font-semibold">
                                             {depositAddressData.depositAddress.slice(0, 6)}
                                         </span>

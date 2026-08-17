@@ -412,8 +412,8 @@ export const TransactionDetailsReceipt = ({
                     <div className="flex items-center gap-3">
                         <PerkIcon size="small" />
                         <div className="flex flex-col gap-1">
-                            <span className="font-semibold text-gray-900">{t('perkBanner.title')}</span>
-                            <span className="text-sm text-gray-600">
+                            <span className="text-gray-900 font-semibold">{t('perkBanner.title')}</span>
+                            <span className="text-gray-600 text-sm">
                                 {(() => {
                                     const perk = transaction.extraDataForDrawer.perk
                                     const amount = perk.amountSponsored
@@ -522,7 +522,7 @@ export const TransactionDetailsReceipt = ({
                                         label={t('rows.tokenAndNetwork')}
                                         value={
                                             isTokenDataLoading ? (
-                                                <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
+                                                <div className="bg-gray-200 h-6 w-32 animate-pulse rounded" />
                                             ) : (
                                                 <div className="flex items-center gap-2">
                                                     <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
@@ -535,7 +535,7 @@ export const TransactionDetailsReceipt = ({
                                                         />
                                                         {/* Smaller chain icon, absolutely positioned */}
                                                         {transaction.tokenDisplayDetails.chainIconUrl && (
-                                                            <div className="absolute -bottom-1 -right-1">
+                                                            <div className="absolute -right-1 -bottom-1">
                                                                 <DisplayIcon
                                                                     iconUrl={
                                                                         transaction.tokenDisplayDetails.chainIconUrl

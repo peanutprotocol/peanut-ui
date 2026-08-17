@@ -88,7 +88,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         variant="primary-soft"
                         showIcon={false}
                         onSuccess={() => posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)}
-                        className="h-10 w-fit rounded-full py-3 pl-6 pr-4"
+                        className="h-10 w-fit rounded-full py-3 pr-4 pl-6"
                     >
                         <div className="text-sm font-semibold">{profileUrl.replace('https://', '')}</div>
                         <div className="-ml-2">

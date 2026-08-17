@@ -17,10 +17,10 @@ export const ContactsListSkeleton = ({ count = 10 }: { count?: number }) => {
                     return (
                         <ActionListCard
                             key={index}
-                            title={<div className="h-4 w-32 animate-pulse rounded bg-gray-200" />}
+                            title={<div className="bg-gray-200 h-4 w-32 animate-pulse rounded" />}
                             position={position}
                             onClick={() => {}}
-                            leftIcon={<div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />}
+                            leftIcon={<div className="bg-gray-200 h-8 w-8 animate-pulse rounded-full" />}
                         />
                     )
                 })}

@@ -85,7 +85,7 @@ export default function QuestsExplorePage() {
         <Layout className="enable-select !m-0 w-full !p-0">
             <section className="relative min-h-screen overflow-hidden bg-[#FFC900] px-4 py-16 md:py-24">
                 {/* Animated Clouds - Reduced for performance */}
-                <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
+                <div className="absolute top-0 left-0 h-full w-full overflow-hidden">
                     <motion.img
                         src={borderCloud.src}
                         alt=""
@@ -153,7 +153,7 @@ export default function QuestsExplorePage() {
                                 />
                             </div>
                             <p className="text-center text-base font-black text-black md:text-xl">QUESTS</p>
-                            <p className="text-center text-sm font-bold text-gray-700 md:text-base">
+                            <p className="text-gray-700 text-center text-sm font-bold md:text-base">
                                 Nov 17-22, 2025 • Compete & Win up to $1500!
                             </p>
                         </div>
@@ -196,7 +196,7 @@ export default function QuestsExplorePage() {
                                             <h2 className="mb-2 text-2xl font-black text-black md:text-3xl">
                                                 {quest.title}
                                             </h2>
-                                            <p className="text-sm text-gray-700">{quest.explainer}</p>
+                                            <p className="text-gray-700 text-sm">{quest.explainer}</p>
                                         </div>
                                     </div>
 
@@ -212,20 +212,20 @@ export default function QuestsExplorePage() {
                                           !useTestTimePeriod ? (
                                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
                                                 <div className="mb-3 text-4xl md:mb-4 md:text-5xl">⏰</div>
-                                                <p className="mb-2 text-base font-bold text-gray-700 md:text-lg">
+                                                <p className="text-gray-700 mb-2 text-base font-bold md:text-lg">
                                                     Coming Soon!
                                                 </p>
-                                                <p className="text-xs text-gray-500 md:text-sm">
+                                                <p className="text-gray-500 text-xs md:text-sm">
                                                     Leaderboards will be available on November 17th, 2025
                                                 </p>
                                             </div>
                                         ) : quest.leaderboard.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
                                                 <div className="mb-3 text-3xl md:mb-4 md:text-4xl">🏆</div>
-                                                <p className="mb-2 text-base font-bold text-gray-700 md:text-lg">
+                                                <p className="text-gray-700 mb-2 text-base font-bold md:text-lg">
                                                     No entries yet
                                                 </p>
-                                                <p className="text-xs text-gray-500 md:text-sm">
+                                                <p className="text-gray-500 text-xs md:text-sm">
                                                     Be the first to compete!
                                                 </p>
                                             </div>
@@ -270,7 +270,7 @@ export default function QuestsExplorePage() {
 
                     {/* Main CTA - Like Landing Page */}
                     <motion.div
-                        className="relative z-20 mx-auto mb-12 mt-16 flex w-fit flex-col items-center justify-center"
+                        className="relative z-20 mx-auto mt-16 mb-12 flex w-fit flex-col items-center justify-center"
                         initial={{ opacity: 0, translateY: 4, translateX: 0, rotate: 0.75 }}
                         animate={{ opacity: 1, translateY: 0, translateX: 0, rotate: 0, scale: 1 }}
                         whileHover={{ translateY: 6, translateX: 0, rotate: 0.75 }}
@@ -290,7 +290,7 @@ export default function QuestsExplorePage() {
                             alt="Arrow"
                             width={32}
                             height={16}
-                            className="absolute -left-8 -top-5 block -translate-y-1/2 transform md:hidden"
+                            className="absolute -top-5 -left-8 block -translate-y-1/2 transform md:hidden"
                             style={{ rotate: '8deg' }}
                         />
                         <Image
@@ -298,7 +298,7 @@ export default function QuestsExplorePage() {
                             alt="Arrow"
                             width={32}
                             height={16}
-                            className="absolute -right-8 -top-5 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
+                            className="absolute -top-5 -right-8 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
                             style={{ rotate: '-8deg' }}
                         />
                         <Image
@@ -306,7 +306,7 @@ export default function QuestsExplorePage() {
                             alt="Arrow"
                             width={40}
                             height={20}
-                            className="absolute -left-10 -top-6 hidden -translate-y-1/2 transform md:block"
+                            className="absolute -top-6 -left-10 hidden -translate-y-1/2 transform md:block"
                             style={{ rotate: '8deg' }}
                         />
                         <Image
@@ -314,7 +314,7 @@ export default function QuestsExplorePage() {
                             alt="Arrow"
                             width={40}
                             height={20}
-                            className="absolute -right-10 -top-6 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
+                            className="absolute -top-6 -right-10 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
                             style={{ rotate: '-8deg' }}
                         />
                     </motion.div>

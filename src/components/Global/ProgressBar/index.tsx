@@ -157,7 +157,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
 
         return (
             <div className={containerClasses} style={containerStyle}>
-                {isGoalAchieved && <p className="absolute bottom-full right-0 mb-2 whitespace-nowrap text-sm">100%</p>}
+                {isGoalAchieved && <p className="absolute right-0 bottom-full mb-2 text-sm whitespace-nowrap">100%</p>}
                 <div className={twMerge('h-4 w-[3px] rounded-sm transition-all duration-300', markerColor)} />
             </div>
         )

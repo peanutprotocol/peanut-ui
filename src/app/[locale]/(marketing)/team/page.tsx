@@ -117,9 +117,9 @@ export default async function TeamPage({ params }: PageProps) {
                                 )}
                                 <div>
                                     <h2 className="text-lg font-bold">{member.name}</h2>
-                                    <p className="text-sm font-medium text-gray-500">{member.role}</p>
+                                    <p className="text-gray-500 text-sm font-medium">{member.role}</p>
                                 </div>
-                                <p className="text-sm text-gray-700">{member.bio}</p>
+                                <p className="text-gray-700 text-sm">{member.bio}</p>
                                 {(linkedin || twitter || github) && (
                                     <div className="flex gap-3">
                                         {linkedin && (

@@ -183,7 +183,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 {/* Progress bar for long press */}
                 {longPress && pressProgress > 0 && (
                     <div
-                        className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 opacity-30 transition-all duration-75 ease-out"
+                        className="from-purple-400 to-purple-600 absolute inset-0 bg-gradient-to-r opacity-30 transition-all duration-75 ease-out"
                         style={{
                             width: `${pressProgress}%`,
                         }}

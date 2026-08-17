@@ -331,8 +331,8 @@ function InvitePageContent() {
         <InvitesPageLayout image={PeanutWavingHello.src}>
             <div
                 className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
-                    'flex flex-col items-end justify-center gap-5 pt-8 '
+                    'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:h-[100dvh] md:justify-center md:space-y-4',
+                    'flex flex-col items-end justify-center gap-5 pt-8'
                 )}
             >
                 <div className="mx-auto w-full md:max-w-xs">

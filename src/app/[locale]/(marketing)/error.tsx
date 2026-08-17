@@ -51,17 +51,17 @@ export default function MarketingError({ error, reset }: { error: Error & { dige
     return (
         <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
             <h1 className="text-2xl font-bold">{i18n.title}</h1>
-            <p className="mt-2 max-w-md text-gray-600">{i18n.body}</p>
+            <p className="text-gray-600 mt-2 max-w-md">{i18n.body}</p>
             <div className="mt-6 flex gap-3">
                 <button
                     onClick={reset}
-                    className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                    className="hover:bg-gray-800 rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
                 >
                     {i18n.tryAgain}
                 </button>
                 <Link
                     href={locale === DEFAULT_LOCALE ? '/' : `/${locale}`}
-                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                    className="border-gray-300 hover:bg-gray-50 rounded-md border px-4 py-2 text-sm font-medium"
                 >
                     {i18n.goHome}
                 </Link>

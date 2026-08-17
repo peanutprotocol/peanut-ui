@@ -18,7 +18,7 @@ export const CopySnippet = ({ code }: { code: string }) => {
             onClick={handleCopy}
             className="group relative mt-1 flex w-full items-start gap-2 rounded-sm border border-n-1/20 bg-primary-3/20 px-3 py-2 text-left font-mono text-[11px] text-grey-1 hover:border-n-1/40"
         >
-            <span className="flex-1 whitespace-pre-wrap break-all">{code}</span>
+            <span className="flex-1 break-all whitespace-pre-wrap">{code}</span>
             <span className="shrink-0 opacity-40 group-hover:opacity-100">
                 {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
             </span>

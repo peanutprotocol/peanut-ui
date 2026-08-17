@@ -1317,7 +1317,7 @@ export default function QRPayPage() {
                                 </div>
                                 {/* Savings Message (Argentina Manteca only) */}
                                 {showSavingsMessage && savingsMessage && (
-                                    <p className="text-sm italic text-grey-1">{savingsMessage}</p>
+                                    <p className="text-sm text-grey-1 italic">{savingsMessage}</p>
                                 )}
                             </div>
                         </Card>
@@ -1326,12 +1326,12 @@ export default function QRPayPage() {
                     {/* Reward Eligibility Card - Show before claiming */}
                     {rewardClaimable && (
                         <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
-                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
+                            <div className="bg-yellow-400 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-lg font-bold">{t('success.earnedRewardTitle')}</h2>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-gray-600 text-sm">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         if (amountSponsored && typeof amountSponsored === 'number') {
@@ -1350,12 +1350,12 @@ export default function QRPayPage() {
                     {/* Reward Success Banner - Show after claiming */}
                     {(perkClaimed || qrPayment?.perk?.claimed) && (
                         <Card className="flex items-start gap-3 bg-white p-4">
-                            <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 p-2">
+                            <div className="bg-yellow-400 flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full p-2">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-2xl font-bold">{t('success.earnedRewardTitle')}</h2>
-                                <p className="text-base text-gray-900">
+                                <p className="text-gray-900 text-base">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
 
@@ -1401,7 +1401,7 @@ export default function QRPayPage() {
                                     e.preventDefault()
                                 }}
                                 shadowSize="4"
-                                className="relative touch-manipulation select-none overflow-hidden"
+                                className="relative touch-manipulation overflow-hidden select-none"
                                 style={{
                                     WebkitTouchCallout: 'none',
                                     WebkitTapHighlightColor: 'transparent',
@@ -1560,10 +1560,10 @@ export default function QRPayPage() {
                                 />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                <p className="text-gray-600 flex items-center gap-1 text-center text-sm">
                                     <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
                                 </p>
-                                <p className="break-words text-xl font-semibold">{merchantName}</p>
+                                <p className="text-xl font-semibold break-words">{merchantName}</p>
                             </div>
                         </div>
                     </Card>
@@ -1687,7 +1687,7 @@ const QrPayPageLoading = ({ message }: { message: string }) => {
                     alt={t('peanutManAlt')}
                     layout="fill"
                     objectFit="contain"
-                    className="absolute z-0 h-32 w-32 -translate-y-20 "
+                    className="absolute z-0 h-32 w-32 -translate-y-20"
                 />
 
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">

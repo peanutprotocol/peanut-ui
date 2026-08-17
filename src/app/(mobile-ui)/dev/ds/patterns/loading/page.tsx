@@ -27,7 +27,7 @@ export default function LoadingPage() {
                     </p>
 
                     <div className="space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">Sizes</p>
+                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Sizes</p>
                         <div className="flex items-end gap-6">
                             <div className="text-center">
                                 <Loading className="h-3 w-3" />
@@ -83,14 +83,14 @@ export default function LoadingPage() {
 
                     {/* Inline demo */}
                     <div className="space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">Inline</p>
+                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Inline</p>
                         <div className="rounded-sm border border-n-1 p-4">
                             <PeanutLoading message="Processing your transaction..." />
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">Without message</p>
+                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Without message</p>
                         <div className="rounded-sm border border-n-1 p-4">
                             <PeanutLoading />
                         </div>

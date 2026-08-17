@@ -18,7 +18,7 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
     const t = useTranslations('claim')
 
     return (
-        <Card className="shadow-none sm:shadow-4">
+        <Card className="sm:shadow-4 shadow-none">
             <Card.Header className="space-y-2 border-0">
                 <Card.Title className="mx-auto">
                     <div className="flex size-8 items-center justify-center rounded-full bg-[#FFCC00]">

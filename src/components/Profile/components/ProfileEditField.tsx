@@ -34,7 +34,7 @@ const ProfileEditField: React.FC<ProfileEditFieldProps> = ({
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
                 className={twMerge(
-                    'h-10 w-full rounded-sm border border-black p-3 focus:border-primary-1 focus:outline-none focus:ring-1 focus:ring-primary-1',
+                    'h-10 w-full rounded-sm border border-black p-3 focus:border-primary-1 focus:ring-1 focus:ring-primary-1 focus:outline-none',
                     disabled && 'bg-grey-4'
                 )}
                 disabled={disabled}

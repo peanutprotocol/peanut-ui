@@ -62,7 +62,7 @@ const QRCodeWrapper = ({
                         />
 
                         {/* Centered Logo */}
-                        <div className="absolute left-1/2 top-1/2 flex h-1/5 w-1/5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white p-0.5">
+                        <div className="absolute top-1/2 left-1/2 flex h-1/5 w-1/5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white p-0.5">
                             <Image
                                 src={centerImage ?? PEANUTMAN_PFP}
                                 alt="qr center logo"

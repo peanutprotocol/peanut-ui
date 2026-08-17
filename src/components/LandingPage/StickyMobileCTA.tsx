@@ -54,7 +54,7 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 80, opacity: 0 }}
                     transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                    className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
+                    className="pointer-events-none fixed right-0 bottom-0 left-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
                 >
                     {migrationOn ? (
                         // this bar is md:hidden so the visitor is on a phone —

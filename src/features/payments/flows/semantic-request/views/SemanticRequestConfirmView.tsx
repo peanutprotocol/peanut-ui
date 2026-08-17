@@ -121,7 +121,7 @@ export function SemanticRequestConfirmView() {
             <>
                 <span className="line-through">$ {calculatedGasCost.toFixed(2)}</span>
                 {' - '}
-                <span className="font-medium text-gray-500">{tCommon('sponsoredByPeanut')}</span>
+                <span className="text-gray-500 font-medium">{tCommon('sponsoredByPeanut')}</span>
             </>
         )
     }, [calculatedGasCost, isFeeEstimationError, tCommon])
@@ -331,7 +331,7 @@ function TokenChainInfoDisplay({
                         />
                     )}
                     {chainIconUrl && (
-                        <div className="absolute -bottom-1 -right-1">
+                        <div className="absolute -right-1 -bottom-1">
                             <DisplayIcon
                                 iconUrl={chainIconUrl}
                                 altText={`${chainName} chain`}

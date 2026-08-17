@@ -52,7 +52,7 @@ const Title = ({ children, className, ...props }: React.HTMLAttributes<HTMLHeadi
 )
 
 const Description = ({ children, className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className={twMerge('text-start text-sm text-gray-600 dark:text-gray-400', className)} {...props}>
+    <p className={twMerge('text-gray-600 dark:text-gray-400 text-start text-sm', className)} {...props}>
         {children}
     </p>
 )

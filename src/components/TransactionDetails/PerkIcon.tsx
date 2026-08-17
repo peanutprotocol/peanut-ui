@@ -36,7 +36,7 @@ export const PerkIcon: React.FC<PerkIconProps> = ({ size = 'medium', className =
 
     return (
         <div
-            className={`flex ${config.container} flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 ${className}`}
+            className={`flex ${config.container} bg-yellow-400 flex-shrink-0 items-center justify-center rounded-full ${className}`}
         >
             <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={config.icon.width} height={config.icon.height} />
         </div>

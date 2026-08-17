@@ -12,16 +12,16 @@ export function PropsTable({ rows }: { rows: PropsTableRow[] }) {
             <table className="w-full">
                 <thead>
                     <tr className="border-b border-gray-3 bg-gray-3/40">
-                        <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-gray-1">
+                        <th className="px-4 py-2.5 text-left text-xs font-bold tracking-wider text-gray-1 uppercase">
                             prop
                         </th>
-                        <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-gray-1">
+                        <th className="px-4 py-2.5 text-left text-xs font-bold tracking-wider text-gray-1 uppercase">
                             type
                         </th>
-                        <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-gray-1">
+                        <th className="px-4 py-2.5 text-left text-xs font-bold tracking-wider text-gray-1 uppercase">
                             default
                         </th>
-                        <th className="hidden px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-gray-1 sm:table-cell">
+                        <th className="hidden px-4 py-2.5 text-left text-xs font-bold tracking-wider text-gray-1 uppercase sm:table-cell">
                             description
                         </th>
                     </tr>

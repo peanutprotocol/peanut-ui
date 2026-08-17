@@ -272,7 +272,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div>
                         <HomeHistory username={username} />
                         {isSelfProfile && (
-                            <div className="mb-1 mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-grey-4/25 px-3 py-2">
+                            <div className="mt-3 mb-1 flex w-full items-center justify-center gap-2 rounded-md bg-grey-4/25 px-3 py-2">
                                 <Icon name="info" size={16} className="text-grey-1" />
                                 <p className="text-center text-sm text-grey-1">{t('activityPrivateNote')}</p>
                             </div>

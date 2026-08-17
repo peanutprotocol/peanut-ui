@@ -213,7 +213,7 @@ export const ConfirmClaimLinkView = ({
                                                 sizeClass="h-6 w-6"
                                             />
                                             {chainIconUrl && (
-                                                <div className="absolute -bottom-1 -right-1">
+                                                <div className="absolute -right-1 -bottom-1">
                                                     <DisplayIcon
                                                         iconUrl={chainIconUrl}
                                                         altText={resolvedChainName || t('confirm.chainAlt')}

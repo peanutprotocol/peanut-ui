@@ -46,21 +46,21 @@ export function PerkRewardReceipt({
                     <div className="flex items-center gap-3">
                         <PerkIcon size="medium" />
                         <div className="flex flex-col">
-                            <h2 className="text-lg font-semibold text-gray-900">{t('perk.title')}</h2>
-                            <p className="text-2xl font-bold text-gray-900">{amountDisplay}</p>
+                            <h2 className="text-gray-900 text-lg font-semibold">{t('perk.title')}</h2>
+                            <p className="text-gray-900 text-2xl font-bold">{amountDisplay}</p>
                         </div>
                     </div>
                     <div className="flex-shrink-0">
                         {transaction.status === 'completed' ? (
-                            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                            <span className="bg-green-100 text-green-700 rounded-full px-3 py-1 text-xs font-medium">
                                 {t('perk.statusCompleted')}
                             </span>
                         ) : transaction.status === 'pending' || transaction.status === 'processing' ? (
-                            <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
+                            <span className="bg-yellow-100 text-yellow-700 rounded-full px-3 py-1 text-xs font-medium">
                                 {tCommon('status.processing')}
                             </span>
                         ) : (
-                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                            <span className="bg-gray-100 text-gray-700 rounded-full px-3 py-1 text-xs font-medium">
                                 {tCommon(
                                     (transaction.status && STATUS_LABEL_KEYS[transaction.status]) ?? 'status.unknown'
                                 )}
@@ -68,7 +68,7 @@ export function PerkRewardReceipt({
                         )}
                     </div>
                 </div>
-                <p className="mt-3 text-sm text-gray-600">{t('perk.subtitle')}</p>
+                <p className="text-gray-600 mt-3 text-sm">{t('perk.subtitle')}</p>
             </Card>
 
             {/* Perk details — date + reason. Reason has a payment-UUID suffix

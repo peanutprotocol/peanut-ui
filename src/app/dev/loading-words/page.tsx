@@ -38,7 +38,7 @@ export default function LoadingWordsPreview() {
                 </header>
 
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-grey-1">
+                    <h2 className="text-sm font-bold tracking-wider text-grey-1 uppercase">
                         Production match (same as <code>PeanutLoading</code>)
                     </h2>
                     <div className="flex flex-col items-center justify-center gap-6 rounded-sm border border-n-1 bg-primary-3 px-6 py-16 shadow-[4px_4px_0_0_#000]">
@@ -50,7 +50,7 @@ export default function LoadingWordsPreview() {
                 </section>
 
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-grey-1">
+                    <h2 className="text-sm font-bold tracking-wider text-grey-1 uppercase">
                         Size & weight options (same Roboto font)
                     </h2>
                     <div className="grid gap-3 md:grid-cols-3">
@@ -76,7 +76,7 @@ export default function LoadingWordsPreview() {
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-bold uppercase tracking-wider text-grey-1">Controls</h2>
+                        <h2 className="text-sm font-bold tracking-wider text-grey-1 uppercase">Controls</h2>
                         <label className="flex items-center gap-2 text-sm">
                             <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
                             shuffle order
@@ -100,7 +100,7 @@ export default function LoadingWordsPreview() {
                 </section>
 
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-grey-1">
+                    <h2 className="text-sm font-bold tracking-wider text-grey-1 uppercase">
                         All words, static (for proofreading)
                     </h2>
                     <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm md:grid-cols-3">
@@ -130,7 +130,7 @@ function SizeSwatch({ label, word, className }: { label: string; word: string; c
     return (
         <div className="flex flex-col items-center justify-center gap-3 rounded-sm border border-n-1 bg-white px-4 py-8">
             <LoadingMessage word={word} className={className} />
-            <div className="text-[10px] uppercase tracking-wider text-grey-1">{label}</div>
+            <div className="text-[10px] tracking-wider text-grey-1 uppercase">{label}</div>
         </div>
     )
 }

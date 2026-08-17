@@ -41,7 +41,7 @@ export function DocSidebar() {
                 <div className="fixed inset-0 z-40 md:hidden" onClick={() => setIsOpen(false)}>
                     <div className="absolute inset-0 bg-black/20" />
                     <nav
-                        className="absolute left-0 top-0 h-full w-64 border-r border-n-1 bg-white p-4 shadow-lg"
+                        className="absolute top-0 left-0 h-full w-64 border-r border-n-1 bg-white p-4 shadow-lg"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-4 flex items-center justify-between">

@@ -43,7 +43,7 @@ export default function EmailCard({
                 className="block w-full p-2.5 text-left hover:bg-primary-3/30"
             >
                 <div className="flex items-start justify-between gap-2">
-                    <div className="text-xs font-bold leading-tight">{step.subject}</div>
+                    <div className="text-xs leading-tight font-bold">{step.subject}</div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                         {typeof step.afterDaysStuck === 'number' && <StuckBadge days={step.afterDaysStuck} />}
                         {pending ? (

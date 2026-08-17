@@ -131,7 +131,7 @@ export function SavedAccountsMapping({
                                         <Icon size={16} name="bank" className="text-n-1" />
                                     </div>
                                 )}
-                                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 p-1">
+                                <div className="bg-yellow-400 absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full p-1">
                                     <Icon size={12} name="bank" className="text-black" />
                                 </div>
                             </div>

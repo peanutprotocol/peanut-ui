@@ -35,13 +35,13 @@ const Layout = ({ children, className }: LayoutProps) => {
                     }
                 `}</style>
                 <div className="relative">
-                    <div className="flex min-h-screen flex-col ">
+                    <div className="flex min-h-screen flex-col">
                         <Banner />
                         {/* @dev note: temp, remove banner later */}
                         {/* <GenericBanner message="Under maintenance" icon="⚠️" /> */}
                         <div className="flex grow justify-center">
                             <div
-                                className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
+                                className={`4xl:max-w-full flex grow flex-col justify-center pt-6 pb-2 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
                                 style={{ flexGrow: 1 }}
                             >
                                 {children}

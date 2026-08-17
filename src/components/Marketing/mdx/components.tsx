@@ -72,7 +72,7 @@ export const mdxComponents: MdxComponentMap = {
     // Element overrides — prose styling
     h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
         <h1
-            className={`mx-auto mb-5 mt-10 ${PROSE_WIDTH} px-6 text-2xl font-extrabold text-n-1 md:mt-12 md:px-4 md:text-3xl`}
+            className={`mx-auto mt-10 mb-5 ${PROSE_WIDTH} px-6 text-2xl font-extrabold text-n-1 md:mt-12 md:px-4 md:text-3xl`}
             {...props}
         />
     ),
@@ -80,14 +80,14 @@ export const mdxComponents: MdxComponentMap = {
         <div className="relative">
             <ProseStars />
             <h2
-                className={`mx-auto mb-5 mt-14 ${PROSE_WIDTH} px-6 text-2xl font-extrabold text-n-1 md:mt-16 md:px-4 md:text-3xl`}
+                className={`mx-auto mt-14 mb-5 ${PROSE_WIDTH} px-6 text-2xl font-extrabold text-n-1 md:mt-16 md:px-4 md:text-3xl`}
                 {...props}
             />
         </div>
     ),
     h3: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
         <h3
-            className={`mx-auto mb-3 mt-10 ${PROSE_WIDTH} px-6 text-xl font-bold text-n-1 md:px-4 md:text-2xl`}
+            className={`mx-auto mt-10 mb-3 ${PROSE_WIDTH} px-6 text-xl font-bold text-n-1 md:px-4 md:text-2xl`}
             {...props}
         />
     ),
@@ -102,10 +102,10 @@ export const mdxComponents: MdxComponentMap = {
         />
     ),
     ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
-        <ul className={`mx-auto my-5 ${PROSE_WIDTH} list-disc space-y-3 pl-12 pr-6 md:pl-10 md:pr-4`} {...props} />
+        <ul className={`mx-auto my-5 ${PROSE_WIDTH} list-disc space-y-3 pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />
     ),
     ol: (props: React.HTMLAttributes<HTMLOListElement>) => (
-        <ol className={`mx-auto my-5 ${PROSE_WIDTH} list-decimal space-y-3 pl-12 pr-6 md:pl-10 md:pr-4`} {...props} />
+        <ol className={`mx-auto my-5 ${PROSE_WIDTH} list-decimal space-y-3 pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />
     ),
     li: (props: React.HTMLAttributes<HTMLLIElement>) => (
         <li className="text-base leading-[1.75] text-grey-1" {...props} />
@@ -120,7 +120,7 @@ export const mdxComponents: MdxComponentMap = {
     ),
     th: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
         <th
-            className="border-b border-n-1 bg-primary-1/15 px-4 py-3 text-xs font-bold uppercase tracking-wide text-n-1"
+            className="border-b border-n-1 bg-primary-1/15 px-4 py-3 text-xs font-bold tracking-wide text-n-1 uppercase"
             {...props}
         />
     ),
@@ -129,7 +129,7 @@ export const mdxComponents: MdxComponentMap = {
     ),
     blockquote: (props: React.HTMLAttributes<HTMLQuoteElement>) => (
         <blockquote
-            className={`mx-auto my-8 ${PROSE_WIDTH} border-l-4 border-primary-1 py-1 pl-6 pr-6 md:pr-4`}
+            className={`mx-auto my-8 ${PROSE_WIDTH} border-l-4 border-primary-1 py-1 pr-6 pl-6 md:pr-4`}
             {...props}
         />
     ),

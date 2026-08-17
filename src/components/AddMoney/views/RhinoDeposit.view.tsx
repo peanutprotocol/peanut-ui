@@ -64,7 +64,7 @@ const RhinoDepositView = ({
 
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
                     <Card>
-                        <div className=" flex w-full flex-col items-center justify-center gap-2">
+                        <div className="flex w-full flex-col items-center justify-center gap-2">
                             <div className="flex size-9 items-center justify-center rounded-full bg-secondary-1">
                                 <Icon name="alert" size={20} />
                             </div>
