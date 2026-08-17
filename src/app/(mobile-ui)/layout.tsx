@@ -23,7 +23,7 @@ import { Banner } from '@/components/Global/Banner'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
-import { IS_DEV, BASE_URL } from '@/constants/general.consts'
+import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
@@ -44,12 +44,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
 
     // Allow access to public paths without authentication.
-    // Dev tooling routes (/dev/ds, /dev/components, gift-test, shake-test, …) are public
-    // on any non-production deploy — localhost, staging, Vercel previews — matching the
-    // intent documented in dev/layout.tsx. On peanut.me they stay gated (dev/layout 404s
-    // them anyway), so this only opens them where they're meant to be viewable.
-    const devToolingPublic = IS_DEV || BASE_URL !== 'https://peanut.me'
-    const isPublicPath = isPublicRoute(pathName, devToolingPublic)
+    // Dev tooling (/dev/*) is public only in local IS_DEV builds. Do NOT widen this to
+    // staging/previews via BASE_URL: DEV_ONLY_PUBLIC_ROUTES_REGEX covers ALL of /dev,
+    // including /dev/debug, whose cheats drive the API dev endpoints — an unauthenticated
+    // staging visitor must never reach them. On deployed builds /dev requires login.
+    const isPublicPath = isPublicRoute(pathName, IS_DEV)
 
     const { isFetchingUser, user, userFetchError } = useAuth()
     const [isReady, setIsReady] = useState(false)
