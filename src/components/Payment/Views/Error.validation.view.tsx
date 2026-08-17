@@ -43,7 +43,7 @@ function ValidationErrorView({
     }
 
     return (
-        <div className="flex flex-col items-center justify-center space-y-4 rounded-lg text-center">
+        <div className="space-y-4 flex flex-col items-center justify-center rounded-lg text-center">
             <Image src={PeanutSad.src} unoptimized alt={t('validation.sadPeanutAlt')} width={96} height={96} />
             <div className="space-y-2">
                 <h1 className="text-lg font-semibold">{title}</h1>

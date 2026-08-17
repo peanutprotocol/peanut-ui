@@ -601,7 +601,7 @@ const CardLandingPage = () => {
                                 EARN FOREVER.
                             </h2>
 
-                            <div className="mx-auto mt-8 w-fit space-y-4 md:mx-0">
+                            <div className="mx-auto space-y-4 mt-8 w-fit md:mx-0">
                                 <RewardItem amount="$5" label="per Pioneer signup" />
                                 <RewardItem amount="%" label="from their card spending" />
                                 <RewardItem amount="+" label="from their invites too" />

@@ -160,7 +160,7 @@ export default function RedirectQrClaimPage() {
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
                 <NavHeader title={t('claim.navTitle')} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="space-y-4 p-6">
                         <div className="flex items-center justify-center">
                             <div className="bg-red-100 flex h-16 w-16 items-center justify-center rounded-full">
@@ -185,7 +185,7 @@ export default function RedirectQrClaimPage() {
     return (
         <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
             <NavHeader title={t('claim.inviteQrTitle')} />
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 {/* QR Code Visual */}
                 <Card className="space-y-4 p-6">
                     <div className="flex items-center justify-center">

@@ -81,7 +81,7 @@ export default function LimitsWarningCard({
             className={twMerge('p-4', className)}
             customContent={
                 <div className="flex flex-col gap-2">
-                    <ul className="list-inside list-disc space-y-1 text-xs md:text-sm">
+                    <ul className="space-y-1 list-inside list-disc text-xs md:text-sm">
                         {items.map((item, index) => (
                             <li key={index}>
                                 {item.isLink && item.href ? (

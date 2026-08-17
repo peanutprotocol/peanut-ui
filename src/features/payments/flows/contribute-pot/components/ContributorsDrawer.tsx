@@ -59,7 +59,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
                         {t('contributors.title', { count: contributors.length })}
                     </DrawerTitle>
                 </DrawerHeader>
-                <div className="max-h-[60vh] space-y-0 overflow-auto px-4">
+                <div className="space-y-0 max-h-[60vh] overflow-auto px-4">
                     {contributorCards.map((contributor, index) => (
                         <ContributorCard
                             key={contributor.uuid}

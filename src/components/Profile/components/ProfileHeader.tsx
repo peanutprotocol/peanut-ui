@@ -61,7 +61,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
     return (
         <>
-            <div className={twMerge('flex flex-col items-center space-y-2', className)}>
+            <div className={twMerge('space-y-2 flex flex-col items-center', className)}>
                 {/* Avatar with initials */}
                 <AvatarWithBadge name={name || username} />
 

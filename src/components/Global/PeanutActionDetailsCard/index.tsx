@@ -233,7 +233,7 @@ export default function PeanutActionDetailsCard({
                     )}
                 </div>
 
-                <div className="w-full space-y-1">
+                <div className="space-y-1 w-full">
                     {getTitle()}
                     {isLoading ? (
                         <Loading />

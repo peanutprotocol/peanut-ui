@@ -11,7 +11,7 @@ export const ContactsListSkeleton = ({ count = 10 }: { count?: number }) => {
     return (
         <div className="space-y-2">
             <h2 className="text-base font-bold">{t('contactsList.title')}</h2>
-            <div className="flex-1 space-y-0 overflow-y-auto">
+            <div className="space-y-0 flex-1 overflow-y-auto">
                 {Array.from({ length: count }).map((_, index) => {
                     const position = getCardPosition(index, count)
                     return (

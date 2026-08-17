@@ -29,7 +29,7 @@ export function QuestLeaderboard({ entries, badgeColor, isCurrency = false }: Qu
     }
 
     return (
-        <div className="w-full space-y-3">
+        <div className="space-y-3 w-full">
             {entries.map((entry, index) => (
                 <motion.div
                     key={entry.userId}

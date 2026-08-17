@@ -43,7 +43,7 @@ const CardPioneers = ({ strings }: { strings: LandingStrings }) => {
 
                     <p className="font-roboto-flex mt-4 text-lg md:text-xl">{strings.cardBody}</p>
 
-                    <ul className="font-roboto-flex mt-6 space-y-3 text-base md:text-lg">
+                    <ul className="font-roboto-flex space-y-3 mt-6 text-base md:text-lg">
                         <li className="flex items-center justify-center gap-3 md:justify-start">
                             <Icon name="check-circle" className="h-6 w-6 flex-shrink-0 text-n-1" />
                             {strings.cardBullet1}

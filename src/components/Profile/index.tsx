@@ -153,7 +153,7 @@ export const Profile = () => {
                         iconClassName="size-4"
                     />
                     {/* Logout + Delete account */}
-                    <div className="w-full space-y-6 pb-10">
+                    <div className="space-y-6 w-full pb-10">
                         <Button
                             loading={isLoggingOut}
                             disabled={isLoggingOut}

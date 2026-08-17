@@ -211,7 +211,7 @@ const LinkSendInitialView = () => {
     )
 
     return (
-        <div className="w-full space-y-4">
+        <div className="space-y-4 w-full">
             <PeanutActionCard type="send" />
 
             <AmountInput

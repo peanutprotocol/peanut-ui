@@ -18,7 +18,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
             style={{ backgroundColor: businessBgColor }}
         >
             <div className="flex w-[80rem] flex-col items-center justify-center p-6 md:flex-row">
-                <div className="w-full space-y-8 md:w-2/3">
+                <div className="space-y-8 w-full md:w-2/3">
                     <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
                         {strings.dropLinkHeading}
                     </h1>

@@ -361,7 +361,7 @@ const HomeHistory = ({
             Sentry.captureException(error)
         }
         return (
-            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <h2 className="text-base font-bold">{t('activity')}</h2>{' '}
                 <EmptyState
                     icon="alert"
@@ -389,7 +389,7 @@ const HomeHistory = ({
     // show empty state UI if no processed entries yet (but source data may still be processing)
     if (!isLoading && !combinedEntries.length && !hasSourceEntries) {
         return (
-            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <h2 className="text-base font-bold">{t('activity')}</h2>
                 {isViewingOwnHistory &&
                     user &&
@@ -416,7 +416,7 @@ const HomeHistory = ({
     }
 
     return (
-        <div className={twMerge('mx-auto w-full space-y-3 md:max-w-2xl md:space-y-3', isLoggedIn ? 'pb-4' : 'pb-0')}>
+        <div className={twMerge('mx-auto space-y-3 w-full md:space-y-3 md:max-w-2xl', isLoggedIn ? 'pb-4' : 'pb-0')}>
             {/* link to the full history page */}
             {pendingRequests.length > 0 && (
                 <>
@@ -534,7 +534,7 @@ export const HistorySkeleton = ({ position }: { position: CardPosition }) => {
     return (
         <Card position={position} className="flex items-center justify-between gap-3">
             <div className="h-8 w-8 min-w-8 animate-pulse rounded-full bg-grey-2" />
-            <div className="w-full space-y-2.5">
+            <div className="space-y-2.5 w-full">
                 <div className="h-4.5 w-full animate-pulse rounded-full bg-grey-2" />
                 <div className="h-3 w-1/3 animate-pulse rounded-full bg-grey-2" />
             </div>

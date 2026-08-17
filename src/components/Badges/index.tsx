@@ -59,7 +59,7 @@ export const Badges = () => {
     }
 
     return (
-        <div className="h-full w-full space-y-10">
+        <div className="space-y-10 h-full w-full">
             <NavHeader title={t('yourBadges')} onPrev={onBack} />
             <div className="space-y-4">
                 <div>

@@ -37,7 +37,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                 <div className="relative z-10 w-full rounded-md bg-white px-6 py-6">
                     <div className="space-y-4">
                         <div className="space-y-3 text-center">
-                            <div className="w-full space-y-2">
+                            <div className="space-y-2 w-full">
                                 <h3 className={'text-xl font-extrabold text-black dark:text-white'}>
                                     {t('confirmInviteModal.title')}
                                 </h3>

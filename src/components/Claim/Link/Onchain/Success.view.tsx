@@ -187,7 +187,7 @@ export const SuccessClaimLinkView = ({
                     }}
                 />
             </div>
-            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
                 <Image
                     src={PeanutCheering.src}
                     unoptimized

@@ -93,10 +93,10 @@ const MantecaDepositShareDetails = ({
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
                 {/* Amount Display Card */}
                 <Card className="p-4">
-                    <div className="flex items-center space-x-3">
+                    <div className="space-x-3 flex items-center">
                         <div className="relative h-12 w-12">
                             <Image
                                 src={getFlagUrl(countryCodeForFlag)}

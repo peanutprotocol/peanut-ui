@@ -291,7 +291,7 @@ const CryptoDepositView = ({
                         />
 
                         {/* min/max limits */}
-                        <div className="w-full space-y-1">
+                        <div className="space-y-1 w-full">
                             <div className="flex w-full items-center justify-between">
                                 <p className="text-sm text-grey-1">
                                     {isOfframp

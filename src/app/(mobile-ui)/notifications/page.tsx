@@ -140,7 +140,7 @@ export default function NotificationsPage() {
 
     return (
         <PageContainer>
-            <div className="h-full w-full space-y-6">
+            <div className="space-y-6 h-full w-full">
                 <NavHeader title={t('title')} />
                 <div className="h-full w-full">
                     {/* error banner for partial failures */}

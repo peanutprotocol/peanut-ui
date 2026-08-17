@@ -314,7 +314,7 @@ export default function LeaderboardPage() {
             title="🏆 Points Leaderboard"
             description="Live event leaderboard — points earned inside a chosen time window, refreshed on a timer."
         >
-            <div className="mx-auto w-full max-w-7xl space-y-6">
+            <div className="mx-auto space-y-6 w-full max-w-7xl">
                 {/* Header with Prize */}
                 <div className="text-center">
                     <div className="mb-4">

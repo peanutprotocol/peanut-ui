@@ -28,7 +28,7 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
                 <Card.Description className="mx-auto font-medium text-black">{t('claimed.title')}</Card.Description>
             </Card.Header>
 
-            <Card.Content className="mx-auto flex flex-col gap-2 space-y-4 pb-8">
+            <Card.Content className="mx-auto space-y-4 flex flex-col gap-2 pb-8">
                 <p className="text-center text-grey-1">
                     {senderUsername
                         ? t.rich('claimed.descriptionWithSender', {

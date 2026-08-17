@@ -198,7 +198,7 @@ export default function Home() {
 
     return (
         <PageContainer>
-            <div className="h-full w-full space-y-6 p-5">
+            <div className="space-y-6 h-full w-full p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isKycApproved} />
                     {isActivated && (

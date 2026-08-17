@@ -43,7 +43,7 @@ export default function SavedAccountsView({
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
             <div className="space-y-4">
-                <div className="flex h-full flex-col justify-center space-y-2">
+                <div className="space-y-2 flex h-full flex-col justify-center">
                     <h2 className="text-base font-bold">{t('savedAccounts.title')}</h2>
                     <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
                 </div>

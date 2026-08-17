@@ -80,7 +80,7 @@ export function QuestCard({
             </div>
 
             {/* Mini Leaderboard - Top 3 or Empty State */}
-            <div className="flex-1 space-y-3">
+            <div className="space-y-3 flex-1">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                         <PeanutLoading />

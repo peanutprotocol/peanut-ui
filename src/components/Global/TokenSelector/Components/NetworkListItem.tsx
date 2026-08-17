@@ -55,7 +55,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                 border={true}
             >
                 <div className="relative flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="space-x-3 flex items-center">
                         <div className="relative h-8 w-8">
                             {iconUrl && !iconError ? (
                                 <Image

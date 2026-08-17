@@ -76,7 +76,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                 border={true}
             >
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="space-x-3 flex items-center">
                         <div className="relative flex-shrink-0">
                             {!balance.logoURI || tokenPlaceholder || tokenImageError ? (
                                 <AvatarWithBadge name={balance.symbol} size="extra-small" />

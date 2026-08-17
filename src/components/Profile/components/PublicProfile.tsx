@@ -146,7 +146,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const displayName = showFullName && fullName ? fullName : username
 
     return (
-        <div className="flex h-full w-full flex-col space-y-4 bg-background">
+        <div className="space-y-4 flex h-full w-full flex-col bg-background">
             {/* Logo - Only shown in guest view */}
             <div>
                 {!isLoggedIn ? (

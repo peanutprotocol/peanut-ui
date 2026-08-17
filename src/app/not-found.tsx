@@ -33,7 +33,7 @@ export default function NotFound() {
                 </div>
 
                 <div className="flex flex-grow flex-col justify-center overflow-y-auto bg-white px-6 py-8 md:px-12">
-                    <div className="mx-auto w-full max-w-md space-y-8">
+                    <div className="mx-auto space-y-8 w-full max-w-md">
                         <div className="space-y-3">
                             <h1 className="text-3xl font-extrabold">Hmm, we can&apos;t find that page.</h1>
                             <p className="text-base text-grey-1">

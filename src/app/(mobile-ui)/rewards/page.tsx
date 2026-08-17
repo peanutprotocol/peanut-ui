@@ -112,7 +112,7 @@ const PointsPage = () => {
         console.error('Error loading points data:', invitesError ?? tierInfoError)
 
         return (
-            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <EmptyState icon="alert" title={t('loadPointsFailed')} description={t('contactSupport')} />
             </div>
         )
@@ -122,7 +122,7 @@ const PointsPage = () => {
         <PageContainer className="flex flex-col">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <section className="mx-auto mt-10 mb-auto w-full space-y-4">
+            <section className="mx-auto space-y-4 mt-10 mb-auto w-full">
                 {/* rewards hero — pending claimable as primary, lifetime as secondary */}
                 <Card className="flex flex-col gap-4 p-6">
                     {cashStatus?.success &&

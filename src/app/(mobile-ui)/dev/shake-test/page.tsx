@@ -162,7 +162,7 @@ export default function DevShakeTestPage() {
             width="prose"
             className={getShakeClass(isShaking, shakeIntensity)}
         >
-            <div className="flex flex-col space-y-6">
+            <div className="space-y-6 flex flex-col">
                 <Card className="space-y-4 p-6">
                     <h2 className="text-center text-2xl font-bold">Shake & Hold Test</h2>
                     <p className="text-gray-600 text-center text-sm">

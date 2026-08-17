@@ -305,7 +305,7 @@ function InvitePageContent() {
 
     if (showsInvalidInvite) {
         return (
-            <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
+            <div className="my-auto space-y-4 flex h-[100dvh] w-screen flex-col items-center justify-center px-6">
                 <ValidationErrorView
                     title={t('invalidCodeTitle')}
                     message={t('invalidCodeMessage')}
@@ -331,7 +331,7 @@ function InvitePageContent() {
         <InvitesPageLayout image={PeanutWavingHello.src}>
             <div
                 className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:h-[100dvh] md:justify-center md:space-y-4',
+                    'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',
                     'flex flex-col items-end justify-center gap-5 pt-8'
                 )}
             >

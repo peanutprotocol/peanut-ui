@@ -486,7 +486,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
                             />
                         ) : (
-                            <div className="relative flex flex-col space-y-4">
+                            <div className="relative space-y-4 flex flex-col">
                                 {/* Info banner when cross-chain is disabled */}
                                 {isCrossChainDisabled && (
                                     <div className="bg-yellow-100 text-yellow-800 flex items-center gap-2 rounded-lg p-3 text-sm">
@@ -500,7 +500,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                     <>
                                         <Section title={t('tokenSelector.selectANetwork')}>
                                             <div className="flex flex-col gap-4">
-                                                <div className="flex items-stretch justify-between space-x-2">
+                                                <div className="space-x-2 flex items-stretch justify-between">
                                                     {popularChainsForButtons.map((chain) => (
                                                         <NetworkButton
                                                             key={chain.chainId}

@@ -102,10 +102,10 @@ export const mdxComponents: MdxComponentMap = {
         />
     ),
     ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
-        <ul className={`mx-auto my-5 ${PROSE_WIDTH} list-disc space-y-3 pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />
+        <ul className={`mx-auto my-5 ${PROSE_WIDTH} space-y-3 list-disc pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />
     ),
     ol: (props: React.HTMLAttributes<HTMLOListElement>) => (
-        <ol className={`mx-auto my-5 ${PROSE_WIDTH} list-decimal space-y-3 pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />
+        <ol className={`mx-auto my-5 ${PROSE_WIDTH} space-y-3 list-decimal pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />
     ),
     li: (props: React.HTMLAttributes<HTMLLIElement>) => (
         <li className="text-base leading-[1.75] text-grey-1" {...props} />

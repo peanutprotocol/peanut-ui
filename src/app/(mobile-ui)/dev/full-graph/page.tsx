@@ -47,7 +47,7 @@ export default function FullGraphPage() {
     if (!isAllowedUser) {
         return (
             <div className="bg-gray-900 fixed inset-0 z-50 flex items-center justify-center">
-                <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-2xl">
+                <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
                     <div className="text-center">
                         <div className="mb-4 text-6xl">🔒</div>
                         <h2 className="text-gray-900 mb-2 text-2xl font-bold">Access Restricted</h2>
@@ -71,7 +71,7 @@ export default function FullGraphPage() {
     if (!apiKeySubmitted) {
         return (
             <div className="bg-gray-900 fixed inset-0 z-50 flex items-center justify-center">
-                <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-2xl">
+                <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
                     <div className="text-center">
                         <div className="mb-4 text-6xl">🕸️</div>
                         <h2 className="text-gray-900 mb-2 text-2xl font-bold">Full Graph</h2>

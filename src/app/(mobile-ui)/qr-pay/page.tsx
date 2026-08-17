@@ -1174,7 +1174,7 @@ export default function QRPayPage() {
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
         return (
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
                         <Icon name="alert" size={24} />
@@ -1200,7 +1200,7 @@ export default function QRPayPage() {
 
     if (!!errorInitiatingPayment) {
         return (
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
                         <Icon name="alert" size={24} />
@@ -1224,7 +1224,7 @@ export default function QRPayPage() {
 
     if (showOrderNotReadyModal) {
         return (
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
                         <Icon name="qr-code" size={24} />
@@ -1284,7 +1284,7 @@ export default function QRPayPage() {
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
                 <NavHeader title={tNav('pay')} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     {/* Only show payment card if reward was not claimed */}
                     {!perkClaimed && !qrPayment?.perk?.claimed && (
                         <Card className="flex flex-row items-center gap-3 p-4">
@@ -1377,7 +1377,7 @@ export default function QRPayPage() {
                         <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
-                    <div className="w-full space-y-5">
+                    <div className="space-y-5 w-full">
                         {/* Show Claim Reward button if eligible and not claimed yet */}
                         {rewardClaimable ? (
                             <Button
@@ -1546,10 +1546,10 @@ export default function QRPayPage() {
                 <NavHeader title={tNav('pay')} />
 
                 {/* Payment Content */}
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     {/* Merchant Card */}
                     <Card className="p-4">
-                        <div className="flex items-center space-x-3">
+                        <div className="space-x-3 flex items-center">
                             <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-white">
                                 <Image
                                     src={methodIcon}
@@ -1679,7 +1679,7 @@ export default function QRPayPage() {
 const QrPayPageLoading = ({ message }: { message: string }) => {
     const t = useTranslations('qrPay')
     return (
-        <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
+        <div className="my-auto space-y-4 flex h-full w-full flex-col items-center justify-center">
             <div className="relative">
                 <Image
                     src={PeanutThinking}

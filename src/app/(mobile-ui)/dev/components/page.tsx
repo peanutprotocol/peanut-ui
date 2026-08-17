@@ -150,7 +150,7 @@ export default function ComponentsPage() {
 
             <div className="space-y-8">
                 {/* ━━━━━━━━━━━━━━━━━━ GUIDELINES ━━━━━━━━━━━━━━━━━━ */}
-                <div id="guidelines" className="scroll-mt-16 space-y-4">
+                <div id="guidelines" className="space-y-4 scroll-mt-16">
                     <h2 className="text-lg font-bold">Guidelines & Legend</h2>
 
                     {/* legend */}
@@ -181,7 +181,7 @@ export default function ComponentsPage() {
                         <p className="font-bold">design rules</p>
                         <div>
                             <p className="font-bold">buttons</p>
-                            <ul className="mt-1 space-y-0.5 text-grey-1">
+                            <ul className="space-y-0.5 mt-1 text-grey-1">
                                 <li>
                                     primary CTA: variant=&quot;purple&quot; shadowSize=&quot;4&quot; w-full — NO size
                                     prop
@@ -194,14 +194,14 @@ export default function ComponentsPage() {
                         </div>
                         <div>
                             <p className="font-bold">text & links</p>
-                            <ul className="mt-1 space-y-0.5 text-grey-1">
+                            <ul className="space-y-0.5 mt-1 text-grey-1">
                                 <li>primary text: text-n-1 | secondary: text-grey-1</li>
                                 <li>inline links: text-black underline — never text-purple-1</li>
                             </ul>
                         </div>
                         <div>
                             <p className="font-bold">containers</p>
-                            <ul className="mt-1 space-y-0.5 text-grey-1">
+                            <ul className="space-y-0.5 mt-1 text-grey-1">
                                 <li>
                                     standalone: Bruddle Card (named export) | stacked lists: Global Card (default
                                     export)
@@ -211,7 +211,7 @@ export default function ComponentsPage() {
                         </div>
                         <div>
                             <p className="font-bold">modals</p>
-                            <ul className="mt-1 space-y-0.5 text-grey-1">
+                            <ul className="space-y-0.5 mt-1 text-grey-1">
                                 <li>
                                     informational: Modal | user action/confirmation: ActionModal | mobile interaction:
                                     Drawer
@@ -220,13 +220,13 @@ export default function ComponentsPage() {
                         </div>
                         <div>
                             <p className="font-bold">loading</p>
-                            <ul className="mt-1 space-y-0.5 text-grey-1">
+                            <ul className="space-y-0.5 mt-1 text-grey-1">
                                 <li>inline spinner: Loading | page-level branded: PeanutLoading</li>
                             </ul>
                         </div>
                         <div>
                             <p className="font-bold">messaging</p>
-                            <ul className="mt-1 space-y-0.5 text-grey-1">
+                            <ul className="space-y-0.5 mt-1 text-grey-1">
                                 <li>
                                     card deposits: &quot;starter balance&quot; — never &quot;card balance&quot; or
                                     &quot;Peanut rewards&quot;
@@ -238,7 +238,7 @@ export default function ComponentsPage() {
                     {/* three-tier architecture */}
                     <div className="rounded-sm border border-n-1 p-3 text-xs">
                         <p className="font-bold">architecture (three tiers)</p>
-                        <div className="mt-2 space-y-1.5 text-grey-1">
+                        <div className="space-y-1.5 mt-2 text-grey-1">
                             <p>
                                 <span className="font-bold text-n-1">Bruddle primitives</span> —
                                 src/components/0_Bruddle/ — Button, Card, BaseInput, BaseSelect, Checkbox, Divider,
@@ -260,7 +260,7 @@ export default function ComponentsPage() {
                 <Divider />
 
                 {/* ━━━━━━━━━━━━━━━━━━ BUTTONS ━━━━━━━━━━━━━━━━━━ */}
-                <div id="buttons" className="scroll-mt-16 space-y-6">
+                <div id="buttons" className="space-y-6 scroll-mt-16">
                     <Section
                         title="Button"
                         importPath={`import { Button } from '@/components/0_Bruddle/Button'`}
@@ -413,7 +413,7 @@ export default function ComponentsPage() {
                 <Divider />
 
                 {/* ━━━━━━━━━━━━━━━━━━ CARDS ━━━━━━━━━━━━━━━━━━ */}
-                <div id="cards" className="scroll-mt-16 space-y-6">
+                <div id="cards" className="space-y-6 scroll-mt-16">
                     <Section
                         title="Bruddle Card"
                         importPath={`import { Card } from '@/components/0_Bruddle/Card'`}
@@ -522,7 +522,7 @@ export default function ComponentsPage() {
                 <Divider />
 
                 {/* ━━━━━━━━━━━━━━━━━━ INPUTS ━━━━━━━━━━━━━━━━━━ */}
-                <div id="inputs" className="scroll-mt-16 space-y-6">
+                <div id="inputs" className="space-y-6 scroll-mt-16">
                     <Section
                         title="BaseInput"
                         importPath={`import BaseInput from '@/components/0_Bruddle/BaseInput'`}
@@ -646,7 +646,7 @@ export default function ComponentsPage() {
                 <Divider />
 
                 {/* ━━━━━━━━━━━━━━━━━━ FEEDBACK ━━━━━━━━━━━━━━━━━━ */}
-                <div id="feedback" className="scroll-mt-16 space-y-6">
+                <div id="feedback" className="space-y-6 scroll-mt-16">
                     <Section
                         title="Loading (Spinner)"
                         importPath={`import Loading from '@/components/Global/Loading'`}
@@ -829,7 +829,7 @@ export default function ComponentsPage() {
                 <Divider />
 
                 {/* ━━━━━━━━━━━━━━━━━━ NAVIGATION ━━━━━━━━━━━━━━━━━━ */}
-                <div id="navigation" className="scroll-mt-16 space-y-6">
+                <div id="navigation" className="space-y-6 scroll-mt-16">
                     <Section
                         title="NavHeader"
                         importPath={`import NavHeader from '@/components/Global/NavHeader'`}
@@ -1005,7 +1005,7 @@ export default function ComponentsPage() {
                 <Divider />
 
                 {/* ━━━━━━━━━━━━━━━━━━ LAYOUTS ━━━━━━━━━━━━━━━━━━ */}
-                <div id="layouts" className="scroll-mt-16 space-y-6">
+                <div id="layouts" className="space-y-6 scroll-mt-16">
                     <Section title="Page Layout Recipes">
                         <p className="text-xs text-grey-1">
                             all mobile screens use <span className="font-mono">min-h-[inherit]</span> from the app
@@ -1152,7 +1152,7 @@ export default function ComponentsPage() {
                 <Divider />
 
                 {/* ━━━━━━━━━━━━━━━━━━ PATTERNS ━━━━━━━━━━━━━━━━━━ */}
-                <div id="patterns" className="scroll-mt-16 space-y-6">
+                <div id="patterns" className="space-y-6 scroll-mt-16">
                     <Section
                         title={`Icon System (${ALL_ICONS.length} icons)`}
                         importPath={`import { Icon, type IconName } from '@/components/Global/Icons/Icon'`}
