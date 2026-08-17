@@ -53,7 +53,8 @@
             "closed": "Encerrado",
             "custom": "Personalizado",
             "unknown": "Desconhecido"
-        }
+        },
+        "exchangeRate": "Taxa de câmbio"
     },
     "navigation": {
         "home": "Início",
@@ -221,7 +222,8 @@
             "claimablePerk": "Recompensa disponível"
         },
         "pendingTasks": {
-            "completeBefore": "Complete before {deadline}"
+            "completeBefore": "Complete before {deadline}",
+            "dismiss": "Dispensar {task}"
         }
     },
     "profile": {
@@ -475,6 +477,11 @@
             "free": "Grátis!",
             "arrivesHours": "Deve chegar em horas.",
             "arrivesMinutes": "Deve chegar em minutos."
+        },
+        "row": {
+            "approximate": "Este é um valor aproximado. O valor recebido pode variar conforme a taxa de câmbio do seu banco.",
+            "amountYouReceive": "Valor que você vai receber",
+            "appliesWhenConverting": "A taxa de câmbio se aplica na conversão para {currency}"
         }
     },
     "setup": {
@@ -1736,7 +1743,6 @@
             "tokenOnChain": "{token} na {chain}",
             "txId": "ID da TX",
             "fee": "Taxa",
-            "exchangeRate": "Taxa de câmbio",
             "transferId": "ID da transferência",
             "pointsEarned": "Pontos ganhos",
             "networkFee": "Taxa de rede",
@@ -2982,8 +2988,10 @@
         "easterEggImageAlt": "Ilustração de easter egg",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
-            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual."
-        }
+            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
+            "title": "Uma pequena atualização dos nossos termos"
+        },
+        "maintenanceBanner": "Modo manutenção: algumas funções ficarão indisponíveis. Seu dinheiro está seguro."
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
