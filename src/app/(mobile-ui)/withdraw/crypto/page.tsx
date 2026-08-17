@@ -251,6 +251,7 @@ export default function WithdrawCryptoPage() {
                     throw new Error(t('errors.requestFailed'))
                 }
 
+                const recipientEnsName = recipient.name?.trim().toLowerCase()
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
                     local_price: { amount: usdValue.toString(), currency: 'USD' },
@@ -269,7 +270,7 @@ export default function WithdrawCryptoPage() {
                         recipientAddress: completeWithdrawData.address,
                         // Withdrawing to a name is still paying at one, and the
                         // input keeps the name that produced this address.
-                        ...(validateEnsName(recipient.name) ? { recipientEnsName: recipient.name!.toLowerCase() } : {}),
+                        ...(validateEnsName(recipientEnsName) ? { recipientEnsName } : {}),
                     },
                     transactionType: 'WITHDRAW',
                 }
