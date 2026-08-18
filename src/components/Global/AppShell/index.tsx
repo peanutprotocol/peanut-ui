@@ -60,19 +60,19 @@ export const AppShell = ({
     }
 
     return (
-        <div className="flex min-h-[100dvh] w-full flex-col bg-background pt-[env(safe-area-inset-top)]">
+        <div className="flex min-h-[100dvh] w-full flex-col bg-background-page pt-[env(safe-area-inset-top)]">
             {banner}
             {/* Scrollable content — one centered mobile column on every viewport */}
             <div
                 id="scrollable-content"
-                className={twMerge('relative w-full flex-1 overflow-y-auto bg-background p-6', contentClassName)}
+                className={twMerge('relative w-full flex-1 overflow-y-auto bg-background-page p-6', contentClassName)}
             >
                 <div className={twMerge('mx-auto flex w-full max-w-md items-center justify-center', innerClassName)}>
                     {children}
                 </div>
             </div>
             {nav && (
-                <div className="fixed inset-x-0 bottom-0 z-10 bg-background pb-[env(safe-area-inset-bottom)]">
+                <div className="fixed inset-x-0 bottom-0 z-10 bg-background-page pb-[env(safe-area-inset-bottom)]">
                     <div className="mx-auto w-full max-w-md">{nav}</div>
                 </div>
             )}

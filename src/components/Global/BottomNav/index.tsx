@@ -33,7 +33,7 @@ export const BottomNav = () => {
     const hasUnreadSupport = useSupportUnread()
 
     return (
-        <nav className="flex w-full items-center gap-4 bg-background px-6 py-2" translate="no">
+        <nav className="flex w-full items-center gap-4 bg-background-page px-6 py-2" translate="no">
             <div className="flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page">
                 <Link
                     href="/home"
