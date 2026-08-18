@@ -49,9 +49,11 @@ const EXEMPT = new Set<string>([
 // bare fetch( — word boundary keeps apiFetch(, serverFetch(, refetch(,
 // prefetch( and fetchWithSentry( out; window.fetch( / global.fetch( still match
 const BARE_FETCH_RE = /\bfetch\s*\(/
+// whitespace-tolerant so `fetchWithSentry (…)` can't slip past the gate
+const FETCH_WITH_SENTRY_RE = /\bfetchWithSentry\s*\(/
 
 const tripsGate = (text: string): boolean =>
-    text.includes('PEANUT_API_URL') && (text.includes('fetchWithSentry(') || BARE_FETCH_RE.test(text))
+    text.includes('PEANUT_API_URL') && (FETCH_WITH_SENTRY_RE.test(text) || BARE_FETCH_RE.test(text))
 
 function* walk(dir: string): Generator<string> {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -100,6 +102,6 @@ describe('no direct fetchWithSentry/fetch calls against PEANUT_API_URL', () => {
         // The whole-file exemption above would hide a SECOND direct call added
         // to api-fetch.ts — pin the count so that can't happen silently.
         const text = readFileSync(join(SRC, 'utils/api-fetch.ts'), 'utf8')
-        expect(text.match(/fetchWithSentry\(/g)).toHaveLength(1)
+        expect(text.match(/\bfetchWithSentry\s*\(/g)).toHaveLength(1)
     })
 })
