@@ -78,7 +78,7 @@ const CardLandingPage = () => {
                 <div className="relative mx-auto max-w-6xl px-4">
                     <div className="flex flex-col items-center text-center">
                         <motion.h1
-                            className="font-roboto-flex-extrabold text-[3rem] font-extraBlack leading-[0.95] md:text-7xl lg:text-8xl"
+                            className="font-roboto-flex-extrabold text-[3rem] leading-[0.95] font-extraBlack md:text-7xl lg:text-8xl"
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
@@ -213,7 +213,7 @@ const CardLandingPage = () => {
                                 */}
 
                                 {/* Connection lines */}
-                                <svg width="340" height="380" className="absolute left-0 top-0">
+                                <svg width="340" height="380" className="absolute top-0 left-0">
                                     {/* L0 to L1 edges */}
                                     <line
                                         x1="170"
@@ -601,7 +601,7 @@ const CardLandingPage = () => {
                                 EARN FOREVER.
                             </h2>
 
-                            <div className="mx-auto mt-8 w-fit space-y-4 md:mx-0">
+                            <div className="mx-auto space-y-4 mt-8 w-fit md:mx-0">
                                 <RewardItem amount="$5" label="per Pioneer signup" />
                                 <RewardItem amount="%" label="from their card spending" />
                                 <RewardItem amount="+" label="from their invites too" />

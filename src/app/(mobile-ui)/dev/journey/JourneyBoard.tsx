@@ -74,7 +74,7 @@ export default function JourneyBoard({
                                         {specError && <p className={EMPTY_NOTE}>{specError}</p>}
                                         {spec && state.includesWelcome && (
                                             <>
-                                                <p className="text-[10px] italic leading-snug text-grey-1">
+                                                <p className="text-[10px] leading-snug text-grey-1 italic">
                                                     On signup (immediate):
                                                 </p>
                                                 <EmailCard
@@ -88,7 +88,7 @@ export default function JourneyBoard({
                                         {stages.map((stage) => (
                                             <div key={stage.stage} className="flex flex-col gap-1.5">
                                                 {showDev && (
-                                                    <p className="text-[10px] italic leading-snug text-grey-1">
+                                                    <p className="text-[10px] leading-snug text-grey-1 italic">
                                                         stage <span className="font-mono font-bold">{stage.stage}</span>{' '}
                                                         — {stage.predicate}
                                                     </p>

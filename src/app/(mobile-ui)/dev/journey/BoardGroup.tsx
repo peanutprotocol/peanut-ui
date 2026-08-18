@@ -24,7 +24,7 @@ export default function BoardGroup({
         <section className={twMerge('border-t border-n-1', tint)}>
             <header className="flex items-center gap-1.5 px-2.5 py-1.5">
                 <span aria-hidden>{icon}</span>
-                <span className="text-[10px] font-bold uppercase tracking-wide text-n-1">{label}</span>
+                <span className="text-[10px] font-bold tracking-wide text-n-1 uppercase">{label}</span>
                 <span className="text-[10px] font-bold text-grey-1">{count}</span>
             </header>
             <div className="flex flex-col gap-1.5 px-2 pb-2">{children}</div>

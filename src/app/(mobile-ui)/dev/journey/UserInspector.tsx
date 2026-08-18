@@ -92,7 +92,7 @@ export default function UserInspector() {
                     </p>
 
                     <div className="mt-3">
-                        <div className="text-xs font-bold uppercase tracking-wide text-grey-1">
+                        <div className="text-xs font-bold tracking-wide text-grey-1 uppercase">
                             Lifecycle email history
                         </div>
                         {result.history.length === 0 ? (

@@ -197,7 +197,7 @@ export default function ShareBuilderPage() {
                             />
                         </DevField>
                         {username.length > 12 && (
-                            <p className="text-[10px] font-bold leading-snug text-red">
+                            <p className="text-[10px] leading-snug font-bold text-red">
                                 ⚠️ Username &gt; 12 chars · production caps at 12. The @username pill shrinks
                                 defensively, but check the input gate in your caller.
                             </p>
@@ -417,7 +417,7 @@ export default function ShareBuilderPage() {
                         the anti-dox toggle, and the share buttons stack in
                         BadgeSkipCelebration / CardUnlockDrawer. */}
                     <div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-sm border-2 border-dashed border-grey-1 bg-white p-4">
-                        <div className="text-center text-[10px] font-bold uppercase tracking-wider text-grey-1">
+                        <div className="text-center text-[10px] font-bold tracking-wider text-grey-1 uppercase">
                             ↑ asset · how it stacks in the real flow ↓
                         </div>
                         <Checkbox
@@ -442,8 +442,8 @@ export default function ShareBuilderPage() {
                     </div>
 
                     <div className="space-y-2 rounded-sm border border-n-1 bg-white p-4 text-xs">
-                        <div className="font-bold uppercase tracking-wider text-grey-1">Resulting props</div>
-                        <pre className="overflow-auto whitespace-pre-wrap font-mono text-[11px]">
+                        <div className="font-bold tracking-wider text-grey-1 uppercase">Resulting props</div>
+                        <pre className="overflow-auto font-mono text-[11px] whitespace-pre-wrap">
                             {JSON.stringify(
                                 {
                                     username,

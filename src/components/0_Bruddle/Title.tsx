@@ -13,7 +13,7 @@ const Title = ({
             <p className={twMerge('relative font-knerd-filled text-white', offset && 'translate-x-[3px]', className)}>
                 {text}
             </p>
-            <p className={twMerge('absolute left-0 top-0 font-knerd-outline', className)}>{text}</p>
+            <p className={twMerge('absolute top-0 left-0 font-knerd-outline', className)}>{text}</p>
         </div>
     )
 }

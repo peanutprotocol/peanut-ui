@@ -433,7 +433,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 <Icon name="plus" size={24} />
                             )}
                             {buttonChainLogoURI && buttonLogoURI && (
-                                <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
                                     <Image
                                         src={buttonChainLogoURI}
                                         alt={`Chain logo`}
@@ -486,10 +486,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
                             />
                         ) : (
-                            <div className="relative flex flex-col space-y-4">
+                            <div className="relative space-y-4 flex flex-col">
                                 {/* Info banner when cross-chain is disabled */}
                                 {isCrossChainDisabled && (
-                                    <div className="flex items-center gap-2 rounded-lg bg-yellow-100 p-3 text-sm text-yellow-800">
+                                    <div className="bg-yellow-100 text-yellow-800 flex items-center gap-2 rounded-lg p-3 text-sm">
                                         <Icon name="info" size={16} className="flex-shrink-0" />
                                         <span>{t('tokenSelector.crossChainUnavailable')}</span>
                                     </div>
@@ -500,7 +500,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                     <>
                                         <Section title={t('tokenSelector.selectANetwork')}>
                                             <div className="flex flex-col gap-4">
-                                                <div className="flex items-stretch justify-between space-x-2">
+                                                <div className="space-x-2 flex items-stretch justify-between">
                                                     {popularChainsForButtons.map((chain) => (
                                                         <NetworkButton
                                                             key={chain.chainId}

@@ -65,7 +65,7 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
     }, [chains, searchValue, allowedChainIds, comingSoonNetworks])
 
     return (
-        <div className="relative flex flex-col space-y-4">
+        <div className="relative space-y-4 flex flex-col">
             <NavHeader title={t('tokenSelector.moreNetworksTitle')} onPrev={onBack} />
             <SearchInput
                 value={searchValue}
@@ -74,7 +74,7 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
                 placeholder={t('tokenSelector.searchNetworkPlaceholder')}
             />
 
-            <div className="flex max-h-[60vh] flex-col gap-3 space-y-2 overflow-y-auto pr-1 pt-2">
+            <div className="space-y-2 flex max-h-[60vh] flex-col gap-3 overflow-y-auto pt-2 pr-1">
                 {filteredChains.length > 0 ? (
                     filteredChains.map((chain) => (
                         <NetworkListItem

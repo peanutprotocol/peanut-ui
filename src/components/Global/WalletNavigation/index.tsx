@@ -120,7 +120,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                         bare span is ignored by assistive tech (generic role). */}
                     {hasUnreadSupport && (
                         <IndicatorDot
-                            className="absolute -right-1 -top-1"
+                            className="absolute -top-1 -right-1"
                             role="status"
                             aria-label={t('supportUnread')}
                         />
@@ -140,7 +140,7 @@ const WalletNavigation: React.FC = () => {
 
     return (
         <div>
-            <div className="hidden h-screen w-64 space-y-10 bg-black px-8 py-6 text-white md:block">
+            <div className="space-y-10 hidden h-screen w-64 bg-black px-8 py-6 text-white md:block">
                 <Link href="/home" className="hover:cursor-pointer">
                     <Image src={PEANUT_LOGO} alt={t('peanutLogoAlt')} className="w-28" />
                 </Link>

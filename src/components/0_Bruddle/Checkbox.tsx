@@ -9,10 +9,10 @@ type CheckboxProps = {
 
 const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
     <label
-        className={`group relative inline-flex cursor-pointer select-none items-start tap-highlight-color ${className}`}
+        className={`group relative inline-flex cursor-pointer items-start select-none tap-highlight-color ${className}`}
     >
         <input
-            className="invisible absolute left-0 top-0 opacity-0"
+            className="invisible absolute top-0 left-0 opacity-0"
             type="checkbox"
             onChange={onChange}
             checked={value}

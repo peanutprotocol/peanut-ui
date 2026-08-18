@@ -53,14 +53,14 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     className={`min-h-[200px] touch-none p-5 ${className || ''}`}
                     scrollAreaClassName={activeSnapPoint === snapPoints[0] ? 'touch-none' : undefined}
                 >
-                    <DrawerTitle className="mb-8 space-y-2">
+                    <DrawerTitle className="space-y-2 mb-8">
                         <h2 className="text-lg font-bold">
                             {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
                         </h2>
                     </DrawerTitle>
                     <div>
                         <QRCodeWrapper url={url} />
-                        <div className="mx-auto mt-4 w-full p-2 text-center text-base text-gray-500">{text}</div>
+                        <div className="text-gray-500 mx-auto mt-4 w-full p-2 text-center text-base">{text}</div>
                         <Divider className="text-gray-500" text={tCommon('or')} />
                         <ShareButton url={url} title={t('qrBottomDrawer.shareTitle')}>
                             {buttonText}

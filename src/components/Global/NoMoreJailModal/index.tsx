@@ -40,7 +40,7 @@ const NoMoreJailModal = () => {
             <div className="relative z-10 w-full rounded-md bg-white px-6 py-6">
                 <div className="space-y-4">
                     <div className="space-y-3 text-center">
-                        <div className="w-full space-y-2">
+                        <div className="space-y-2 w-full">
                             <h3 className={'text-xl font-extrabold text-black dark:text-white'}>
                                 {t('noMoreJailModal.title')}
                             </h3>
@@ -66,7 +66,7 @@ const NoMoreJailModal = () => {
             </div>
 
             {/* Peanutman animation */}
-            <div className="absolute left-0 top-7 flex w-full justify-center" style={{ transform: 'translateY(-80%)' }}>
+            <div className="absolute top-7 left-0 flex w-full justify-center" style={{ transform: 'translateY(-80%)' }}>
                 <div className="relative h-42 w-[90%] md:h-52">
                     <Image src={PeanutWhistling.src} unoptimized alt="Peanut Man" className="object-contain" fill />
                 </div>

@@ -37,13 +37,13 @@ const CardPioneers = ({ strings }: { strings: LandingStrings }) => {
 
                 {/* Copy on right */}
                 <div className="w-full text-center md:w-1/2 md:text-left">
-                    <h1 className="font-roboto-flex-extrabold text-[2.25rem] font-extraBlack leading-tight md:text-5xl lg:text-6xl">
+                    <h1 className="font-roboto-flex-extrabold text-[2.25rem] leading-tight font-extraBlack md:text-5xl lg:text-6xl">
                         {strings.cardHeading}
                     </h1>
 
                     <p className="font-roboto-flex mt-4 text-lg md:text-xl">{strings.cardBody}</p>
 
-                    <ul className="font-roboto-flex mt-6 space-y-3 text-base md:text-lg">
+                    <ul className="font-roboto-flex space-y-3 mt-6 text-base md:text-lg">
                         <li className="flex items-center justify-center gap-3 md:justify-start">
                             <Icon name="check-circle" className="h-6 w-6 flex-shrink-0 text-n-1" />
                             {strings.cardBullet1}
@@ -84,7 +84,7 @@ const Stars = () => (
             alt="Star"
             width={50}
             height={50}
-            className="absolute left-12 top-10"
+            className="absolute top-10 left-12"
             initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
             whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
             transition={{ type: 'spring', damping: 5, delay: 0.2 }}
@@ -94,7 +94,7 @@ const Stars = () => (
             alt="Star"
             width={40}
             height={40}
-            className="absolute bottom-16 right-16"
+            className="absolute right-16 bottom-16"
             initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: -15 }}
             whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -15 }}
             transition={{ type: 'spring', damping: 5, delay: 0.4 }}
@@ -104,7 +104,7 @@ const Stars = () => (
             alt="Star"
             width={35}
             height={35}
-            className="absolute right-1/3 top-8"
+            className="absolute top-8 right-1/3"
             initial={{ opacity: 0, translateY: 20, rotate: 10 }}
             whileInView={{ opacity: 1, translateY: 0, rotate: 10 }}
             transition={{ type: 'spring', damping: 5, delay: 0.6 }}

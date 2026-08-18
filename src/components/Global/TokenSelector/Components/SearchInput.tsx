@@ -35,12 +35,12 @@ const SearchInput: React.FC<SearchInputProps> = ({
                 onChange={(e) => onChange(e.target.value)}
                 {...rest}
             />
-            <Icon name="search" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-grey-1" />
+            <Icon name="search" className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-grey-1" />
             {value && (
                 <Button
                     variant="transparent"
                     onClick={onClear}
-                    className="absolute right-2 top-1/2 w-fit -translate-y-1/2 p-0"
+                    className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0"
                     aria-label={t('tokenSelector.clearSearch')}
                 >
                     <div className="flex size-6 items-center justify-center">

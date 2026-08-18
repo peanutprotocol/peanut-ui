@@ -31,7 +31,7 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
 
                 <div className="flex flex-col px-4 pb-6">
                     {/* evm - card with expanded networks */}
-                    <div className="overflow-hidden rounded-t-sm border border-black bg-white ">
+                    <div className="overflow-hidden rounded-t-sm border border-black bg-white">
                         <ActionListCard
                             title="EVM"
                             description={t('evmDescription', { count: evmChainCount })}

@@ -43,8 +43,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
     const pathName = usePathname()
 
-    // Allow access to public paths without authentication
-    // Dev test pages (gift-test, shake-test) are only public in dev mode
+    // Allow access to public paths without authentication.
+    // Dev tooling (/dev/*) is public only in local IS_DEV builds. Do NOT widen this to
+    // staging/previews via BASE_URL: DEV_ONLY_PUBLIC_ROUTES_REGEX covers ALL of /dev,
+    // including /dev/debug, whose cheats drive the API dev endpoints — an unauthenticated
+    // staging visitor must never reach them. On deployed builds /dev requires login.
     const isPublicPath = isPublicRoute(pathName, IS_DEV)
 
     const { isFetchingUser, user, userFetchError } = useAuth()
@@ -186,7 +189,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                 {!isDev && (
                     <div className="hidden md:block">
-                        <div className="fixed left-0 top-0 z-20 h-screen w-64">
+                        <div className="fixed top-0 left-0 z-20 h-screen w-64">
                             <WalletNavigation />
                         </div>
                     </div>
@@ -239,7 +242,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     {/* Mobile navigation */}
                     {!isDev && (
                         <div
-                            className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden"
+                            className="fixed right-0 bottom-0 left-0 z-10 bg-background md:hidden"
                             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
                         >
                             <WalletNavigation />

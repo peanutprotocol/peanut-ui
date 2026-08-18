@@ -90,7 +90,7 @@ const InfoCard = ({
                             ) : (
                                 <ol
                                     className={twMerge(
-                                        'mr-auto space-y-1 text-left',
+                                        'space-y-1 mr-auto text-left',
                                         BASE_TEXT_CLASSES,
                                         itemsType === 'disc' ? 'list-inside list-disc' : 'list-inside list-decimal'
                                     )}

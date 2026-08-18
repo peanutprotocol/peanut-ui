@@ -85,7 +85,7 @@ export const SendRouterView = () => {
                         <div
                             key={index}
                             style={{ zIndex: index }}
-                            className="size-6 min-h-6 min-w-6 animate-pulse rounded-full bg-gray-200"
+                            className="bg-gray-200 size-6 min-h-6 min-w-6 animate-pulse rounded-full"
                         />
                     ))}
                 </div>
@@ -263,7 +263,7 @@ export const SendRouterView = () => {
     return (
         <div className="space-y-8">
             <NavHeader title={tNav('send')} onPrev={handlePrev} />
-            <div className="w-full space-y-4">
+            <div className="space-y-4 w-full">
                 <Card position="single" className="p-4 pb-5">
                     <div className="flex flex-col items-center justify-center gap-4">
                         <div className="space-y-2">

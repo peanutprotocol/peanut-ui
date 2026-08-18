@@ -394,7 +394,7 @@ export default function WithdrawPage() {
         const showLimitsCard = !isCryptoWithdraw && (limitsValidation.isBlocking || limitsValidation.isWarning)
 
         return (
-            <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
+            <div className="space-y-8 flex min-h-[inherit] flex-col justify-start">
                 <NavHeader
                     title={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                     onPrev={() => {

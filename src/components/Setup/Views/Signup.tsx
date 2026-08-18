@@ -120,7 +120,7 @@ const SignupStep = () => {
     return (
         <>
             <div className="flex h-full flex-col justify-between gap-11 md:pt-5">
-                <div className="mb-auto w-full space-y-2.5">
+                <div className="space-y-2.5 mb-auto w-full">
                     <div className="flex items-center gap-2">
                         <ValidatedInput
                             placeholder={t('signupStep.usernamePlaceholder')}

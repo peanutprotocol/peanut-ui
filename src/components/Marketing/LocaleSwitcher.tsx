@@ -71,7 +71,7 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
             </button>
             {open && (
                 <ul
-                    className={`${TRIGGER_WIDTH} absolute right-0 top-full z-30 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]`}
+                    className={`${TRIGGER_WIDTH} absolute top-full right-0 z-30 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]`}
                 >
                     {SUPPORTED_LOCALES.map((loc) => {
                         const isCurrent = loc === locale
@@ -86,7 +86,7 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
                                         persistLocale(toAppLocale(loc))
                                         setOpen(false)
                                     }}
-                                    className={`block whitespace-nowrap px-3 py-2 text-sm transition-colors hover:bg-black hover:text-white ${
+                                    className={`block px-3 py-2 text-sm whitespace-nowrap transition-colors hover:bg-black hover:text-white ${
                                         isCurrent ? 'bg-primary-1/20 font-bold text-n-1' : 'text-n-1'
                                     }`}
                                 >

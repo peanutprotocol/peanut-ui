@@ -37,7 +37,7 @@ export const UserHeader = ({ username, fullName }: UserHeaderProps) => {
                     className="h-5 w-5 text-[10px] md:h-6 md:w-6 md:text-[11px]"
                     name={nameForAvatar}
                 />
-                <span className="whitespace-nowrap text-xs font-semibold md:text-sm">{username}</span>
+                <span className="text-xs font-semibold whitespace-nowrap md:text-sm">{username}</span>
             </Button>
         </Link>
     )

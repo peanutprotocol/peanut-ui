@@ -67,7 +67,7 @@ export default function CardSessionApprovePage() {
                 {isGranting ? 'Working…' : 'Grant permission (one tap)'}
             </Button>
 
-            {status && <pre className="whitespace-pre-wrap rounded-sm border border-n-1 p-3 text-xs">{status}</pre>}
+            {status && <pre className="rounded-sm border border-n-1 p-3 text-xs whitespace-pre-wrap">{status}</pre>}
         </DevPageShell>
     )
 }

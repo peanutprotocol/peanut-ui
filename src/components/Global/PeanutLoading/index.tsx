@@ -15,7 +15,7 @@ export default function PeanutLoading({
                 className={twMerge(
                     'flex w-full items-center justify-center self-center',
                     coverFullScreen &&
-                        'fixed left-0 top-0 z-50 flex h-screen w-full items-center justify-center bg-background'
+                        'fixed top-0 left-0 z-50 flex h-screen w-full items-center justify-center bg-background'
                 )}
             >
                 <div className={twMerge('animate-spin')}>
@@ -23,7 +23,7 @@ export default function PeanutLoading({
                     <span className="sr-only">{message ?? 'Loading...'}</span>
                 </div>
             </div>
-            <div className="mt-6 self-center text-center text-center font-medium">{message}</div>
+            <div className="mt-6 self-center text-center font-medium">{message}</div>
         </div>
     )
 }

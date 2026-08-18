@@ -195,7 +195,7 @@ export default function RecoverFundsPage() {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title={t('title')} onPrev={reset} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
@@ -246,7 +246,7 @@ export default function RecoverFundsPage() {
     if (status === 'final') {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
@@ -325,7 +325,7 @@ export default function RecoverFundsPage() {
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title={t('title')} />
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 <h1>{t('selectToken')}</h1>
                 <ScrollableList>
                     {tokenBalances.length > 0 ? (

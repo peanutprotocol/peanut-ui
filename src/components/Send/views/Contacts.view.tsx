@@ -91,7 +91,7 @@ export default function ContactsView() {
     // handle error state before checking for empty contacts
     if (!!isError) {
         return (
-            <div className="flex min-h-[inherit] flex-col space-y-8">
+            <div className="space-y-8 flex min-h-[inherit] flex-col">
                 <NavHeader title={tNav('send')} onPrev={handlePrev} />
                 <div className="flex flex-1 items-center justify-center">
                     <EmptyState
@@ -121,7 +121,7 @@ export default function ContactsView() {
     const hasNoSearchResults = isSearching && contacts.length === 0
 
     return (
-        <div className="flex min-h-[inherit] flex-col space-y-8">
+        <div className="space-y-8 flex min-h-[inherit] flex-col">
             <NavHeader title={tNav('send')} onPrev={handlePrev} />
 
             {hasContacts ? (
@@ -141,7 +141,7 @@ export default function ContactsView() {
                     ) : contacts.length > 0 ? (
                         <div className="space-y-2">
                             <h2 className="text-base font-bold">{t('contacts.yourContacts')}</h2>
-                            <div className="flex-1 space-y-0 overflow-y-auto">
+                            <div className="space-y-0 flex-1 overflow-y-auto">
                                 {contacts.map((contact, index) => {
                                     const isVerified = contact.isVerified
                                     const displayName = contact.showFullName
@@ -180,7 +180,7 @@ export default function ContactsView() {
                             {/* infinite scroll loader */}
                             <div ref={loaderRef} className="w-full py-4">
                                 {isFetchingNextPage && (
-                                    <div className="w-full text-center text-sm text-gray-500">
+                                    <div className="text-gray-500 w-full text-center text-sm">
                                         {t('contacts.loadingMore')}
                                     </div>
                                 )}

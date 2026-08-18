@@ -138,7 +138,7 @@ const ReConsentModal = () => {
             icon="info"
             title="A small update to our terms"
             content={
-                <div className="w-full space-y-3 text-left">
+                <div className="space-y-3 w-full text-left">
                     {/* The first sentence answers the question this modal actually raises
                      * ("is something being taken from me?") before anything else. The
                      * what-changed line describes the 2026-07-15 tos-v1 rewrite — revisit

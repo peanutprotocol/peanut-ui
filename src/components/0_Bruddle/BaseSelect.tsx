@@ -49,7 +49,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                 <Trigger
                     ref={ref}
                     className={twMerge(
-                        'flex h-12 w-full items-center justify-between rounded-sm border border-n-1 bg-white px-4 text-sm font-bold text-n-1 outline-none transition-colors placeholder:text-n-3',
+                        'flex h-12 w-full items-center justify-between rounded-sm border border-n-1 bg-white px-4 text-sm font-bold text-n-1 transition-colors outline-none placeholder:text-n-3',
                         'disabled:cursor-not-allowed disabled:opacity-50',
                         'focus:border-primary-1',
                         error && 'border-error',
@@ -78,7 +78,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                                     key={option.value}
                                     value={option.value}
                                     className={twMerge(
-                                        'relative flex w-full cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm font-bold outline-none',
+                                        'relative flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-sm font-bold outline-none select-none',
                                         'transition-colors',
                                         'hover:bg-grey-2 focus:bg-grey-2',
                                         'data-[state=checked]:bg-primary-1 data-[state=checked]:font-bold data-[state=checked]:text-white'

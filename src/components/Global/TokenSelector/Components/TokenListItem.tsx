@@ -69,14 +69,14 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
             <Card
                 position={position}
                 className={twMerge(
-                    'shadow-4 !overflow-visible border border-black p-4 py-3.5',
+                    '!overflow-visible border border-black p-4 py-3.5 shadow-4',
                     isSelected ? 'bg-primary-3' : 'bg-white',
                     !isEnabled && 'bg-grey-2'
                 )}
                 border={true}
             >
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="space-x-3 flex items-center">
                         <div className="relative flex-shrink-0">
                             {!balance.logoURI || tokenPlaceholder || tokenImageError ? (
                                 <AvatarWithBadge name={balance.symbol} size="extra-small" />
@@ -94,7 +94,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                 />
                             )}
                             {chainDetails.iconURI && !chainLogoPlaceholder && !chainImageError && (
-                                <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
                                     <Image
                                         src={chainDetails.iconURI}
                                         alt={`${chainDetails.name} logo`}

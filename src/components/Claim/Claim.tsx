@@ -450,12 +450,12 @@ export const Claim = ({}) => {
                 <div className="flex flex-col items-center gap-4 px-4">
                     <PeanutLoading />
                     {isSendLinkLoading && failureCount > 0 && (
-                        <p className="text-center text-sm text-gray-600">
+                        <p className="text-gray-600 text-center text-sm">
                             {failureCount < 3 ? t('loading.loadingYourLink') : t('loading.takingLonger')}
                         </p>
                     )}
                     {isSendLinkLoading && failureCount >= 3 && (
-                        <p className="text-center text-xs text-gray-500">
+                        <p className="text-gray-500 text-center text-xs">
                             {t('loading.stillTrying', { attempt: failureCount + 1, total: 5 })}
                         </p>
                     )}

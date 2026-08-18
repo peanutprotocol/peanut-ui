@@ -29,7 +29,7 @@ export function QuestLeaderboard({ entries, badgeColor, isCurrency = false }: Qu
     }
 
     return (
-        <div className="w-full space-y-3">
+        <div className="space-y-3 w-full">
             {entries.map((entry, index) => (
                 <motion.div
                     key={entry.userId}
@@ -46,14 +46,14 @@ export function QuestLeaderboard({ entries, badgeColor, isCurrency = false }: Qu
                             {entry.rank === 2 && <span className="text-xl md:text-2xl">🥈</span>}
                             {entry.rank === 3 && <span className="text-xl md:text-2xl">🥉</span>}
                             {entry.rank > 3 && (
-                                <span className="text-base font-bold text-gray-400 md:text-lg">#{entry.rank}</span>
+                                <span className="text-gray-400 text-base font-bold md:text-lg">#{entry.rank}</span>
                             )}
                         </div>
 
                         {/* Username */}
                         <div className="flex min-w-0 flex-col">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <span className="truncate text-sm font-bold text-gray-900 md:text-base">
+                                <span className="text-gray-900 truncate text-sm font-bold md:text-base">
                                     {entry.username}
                                 </span>
                                 {entry.rank <= 3 && (

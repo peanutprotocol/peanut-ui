@@ -76,7 +76,7 @@ const LimitsPageView = () => {
     }, [lockedRegions])
 
     return (
-        <div className="flex min-h-[inherit] flex-col space-y-6">
+        <div className="space-y-6 flex min-h-[inherit] flex-col">
             <NavHeader title={t('title')} onPrev={goBack} titleClassName="text-xl md:text-2xl" />
 
             {/* page description */}

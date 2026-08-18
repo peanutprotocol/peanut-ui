@@ -30,13 +30,13 @@ export function UserRankCard({ metric, username, isCurrency = false, backgroundC
             <div className="flex items-center gap-2 md:gap-3">
                 {/* Rank Badge - Question Mark for User */}
                 <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center md:h-8 md:w-8">
-                    <span className="text-xl font-bold text-gray-400 md:text-2xl">?</span>
+                    <span className="text-gray-400 text-xl font-bold md:text-2xl">?</span>
                 </div>
 
                 {/* Username */}
                 <div className="flex min-w-0 flex-col">
                     <div className="flex items-center gap-1.5 md:gap-2">
-                        <span className="truncate text-sm font-bold text-gray-900 md:text-base">{username}</span>
+                        <span className="text-gray-900 truncate text-sm font-bold md:text-base">{username}</span>
                         <span className="flex-shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 md:px-2 md:text-xs">
                             YOU
                         </span>

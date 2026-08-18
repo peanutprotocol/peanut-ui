@@ -64,7 +64,7 @@ const Modal = ({
                      * Wire it explicitly here, gated by `preventClose` so
                      * destructive-confirmation modals still keep the gate. */}
                     <DialogBackdrop
-                        className={`fixed inset-0 bottom-0  bg-n-1/85 sm:self-auto ${classOverlay}`}
+                        className={`fixed inset-0 bottom-0 bg-n-1/85 sm:self-auto ${classOverlay}`}
                         onClick={() => {
                             if (!preventClose) onClose()
                         }}
@@ -81,7 +81,7 @@ const Modal = ({
                 >
                     <DialogPanel
                         className={twMerge(
-                            `relative bottom-0 z-10 mx-0 max-h-[] w-full max-w-[26rem] self-end rounded-md border-0 bg-white outline-none dark:bg-n-1 sm:m-auto sm:self-auto ${
+                            `max-h-[] relative bottom-0 z-10 mx-0 w-full max-w-[26rem] self-end rounded-md border-0 bg-white outline-none sm:m-auto sm:self-auto dark:bg-n-1 ${
                                 video
                                     ? 'static aspect-video max-w-[64rem] overflow-hidden bg-n-1 shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
                                     : ''
@@ -107,8 +107,8 @@ const Modal = ({
 
                                 <button
                                     className={twMerge(
-                                        `absolute right-2 top-2 p-2 text-0 hover:fill-primary-1 dark:fill-white dark:hover:fill-primary-1 ${
-                                            video ? 'absolute right-3 top-3 h-14 w-14 fill-white' : ''
+                                        `absolute top-2 right-2 p-2 text-0 hover:fill-primary-1 dark:fill-white dark:hover:fill-primary-1 ${
+                                            video ? 'absolute top-3 right-3 h-14 w-14 fill-white' : ''
                                         } ${classButtonClose}`
                                     )}
                                     onClick={onClose}

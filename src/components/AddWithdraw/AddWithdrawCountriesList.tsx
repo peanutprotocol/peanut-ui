@@ -543,7 +543,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     return (
-        <div className="w-full space-y-8 self-start">
+        <div className="space-y-8 w-full self-start">
             <NavHeader
                 title={localizedCountryTitle(locale, currentCountry)}
                 onPrev={() => {

@@ -211,7 +211,7 @@ const UnlockedRegions = () => {
     const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
 
     return (
-        <div className="flex min-h-[inherit] flex-col space-y-8">
+        <div className="space-y-8 flex min-h-[inherit] flex-col">
             <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
             <div className="my-auto">
                 <h1 className="font-bold">{t('title')}</h1>

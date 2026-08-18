@@ -37,7 +37,7 @@ describe('IndicatorDot', () => {
     })
 
     it('positions the support nav badge without dropping the dot styling', () => {
-        const classes = classesOf(<IndicatorDot className="absolute -right-1 -top-1" />)
+        const classes = classesOf(<IndicatorDot className="absolute -top-1 -right-1" />)
         expect(classes).toEqual(
             expect.arrayContaining(['absolute', '-right-1', '-top-1', 'h-2.5', 'w-2.5', 'bg-primary-1'])
         )

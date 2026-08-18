@@ -43,7 +43,7 @@ export default function FeedbackPage() {
 
                     {/* All statuses */}
                     <div className="space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">All Status Types</p>
+                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">All Status Types</p>
                         <div className="flex flex-wrap gap-2">
                             {allStatuses.map((status) => (
                                 <StatusBadge key={status} status={status} />
@@ -53,7 +53,7 @@ export default function FeedbackPage() {
 
                     {/* Sizes */}
                     <div className="space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">Sizes</p>
+                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Sizes</p>
                         <div className="flex items-center gap-3">
                             {(['small', 'medium', 'large'] as const).map((size) => (
                                 <div key={size} className="text-center">
@@ -109,7 +109,7 @@ export default function FeedbackPage() {
                     </p>
 
                     <div className="space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">All Status Types</p>
+                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">All Status Types</p>
                         <div className="flex flex-wrap items-center gap-4">
                             {allStatuses
                                 .filter((s): s is StatusPillType => s !== 'custom')

@@ -124,7 +124,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     </div>
                 )}
 
-                <div className="w-full space-y-2">
+                <div className="space-y-2 w-full">
                     <h3 className={twMerge('text-base font-bold text-black dark:text-white', titleClassName)}>
                         {title}
                     </h3>
@@ -138,14 +138,14 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 {content}
 
                 {(checkbox || (ctas && ctas.length > 0)) && (
-                    <div className="w-full space-y-4">
+                    <div className="space-y-4 w-full">
                         {checkbox && (
                             <div className={twMerge('self-start text-left', checkbox.className)}>
-                                <label className="flex cursor-pointer items-center justify-center space-x-2 text-sm dark:text-white">
+                                <label className="space-x-2 flex cursor-pointer items-center justify-center text-sm dark:text-white">
                                     <input
                                         type="checkbox"
                                         className={twMerge(
-                                            'h-4 w-4 rounded border-gray-300 text-primary-1 shadow-sm focus:border-primary-3 focus:ring focus:ring-primary-2 focus:ring-opacity-50 dark:border-gray-600 dark:bg-n-2 dark:ring-offset-n-1 dark:checked:bg-primary-1 dark:focus:ring-primary-1',
+                                            'border-gray-300 dark:border-gray-600 h-4 w-4 rounded text-primary-1 shadow-sm focus:border-primary-3 focus:ring focus:ring-primary-2/50 dark:bg-n-2 dark:ring-offset-n-1 dark:checked:bg-primary-1 dark:focus:ring-primary-1/50',
                                             checkbox.inputClassName
                                         )}
                                         checked={checkbox.checked}
