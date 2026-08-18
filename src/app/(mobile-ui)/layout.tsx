@@ -43,8 +43,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
     const pathName = usePathname()
 
-    // Allow access to public paths without authentication
-    // Dev test pages (gift-test, shake-test) are only public in dev mode
+    // Allow access to public paths without authentication.
+    // Dev tooling (/dev/*) is public only in local IS_DEV builds. Do NOT widen this to
+    // staging/previews via BASE_URL: DEV_ONLY_PUBLIC_ROUTES_REGEX covers ALL of /dev,
+    // including /dev/debug, whose cheats drive the API dev endpoints — an unauthenticated
+    // staging visitor must never reach them. On deployed builds /dev requires login.
     const isPublicPath = isPublicRoute(pathName, IS_DEV)
 
     const { isFetchingUser, user, userFetchError } = useAuth()
