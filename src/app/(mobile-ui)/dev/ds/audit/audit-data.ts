@@ -4011,7 +4011,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: 'Canonical inline spinner. Keep as <Spinner>. uses text-surface/border-current so it inherits color cleanly.',
     },
     {
-        name: 'PeanutLoading (Global/PeanutLoading)',
+        name: 'Loading variant=mascot (ex-PeanutLoading, folded by DS 06)',
         cat: 'loading',
         catLabel: 'Loading / skeleton / empty',
         layer: 'components',
@@ -4022,7 +4022,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: "Canonical branded loader. Has a redundant 'text-center text-center' double class. CyclingLoading is a fork of this.",
     },
     {
-        name: 'CyclingLoading (Global/PeanutLoading/CyclingLoading)',
+        name: 'CyclingLoading (Global/Loading/CyclingLoading)',
         cat: 'loading',
         catLabel: 'Loading / skeleton / empty',
         layer: 'components',

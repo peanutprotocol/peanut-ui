@@ -21,11 +21,7 @@ export default function SecurityVerificationOverlay() {
     const { isSecurityVerificationOpen } = useModalsContext()
     if (!isSecurityVerificationOpen) return null
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background"
-            role="status"
-            aria-live="polite"
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
             <Loading variant="mascot" message={t('securityVerificationOverlay.message')} />
         </div>
     )

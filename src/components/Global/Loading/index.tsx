@@ -27,17 +27,18 @@ const Loading = ({ className, variant = 'spinner', coverFullScreen = false, mess
             <div role="status" className="w-full flex-col items-center justify-center self-center text-center">
                 <div
                     className={twMerge(
-                        'flex w-full items-center justify-center self-center',
+                        'flex w-full flex-col items-center justify-center self-center',
                         coverFullScreen &&
                             'fixed top-0 left-0 z-50 flex h-screen w-full items-center justify-center bg-background'
                     )}
                 >
                     <div className="animate-spin">
                         <Image src={PEANUTMAN} alt="Peanut mascot" className="h-10 w-auto" />
-                        <span className="sr-only">{message ?? 'Loading...'}</span>
+                        {/* one accessible copy: the visible caption announces when present */}
+                        {!message && <span className="sr-only">Loading...</span>}
                     </div>
+                    {message && <div className="mt-6 text-center font-medium">{message}</div>}
                 </div>
-                <div className="mt-6 self-center text-center font-medium">{message}</div>
             </div>
         )
     }
