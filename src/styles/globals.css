@@ -773,8 +773,11 @@
     .col {
         @apply flex flex-col gap-2;
     }
+    /* ds-06 restyle to vlad's button board (17802:61527): pill shape, M=44px default
+       (touch-target law), Roboto Flex bold via text-button-*, blue focus ring,
+       disabled = 40% opacity (was gray fill). */
     .btn {
-        @apply inline-flex h-13 items-center justify-center rounded-sm border border-n-1 fill-n-1 px-5 text-base font-bold text-n-1 transition-colors disabled:cursor-not-allowed disabled:bg-n-4 disabled:text-grey-1 disabled:hover:bg-n-4/90;
+        @apply inline-flex h-11 items-center justify-center rounded-round border border-border-button fill-foreground-primary px-3 text-button-m text-foreground-primary transition-colors focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:cursor-not-allowed disabled:opacity-40;
     }
     .btn svg {
         @apply fill-inherit;
@@ -789,33 +792,32 @@
             @apply icon-18 first:mr-1.5 last:ml-1.5;
         }
     }
+    /* variant classes are deltas on top of .btn (the component always pairs them;
+       the few raw call-sites all write "btn btn-purple"). board mapping:
+       purple = button.type.primary, stroke = button.type.secondary,
+       transparent* = button.type.ghost. dark/purple-2/yellow are off-board
+       legacy — shape/type restyle inherited from .btn, colors kept until page
+       rebuilds migrate them. */
     .btn-transparent-light {
-        @apply inline-flex h-13 items-center justify-center rounded-sm border px-5 text-base font-bold transition-colors disabled:cursor-not-allowed disabled:bg-n-4 disabled:text-grey-1 disabled:hover:bg-n-4/90;
-        @apply border-transparent fill-white text-white hover:fill-primary-1 hover:text-primary-1;
+        @apply border-transparent fill-white text-white hover:fill-action-ghost-hover hover:text-action-ghost-hover;
     }
     .btn-transparent-dark {
-        @apply inline-flex h-13 items-center justify-center rounded-sm border px-5 text-base font-bold transition-colors disabled:cursor-not-allowed disabled:bg-n-4 disabled:text-grey-1 disabled:hover:bg-n-4/90;
-        @apply border-transparent fill-n-1 text-n-1 hover:fill-primary-1 hover:text-primary-1 dark:fill-white dark:text-white hover:dark:fill-primary-1 dark:hover:text-primary-1;
+        @apply border-transparent fill-foreground-primary text-foreground-primary hover:fill-action-ghost-hover hover:text-action-ghost-hover;
     }
     .btn-purple {
-        @apply inline-flex h-13 items-center justify-center rounded-sm border border-n-1 fill-n-1 px-5 text-base font-bold text-n-1 transition-colors disabled:cursor-not-allowed disabled:bg-n-4 disabled:text-grey-1 disabled:hover:bg-n-4/90;
-        @apply bg-primary-1 hover:bg-primary-1/90;
+        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-purple-2 {
-        @apply inline-flex h-13 items-center justify-center rounded-sm border border-n-1 fill-n-1 px-5 text-base font-bold text-n-1 transition-colors disabled:cursor-not-allowed disabled:bg-n-4 disabled:text-grey-1 disabled:hover:bg-n-4/90;
         @apply bg-purple-3 hover:bg-purple-3/90;
     }
     .btn-yellow {
-        @apply inline-flex h-13 items-center justify-center rounded-sm border border-n-1 fill-n-1 px-5 text-base font-bold text-n-1 transition-colors disabled:cursor-not-allowed disabled:bg-n-4 disabled:text-grey-1 disabled:hover:bg-n-4/90;
         @apply bg-secondary-1 hover:bg-secondary-1/90;
     }
     .btn-dark {
-        @apply inline-flex h-13 items-center justify-center rounded-sm border border-n-1 px-5 text-base font-bold transition-colors disabled:cursor-not-allowed disabled:bg-n-4 disabled:text-grey-1 disabled:hover:bg-n-4/90;
-        @apply bg-n-1 fill-white text-white hover:bg-n-1/80 dark:bg-white/10 dark:hover:bg-white/20;
+        @apply bg-n-1 fill-white text-white hover:bg-n-1/80;
     }
     .btn-stroke {
-        @apply inline-flex h-13 items-center justify-center rounded-sm border border-n-1 fill-n-1 px-5 text-base font-bold text-n-1 transition-colors disabled:cursor-not-allowed disabled:bg-n-4 disabled:text-grey-1 disabled:hover:bg-n-4/90;
-        @apply hover:bg-n-1 hover:fill-white hover:text-white dark:border-white dark:fill-white dark:text-white dark:hover:bg-white dark:hover:fill-n-1 dark:hover:text-n-1;
+        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-shadow {
         @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
@@ -826,17 +828,19 @@
     .btn-square svg {
         @apply !mr-0 !ml-0;
     }
+    /* board sizes: l=48px, m=44px (default, on .btn), s=40px visual with a
+       pseudo-element extending the hit area to 44px (touch-target law). */
     .btn-small {
-        @apply h-8 px-3 text-xs;
+        @apply relative h-10 px-2 text-button-s after:absolute after:inset-x-0 after:-inset-y-0.5;
     }
     .btn-xs {
         @apply h-8 w-8 px-0 text-xs;
     }
     .btn-medium {
-        @apply h-9 px-3 text-xs;
+        @apply h-11 px-3 text-button-m;
     }
     .btn-large {
-        @apply h-10 px-3 text-lg;
+        @apply h-12 px-6 text-button-l;
     }
     .btn-xl {
         @apply h-12 w-full max-w-96 px-2 text-lg;
@@ -857,10 +861,10 @@
         }
     }
     .btn-square.btn-small {
-        @apply w-8;
+        @apply w-10;
     }
     .btn-square.btn-medium {
-        @apply w-9;
+        @apply w-11;
     }
     .label {
         @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;

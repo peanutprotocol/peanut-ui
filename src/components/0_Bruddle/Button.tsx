@@ -20,11 +20,15 @@ type ShadowSize = '3' | '4' | '6' | '8'
 type ShadowType = 'primary' | 'secondary'
 
 /**
- * Primary button component.
+ * Primary button component. Styled to the figma button board (17802:61527):
+ * pill shape, sizes l=48/m=44 (default)/s=40px, primary + stroke carry the
+ * 4px shadow by default.
  *
- * @prop variant - Visual style. 'purple' for primary CTAs, 'stroke' for secondary.
- * @prop size - Height override. Omit for default h-13 (tallest). 'large' is h-10 (shorter!).
- * @prop shadowSize - Drop shadow depth. '4' is standard (160+ usages).
+ * @prop variant - Visual style. 'purple' = board primary, 'stroke' = board
+ *   secondary, 'transparent' = board ghost. Others are legacy.
+ * @prop size - Omit for medium (44px). 'large' is 48px, 'small' is 40px.
+ * @prop shadowSize - Shadow depth override; '4' is already the default on
+ *   purple/stroke, so passing it is a no-op kept for compatibility.
  * @prop longPress - Hold-to-confirm behavior with progress bar animation.
  */
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -56,7 +60,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
     'transparent-dark': 'btn-transparent-dark',
     'primary-soft': 'bg-white',
     transparent:
-        'bg-transparent border-none hover:bg-transparent !active:bg-transparent focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent',
+        'bg-transparent border-none hover:bg-transparent !active:bg-transparent focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent hover:text-action-ghost-hover',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -138,7 +142,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )
 
         const buttonClasses = twMerge(
-            `btn w-full flex items-center gap-2 transition-all duration-100 active:translate-x-[3px] active:translate-y-[${shadowSize}px] active:shadow-none notranslate`,
+            // static pressed-state classes: the old `translate-y-[${shadowSize}px]`
+            // template never generated a real class under the jit scanner
+            'btn w-full flex items-center gap-2 transition-all duration-100 active:translate-x-1 active:translate-y-1 active:shadow-none notranslate',
             buttonVariants[variant],
             variant === 'transparent' && props.disabled && 'disabled:bg-transparent disabled:border-transparent',
             size && buttonSizes[size],
