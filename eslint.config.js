@@ -17,6 +17,91 @@ const globals = require('globals')
 // — the guard is preventative; cleanup belongs in a separate sweep.
 const BANNED_BARREL_PATHS = ['@/constants', '@/components', '@/assets', '@/context', '@/interfaces', '@/config']
 
+const RESTRICTED_IMPORT_PATHS = BANNED_BARREL_PATHS.map((path) => ({
+    name: path,
+    message: `Import from a specific file instead of the '${path}' barrel — barrels force the bundler to load every re-export and hurt build perf. See CLAUDE.md.`,
+}))
+
+// DS 10 (TASK-21450): URL state belongs to nuqs. CLAUDE.md "URL as State": use
+// useQueryStates, never manually parse/set query params with router.push or
+// URLSearchParams. Existing offenders are allowlisted below (ratchet — remove
+// entries as files migrate); only NEW files are blocked from the pattern.
+const USE_SEARCH_PARAMS_IMPORT_RESTRICTION = {
+    name: 'next/navigation',
+    importNames: ['useSearchParams'],
+    message:
+        "Don't read query params with useSearchParams — use useQueryStates from 'nuqs' (typed parsers, URL as state). See CLAUDE.md 'URL as State'. DS 10 ratchet: existing files are allowlisted; new files must use nuqs.",
+}
+
+const QUERY_STRING_PUSH_MESSAGE =
+    "Don't build a query string by hand for router.push/replace — write URL state with useQueryStates from 'nuqs' (its setter updates the params in place; pathname-only navigation is fine). See CLAUDE.md 'URL as State'. DS 10 ratchet: existing files are allowlisted; new files must use nuqs."
+
+// Best-effort: catches router.push('/x?y=1') and router.push(`/x?y=${z}`) — a '?'
+// in a string/template argument means a hand-built query string. Concatenations
+// ('/x' + qs) and variables slip through; keeping the selector simple keeps it
+// false-positive-free for pathname-only pushes.
+const QUERY_STRING_PUSH_RESTRICTIONS = [
+    {
+        selector:
+            "CallExpression[callee.object.name='router'][callee.property.name=/^(push|replace)$/] > Literal[value=/\\?/]",
+        message: QUERY_STRING_PUSH_MESSAGE,
+    },
+    {
+        selector:
+            "CallExpression[callee.object.name='router'][callee.property.name=/^(push|replace)$/] > TemplateLiteral > TemplateElement[value.raw=/\\?/]",
+        message: QUERY_STRING_PUSH_MESSAGE,
+    },
+]
+
+// Pre-DS-10 syntax restrictions — shared so the DS 10 allowlist block below can
+// re-apply them while dropping only the query-string-push restriction.
+const RESTRICTED_SYNTAX_BASE = [
+    {
+        selector: "CallExpression[callee.object.name='router'][callee.property.name='back']",
+        message:
+            "Don't call router.back() directly — it no-ops on deep-link entries (cold tab, QR scan, push notification). Use useSafeBack(fallbackUrl) from '@/hooks/useSafeBack' instead. See PR #1965.",
+    },
+    {
+        // Only matches the simple () => router.push|replace(x) arrow-body shape —
+        // multi-statement handlers (state resets, conditional branches) keep their
+        // freedom since they often combine navigation with intentional side effects.
+        selector:
+            "JSXAttribute[name.name=/^(onPrev|onBack)$/] > JSXExpressionContainer > ArrowFunctionExpression[body.type='CallExpression'][body.callee.object.name='router'][body.callee.property.name=/^(push|replace)$/]",
+        message:
+            'Bare router.push/replace as onPrev/onBack creates a parent↔child cycle once the parent uses useSafeBack (the push grows in-app history, useSafeBack pops back to this screen, repeat). Use useSafeBack(parentUrl) — pass { replace: true } to preserve replace semantics. See PR #1997.',
+    },
+    {
+        selector:
+            "MemberExpression[object.object.name='window'][object.property.name='history'][property.name='length']",
+        message:
+            "window.history.length is the pre-useSafeBack idiom (history.length > 1 ? back : push). It misfires on cold-load from external referrers — useSafeBack's pushState counter is more accurate. See PR #1965.",
+    },
+    {
+        // nuqs `history: 'push'` stacks a browser-history entry on every URL write.
+        // For per-keystroke params (e.g. `amount`) that poisons the back stack:
+        // useSafeBack → router.back() then steps through stale same-screen states
+        // and the back button looks dead (add-money MP/bank reports, June 2026).
+        selector: "CallExpression[callee.name=/^useQueryStates?$/] Property[key.name='history'][value.value='push']",
+        message:
+            "Don't pass { history: 'push' } to nuqs useQueryState(s) — a history entry per URL write breaks the back button (useSafeBack steps through same-screen states instead of leaving). Use the default 'replace'; the URL stays shareable. If a flow genuinely needs push-per-step, add a scoped file exemption with a comment (see useNativePlugins).",
+    },
+    {
+        // Toast copy must come from next-intl. `react/jsx-no-literals` below
+        // only inspects JSX children, so toasts fired from hooks and contexts
+        // (authContext, useLogin, useSendMoney, QRScanner) shipped English to
+        // every locale unnoticed.
+        //
+        // Deliberately NOT extended to `throw new Error('…')`: those messages
+        // are developer/Sentry breadcrumbs that the friendly-error mapper
+        // collapses to `errors.genericSupport` before any user sees them, so
+        // translating them would only fragment Sentry issue grouping.
+        selector:
+            "CallExpression[callee.object.name='toast'][callee.property.name=/^(error|success|info|warning|loading)$/] > :matches(Literal, TemplateLiteral):first-child",
+        message:
+            "Don't pass a string literal to toast.* — copy must come from next-intl. Import the right namespace with useTranslations and pass t('…'). If the value genuinely isn't copy (an id, a URL), assign it to a named const first.",
+    },
+]
+
 module.exports = [
     {
         ignores: [
@@ -88,14 +173,11 @@ module.exports = [
             // `jsx`/`global` are styled-jsx's <style> attributes (built into Next), not DOM props.
             'react/no-unknown-property': ['error', { ignore: ['jsx', 'global'] }],
 
-            // Ban barrel imports — see BANNED_BARREL_PATHS above.
+            // Ban barrel imports (see BANNED_BARREL_PATHS) + useSearchParams (DS 10).
             'no-restricted-imports': [
                 'error',
                 {
-                    paths: BANNED_BARREL_PATHS.map((path) => ({
-                        name: path,
-                        message: `Import from a specific file instead of the '${path}' barrel — barrels force the bundler to load every re-export and hurt build perf. See CLAUDE.md.`,
-                    })),
+                    paths: [...RESTRICTED_IMPORT_PATHS, USE_SEARCH_PARAMS_IMPORT_RESTRICTION],
                 },
             ],
 
@@ -107,56 +189,10 @@ module.exports = [
             // Self-imports are still caught above. Revisit when the plugin matures or someone
             // figures out the resolver gotcha.
 
-            // Project-specific: catch the back-button bug class.
-            // See src/hooks/useSafeBack.ts, PR #1965 (router.back), PR #1997 (sibling patterns).
-            'no-restricted-syntax': [
-                'error',
-                {
-                    selector: "CallExpression[callee.object.name='router'][callee.property.name='back']",
-                    message:
-                        "Don't call router.back() directly — it no-ops on deep-link entries (cold tab, QR scan, push notification). Use useSafeBack(fallbackUrl) from '@/hooks/useSafeBack' instead. See PR #1965.",
-                },
-                {
-                    // Only matches the simple () => router.push|replace(x) arrow-body shape —
-                    // multi-statement handlers (state resets, conditional branches) keep their
-                    // freedom since they often combine navigation with intentional side effects.
-                    selector:
-                        "JSXAttribute[name.name=/^(onPrev|onBack)$/] > JSXExpressionContainer > ArrowFunctionExpression[body.type='CallExpression'][body.callee.object.name='router'][body.callee.property.name=/^(push|replace)$/]",
-                    message:
-                        'Bare router.push/replace as onPrev/onBack creates a parent↔child cycle once the parent uses useSafeBack (the push grows in-app history, useSafeBack pops back to this screen, repeat). Use useSafeBack(parentUrl) — pass { replace: true } to preserve replace semantics. See PR #1997.',
-                },
-                {
-                    selector:
-                        "MemberExpression[object.object.name='window'][object.property.name='history'][property.name='length']",
-                    message:
-                        "window.history.length is the pre-useSafeBack idiom (history.length > 1 ? back : push). It misfires on cold-load from external referrers — useSafeBack's pushState counter is more accurate. See PR #1965.",
-                },
-                {
-                    // nuqs `history: 'push'` stacks a browser-history entry on every URL write.
-                    // For per-keystroke params (e.g. `amount`) that poisons the back stack:
-                    // useSafeBack → router.back() then steps through stale same-screen states
-                    // and the back button looks dead (add-money MP/bank reports, June 2026).
-                    selector:
-                        "CallExpression[callee.name=/^useQueryStates?$/] Property[key.name='history'][value.value='push']",
-                    message:
-                        "Don't pass { history: 'push' } to nuqs useQueryState(s) — a history entry per URL write breaks the back button (useSafeBack steps through same-screen states instead of leaving). Use the default 'replace'; the URL stays shareable. If a flow genuinely needs push-per-step, add a scoped file exemption with a comment (see useNativePlugins).",
-                },
-                {
-                    // Toast copy must come from next-intl. `react/jsx-no-literals` below
-                    // only inspects JSX children, so toasts fired from hooks and contexts
-                    // (authContext, useLogin, useSendMoney, QRScanner) shipped English to
-                    // every locale unnoticed.
-                    //
-                    // Deliberately NOT extended to `throw new Error('…')`: those messages
-                    // are developer/Sentry breadcrumbs that the friendly-error mapper
-                    // collapses to `errors.genericSupport` before any user sees them, so
-                    // translating them would only fragment Sentry issue grouping.
-                    selector:
-                        "CallExpression[callee.object.name='toast'][callee.property.name=/^(error|success|info|warning|loading)$/] > :matches(Literal, TemplateLiteral):first-child",
-                    message:
-                        "Don't pass a string literal to toast.* — copy must come from next-intl. Import the right namespace with useTranslations and pass t('…'). If the value genuinely isn't copy (an id, a URL), assign it to a named const first.",
-                },
-            ],
+            // Project-specific: catch the back-button bug class (RESTRICTED_SYNTAX_BASE —
+            // PR #1965 router.back, PR #1997 sibling patterns, nuqs history:'push',
+            // toast literals) + hand-built query-string pushes (DS 10, TASK-21450).
+            'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_BASE, ...QUERY_STRING_PUSH_RESTRICTIONS],
         },
     },
     {
@@ -173,8 +209,112 @@ module.exports = [
         // PublicProfile is the one place we intentionally keep an isInternalReferrer +
         // window.history.length check. The referrer signal is orthogonal to useSafeBack's
         // counter; migrating loses information for external-referrer cold-loads.
+        // Scoped, not blanket off: only the two selectors that idiom needs are dropped
+        // (history.length + the router.back it gates), so the other restrictions still
+        // apply here. The file also has one pre-ban query push (`/invite?code=…`) —
+        // treat it as a DS 10 ratchet allowlist member (TASK-21450): the query-push
+        // restrictions are not re-applied; migrate it to nuqs, then re-add.
         files: ['src/components/Profile/components/PublicProfile.tsx'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                ...RESTRICTED_SYNTAX_BASE.filter(
+                    (r) =>
+                        !r.selector.includes("[property.name='length']") &&
+                        !r.selector.includes("[callee.property.name='back']")
+                ),
+            ],
+        },
+    },
+    {
+        // DS 10 ratchet allowlist — do not add files; migrate to nuqs instead
+        // (remove entries as files migrate). These files imported useSearchParams
+        // before the ban (TASK-21450); the barrel-import ban still applies.
+        files: [
+            // NOTE: [ and ] are minimatch character classes — dynamic-segment dirs
+            // like [country] must be escaped as \\[country\\] to match literally.
+            'src/app/(mobile-ui)/add-money/\\[country\\]/\\[regional-method\\]/page.tsx',
+            'src/app/(mobile-ui)/add-money/\\[country\\]/bank/page.tsx',
+            'src/app/(mobile-ui)/add-money/page.tsx',
+            'src/app/(mobile-ui)/card-payment/page.tsx',
+            'src/app/(mobile-ui)/dev/leaderboard/page.tsx',
+            'src/app/(mobile-ui)/dev/payment-graph/page.tsx',
+            'src/app/(mobile-ui)/pay-request/page.tsx',
+            'src/app/(mobile-ui)/qr-pay/page.tsx',
+            'src/app/(mobile-ui)/qr/\\[code\\]/page.tsx',
+            'src/app/(mobile-ui)/qr/\\[code\\]/success/page.tsx',
+            'src/app/(mobile-ui)/qr/page.tsx',
+            'src/app/(mobile-ui)/receipt/page.tsx',
+            'src/app/(mobile-ui)/request/page.tsx',
+            'src/app/(mobile-ui)/withdraw/\\[country\\]/bank/page.tsx',
+            'src/app/(mobile-ui)/withdraw/manteca/page.tsx',
+            'src/app/(mobile-ui)/withdraw/page.tsx',
+            'src/app/(setup)/setup/page.tsx',
+            'src/app/\\[...recipient\\]/client.tsx',
+            'src/app/crisp-proxy/page.tsx',
+            'src/app/quests/\\[questId\\]/page.tsx',
+            'src/app/quests/components/QuestsHero.tsx',
+            'src/app/quests/explore/page.tsx',
+            'src/app/recover-wallet/page.tsx',
+            'src/components/AddMoney/components/MantecaAddMoney.tsx',
+            'src/components/AddWithdraw/AddWithdrawCountriesList.tsx',
+            'src/components/AddWithdraw/AddWithdrawRouterView.tsx',
+            'src/components/AddWithdraw/DynamicBankAccountForm.tsx',
+            'src/components/Claim/Claim.tsx',
+            'src/components/Claim/Link/Initial.view.tsx',
+            'src/components/Claim/Link/Onchain/Confirm.view.tsx',
+            'src/components/Claim/Link/Onchain/Success.view.tsx',
+            'src/components/Claim/Link/views/BankFlowManager.view.tsx',
+            'src/components/Claim/useClaimLink.tsx',
+            'src/components/Common/CountryList.tsx',
+            'src/components/Global/QRScannerOverlay/index.tsx',
+            'src/components/Global/UnsupportedBrowserModal/index.tsx',
+            'src/components/Invites/InvitesPage.tsx',
+            'src/components/Marketing/HelpLanding.tsx',
+            'src/components/Request/Pay/Pay.tsx',
+            'src/components/Request/link/views/Create.request.link.view.tsx',
+            'src/components/Send/views/Contacts.view.tsx',
+            'src/components/Send/views/SendRouter.view.tsx',
+            'src/context/ReproduceBootstrap.tsx',
+            'src/features/payments/flows/semantic-request/SemanticRequestPageWrapper.tsx',
+            'src/features/payments/flows/semantic-request/views/SemanticRequestConfirmView.tsx',
+            'src/features/payments/flows/semantic-request/views/SemanticRequestSuccessView.tsx',
+            'src/hooks/useAccountSetup.ts',
+            'src/hooks/useLogin.tsx',
+            'src/hooks/useSendFlowOrigin.ts',
+        ],
+        rules: {
+            'no-restricted-imports': ['error', { paths: RESTRICTED_IMPORT_PATHS }],
+        },
+    },
+    {
+        // DS 10 ratchet allowlist — do not add files; migrate to nuqs instead
+        // (remove entries as files migrate). These files pushed hand-built query
+        // strings before the ban (TASK-21450); every other syntax restriction
+        // (RESTRICTED_SYNTAX_BASE) still applies.
+        files: [
+            'src/app/(mobile-ui)/add-money/page.tsx',
+            'src/app/(mobile-ui)/dev/leaderboard/page.tsx',
+            'src/app/(mobile-ui)/qr-pay/page.tsx',
+            'src/app/(mobile-ui)/withdraw/page.tsx',
+            'src/app/lp/card/CardLandingPage.tsx',
+            'src/app/shhhhh/ShhhhhLandingPage.tsx',
+            'src/components/AddMoney/views/AddMoneyMethodSelection.view.tsx',
+            'src/components/AddWithdraw/AddWithdrawCountriesList.tsx',
+            'src/components/AddWithdraw/AddWithdrawRouterView.tsx',
+            'src/components/Claim/Link/SendLinkActionList.tsx',
+            'src/components/Global/GuestVerificationModal/index.tsx',
+            'src/components/Marketing/mdx/ExchangeWidget.tsx',
+            'src/components/Send/views/Contacts.view.tsx',
+            'src/components/Send/views/SendRouter.view.tsx',
+            'src/features/payments/flows/contribute-pot/components/RequestPotActionList.tsx',
+            'src/features/payments/flows/semantic-request/views/SemanticRequestConfirmView.tsx',
+            'src/features/payments/flows/semantic-request/views/SemanticRequestSuccessView.tsx',
+            'src/features/payments/shared/components/PaymentMethodActionList.tsx',
+        ],
+        rules: {
+            'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_BASE],
+        },
     },
     {
         // require() inside test bodies is the Jest idiom for reading mocks after
