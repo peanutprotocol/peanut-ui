@@ -46,7 +46,12 @@ const IGNORED_ERRORS = {
     // internal fetchWithSentry wrapper names, not generic strings that could
     // appear in an unrelated third-party error message. ConnectionTimeoutError
     // is the timeout-path wrapper; ServiceUnavailableError the generic one.
-    alreadyReported: ['ServiceUnavailableError', 'ConnectionTimeoutError'],
+    // PasskeyError is the same shape one layer up: useZeroDev classifies the raw
+    // WebAuthn failure, captures it with full context (or deliberately doesn't,
+    // for a plain user cancel), then throws a curated user-facing wrapper. Call
+    // sites that re-report that wrapper add a second, context-free event and
+    // undo the deliberate silence around LOGIN_CANCELED.
+    alreadyReported: ['ServiceUnavailableError', 'ConnectionTimeoutError', 'PasskeyError'],
 
     // Third-party SDK internal errors (not actionable)
     thirdPartySdkErrors: [

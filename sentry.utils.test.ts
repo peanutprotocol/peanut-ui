@@ -102,3 +102,19 @@ describe('shouldIgnoreError — Capgo updater noise', () => {
         expect(shouldIgnoreError(eventWith({ type: 'Error', value: 'Download error: statement failed' }))).toBe(false)
     })
 })
+
+describe('shouldIgnoreError — passkey wrapper', () => {
+    it('ignores the curated PasskeyError wrapper (useZeroDev already reported the raw failure)', () => {
+        const event = eventWith({
+            type: 'PasskeyError',
+            value: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
+        })
+        expect(shouldIgnoreError(event)).toBe(true)
+    })
+
+    it('still reports the underlying WebAuthn failure', () => {
+        expect(shouldIgnoreError(eventWith({ type: 'NotReadableError', value: 'passkey prompt interrupted' }))).toBe(
+            false
+        )
+    })
+})
