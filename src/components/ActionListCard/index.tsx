@@ -1,11 +1,9 @@
 'use client'
 
-import Card from '@/components/Global/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
-import { Icon } from '@/components/Global/Icons/Icon'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
-import { Button } from '@/components/0_Bruddle/Button'
 import { useHaptic } from 'use-haptic'
 
 interface ActionListCardProps {
@@ -19,8 +17,13 @@ interface ActionListCardProps {
     isDisabled?: boolean
     descriptionClassName?: string
     titleClassName?: string
+    /** default: chevron shows when no rightContent. pass false to suppress it
+     *  (replaces the rightContent={<div className="hidden" />} hack) */
+    chevron?: boolean
 }
 
+// ds-06: thin haptic wrapper over the ListItem primitive (board 17802:61530) —
+// same API as before, rendering delegated to the one row component.
 export const ActionListCard = ({
     title,
     description,
@@ -32,48 +35,31 @@ export const ActionListCard = ({
     isDisabled = false,
     descriptionClassName,
     titleClassName,
+    chevron,
 }: ActionListCardProps) => {
     const { triggerHaptic } = useHaptic()
 
-    const handleCardClick = () => {
+    const handleClick = () => {
         triggerHaptic()
         onClick()
     }
 
     return (
-        <Card
-            onClick={isDisabled ? undefined : handleCardClick}
+        <ListItem
+            // always node-wrapped: legacy call sites pass sentence-length
+            // descriptions and block nodes that must wrap, not truncate
+            title={<div className={twMerge(titleClassName)}>{title}</div>}
+            body={description && <div className={twMerge(descriptionClassName)}>{description}</div>}
+            leading={leftIcon}
+            trailing={rightContent}
+            chevron={chevron ?? !rightContent}
             position={position}
-            className={twMerge(
-                'hover:bg-gray-50 cursor-pointer',
-                isDisabled ? 'bg-grey-4 hover:bg-grey-4' : '',
-                className
-            )}
-        >
-            <div className="flex items-center justify-between">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                    {leftIcon}
-                    <div className="flex min-w-0 flex-1 flex-col">
-                        <div className={twMerge('font-medium', titleClassName)}>{title}</div>
-                        {description && (
-                            <div className={twMerge('text-sm text-grey-1', descriptionClassName)}>{description}</div>
-                        )}
-                    </div>
-                </div>
-                {rightContent ? (
-                    rightContent
-                ) : (
-                    <Button
-                        shadowSize="4"
-                        size="small"
-                        className="h-6 w-6 rounded-full p-0 shadow-[0.12rem_0.12rem_0_#000000]"
-                    >
-                        <div className="flex size-7 items-center justify-center">
-                            <Icon name="chevron-up" size={18} className="rotate-90" />
-                        </div>
-                    </Button>
-                )}
-            </div>
-        </Card>
+            disabled={isDisabled}
+            onClick={handleClick}
+            // legacy disabled look: grey fill (rows disabled-because-completed
+            // must not fade like unavailable ones) — opacity-100 overrides
+            // ListItem's opacity-40 while keeping its aria-disabled
+            className={twMerge(isDisabled && 'bg-grey-4 opacity-100', className)}
+        />
     )
 }
