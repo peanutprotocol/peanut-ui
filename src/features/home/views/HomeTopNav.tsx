@@ -23,7 +23,14 @@ export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
     return (
         <div className="flex items-center justify-between">
             <Link href="/profile" onClick={() => triggerHaptic()} className="block">
-                <AvatarWithBadge size="small" name={avatarName} />
+                {/* usernameless users get a bordered user-icon circle instead of
+                    an invisible (colorless) initials avatar */}
+                <AvatarWithBadge
+                    size="small"
+                    name={avatarName}
+                    icon={avatarName ? undefined : 'user'}
+                    className={avatarName ? undefined : 'border border-border-default'}
+                />
             </Link>
             {showRewards && (
                 <Link href="/rewards" onClick={() => triggerHaptic()} className="flex items-center gap-1">
