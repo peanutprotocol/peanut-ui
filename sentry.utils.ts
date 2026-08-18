@@ -60,17 +60,38 @@ const IGNORED_ERRORS = {
 }
 
 /**
+ * Capgo's background updater logs every transient CDN/network hiccup at error
+ * level, and captureConsoleIntegration promotes each one into a Sentry event
+ * (~95/day on native). The user never sees them: the updater just retries on
+ * the next launch. Suppress those, but keep the failures that mean OTA is
+ * genuinely broken rather than merely flaky — a bundle that semver-sorts below
+ * the installed binary, or one that arrived corrupt.
+ */
+const CAPGO_LOG_PREFIXES = ['[CapgoUpdater]', 'CapgoUpdater :', '[capgo]']
+const CAPGO_ACTIONABLE = ['disable_auto_update_under_native', 'Checksum mismatch']
+
+function isTransientCapgoNoise(searchTexts: string[]): boolean {
+    const fromCapgo = searchTexts.some((text) => CAPGO_LOG_PREFIXES.some((prefix) => text.includes(prefix)))
+    if (!fromCapgo) return false
+    return !searchTexts.some((text) => CAPGO_ACTIONABLE.some((pattern) => text.includes(pattern)))
+}
+
+/**
  * Check if error message matches any ignored pattern
  */
 export function shouldIgnoreError(event: ErrorEvent): boolean {
     const message = event.message || ''
-    const exceptionValue = event.exception?.values?.[0]?.value || ''
-    const exceptionType = event.exception?.values?.[0]?.type || ''
     const culprit = (event as any).culprit || ''
+    // Every link in the chain, not just values[0]. Sentry orders `exception.values`
+    // root-cause-first, so for an error carrying a `cause` the wrapper we actually
+    // want to match sits at the END. fetchWithSentry always sets `userError.cause`,
+    // which left `alreadyReported` inert for every chained fetch failure — the case
+    // it was written for (PEANUT-UI-SNP double-counted PEANUT-UI-QEY for a month).
+    const exceptionTexts = (event.exception?.values ?? []).flatMap((v) => [v.value || '', v.type || ''])
 
     // Match each field independently — concatenating them would let a pattern
     // match across unrelated fields and suppress a legitimate event.
-    const searchTexts = [message, exceptionValue, exceptionType, culprit]
+    const searchTexts = [message, culprit, ...exceptionTexts]
 
     // Check all ignore patterns
     for (const patterns of Object.values(IGNORED_ERRORS)) {
@@ -81,8 +102,12 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
         }
     }
 
+    if (isTransientCapgoNoise(searchTexts)) {
+        return true
+    }
+
     // Ignore errors from browser extensions (client-side only, but safe to check everywhere)
-    const frames = event.exception?.values?.[0]?.stacktrace?.frames || []
+    const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
     for (const frame of frames) {
         const filename = frame.filename || ''
         if (
