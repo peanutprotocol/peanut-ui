@@ -90,6 +90,10 @@ describe('useHomeFlow', () => {
         mockUser = userWith({ showFullName: false, fullName: 'Kushagra S' })
         expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBe('kush')
 
+        // usernameless: full name still seeds the initials
+        mockUser = { user: { userId: 'u1', username: null, fullName: 'Kushagra S' } }
+        expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBe('Kushagra S')
+
         mockUser = { user: { userId: 'u1', username: null } }
         expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBeUndefined()
     })

@@ -23,13 +23,19 @@ export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
     return (
         <div className="flex items-center justify-between">
             <Link href="/profile" onClick={() => triggerHaptic()} className="block" aria-label={t('openProfile')}>
-                {/* usernameless users get a bordered user-icon circle instead of
-                    an invisible (colorless) initials avatar */}
+                {/* figma avatar = initials on the avatar palette. a user with no
+                    name string at all still gets an avatar-toned circle (yellow —
+                    the palette's no-name default) instead of a generic icon */}
                 <AvatarWithBadge
                     size="small"
                     name={avatarName}
                     icon={avatarName ? undefined : 'user'}
-                    className={avatarName ? undefined : 'border border-border-default'}
+                    className={
+                        avatarName
+                            ? undefined
+                            : 'border border-avatar-yellow-border bg-avatar-yellow text-avatar-yellow-foreground'
+                    }
+                    iconFillColor={avatarName ? undefined : 'var(--color-avatar-yellow-foreground)'}
                 />
             </Link>
             {showRewards && (
