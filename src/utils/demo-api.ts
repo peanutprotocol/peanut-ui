@@ -512,17 +512,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             transitivePoints: 30,
             totalPoints: 150,
             currentTier: 2,
-            leaderboardRank: 42,
             nextTierThreshold: 300,
             pointsToNextTier: 150,
         }),
     },
     { method: 'POST', pattern: '/points/calculate', handler: () => ({ estimatedPoints: 10 }) },
-    {
-        method: 'GET',
-        pattern: '/points/time-leaderboard',
-        handler: () => ({ leaderboard: [], since: CREATED_AT, limit: 10 }),
-    },
     {
         method: 'GET',
         pattern: '/points/cash-status',

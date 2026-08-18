@@ -1620,6 +1620,7 @@ export interface paths {
                             tokenSymbol?: string;
                             tokenDecimals?: number;
                             recipientAddress?: string;
+                            recipientEnsName?: string;
                             requesteeUsername?: string;
                             tokenAmount?: string;
                         };
@@ -1645,6 +1646,7 @@ export interface paths {
                             tokenSymbol?: string;
                             tokenDecimals?: number;
                             recipientAddress?: string;
+                            recipientEnsName?: string;
                             requesteeUsername?: string;
                             tokenAmount?: string;
                         };
@@ -1670,6 +1672,7 @@ export interface paths {
                             tokenSymbol: string;
                             tokenDecimals: number;
                             recipientAddress: string;
+                            recipientEnsName?: string;
                             requesteeUsername?: string;
                             tokenAmount?: string;
                         };
@@ -7164,78 +7167,6 @@ export interface paths {
                 header: {
                     Authorization: string;
                 };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/points/leaderboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    limit?: number;
-                    includeMe?: boolean;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/points/time-leaderboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: {
-                    limit?: number;
-                    since?: string;
-                };
-                header?: never;
                 path?: never;
                 cookie?: never;
             };

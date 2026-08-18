@@ -16,6 +16,7 @@ import { cardApi } from '@/services/card'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
+import { getBadgeIcon } from '@/components/Badges/badge.utils'
 import { captureException } from '@sentry/nextjs'
 import {
     destinationForShhhhhClaims,
@@ -59,10 +60,22 @@ const statLabelKeys = ['statMerchants', 'statBalance', 'statCard', 'statMiddleme
 
 const faqKeys = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const
 
-const badges: Array<{ code: string; name: string; src: string }> = [
-    { code: 'OG_2025_10_12', name: 'Peanut OG', src: '/badges/og_v1.svg' },
-    { code: 'DEVCONNECT_BA_2025', name: 'Devconnect BA', src: '/badges/devconnect_2025.svg' },
-    { code: 'ARBIVERSE_DEVCONNECT_BA_2025', name: 'Arbiverse', src: '/badges/arbiverse_devconnect.svg' },
+// The full skip set: keep the codes in sync with SKIP_BADGE_CODES
+// (peanut-api-ts src/card/waitlist.ts, pinned in waitlist.test.ts). Icons come
+// from the generated badge-asset manifest, names are marketing-shortened.
+const badges: Array<{ code: string; name: string }> = [
+    { code: 'OG_2025_10_12', name: 'Peanut OG' },
+    { code: 'DEVCONNECT_BA_2025', name: 'Devconnect BA' },
+    { code: 'ARBIVERSE_DEVCONNECT_BA_2025', name: 'Arbiverse' },
+    { code: 'SEEDLING_DEVCONNECT_BA_2025', name: 'Seedling' },
+    { code: 'EVENT_ALUMNI', name: 'Event Alumni' },
+    { code: 'CARD_PIONEER', name: 'Founding Pioneer' },
+    { code: 'OFFRAMP_USER', name: 'Offramp User' },
+    { code: 'NAIJA', name: '9JA' },
+    { code: 'TERERE', name: 'Tereré' },
+    { code: 'ACAI_POWERED', name: 'Açaí Powered' },
+    { code: 'NITA', name: 'Nita' },
+    { code: 'WAITLIST_SKIP', name: 'Skip Pass' },
 ]
 
 const ctaButtonClassName =
@@ -147,6 +160,7 @@ export default function ShhhhhLandingPage() {
     const [joinedPosition, setJoinedPosition] = useState<number | null | undefined>(undefined)
     const [ctaBusy, setCtaBusy] = useState(false)
     const [joinError, setJoinError] = useState(false)
+    const [showAllBadges, setShowAllBadges] = useState(false)
     const isJoined = joinedPosition !== undefined
 
     const joinWaitlist = useCallback(async () => {
@@ -445,14 +459,14 @@ export default function ShhhhhLandingPage() {
                                 {t('howToGetIn.badgeBody')}
                             </p>
                             <div className="mt-6 grid grid-cols-3 gap-3">
-                                {badges.map((b) => (
+                                {(showAllBadges ? badges : badges.slice(0, 3)).map((b) => (
                                     <div
                                         key={b.code}
                                         className="flex flex-col items-center gap-2 rounded-sm border-2 border-n-1 bg-primary-3 p-3 shadow-[3px_3px_0_#000]"
                                     >
                                         <div className="relative aspect-square w-full">
                                             <Image
-                                                src={b.src}
+                                                src={getBadgeIcon(b.code)}
                                                 alt={b.name}
                                                 fill
                                                 className="object-contain"
@@ -465,12 +479,22 @@ export default function ShhhhhLandingPage() {
                                     </div>
                                 ))}
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowAllBadges((v) => !v)}
+                                aria-expanded={showAllBadges}
+                                className="font-roboto-flex mt-4 text-sm font-bold underline underline-offset-4"
+                            >
+                                {showAllBadges
+                                    ? t('howToGetIn.badgeShowLess')
+                                    : t('howToGetIn.badgeShowMore', { count: badges.length - 3 })}
+                            </button>
                             <p className="font-roboto-flex mt-5 text-base leading-relaxed">
                                 {t('howToGetIn.badgeFooter')}
                             </p>
                         </div>
 
-                        <div className="rounded-sm border-2 border-n-1 bg-white p-8 shadow-[10px_10px_0_#000] md:p-10">
+                        <div className="rounded-sm border-2 border-n-1 bg-white p-8 shadow-[10px_10px_0_#000] md:self-start md:p-10">
                             <div
                                 className="font-roboto-flex-extrabold text-6xl font-extraBlack text-primary-1"
                                 style={{ WebkitTextStroke: '2px #000' }}

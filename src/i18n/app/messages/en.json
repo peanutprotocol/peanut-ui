@@ -3110,6 +3110,8 @@
             "badgeTitle": "Got a badge.",
             "badgeBody": "You skip the line. We're whitelisting holders of:",
             "badgeFooter": "Sign in, we check the badges on your account, you go straight to verification. No peanut account yet? Sign up first — takes a minute.",
+            "badgeShowMore": "+{count} more →",
+            "badgeShowLess": "show less",
             "noBadgeTitle": "No badge.",
             "noBadgeBody": "Join the waitlist. We let people in 20 a week.",
             "noBadgeFooter": "Put your name on the list and we'll holler when your turn comes up."
