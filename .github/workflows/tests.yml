@@ -55,6 +55,27 @@ jobs:
             - name: Validate sitemap, footer, and blog links
               run: pnpm validate-links
 
+    # DS debt ratchet (DS 10, TASK-21450). Runs scripts/ds-lint-counts.mjs
+    # --check against the committed baseline: debt counts (raw hex, inline
+    # styles, stock text sizes, non-DS classes in views, useSearchParams files)
+    # may only go down. A PR that lowers a count should also tighten the
+    # baseline (--write-baseline) so the gain locks in. Pure-node script — no
+    # pnpm install needed.
+    ds-lint:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: DS lint-count ratchet
+              run: node scripts/ds-lint-counts.mjs --check
+
     # Blocking ESLint pass (DS 10, TASK-21450). Errors reached zero on
     # feat/design-system, so this gates the PR via ci-success.needs. Warnings
     # do not fail the job; add a warn floor only if the team decides one.
@@ -382,7 +403,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, eslint, typecheck, unit, e2e, report]
+        needs: [format, ds-lint, eslint, typecheck, unit, e2e, report]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -391,6 +412,7 @@ jobs:
                       echo "::error::One or more required jobs failed or were cancelled"
                       echo "Job results:"
                       echo "  format:    ${{ needs.format.result }}"
+                      echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
