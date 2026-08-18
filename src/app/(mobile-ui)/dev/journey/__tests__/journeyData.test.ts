@@ -47,8 +47,8 @@ describe('journeyData', () => {
 
     it('maps each lifecycle spec stage to exactly one column', () => {
         const mapped = FUNNEL_STATES.flatMap((s) => s.specStages)
-        // the machine's five stages, each mapped once
-        expect([...mapped].sort()).toEqual(['create_card', 'finish_setup', 'first_spend', 'fund', 'verify'])
+        // the machine's five v2 stages, each mapped once (finish_setup deleted; win_back added)
+        expect([...mapped].sort()).toEqual(['create_card', 'first_spend', 'fund', 'verify', 'win_back'])
     })
 
     it('carries all 7 inventory findings, each source-file-annotated', () => {
