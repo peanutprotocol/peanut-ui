@@ -615,7 +615,7 @@ export const TransactionDetailsReceipt = ({
                             {/* TODO: stop using snake_case!!!!! */}
                             {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
-                                    label={t('rows.exchangeRate')}
+                                    label={tCommon('exchangeRate')}
                                     value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate, 4)}`}
                                     hideBottomBorder={shouldHideBorder('exchangeRate')}
                                 />
