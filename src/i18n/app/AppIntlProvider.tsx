@@ -13,7 +13,7 @@ import {
     persistLocale,
 } from './locale-store'
 import en from './messages/en.json'
-import { isHtmlLangClaimed } from '../htmlLangClaim'
+import { isHtmlLangClaimed, setHtmlLangReleaseListener } from '../htmlLangClaim'
 
 interface AppLocaleContextValue {
     locale: AppLocale
@@ -78,13 +78,21 @@ export function AppIntlProvider({ children }: { children: React.ReactNode }) {
     }, [])
 
     useEffect(() => {
+        const applyAppLocale = () => {
+            document.documentElement.lang = locale
+        }
         // Marketing/landing routes mount <HtmlLang> and own the attribute — their
         // content language is the URL locale, not the app-locale cookie. This
         // effect runs after theirs (parent effects commit last), so without the
         // guard it would overwrite the page locale on every localized route.
-        if (!isHtmlLangClaimed()) document.documentElement.lang = locale
+        if (!isHtmlLangClaimed()) applyAppLocale()
+        // Navigating off a localized landing drops the claim, but this effect
+        // keys on the app locale, which did not change — so re-apply on release
+        // or the app would keep running under the landing's language.
+        setHtmlLangReleaseListener(applyAppLocale)
         // signal "startup locale is painted" — the native splash gates on this
         if (locale === startupLocale.current) markLocaleApplied()
+        return () => setHtmlLangReleaseListener(null)
     }, [locale])
 
     const setLocale = useCallback(async (next: AppLocale) => {

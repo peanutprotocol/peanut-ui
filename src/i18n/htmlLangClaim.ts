@@ -11,6 +11,17 @@
  * StrictMode's double-invoke and overlapping route transitions.
  */
 let claims = 0
+let onRelease: (() => void) | null = null
+
+/**
+ * Lets `AppIntlProvider` re-apply the app locale when the last page claim drops.
+ * Its own effect keys on the app locale, which does not change when the user
+ * navigates off a localized landing — so without this the attribute would keep
+ * whatever `HtmlLang` restored on the way out.
+ */
+export function setHtmlLangReleaseListener(listener: (() => void) | null): void {
+    onRelease = listener
+}
 
 export function claimHtmlLang(): void {
     claims += 1
@@ -18,6 +29,7 @@ export function claimHtmlLang(): void {
 
 export function releaseHtmlLang(): void {
     claims = Math.max(0, claims - 1)
+    if (claims === 0) onRelease?.()
 }
 
 /** True while a `HtmlLang` is mounted and owns the attribute. */
