@@ -116,13 +116,20 @@ jobs:
                   fi
 
                   STALE=""
-                  MIRROR_BROKEN=false
+                  # URGENT = skip the grace period. Reserve it for states that cannot
+                  # resolve on their own. A mirror that is merely mid-run is NOT one of
+                  # them: it finishes in ~30s, and treating it as urgent turned every
+                  # push landing shortly before a tick into a false alarm. That fired
+                  # for real (16:04:13 run, 21s after a push, 12s before the mirror
+                  # completed — "Stuck for 5m", and green again on the next tick).
+                  # A genuinely dead mirror still alerts; it just waits out the grace,
+                  # which is exactly what the grace period is for.
+                  URGENT=false
                   if [ "$DEGRADED" = true ]; then
                     STALE="**the watchdog itself could not evaluate the pipeline** — check its permissions before assuming content is stuck"
-                    MIRROR_BROKEN=true
+                    URGENT=true
                   elif [ "${EXPECTED:0:7}" != "${MIRRORED:0:7}" ]; then
                     STALE="the mirror is behind mono (expected \`${EXPECTED:0:7}\`, published \`${MIRRORED:0:7}\`)"
-                    MIRROR_BROKEN=true
                   elif [ "$LIVE" != "$TIP" ]; then
                     STALE="production is behind peanut-content (live \`${LIVE:0:7}\`, latest \`${TIP:0:7}\`)"
                   fi
@@ -139,8 +146,7 @@ jobs:
                           --json number,headRefName \
                           --jq '[.[] | select((.headRefName | startswith("auto/update-content-")) or (.headRefName | startswith("content/publish-to-main")))] | first | .number // empty' || true)
 
-                  # A failed mirror will not fix itself, so skip the grace period.
-                  DOOMED=$MIRROR_BROKEN
+                  DOOMED=$URGENT
                   if [ -n "$NUM" ]; then
                     PR_SHA=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/pulls/$NUM" --jq '.head.sha' || true)
                     CI=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/commits/$PR_SHA/check-runs?per_page=100" \
@@ -151,7 +157,10 @@ jobs:
                     WHERE="no publish PR is open — the mirror, the dispatch, or update-content.yml failed"
                   fi
 
-                  # Red CI never self-resolves, so don't wait out the grace period.
+                  # Only genuinely unrecoverable states skip the grace period: red CI,
+                  # and a watchdog that cannot evaluate itself. Everything else gets
+                  # the full window, because most staleness at this point is just the
+                  # pipeline mid-flight.
                   if [ "$DOOMED" = false ] && [ "$AGE" -lt "$GRACE_MINUTES" ]; then
                     echo "$STALE — ${AGE}m old, within ${GRACE_MINUTES}m grace ($WHERE). Not alerting yet."
                     exit 0
