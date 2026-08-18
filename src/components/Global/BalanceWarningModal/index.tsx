@@ -93,6 +93,8 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
             onClose={() => {}}
             preventClose={true}
             hideOverlay={true}
+            modalClassName="z-50 !items-center !justify-center !px-6"
+            modalPanelClassName="!bottom-auto !mx-auto !w-auto !max-w-md !self-center"
             icon="alert"
             iconContainerClassName="bg-yellow-400 size-16"
             iconProps={{ className: 'size-6' }}

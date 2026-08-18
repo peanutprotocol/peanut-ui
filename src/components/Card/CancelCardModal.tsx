@@ -142,6 +142,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             visible={isOpen}
             onClose={handleClose}
             preventClose={phase === 'canceling' || phase === 'submitting-feedback'}
+            hideModalCloseButton={phase === 'canceling' || phase === 'submitting-feedback'}
             icon={isConfirm ? 'alert' : isFeedback ? 'alert-filled' : undefined}
             iconContainerClassName="bg-yellow-1"
             title={t(isConfirm ? 'cancel.title' : isFeedback ? 'cancel.canceledTitle' : 'cancel.thanksTitle')}

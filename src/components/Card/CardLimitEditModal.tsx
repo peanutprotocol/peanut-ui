@@ -102,6 +102,7 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
             visible={isOpen}
             onClose={onClose}
             preventClose={saving}
+            hideModalCloseButton={saving}
             icon="credit-card"
             title={t('editTitle')}
             content={

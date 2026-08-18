@@ -26,6 +26,8 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
     return (
         <ActionModal
             hideOverlay
+            modalPanelClassName="rounded-none border-0"
+            contentContainerClassName="isolate"
             visible={isOpen}
             onClose={onClose}
             title={t('confirmInviteModal.title')}
@@ -57,7 +59,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
             ]}
             footer={
                 <div
-                    className="absolute top-7 left-0 flex w-full justify-center"
+                    className="absolute top-7 left-0 -z-10 flex w-full justify-center"
                     style={{ transform: 'translateY(-80%)' }}
                 >
                     <div className="relative h-42 w-[90%] md:h-52">
