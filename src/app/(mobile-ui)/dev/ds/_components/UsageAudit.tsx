@@ -54,7 +54,7 @@ function StatusChip({ status }: { status: UsageStatus }) {
     const m = STATUS_META[status] ?? STATUS_META.live
     return (
         <span
-            className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${m.cls}`}
+            className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap ${m.cls}`}
         >
             {m.label}
         </span>
@@ -119,9 +119,9 @@ export function UsageAudit({
         <DocPage>
             {/* Hero */}
             <div className={`rounded-sm border border-n-1 p-5 ${heroClass}`}>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-n-1/70">{eyebrow}</p>
+                <p className="text-[11px] font-bold tracking-wide text-n-1/70 uppercase">{eyebrow}</p>
                 <h1 className="mt-1 text-h4">{title}</h1>
-                <div className="mt-2 text-sm font-bold leading-snug text-n-1">{intro}</div>
+                <div className="mt-2 text-sm leading-snug font-bold text-n-1">{intro}</div>
             </div>
 
             {/* Stat cards */}
@@ -206,7 +206,7 @@ export function UsageAudit({
                                     }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <p className="text-sm font-bold leading-tight">{i.name}</p>
+                                        <p className="text-sm leading-tight font-bold">{i.name}</p>
                                         <span
                                             className={`shrink-0 rounded-sm px-2 py-0.5 text-xs font-bold ${
                                                 i.realUsages > 0 ? 'bg-n-1 text-white' : 'bg-grey-2 text-grey-1'

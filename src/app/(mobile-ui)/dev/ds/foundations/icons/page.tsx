@@ -141,6 +141,33 @@ export default function IconsPage() {
                         label="Usage"
                         code={`import { Icon, type IconName } from '@/components/Global/Icons/Icon'\n<Icon name="check" size={20} />`}
                     />
+                    <CodeBlock
+                        label="Size Classes (tailwind)"
+                        code={`.icon-16 .icon-18 .icon-20 .icon-22 .icon-24 .icon-28`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <DocSection title="Country Flags">
+                <DocSection.Content>
+                    <p className="text-xs text-grey-1">
+                        Countries are shown with circle-flags SVGs (copied to public/flags/ by scripts/copy-flags.mjs)
+                        plus country data from AddMoney/consts.
+                    </p>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="CountryList — searchable list with geolocation sorting"
+                        code={`import { CountryList } from '@/components/Common/CountryList'`}
+                    />
+                    <CodeBlock
+                        label="CountryFlagAndName — single country, multi-flag for bridge regions"
+                        code={`import { CountryFlagAndName } from '@/components/Kyc/CountryFlagAndName'`}
+                    />
+                    <CodeBlock
+                        label="Flag URL pattern"
+                        code={`import { getFlagUrl } from '@/constants/countryCurrencyMapping'\n<img src={getFlagUrl(countryCode)} alt="flag" className="h-6 w-6 rounded-full object-cover" />`}
+                    />
                 </DocSection.Code>
             </DocSection>
         </DocPage>
