@@ -1848,7 +1848,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // configureForces is async - must wait for it to complete before reheating
             configureForces().then(() => {
                 if (!graphRef.current) return
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const internalGraph = graphRef.current as any
                 if (internalGraph._simulation) {
                     internalGraph._simulation.alpha(1).restart()
