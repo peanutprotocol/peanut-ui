@@ -54,10 +54,12 @@ export const ActionListCard = ({
             trailing={rightContent}
             chevron={chevron ?? !rightContent}
             position={position}
-            onClick={isDisabled ? undefined : handleClick}
+            disabled={isDisabled}
+            onClick={handleClick}
             // legacy disabled look: grey fill (rows disabled-because-completed
-            // must not fade like unavailable ones), not ListItem's opacity-40
-            className={twMerge(isDisabled && 'bg-grey-4', className)}
+            // must not fade like unavailable ones) — opacity-100 overrides
+            // ListItem's opacity-40 while keeping its aria-disabled
+            className={twMerge(isDisabled && 'bg-grey-4 opacity-100', className)}
         />
     )
 }
