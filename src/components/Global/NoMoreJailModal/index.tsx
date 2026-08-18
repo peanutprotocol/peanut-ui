@@ -8,7 +8,7 @@ import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
 import Modal from '../Modal'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutWhistling } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 
 const NoMoreJailModal = () => {
     const t = useTranslations('global')
@@ -68,7 +68,7 @@ const NoMoreJailModal = () => {
             {/* Peanutman animation */}
             <div className="absolute left-0 top-7 flex w-full justify-center" style={{ transform: 'translateY(-80%)' }}>
                 <div className="relative h-42 w-[90%] md:h-52">
-                    <Image src={PeanutWhistling.src} unoptimized alt="Peanut Man" className="object-contain" fill />
+                    <PeanutMascot pose="waving-chill" alt="Peanut Man" className="size-full" />
                 </div>
             </div>
         </Modal>

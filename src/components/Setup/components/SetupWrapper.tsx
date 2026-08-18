@@ -2,7 +2,14 @@ import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
+import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import {
+    type BeforeInstallPromptEvent,
+    type LayoutType,
+    type ScreenId,
+    type SetupIllustration,
+} from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
@@ -24,7 +31,7 @@ interface SetupWrapperProps {
     layoutType: LayoutType
     screenId: ScreenId
     children: ReactNode
-    image?: string
+    image?: SetupIllustration
     imageClassName?: HTMLDivElement['className']
     title?: string
     description?: string
@@ -130,9 +137,30 @@ const ImageSection = ({
 
     const isSignup = layoutType === 'signup'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
-    const imageClass = !!imageClassName
-        ? imageClassName
-        : 'w-full max-w-[80%] max-h-[85%] md:max-w-[75%] lg:max-w-xl object-contain relative'
+
+    // Mascots get the shared onboarding hero box so every setup step — and the invite and
+    // waitlist pages, which use the same constant — shows the character at one height. The
+    // still keeps the intrinsic-width sizing it always had.
+    const illustration =
+        'pose' in image ? (
+            <PeanutMascot
+                pose={image.pose}
+                alt={t('illustrationAlt')}
+                className={imageClassName || MASCOT_HERO_CLASS}
+            />
+        ) : (
+            <Image
+                src={image.src}
+                alt={t('illustrationAlt')}
+                width={500}
+                height={500}
+                className={
+                    imageClassName ||
+                    'relative max-h-[85%] w-full max-w-[80%] object-contain md:max-w-[75%] lg:max-w-xl'
+                }
+                priority
+            />
+        )
 
     // special rendering for welcome/signup screens with animated decorations
     if (isSignup) {
@@ -157,15 +185,8 @@ const ImageSection = ({
                 ))}
                 {/* animated clouds background */}
                 <CloudsBackground minimal />
-                {/* main illustration image */}
-                <Image
-                    src={image}
-                    alt={t('illustrationAlt')}
-                    width={500}
-                    height={500}
-                    className={imageClass}
-                    priority
-                />
+                {/* main illustration */}
+                {illustration}
             </div>
         )
     }
@@ -179,14 +200,7 @@ const ImageSection = ({
                 screenId === 'success' && 'bg-secondary-1/15'
             )}
         >
-            <Image
-                src={image}
-                alt={t('illustrationAlt')}
-                width={500}
-                height={500}
-                className={twMerge(imageClass)}
-                priority
-            />
+            {illustration}
         </div>
     )
 }

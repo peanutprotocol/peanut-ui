@@ -1,10 +1,13 @@
 'use client'
 
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import CloudsBackground from '../0_Bruddle/CloudsBackground'
 import starImage from '@/assets/icons/star.png'
+import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 
 const STAR_POSITIONS = [
     'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
@@ -14,11 +17,11 @@ const STAR_POSITIONS = [
 ] as const
 
 interface InvitesPageLayoutProps {
-    image: string
+    pose: MascotPose
     children: React.ReactNode
 }
 
-const InvitesPageLayout = ({ image, children }: InvitesPageLayoutProps) => {
+const InvitesPageLayout = ({ pose, children }: InvitesPageLayoutProps) => {
     const t = useTranslations('invites')
 
     return (
@@ -46,15 +49,9 @@ const InvitesPageLayout = ({ image, children }: InvitesPageLayoutProps) => {
                     ))}
                     {/* animated clouds background */}
                     <CloudsBackground minimal />
-                    {/* main illustration image */}
-                    <Image
-                        src={image}
-                        alt={t('illustrationAlt')}
-                        width={500}
-                        height={500}
-                        className={'relative w-full max-w-[80%] object-contain md:max-w-[75%] lg:max-w-xl'}
-                        priority
-                    />
+                    {/* main illustration — same hero box as the setup steps, so the mascot
+                        does not change size as a user walks from an invite into signup */}
+                    <PeanutMascot pose={pose} alt={t('illustrationAlt')} className={MASCOT_HERO_CLASS} />
                 </div>
 
                 {children}

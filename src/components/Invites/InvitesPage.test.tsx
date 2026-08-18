@@ -109,7 +109,6 @@ jest.mock('@/utils/general.utils', () => ({
 jest.mock('@/utils/native-routes', () => ({ profileUrl: (username: string) => `/profile/${username}` }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
-jest.mock('@/assets/mascot', () => ({ PeanutWavingHello: { src: '/peanut.svg' } }))
 jest.mock('@/components/0_Bruddle/Button', () => ({
     Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
         <button onClick={onClick}>{children}</button>

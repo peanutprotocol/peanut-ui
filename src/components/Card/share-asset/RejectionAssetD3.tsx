@@ -22,12 +22,14 @@
 import { type FC } from 'react'
 import { CANVAS_W, CANVAS_H } from './shareAssetLayout'
 import type { RejectionMascot } from './shareAsset.types'
-import { PeanutTooCool, PeanutPointing, PeanutWhistling } from '@/assets/mascot'
+import { MASCOT_SHARE_ASSET_SRC } from '@/assets/mascot'
 
+// Rasters, not <PeanutMascot>: this asset is serialized into a shareable picture,
+// and a live Lottie cannot be captured by that pipeline.
 const MASCOT_SRC: Record<Exclude<RejectionMascot, 'none'>, string> = {
-    cool: PeanutTooCool.src, // pixel shades, hand on hip — "not cool enough"
-    mock: PeanutPointing.src, // grinning + pointing — point and laugh
-    chill: PeanutWhistling.src, // whistling, peace-sign — dismissive "whatever"
+    cool: MASCOT_SHARE_ASSET_SRC['too-cool'], // pixel shades, hand on hip — "not cool enough"
+    mock: MASCOT_SHARE_ASSET_SRC.pointing, // grinning + pointing — point and laugh
+    chill: MASCOT_SHARE_ASSET_SRC.whistling, // whistling, peace-sign — dismissive "whatever"
 }
 
 interface RejectionAssetProps {

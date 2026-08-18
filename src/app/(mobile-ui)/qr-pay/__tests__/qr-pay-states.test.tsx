@@ -83,14 +83,16 @@ jest.mock('@/assets/payment-apps', () => ({
     PIX: '/pix.png',
 }))
 
-// The page imports PeanutThinking from @/assets/mascot and STAR_STRAIGHT_ICON
-// from @/assets/icons directly — mock those paths, not the @/assets barrel, and
-// keep sibling exports (e.g. PEANUTMAN, ETHEREUM_ICON used by QRScanner) intact.
-jest.mock('@/assets/mascot', () => ({
-    ...jest.requireActual('@/assets/mascot'),
-    PeanutThinking: '/peanut-guy.gif',
+// PeanutMascot loads lottie-web, which needs a canvas jsdom does not have.
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: ({ pose, alt }: { pose: string; alt?: string }) => (
+        <div data-testid="peanut-mascot" data-pose={pose} aria-label={alt} />
+    ),
 }))
 
+// The page imports STAR_STRAIGHT_ICON from @/assets/icons directly — mock that
+// path, not the @/assets barrel, and keep sibling exports intact.
 jest.mock('@/assets/icons', () => ({
     ...jest.requireActual('@/assets/icons'),
     STAR_STRAIGHT_ICON: '/star.png',

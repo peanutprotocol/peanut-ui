@@ -1,5 +1,4 @@
-import { PeanutCrying } from '@/assets/mascot'
-import Image from 'next/image'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useMemo } from 'react'
 
 interface NoDataEmptyStateProps {
@@ -9,31 +8,24 @@ interface NoDataEmptyStateProps {
 }
 
 const NoDataEmptyState = ({ message, cta, animSize }: NoDataEmptyStateProps) => {
-    const getAnimSize = useMemo(() => {
+    const mascotSizeClass = useMemo(() => {
         switch (animSize) {
             case 'sm':
-                return 96
+                return 'h-24 w-auto'
             case 'md':
-                return 128
+                return 'h-32 w-auto'
             case 'lg':
-                return 192
+                return 'h-48 w-auto'
             case 'xl':
-                return 256
+                return 'h-64 w-auto'
             default:
-                return 96
+                return 'h-24 w-auto'
         }
     }, [animSize])
 
     return (
         <div className="flex flex-col items-center justify-center gap-3">
-            <Image
-                src={PeanutCrying.src}
-                unoptimized
-                alt="Peanutman crying 😭"
-                width={getAnimSize}
-                height={getAnimSize}
-                className=""
-            />
+            <PeanutMascot pose="worried" alt="Peanutman crying 😭" className={mascotSizeClass} />
             <div>{message}</div>
             {cta && cta}
         </div>

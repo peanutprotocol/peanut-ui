@@ -219,9 +219,12 @@ jest.mock('@/components/Global/PeanutLoading', () => ({
     default: (_props: any) => <div data-testid="peanut-loading">Loading...</div>,
 }))
 
-jest.mock('@/assets/mascot', () => ({
-    ...jest.requireActual('@/assets/mascot'),
-    PeanutCrying: { src: '/peanut-cry.gif' },
+// PeanutMascot loads lottie-web, which needs a canvas jsdom does not have.
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: ({ pose, alt }: { pose: string; alt?: string }) => (
+        <div data-testid="peanut-mascot" data-pose={pose} aria-label={alt} />
+    ),
 }))
 
 // ---------- import component under test AFTER all mocks ----------

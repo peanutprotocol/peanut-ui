@@ -1,8 +1,8 @@
 'use client'
 import type { FC } from 'react'
-import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import { PeanutCrying } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
@@ -78,14 +78,10 @@ const ApplicationStatusScreen: FC<Props> = ({
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 {variant === 'pending' && <Loading />}
                 {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
-                    <Image
-                        src={PeanutCrying.src}
-                        unoptimized
+                    <PeanutMascot
+                        pose="worried"
                         alt={t('status.mascotAlt')}
-                        width={128}
-                        height={128}
-                        className="select-none"
-                        priority
+                        className={`${MASCOT_STATE_CLASS} select-none`}
                     />
                 )}
                 <div className="flex flex-col gap-3">

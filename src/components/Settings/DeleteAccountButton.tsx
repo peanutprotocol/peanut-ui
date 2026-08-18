@@ -2,22 +2,15 @@
 
 import { type FC, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import Image from 'next/image'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PeanutSad, PeanutCrying } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { usersApi } from '@/services/users'
 
 type ModalState = 'closed' | 'confirm' | 'done'
-
-// A big animated mascot at the top of the modal instead of the tiny alert icon.
-// `unoptimized` keeps the animated WebP playing (Next's optimizer flattens it).
-const Mascot: FC<{ src: string; alt: string }> = ({ src, alt }) => (
-    <Image src={src} alt={alt} width={128} height={128} unoptimized className="size-32 object-contain" />
-)
 
 const DeleteAccountButton: FC = () => {
     const t = useTranslations('settings.deleteAccount')
@@ -105,10 +98,13 @@ const DeleteAccountButton: FC = () => {
                 preventClose={lockModal}
                 hideModalCloseButton={lockModal}
                 icon={
+                    // Sized to the modal's own icon slot below, not MASCOT_STATE_CLASS:
+                    // this is an icon in a fixed 8rem container, not a mascot the screen is
+                    // built around.
                     isDone ? (
-                        <Mascot src={PeanutCrying.src} alt={t('cryingPeanutAlt')} />
+                        <PeanutMascot pose="worried" alt={t('cryingPeanutAlt')} className="h-full w-auto" />
                     ) : (
-                        <Mascot src={PeanutSad.src} alt={t('sadPeanutAlt')} />
+                        <PeanutMascot pose="sad" alt={t('sadPeanutAlt')} className="h-full w-auto" />
                     )
                 }
                 iconContainerClassName="size-32 rounded-none bg-transparent"

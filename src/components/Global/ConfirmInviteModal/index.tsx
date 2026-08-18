@@ -6,7 +6,7 @@ import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
 import Modal from '../Modal'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutWavingHello } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 
 interface ConfirmInviteModalProps {
     isOpen: boolean
@@ -71,13 +71,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                     style={{ transform: 'translateY(-80%)' }}
                 >
                     <div className="relative h-42 w-[90%] md:h-52">
-                        <Image
-                            src={PeanutWavingHello.src}
-                            unoptimized
-                            alt="Peanut Man"
-                            className="object-contain"
-                            fill
-                        />
+                        <PeanutMascot pose="waving-hello" alt="Peanut Man" className="size-full" />
                     </div>
                 </div>
             </Modal>
