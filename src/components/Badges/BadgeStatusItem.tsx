@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import Card from '@/components/Global/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { BadgeStatusDrawer } from './BadgeStatusDrawer'
 import InvitesIcon from '../Home/InvitesIcon'
@@ -34,34 +34,24 @@ export const BadgeStatusItem = ({
 
     return (
         <>
-            <Card
+            <ListItem
                 position={position}
-                className="flex cursor-pointer items-center gap-4"
                 onClick={() => setIsDrawerOpen(true)}
-            >
-                {/* badge icon */}
-                <div className={'relative flex h-8 w-8 items-center justify-center rounded-full'}>
-                    <BadgeImage
-                        src={getBadgeIcon(entry.code, entry.iconUrl)}
-                        alt={t('iconAlt', { name: displayName })}
-                        className="size-10 object-contain"
-                        width={32}
-                        height={32}
-                    />
-                </div>
-
-                {/* text content */}
-                <div className="flex-1">
-                    <div className="flex flex-row items-center gap-2">
-                        <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">{displayName}</div>
+                leading={
+                    <div className={'relative flex h-8 w-8 items-center justify-center rounded-full'}>
+                        <BadgeImage
+                            src={getBadgeIcon(entry.code, entry.iconUrl)}
+                            alt={t('iconAlt', { name: displayName })}
+                            className="size-10 object-contain"
+                            width={32}
+                            height={32}
+                        />
                     </div>
-                    <div className="flex items-center gap-1 text-sm font-medium text-gray-1">
-                        <span>{t('unlocked')}</span>
-                    </div>
-                </div>
-
-                <InvitesIcon animate={false} className="size-4" />
-            </Card>
+                }
+                title={displayName}
+                body={t('unlocked')}
+                trailing={<InvitesIcon animate={false} className="size-4" />}
+            />
 
             <BadgeStatusDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} badge={badge} />
         </>

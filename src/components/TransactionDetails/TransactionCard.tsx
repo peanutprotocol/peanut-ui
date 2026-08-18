@@ -1,4 +1,4 @@
-import Card from '@/components/Global/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
@@ -190,121 +190,103 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         Boolean(transaction.extraDataForDrawer?.cardPayment?.settlementAdjusted) &&
         !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
+    // txn avatar handles icon/initials/colors — the row's leading slot
+    const leading = isTest ? (
+        <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
+            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
+        </div>
+    ) : isPerkRewardEntry ? (
+        <PerkIcon size="extra-small" />
+    ) : avatarUrl ? (
+        <div className={'relative flex size-8 items-center justify-center rounded-full'}>
+            <Image src={avatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />
+        </div>
+    ) : (
+        <TransactionAvatarBadge
+            initials={initials}
+            userName={userNameForAvatar}
+            isLinkTransaction={isLinkTx}
+            transactionType={type}
+            context="card"
+            size="extra-small"
+            countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
+        />
+    )
+
     return (
         <>
-            {/* the clickable card */}
-            <Card position={position} onClick={handleClick} className="cursor-pointer" data-testid="transaction-card">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        {/* txn avatar component handles icon/initials/colors */}
-                        {isTest ? (
-                            <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
-                                <Image
-                                    src={PEANUTMAN}
-                                    alt="Peanut Logo"
-                                    className="size-8 object-contain"
-                                    width={30}
-                                    height={30}
-                                />
-                            </div>
-                        ) : isPerkRewardEntry ? (
-                            <>
-                                <PerkIcon size="extra-small" />
-                            </>
-                        ) : avatarUrl ? (
-                            <div className={'relative flex size-8 items-center justify-center rounded-full'}>
-                                <Image
-                                    src={avatarUrl}
-                                    alt="Icon"
-                                    className="size-8 object-contain"
-                                    width={30}
-                                    height={30}
-                                />
-                            </div>
-                        ) : (
-                            <TransactionAvatarBadge
-                                initials={initials}
-                                userName={userNameForAvatar}
-                                isLinkTransaction={isLinkTx}
-                                transactionType={type}
-                                context="card"
-                                size="extra-small"
-                                countryCode={getBankAccountCountryCode(
-                                    transaction.bankAccountDetails,
-                                    transaction.currency?.code
-                                )}
+            {/* the clickable row — figma list-item board anatomy */}
+            <ListItem
+                position={position}
+                onClick={handleClick}
+                data-testid="transaction-card"
+                leading={leading}
+                title={
+                    <div className="flex flex-row items-center gap-2">
+                        {isPending && <IndicatorDot className="h-2 w-2 animate-pulsate" />}
+                        <div className="min-w-0 flex-1 truncate">
+                            <VerifiedUserLabel
+                                username={transaction.userName}
+                                name={displayName}
+                                isVerified={transaction.isVerified}
+                                haveSentMoneyToUser={haveSentMoneyToUser}
+                                onNameClick={canNavigateToProfile ? handleNameClick : undefined}
                             />
-                        )}
-                        <div className="flex flex-col">
-                            {/* display formatted name (address or username) */}
-                            <div className="flex flex-row items-center gap-2">
-                                {isPending && <IndicatorDot className="h-2 w-2 animate-pulsate" />}
-                                <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
-                                    <VerifiedUserLabel
-                                        username={transaction.userName}
-                                        name={displayName}
-                                        isVerified={transaction.isVerified}
-                                        haveSentMoneyToUser={haveSentMoneyToUser}
-                                        onNameClick={canNavigateToProfile ? handleNameClick : undefined}
-                                    />
-                                </div>
-                            </div>
-                            {/* display the action icon and type text */}
-                            <div className="flex items-center gap-1 text-xs font-medium text-gray-1">
-                                {!isTest && getActionIcon(type, transaction.direction, status)}
-                                <span>
-                                    {isTest
-                                        ? t('type.setup')
-                                        : isPerkRewardEntry
-                                          ? t('type.reward')
-                                          : t(getActionLabelKey(type, status))}
-                                </span>
-                                {status && <StatusPill status={status} />}
-                                {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
-                            </div>
                         </div>
                     </div>
-
-                    {/* amount and status on the right side */}
-                    {isTest ? (
+                }
+                body={
+                    <div className="flex items-center gap-1">
+                        {!isTest && getActionIcon(type, transaction.direction, status)}
+                        <span>
+                            {isTest
+                                ? t('type.setup')
+                                : isPerkRewardEntry
+                                  ? t('type.reward')
+                                  : t(getActionLabelKey(type, status))}
+                        </span>
+                        {status && <StatusPill status={status} />}
+                        {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
+                    </div>
+                }
+                trailing={
+                    isTest ? (
                         <InvitesIcon animate={false} className="size-4" />
                     ) : (
-                        <div className="flex items-center gap-2">
-                            <div className="flex flex-col items-end gap-1">
-                                {hideTxnAmount ? (
-                                    <span className="text-2xl font-bold">****</span>
-                                ) : (
-                                    <>
+                        <div className="flex flex-col items-end gap-1">
+                            {hideTxnAmount ? (
+                                <span className="text-body-m-semibold">****</span>
+                            ) : (
+                                <>
+                                    <span
+                                        className={twMerge(
+                                            'text-body-m-semibold',
+                                            status === 'refunded' && 'text-gray-1 line-through',
+                                            // Declined card spends: gray the amount so the row reads
+                                            // as "didn't go through" without the opacity-60 wash
+                                            // we used before (which dimmed merchant name + icons
+                                            // too and made the row hard to read at a glance).
+                                            isDeclinedCardSpend && 'text-gray-1'
+                                        )}
+                                    >
+                                        {displayAmount}
+                                    </span>
+                                    {currencyDisplayAmount && (
                                         <span
                                             className={twMerge(
-                                                'font-semibold',
-                                                status === 'refunded' && 'text-gray-1 line-through',
-                                                // Declined card spends: gray the amount so the row reads
-                                                // as "didn't go through" without the opacity-60 wash
-                                                // we used before (which dimmed merchant name + icons
-                                                // too and made the row hard to read at a glance).
-                                                isDeclinedCardSpend && 'text-gray-1'
+                                                'text-body-s text-gray-1',
+                                                status === 'refunded' && 'line-through'
                                             )}
                                         >
-                                            {displayAmount}
+                                            {currencyDisplayAmount}
                                         </span>
-                                        {currencyDisplayAmount && (
-                                            <span
-                                                className={twMerge(
-                                                    'text-sm font-medium text-gray-1',
-                                                    status === 'refunded' && 'line-through'
-                                                )}
-                                            >
-                                                {currencyDisplayAmount}
-                                            </span>
-                                        )}
-                                    </>
-                                )}
-                            </div>
+                                    )}
+                                </>
+                            )}
                         </div>
-                    )}
-                </div>
-            </Card>
+                    )
+                }
+            />
 
             {/* Transaction Details Drawer */}
             <LazyLoadErrorBoundary>

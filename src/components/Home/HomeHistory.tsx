@@ -336,7 +336,7 @@ const HomeHistory = ({
     if (isLoading) {
         return (
             <div className="space-y-2">
-                <h2 className="text-base font-bold">{t('activity')}</h2>
+                <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>
                 <div className="flex flex-col">
                     {Array.from({ length: 5 }).map((_, index) => (
                         <HistorySkeleton key={index} position={getCardPosition(index, 5)} />
@@ -362,7 +362,7 @@ const HomeHistory = ({
         }
         return (
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <h2 className="text-base font-bold">{t('activity')}</h2>{' '}
+                <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>{' '}
                 <EmptyState
                     icon="alert"
                     title={isNetworkError ? t('networkErrorTitle') : t('errorTitle')}
@@ -390,7 +390,7 @@ const HomeHistory = ({
     if (!isLoading && !combinedEntries.length && !hasSourceEntries) {
         return (
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <h2 className="text-base font-bold">{t('activity')}</h2>
+                <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>
                 {isViewingOwnHistory &&
                     user &&
                     (() => {
@@ -420,7 +420,7 @@ const HomeHistory = ({
             {/* link to the full history page */}
             {pendingRequests.length > 0 && (
                 <>
-                    <h2 className="text-base font-bold">{t('pendingTransactions')}</h2>
+                    <h2 className="text-heading-card text-foreground-primary">{t('pendingTransactions')}</h2>
                     <div className="h-full w-full">
                         {/* map over the latest entries and render transactioncard */}
                         {pendingRequests.map((item, index) => {
@@ -450,11 +450,13 @@ const HomeHistory = ({
                 </>
             )}
             {!isViewingOwnHistory ? (
-                <h2 className="text-base font-bold">{t('latestTransactions')}</h2>
+                <h2 className="text-heading-card text-foreground-primary">{t('latestTransactions')}</h2>
             ) : (
                 <Link href="/history" className="flex items-center justify-between" onClick={() => triggerHaptic()}>
-                    <h2 className="text-base font-bold">{t('activity')}</h2>
-                    <Icon name="chevron-up" size={20} className="rotate-90" />
+                    <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>
+                    <span className="flex size-10 items-center justify-center">
+                        <Icon name="chevron-right" size={20} className="text-foreground-primary" />
+                    </span>
                 </Link>
             )}
             {/* container for the transaction cards */}
