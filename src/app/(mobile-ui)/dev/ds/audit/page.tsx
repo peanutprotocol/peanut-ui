@@ -19,7 +19,7 @@ function StatusChip({ status }: { status: AuditStatus }) {
     const m = STATUS_META[status]
     return (
         <span
-            className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${m.cls}`}
+            className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap ${m.cls}`}
         >
             {m.label}
         </span>
@@ -72,7 +72,7 @@ export default function DesignSystemAuditPage() {
         <DocPage>
             {/* Hero */}
             <div className="rounded-sm border border-n-1 bg-purple-1 p-5">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-n-1/70">Design System · Code Audit</p>
+                <p className="text-[11px] font-bold tracking-wide text-n-1/70 uppercase">Design System · Code Audit</p>
                 <h1 className="mt-1 text-h4">Code-level consolidation</h1>
                 <p className="mt-2 text-sm font-bold text-n-1">
                     ~916 distinct <em>code</em> implementations → ~138 canonical (−85%). This is a DRY audit of the
@@ -209,7 +209,7 @@ export default function DesignSystemAuditPage() {
                                     }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <p className="text-sm font-bold leading-tight">{i.name}</p>
+                                        <p className="text-sm leading-tight font-bold">{i.name}</p>
                                         <span className="shrink-0 rounded-sm bg-n-1 px-2 py-0.5 text-xs font-bold text-white">
                                             {i.usages}×
                                         </span>
@@ -235,14 +235,14 @@ export default function DesignSystemAuditPage() {
                 clusters.map((c, idx) => (
                     <div key={idx} className="rounded-sm border border-n-1 p-3">
                         <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-bold leading-tight">→ {c.name}</p>
+                            <p className="text-sm leading-tight font-bold">→ {c.name}</p>
                             {c.from > 0 && (
                                 <span className="shrink-0 rounded-sm border border-n-1 bg-yellow-1/40 px-2 py-0.5 text-[11px] font-bold">
                                     {c.from} → 1
                                 </span>
                             )}
                         </div>
-                        <p className="mt-0.5 text-[11px] uppercase tracking-wide text-grey-1">{c.catLabel}</p>
+                        <p className="mt-0.5 text-[11px] tracking-wide text-grey-1 uppercase">{c.catLabel}</p>
                         {c.collapses.length > 0 && (
                             <p className="mt-1.5 text-[11px] text-grey-1">
                                 <span className="font-bold text-n-1">collapses:</span> {c.collapses.join(' · ')}
