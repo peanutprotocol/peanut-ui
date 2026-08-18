@@ -1,6 +1,7 @@
 import { LandingPageShell } from '@/components/LandingPage/LandingPageShell'
 import { LandingPageCapacitorGate } from '@/components/LandingPage/LandingPageCapacitorGate'
 import { LandingPageContent } from '@/components/LandingPage/LandingPageContent'
+import { HtmlLang } from '@/components/Marketing/HtmlLang'
 import { LocaleSuggestion } from '@/components/Marketing/LocaleSuggestion'
 import { DEFAULT_LOCALE } from '@/i18n/types'
 import { landingMetadata } from '@/lib/seo/landing'
@@ -12,6 +13,7 @@ export const metadata = landingMetadata(DEFAULT_LOCALE)
 export default function RootPage() {
     return (
         <>
+            <HtmlLang locale={DEFAULT_LOCALE} />
             <LocaleSuggestion locale={DEFAULT_LOCALE} />
             <LandingPageCapacitorGate>
                 <LandingPageShell>
