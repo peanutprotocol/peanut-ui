@@ -8,7 +8,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
-import * as Accordion from '@radix-ui/react-accordion'
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useState, useMemo } from 'react'
 import Loading from '@/components/Global/Loading'
@@ -95,52 +95,39 @@ const BridgeLimitsView = () => {
                     {!hasMantecaLimits && (
                         <div className="space-y-2">
                             <h3 className="font-bold">{t('qrPaymentLimits')}</h3>
-                            <Card position="single" className="p-0">
-                                <Accordion.Root
-                                    type="single"
-                                    collapsible
-                                    value={expandedCountry}
-                                    onValueChange={(value) => setExpandedCountry(value as QrCountryId | undefined)}
-                                >
-                                    {qrCountries.map((country, index) => (
-                                        <Accordion.Item
-                                            key={country.id}
-                                            value={country.id}
-                                            className={index < qrCountries.length - 1 ? 'border-b border-gray-2' : ''}
-                                        >
-                                            <Accordion.Header>
-                                                <Accordion.Trigger className="group flex w-full items-center justify-between px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Image
-                                                            src={country.flag}
-                                                            alt={country.name}
-                                                            width={24}
-                                                            height={24}
-                                                            className="size-5 rounded-full object-cover"
-                                                        />
-                                                        <span className="text-sm font-medium">{country.name}</span>
-                                                    </div>
-                                                    <Icon
-                                                        name="chevron-down"
-                                                        size={16}
-                                                        className="transition-transform duration-300 group-data-[state=open]:rotate-180"
-                                                    />
-                                                </Accordion.Trigger>
-                                            </Accordion.Header>
-                                            <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                                                <div className="flex items-center gap-2 px-4 pb-3">
-                                                    <Icon name="check" className="text-success-1" size={16} />
-                                                    <span className="text-sm">
-                                                        {t('qrPayLimit', {
-                                                            amount: `$${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()}`,
-                                                        })}
-                                                    </span>
-                                                </div>
-                                            </Accordion.Content>
-                                        </Accordion.Item>
-                                    ))}
-                                </Accordion.Root>
-                            </Card>
+                            <Accordion
+                                type="single"
+                                collapsible
+                                value={expandedCountry}
+                                onValueChange={(value) => setExpandedCountry(value as QrCountryId | undefined)}
+                            >
+                                {qrCountries.map((country) => (
+                                    <Accordion.Item key={country.id} value={country.id}>
+                                        <Accordion.Trigger>
+                                            <div className="flex items-center gap-2">
+                                                <Image
+                                                    src={country.flag}
+                                                    alt={country.name}
+                                                    width={24}
+                                                    height={24}
+                                                    className="size-5 rounded-full object-cover"
+                                                />
+                                                <span>{country.name}</span>
+                                            </div>
+                                        </Accordion.Trigger>
+                                        <Accordion.Content>
+                                            <div className="flex items-center gap-2">
+                                                <Icon name="check" className="text-success-1" size={16} />
+                                                <span>
+                                                    {t('qrPayLimit', {
+                                                        amount: `$${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()}`,
+                                                    })}
+                                                </span>
+                                            </div>
+                                        </Accordion.Content>
+                                    </Accordion.Item>
+                                ))}
+                            </Accordion>
                         </div>
                     )}
 

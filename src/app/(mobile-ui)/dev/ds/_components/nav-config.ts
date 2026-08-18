@@ -33,6 +33,9 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'Checkbox', icon: 'check', href: '/dev/ds/primitives/checkbox' },
         { label: 'Toggle', icon: 'switch', href: '/dev/ds/primitives/toggle' },
         { label: 'Toast', icon: 'bell', href: '/dev/ds/primitives/toast' },
+        { label: 'Notification', icon: 'alert', href: '/dev/ds/primitives/notification' },
+        { label: 'LinkButton', icon: 'link', href: '/dev/ds/primitives/link-button' },
+        { label: 'Accordion', icon: 'chevron-down', href: '/dev/ds/primitives/accordion' },
         { label: 'Divider', icon: 'minus-circle', href: '/dev/ds/primitives/divider' },
         { label: 'Title', icon: 'docs', href: '/dev/ds/primitives/title' },
         { label: 'PageContainer', icon: 'docs', href: '/dev/ds/primitives/page-container' },
@@ -47,6 +50,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'Layouts', icon: 'switch', href: '/dev/ds/patterns/layouts' },
         { label: 'Cards (Global)', icon: 'docs', href: '/dev/ds/patterns/cards-global' },
         { label: 'AmountInput', icon: 'dollar', href: '/dev/ds/patterns/amount-input' },
+        { label: 'Slider', icon: 'meter', href: '/dev/ds/patterns/slider' },
     ],
     audit: [
         { label: 'Code Audit', icon: 'docs', href: '/dev/ds/audit' },
