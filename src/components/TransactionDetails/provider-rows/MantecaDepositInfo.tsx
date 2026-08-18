@@ -1,6 +1,6 @@
 'use client'
 
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { ReceiptRow } from '@/components/TransactionDetails/ReceiptRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import {
     MANTECA_COUNTRIES_CONFIG,
@@ -34,7 +34,7 @@ export function MantecaDepositInfo({
     return (
         <>
             {depositDetails.depositAddress && (
-                <PaymentInfoRow
+                <ReceiptRow
                     label={
                         (country ? MANTECA_COUNTRIES_CONFIG[country.id]?.depositAddressLabel : undefined) ??
                         t('manteca.depositAddress')
@@ -43,13 +43,11 @@ export function MantecaDepositInfo({
                     allowCopy
                 />
             )}
-            {depositDetails.depositAlias && (
-                <PaymentInfoRow label="Alias" value={depositDetails.depositAlias} allowCopy />
-            )}
+            {depositDetails.depositAlias && <ReceiptRow label="Alias" value={depositDetails.depositAlias} allowCopy />}
             {country?.id === 'AR' && (
                 <>
-                    <PaymentInfoRow label="Razón Social" value={MANTECA_ARG_DEPOSIT_NAME} />
-                    <PaymentInfoRow label="CUIT" value={MANTECA_ARG_DEPOSIT_CUIT} />
+                    <ReceiptRow label="Razón Social" value={MANTECA_ARG_DEPOSIT_NAME} />
+                    <ReceiptRow label="CUIT" value={MANTECA_ARG_DEPOSIT_CUIT} />
                 </>
             )}
         </>

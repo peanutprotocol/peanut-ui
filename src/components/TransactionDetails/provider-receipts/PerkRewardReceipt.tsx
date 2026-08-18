@@ -3,12 +3,11 @@
 import { type RefObject } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Card from '@/components/Global/Card'
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { ReceiptRow } from '@/components/TransactionDetails/ReceiptRow'
 import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
+import { ReceiptSupportLink } from '@/components/TransactionDetails/ReceiptSupportLink'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntryPerkReward } from '@/services/services.types'
-import { useModalsContext } from '@/context/ModalsContext'
 import { STATUS_LABEL_KEYS } from '@/components/Global/Badges/StatusBadge'
 import { useTranslations } from 'next-intl'
 import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
@@ -33,34 +32,33 @@ export function PerkRewardReceipt({
     contentRef?: RefObject<HTMLDivElement>
     className?: string
 }) {
-    const { setIsSupportModalOpen } = useModalsContext()
     const t = useTranslations('transaction')
     const tCommon = useTranslations('common')
     const formatDate = useReceiptDateFormatter()
 
     return (
-        <div ref={contentRef} className={twMerge('space-y-4', className)}>
+        <div ref={contentRef} className={twMerge('flex flex-col gap-4', className)}>
             {/* Perk Reward Header — top section with logo, amount, and status */}
             <Card position="single" className="px-4 py-6">
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                         <PerkIcon size="medium" />
                         <div className="flex flex-col">
-                            <h2 className="text-gray-900 text-lg font-semibold">{t('perk.title')}</h2>
-                            <p className="text-gray-900 text-2xl font-bold">{amountDisplay}</p>
+                            <h2 className="text-heading-card text-foreground-primary">{t('perk.title')}</h2>
+                            <p className="text-heading-s text-foreground-primary">{amountDisplay}</p>
                         </div>
                     </div>
                     <div className="flex-shrink-0">
                         {transaction.status === 'completed' ? (
-                            <span className="bg-green-100 text-green-700 rounded-full px-3 py-1 text-xs font-medium">
+                            <span className="rounded-round bg-background-badge-success px-3 py-1 text-label-m text-foreground-primary">
                                 {t('perk.statusCompleted')}
                             </span>
                         ) : transaction.status === 'pending' || transaction.status === 'processing' ? (
-                            <span className="bg-yellow-100 text-yellow-700 rounded-full px-3 py-1 text-xs font-medium">
+                            <span className="rounded-round bg-background-badge-attention px-3 py-1 text-label-m text-foreground-primary">
                                 {tCommon('status.processing')}
                             </span>
                         ) : (
-                            <span className="bg-gray-100 text-gray-700 rounded-full px-3 py-1 text-xs font-medium">
+                            <span className="rounded-round bg-background-badge-helper px-3 py-1 text-label-m text-foreground-primary">
                                 {tCommon(
                                     (transaction.status && STATUS_LABEL_KEYS[transaction.status]) ?? 'status.unknown'
                                 )}
@@ -68,33 +66,22 @@ export function PerkRewardReceipt({
                         )}
                     </div>
                 </div>
-                <p className="text-gray-600 mt-3 text-sm">{t('perk.subtitle')}</p>
+                <p className="mt-3 text-body-s text-foreground-secondary">{t('perk.subtitle')}</p>
             </Card>
 
             {/* Perk details — date + reason. Reason has a payment-UUID suffix
                 stripped because PerkUsage uses it for idempotency (purchase-
                 listener.ts) and shouldn't surface to users. Backend follow-up:
                 add requestPaymentUuid column so reason can be clean. */}
-            <Card position="single" className="px-4 py-0">
-                <PaymentInfoRow
-                    label={t('perk.received')}
-                    value={formatDate(new Date(transaction.date))}
-                    hideBottomBorder={false}
-                />
-                <PaymentInfoRow
+            <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                <ReceiptRow label={t('perk.received')} value={formatDate(new Date(transaction.date))} />
+                <ReceiptRow
                     label={t('rows.reason')}
                     value={perkRewardData.reason.replace(/\s*\(payment:\s*[a-f0-9-]+\)/i, '')}
-                    hideBottomBorder={true}
                 />
             </Card>
 
-            <button
-                onClick={() => setIsSupportModalOpen(true)}
-                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
-            >
-                <Icon name="peanut-support" size={16} className="text-grey-1" />
-                {t('actions.reportIssue')}
-            </button>
+            <ReceiptSupportLink />
         </div>
     )
 }

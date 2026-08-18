@@ -23,9 +23,7 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
                     ? 'pb-[calc(6rem_+_env(safe-area-inset-bottom))]'
                     : 'pb-[calc(1rem_+_env(safe-area-inset-bottom))]'
             }
-            innerClassName={twMerge(
-                isUserLoggedIn ? 'min-h-[calc(100dvh_-_160px)]' : 'min-h-[calc(100dvh_-_64px)]'
-            )}
+            innerClassName={twMerge(isUserLoggedIn ? 'min-h-[calc(100dvh_-_160px)]' : 'min-h-[calc(100dvh_-_64px)]')}
             modals={
                 <>
                     <GuestLoginModal />

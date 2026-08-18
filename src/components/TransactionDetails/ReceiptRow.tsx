@@ -1,0 +1,58 @@
+import { twMerge } from 'tailwind-merge'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import { Icon } from '@/components/Global/Icons/Icon'
+import Loading from '@/components/Global/Loading'
+import { Tooltip } from '@/components/Tooltip'
+
+export interface ReceiptRowProps {
+    label: React.ReactNode
+    value: React.ReactNode
+    moreInfoText?: string
+    loading?: boolean
+    allowCopy?: boolean
+    copyValue?: string
+    onClick?: () => void
+}
+
+/**
+ * Label + value row for receipt cards (DS 09, list-row recipe). Rows carry no
+ * border logic — the parent card owns the dashed dividers via
+ * `divide-y divide-dashed divide-border-default`, so a row never needs to
+ * know whether it is last.
+ */
+export const ReceiptRow = ({ label, value, moreInfoText, loading, allowCopy, copyValue, onClick }: ReceiptRowProps) => (
+    <div
+        className={twMerge(
+            'flex w-full flex-col justify-between gap-1 py-3',
+            onClick && 'cursor-pointer transition-colors duration-instant active:bg-background-disabled'
+        )}
+        onClick={onClick}
+        translate="no"
+    >
+        <div className="relative flex items-center">
+            <span className="text-label-m text-foreground-primary">{label}</span>
+            {moreInfoText && (
+                <div className="relative z-20 flex items-center justify-center px-2">
+                    <Tooltip content={moreInfoText} position="right">
+                        <Icon name="info" size={12} />
+                    </Tooltip>
+                </div>
+            )}
+        </div>
+        {loading ? (
+            <Loading />
+        ) : (
+            <div className="flex items-center justify-between">
+                {/* min-w-0 + break-words: a single unbreakable token (wallet
+                    address, tx hash) must wrap inside the card, not stretch
+                    the row and escape the layout. */}
+                <div className="flex w-fit min-w-0 justify-end text-label-l break-words text-foreground-primary">
+                    <span className="min-w-0">{value}</span>
+                </div>
+                {allowCopy && typeof value === 'string' && (
+                    <CopyToClipboard textToCopy={copyValue ?? value} fill="black" iconSize="4" />
+                )}
+            </div>
+        )}
+    </div>
+)

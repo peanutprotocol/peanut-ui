@@ -67,12 +67,7 @@ export const AppShell = ({
                 id="scrollable-content"
                 className={twMerge('relative w-full flex-1 overflow-y-auto bg-background p-6', contentClassName)}
             >
-                <div
-                    className={twMerge(
-                        'mx-auto flex w-full max-w-md items-center justify-center',
-                        innerClassName
-                    )}
-                >
+                <div className={twMerge('mx-auto flex w-full max-w-md items-center justify-center', innerClassName)}>
                     {children}
                 </div>
             </div>
