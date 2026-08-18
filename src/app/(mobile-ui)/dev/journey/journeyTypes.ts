@@ -150,7 +150,7 @@ export interface InspectDue {
     userId: string
     type: string
     hasPendingRewards?: boolean
-    skip?: 'holdout' | 'governor'
+    skip?: 'holdout' | 'governor' | 'balance'
 }
 
 export interface InspectHistoryRow {

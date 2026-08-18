@@ -2,6 +2,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import IndicatorDot from '@/components/Global/IndicatorDot'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { Tooltip } from '@/components/Tooltip'
 import Link from 'next/link'
@@ -55,11 +56,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                 )}
                 <div className="flex items-center gap-2">
                     <label className="text-base font-medium">{label}</label>
-                    {highlight && (
-                        <div className={'animate-pulse'} aria-label="highlight-indicator">
-                            <div className="h-2.5 w-2.5 rounded-full bg-primary-1" />
-                        </div>
-                    )}
+                    {highlight && <IndicatorDot className="animate-pulse" aria-label="highlight-indicator" />}
                 </div>
                 {badge && <StatusBadge status="custom" customText={badge} />}
                 {showTooltip && (

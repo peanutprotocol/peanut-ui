@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import type { ReactNode } from 'react'
 import { BadgeDetailModal } from '../BadgeDetailModal'
-import { BASE_URL } from '@/constants/general.consts'
 import en from '@/i18n/app/messages/en.json'
 import ptBR from '@/i18n/app/messages/pt-BR.json'
 
@@ -41,6 +40,8 @@ jest.mock('@/redux/hooks', () => ({
     useUserStore: () => ({ user: { user: { username: 'satoshi' } } }),
 }))
 
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+
 const onClose = jest.fn()
 
 function renderModal(locale: 'en' | 'pt-BR') {
@@ -71,7 +72,9 @@ describe('BadgeDetailModal', () => {
         expect(screen.getByRole('button', { name: en.badges.shareAchievement })).toBeInTheDocument()
         const shareProps = mockShareButton.mock.calls[0][0]
         await expect(shareProps.generateText()).resolves.toContain('Just put my Peanut card to work')
-        await expect(shareProps.generateText()).resolves.toContain(`${BASE_URL}/satoshi`)
+        // attributed share link, asserted origin-agnostically: shareableUrl resolves
+        // to the jsdom origin here, not NEXT_PUBLIC_BASE_URL.
+        await expect(shareProps.generateText()).resolves.toContain('/invite?code=satoshi')
 
         screen.getByRole('button', { name: en.badges.shareAchievement }).click()
         expect(onClose).toHaveBeenCalledTimes(1)
@@ -83,7 +86,7 @@ describe('BadgeDetailModal', () => {
         expect(screen.getByRole('button', { name: ptBR.badges.shareAchievement })).toBeInTheDocument()
         const text = await mockShareButton.mock.calls[0][0].generateText()
         expect(text).toContain('Ganhei o selo First Swipe no Peanut!')
-        expect(text).toContain(`${BASE_URL}/satoshi`)
+        expect(text).toContain('/invite?code=satoshi')
         expect(text).not.toContain('Just put my Peanut card to work')
     })
 })

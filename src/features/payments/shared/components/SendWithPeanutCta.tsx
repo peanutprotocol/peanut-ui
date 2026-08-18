@@ -16,7 +16,7 @@ import { useAuth } from '@/context/authContext'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { EInviteType } from '@/services/services.types'
-import { saveRedirectUrl, saveToLocalStorage, toInviteCode } from '@/utils/general.utils'
+import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
@@ -68,8 +68,10 @@ export default function SendWithPeanutCta({
         // if auth is required and user is not logged in, redirect to signup
         if (requiresAuth && !isLoggedIn) {
             // migration window: web signups are closed — hand the guest to the
-            // app stores instead (QR modal on desktop, store link on mobile)
-            if (interceptGuestCta()) return
+            // app stores instead (QR modal on desktop, store link on mobile).
+            // the inviter rides the deferred hand-off, mirroring the web path
+            // below that routes to /invite?code=<inviter>
+            if (interceptGuestCta({ invite: inviterUsername ? toInviteCode(inviterUsername) : undefined })) return
             const redirectUri = encodeURIComponent(
                 window.location.pathname + window.location.search + window.location.hash
             )
@@ -77,7 +79,7 @@ export default function SendWithPeanutCta({
                 const inviteCode = toInviteCode(inviterUsername)
                 dispatch(setupActions.setInviteCode(inviteCode))
                 dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
-                router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
+                router.push(inviteFlowUrl(inviteCode, redirectUri))
             } else {
                 saveRedirectUrl()
                 router.push('/setup')

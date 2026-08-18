@@ -126,6 +126,14 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         })
     })
 
+    it('invite argument overrides the cookie (claim CTA knows the code pre-cookie)', () => {
+        saveToCookie('inviteCode', 'cookiecode')
+        expect(parseDeferredPayload(buildDeferredPayload('/home', 'sendercode'))).toEqual({
+            invite: 'sendercode',
+            dest: '/home',
+        })
+    })
+
     it('defaults dest to the current path + query and skips absent fields', () => {
         window.history.replaceState({}, '', '/claim/ABC?x=2')
         const parsed = parseDeferredPayload(buildDeferredPayload())
@@ -135,6 +143,15 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
     it('strips the locale prefix from the default dest but keeps it as lang', () => {
         window.history.replaceState({}, '', '/es-419/claim/ABC?x=2')
         expect(parseDeferredPayload(buildDeferredPayload())).toEqual({ lang: 'es-419', dest: '/claim/ABC?x=2' })
+    })
+
+    it('omits the default dest when the page url carries a claim secret (#p=)', () => {
+        window.history.replaceState({}, '', '/claim?c=42161&i=99')
+        window.location.hash = '#p=s3cr3t'
+        expect(parseDeferredPayload(buildDeferredPayload())).toEqual({})
+        // an explicit dest still rides — only the default is suppressed
+        expect(parseDeferredPayload(buildDeferredPayload('/home'))).toEqual({ dest: '/home' })
+        window.location.hash = ''
     })
 
     it('omits dest for the root path and non-locale first segments', () => {

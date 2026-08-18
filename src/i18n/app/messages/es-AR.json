@@ -195,6 +195,8 @@
             "allSetDescription": "Ahora enviá o solicitá plata para empezar.",
             "joinPeanut": "¡Unite a Peanut!",
             "inviteOnlyLine2": "¡Andá y rogale a tu amigo por un enlace de invitación!",
+            "invitedLine": "Peanut es solo por invitación — y {username} tiene una invitación para vos.",
+            "joinCta": "Reclamá tu invitación",
             "begShareText": "Bro… estoy de rodillas. Peanut es solo por invitación y me quedé afuera. Salvame la vida y mandame tu invitación",
             "activityPrivateNote": "La actividad solo es visible para vos, no es pública."
         }
@@ -450,7 +452,8 @@
             "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para reclamar tu recompensa.",
             "holdToClaim": "¡Ganaste una recompensa! Mantené presionado para reclamarla.",
             "earnedInviteFriends": "¡Ganaste ${amount}! Invitá amigos para ganar aún más.",
-            "inviteFriends": "Invitá amigos para ganar aún más recompensas."
+            "inviteFriends": "Invitá amigos para ganar aún más recompensas.",
+            "inviteFriendsCta": "Invitá amigos y ganá"
         },
         "errors": {
             "pixRecurring": "Este código QR es de un pago recurrente (PIX Automático). Peanut no admite pagos PIX recurrentes — pedí un código QR de PIX normal.",
@@ -515,7 +518,8 @@
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Intentalo de nuevo o contactá a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Intentalo de nuevo o contactá a soporte.",
             "walletNotReady": "La billetera no está lista — volvé a intentarlo en un momento",
-            "unexpectedStrategy": "Estrategia de retiro inesperada — contactá a soporte"
+            "unexpectedStrategy": "Estrategia de retiro inesperada — contactá a soporte",
+            "cardDetailsLoading": "Los datos de la tarjeta todavía se están cargando — volvé a intentarlo en un momento"
         },
         "countryConfirm": {
             "noCandidatesBody": "No pudimos confirmar tu país de residencia con tu verificación. Nuestro equipo lo resolverá — escribile a soporte para continuar.",
@@ -721,7 +725,10 @@
         "bridge": {
             "depositMessageInfo": "Asegurate de ingresar este mensaje exacto como concepto o descripción de la transferencia. Si no se incluye, el depósito no se puede procesar."
         },
-        "enjoyPeanut": "¡Disfrutá Peanut!"
+        "enjoyPeanut": "¡Disfrutá Peanut!",
+        "cardRows": {
+            "settlementAdjustedNotice": "El monto final fue {amount} mayor que la retención inicial. Es común con propinas y totales actualizados. ¿No lo reconocés? Contactá al comercio."
+        }
     },
     "history": {
         "errorDescription": "Contactá a soporte.",
@@ -1173,6 +1180,7 @@
         "claimLinkFailed": "No se pudo reclamar el enlace, actualizá la página. Si el problema persiste, confirmá el enlace con quien lo envió.",
         "lowLiquidity": "Baja liquidez. Probá con un monto menor o una ruta diferente.",
         "networkBusyTimeout": "La red está congestionada y tu solicitud expiró. Intentalo de nuevo en un momento.",
+        "connectionTimeout": "Peanut está tardando demasiado en responder. Revisá tu conexión e intentalo de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contactá con soporte.",
         "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en breve.",

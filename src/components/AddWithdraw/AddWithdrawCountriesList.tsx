@@ -38,7 +38,8 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useModalsContext } from '@/context/ModalsContext'
 import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -49,6 +50,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const params = useParams()
     const searchParams = useSearchParams()
     const onBack = useSafeBack(flow === 'add' ? '/add-money' : '/withdraw')
+    const locale = useLocale()
     const t = useTranslations('withdraw')
     const tAddMoney = useTranslations('addMoney')
     const tNav = useTranslations('navigation')
@@ -388,7 +390,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
-                regionName={currentCountry?.title}
+                regionName={currentCountry && localizedCountryTitle(locale, currentCountry)}
             />
             <BridgeTosStep
                 visible={showBridgeTos}
@@ -543,7 +545,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     return (
         <div className="w-full space-y-8 self-start">
             <NavHeader
-                title={currentCountry.title}
+                title={localizedCountryTitle(locale, currentCountry)}
                 onPrev={() => {
                     setAmountToWithdraw('')
                     if (flow === 'add') {

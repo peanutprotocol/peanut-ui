@@ -1,6 +1,7 @@
 import { LandingPageShell } from '@/components/LandingPage/LandingPageShell'
 import { LandingPageCapacitorGate } from '@/components/LandingPage/LandingPageCapacitorGate'
 import { LandingPageContent } from '@/components/LandingPage/LandingPageContent'
+import { HtmlLang } from '@/components/Marketing/HtmlLang'
 import { LocaleSuggestion } from '@/components/Marketing/LocaleSuggestion'
 import { DEFAULT_LOCALE } from '@/i18n/types'
 import { landingMetadata } from '@/lib/seo/landing'
@@ -14,6 +15,10 @@ export default function RootPage() {
         <>
             <LocaleSuggestion locale={DEFAULT_LOCALE} />
             <LandingPageCapacitorGate>
+                {/* Inside the gate: on native this route is only a bootstrap
+                    shell that redirects away, and the device locale — not this
+                    page's English — is what <html lang> should report there. */}
+                <HtmlLang locale={DEFAULT_LOCALE} />
                 <LandingPageShell>
                     <LandingPageContent locale={DEFAULT_LOCALE} />
                 </LandingPageShell>

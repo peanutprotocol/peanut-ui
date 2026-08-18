@@ -3419,6 +3419,15 @@
                 }
             }
         },
+        "/crisp/webhooks": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/dev/cheats/approve-kyc": {
             "post": {
                 "requestBody": {

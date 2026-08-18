@@ -12,11 +12,11 @@ import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
 import StoreBadges from '@/components/Migration/StoreBadges'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
-import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
-import { trackStoreClick } from '@/utils/migration.utils'
+import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
 
 type FAQQuestion = {
     id: string
@@ -77,13 +77,15 @@ export function LandingPageClient({
         const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
         return {
             label: tMigration('downloadNow'),
-            href: STORE_URL[store],
+            href: storeAnchorHref(store),
             isExternal: true,
             icon: store === 'ios' ? 'apple-logo' : 'google-play',
             // keep the content-system subtext (e.g. "Join +10,000 cool people")
             subtext: heroConfig.primaryCta.subtext,
-            // the anchor navigates; only track here
-            onClick: () => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO),
+            // the anchor navigates itself (works even where window.open is
+            // suppressed — in-app browsers); android's hand-off rides the href,
+            // ios' rides the clipboard written here inside the tap
+            onClick: () => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO),
         }
     }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
 

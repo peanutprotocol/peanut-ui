@@ -10,6 +10,7 @@
 
 import { isCryptoAddress, isUuid } from '@/utils/general.utils'
 import { type TransactionDetails } from './transactionTransformer'
+import type { TransactionDirection } from './transaction-types'
 import type { IntentKind } from './strategies/registry'
 
 function kindOf(transaction: TransactionDetails): string | undefined {
@@ -93,6 +94,52 @@ export function isPerkReward(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'PERK_REWARD')
 }
 
+/** Kinds that earn an invite-friends nudge on a completed receipt: the user
+ *  just paid or moved money out.
+ *
+ *  Kind-based for the same reason as {@link isFxBearingFlow}: gating on a
+ *  hand-kept `['send','withdraw','bank_withdraw']` direction allow-list silently
+ *  dropped every QR pay AND every card spend — both arrive as
+ *  `direction: 'qr_payment'` (strategies/intent/card.ts).
+ *
+ *  Out on purpose: CARD_AUTH_REVERSAL (the charge never stuck), ONRAMP (a
+ *  deposit, not a payment), PERK_REWARD / CRYPTO_DEPOSIT / REFUND (inbound). */
+const REFERRAL_NUDGE_KINDS: ReadonlySet<string> = new Set([
+    'SEND_LINK',
+    'SEND_LINK_CLAIM',
+    'DIRECT_TRANSFER',
+    'P2P_REQUEST_FULFILL',
+    'CRYPTO_WITHDRAW',
+    'OFFRAMP',
+    'QR_PAY',
+    'CARD_SPEND_AUTH',
+    'CARD_SPEND_CLEAR',
+])
+
+/** Directions where the viewer is the RECEIVING side. Several nudge kinds are
+ *  role-polymorphic: CRYPTO_WITHDRAW + RECIPIENT → 'add', SEND_LINK + RECIPIENT
+ *  → 'claim_external'. Without this block the receiving side would be nudged for
+ *  a payment it did not make.
+ *
+ *  'bank_claim' is ambiguous — the paying sender AND a user viewing their own
+ *  claim-to-bank both see it — so it stays blocked until the predicate can see
+ *  the viewer role. 'bank_request_fulfillment' is deliberately absent: the
+ *  strategy assigns it only to userRole SENDER (p2p-send.ts). */
+const INBOUND_DIRECTIONS: ReadonlySet<TransactionDirection> = new Set([
+    'receive',
+    'add',
+    'bank_claim',
+    'bank_deposit',
+    'claim_external',
+    'request_received',
+    'request_sent',
+])
+
+export function hasReferralNudge(transaction: TransactionDetails): boolean {
+    const k = kindOf(transaction)
+    return !!k && REFERRAL_NUDGE_KINDS.has(k) && !INBOUND_DIRECTIONS.has(transaction.direction)
+}
+
 // SEND_LINK kind covers the entire link lifecycle: created, claimed,
 // reclaimed-by-self. Receipt CTAs (QR, Share, Cancel) gate on this.
 export function isSendLinkEntry(transaction: TransactionDetails): boolean {
@@ -123,26 +170,30 @@ export function isMantecaOnrampEntry(transaction: TransactionDetails): boolean {
     return isKind(transaction, 'ONRAMP') && transaction.extraDataForDrawer?.provider === 'MANTECA'
 }
 
-// The counterparty is a real Peanut user with a public profile: a non-link
-// send / request / receive whose peer is an actual user (isPeerActuallyUser)
-// identified by a real username — not a raw crypto address (EVM/Solana/Tron,
-// the same rule VerifiedUserLabel renders by) and not a userId fallback
-// (usernameless users surface their UUID in `userName`, which has no profile
-// page). System copy strings ('Request', 'Recipient', reaper-fail text) are
-// already excluded because the transformer sets isPeerActuallyUser=false for
-// them. What a consumer does with the fact (clickable name, avatar, send-again
-// button) is the call site's business. Shared by the history row
-// (TransactionCard) and the receipt header (TransactionDetailsHeaderCard) —
-// keep the rule here so the two surfaces can't drift.
+// the peer has a profile when the transformer identifies a real Peanut user
+// with a username. presentation types must not narrow that fact: bank-fulfilled
+// requests and future flows can also have a real user as their peer. links, raw
+// addresses, userId fallbacks, and generated labels do not resolve to profile
+// pages. this rule is shared by the history row and receipt header so the
+// surfaces cannot drift.
 export function hasUserProfile(transaction: TransactionDetails): boolean {
-    const type = transaction.extraDataForDrawer?.transactionCardType
     const userName = transaction.userName
     return (
         !!transaction.isPeerActuallyUser &&
         !transaction.extraDataForDrawer?.isLinkTransaction &&
         !!userName &&
+        !transaction.nameKey &&
         !isCryptoAddress(userName) &&
-        !isUuid(userName) &&
-        (type === 'send' || type === 'request' || type === 'receive')
+        !isUuid(userName)
     )
+}
+
+// these presentation types render the peer's initials/avatar. bank and wallet
+// types render a rail or account icon, which must stay inert even when the
+// counterparty name links to a real profile.
+const USER_PROFILE_AVATAR_TYPES: ReadonlySet<string> = new Set(['send', 'request', 'receive'])
+
+export function hasUserProfileAvatar(transaction: TransactionDetails): boolean {
+    const transactionCardType = transaction.extraDataForDrawer?.transactionCardType
+    return hasUserProfile(transaction) && !!transactionCardType && USER_PROFILE_AVATAR_TYPES.has(transactionCardType)
 }

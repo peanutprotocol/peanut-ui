@@ -18,7 +18,8 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 interface MantecaFlowManagerProps {
     claimLinkData: ClaimLinkData
@@ -27,6 +28,7 @@ interface MantecaFlowManagerProps {
 }
 
 const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount, attachment }) => {
+    const locale = useLocale()
     const t = useTranslations('claim')
     const { setClaimToMercadoPago, selectedCountry, regionalMethodType } = useClaimBankFlow()
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
@@ -186,7 +188,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
-                regionName={selectedCountry?.title}
+                regionName={selectedCountry ? localizedCountryTitle(locale, selectedCountry) : undefined}
             />
             <SumsubKycModals flow={sumsubFlow} />
         </div>

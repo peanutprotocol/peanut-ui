@@ -64,6 +64,10 @@ export interface Translations {
     teamTitle: string // "Our Team"
     teamSubtitle: string // "The people behind Peanut."
 
+    // Press
+    pressTitle: string // "Press & Brand Kit"
+    pressSubtitle: string // "Everything you need to write or design about Peanut."
+
     // Help center
     help: string // "Help"
     helpCenter: string // "Help Center"
@@ -144,6 +148,11 @@ export interface Translations {
     // Landing page — testimonials
     landingWallOfLove: string
     landingWallOfLoveBody: string
+
+    // Landing page — code-injected supported-rails FAQ (fact lists interpolated from rhino.consts)
+    landingSupportedRailsFaqQuestion: string
+    landingSupportedRailsFaqAnswer: string // "… {evmCount} … ({evmList}), plus {otherList} … {railList} …"
+    listJoinAnd: string // conjunction used when joining name lists ("Solana and Tron")
 
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
     legalHeroSubtitlePrivacy: string

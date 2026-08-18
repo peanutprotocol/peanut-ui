@@ -62,6 +62,23 @@ describe('BadgesRow', () => {
         expect(screen.queryByText('You earned this badge.')).not.toBeInTheDocument()
     })
 
+    // The test above uses a code with no `badges.catalog` entry, so it passes even
+    // if the localized copy swallows the audience choice. This one uses a real code.
+    it('keeps the backend public description for a badge that IS in the catalog', () => {
+        const apiBadge = {
+            ...badge('VERIFIED', '2026-08-04T00:00:00.000Z'),
+            description: 'You earned this badge.',
+            publicDescription: 'They earned this badge.',
+        }
+
+        const { rerender } = render(<BadgesRow badges={[apiBadge]} isSelfProfile />)
+        expect(screen.getByText(/officially verified/)).toBeInTheDocument()
+
+        rerender(<BadgesRow badges={[apiBadge]} isSelfProfile={false} />)
+        expect(screen.getByText('They earned this badge.')).toBeInTheDocument()
+        expect(screen.queryByText(/officially verified/)).not.toBeInTheDocument()
+    })
+
     it('keeps an earned badge visible with generic art when the backend icon fails', () => {
         const apiBadge = {
             ...badge('NEW', '2026-08-04T00:00:00.000Z'),

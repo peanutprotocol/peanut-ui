@@ -34,8 +34,8 @@ describe('native-routes', () => {
         })
 
         describe('profileUrl', () => {
-            it('should return /send with recipient query param', () => {
-                expect(profileUrl('alice')).toBe('/send?recipient=alice')
+            it('should return the query-param public-profile stand-in', () => {
+                expect(profileUrl('alice')).toBe('/profile/view?username=alice')
             })
         })
 
@@ -312,6 +312,35 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('/alice?chargeId=charge-123')).toBe('/pay-request?chargeId=charge-123')
             })
 
+            // the root recipient catch-all is pruned from the native export —
+            // a passthrough would chunk-error, so recipient paths funnel into
+            // /send?recipient= and anything unmappable is dropped (null)
+            // A bare `/<username>` is a profile link, not a payment shape — it
+            // maps to the in-app profile stand-in rather than the send form.
+            it('maps a bare username onto the in-app public profile', () => {
+                expect(deepLinkToNativePath('/kushagra')).toBe('/profile/view?username=kushagra')
+                expect(deepLinkToNativePath('https://peanut.me/brbalinda')).toBe('/profile/view?username=brbalinda')
+            })
+
+            it('funnels payment-shaped recipient paths into /send?recipient=', () => {
+                expect(deepLinkToNativePath('/alice/10USDC')).toBe(
+                    `/send?recipient=${encodeURIComponent('alice/10USDC')}`
+                )
+                expect(deepLinkToNativePath('/0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5')).toBe(
+                    `/send?recipient=${encodeURIComponent('0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5')}`
+                )
+            })
+
+            it('funnels a semantic pay path (user@chain/amount) into /send?recipient=', () => {
+                expect(deepLinkToNativePath('/alice@42161/10usdc')).toBe(
+                    `/send?recipient=${encodeURIComponent('alice@42161/10usdc')}`
+                )
+            })
+
+            it('drops a non-recipient web-only path instead of passing it through', () => {
+                expect(deepLinkToNativePath('/not-a-valid.username')).toBeNull()
+            })
+
             it('leaves a static in-app route untouched', () => {
                 expect(deepLinkToNativePath('https://peanut.me/history')).toBe('/history')
             })
@@ -322,6 +351,14 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('https://peanut.me/withdraw/be/bank')).toBe(
                     '/withdraw?country=be&view=bank'
                 )
+            })
+
+            // The invite landing page is pruned from the native export, so an
+            // App Link onto it must land on signup instead of a chunk-error
+            // loop. The code itself rides the invite cookie (openDeepLink).
+            it('rewrites /invite to signup — the landing page is not in the export', () => {
+                expect(deepLinkToNativePath('https://peanut.me/invite?code=kushagra')).toBe('/setup?step=signup')
+                expect(deepLinkToNativePath('/invite')).toBe('/setup?step=signup')
             })
 
             // The claim-link password lives in the fragment and is never sent to
@@ -390,6 +427,10 @@ describe('native-routes', () => {
         describe('web mode', () => {
             beforeEach(() => {
                 mockIsCapacitor.mockReturnValue(false)
+            })
+
+            it('keeps /invite on the web — the landing page exists there', () => {
+                expect(deepLinkToNativePath('https://peanut.me/invite?code=kushagra')).toBe('/invite?code=kushagra')
             })
 
             it('keeps the path-based receipt url', () => {

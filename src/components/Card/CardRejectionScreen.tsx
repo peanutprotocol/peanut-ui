@@ -136,7 +136,11 @@ const CardRejectionScreen: FC<Props> = ({
         // @joinpeanut). The image doesn't attach via the intent URL, but the
         // tag — the point of the appeal — still goes out.
         const tweetIntent = (method: string): void => {
-            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, { source: 'rejection-appeal', method })
+            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
+                source: 'rejection-appeal',
+                method,
+                link_type: 'none',
+            })
             window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(caption)}`, '_blank', 'noopener')
         }
 
@@ -154,6 +158,7 @@ const CardRejectionScreen: FC<Props> = ({
             posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
                 source: 'rejection-appeal',
                 method: 'native-share-with-file',
+                link_type: 'none',
             })
         } catch (err) {
             if (err instanceof Error && err.name === 'AbortError') return

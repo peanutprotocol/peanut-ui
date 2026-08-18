@@ -28,6 +28,19 @@
         "next": "Siguiente",
         "notFound": "No encontrado",
         "countryNotFound": "País no encontrado",
+        "regions": {
+            "europe": "Europa",
+            "north-america": "América del Norte",
+            "latam": "Latinoamérica",
+            "rest-of-the-world": "Resto del mundo",
+            "argentina": "Argentina",
+            "brazil": "Brasil",
+            "mexico": "México",
+            "descriptions": {
+                "argentina": "Solo pagos con QR de Mercado Pago",
+                "brazil": "Solo pagos con QR Pix"
+            }
+        },
         "tryDifferentCountry": "Prueba con otro país.",
         "status": {
             "completed": "Completado",
@@ -40,7 +53,8 @@
             "closed": "Cerrado",
             "custom": "Personalizado",
             "unknown": "Desconocido"
-        }
+        },
+        "exchangeRate": "Tipo de cambio"
     },
     "navigation": {
         "home": "Inicio",
@@ -58,7 +72,8 @@
         "cashout": "Retiro",
         "claim": "Reclamar",
         "peanutLogoAlt": "Logo de Peanut",
-        "receipt": "Recibo"
+        "receipt": "Recibo",
+        "supportUnread": "Nueva respuesta de soporte"
     },
     "home": {
         "rewards": "Recompensas",
@@ -207,7 +222,8 @@
             "claimablePerk": "Recompensa disponible"
         },
         "pendingTasks": {
-            "completeBefore": "Complete before {deadline}"
+            "completeBefore": "Complete before {deadline}",
+            "dismiss": "Descartar {task}"
         }
     },
     "profile": {
@@ -362,6 +378,8 @@
             "joinPeanut": "¡Únete a Peanut!",
             "inviteOnlyLine1": "Peanut es solo por invitación.",
             "inviteOnlyLine2": "¡Ve y ruégale a tu amigo por un enlace de invitación!",
+            "invitedLine": "Peanut es solo por invitación — y {username} tiene una invitación para ti.",
+            "joinCta": "Reclama tu invitación",
             "begShareText": "Bro… estoy de rodillas. Peanut es solo por invitación y me quedé afuera. Sálvame la vida y mándame tu invitación",
             "begForInvite": "Rogar por una invitación",
             "activityPrivateNote": "La actividad solo es visible para ti, no es pública.",
@@ -392,7 +410,6 @@
         "unlockedRegions": "Regiones desbloqueadas",
         "lockedRegions": "Regiones bloqueadas",
         "otherRegions": "Otras regiones",
-        "restOfWorld": "Resto del mundo",
         "cardLimits": {
             "title": "Límites de la tarjeta",
             "manage": "Administrar límites de la tarjeta",
@@ -460,6 +477,11 @@
             "free": "¡Gratis!",
             "arrivesHours": "Debería llegar en horas.",
             "arrivesMinutes": "Debería llegar en minutos."
+        },
+        "row": {
+            "approximate": "Este es un valor aproximado. El monto que recibas puede variar según el tipo de cambio de tu banco.",
+            "amountYouReceive": "Monto que vas a recibir",
+            "appliesWhenConverting": "Se aplica el tipo de cambio al convertir a {currency}"
         }
     },
     "setup": {
@@ -984,6 +1006,7 @@
             "holdToClaim": "¡Ganaste una recompensa! Mantén presionado para reclamarla.",
             "earnedInviteFriends": "¡Ganaste ${amount}! Invita amigos para ganar aún más.",
             "inviteFriends": "Invita amigos para ganar aún más recompensas.",
+            "inviteFriendsCta": "Invita amigos y gana",
             "savedVsCardCents": "¡ahorraste ~{count, plural, one {# centavo} other {# centavos}} comparado con la tarjeta!",
             "savedVsCardDollars": "¡ahorraste ~${amount} comparado con la tarjeta!",
             "claimReward": "Reclamar recompensa",
@@ -1127,7 +1150,8 @@
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "walletNotReady": "La billetera no está lista — vuelve a intentarlo en un momento",
-            "unexpectedStrategy": "Estrategia de retiro inesperada — contacta a soporte"
+            "unexpectedStrategy": "Estrategia de retiro inesperada — contacta a soporte",
+            "cardDetailsLoading": "Los datos de la tarjeta aún se están cargando — vuelve a intentarlo en un momento"
         },
         "countryConfirm": {
             "noCandidatesTitle": "Necesitamos revisar tus datos",
@@ -1251,6 +1275,8 @@
             "autoRenewTitle": "Tu tarjeta se renueva pronto",
             "autoRenewBody": "Tu tarjeta se renovará automáticamente en {days, plural, one {# día} other {# días}}, la fecha de vencimiento cambiará.",
             "dismiss": "Descartar",
+            "balanceDueTitle": "Se debitarán {amount} de tu próximo depósito",
+            "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. Cubrimos la diferencia automáticamente.",
             "payAsCreditTitle": "Paga como crédito",
             "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elige crédito — tu tarjeta Peanut corre en la red de crédito.",
             "managementTitle": "Gestión de la tarjeta",
@@ -1717,7 +1743,6 @@
             "tokenOnChain": "{token} en {chain}",
             "txId": "ID de TX",
             "fee": "Comisión",
-            "exchangeRate": "Tipo de cambio",
             "transferId": "ID de transferencia",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
@@ -1763,7 +1788,6 @@
             }
         },
         "toast": {
-            "inviteLinkCopied": "¡Enlace de invitación copiado!",
             "linkCancelled": "¡Enlace cancelado con éxito!",
             "linkCancelledRefresh": "¡Enlace cancelado! Actualiza para ver tu saldo al día.",
             "cancelLinkFailed": "No se pudo cancelar el enlace. Inténtalo de nuevo."
@@ -1782,7 +1806,8 @@
             "evidenceRequested": "Evidencia solicitada",
             "flagAlt": "Bandera de {country}",
             "initialHold": "Retención inicial",
-            "adjustment": "Ajuste"
+            "adjustment": "Ajuste",
+            "settlementAdjustedNotice": "El monto final fue {amount} mayor que la retención inicial. Es común con propinas y totales actualizados. ¿No lo reconoces? Contacta al comercio."
         },
         "dispute": {
             "pending": "En disputa — Esperando revisión",
@@ -1908,7 +1933,201 @@
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "¡Desbloqueaste {count, plural, one {# insignia} other {# insignias}}! 🎉",
-        "toastTapToView": "— toca para ver"
+        "toastTapToView": "— toca para ver",
+        "catalog": {
+            "FIRST_INVITE": {
+                "name": "Primera invitación",
+                "description": "Trajiste a un amigo a la mesa. Ahora falta toda la red."
+            },
+            "SECOND_INVITE": {
+                "name": "Segunda invitación",
+                "description": "Se corre la voz: dos amigos adentro y subiendo."
+            },
+            "THIRD_INVITE": {
+                "name": "Tercera invitación",
+                "description": "Tres amigos, ningún fallo. Un aplauso."
+            },
+            "MINI_INFLUENCER": {
+                "name": "Mini influencer",
+                "description": "Armaste un pequeño club de fans, una invitación a la vez."
+            },
+            "INFLUENCER_25": {
+                "name": "Influencer",
+                "description": "Veinticinco en la cuenta. Los likes no paran."
+            },
+            "MEGA_INFLUENCER": {
+                "name": "Mega influencer",
+                "description": "Cien amigos adentro. Ahora sí es oficial."
+            },
+            "DUNBAR": {
+                "name": "Dunbar",
+                "description": "150: más gente de la que uno puede recordar. Llegaste al número de Dunbar."
+            },
+            "MOST_INVITES": {
+                "name": "Más invitaciones",
+                "description": "¡Sumaste más usuarios que los anuncios de Coinbase!"
+            },
+            "CERTIFIED_YAPPER": {
+                "name": "Charlatán certificado",
+                "description": "Ruido certificado. Habló de Peanut para que nosotros no tuviéramos que hacerlo."
+            },
+            "GIGA_YAPPER": {
+                "name": "Giga charlatán",
+                "description": "Ruido nivel giga. No menciona Peanut, la difunde."
+            },
+            "FIRST_CRUMB": {
+                "name": "Primer dólar",
+                "description": "Primer dólar ganado. Prueba de que rinde."
+            },
+            "DOUBLE_DIGITS": {
+                "name": "Dos dígitos",
+                "description": "Pasaste a dos dígitos. Ahora sí es dinero de verdad."
+            },
+            "CARD_FIRST_SWIPE": {
+                "name": "Primera compra",
+                "description": "Pusiste tu tarjeta a trabajar."
+            },
+            "CARD_SPENT_1K": {
+                "name": "Club de los $1K",
+                "description": "$1K gastados: apostaste donde estaba tu dinero."
+            },
+            "CARD_PIONEER": {
+                "name": "Pionero de la tarjeta",
+                "description": "¡Reservaste tu lugar para la tarjeta Peanut. Los beneficios de pionero ya vienen!"
+            },
+            "FOUNDING_PIONEER": {
+                "name": "Pionero fundador",
+                "description": "Ya construías Peanut antes de que existiera el lanzamiento."
+            },
+            "VERIFIED": {
+                "name": "Verificado",
+                "description": "Documento revisado, identidad confirmada. Verificación oficial completa."
+            },
+            "BETA_TESTER": {
+                "name": "Beta tester",
+                "description": "Rompiste cosas para que otros no tengan que hacerlo. Te damos la bienvenida al club del caos."
+            },
+            "OG_2025_10_12": {
+                "name": "OG",
+                "description": "Un OG de verdad. Estabas con Peanut antes de que fuera moda."
+            },
+            "CARD_CLOSED_BETA": {
+                "name": "Beta cerrada",
+                "description": "IYKYK. Probaron la tarjeta antes de que supieras que existía."
+            },
+            "CARD_ALPHA": {
+                "name": "Tester del alfa cerrado",
+                "description": "Probaste la tarjeta cuando todavía era cinta adhesiva y esperanza."
+            },
+            "BUG_WHISPERER": {
+                "name": "Cazador de bugs",
+                "description": "Encontraste un bug real, lo reportaste y te quedaste. La cerveza va por nuestra cuenta."
+            },
+            "SUPPORT_SURVIVOR": {
+                "name": "Sobreviviente de soporte",
+                "description": "Encontraste un bug real, lo reportaste y te quedaste. La cerveza va por nuestra cuenta."
+            },
+            "SHHHHH": {
+                "name": "Shhhhh",
+                "description": "El que sabe, sabe."
+            },
+            "NOT_SO_SHHHH": {
+                "name": "Bocón",
+                "description": "No pudiste quedarte callado, y encima te pagamos por eso."
+            },
+            "ARBITRUM": {
+                "name": "Nativo de Arbitrum",
+                "description": "Te encontramos en Arbitrum: onboarding mutuo logrado."
+            },
+            "FOUNDER_HOUSE": {
+                "name": "Founder Haus",
+                "description": "Estuviste en Founder Haus. Energía on-chain, apretones de mano off-chain."
+            },
+            "ETHFLORIPA_HUB": {
+                "name": "EthFloripa Hub",
+                "description": "Ilha da Magia, baby. Cocos y consenso."
+            },
+            "IRL_NOMADS": {
+                "name": "Modo nómada",
+                "description": "Sin dirección fija, solo buen café y mejor wifi. Nómada oficial."
+            },
+            "EVENT_ALUMNI": {
+                "name": "Veterano de eventos",
+                "description": "Old school. Estuviste en la sala antes que la mayoría."
+            },
+            "TOUCHED_GRASS": {
+                "name": "Tocaste pasto",
+                "description": "Te desconectaste y tocaste pasto de verdad con Peanut."
+            },
+            "OFFRAMP_USER": {
+                "name": "Usuario de retiro",
+                "description": "Migraste a Peanut. Te recibimos bien."
+            },
+            "PSYOPS_DIVISION": {
+                "name": "División Psyops",
+                "description": "Entraste a la División Psyops. Te damos la bienvenida al juego de la influencia."
+            },
+            "TOKEN_NATION_SP_2026": {
+                "name": "Token Nation 2026",
+                "description": "São Paulo, baby. Viniste, reclamaste y firmaste el muro."
+            },
+            "FESTA_JUNINA_2026": {
+                "name": "Arraiá aprobado",
+                "description": "Bailaste la quadrilha con nosotros. Arraiá desbloqueado."
+            },
+            "MANICERO": {
+                "name": "Manicero",
+                "description": "Maní chico. Energía grande. Manicero."
+            },
+            "NITA": {
+                "name": "Recomendación de Nita",
+                "description": "Nita te mandó. Te saltaste la fila de la tarjeta con su palabra."
+            },
+            "NAIJA": {
+                "name": "9JA",
+                "description": "Naija no dey carry last. Llegaste primero."
+            },
+            "TERERE": {
+                "name": "Tereré",
+                "description": "Tereré desbloqueado. Estuviste en la primera ronda."
+            },
+            "DEVCONNECT_BA_2025": {
+                "name": "Devconnect 2025",
+                "description": "Nada de anon. Tocaste pasto, diste la mano y respiraste el mismo aire que Vitalik."
+            },
+            "SEEDLING_DEVCONNECT_BA_2025": {
+                "name": "Semilla",
+                "description": "Corriendo la voz sobre Peanut junto a nosotros."
+            },
+            "ARBIVERSE_DEVCONNECT_BA_2025": {
+                "name": "Peanut 🤝 Arbiverse",
+                "description": "Nos acompañaste en el stand de Arbiverse en Devconnect 2025."
+            },
+            "PRODUCT_HUNT": {
+                "name": "Product Hunt",
+                "description": "¡Vendedor de esperanza. Tu upvote se sintió como un term sheet de un VC!"
+            },
+            "MOST_RESTAURANTS_DEVCON": {
+                "name": "Más restaurantes en Devcon",
+                "description": "¡Todo un gourmet!"
+            },
+            "BIG_SPENDER_5K": {
+                "name": "Big Spender 5K",
+                "description": "Estás entre los que más gastan."
+            },
+            "MOST_PAYMENTS_DEVCON": {
+                "name": "Más pagos en Devcon",
+                "description": "Máquina de dinero: mover dinero te sale fácil. ¡Más pagos hechos!"
+            },
+            "BIGGEST_REQUEST_POT": {
+                "name": "Bote más grande",
+                "description": "¿Alto rodador o maestro del pedido? Creaste el bote con más participantes."
+            },
+            "WAITLIST_SKIP": {
+                "name": "Pase directo",
+                "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
+            }
+        }
     },
     "notifications": {
         "title": "Notificaciones",
@@ -2769,8 +2988,10 @@
         "easterEggImageAlt": "Ilustración de huevo de pascua",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
-            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual."
-        }
+            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
+            "title": "Una pequeña actualización de nuestros términos"
+        },
+        "maintenanceBanner": "Modo mantenimiento: algunas funciones no estarán disponibles. Tus fondos están seguros."
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
@@ -2805,6 +3026,7 @@
         "sendLinkAlreadyClaimed": "El enlace de envío ya fue reclamado.",
         "lowLiquidity": "Baja liquidez. Prueba con un monto menor o una ruta diferente.",
         "networkBusyTimeout": "La red está congestionada y tu solicitud expiró. Inténtalo de nuevo en un momento.",
+        "connectionTimeout": "Peanut está tardando demasiado en responder. Revisa tu conexión e inténtalo de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte.",
         "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",

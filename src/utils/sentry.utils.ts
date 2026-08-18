@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { type JSONValue } from '../interfaces/interfaces'
-import { reportNetworkError, reportNetworkOk } from './connectivity'
+import { reportNetworkError } from './connectivity'
 
 /**
  * Endpoint + status combinations to skip reporting.
@@ -441,9 +441,6 @@ export const fetchWithSentry = async (
     try {
         const response = await attemptFetch()
 
-        // A response came back — the backend is reachable, clear any failure streak.
-        reportNetworkOk()
-
         if (!response.ok) {
             // Skip both the console warn AND Sentry submission for expected
             // non-2xx responses (username availability 404, get-user-from-cookie
@@ -492,8 +489,9 @@ export const fetchWithSentry = async (
         return response
     } catch (error: unknown) {
         // fetch rejected (timeout / DNS / connection refused) — the request never
-        // reached the backend, so flag a connectivity failure.
-        reportNetworkError()
+        // completed, so flag a connectivity failure. keyed by sanitized url so
+        // React Query retries of one slow route dedupe to a single endpoint.
+        reportNetworkError(sanitizeUrl(url))
         // console.info, not error: captureConsoleIntegration would turn an
         // error-level log into a second Sentry event on top of the explicit
         // captures below.
@@ -519,8 +517,13 @@ export const fetchWithSentry = async (
                 })
             })
 
-            const userError = new Error('Service temporarily unavailable. Please try again.')
-            userError.name = 'ServiceUnavailableError'
+            const userError = new Error('Peanut is taking too long to respond — check your connection and try again.')
+            // distinct name from the generic catch below: this path is our own
+            // AbortController firing, which an overloaded backend can trigger
+            // on a healthy connection — so the copy names both possibilities
+            // instead of blaming the user's internet. the generic path also
+            // wraps CORS/CSP/TypeError failures and stays fully neutral.
+            userError.name = 'ConnectionTimeoutError'
             userError.cause = timeoutError
             throw userError
         }

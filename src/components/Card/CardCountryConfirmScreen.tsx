@@ -5,6 +5,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { localizedCountryName } from '@/utils/country-name.utils'
 
 interface Props {
     /** ISO-2 codes the backend derived from the applicant's own evidence. */
@@ -14,15 +15,6 @@ interface Props {
     onContactSupport: () => void
     onPrev?: () => void
     submitError?: string | null
-}
-
-/** "BR" → "Brazil", falling back to the raw code for anything unmappable. */
-const countryName = (iso2: string, locale: string): string => {
-    try {
-        return new Intl.DisplayNames([locale], { type: 'region' }).of(iso2) ?? iso2
-    } catch {
-        return iso2
-    }
 }
 
 /**
@@ -89,7 +81,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                                 selected === iso2 ? 'bg-primary-3' : 'bg-white'
                             }`}
                         >
-                            {countryName(iso2, locale)}
+                            {localizedCountryName(locale, iso2, iso2)}
                         </button>
                     </li>
                 ))}

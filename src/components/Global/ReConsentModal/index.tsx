@@ -136,7 +136,7 @@ const ReConsentModal = () => {
             visible
             onClose={handlePostpone}
             icon="info"
-            title="A small update to our terms"
+            title={t('reConsent.title')}
             content={
                 <div className="w-full space-y-3 text-left">
                     {/* The first sentence answers the question this modal actually raises

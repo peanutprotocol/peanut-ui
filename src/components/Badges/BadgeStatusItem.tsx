@@ -4,7 +4,8 @@ import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { BadgeStatusDrawer } from './BadgeStatusDrawer'
 import InvitesIcon from '../Home/InvitesIcon'
-import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeIcon } from './badge.utils'
+import { useBadgeCopy } from './useBadgeCopy'
 import { type BadgeHistoryEntry } from './badge.types'
 import { BadgeImage } from './BadgeImage'
 
@@ -16,8 +17,9 @@ export const BadgeStatusItem = ({
     entry: BadgeHistoryEntry
 }) => {
     const t = useTranslations('badges')
+    const badgeCopy = useBadgeCopy()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const displayName = getBadgeDisplayName(entry.code, entry.name)
+    const displayName = badgeCopy(entry.code, entry.name).name
 
     const badge = useMemo(
         () => ({
