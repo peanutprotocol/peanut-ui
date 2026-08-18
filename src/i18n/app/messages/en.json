@@ -222,7 +222,10 @@
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}"
-        }
+        },
+        "openProfile": "Open your profile",
+        "showBalance": "Show balance",
+        "hideBalance": "Hide balance"
     },
     "profile": {
         "language": "Language",

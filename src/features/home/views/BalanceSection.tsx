@@ -26,6 +26,7 @@ const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; href: string; ic
  * visibility toggle, plus the add / send / request submenu underneath.
  */
 export function BalanceSection({ balance, isFetching, isHidden, onToggleVisibility }: BalanceSectionProps) {
+    const t = useTranslations('home')
     const tNav = useTranslations('navigation')
     const { triggerHaptic } = useHaptic()
 
@@ -40,7 +41,13 @@ export function BalanceSection({ balance, isFetching, isHidden, onToggleVisibili
                         <span className="text-heading-xl text-foreground-primary">
                             {isHidden ? '****' : formatExtendedNumber(printableUsdc(balance))}
                         </span>
-                        <button type="button" onClick={onToggleVisibility} className="cursor-pointer">
+                        <button
+                            type="button"
+                            onClick={onToggleVisibility}
+                            className="cursor-pointer"
+                            aria-pressed={isHidden}
+                            aria-label={isHidden ? t('showBalance') : t('hideBalance')}
+                        >
                             <Icon name={isHidden ? 'eye-slash' : 'eye'} size={20} className="text-foreground-primary" />
                         </button>
                     </>

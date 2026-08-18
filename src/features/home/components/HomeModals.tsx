@@ -28,8 +28,12 @@ const MigrationDownloadModal = lazy(() => import('@/components/Migration/Migrati
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
 const ReviewPromptModal = lazy(() => import('@/components/Migration/ReviewPromptModal'))
 
-const BALANCE_WARNING_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
-const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400') // 21 days in seconds
+// guard against malformed env values — NaN would silently disable the
+// warning (threshold compare always false) or break dismissal expiry
+const parsedThreshold = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
+const BALANCE_WARNING_THRESHOLD = Number.isNaN(parsedThreshold) ? 500 : parsedThreshold
+const parsedExpiry = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400')
+const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpiry // 21 days in seconds
 
 /**
  * home modal orchestration — the priority chain the old home page carried
@@ -38,7 +42,7 @@ const BALANCE_WARNING_EXPIRY = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_
  */
 export function HomeModals() {
     const { showPermissionModal } = useNotifications()
-    const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
+    const { isGetAppModalOpen, setIsGetAppModalOpen, isIosPwaInstallModalOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user } = useUserStore()
     const { fetchUser } = useAuth()
@@ -145,25 +149,28 @@ export function HomeModals() {
                 </>
             )}
 
-            <LazyLoadErrorBoundary>
-                <Suspense fallback={null}>
-                    <WelcomeUnlockModal
-                        isOpen={showKycModal && !showBalanceWarningModal && !showMigrationModal}
-                        onClose={async () => {
-                            // close the modal immediately for better ux
-                            setShowKycModal(false)
-                            // update the database and refetch user to ensure sync
-                            if (user?.user.userId) {
-                                await updateUserById({
-                                    userId: user.user.userId,
-                                    dismissActivationCelebration: true,
-                                })
-                                await fetchUser()
-                            }
-                        }}
-                    />
-                </Suspense>
-            </LazyLoadErrorBoundary>
+            {/* mount-gated so the ~20-30KB chunk only loads when the modal can show */}
+            {showKycModal && (
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={null}>
+                        <WelcomeUnlockModal
+                            isOpen={showKycModal && !showBalanceWarningModal && !showMigrationModal}
+                            onClose={async () => {
+                                // close the modal immediately for better ux
+                                setShowKycModal(false)
+                                // update the database and refetch user to ensure sync
+                                if (user?.user.userId) {
+                                    await updateUserById({
+                                        userId: user.user.userId,
+                                        dismissActivationCelebration: true,
+                                    })
+                                    await fetchUser()
+                                }
+                            }}
+                        />
+                    </Suspense>
+                </LazyLoadErrorBoundary>
+            )}
 
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
@@ -171,22 +178,29 @@ export function HomeModals() {
                         visible={showBalanceWarningModal && !showMigrationModal}
                         onCloseAction={() => {
                             setShowBalanceWarningModal(false)
-                            updateUserPreferences(user!.user.userId, {
-                                hasSeenBalanceWarning: {
-                                    value: true,
-                                    expiry: Date.now() + BALANCE_WARNING_EXPIRY * 1000,
-                                },
-                            })
+                            // no non-null assertion: user can log out while the modal is open
+                            if (user?.user.userId) {
+                                updateUserPreferences(user.user.userId, {
+                                    hasSeenBalanceWarning: {
+                                        value: true,
+                                        expiry: Date.now() + BALANCE_WARNING_EXPIRY * 1000,
+                                    },
+                                })
+                            }
                         }}
                     />
                 </Suspense>
             </LazyLoadErrorBoundary>
 
-            <LazyLoadErrorBoundary>
-                <Suspense fallback={null}>
-                    <IosPwaInstallModal />
-                </Suspense>
-            </LazyLoadErrorBoundary>
+            {/* mount-gated: the modal is purely context-driven, so the chunk
+                only loads once something opens it */}
+            {isIosPwaInstallModalOpen && (
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={null}>
+                        <IosPwaInstallModal />
+                    </Suspense>
+                </LazyLoadErrorBoundary>
+            )}
 
             {/* card pioneer modal — eligibility check happens during the flow (geo
                 screen), not here. unmounted while the migration prompt shows (it
