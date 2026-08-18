@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
@@ -52,9 +53,9 @@ export default function LinkButtonPage() {
                 <DocSection.Content>
                     <p className="text-body-m text-foreground-primary">
                         Inline links inherit the surrounding text:{' '}
-                        <a href="/dev/ds" className="text-foreground-secondary underline">
+                        <Link href="/dev/ds" className="text-foreground-secondary underline">
                             transaction history
-                        </a>{' '}
+                        </Link>{' '}
                         stays in the sentence. Do not embed the standalone LinkButton inline — its fixed size and icon
                         break the sentence.
                     </p>
@@ -63,9 +64,9 @@ export default function LinkButtonPage() {
                     <CodeBlock
                         label="Inline"
                         code={`You can view your{' '}
-<a href="/history" className="text-foreground-secondary underline">
+<Link href="/history" className="text-foreground-secondary underline">
     transaction history
-</a>{' '}
+</Link>{' '}
 at any time.`}
                     />
                 </DocSection.Code>
