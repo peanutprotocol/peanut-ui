@@ -39,7 +39,7 @@ export default function BackupPage() {
 
     return (
         <PageContainer>
-            <div className="mb-6 space-y-4">
+            <div className="space-y-4 mb-6">
                 <NavHeader title={t('title')} onPrev={onBack} />
 
                 <EmptyState
@@ -51,7 +51,7 @@ export default function BackupPage() {
                 <div className="space-y-2">
                     <h1 className="font-bold text-black">{t('enableNow')}</h1>
                     <Card>
-                        <ol className="list-decimal space-y-4 py-2 pl-5">
+                        <ol className="space-y-4 list-decimal py-2 pl-5">
                             {backupSteps.map((step, index) => (
                                 <li key={index}>
                                     <p className="font-bold text-black">{step.title}</p>
@@ -99,7 +99,7 @@ export default function BackupPage() {
                 title={t('faq.losePhone')}
                 titleClassName="font-extrabold text-xl"
                 content={
-                    <div className="w-full space-y-3">
+                    <div className="space-y-3 w-full">
                         <InfoCard
                             variant="success"
                             icon="check"
@@ -125,7 +125,7 @@ export default function BackupPage() {
                 title={t('faq.changePhone')}
                 titleClassName="font-extrabold text-xl"
                 content={
-                    <div className="w-full space-y-3">
+                    <div className="space-y-3 w-full">
                         <ol className="list-decimal pl-5 text-left text-sm text-black">
                             <li>{t('changePhoneModal.step1')}</li>
                             <li>{t('changePhoneModal.step2', { platform })}</li>
@@ -163,11 +163,11 @@ export default function BackupPage() {
                 title={t('faq.exportKeys')}
                 titleClassName="font-extrabold text-xl"
                 content={
-                    <div className="w-full space-y-4 text-left">
+                    <div className="space-y-4 w-full text-left">
                         <div>
                             <h4 className="font-bold text-black">{t('exportKeysModal.saferTitle')}</h4>
                             <p className="mt-1 text-sm text-black">{t('exportKeysModal.saferIntro')}</p>
-                            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-black">
+                            <ul className="space-y-1 mt-2 list-disc pl-5 text-sm text-black">
                                 <li>{t('exportKeysModal.bullets.screenshot')}</li>
                                 <li>{t('exportKeysModal.bullets.textMessage')}</li>
                                 <li>{t('exportKeysModal.bullets.noteApp')}</li>

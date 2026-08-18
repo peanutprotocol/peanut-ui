@@ -107,7 +107,7 @@ export default function NavigationPage() {
 
                     {/* Live demo */}
                     <div className="space-y-2 rounded-sm border border-n-1 p-3">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">
+                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">
                             Live Demo (step {flowStep}/3)
                         </p>
                         <FlowHeader

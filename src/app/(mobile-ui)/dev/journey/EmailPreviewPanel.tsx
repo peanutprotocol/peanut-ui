@@ -65,7 +65,7 @@ export default function EmailPreviewPanel({
                 <header className="flex flex-col gap-2 border-b border-n-1 p-3">
                     <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-col gap-1">
-                            <div className="text-sm font-bold leading-tight">{active.step.subject}</div>
+                            <div className="text-sm leading-tight font-bold">{active.step.subject}</div>
                             <div className="flex flex-wrap items-center gap-1.5">
                                 <span className="font-mono text-[10px] text-grey-1">{active.eventType}</span>
                                 {typeof active.step.afterDaysStuck === 'number' && (

@@ -41,13 +41,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 function BlogSkeleton() {
     return (
-        <div className="mx-auto mb-8 mt-10 max-w-[720px] px-6 md:mt-12 md:px-4">
-            <div className="h-12 w-full animate-pulse rounded-sm border border-n-1 bg-gray-200" />
+        <div className="mx-auto mt-10 mb-8 max-w-[720px] px-6 md:mt-12 md:px-4">
+            <div className="bg-gray-200 h-12 w-full animate-pulse rounded-sm border border-n-1" />
             <div className="mt-10 flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
                 {[1, 2, 3, 4].map((j) => (
                     <div key={j} className="flex flex-col gap-1.5 bg-white px-5 py-4">
-                        <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200" />
-                        <div className="h-3 w-1/2 animate-pulse rounded bg-gray-200" />
+                        <div className="bg-gray-200 h-4 w-3/4 animate-pulse rounded" />
+                        <div className="bg-gray-200 h-3 w-1/2 animate-pulse rounded" />
                     </div>
                 ))}
             </div>

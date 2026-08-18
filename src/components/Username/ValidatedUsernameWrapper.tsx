@@ -95,7 +95,7 @@ export function ValidatedUsernameWrapper({
     // show error if validation failed
     if (error) {
         return (
-            <div className="mx-auto h-full w-full space-y-8 self-center md:w-6/12">
+            <div className="mx-auto space-y-8 h-full w-full self-center md:w-6/12">
                 <ValidationErrorView {...error} />
             </div>
         )

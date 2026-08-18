@@ -433,7 +433,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         }, [country])
 
         return (
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-5">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"
@@ -459,7 +459,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     >
                         {/* CLAIM FLOW: show name field for guest users or logged-in users without fullName */}
                         {flow === 'claim' && !user?.user.userId && (
-                            <div className="w-full space-y-4">
+                            <div className="space-y-4 w-full">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
                                     validate: (value: string | undefined) => {
@@ -474,7 +474,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             </div>
                         )}
                         {flow === 'claim' && user?.user.userId && !user.user.fullName && (
-                            <div className="w-full space-y-4">
+                            <div className="space-y-4 w-full">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
                                     validate: (value: string | undefined) => {
@@ -498,7 +498,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                         {/* WITHDRAW FLOW: always show account owner's name field (empty by default) */}
                         {flow !== 'claim' && (
-                            <div className="w-full space-y-4">
+                            <div className="space-y-4 w-full">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
                                     validate: (value: string | undefined) => {

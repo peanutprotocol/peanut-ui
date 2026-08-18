@@ -6,7 +6,7 @@ import type { SpecRules } from './journeyTypes'
 function Rule({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="flex items-center gap-1.5 rounded-sm border border-n-1 bg-white px-2 py-1">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-grey-1">{label}</span>
+            <span className="text-[10px] font-bold tracking-wide text-grey-1 uppercase">{label}</span>
             {children}
         </div>
     )

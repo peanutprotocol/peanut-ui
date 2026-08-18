@@ -198,13 +198,13 @@ export default function Home() {
 
     return (
         <PageContainer>
-            <div className="h-full w-full space-y-6 p-5">
+            <div className="space-y-6 h-full w-full p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isKycApproved} />
                     {isActivated && (
                         <Link onClick={() => triggerHaptic()} href="/rewards" className="flex items-center gap-0">
                             <InvitesIcon />
-                            <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">
+                            <span className="pl-1 text-sm font-semibold whitespace-nowrap md:text-base">
                                 {t('rewards')}
                             </span>
                             <NavigationArrow size={16} className="fill-black" />
@@ -414,7 +414,7 @@ function WalletBalance({
 
     return (
         <div className="flex items-center gap-4">
-            <div className="flex items-end gap-2 text-[48px] font-black leading-none md:text-[56px]">
+            <div className="flex items-end gap-2 text-[48px] leading-none font-black md:text-[56px]">
                 {isFetchingBalance || balance === undefined ? (
                     <span className="block pl-3">
                         <Loading />
@@ -484,7 +484,7 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
             {renderIcon()}
             <span
                 className={twMerge(
-                    'whitespace-nowrap font-semibold',
+                    'font-semibold whitespace-nowrap',
                     size === 'small'
                         ? 'text-sm md:text-base' // Add/Withdraw size
                         : 'text-base md:text-lg' // Send/Request size

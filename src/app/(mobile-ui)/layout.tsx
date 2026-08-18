@@ -186,7 +186,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                 {!isDev && (
                     <div className="hidden md:block">
-                        <div className="fixed left-0 top-0 z-20 h-screen w-64">
+                        <div className="fixed top-0 left-0 z-20 h-screen w-64">
                             <WalletNavigation />
                         </div>
                     </div>
@@ -239,7 +239,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     {/* Mobile navigation */}
                     {!isDev && (
                         <div
-                            className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden"
+                            className="fixed right-0 bottom-0 left-0 z-10 bg-background md:hidden"
                             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
                         >
                             <WalletNavigation />

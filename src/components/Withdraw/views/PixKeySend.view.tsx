@@ -70,7 +70,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
                             validate={validatePixDestination}
                             smartPasteKind="pixKey"
                         />
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="text-gray-600 flex items-center gap-2 text-sm">
                             <Icon name="info" size={16} />
                             <span>{t('pixKey.info')}</span>
                         </div>

@@ -15,7 +15,7 @@ const IconStack: React.FC<IconStackProps> = ({ icons, iconSize = 24, iconClassNa
                 <div
                     key={index}
                     className={twMerge(
-                        `flex max-h-6 min-h-6 min-w-6 max-w-6 items-center justify-center rounded-full bg-white`,
+                        `flex max-h-6 min-h-6 max-w-6 min-w-6 items-center justify-center rounded-full bg-white`,
                         iconClassName
                     )}
                     style={{ zIndex: index }}

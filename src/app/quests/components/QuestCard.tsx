@@ -75,12 +75,12 @@ export function QuestCard({
                 </div>
                 <div className="flex-1">
                     <h3 className="text-lg font-black text-black md:text-xl">{title}</h3>
-                    <p className="text-xs text-gray-600 md:text-sm">{description}</p>
+                    <p className="text-gray-600 text-xs md:text-sm">{description}</p>
                 </div>
             </div>
 
             {/* Mini Leaderboard - Top 3 or Empty State */}
-            <div className="flex-1 space-y-3">
+            <div className="space-y-3 flex-1">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                         <PeanutLoading />
@@ -88,14 +88,14 @@ export function QuestCard({
                 ) : leaderboard.length === 0 && !hasUserData && questStatus === 'not_started' && !useTestTimePeriod ? (
                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                         <div className="mb-3 text-4xl">⏰</div>
-                        <p className="text-sm font-bold text-gray-700">Coming Soon!</p>
-                        <p className="text-xs text-gray-500">Starts Nov 17th</p>
+                        <p className="text-gray-700 text-sm font-bold">Coming Soon!</p>
+                        <p className="text-gray-500 text-xs">Starts Nov 17th</p>
                     </div>
                 ) : leaderboard.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                         <div className="mb-3 text-3xl">🏆</div>
-                        <p className="text-sm font-bold text-gray-700">No entries yet</p>
-                        <p className="text-xs text-gray-500">Be the first!</p>
+                        <p className="text-gray-700 text-sm font-bold">No entries yet</p>
+                        <p className="text-gray-500 text-xs">Be the first!</p>
                     </div>
                 ) : (
                     <>
@@ -119,7 +119,7 @@ export function QuestCard({
                                     {/* Username */}
                                     <div className="flex min-w-0 flex-col">
                                         <div className="flex items-center gap-1.5 md:gap-2">
-                                            <span className="truncate text-sm font-bold text-gray-900 md:text-base">
+                                            <span className="text-gray-900 truncate text-sm font-bold md:text-base">
                                                 {entry.username}
                                             </span>
                                             {entry.rank <= 3 && (

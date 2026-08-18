@@ -140,7 +140,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
 
                 {/* Right navigation button */}
                 {canScrollRight && (
-                    <div className="absolute -right-2 top-1/2 -translate-y-1/2">
+                    <div className="absolute top-1/2 -right-2 -translate-y-1/2">
                         <Button
                             variant="transparent-dark"
                             size="small"
@@ -154,7 +154,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
 
                 {/* Left navigation button */}
                 {canScrollLeft && (
-                    <div className="absolute -left-2 top-1/2 -translate-y-1/2">
+                    <div className="absolute top-1/2 -left-2 -translate-y-1/2">
                         <Button
                             variant="transparent-dark"
                             size="small"

@@ -93,10 +93,10 @@ const MantecaDepositShareDetails = ({
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
                 {/* Amount Display Card */}
                 <Card className="p-4">
-                    <div className="flex items-center space-x-3">
+                    <div className="space-x-3 flex items-center">
                         <div className="relative h-12 w-12">
                             <Image
                                 src={getFlagUrl(countryCodeForFlag)}
@@ -105,12 +105,12 @@ const MantecaDepositShareDetails = ({
                                 height={48}
                                 className="h-12 w-12 rounded-full object-cover"
                             />
-                            <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
+                            <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
                                 <Icon name="bank" size={12} />
                             </div>
                         </div>
                         <div>
-                            <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                            <p className="text-gray-600 flex items-center gap-1 text-center text-sm">
                                 <Icon name="arrow-down" size={10} /> {t('manteca.youreAdding')}
                             </p>
                             <p className="text-2xl font-bold">

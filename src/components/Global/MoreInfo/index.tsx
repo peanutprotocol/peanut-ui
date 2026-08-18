@@ -77,7 +77,7 @@ const MoreInfo = ({ text }: MoreInfoProps) => {
             >
                 <div
                     style={tooltipStyle}
-                    className="whitespace-pre-line rounded border border-n-1 bg-white px-3 py-2 shadow-lg"
+                    className="rounded border border-n-1 bg-white px-3 py-2 whitespace-pre-line shadow-lg"
                 >
                     <div className="block text-h8 font-normal text-black">
                         <div>{text}</div>

@@ -59,12 +59,12 @@ const Toast: React.FC<ToastMessage> = ({ type = 'info', message, content, classN
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             className={twMerge(
                 'border-2 px-6 py-1',
-                'card shadow-4 max-w-[calc(100vw_-_2rem)] md:max-w-md',
+                'card max-w-[calc(100vw_-_2rem)] shadow-4 md:max-w-md',
                 colors[type],
                 className
             )}
         >
-            {content ?? <p className="break-words text-center text-sm font-bold">{message}</p>}
+            {content ?? <p className="text-center text-sm font-bold break-words">{message}</p>}
         </motion.div>
     )
 }
@@ -135,7 +135,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <>
             <ToastContext.Provider value={contextValue}>
-                <div className="fixed bottom-[100px] right-4 z-[99999] flex flex-col items-end gap-2">
+                <div className="fixed right-4 bottom-[100px] z-[99999] flex flex-col items-end gap-2">
                     <AnimatePresence mode="sync">
                         {toasts.map((toast) => (
                             <Toast key={toast.id} {...toast} />

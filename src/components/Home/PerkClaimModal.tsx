@@ -364,10 +364,10 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                         className={`gift-box-shine relative h-32 w-44 overflow-hidden rounded-xl border-4 border-primary-1 bg-gradient-to-br from-primary-1/20 via-white to-primary-2/20 shadow-xl transition-transform ${holdProgress > 0 ? 'scale-[0.98]' : ''}`}
                     >
                         {/* Vertical ribbon */}
-                        <div className="absolute bottom-0 left-1/2 top-0 w-5 -translate-x-1/2 bg-gradient-to-r from-primary-1/50 via-primary-1/70 to-primary-1/50" />
+                        <div className="absolute top-0 bottom-0 left-1/2 w-5 -translate-x-1/2 bg-gradient-to-r from-primary-1/50 via-primary-1/70 to-primary-1/50" />
 
                         {/* Horizontal ribbon */}
-                        <div className="absolute left-0 right-0 top-1/2 h-5 -translate-y-1/2 bg-gradient-to-b from-primary-1/50 via-primary-1/70 to-primary-1/50" />
+                        <div className="absolute top-1/2 right-0 left-0 h-5 -translate-y-1/2 bg-gradient-to-b from-primary-1/50 via-primary-1/70 to-primary-1/50" />
 
                         {/* Light rays from center */}
                         <div
@@ -379,10 +379,10 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
 
                         {/* Cracks appearing with progress */}
                         {holdProgress > 20 && (
-                            <div className="absolute left-4 top-4 h-8 w-0.5 rotate-45 bg-primary-1/40" />
+                            <div className="absolute top-4 left-4 h-8 w-0.5 rotate-45 bg-primary-1/40" />
                         )}
                         {holdProgress > 40 && (
-                            <div className="absolute bottom-6 right-6 h-10 w-0.5 -rotate-[30deg] bg-primary-1/40" />
+                            <div className="absolute right-6 bottom-6 h-10 w-0.5 -rotate-[30deg] bg-primary-1/40" />
                         )}
                         {holdProgress > 60 && (
                             <div className="absolute bottom-4 left-8 h-6 w-0.5 rotate-12 bg-primary-1/40" />
@@ -403,7 +403,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                         <div className="relative">
                             {/* Left ribbon tail */}
                             <div
-                                className="absolute left-1/2 top-2 h-4 w-2 -translate-x-[10px] bg-primary-1 transition-transform"
+                                className="absolute top-2 left-1/2 h-4 w-2 -translate-x-[10px] bg-primary-1 transition-transform"
                                 style={{
                                     transform: `translateX(-10px) rotate(${-20 - ribbonSpread * 0.5}deg)`,
                                     borderRadius: '0 0 2px 2px',
@@ -411,7 +411,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                             />
                             {/* Right ribbon tail */}
                             <div
-                                className="absolute left-1/2 top-2 h-4 w-2 translate-x-[2px] bg-primary-1 transition-transform"
+                                className="absolute top-2 left-1/2 h-4 w-2 translate-x-[2px] bg-primary-1 transition-transform"
                                 style={{
                                     transform: `translateX(2px) rotate(${20 + ribbonSpread * 0.5}deg)`,
                                     borderRadius: '0 0 2px 2px',
@@ -419,12 +419,12 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                             />
                             {/* Left loop */}
                             <div
-                                className="absolute -left-5 -top-1 h-4 w-6 rounded-full bg-primary-1 shadow-sm transition-transform"
+                                className="absolute -top-1 -left-5 h-4 w-6 rounded-full bg-primary-1 shadow-sm transition-transform"
                                 style={{ transform: `rotate(${-25 - ribbonSpread}deg)` }}
                             />
                             {/* Right loop */}
                             <div
-                                className="absolute -right-5 -top-1 h-4 w-6 rounded-full bg-primary-1 shadow-sm transition-transform"
+                                className="absolute -top-1 -right-5 h-4 w-6 rounded-full bg-primary-1 shadow-sm transition-transform"
                                 style={{ transform: `rotate(${25 + ribbonSpread}deg)` }}
                             />
                             {/* Center knot */}
@@ -436,13 +436,13 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                     {holdProgress > 30 && (
                         <>
                             <div
-                                className="absolute -right-4 top-2 animate-ping text-lg"
+                                className="absolute top-2 -right-4 animate-ping text-lg"
                                 style={{ animationDuration: '1s' }}
                             >
                                 ✨
                             </div>
                             <div
-                                className="absolute -left-4 bottom-4 animate-ping text-lg"
+                                className="absolute bottom-4 -left-4 animate-ping text-lg"
                                 style={{ animationDuration: '1.2s', animationDelay: '0.2s' }}
                             >
                                 ✨

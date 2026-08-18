@@ -568,7 +568,7 @@ function MantecaBankWithdrawFlow() {
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <SoundPlayer sound="success" />
                 <NavHeader title={tNav('withdraw')} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="flex flex-row items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div className="flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold">
@@ -594,7 +594,7 @@ function MantecaBankWithdrawFlow() {
                         <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
-                    <div className="w-full space-y-5">
+                    <div className="space-y-5 w-full">
                         <Button
                             onClick={() => {
                                 router.push('/home')
@@ -614,7 +614,7 @@ function MantecaBankWithdrawFlow() {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title={tNav('withdraw')} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="shadow-4">
                         <Card.Header>
                             <Card.Title>{t('somethingWentWrong')}</Card.Title>
@@ -709,7 +709,7 @@ function MantecaBankWithdrawFlow() {
             />
 
             {step === 'amountInput' && (
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-xl font-bold">{t('amountToWithdraw')}</div>
                     <AmountInput
                         initialAmount={currencyAmount}
@@ -775,10 +775,10 @@ function MantecaBankWithdrawFlow() {
             )}
 
             {step === 'bankDetails' && (
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     {/* Amount Display Card */}
                     <Card className="p-4">
-                        <div className="flex items-center space-x-3">
+                        <div className="space-x-3 flex items-center">
                             <div className="relative h-12 w-12">
                                 <Image
                                     src={getFlagUrl(countryFlagCode)}
@@ -787,12 +787,12 @@ function MantecaBankWithdrawFlow() {
                                     height={48}
                                     className="h-12 w-12 rounded-full object-cover"
                                 />
-                                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
                                     <Icon name="bank" size={12} />
                                 </div>
                             </div>
                             <div>
-                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                <p className="text-gray-600 flex items-center gap-1 text-center text-sm">
                                     <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
                                 <p className="text-2xl font-bold">
@@ -853,7 +853,7 @@ function MantecaBankWithdrawFlow() {
                                 />
                             )}
 
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <div className="text-gray-600 flex items-center gap-2 text-sm">
                                 <Icon name="info" size={16} />
                                 <span>{t('manteca.ownAccountOnly')}</span>
                             </div>
@@ -887,9 +887,9 @@ function MantecaBankWithdrawFlow() {
             )}
 
             {step === 'review' && (
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="p-4">
-                        <div className="flex items-center space-x-3">
+                        <div className="space-x-3 flex items-center">
                             <div className="relative h-12 w-12">
                                 <Image
                                     src={getFlagUrl(countryFlagCode)}
@@ -898,12 +898,12 @@ function MantecaBankWithdrawFlow() {
                                     height={48}
                                     className="h-12 w-12 rounded-full object-cover"
                                 />
-                                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
                                     <Icon name="bank" size={12} />
                                 </div>
                             </div>
                             <div>
-                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                <p className="text-gray-600 flex items-center gap-1 text-center text-sm">
                                     <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
                                 <p className="text-2xl font-bold">

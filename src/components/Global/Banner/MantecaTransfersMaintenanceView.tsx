@@ -18,7 +18,7 @@ export function MantecaTransfersMaintenanceView({ action }: { action: 'deposits'
     const router = useRouter()
     const { setIsSupportModalOpen } = useModalsContext()
     return (
-        <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+        <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
             <Card className="flex w-full flex-col items-center gap-2 p-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
                     <Icon name="alert" size={24} />

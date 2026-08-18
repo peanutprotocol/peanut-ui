@@ -99,7 +99,7 @@ export function QuestsHero() {
     return (
         <section className="relative flex min-h-screen items-center overflow-hidden bg-[#FFC900] px-3 py-12 md:px-4 md:py-16">
             {/* Animated Clouds - Reduced for performance */}
-            <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
+            <div className="absolute top-0 left-0 h-full w-full overflow-hidden">
                 <motion.img
                     src={borderCloud.src}
                     alt=""
@@ -170,7 +170,7 @@ export function QuestsHero() {
 
                     {/* Reuse landing page button style with arrows */}
                     <motion.div
-                        className="relative z-20 mx-auto mb-8 mt-6 flex w-fit flex-col items-center justify-center md:mb-12 md:mt-12"
+                        className="relative z-20 mx-auto mt-6 mb-8 flex w-fit flex-col items-center justify-center md:mt-12 md:mb-12"
                         initial={{ opacity: 0, translateY: 4, translateX: 0, rotate: 0.75 }}
                         animate={{ opacity: 1, translateY: 0, translateX: 0, rotate: 0, scale: 1 }}
                         whileHover={{ translateY: 6, translateX: 0, rotate: 0.75 }}
@@ -190,7 +190,7 @@ export function QuestsHero() {
                             alt="Arrow"
                             width={32}
                             height={16}
-                            className="absolute -left-8 -top-5 block -translate-y-1/2 transform md:hidden"
+                            className="absolute -top-5 -left-8 block -translate-y-1/2 transform md:hidden"
                             style={{ rotate: '8deg' }}
                         />
                         <Image
@@ -198,7 +198,7 @@ export function QuestsHero() {
                             alt="Arrow"
                             width={32}
                             height={16}
-                            className="absolute -right-8 -top-5 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
+                            className="absolute -top-5 -right-8 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
                             style={{ rotate: '-8deg' }}
                         />
                         <Image
@@ -206,7 +206,7 @@ export function QuestsHero() {
                             alt="Arrow"
                             width={40}
                             height={20}
-                            className="absolute -left-10 -top-6 hidden -translate-y-1/2 transform md:block"
+                            className="absolute -top-6 -left-10 hidden -translate-y-1/2 transform md:block"
                             style={{ rotate: '8deg' }}
                         />
                         <Image
@@ -214,14 +214,14 @@ export function QuestsHero() {
                             alt="Arrow"
                             width={40}
                             height={20}
-                            className="absolute -right-10 -top-6 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
+                            className="absolute -top-6 -right-10 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
                             style={{ rotate: '-8deg' }}
                         />
                     </motion.div>
                 </div>
 
                 {/* Quests Leaderboards Section */}
-                <div className="mb-8 mt-16 text-center md:mt-24">
+                <div className="mt-16 mb-8 text-center md:mt-24">
                     <div className="mb-6 flex items-center justify-center gap-2 md:gap-3">
                         <Image src={handPointing} alt="" width={32} height={32} className="h-8 w-8 md:h-12 md:w-12" />
                         <h2 className="text-xl font-black text-black md:text-4xl">QUESTS LEADERBOARDS</h2>

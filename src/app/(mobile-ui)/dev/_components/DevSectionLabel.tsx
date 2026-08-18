@@ -8,5 +8,5 @@ import { twMerge } from 'tailwind-merge'
  * `tracking-wide`/`tracking-wider`, `font-bold`/`font-extrabold`).
  */
 export default function DevSectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <h2 className={twMerge('text-xs font-bold uppercase tracking-wide text-grey-1', className)}>{children}</h2>
+    return <h2 className={twMerge('text-xs font-bold tracking-wide text-grey-1 uppercase', className)}>{children}</h2>
 }

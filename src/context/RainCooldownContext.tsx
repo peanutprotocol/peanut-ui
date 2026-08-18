@@ -56,7 +56,7 @@ const CooldownPillContent = ({ endsAt }: { endsAt: number }) => {
     return (
         <div className="flex items-center gap-2">
             <Icon name="clock" className="h-4 w-4 text-n-1" />
-            <span className="text-sm font-bold tabular-nums text-n-1">
+            <span className="text-sm font-bold text-n-1 tabular-nums">
                 {t('rainCooldownPill')} · {formatRemaining(remainingMs)}
             </span>
         </div>

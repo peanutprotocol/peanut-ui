@@ -263,7 +263,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         return (
             <div className="flex min-h-[inherit] flex-col justify-normal gap-6">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
-                <div className="flex h-full flex-col justify-center space-y-2">
+                <div className="space-y-2 flex h-full flex-col justify-center">
                     <h2 className="text-base font-bold">{tAddMoney('recentMethods')}</h2>
                     <DepositMethodList
                         methods={recentMethodsWithType as DepositMethod[]}

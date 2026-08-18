@@ -51,7 +51,7 @@ export default function RedirectQrSuccessPage() {
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title={t('claimSuccess.navTitle')} />
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 {/* Title */}
                 <div className="space-y-1 text-center">
                     <h1 className="text-2xl font-extrabold">{t('claimSuccess.title')}</h1>

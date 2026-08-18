@@ -73,7 +73,7 @@ const InputAmountStep = ({
         : null
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
+        <div className="space-y-8 flex min-h-[inherit] flex-col justify-start">
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {maintenanceBanner}

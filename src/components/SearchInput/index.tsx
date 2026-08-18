@@ -22,7 +22,7 @@ export const SearchInput = ({
     return (
         <div className={`relative ${className}`}>
             {/* icono lupa */}
-            <div className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
+            <div className="absolute top-1/2 left-4 z-10 -translate-y-1/2">
                 <Icon name="search" size={15} />
             </div>
 
@@ -33,7 +33,7 @@ export const SearchInput = ({
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
-                className="h-10 w-full rounded-sm border border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:border-black focus:outline-none focus:ring-0"
+                className="h-10 w-full rounded-sm border border-black pr-10 pl-10 font-normal caret-[#FF90E8] focus:border-black focus:ring-0 focus:outline-none"
             />
 
             {/* botón limpiar */}
@@ -41,7 +41,7 @@ export const SearchInput = ({
                 <Button
                     variant="transparent"
                     onClick={onClear}
-                    className="absolute right-2 top-1/2 h-8 w-6 -translate-y-1/2 p-0"
+                    className="absolute top-1/2 right-2 h-8 w-6 -translate-y-1/2 p-0"
                 >
                     <Icon name="cancel" size={16} />
                 </Button>

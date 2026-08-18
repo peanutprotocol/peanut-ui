@@ -180,7 +180,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         return (
             <div className="flex flex-col items-center justify-center gap-8">
                 {!!authUser?.user.userId ? <NavHeader onPrev={onBack} title={tNav('request')} /> : null}
-                <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4 md:w-6/12">
+                <div className="my-auto space-y-4 flex h-full w-full flex-col items-center justify-center md:w-6/12">
                     <ValidationErrorView {...validationError} />
                 </div>
             </div>
@@ -197,7 +197,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
                 )}
 
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <PaymentSuccessView
                         user={recipientUser}
                         amount={formatAmount(currentInputValue)}
@@ -218,7 +218,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
             )}
 
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 <UserCard
                     type="request"
                     recipientType={'USERNAME'}

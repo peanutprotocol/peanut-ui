@@ -239,7 +239,7 @@ const HistoryPage = () => {
         console.error(error)
         Sentry.captureException(error)
         return (
-            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <h2 className="text-base font-bold">{t('transactions')}</h2>{' '}
                 <EmptyState icon="alert" title={t('errorTitle')} description={t('errorDescription')} />
             </div>
@@ -267,7 +267,7 @@ const HistoryPage = () => {
     const today = new Date()
 
     return (
-        <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
+        <div className="mx-auto space-y-6 w-full md:space-y-3 md:max-w-2xl">
             <NavHeader title={t('title')} />
             <div className="h-full w-full">
                 {combinedAndSortedEntries.map((item, index) => {
@@ -297,7 +297,7 @@ const HistoryPage = () => {
                     return (
                         <React.Fragment key={item.uuid}>
                             {showHeader && (
-                                <div className="mb-2 mt-4 px-1 text-sm font-semibold">
+                                <div className="mt-4 mb-2 px-1 text-sm font-semibold">
                                     {groupHeader(itemDate, group)}
                                 </div>
                             )}

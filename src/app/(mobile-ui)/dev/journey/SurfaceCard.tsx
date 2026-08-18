@@ -11,7 +11,7 @@ export default function SurfaceCard({ surface, showDev }: { surface: InAppSurfac
     return (
         <div className="rounded-sm border border-n-1 bg-white p-2.5">
             <div className="flex items-start justify-between gap-2">
-                <div className="text-xs font-bold leading-tight">{surface.name}</div>
+                <div className="text-xs leading-tight font-bold">{surface.name}</div>
                 <div className="flex shrink-0 flex-wrap justify-end gap-1">
                     {surface.isNewInThisPr && <DevChip tone="ink">NEW in this PR</DevChip>}
                     <DevChip tone={kind.tone} title={kind.description}>
@@ -29,8 +29,8 @@ export default function SurfaceCard({ surface, showDev }: { surface: InAppSurfac
             {surface.note && <p className="mt-1 text-[10px] leading-snug text-grey-1">{surface.note}</p>}
             {showDev && (
                 <>
-                    <p className="mt-1 text-[10px] italic leading-snug text-grey-1">{surface.condition}</p>
-                    <p className="mt-1.5 break-all font-mono text-[9px] leading-tight text-grey-1">
+                    <p className="mt-1 text-[10px] leading-snug text-grey-1 italic">{surface.condition}</p>
+                    <p className="mt-1.5 font-mono text-[9px] leading-tight break-all text-grey-1">
                         {surface.sourceFile}
                     </p>
                 </>

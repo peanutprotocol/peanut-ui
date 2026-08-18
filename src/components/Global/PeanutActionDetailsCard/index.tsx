@@ -135,7 +135,7 @@ export default function PeanutActionDetailsCard({
         }
         if (transactionType === 'REGIONAL_METHOD_CLAIM') title = recipientName // Render the string as is for regional method
         return (
-            <h1 className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap text-base font-normal text-grey-1">
+            <h1 className="flex items-center gap-2 overflow-hidden text-base font-normal text-ellipsis whitespace-nowrap text-grey-1">
                 {icon && <Icon name={icon} size={10} />} {title}
             </h1>
         )
@@ -203,7 +203,7 @@ export default function PeanutActionDetailsCard({
                         />
                     )}
                     {!isRegionalMethodClaim && (
-                        <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 p-1.5">
+                        <div className="bg-yellow-400 absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full p-1.5">
                             <Icon size={14} name="bank" className="text-black" />
                         </div>
                     )}
@@ -233,7 +233,7 @@ export default function PeanutActionDetailsCard({
                     )}
                 </div>
 
-                <div className="w-full space-y-1">
+                <div className="space-y-1 w-full">
                     {getTitle()}
                     {isLoading ? (
                         <Loading />

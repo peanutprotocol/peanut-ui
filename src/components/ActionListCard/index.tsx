@@ -45,7 +45,7 @@ export const ActionListCard = ({
             onClick={isDisabled ? undefined : handleCardClick}
             position={position}
             className={twMerge(
-                'cursor-pointer hover:bg-gray-50',
+                'hover:bg-gray-50 cursor-pointer',
                 isDisabled ? 'bg-grey-4 hover:bg-grey-4' : '',
                 className
             )}

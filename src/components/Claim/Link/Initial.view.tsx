@@ -977,7 +977,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     <div className="pb-1 text-center text-2xl font-extrabold">{t('receive')}</div>
                 </div>
             )}
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 <PeanutActionDetailsCard
                     avatarSize="small"
                     transactionType="CLAIM_LINK"
@@ -1090,7 +1090,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 icon="alert"
                 iconContainerClassName="bg-yellow-400"
                 footer={
-                    <div className="w-full space-y-3">
+                    <div className="space-y-3 w-full">
                         <Slider
                             onValueChange={(v) => {
                                 if (!v) return

@@ -70,7 +70,7 @@ export default function DeferredLinkDevPage() {
 
             <section>
                 <h2 className="font-bold">state</h2>
-                <pre className="whitespace-pre-wrap border border-n-1 p-2">{JSON.stringify(state, null, 2)}</pre>
+                <pre className="border border-n-1 p-2 whitespace-pre-wrap">{JSON.stringify(state, null, 2)}</pre>
                 <div className="flex gap-2">
                     <button className="border border-n-1 px-2 py-1" onClick={refresh}>
                         refresh
@@ -99,7 +99,7 @@ export default function DeferredLinkDevPage() {
                     build payload from current context (dest=/home)
                 </button>
                 {payload && (
-                    <pre className="whitespace-pre-wrap break-all border border-n-1 p-2">
+                    <pre className="border border-n-1 p-2 break-all whitespace-pre-wrap">
                         payload: {payload}
                         {'\n\n'}play url: {playStoreUrlWithReferrer(payload)}
                         {'\n\n'}ios hand-off: {iosHandoffString(payload)}
@@ -123,7 +123,7 @@ export default function DeferredLinkDevPage() {
                 <button className="border border-n-1 px-2 py-1" onClick={readReferrer}>
                     read raw referrer (android native only)
                 </button>
-                <pre className="whitespace-pre-wrap break-all border border-n-1 p-2">{rawReferrer}</pre>
+                <pre className="border border-n-1 p-2 break-all whitespace-pre-wrap">{rawReferrer}</pre>
             </section>
 
             <section>
@@ -139,7 +139,7 @@ export default function DeferredLinkDevPage() {
                     parse + apply
                 </button>
                 {simulateResult && (
-                    <pre className="whitespace-pre-wrap break-all border border-n-1 p-2">{simulateResult}</pre>
+                    <pre className="border border-n-1 p-2 break-all whitespace-pre-wrap">{simulateResult}</pre>
                 )}
             </section>
         </div>

@@ -71,7 +71,7 @@ export function ConfirmBankClaimView({
             <div>
                 <NavHeader title={t('receive')} onPrev={onBack} />
             </div>
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"

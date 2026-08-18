@@ -78,7 +78,7 @@ export function NoFees({
             id="no-fees"
             className={twMerge('relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14', className)}
         >
-            <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
+            <div className="absolute top-0 left-0 h-full w-full overflow-hidden">
                 {/* Animated clouds */}
                 <motion.img
                     src={borderCloud.src}
@@ -103,7 +103,7 @@ export function NoFees({
                     alt="Floating Star"
                     width={50}
                     height={50}
-                    className="absolute -right-36 -top-12"
+                    className="absolute -top-12 -right-36"
                     initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
                     transition={{ type: 'spring', damping: 5, delay: 0.2 }}
@@ -113,7 +113,7 @@ export function NoFees({
                     alt="Floating Star"
                     width={50}
                     height={50}
-                    className="absolute -right-58 top-30"
+                    className="absolute top-30 -right-58"
                     initial={{ opacity: 0, translateY: 28, translateX: -5, rotate: -17 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -17 }}
                     transition={{ type: 'spring', damping: 5, delay: 0.4 }}
@@ -123,7 +123,7 @@ export function NoFees({
                     alt="Floating Star"
                     width={50}
                     height={50}
-                    className="absolute -right-0 -top-16 md:top-58"
+                    className="absolute -top-16 -right-0 md:top-58"
                     initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
                     transition={{ type: 'spring', damping: 5, delay: 0.6 }}
@@ -133,7 +133,7 @@ export function NoFees({
                     alt="Floating Star"
                     width={50}
                     height={50}
-                    className="absolute -left-36 -top-20"
+                    className="absolute -top-20 -left-36"
                     initial={{ opacity: 0, translateY: 15, translateX: -5, rotate: -7 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -7 }}
                     transition={{ type: 'spring', damping: 5, delay: 0.8 }}

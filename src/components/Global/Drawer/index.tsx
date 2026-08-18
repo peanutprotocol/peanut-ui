@@ -78,7 +78,7 @@ const DrawerTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <DrawerPrimitive.Title
         ref={ref}
-        className={twMerge('text-lg font-semibold leading-none tracking-tight', className)}
+        className={twMerge('text-lg leading-none font-semibold tracking-tight', className)}
         {...props}
     />
 ))

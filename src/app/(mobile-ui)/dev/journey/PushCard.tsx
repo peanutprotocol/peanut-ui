@@ -8,7 +8,7 @@ export default function PushCard({ push, showDev }: { push: SpecPushReminder; sh
     return (
         <div className="rounded-sm border border-n-1 bg-white p-2.5">
             <div className="flex items-start justify-between gap-2">
-                <div className="text-xs font-bold leading-tight">{push.title}</div>
+                <div className="text-xs leading-tight font-bold">{push.title}</div>
                 <DevChip tone="yellow">after {push.afterMinutes}min</DevChip>
             </div>
             <p className="mt-1 text-[10px] leading-snug text-grey-1">{push.note}</p>

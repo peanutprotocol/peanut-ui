@@ -98,13 +98,13 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
             classWrap="!self-center !bottom-auto !mx-auto !w-auto !max-w-md"
         >
             <div className="flex w-full flex-col items-center justify-center gap-6 p-6 text-center">
-                <div className="flex size-16 items-center justify-center rounded-full bg-yellow-400">
+                <div className="bg-yellow-400 flex size-16 items-center justify-center rounded-full">
                     <Icon name="alert" size={24} />
                 </div>
 
                 <div className="space-y-4">
                     <h2 className="text-xl font-bold">{t('balanceWarningModal.title')}</h2>
-                    <div className="space-y-3 text-sm text-gray-600">
+                    <div className="text-gray-600 space-y-3 text-sm">
                         <p>{t('balanceWarningModal.congrats')}</p>
                         <p>{t('balanceWarningModal.selfCustody')}</p>
                         <p>{t('balanceWarningModal.passkey')}</p>

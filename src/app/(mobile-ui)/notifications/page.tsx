@@ -140,7 +140,7 @@ export default function NotificationsPage() {
 
     return (
         <PageContainer>
-            <div className="h-full w-full space-y-6">
+            <div className="space-y-6 h-full w-full">
                 <NavHeader title={t('title')} />
                 <div className="h-full w-full">
                     {/* error banner for partial failures */}
@@ -163,7 +163,7 @@ export default function NotificationsPage() {
                         grouped.map((group, groupIdx) => {
                             return (
                                 <React.Fragment key={groupIdx}>
-                                    <div className="mb-2 mt-4 px-1 text-sm font-semibold">{group.header}</div>
+                                    <div className="mt-4 mb-2 px-1 text-sm font-semibold">{group.header}</div>
                                     {group.items.map((notif, idx) => {
                                         let position: CardPosition = 'middle'
                                         if (group.items.length === 1) position = 'single'
@@ -204,14 +204,14 @@ export default function NotificationsPage() {
                                                             </div>
                                                         </div>
                                                         {notif.body ? (
-                                                            <div className="line-clamp-2 text-sm text-gray-600">
+                                                            <div className="text-gray-600 line-clamp-2 text-sm">
                                                                 {notif.body}
                                                             </div>
                                                         ) : null}
                                                     </div>
                                                 </Link>
                                                 {!notif.state.readAt ? (
-                                                    <span className="absolute right-2 top-2 size-1.5 rounded-full bg-orange-2" />
+                                                    <span className="absolute top-2 right-2 size-1.5 rounded-full bg-orange-2" />
                                                 ) : null}
                                             </Card>
                                         )

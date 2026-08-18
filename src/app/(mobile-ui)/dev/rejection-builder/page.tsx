@@ -170,7 +170,7 @@ export default function RejectionBuilderPage() {
                         mobile screen · CardRejectionScreen
                     </div>
                     <div
-                        className="shadow-4 w-full max-w-[392px] overflow-hidden rounded-[28px] border-2 border-n-1 bg-white"
+                        className="w-full max-w-[392px] overflow-hidden rounded-[28px] border-2 border-n-1 bg-white shadow-4"
                         style={{ height: 800 }}
                     >
                         <div className="flex h-full flex-col px-5 py-4" style={{ minHeight: 740 }}>

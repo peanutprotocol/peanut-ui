@@ -368,7 +368,7 @@ export const CreateRequestLinkView = () => {
     }, [merchantComment, tokenValue, generateLink, recipientAddress])
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
+        <div className="space-y-8 flex min-h-[inherit] w-full flex-col justify-start">
             <NavHeader onPrev={onBack} title={tNav('request')} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 <PeanutActionCard type="request" />

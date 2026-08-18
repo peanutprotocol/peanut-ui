@@ -54,7 +54,7 @@ export const PaymentInfoRow = ({
                         the row to the token's full width and escape the layout.
                         break-word only activates when a word can't fit, so
                         normal values render unchanged. */}
-                    <div className={twMerge('flex w-fit min-w-0 justify-end break-words text-sm font-bold')}>
+                    <div className={twMerge('flex w-fit min-w-0 justify-end text-sm font-bold break-words')}>
                         <span className="min-w-0">{value}</span>
                     </div>
                     {allowCopy && typeof value === 'string' && (

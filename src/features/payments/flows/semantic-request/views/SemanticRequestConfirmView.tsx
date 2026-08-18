@@ -121,7 +121,7 @@ export function SemanticRequestConfirmView() {
             <>
                 <span className="line-through">$ {calculatedGasCost.toFixed(2)}</span>
                 {' - '}
-                <span className="font-medium text-gray-500">{tCommon('sponsoredByPeanut')}</span>
+                <span className="text-gray-500 font-medium">{tCommon('sponsoredByPeanut')}</span>
             </>
         )
     }, [calculatedGasCost, isFeeEstimationError, tCommon])
@@ -186,7 +186,7 @@ export function SemanticRequestConfirmView() {
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={handleBack} title={t('headers.confirmPayment')} />
 
-            <div className="my-auto flex h-full flex-col justify-center space-y-4 pb-5">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-5">
                 {recipient && recipient.recipientType && (
                     <PeanutActionDetailsCard
                         avatarSize="small"
@@ -331,7 +331,7 @@ function TokenChainInfoDisplay({
                         />
                     )}
                     {chainIconUrl && (
-                        <div className="absolute -bottom-1 -right-1">
+                        <div className="absolute -right-1 -bottom-1">
                             <DisplayIcon
                                 iconUrl={chainIconUrl}
                                 altText={`${chainName} chain`}

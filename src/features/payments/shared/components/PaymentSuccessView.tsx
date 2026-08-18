@@ -290,7 +290,7 @@ const PaymentSuccessView = ({
                     <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
                 </div>
             )}
-            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
                 <Image
                     src={PeanutCheering.src}
                     unoptimized
@@ -336,7 +336,7 @@ const PaymentSuccessView = ({
 
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 
-                <div className="w-full space-y-5">
+                <div className="space-y-5 w-full">
                     {!!authUser?.user.userId ? (
                         <Button onClick={handleDone} shadowSize="4">
                             {t('success.backToHome')}

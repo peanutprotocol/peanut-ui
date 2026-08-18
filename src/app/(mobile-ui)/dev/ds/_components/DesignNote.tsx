@@ -18,7 +18,7 @@ export function DesignNote({ type, children }: { type: 'warning' | 'info'; child
     return (
         <div className={`flex items-start gap-3 rounded-sm border p-4 text-sm ${s.container}`}>
             <Icon name={s.iconName} size={18} className={`mt-0.5 shrink-0 ${s.icon}`} />
-            <div className="font-bold leading-relaxed">{children}</div>
+            <div className="leading-relaxed font-bold">{children}</div>
         </div>
     )
 }

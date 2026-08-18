@@ -59,12 +59,12 @@ const RhinoDepositView = ({
 
     if (depositAddressStatus === 'failed') {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
+            <div className="space-y-8 flex min-h-[inherit] w-full flex-col justify-start pb-5 md:pb-0">
                 <NavHeader title={headerTitle} onPrev={onBack} />
 
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
                     <Card>
-                        <div className=" flex w-full flex-col items-center justify-center gap-2">
+                        <div className="flex w-full flex-col items-center justify-center gap-2">
                             <div className="flex size-9 items-center justify-center rounded-full bg-secondary-1">
                                 <Icon name="alert" size={20} />
                             </div>
@@ -84,7 +84,7 @@ const RhinoDepositView = ({
     }
 
     return (
-        <div className="flex w-full flex-col justify-start space-y-8 pb-5 md:pb-0">
+        <div className="space-y-8 flex w-full flex-col justify-start pb-5 md:pb-0">
             <NavHeader title={headerTitle} onPrev={onBack} />
 
             <div className="my-auto flex w-full flex-grow flex-col items-center justify-center gap-4 md:my-0">
@@ -173,7 +173,7 @@ const RhinoDepositView = ({
                             }
                         />
 
-                        <div className="w-full space-y-1">
+                        <div className="space-y-1 w-full">
                             <div className="flex w-full items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <Icon name="info" size={18} className="text-grey-1" />

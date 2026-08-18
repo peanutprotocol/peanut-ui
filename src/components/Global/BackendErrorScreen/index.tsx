@@ -89,8 +89,8 @@ export default function BackendErrorScreen() {
                 <PeanutIcon className="h-full w-full" label={tNav('peanutLogoAlt')} />
             </div>
             <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold text-gray-800">{t('backendErrorScreen.title')}</h1>
-                <p className="max-w-md text-sm text-gray-600">{t('backendErrorScreen.description')}</p>
+                <h1 className="text-gray-800 text-2xl font-bold">{t('backendErrorScreen.title')}</h1>
+                <p className="text-gray-600 max-w-md text-sm">{t('backendErrorScreen.description')}</p>
             </div>
             <div className="flex flex-col items-center gap-6">
                 <Button shadowSize="4" icon="retry" size="medium" className="w-fit rounded-full" onClick={handleRetry}>
@@ -99,7 +99,7 @@ export default function BackendErrorScreen() {
                 <button
                     onClick={handleForceLogout}
                     disabled={isLoggingOut}
-                    className="text-sm text-gray-600 underline hover:text-gray-800 disabled:opacity-50"
+                    className="text-gray-600 hover:text-gray-800 text-sm underline disabled:opacity-50"
                 >
                     {isLoggingOut ? t('backendErrorScreen.loggingOut') : t('backendErrorScreen.logOut')}
                 </button>

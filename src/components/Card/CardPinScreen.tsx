@@ -142,7 +142,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         {loading ? (
                             <div className="h-[52px] w-32 animate-pulse rounded bg-grey-2" />
                         ) : (
-                            <span className="text-6xl font-extrabold leading-none">{pin ?? '****'}</span>
+                            <span className="text-6xl leading-none font-extrabold">{pin ?? '****'}</span>
                         )}
                     </div>
                     <button
