@@ -70,7 +70,7 @@ function PeanutMascot() {
             src={PeanutWhistling}
             unoptimized
             alt="Peanut Guy"
-            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
+            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain md:max-h-[min(40vh,calc(100svh-28rem))]"
         />
     )
 }
