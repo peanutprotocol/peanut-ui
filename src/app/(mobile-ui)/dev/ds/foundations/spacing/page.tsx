@@ -26,7 +26,9 @@ export default function SpacingPage() {
                     <div className="space-y-2 rounded-sm border border-n-1 p-3 text-xs">
                         {SPACING_TOKENS.map((t) => (
                             <div key={t.name} className="flex items-center gap-3">
-                                <code className="w-24 shrink-0 font-mono font-bold">--spacing-{t.name}</code>
+                                <code className="w-24 shrink-0 font-mono font-bold">
+                                    --spacing{t.name && `-${t.name}`}
+                                </code>
                                 <span className="w-14 shrink-0 text-grey-1">{t.value}</span>
                                 <div className="h-3 bg-purple-1" style={{ width: t.value }} />
                             </div>

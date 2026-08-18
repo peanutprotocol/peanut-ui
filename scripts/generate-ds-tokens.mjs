@@ -11,7 +11,6 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import prettier from 'prettier'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const CSS_PATH = path.join(ROOT, 'src/styles/globals.css')
@@ -31,6 +30,8 @@ const NAMESPACES = [
     'transition-duration',
     'border-width',
     'font-weight',
+    'text-shadow',
+    'inset-shadow',
     'animate',
     'drop-shadow',
     'spacing',
@@ -41,12 +42,23 @@ const NAMESPACES = [
     'font',
     'blur',
     'ease',
+    'leading',
+    'tracking',
+    'breakpoint',
+    'container',
+    'aspect',
 ]
 
 export function parseThemeTokens(css) {
-    const start = css.indexOf('@theme {')
-    if (start === -1) throw new Error('no @theme block found in globals.css')
-    const end = css.indexOf('\n}', start)
+    // blanking comments (offsets preserved) keeps '@theme' in prose and tokens
+    // named inside prose from parsing; the raw block keeps the section banners.
+    const blankedCss = css.replace(/\/\*[\s\S]*?\*\//g, (c) => ' '.repeat(c.length))
+    const blockStarts = [...blankedCss.matchAll(/@theme[^{\n]*\{/g)]
+    if (blockStarts.length === 0) throw new Error('no @theme block found in globals.css')
+    if (blockStarts.length > 1)
+        throw new Error('multiple @theme blocks found — teach scripts/generate-ds-tokens.mjs to parse them all')
+    const start = blockStarts[0].index
+    const end = blankedCss.indexOf('\n}', start)
     if (end === -1) throw new Error('unterminated @theme block')
     const block = css.slice(start, end)
 
@@ -54,15 +66,16 @@ export function parseThemeTokens(css) {
         const offset = block.indexOf(banner)
         if (offset === -1) throw new Error(`section banner "${banner}" not found in @theme — update SECTION_BANNERS`)
         return { name, offset }
-    })
+    }).sort((a, b) => a.offset - b.offset)
     const sectionAt = (offset) => {
+        if (offset < sections[0].offset)
+            throw new Error('token found above the first section banner — teach SECTION_BANNERS')
         let current = sections[0].name
         for (const s of sections) if (offset >= s.offset) current = s.name
         return current
     }
 
-    // blank comments (preserving offsets) so tokens named inside prose don't parse
-    const blanked = block.replace(/\/\*[\s\S]*?\*\//g, (c) => ' '.repeat(c.length))
+    const blanked = blankedCss.slice(start, end)
 
     const colors = []
     const textByName = new Map()
@@ -115,9 +128,12 @@ export function parseThemeTokens(css) {
     return tokens
 }
 
-export async function renderTokensModule(tokens) {
+// emits stable JSON.stringify formatting on purpose — the file is in
+// .prettierignore (like api.generated.ts) so a prettier version bump can't
+// churn it or flip the drift gate.
+export function renderTokensModule(tokens) {
     const j = (v) => JSON.stringify(v, null, 4)
-    const source = `// generated from the @theme block in src/styles/globals.css by
+    return `// generated from the @theme block in src/styles/globals.css by
 // scripts/generate-ds-tokens.mjs — DO NOT EDIT. run \`pnpm gen:ds-tokens\`.
 // a jest drift test (scripts/__tests__/ds-tokens-drift.test.js) fails CI when
 // this file is stale.
@@ -157,14 +173,12 @@ export const FONT_TOKENS: FontToken[] = ${j(tokens.fonts)}
 /** radius / shadow / blur / motion / spacing token groups, keyed by @theme namespace */
 export const TOKEN_GROUPS: Record<string, ThemeToken[]> = ${j(tokens.groups)}
 `
-    const config = await prettier.resolveConfig(OUT_PATH)
-    return prettier.format(source, { ...config, filepath: OUT_PATH })
 }
 
-async function main() {
+function main() {
     const check = process.argv.includes('--check')
     const tokens = parseThemeTokens(fs.readFileSync(CSS_PATH, 'utf-8'))
-    const rendered = await renderTokensModule(tokens)
+    const rendered = renderTokensModule(tokens)
 
     if (check) {
         const onDisk = fs.existsSync(OUT_PATH) ? fs.readFileSync(OUT_PATH, 'utf-8') : ''
@@ -184,6 +198,8 @@ async function main() {
     )
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    await main()
+// realpath both sides: a symlinked invocation path would otherwise make this
+// guard silently skip main() — and --check would exit 0 without checking.
+if (process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url))) {
+    main()
 }

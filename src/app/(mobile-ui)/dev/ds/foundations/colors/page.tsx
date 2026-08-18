@@ -46,7 +46,15 @@ export default function ColorsPage() {
                     <p className="mb-1 font-mono text-[10px] font-bold text-grey-1 uppercase">{prefix}</p>
                     <div className="grid grid-cols-2 gap-2">
                         {tokens.map((token) => {
-                            const cls = `bg-${token.name}`
+                            // copy the class matching the token's intent, not blanket bg-
+                            const utility = token.name.startsWith('foreground')
+                                ? 'text'
+                                : token.name.startsWith('border')
+                                  ? 'border'
+                                  : token.name.startsWith('shadow')
+                                    ? 'shadow'
+                                    : 'bg'
+                            const cls = `${utility}-${token.name}`
                             return (
                                 <button
                                     key={token.name}

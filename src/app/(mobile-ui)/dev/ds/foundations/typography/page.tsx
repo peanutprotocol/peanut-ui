@@ -34,12 +34,28 @@ export default function TypographyPage() {
                     <div className="space-y-2 rounded-sm border border-n-1 p-3">
                         {FONT_TOKENS.map((font) => (
                             <div key={font.name}>
-                                <p className="text-sm font-bold" style={{ fontFamily: font.stack }}>
+                                <p
+                                    className="text-sm font-bold"
+                                    style={{
+                                        fontFamily: font.stack,
+                                        fontVariationSettings: font.fontVariationSettings,
+                                    }}
+                                >
                                     font-{font.name}
                                 </p>
-                                <p className="font-mono text-[10px] break-all text-grey-1">{font.stack}</p>
+                                <p className="font-mono text-[10px] break-all text-grey-1">
+                                    {font.stack}
+                                    {font.fontVariationSettings && ` · ${font.fontVariationSettings}`}
+                                </p>
                             </div>
                         ))}
+                        <div>
+                            <p className="font-mono text-sm font-bold">font-mono</p>
+                            <p className="text-sm text-grey-1">
+                                Stock Tailwind monospace — code, addresses, amounts. Not a theme token but part of the
+                                system.
+                            </p>
+                        </div>
                         <div className="rounded-sm bg-purple-1 p-3">
                             <Title text="KNERD FONT" />
                             <p className="mt-1 text-sm text-n-1">
@@ -79,6 +95,17 @@ export default function TypographyPage() {
                         </div>
                     ))}
                 </div>
+            </DocSection>
+
+            {/* weight conventions — guidance, not token data */}
+            <DocSection title="Font Weights">
+                <p className="text-sm text-grey-1">
+                    The semantic styles above carry their own weight. For ad-hoc text:{' '}
+                    <code className="font-mono font-bold text-n-1">font-bold</code> for labels and headings,{' '}
+                    <code className="font-mono font-bold text-n-1">font-medium</code> for secondary text. The theme also
+                    defines <code className="font-mono font-bold text-n-1">font-weight-extraBlack</code> (1000) for
+                    display moments.
+                </p>
             </DocSection>
 
             {/* v3 parity overrides */}
