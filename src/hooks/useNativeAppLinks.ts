@@ -6,7 +6,7 @@ import { focusManager } from '@tanstack/react-query'
 import { captureMessage } from '@sentry/nextjs'
 import { isCapacitor } from '@/utils/capacitor'
 import { deepLinkToNativePath } from '@/utils/native-routes'
-import { sanitizeRedirectURL } from '@/utils/general.utils'
+import { sanitizeRedirectURL, saveToCookie, toInviteCode } from '@/utils/general.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
 
 /*
@@ -49,6 +49,19 @@ export function useNativeAppLinks() {
             // same-origin guard: only ever navigate to an in-app relative path
             const safe = sanitizeRedirectURL(target)
             if (!safe) return false
+            // /invite is rewritten to /setup by the mapper (the landing page is
+            // pruned from the native export) — carry the code via the SESSION
+            // invite cookie, same semantics as the deferred-link restore: it
+            // pre-fills signup but self-heals on restart, so an existing user
+            // re-tapping a friend's invite is never locked out of login. The
+            // side effect lives here because the mapper runs during render.
+            try {
+                const parsed = new URL(url, 'https://peanut.me')
+                if (parsed.pathname.split('/').filter(Boolean)[0] === 'invite') {
+                    const code = toInviteCode(parsed.searchParams.get('code') ?? '')
+                    if (code) saveToCookie('inviteCode', code)
+                }
+            } catch {}
             router.push(safe)
             anyDeepLinkNavigated = true
             return true

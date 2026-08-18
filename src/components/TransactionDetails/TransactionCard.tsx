@@ -1,6 +1,7 @@
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import IndicatorDot from '@/components/Global/IndicatorDot'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
@@ -237,7 +238,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
-                                {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
+                                {isPending && <IndicatorDot className="h-2 w-2 animate-pulsate" />}
                                 <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                     <VerifiedUserLabel
                                         username={transaction.userName}

@@ -1,15 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { LandingStrings } from './landingStrings'
-import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
-import { trackStoreClick } from '@/utils/migration.utils'
+import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
 
 export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const [visible, setVisible] = useState(false)
@@ -19,6 +19,9 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const tMigration = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
+    // memoized: this bar re-renders through scroll-driven animation frames,
+    // and the android href builds the hand-off payload (cookie reads)
+    const storeHref = useMemo(() => storeAnchorHref(store), [store])
 
     useEffect(() => {
         const check = () => {
@@ -57,11 +60,11 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                         // this bar is md:hidden so the visitor is on a phone —
                         // deep-link their store during the migration window
                         <a
-                            href={STORE_URL[store]}
+                            href={storeHref}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="pointer-events-auto block"
-                            onClick={() => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO)}
+                            onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
                         >
                             <Button
                                 variant="purple"

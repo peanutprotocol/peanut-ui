@@ -11,6 +11,7 @@ import React from 'react'
 import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
 import type { RailCapability } from '@/types/capabilities'
@@ -157,6 +158,14 @@ jest.mock('@/hooks/useTransactionHistory', () => ({
 
 jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
     TransactionDetailsDrawer: () => null,
+}))
+
+// Stubbed to keep the QR canvas out of jsdom. The props are the contract that
+// matters here — the modal itself owns every referral capture.
+jest.mock('@/components/Global/InviteFriendsModal', () => ({
+    __esModule: true,
+    default: ({ visible, username, source }: any) =>
+        visible ? <div data-testid="invite-friends-modal" data-username={username} data-source={source} /> : null,
 }))
 
 const mockMantecaApi = {
@@ -413,6 +422,9 @@ jest.mock('@/components/Common/PointsCard', () => ({
 }))
 
 jest.mock('@/constants/analytics.consts', () => ({
+    // Keep the real REFERRAL_SOURCES so the invite-modal `source` assertion checks
+    // the actual wire value; only the event names are narrowed to what this page fires.
+    ...jest.requireActual('@/constants/analytics.consts'),
     ANALYTICS_EVENTS: {
         REWARD_CLAIM_SHOWN: 'reward_claim_shown',
         SURPRISE_MOMENT_SHOWN: 'surprise_moment_shown',
@@ -1274,6 +1286,78 @@ describe('GROUP 4: Success States', () => {
         })
 
         expect(screen.getByText(message)).toBeInTheDocument()
+    })
+
+    // ---- invite row on the success screen ----
+    // Pulled from the catalog, not hardcoded, so a copy edit is not a red test.
+    const INVITE_CTA = en.qrPay.success.inviteFriendsCta
+    const CLAIMED_PERK = { eligible: true, discountPercentage: 5, amountSponsored: 0.5, claimed: true }
+
+    test.each([
+        ['a plain Manteca success (no perk)', {}, /You paid/],
+        ['a claimed perk', { perk: CLAIMED_PERK }, 'Go to Home'],
+    ] as Array<[string, Record<string, unknown>, RegExp | string]>)(
+        'invite row renders on %s',
+        async (_label, overrides, settledMarker) => {
+            await completeMantecaPayment(overrides)
+
+            await waitFor(() => {
+                expect(screen.getByText(settledMarker)).toBeInTheDocument()
+            })
+
+            expect(screen.getByText(INVITE_CTA)).toBeInTheDocument()
+        }
+    )
+
+    // A claimable reward owns the screen — the invite row must not compete with
+    // the hold-to-claim gesture.
+    test('invite row is absent while a reward is still claimable', async () => {
+        await completeMantecaPayment({
+            perk: { eligible: true, discountPercentage: 5, amountSponsored: 0.5 },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /Claim Reward/i })).toBeInTheDocument()
+        })
+
+        expect(screen.queryByText(INVITE_CTA)).not.toBeInTheDocument()
+    })
+
+    // No handle means no invite link to build (generateInviteCodeLink throws on
+    // undefined), so neither the row nor the modal may render.
+    test('invite row is absent when the user has no username', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { user: {} },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+
+        await completeMantecaPayment()
+
+        await waitFor(() => {
+            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+        })
+
+        expect(screen.queryByText(INVITE_CTA)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('invite-friends-modal')).not.toBeInTheDocument()
+    })
+
+    test('clicking the invite row opens the modal with the username + qr_pay_success source', async () => {
+        await completeMantecaPayment()
+
+        await waitFor(() => {
+            expect(screen.getByText(INVITE_CTA)).toBeInTheDocument()
+        })
+
+        expect(screen.queryByTestId('invite-friends-modal')).not.toBeInTheDocument()
+
+        await act(async () => {
+            fireEvent.click(screen.getByText(INVITE_CTA))
+        })
+
+        const modal = screen.getByTestId('invite-friends-modal')
+        expect(modal).toHaveAttribute('data-username', 'test-user')
+        expect(modal).toHaveAttribute('data-source', 'qr_pay_success')
     })
 })
 

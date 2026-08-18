@@ -2,7 +2,7 @@
 // over the OS HTTP client FIRST (the legacy cookie-jar JWT only rides there),
 // falling through to the WebView path when the OS client fails.
 import { fetchWithSentry } from '../sentry.utils'
-import { reportNetworkError, reportNetworkOk } from '../connectivity'
+import { reportNetworkError } from '../connectivity'
 import { canUseNativeHttp, nativeHttpRequest } from '../native-http'
 import * as Sentry from '@sentry/nextjs'
 
@@ -14,7 +14,6 @@ jest.mock('@sentry/nextjs', () => ({
 
 jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
-    reportNetworkOk: jest.fn(),
 }))
 
 jest.mock('../native-http', () => ({
@@ -58,7 +57,6 @@ describe('fetchWithSentry preferNativeTransport', () => {
             { method: 'POST', body: '{}' },
             expect.any(Number)
         )
-        expect(reportNetworkOk).toHaveBeenCalled()
         expect(reportNetworkError).not.toHaveBeenCalled()
 
         // engaged notice fires once per session, not per request

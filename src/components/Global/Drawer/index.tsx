@@ -26,10 +26,12 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 type DrawerContentProps = React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & {
     /** Screen-reader-only DialogTitle for drawers without a visible DrawerTitle (Radix a11y requirement). */
     accessibleTitle?: string
+    /** Merged onto the inner scroll wrapper — the element that owns panning when content overflows. */
+    scrollAreaClassName?: string
 }
 
 const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.Content>, DrawerContentProps>(
-    ({ className, children, accessibleTitle, ...props }, ref) => (
+    ({ className, children, accessibleTitle, scrollAreaClassName, ...props }, ref) => (
         <DrawerPortal>
             <DrawerOverlay />
             <DrawerPrimitive.Content
@@ -45,7 +47,14 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
                 <div className="mx-auto my-4 h-1.5 w-10 rounded-full bg-black" />
                 <div className="flex w-full justify-center">
-                    <div className="max-h-[80vh] w-full overflow-auto pb-safe-bottom md:max-w-xl">{children}</div>
+                    <div
+                        className={twMerge(
+                            'max-h-[80vh] w-full overflow-auto pb-safe-bottom md:max-w-xl',
+                            scrollAreaClassName
+                        )}
+                    >
+                        {children}
+                    </div>
                 </div>
             </DrawerPrimitive.Content>
         </DrawerPortal>

@@ -113,7 +113,20 @@ export function useTransactionHistory({
         queryKey: [TRANSACTIONS, 'infinite', { limit }],
         queryFn: ({ pageParam }) => fetchHistory({ cursor: pageParam, limit }),
         initialPageParam: undefined as string | undefined,
-        getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.cursor : undefined),
+        getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+            if (!lastPage.hasMore) return undefined
+            // A cursor that did not advance means the API is re-serving the
+            // same window — `openRequestLinks` re-queries with no exclusion,
+            // so a user with `limit`-many open request links gets an identical
+            // page forever. Duplicate rows used to grow the list and push the
+            // loader out of the viewport, which paced infinite scroll; now
+            // that they are deduped the list stops growing, the loader stays
+            // intersecting, and useInfiniteScroll rebuilds its observer on
+            // every isFetchingNextPage flip — an unbounded auto-fetch loop.
+            // Stopping is correct: an unchanged cursor yields no new rows.
+            if (lastPage.cursor === lastPageParam) return undefined
+            return lastPage.cursor
+        },
         enabled: mode === 'infinite' && enabled,
         staleTime: 30 * 1000,
         gcTime: 5 * 60 * 1000,

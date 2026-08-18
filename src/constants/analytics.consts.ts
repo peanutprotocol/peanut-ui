@@ -315,13 +315,27 @@ export const MODAL_TYPES = {
 } as const
 
 /**
- * Valid source values for REFERRAL_CTA_SHOWN / REFERRAL_CTA_CLICKED events.
+ * Valid source values for REFERRAL_CTA_SHOWN / REFERRAL_CTA_CLICKED /
+ * INVITE_LINK_SHARED events.
+ *
+ * Referral events also carry a `link_type` property so PostHog can compare
+ * which link shape converts: 'invite_code' (/invite?code=<u>, credits the
+ * inviter at signup), 'profile' (peanut.me/<u>, credits via the guest-profile
+ * door), or 'none' (share carried no link, e.g. anti-dox card shares).
  */
 export const REFERRAL_SOURCES = {
     FLOATING_BUTTON: 'floating_button',
     CAMPAIGN_MODAL: 'campaign_modal',
     INVITE_MODAL: 'invite_modal',
     SURPRISE_MOMENT: 'surprise_moment',
+    PROFILE_HEADER: 'profile_header',
+    PUBLIC_PROFILE_GUEST: 'public_profile_guest',
+    BADGE_DETAIL: 'badge_detail',
+    BADGE_UNLOCK: 'badge_unlock',
+    QR_PAY_SUCCESS: 'qr_pay_success',
+    // Pre-existing wire value — the receipt used this as an inline literal
+    // before it was registered here. Do not rename.
+    TRANSACTION_RECEIPT: 'transaction_receipt',
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]

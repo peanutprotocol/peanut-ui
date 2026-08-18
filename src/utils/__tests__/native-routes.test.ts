@@ -332,8 +332,8 @@ describe('native-routes', () => {
                 )
             })
 
-            it('leaves a three-segment path alone — deeper than any recipient link', () => {
-                expect(deepLinkToNativePath('/alice/10USDC/extra?id=req-123')).toBe('/alice/10USDC/extra?id=req-123')
+            it('drops a three-segment path — deeper than any recipient link, no native stand-in', () => {
+                expect(deepLinkToNativePath('/alice/10USDC/extra?id=req-123')).toBeNull()
             })
 
             // The invite landing page is stripped from the native export — an
@@ -359,6 +359,16 @@ describe('native-routes', () => {
                 )
             })
 
+            it('funnels a semantic pay path (user@chain/amount) into /send?recipient=', () => {
+                expect(deepLinkToNativePath('/alice@42161/10usdc')).toBe(
+                    `/send?recipient=${encodeURIComponent('alice@42161/10usdc')}`
+                )
+            })
+
+            it('drops a non-recipient web-only path instead of passing it through', () => {
+                expect(deepLinkToNativePath('/not-a-valid.username')).toBeNull()
+            })
+
             it.each(['/rewards', '/history'])('leaves the reserved route %s alone even with an id param', (route) => {
                 expect(deepLinkToNativePath(`${route}?id=req-123`)).toBe(`${route}?id=req-123`)
             })
@@ -381,6 +391,17 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('https://peanut.me/withdraw/be/bank')).toBe(
                     '/withdraw?country=be&view=bank'
                 )
+            })
+
+            // The invite landing page is pruned from the native export, so an
+            // App Link onto it must land on signup instead of a chunk-error
+            // loop. The code rides the params (setup persists it) and the
+            // invite cookie (openDeepLink) as a belt-and-suspenders.
+            it('rewrites /invite to signup — the landing page is not in the export', () => {
+                expect(deepLinkToNativePath('https://peanut.me/invite?code=kushagra')).toBe(
+                    '/setup?step=signup&code=kushagra'
+                )
+                expect(deepLinkToNativePath('/invite')).toBe('/setup?step=signup')
             })
 
             // The claim-link password lives in the fragment and is never sent to
@@ -449,6 +470,10 @@ describe('native-routes', () => {
         describe('web mode', () => {
             beforeEach(() => {
                 mockIsCapacitor.mockReturnValue(false)
+            })
+
+            it('keeps /invite on the web — the landing page exists there', () => {
+                expect(deepLinkToNativePath('https://peanut.me/invite?code=kushagra')).toBe('/invite?code=kushagra')
             })
 
             it('keeps the path-based receipt url', () => {

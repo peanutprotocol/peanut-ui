@@ -350,7 +350,9 @@ const HomeHistory = ({
     if (isError) {
         const isNetworkError =
             error instanceof Error &&
-            (error.name === 'ServiceUnavailableError' || (typeof navigator !== 'undefined' && !navigator.onLine))
+            (error.name === 'ServiceUnavailableError' ||
+                error.name === 'ConnectionTimeoutError' ||
+                (typeof navigator !== 'undefined' && !navigator.onLine))
         // Network timeouts are already captured at the fetch layer — don't
         // re-report them here (and not on every re-render). Only surface
         // genuinely unexpected errors to Sentry.

@@ -7,7 +7,7 @@ import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import { openStore } from '@/utils/migration.utils'
+import { openStore, type StoreHandoff } from '@/utils/migration.utils'
 
 /**
  * Guest-flow store handoff for the migration window (mockup §03/§08): when a
@@ -37,13 +37,16 @@ export function useGuestStoreHandoff({
         posthog.capture(ANALYTICS_EVENTS.MIGRATION_GUEST_CTA_SHOWN, { surface: MIGRATION_SURFACES.GUEST_FLOW })
     }, [trackImpressionWhenGuest, migrationOn])
 
-    const interceptGuestCta = (): boolean => {
+    // handoff: deferred deep-link context the surface knows before any cookie is
+    // written (claim page invite CTA). the desktop QR path can't carry it — the
+    // payload would need to live on the phone that scans, not this browser.
+    const interceptGuestCta = (handoff?: StoreHandoff): boolean => {
         if (!migrationOn || isCapacitor()) return false
         if (deviceType === DeviceType.WEB) {
             setQrOpen(true)
             return true
         }
-        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', MIGRATION_SURFACES.GUEST_FLOW)
+        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', MIGRATION_SURFACES.GUEST_FLOW, handoff)
         return true
     }
 

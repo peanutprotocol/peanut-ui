@@ -238,11 +238,23 @@ describe('backend wire codes', () => {
         expect(friendlyError(walletRejection)).toEqual({ kind: 'code', code: 'userRejectedRequest' })
     })
 
-    test('ServiceUnavailableError keeps the retryable timeout code', () => {
-        // fetchWithSentry rethrows this with the real timeout on `.cause`, which
-        // the classifier does not walk — without the name match it collapsed to
-        // the generic support fallback.
-        const wrapped = Object.assign(new Error('Service temporarily unavailable. Please try again.'), {
+    test('ConnectionTimeoutError (fetch timeout path) maps to connection-aware copy', () => {
+        // fetchWithSentry sets this name only on its timeout path, where the
+        // request provably never reached the server — the classifier matches
+        // the name (it does not walk `.cause`) and blames the connection.
+        const wrapped = Object.assign(
+            new Error('Peanut is taking too long to respond — check your connection and try again.'),
+            {
+                name: 'ConnectionTimeoutError',
+            }
+        )
+        expect(friendlyError(wrapped)).toEqual({ kind: 'code', code: 'connectionTimeout' })
+    })
+
+    test('ServiceUnavailableError (generic fetch catch) keeps the neutral retryable code', () => {
+        // The generic path also wraps CORS/CSP/TypeError failures that can be
+        // OUR outage — it must not blame the user's internet connection.
+        const wrapped = Object.assign(new Error('Something went wrong. Please try again.'), {
             name: 'ServiceUnavailableError',
         })
         expect(friendlyError(wrapped)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })

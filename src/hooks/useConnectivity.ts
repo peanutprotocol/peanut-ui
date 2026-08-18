@@ -1,11 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getConsecutiveFailures, subscribeConnectivity } from '@/utils/connectivity'
-
-// Only treat the API as unreachable after this many back-to-back failures, so a
-// single blip doesn't flash a banner. Any successful response resets the count.
-const FAILURE_THRESHOLD = 2
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { FAILURE_THRESHOLD, clearRecentFailures, getRecentFailures, subscribeConnectivity } from '@/utils/connectivity'
 
 export interface ConnectivityState {
     isOffline: boolean
@@ -13,25 +9,30 @@ export interface ConnectivityState {
     show: boolean
 }
 
+const getServerFailures = () => 0
+
 export function useConnectivity(): ConnectivityState {
     const [isOnline, setIsOnline] = useState(true)
-    const [failures, setFailures] = useState(0)
+    // Store owns failure expiry and emits on every change — nothing to schedule here.
+    const failures = useSyncExternalStore(subscribeConnectivity, getRecentFailures, getServerFailures)
 
     useEffect(() => {
         setIsOnline(navigator.onLine)
-        setFailures(getConsecutiveFailures())
 
-        const handleOnline = () => setIsOnline(true)
+        const handleOnline = () => {
+            setIsOnline(true)
+            // the recorded failures belong to the connection that just died —
+            // without this the banner flips from "offline" to "trouble
+            // reaching Peanut" for up to a window after reconnecting.
+            clearRecentFailures()
+        }
         const handleOffline = () => setIsOnline(false)
         window.addEventListener('online', handleOnline)
         window.addEventListener('offline', handleOffline)
 
-        const unsubscribe = subscribeConnectivity(() => setFailures(getConsecutiveFailures()))
-
         return () => {
             window.removeEventListener('online', handleOnline)
             window.removeEventListener('offline', handleOffline)
-            unsubscribe()
         }
     }, [])
 

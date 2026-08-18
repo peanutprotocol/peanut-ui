@@ -2,7 +2,7 @@
 // WebView fetch rejects and the request is native-eligible, it retries over
 // CapacitorHttp before reporting a connectivity failure.
 import { fetchWithSentry } from '../sentry.utils'
-import { reportNetworkError, reportNetworkOk } from '../connectivity'
+import { reportNetworkError } from '../connectivity'
 import { canUseNativeHttp, nativeHttpRequest } from '../native-http'
 import * as Sentry from '@sentry/nextjs'
 
@@ -14,7 +14,6 @@ jest.mock('@sentry/nextjs', () => ({
 
 jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
-    reportNetworkOk: jest.fn(),
 }))
 
 jest.mock('../native-http', () => ({
@@ -50,7 +49,6 @@ describe('fetchWithSentry native fallback', () => {
             { method: 'GET' },
             expect.any(Number)
         )
-        expect(reportNetworkOk).toHaveBeenCalled()
         expect(reportNetworkError).not.toHaveBeenCalled()
         // engaged notice fires once per session, not per request
         const engaged = (Sentry.captureMessage as jest.Mock).mock.calls.filter(

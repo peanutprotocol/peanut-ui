@@ -69,7 +69,8 @@ import { isVerifiedForCountry } from '@/utils/regions.utils'
 import PixKeySendView from '@/components/Withdraw/views/PixKeySend.view'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
@@ -97,6 +98,7 @@ export default function MantecaWithdrawFlow() {
 }
 
 function MantecaBankWithdrawFlow() {
+    const locale = useLocale()
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
@@ -676,7 +678,7 @@ function MantecaBankWithdrawFlow() {
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
-                regionName={selectedCountry?.title}
+                regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
             />
             <SumsubKycModals flow={sumsubFlow} />
             <SumsubKycWrapper

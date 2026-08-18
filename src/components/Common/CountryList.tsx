@@ -9,7 +9,7 @@ import {
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchInput'
 import Image from 'next/image'
-import { useMemo, useState, useDeferredValue, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, useDeferredValue, type ReactNode } from 'react'
 import { getCardPosition } from '../Global/Card/card.utils'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { CountryListSkeleton } from './CountryListSkeleton'
@@ -19,9 +19,10 @@ import EasterEggModal, { EASTER_EGG_COUNTRIES } from '@/components/Global/Easter
 import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { ActionListCard } from '../ActionListCard'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 // precompute bridge alpha2 values for O(1) lookup
 const BRIDGE_ALPHA2_SET = new Set(Object.values(BRIDGE_ALPHA3_TO_ALPHA2))
@@ -74,6 +75,7 @@ export const CountryList = ({
     showLoadingState = true, // true by default to show loading state when clicking a country
 }: CountryListViewProps) => {
     const t = useTranslations('global')
+    const locale = useLocale()
     const searchParams = useSearchParams()
     // get currencyCode from search params
     const currencyCode = searchParams.get('currencyCode')
@@ -89,6 +91,9 @@ export const CountryList = ({
     const [easterEggCountry, setEasterEggCountry] = useState<string | null>(null)
 
     const supportedCountries = countryData.filter((country) => country.type === 'country')
+
+    // catalog titles are English; the displayed name comes from Intl.DisplayNames
+    const countryName = useCallback((country: CountryData) => localizedCountryTitle(locale, country), [locale])
 
     // sort countries: user's geo-located country first, then preferred countries
     // (in declared order), then everyone else alphabetically.
@@ -116,20 +121,23 @@ export const CountryList = ({
             const bRank = preferredRank(b)
             if (aRank !== bRank) return aRank - bRank
 
-            return a.title.localeCompare(b.title)
+            return countryName(a).localeCompare(countryName(b), locale)
         })
-    }, [userGeoLocationCountryCode])
+    }, [userGeoLocationCountryCode, countryName, locale])
 
-    // filter countries based on deferred search term to prevent blocking ui
+    // filter countries based on deferred search term to prevent blocking ui.
+    // The English title stays searchable so "Brazil" still finds "Brasil".
     const filteredCountries = useMemo(() => {
         if (!deferredSearchTerm) return sortedCountries
 
+        const term = deferredSearchTerm.toLowerCase()
         return sortedCountries.filter(
             (country) =>
-                country.title.toLowerCase().includes(deferredSearchTerm.toLowerCase()) ||
-                country.currency?.toLowerCase().includes(deferredSearchTerm.toLowerCase())
+                countryName(country).toLowerCase().includes(term) ||
+                country.title.toLowerCase().includes(term) ||
+                country.currency?.toLowerCase().includes(term)
         )
-    }, [deferredSearchTerm, sortedCountries])
+    }, [deferredSearchTerm, sortedCountries, countryName])
 
     return (
         <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
@@ -174,6 +182,7 @@ export const CountryList = ({
                             const twoLetterCountryCode =
                                 ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id.toUpperCase()] ?? country.id.toLowerCase()
                             const position = getCardPosition(index, filteredCountries.length)
+                            const displayName = countryName(country)
 
                             const isBridgeSupportedCountryResult = isBridgeSupportedCountry(country.id)
                             const isMantecaSupportedCountry = isMantecaSupportedCountryCode(country.id)
@@ -207,7 +216,7 @@ export const CountryList = ({
                             return (
                                 <ActionListCard
                                     key={country.id}
-                                    title={country.title}
+                                    title={displayName}
                                     rightContent={
                                         customRight ??
                                         (showLoadingState && clickedCountryId === country.id ? (
@@ -236,7 +245,7 @@ export const CountryList = ({
                                         <div className="relative h-8 w-8">
                                             <Image
                                                 src={getFlagUrl(twoLetterCountryCode)}
-                                                alt={t('countryList.flagAlt', { country: country.title })}
+                                                alt={t('countryList.flagAlt', { country: displayName })}
                                                 width={80}
                                                 height={80}
                                                 className="h-8 w-8 rounded-full object-cover"

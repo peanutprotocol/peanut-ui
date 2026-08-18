@@ -141,6 +141,7 @@ jobs:
                     --path ./out \
                     --bundle "$VERSION" \
                     --auto-min-update-version \
+                    --version-exists-ok \
                     --comment "$COMMENT"
 
             - name: Deployment summary

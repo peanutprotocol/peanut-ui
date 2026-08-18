@@ -27,7 +27,8 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails' | 'showQR'
@@ -39,6 +40,7 @@ const MantecaAddMoney: FC = () => {
     const params = useParams()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
+    const locale = useLocale()
     const t = useTranslations('addMoney')
     const router = useRouter()
 
@@ -298,7 +300,7 @@ const MantecaAddMoney: FC = () => {
                     }
                     providerMessage={mantecaRejection.userMessage ?? undefined}
                     reasonCode={mantecaRejection.reasonCode ?? undefined}
-                    regionName={selectedCountry?.title}
+                    regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                 />
                 <SumsubKycModals flow={sumsubFlow} />
                 <InputAmountStep

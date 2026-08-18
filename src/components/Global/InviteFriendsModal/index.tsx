@@ -34,7 +34,11 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
         if (visible && !hasTrackedShow.current) {
             hasTrackedShow.current = true
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.INVITE, source })
-            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source: source ?? REFERRAL_SOURCES.INVITE_MODAL })
+            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, {
+                source: source ?? REFERRAL_SOURCES.INVITE_MODAL,
+                // this modal always shares generateInviteCodeLink's URL
+                link_type: 'invite_code',
+            })
         }
     }, [visible, source])
 
@@ -71,9 +75,10 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                         url={inviteLink}
                         title={t('inviteFriendsModal.shareSheetTitle')}
                         onSuccess={() => {
-                            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })
+                            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source, link_type: 'invite_code' })
                             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                                 source: source ?? REFERRAL_SOURCES.INVITE_MODAL,
+                                link_type: 'invite_code',
                             })
                         }}
                     >
