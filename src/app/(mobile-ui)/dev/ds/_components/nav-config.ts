@@ -31,6 +31,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'BaseInput', icon: 'clip', href: '/dev/ds/primitives/base-input' },
         { label: 'BaseSelect', icon: 'clip', href: '/dev/ds/primitives/base-select' },
         { label: 'Checkbox', icon: 'check', href: '/dev/ds/primitives/checkbox' },
+        { label: 'Toggle', icon: 'switch', href: '/dev/ds/primitives/toggle' },
         { label: 'Toast', icon: 'bell', href: '/dev/ds/primitives/toast' },
         { label: 'Divider', icon: 'minus-circle', href: '/dev/ds/primitives/divider' },
         { label: 'Title', icon: 'docs', href: '/dev/ds/primitives/title' },
