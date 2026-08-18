@@ -57,7 +57,7 @@ export default function ButtonPage() {
                 <Playground
                     name="Button"
                     importPath={`import { Button } from '@/components/0_Bruddle/Button'`}
-                    defaults={{ variant: 'purple', children: 'Continue', shadowSize: '4' }}
+                    defaults={{ variant: 'purple', children: 'Continue' }}
                     controls={[
                         {
                             type: 'select',
@@ -265,7 +265,7 @@ export default function ButtonPage() {
                     <div className="space-y-6">
                         <div>
                             <p className="text-sm font-bold">Primary CTA (most common)</p>
-                            <Button variant="purple" shadowSize="4" className="mt-2 w-full">
+                            <Button variant="purple" className="mt-2 w-full">
                                 Continue
                             </Button>
                         </div>
@@ -303,7 +303,7 @@ export default function ButtonPage() {
                     <CodeBlock label="Import" code={`import { Button } from '@/components/0_Bruddle/Button'`} />
                     <CodeBlock
                         label="Primary CTA"
-                        code={`<Button variant="purple" shadowSize="4" className="w-full">
+                        code={`<Button variant="purple" className="w-full">
   Continue
 </Button>`}
                     />

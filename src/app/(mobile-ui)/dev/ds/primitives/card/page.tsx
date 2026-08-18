@@ -156,7 +156,7 @@ export default function CardPage() {
                                 <div className="flex flex-col items-center gap-1">
                                     <Card.Title className="pb-0 text-center">No custodial wallet</Card.Title>
                                     <Card.Description className="text-center">
-                                        Only you control this wallet, we can&apos;t recover it if you loose access.
+                                        Only you control this wallet, we can&apos;t recover it if you lose access.
                                     </Card.Description>
                                 </div>
                             </div>

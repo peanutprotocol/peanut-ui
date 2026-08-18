@@ -163,7 +163,8 @@ export default function NavigationPage() {
                         label="Usage"
                         code={`<NavHeader
   hideLabel
-  onPrev={() => setStep(step - 1)}
+  onPrev={() => setStep((s) => Math.max(1, s - 1))}
+  disableBackBtn={step <= 1}
   rightElement={<span className="text-xs text-grey-1">2/3</span>}
 />`}
                     />
@@ -179,8 +180,8 @@ export default function NavigationPage() {
                     + rightElement mode for multi-step wizards (Send, Request, Claim). FlowHeader was folded into it.
                 </DesignNote>
                 <DesignNote type="info">
-                    Both use a 28px (h-7 w-7) stroke button for the back arrow. This is the standard navigation button
-                    size.
+                    The back arrow is a 40px circle button with a 44px hit area (board navigation.top.*) — the standard
+                    navigation button size.
                 </DesignNote>
             </DocSection>
         </DocPage>

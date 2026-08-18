@@ -61,15 +61,27 @@ const Card: React.FC<CardProps> = ({
         }
     }
 
+    // clickable cards default to button semantics so keyboard users can reach
+    // and activate them; explicit props still win
+    const interactive = !!onClick
+    const defaultKeyDown: React.KeyboardEventHandler<HTMLDivElement> | undefined = interactive
+        ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onClick()
+              }
+          }
+        : undefined
+
     return (
         <div
             ref={ref}
             className={twMerge('w-full bg-white px-4 py-2', getBorderRadius(), getBorder(), className)}
             onClick={onClick}
             data-testid={dataTestId}
-            role={role}
-            tabIndex={tabIndex}
-            onKeyDown={onKeyDown}
+            role={role ?? (interactive ? 'button' : undefined)}
+            tabIndex={tabIndex ?? (interactive ? 0 : undefined)}
+            onKeyDown={onKeyDown ?? defaultKeyDown}
             aria-disabled={ariaDisabled}
         >
             {children}

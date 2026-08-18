@@ -49,6 +49,7 @@ const NavHeader = ({
 }: NavHeaderProps) => {
     const { logoutUser, isLoggingOut } = useAuth()
     const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)
 
     return (
@@ -61,7 +62,12 @@ const NavHeader = ({
                 <div />
             ) : !onPrev ? (
                 <Link href={href ?? '/home'} className="md:hidden">
-                    <Button variant="stroke" className={navCircleBtn} data-testid="nav-back">
+                    <Button
+                        variant="stroke"
+                        className={navCircleBtn}
+                        aria-label={tCommon('back')}
+                        data-testid="nav-back"
+                    >
                         <Icon
                             name={icon}
                             size={20}
@@ -75,6 +81,7 @@ const NavHeader = ({
                     className={navCircleBtn}
                     onClick={onPrev}
                     disabled={disableBackBtn}
+                    aria-label={tCommon('back')}
                     data-testid="nav-back"
                 >
                     <Icon
@@ -102,6 +109,7 @@ const NavHeader = ({
                     loading={isLoggingOut}
                     variant="stroke"
                     icon="logout"
+                    aria-label={tNav('logout')}
                     className={twMerge(navCircleBtn, 'md:hidden')}
                 />
             )}
