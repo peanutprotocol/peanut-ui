@@ -132,7 +132,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
 
     return (
         <>
-            <Card className="rounded-sm">
+            <Card>
                 {detailsCardRows.map(({ key, ...row }) => (
                     <PaymentInfoRow key={key} {...row} />
                 ))}

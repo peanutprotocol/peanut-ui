@@ -42,22 +42,18 @@ export const ActionListCard = ({
 
     return (
         <ListItem
-            title={titleClassName ? <span className={twMerge(titleClassName)}>{title}</span> : title}
-            body={
-                description &&
-                (descriptionClassName ? (
-                    <span className={twMerge(descriptionClassName)}>{description}</span>
-                ) : (
-                    description
-                ))
-            }
+            // always node-wrapped: legacy call sites pass sentence-length
+            // descriptions and block nodes that must wrap, not truncate
+            title={<div className={twMerge(titleClassName)}>{title}</div>}
+            body={description && <div className={twMerge(descriptionClassName)}>{description}</div>}
             leading={leftIcon}
             trailing={rightContent}
             chevron={!rightContent}
             position={position}
-            disabled={isDisabled}
-            onClick={handleClick}
-            className={className}
+            onClick={isDisabled ? undefined : handleClick}
+            // legacy disabled look: grey fill (rows disabled-because-completed
+            // must not fade like unavailable ones), not ListItem's opacity-40
+            className={twMerge(isDisabled && 'bg-grey-4', className)}
         />
     )
 }
