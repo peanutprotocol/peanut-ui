@@ -27,6 +27,7 @@ import {
     Copy,
     CreditCard,
     ChevronDown,
+    ChevronRight,
     ChevronUp,
     DollarSign,
     Download,
@@ -92,6 +93,7 @@ export type IconName =
     | 'camera'
     | 'camera-flip'
     | 'check'
+    | 'chevron-right'
     | 'chevron-up'
     | 'copy'
     | 'check-circle'
@@ -238,6 +240,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     camera: (props) => <LucideWrapper Icon={Camera} {...props} />,
     'camera-flip': (props) => <LucideWrapper Icon={SwitchCamera} {...props} />,
     check: (props) => <LucideWrapper Icon={Check} {...props} />,
+    'chevron-right': (props) => <LucideWrapper Icon={ChevronRight} {...props} />,
     'chevron-up': (props) => <LucideWrapper Icon={ChevronUp} {...props} />,
     download: (props) => <LucideWrapper Icon={Download} {...props} />,
     dollar: (props) => <LucideWrapper Icon={DollarSign} {...props} />,
