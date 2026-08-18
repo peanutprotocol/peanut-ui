@@ -3,6 +3,8 @@
 
 import type { ErrorEvent } from '@sentry/nextjs'
 
+import { CRITICAL_FLOW_TAG } from '@/utils/sentry-critical-flow'
+
 /**
  * Patterns to filter out from Sentry reporting.
  * These are generally noise that doesn't require action.
@@ -85,27 +87,42 @@ function isTransientCapgoNoise(searchTexts: string[]): boolean {
  * Check if error message matches any ignored pattern
  */
 export function shouldIgnoreError(event: ErrorEvent): boolean {
+    // Explicit captures from money-moving flows are never noise. Cancellations
+    // stay filtered even there — a user backing out of the passkey sheet is not
+    // a defect, and those would drown out the real failures.
+    const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
     const message = event.message || ''
+    const exceptionValue = event.exception?.values?.[0]?.value || ''
     const culprit = (event as any).culprit || ''
-    // Every link in the chain, not just values[0]. Sentry orders `exception.values`
-    // root-cause-first, so for an error carrying a `cause` the wrapper we actually
-    // want to match sits at the END. fetchWithSentry always sets `userError.cause`,
-    // which left `alreadyReported` inert for every chained fetch failure — the case
-    // it was written for (PEANUT-UI-SNP double-counted PEANUT-UI-QEY for a month).
-    const exceptionTexts = (event.exception?.values ?? []).flatMap((v) => [v.value || '', v.type || ''])
+    /*
+     * Class names from every link in the chain. Sentry orders `exception.values`
+     * root-cause-first, so a wrapper carrying a `cause` lands at the END — exactly
+     * where fetchWithSentry's ServiceUnavailableError and useZeroDev's PasskeyError
+     * always sit. Reading only values[0] left `alreadyReported` inert for a month:
+     * PEANUT-UI-SNP kept double-counting PEANUT-UI-QEY.
+     *
+     * Deliberately types only, not messages. Class names are exact, so matching them
+     * chain-wide can only catch our own wrappers. Widening the fuzzy message patterns
+     * the same way would suppress MORE — the failure 5343f1d0 just fixed, where viem's
+     * "Details: Failed to fetch" ate real payment errors via `networkIssues`.
+     */
+    const exceptionTypes = (event.exception?.values ?? []).map((v) => v.type || '')
 
     // Match each field independently — concatenating them would let a pattern
     // match across unrelated fields and suppress a legitimate event.
-    const searchTexts = [message, culprit, ...exceptionTexts]
+    const searchTexts = [message, exceptionValue, culprit, ...exceptionTypes]
 
     // Check all ignore patterns
-    for (const patterns of Object.values(IGNORED_ERRORS)) {
+    for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {
+        if (isCriticalFlow && group !== 'userRejected') continue
         for (const pattern of patterns) {
             if (searchTexts.some((text) => text.toLowerCase().includes(pattern.toLowerCase()))) {
                 return true
             }
         }
     }
+
+    if (isCriticalFlow) return false
 
     if (isTransientCapgoNoise(searchTexts)) {
         return true

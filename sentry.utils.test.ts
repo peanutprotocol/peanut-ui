@@ -1,9 +1,16 @@
 import type { ErrorEvent } from '@sentry/nextjs'
 import { shouldIgnoreError } from './sentry.utils'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 
-function eventWith(partial: { message?: string; type?: string; value?: string }): ErrorEvent {
+function eventWith(partial: {
+    message?: string
+    type?: string
+    value?: string
+    tags?: Record<string, string>
+}): ErrorEvent {
     return {
         message: partial.message,
+        tags: partial.tags,
         exception: { values: [{ type: partial.type, value: partial.value }] },
     } as unknown as ErrorEvent
 }
@@ -116,5 +123,39 @@ describe('shouldIgnoreError — passkey wrapper', () => {
         expect(shouldIgnoreError(eventWith({ type: 'NotReadableError', value: 'passkey prompt interrupted' }))).toBe(
             false
         )
+    })
+    it('does not widen fuzzy message matching to a wrapped cause', () => {
+        // Only exception TYPES are scanned chain-wide. A wrapper whose message
+        // happens to contain a noise pattern must still be reported — widening
+        // that is exactly what ate real payment failures in 5343f1d0.
+        const event = chainedEvent([
+            { type: 'PaymentError', value: 'charge could not be created' },
+            { type: 'SendFailedError', value: 'Details: Failed to fetch' },
+        ])
+        expect(shouldIgnoreError(event)).toBe(false)
+    })
+})
+
+describe('shouldIgnoreError — critical-flow captures', () => {
+    const tags = criticalFlowTags('direct-send')
+
+    it('ignores a network failure with no critical-flow tag', () => {
+        expect(shouldIgnoreError(eventWith({ type: 'HttpRequestError', value: 'Details: Failed to fetch' }))).toBe(true)
+    })
+
+    it('keeps the same failure when captured from a money-moving flow', () => {
+        expect(
+            shouldIgnoreError(eventWith({ type: 'HttpRequestError', value: 'Details: Failed to fetch', tags }))
+        ).toBe(false)
+    })
+
+    it('keeps a wrapped ServiceUnavailableError from a money-moving flow', () => {
+        expect(shouldIgnoreError(eventWith({ type: 'ServiceUnavailableError', value: 'upstream 503', tags }))).toBe(
+            false
+        )
+    })
+
+    it('still ignores user cancellations, tagged or not', () => {
+        expect(shouldIgnoreError(eventWith({ type: 'Error', value: 'User rejected the request', tags }))).toBe(true)
     })
 })

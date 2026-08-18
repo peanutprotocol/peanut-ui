@@ -22,6 +22,10 @@ import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useTranslations } from 'next-intl'
+import { captureException } from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 
 export function useDirectSendFlow() {
     const t = useTranslations('payment')
@@ -119,6 +123,9 @@ export function useDirectSendFlow() {
         setIsLoading(true)
         clearError()
 
+        let failedStep: 'create-charge' | 'send-money' | 'record-payment' = 'create-charge'
+        let chargeId: string | undefined
+
         try {
             // step 1: create charge
             const chargeResult = await createCharge({
@@ -136,6 +143,8 @@ export function useDirectSendFlow() {
             })
 
             setCharge(chargeResult)
+            chargeId = chargeResult.uuid
+            failedStep = 'send-money'
 
             // step 2: send money via peanut wallet
             const txResult = await sendMoney(recipient.address, amount, {
@@ -153,6 +162,7 @@ export function useDirectSendFlow() {
             const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
 
             setTxHash(hash)
+            failedStep = 'record-payment'
 
             // step 3: record payment to backend
             const paymentResult = await recordPayment({
@@ -169,6 +179,28 @@ export function useDirectSendFlow() {
         } catch (err) {
             const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
+
+            // Report here, at the flow level, rather than relying on the
+            // console-capture integration: everything below this catch either
+            // console.errors (which the noise filters then drop) or reports
+            // only WebAuthn-named failures to PostHog, so a send that ended in
+            // "contact support" left no queryable record anywhere.
+            const errorName = err instanceof Error ? err.name : 'unknown'
+            posthog.capture(ANALYTICS_EVENTS.SEND_FAILED, {
+                step: failedStep,
+                charge_id: chargeId,
+                error_name: errorName,
+            })
+            captureException(err, {
+                tags: { ...criticalFlowTags('direct-send'), send_step: failedStep },
+                extra: {
+                    chargeId,
+                    recipientAddress: recipient.address,
+                    amount,
+                    usdAmount,
+                    userId: user?.user?.userId,
+                },
+            })
         } finally {
             setIsLoading(false)
         }
@@ -190,6 +222,7 @@ export function useDirectSendFlow() {
         setIsLoading,
         clearError,
         toFriendlyError,
+        user,
         t,
     ])
 
