@@ -92,6 +92,7 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
             visible={visible}
             onClose={() => {}}
             preventClose={true}
+            hideModalCloseButton
             hideOverlay={true}
             modalClassName="z-50 !items-center !justify-center !px-6"
             modalPanelClassName="!bottom-auto !mx-auto !w-auto !max-w-md !self-center"

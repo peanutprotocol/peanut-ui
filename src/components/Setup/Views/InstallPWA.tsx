@@ -257,7 +257,7 @@ const InstallPWA = ({
                                 content={
                                     <div className="mx-auto rounded-lg">
                                         <QRCodeWrapper
-                                            url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin}
+                                            url={`${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/setup`}
                                         />
                                     </div>
                                 }
