@@ -131,12 +131,12 @@ export default function LoadingPage() {
             {/* Design Notes */}
             <DocSection title="Design Rules">
                 <DesignNote type="info">
-                    Use the spinner variant inside buttons, inline indicators, and small containers. Use variant="mascot"
-                    for page-level or section-level loading states where brand presence matters.
+                    Use the spinner variant inside buttons, inline indicators, and small containers. Use
+                    variant="mascot" for page-level or section-level loading states where brand presence matters.
                 </DesignNote>
                 <DesignNote type="warning">
-                    variant="mascot" with coverFullScreen renders a fixed z-50 overlay. Make sure to conditionally render
-                    it only when loading is active to avoid blocking the UI.
+                    variant="mascot" with coverFullScreen renders a fixed z-50 overlay. Make sure to conditionally
+                    render it only when loading is active to avoid blocking the UI.
                 </DesignNote>
             </DocSection>
         </DocPage>
