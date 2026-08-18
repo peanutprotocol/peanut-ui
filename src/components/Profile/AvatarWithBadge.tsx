@@ -112,7 +112,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
 
                 style={{
                     background: name ? getColorForUsername(name).lightShade : undefined,
-                    border: name && !effectiveIcon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
+                    border: name && !effectiveIcon ? `1px solid ${getColorForUsername(name).borderShade}` : undefined,
                     color: name ? getColorForUsername(name).darkShade : !effectiveIcon ? effectiveTextColor : undefined,
                     ...effectiveInlineStyle,
                 }}
