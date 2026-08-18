@@ -6,8 +6,7 @@ import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import Image from 'next/image'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
-import Modal from '../Modal'
-import { Button } from '@/components/0_Bruddle/Button'
+import ActionModal from '@/components/Global/ActionModal'
 import { PeanutWhistling } from '@/assets/mascot'
 
 const NoMoreJailModal = () => {
@@ -29,49 +28,46 @@ const NoMoreJailModal = () => {
     }, [])
 
     return (
-        <Modal
+        <ActionModal
             hideOverlay
             visible={isOpen}
             onClose={onClose}
-            className="items-center rounded-none md:mx-auto md:max-w-md"
-            classWrap="sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0"
-        >
-            {/* Main content container */}
-            <div className="relative z-10 w-full rounded-md bg-white px-6 py-6">
-                <div className="space-y-4">
-                    <div className="space-y-3 text-center">
-                        <div className="space-y-2 w-full">
-                            <h3 className={'text-xl font-extrabold text-black dark:text-white'}>
-                                {t('noMoreJailModal.title')}
-                            </h3>
-
-                            <div className="text-sm text-grey-1 dark:text-white">
-                                <p>
-                                    {t('noMoreJailModal.line1')}
-                                    <br />
-                                    {t('noMoreJailModal.line2')}
-                                </p>
+            title={t('noMoreJailModal.title')}
+            description={
+                <p>
+                    {t('noMoreJailModal.line1')}
+                    <br />
+                    {t('noMoreJailModal.line2')}
+                </p>
+            }
+            ctas={[
+                {
+                    text: '',
+                    shadowSize: '4',
+                    variant: 'purple',
+                    onClick: onClose,
+                    children: (
+                        <>
+                            <div>{t('noMoreJailModal.startUsingCta')}</div>
+                            <div className="flex items-center gap-1">
+                                <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
+                                <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
                             </div>
-                        </div>
+                        </>
+                    ),
+                },
+            ]}
+            footer={
+                <div
+                    className="absolute top-7 left-0 flex w-full justify-center"
+                    style={{ transform: 'translateY(-80%)' }}
+                >
+                    <div className="relative h-42 w-[90%] md:h-52">
+                        <Image src={PeanutWhistling.src} unoptimized alt="Peanut Man" className="object-contain" fill />
                     </div>
-
-                    <Button className="w-full" shadowSize="4" variant="purple" onClick={onClose}>
-                        <div>{t('noMoreJailModal.startUsingCta')}</div>
-                        <div className="flex items-center gap-1">
-                            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
-                            <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                        </div>
-                    </Button>
                 </div>
-            </div>
-
-            {/* Peanutman animation */}
-            <div className="absolute top-7 left-0 flex w-full justify-center" style={{ transform: 'translateY(-80%)' }}>
-                <div className="relative h-42 w-[90%] md:h-52">
-                    <Image src={PeanutWhistling.src} unoptimized alt="Peanut Man" className="object-contain" fill />
-                </div>
-            </div>
-        </Modal>
+            }
+        />
     )
 }
 

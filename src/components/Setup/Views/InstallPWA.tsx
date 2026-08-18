@@ -1,8 +1,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import { Icon } from '@/components/Global/Icons/Icon'
-import Modal from '@/components/Global/Modal'
+import ActionModal from '@/components/Global/ActionModal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId } from '@/components/Setup/Setup.types'
 import { useAuth } from '@/context/authContext'
@@ -15,8 +14,6 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
-
-const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl leading-6 font-extrabold">{text}</h3>
 
 const InstallPWA = ({
     canInstall,
@@ -230,21 +227,6 @@ const InstallPWA = ({
         )
     }
 
-    const DesktopInstructions = () => (
-        <div className="flex flex-col items-center justify-center gap-6">
-            <div className={'flex size-12 items-center justify-center rounded-full bg-primary-1'}>
-                <Icon name="mobile-install" size={24} />
-            </div>
-            <div className="space-y-3 text-center">
-                <StepTitle text={t('mobileFirstTitle')} />
-                <p className="max-w-[220px] text-lg font-normal text-grey-1">{t('mobileFirstDescription')}</p>
-            </div>
-            <div className="mx-auto rounded-lg">
-                <QRCodeWrapper url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin} />
-            </div>
-        </div>
-    )
-
     switch (screenId) {
         case 'android-initial-pwa-install':
             return <AndroidPWASpecificInstallFlow />
@@ -266,24 +248,28 @@ const InstallPWA = ({
                             </Button>
                         </div>
                         {showModal && (
-                            <Modal
+                            <ActionModal
                                 visible={showModal}
                                 onClose={() => setShowModal(false)}
-                                className="items-center rounded-none"
-                                classWrap="sm:m-auto sm:self-center self-center bg-background m-4 rounded-none border-0"
-                            >
-                                <div className="space-y-4 p-6">
-                                    <DesktopInstructions />
-                                    <Button
-                                        onClick={() => setShowModal(false)}
-                                        className="mt-4 w-full"
-                                        shadowSize="4"
-                                        variant="purple"
-                                    >
-                                        {t('gotIt')}
-                                    </Button>
-                                </div>
-                            </Modal>
+                                icon="mobile-install"
+                                title={t('mobileFirstTitle')}
+                                description={t('mobileFirstDescription')}
+                                content={
+                                    <div className="mx-auto rounded-lg">
+                                        <QRCodeWrapper
+                                            url={process.env.NEXT_PUBLIC_BASE_URL + '/setup' || window.location.origin}
+                                        />
+                                    </div>
+                                }
+                                ctas={[
+                                    {
+                                        text: t('gotIt'),
+                                        variant: 'purple',
+                                        shadowSize: '4',
+                                        onClick: () => setShowModal(false),
+                                    },
+                                ]}
+                            />
                         )}
                     </>
                 )
