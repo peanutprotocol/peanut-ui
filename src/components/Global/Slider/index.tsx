@@ -16,8 +16,10 @@ function Slider({
     'aria-label': ariaLabel,
     ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
-    // Use internal state for the slider value to enable magnetic snapping
-    const [internalValue, setInternalValue] = React.useState<number[]>(defaultValue || controlledValue)
+    // Use internal state for the slider value to enable magnetic snapping.
+    // Seed from the controlled value when given, so a controlled slider does
+    // not first paint at defaultValue (100) and visibly jump after mount.
+    const [internalValue, setInternalValue] = React.useState<number[]>(controlledValue ?? defaultValue)
 
     // Sync internal state when controlled value changes from external source.
     // The parent derives the controlled value from a cent-rounded amount, so a
@@ -96,7 +98,9 @@ function Slider({
                     aria-label={ariaLabel}
                     className={twMerge(
                         // after: pseudo-element extends the 16px thumb to a 44px hit area
-                        'relative isolate block size-4 cursor-pointer rounded-full transition-all duration-fast ease-out outline-none after:absolute after:-inset-3.5 focus-visible:outline-2 focus-visible:outline-action-focus disabled:pointer-events-none disabled:opacity-50'
+                        // outline-none poisons --tw-outline-style, so the ring needs an
+                        // explicit focus-visible:outline-solid to paint (globals.css convention)
+                        'relative isolate block size-4 cursor-pointer rounded-full transition-all duration-fast ease-out outline-none after:absolute after:-inset-3.5 focus-visible:outline-2 focus-visible:outline-action-focus focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-50'
                     )}
                 >
                     {/* Vertical snap tick - only visible when at a snap point */}

@@ -140,9 +140,9 @@ export default function NotificationPage() {
                     },
                     {
                         name: 'ctas',
-                        type: '{ label, onClick }[]',
+                        type: '1-2 × { label, onClick }',
                         default: '(none)',
-                        description: 'Up to 2: first purple, second stroke',
+                        description: 'First renders purple, second stroke',
                     },
                 ]}
             />

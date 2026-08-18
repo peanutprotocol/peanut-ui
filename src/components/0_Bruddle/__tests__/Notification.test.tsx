@@ -36,15 +36,15 @@ describe('Notification', () => {
 
     test('renders at most two CTAs and wires their clicks', () => {
         const first = jest.fn()
+        // the tuple type caps ctas at two at compile time; the cast proves the
+        // runtime slice also guards plain-js callers
+        const threeCtas = [
+            { label: 'One', onClick: first },
+            { label: 'Two', onClick: () => {} },
+            { label: 'Three', onClick: () => {} },
+        ] as unknown as [{ label: string; onClick: () => void }]
         render(
-            <Notification
-                priority="success"
-                ctas={[
-                    { label: 'One', onClick: first },
-                    { label: 'Two', onClick: () => {} },
-                    { label: 'Three', onClick: () => {} },
-                ]}
-            >
+            <Notification priority="success" ctas={threeCtas}>
                 Done
             </Notification>
         )

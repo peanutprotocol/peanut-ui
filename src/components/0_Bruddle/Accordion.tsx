@@ -33,10 +33,15 @@ const AccordionTrigger = ({
 }: React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>) => (
     <AccordionPrimitive.Header className="flex">
         <AccordionPrimitive.Trigger
-            className={twMerge(
-                'group flex w-full items-center justify-between gap-2 p-4 text-left text-body-s text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus data-[disabled]:text-foreground-secondary',
-                className
-            )}
+            // text-body-s sits outside twMerge: stock tailwind-merge misreads it as a
+            // text-color class and strips it against text-foreground-primary
+            className={
+                'text-body-s ' +
+                twMerge(
+                    'group flex w-full items-center justify-between gap-2 p-4 text-left text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus data-[disabled]:text-foreground-secondary',
+                    className
+                )
+            }
             {...props}
         >
             {children}
@@ -58,7 +63,12 @@ const AccordionContent = ({
         className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
         {...props}
     >
-        <div className={twMerge('border-t border-border-default p-4 text-body-s text-foreground-primary', className)}>
+        {/* text-body-s outside twMerge — see the trigger note */}
+        <div
+            className={
+                'text-body-s ' + twMerge('border-t border-border-default p-4 text-foreground-primary', className)
+            }
+        >
             {children}
         </div>
     </AccordionPrimitive.Content>

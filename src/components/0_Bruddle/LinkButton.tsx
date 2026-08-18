@@ -37,12 +37,18 @@ export const LinkButton = ({
     className,
     ...props
 }: LinkButtonProps) => {
-    const classes = twMerge(
-        // after: pseudo-element extends the 16px text row to a 44px hit area
-        'relative inline-flex items-center gap-1 rounded-sm text-body-xs text-foreground-secondary underline transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3.5 hover:text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus',
-        disabled && 'pointer-events-none opacity-40',
-        className
-    )
+    // text-body-xs sits outside twMerge: stock tailwind-merge misreads it as a
+    // text-color class and strips it against text-foreground-secondary
+    const classes =
+        'text-body-xs ' +
+        twMerge(
+            // after: pseudo-element extends the 16px text row to a 44px hit area.
+            // that hit area extends 14px past each edge — keep stacked LinkButtons
+            // at least ~28px apart so hit areas do not overlap.
+            'relative inline-flex items-center gap-1 rounded-sm text-foreground-secondary underline transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3.5 hover:text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus',
+            disabled && 'pointer-events-none opacity-40',
+            className
+        )
     const content = (
         <>
             {children}

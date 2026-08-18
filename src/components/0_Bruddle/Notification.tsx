@@ -21,8 +21,8 @@ interface NotificationProps {
     children: React.ReactNode
     /** When set, shows a close button (dismissible variant). */
     onDismiss?: () => void
-    /** Up to two actions: first renders purple (primary), second stroke (secondary). */
-    ctas?: NotificationCta[]
+    /** One or two actions: first renders purple (primary), second stroke (secondary). */
+    ctas?: [NotificationCta] | [NotificationCta, NotificationCta]
     className?: string
     'data-testid'?: string
 }
@@ -76,7 +76,7 @@ export const Notification = ({
                     <div className="flex flex-wrap gap-2 pl-7">
                         {ctas.slice(0, 2).map((cta, i) => (
                             <Button
-                                key={cta.label}
+                                key={i}
                                 size="small"
                                 variant={CTA_VARIANTS[i]}
                                 icon="chevron-right"
