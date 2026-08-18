@@ -31,7 +31,7 @@ export default function LayoutsPage() {
                             <div className="rounded-sm bg-grey-2/30 px-3 py-1.5">
                                 <div className="flex items-center gap-1">
                                     <Icon name="chevron-up" size={12} className="-rotate-90" />
-                                    <span className="text-xs text-grey-1">FlowHeader</span>
+                                    <span className="text-xs text-grey-1">NavHeader (hideLabel)</span>
                                 </div>
                             </div>
                             <div className="flex flex-1 items-center justify-center">
@@ -51,7 +51,7 @@ export default function LayoutsPage() {
                     <CodeBlock
                         label="Pattern 1: Centered Content + CTA"
                         code={`<div className="flex h-full flex-col">
-  <FlowHeader onPrev={handleBack} />
+  <NavHeader hideLabel onPrev={handleBack} />
 
   {/* Centered content */}
   <div className="flex flex-1 items-center justify-center">

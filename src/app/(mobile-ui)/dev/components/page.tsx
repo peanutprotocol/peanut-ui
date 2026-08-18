@@ -20,7 +20,6 @@ import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import StatusPill from '@/components/Global/StatusPill'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import FlowHeader from '@/components/Global/FlowHeader'
 import Modal from '@/components/Global/Modal'
 import ActionModal from '@/components/Global/ActionModal'
 import Title from '@/components/0_Bruddle/Title'
@@ -246,8 +245,8 @@ export default function ComponentsPage() {
                             </p>
                             <p>
                                 <span className="font-bold text-n-1">Global shared</span> — src/components/Global/ —
-                                NavHeader, FlowHeader, Modal, ActionModal, Drawer, Loading, PeanutLoading, StatusBadge,
-                                EmptyState, CopyField, Icon, AddressLink, MoreInfo, etc.
+                                NavHeader, Modal, ActionModal, Drawer, Loading, PeanutLoading, StatusBadge, EmptyState,
+                                CopyField, Icon, AddressLink, MoreInfo, etc.
                             </p>
                             <p>
                                 <span className="font-bold text-n-1">Tailwind classes</span> — .row, .col, .shadow-2,
@@ -859,8 +858,8 @@ export default function ComponentsPage() {
                     </Section>
 
                     <Section
-                        title="FlowHeader"
-                        importPath={`import FlowHeader from '@/components/Global/FlowHeader'`}
+                        title="NavHeader (flow mode)"
+                        importPath={`import NavHeader from '@/components/Global/NavHeader'`}
                         status="production"
                         quality={4}
                     >
@@ -868,12 +867,15 @@ export default function ComponentsPage() {
                             minimal header for multi-step flows. back button + optional right element.
                         </p>
                         <div className="rounded-sm border border-n-1 p-2">
-                            <FlowHeader
+                            <NavHeader
+                                hideLabel
                                 onPrev={() => {}}
                                 rightElement={<span className="text-sm text-grey-1">Step 2/3</span>}
                             />
                         </div>
-                        <CopySnippet code={`<FlowHeader onPrev={handleBack} rightElement={<span>Step 2/3</span>} />`} />
+                        <CopySnippet
+                            code={`<NavHeader hideLabel onPrev={handleBack} rightElement={<span>Step 2/3</span>} />`}
+                        />
                     </Section>
 
                     <Section
