@@ -53,7 +53,7 @@ export const AVATAR_TEXT_DARK = '#000000' // black
 /**
  * Generates a deterministic background color from a predefined list based on a username.
  * @param username The username string.
- * @returns An object with { darkShade, lightShade }
+ * @returns An object with { darkShade, lightShade, borderShade }
  */
 export function getColorForUsername(username?: string): {
     darkShade: string

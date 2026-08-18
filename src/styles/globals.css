@@ -990,7 +990,7 @@
        black when active, blue ring on keyboard focus, red on aria-invalid,
        gray fill when disabled. was: pink focus border. */
     .input {
-        @apply h-16 w-full rounded-sm border border-border-subtle bg-background-default px-5 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus:border-border-default focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
+        @apply h-16 w-full rounded-sm border border-border-subtle bg-background-default px-5 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus:border-border-default focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
     }
     .bg-peanut-repeat-normal {
         @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;
