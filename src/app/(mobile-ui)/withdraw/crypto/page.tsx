@@ -34,7 +34,7 @@ import { useHaptic } from 'use-haptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
-import { isTxReverted, printableAddress } from '@/utils/general.utils'
+import { isTxReverted, printableAddress, validateEnsName } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
@@ -77,6 +77,7 @@ export default function WithdrawCryptoPage() {
         paymentDetails,
         setPaymentDetails,
         resetWithdrawFlow,
+        recipient,
     } = useWithdrawFlow()
 
     // hooks for route calculation and payment recording
@@ -250,6 +251,7 @@ export default function WithdrawCryptoPage() {
                     throw new Error(t('errors.requestFailed'))
                 }
 
+                const recipientEnsName = recipient.name?.trim().toLowerCase()
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
                     local_price: { amount: usdValue.toString(), currency: 'USD' },
@@ -266,6 +268,9 @@ export default function WithdrawCryptoPage() {
                         tokenSymbol: completeWithdrawData.token.symbol,
                         tokenDecimals: Number(completeWithdrawData.token.decimals),
                         recipientAddress: completeWithdrawData.address,
+                        // Withdrawing to a name is still paying at one, and the
+                        // input keeps the name that produced this address.
+                        ...(validateEnsName(recipientEnsName) ? { recipientEnsName } : {}),
                     },
                     transactionType: 'WITHDRAW',
                 }
@@ -295,6 +300,7 @@ export default function WithdrawCryptoPage() {
             setWithdrawData,
             setShowCompatibilityModal,
             setError,
+            recipient,
             t,
         ]
     )

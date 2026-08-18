@@ -2862,6 +2862,10 @@
                                                             "recipientAddress": {
                                                                 "type": "string"
                                                             },
+                                                            "recipientEnsName": {
+                                                                "maxLength": 255,
+                                                                "type": "string"
+                                                            },
                                                             "requesteeUsername": {
                                                                 "type": "string"
                                                             },
@@ -2996,6 +3000,10 @@
                                                             "recipientAddress": {
                                                                 "type": "string"
                                                             },
+                                                            "recipientEnsName": {
+                                                                "maxLength": 255,
+                                                                "type": "string"
+                                                            },
                                                             "requesteeUsername": {
                                                                 "type": "string"
                                                             },
@@ -3128,6 +3136,10 @@
                                                                 "type": "integer"
                                                             },
                                                             "recipientAddress": {
+                                                                "type": "string"
+                                                            },
+                                                            "recipientEnsName": {
+                                                                "maxLength": 255,
                                                                 "type": "string"
                                                             },
                                                             "requesteeUsername": {
@@ -12219,64 +12231,6 @@
                         "in": "header",
                         "name": "Authorization",
                         "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/points/leaderboard": {
-            "get": {
-                "parameters": [
-                    {
-                        "schema": {
-                            "minimum": 1,
-                            "maximum": 500,
-                            "type": "number"
-                        },
-                        "in": "query",
-                        "name": "limit",
-                        "required": false
-                    },
-                    {
-                        "schema": {
-                            "type": "boolean"
-                        },
-                        "in": "query",
-                        "name": "includeMe",
-                        "required": false
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/points/time-leaderboard": {
-            "get": {
-                "parameters": [
-                    {
-                        "schema": {
-                            "minimum": 1,
-                            "maximum": 100,
-                            "type": "number"
-                        },
-                        "in": "query",
-                        "name": "limit",
-                        "required": false
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "since",
-                        "required": false
                     }
                 ],
                 "responses": {

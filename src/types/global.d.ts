@@ -17,8 +17,12 @@ interface Window {
     $crisp?: Array<unknown[]> & { is?: (feature: string) => boolean }
     CRISP_TOKEN_ID?: string | null
     CRISP_WEBSITE_ID?: string
+    CRISP_RUNTIME_CONFIG?: Record<string, unknown>
     // Set to true by the l.js <script> onerror handler if the Crisp bundle fails to load.
     __crispLoadFailed?: boolean
+    // Set once the crisp-proxy page has queued $crisp and injected l.js — guards
+    // React strict-mode effect re-runs from booting the widget twice.
+    __crispProxyBooted?: boolean
 }
 
 interface Navigator {

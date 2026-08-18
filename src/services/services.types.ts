@@ -95,6 +95,14 @@ export interface RequestProps {
     tokenSymbol: string
     tokenDecimals: number
     recipientAddress: string
+    /**
+     * ENS name the payer typed, when they typed one. Recorded on the charge and
+     * read at settlement to award the ENS badge. The API takes it on trust —
+     * `validateEnsName` at the call sites is the only filter — which is safe
+     * only while the badge grants nothing (see peanut-api-ts
+     * `acknowledgments/ens-payment-badges.ts` before attaching anything to it).
+     */
+    recipientEnsName?: string
     requesteeUsername?: string
 }
 
@@ -391,7 +399,6 @@ export interface TierInfo {
     transitivePoints: number
     totalPoints: number
     currentTier: number
-    leaderboardRank: number
     nextTierThreshold: number
     pointsToNextTier: number
 }
