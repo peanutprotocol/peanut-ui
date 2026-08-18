@@ -108,18 +108,35 @@ jobs:
                   git checkout -b "$BRANCH"
                   git add src/content
                   git commit -S -m "Update content submodule to latest main"
-                  git push origin "$BRANCH"
+
+                  # Push over CONTENT_BOT_TOKEN rather than the GITHUB_TOKEN that
+                  # actions/checkout persisted as the origin credential. Two reasons:
+                  #   - A GITHUB_TOKEN push raises no workflow events, so `Tests` would
+                  #     run for the `pull_request` event only. content-publish-
+                  #     automerge.yml expects a commit to carry two `ci-success` runs
+                  #     and merges on all-green-of-N; at N=1 a single concurrency
+                  #     cancellation makes N=0, where it declines to merge and the
+                  #     publish stalls silently. Ref creation used the PAT before, so
+                  #     this keeps the two runs the automerge gate was written against.
+                  #   - It preserves the bypass ref creation used to have, so a rule
+                  #     added to the "All branches" ruleset later cannot quietly break
+                  #     the pipeline.
+                  REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+                  git push "$REMOTE" "$BRANCH"
                   COMMIT_SHA=$(git rev-parse HEAD)
 
                   # Ask GitHub, not the runner, whether the signature actually
                   # verified — the runner has no allowed-signers file and would pass
                   # a key GitHub rejects. Publishing an unverified commit is the bug
                   # this step exists to prevent, so it is a hard failure, not a
-                  # warning.
+                  # warning. Take the branch back down on the way out: it carries no
+                  # PR yet, and the superseded-PR sweep below only ever sees branches
+                  # that have one, so an abandoned branch would linger forever.
                   VERIFICATION=$(gh api "repos/${{ github.repository }}/commits/$COMMIT_SHA" \
                     --jq '.commit.verification | "\(.verified) \(.reason)"')
                   if [ "${VERIFICATION%% *}" != "true" ]; then
                     echo "::error::content bump $COMMIT_SHA is not verified (${VERIFICATION#* })"
+                    git push "$REMOTE" --delete "$BRANCH" || echo "::warning::could not delete $BRANCH"
                     exit 1
                   fi
                   echo "Signed and verified: $COMMIT_SHA"
