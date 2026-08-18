@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { DocPage } from '../_components/DocPage'
 import { AUDIT_ITEMS, AUDIT_CLUSTERS, LAYER_STATS, type AuditStatus } from './audit-data'
 
@@ -91,9 +92,9 @@ export default function DesignSystemAuditPage() {
                 a high count does <span className="font-bold">not</span> mean the live product renders it. For
                 &ldquo;what the real app actually shows&rdquo; (and what&rsquo;s dead-in-product despite existing in
                 code), see{' '}
-                <a href="/dev/ds/audit/app" className="font-bold underline">
+                <Link href="/dev/ds/audit/app" className="font-bold underline">
                     App Divergences →
-                </a>
+                </Link>
             </div>
 
             {/* Quick stats */}

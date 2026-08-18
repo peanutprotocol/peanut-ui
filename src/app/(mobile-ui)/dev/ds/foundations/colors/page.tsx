@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { DesignNote } from '../../_components/DesignNote'
@@ -115,9 +116,9 @@ export default function ColorsPage() {
                     large / small) are defined in the Tailwind theme but rendered on{' '}
                     <span className="underline">zero</span> real app screens (0 non-dev, non-test call-sites).
                     Don&rsquo;t treat these as design-system tokens — they&rsquo;re delete-candidates. See{' '}
-                    <a href="/dev/ds/audit/app" className="underline">
+                    <Link href="/dev/ds/audit/app" className="underline">
                         App Divergences →
-                    </a>
+                    </Link>
                 </DesignNote>
                 <div className="space-y-2 opacity-60">
                     {BACKGROUNDS.map((bg) => (
