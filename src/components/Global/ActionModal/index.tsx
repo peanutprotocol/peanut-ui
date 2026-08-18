@@ -43,6 +43,7 @@ export interface ActionModalProps {
     footer?: React.ReactNode
     content?: React.ReactNode
     classOverlay?: string
+    hideOverlay?: boolean
 }
 
 const ActionModal: React.FC<ActionModalProps> = ({
@@ -69,6 +70,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     footer,
     content,
     classOverlay,
+    hideOverlay,
 }) => {
     const defaultModalPanelClasses = 'max-w-[85%]'
     const defaultIconContainerClassName = 'bg-primary-1' // default pink background
@@ -106,11 +108,13 @@ const ActionModal: React.FC<ActionModalProps> = ({
             className={twMerge('items-center justify-center md:mx-auto md:max-w-md', modalClassName)}
             classButtonClose={hideModalCloseButton ? '!hidden' : ''}
             classWrap={twMerge(
-                'sm:m-auto sm:self-center self-center m-4 bg-white rounded-none !border-0 z-50',
+                // board 17800:57216 panel: white, border-default, sharp 2px corners
+                'sm:m-auto sm:self-center self-center m-4 bg-background-default rounded-sm border border-border-default z-50',
                 defaultModalPanelClasses,
                 modalPanelClassName
             )}
             classOverlay={classOverlay}
+            hideOverlay={hideOverlay}
         >
             <div className={twMerge('flex flex-col items-center gap-4 p-6 text-center', contentContainerClassName)}>
                 {iconContent && (
@@ -125,11 +129,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 )}
 
                 <div className="space-y-2 w-full">
-                    <h3 className={twMerge('text-base font-bold text-black dark:text-white', titleClassName)}>
-                        {title}
-                    </h3>
+                    {/* board head: Heading XS + Body S */}
+                    <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>{title}</h3>
                     {description && (
-                        <div className={twMerge('text-sm text-grey-1 dark:text-white', descriptionClassName)}>
+                        <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
                             {typeof description === 'string' ? <p>{description}</p> : description}
                         </div>
                     )}

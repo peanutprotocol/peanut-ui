@@ -4,9 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import Modal from '@/components/Global/Modal'
-import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
+import ActionModal from '@/components/Global/ActionModal'
 import { rainApi, type RainCardLimit, type RainLimitFrequency } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useReturnExcessCollateral } from '@/hooks/wallet/useReturnExcessCollateral'
@@ -100,51 +98,46 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
     }
 
     return (
-        <Modal
+        <ActionModal
             visible={isOpen}
             onClose={onClose}
-            classWrap="sm:m-auto sm:self-center self-center m-4 rounded-2xl"
             preventClose={saving}
-        >
-            <div className="p-6">
-                <div className="flex flex-col items-center gap-4 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-1">
-                        <Icon name="credit-card" size={20} />
+            hideModalCloseButton={saving}
+            icon="credit-card"
+            title={t('editTitle')}
+            content={
+                <div className="flex w-full flex-col gap-2 text-left">
+                    <label htmlFor="card-limit-input" className="text-sm font-bold">
+                        {label}
+                    </label>
+                    <div className="flex items-center gap-2 rounded-sm border border-n-1 bg-white px-3 py-2">
+                        <span className="text-grey-1">$</span>
+                        <input
+                            id="card-limit-input"
+                            type="number"
+                            inputMode="decimal"
+                            value={value}
+                            onChange={(e) => setValue(e.target.value)}
+                            className="w-full bg-transparent text-base focus:outline-none"
+                            min={0}
+                            step="0.01"
+                            disabled={saving}
+                        />
                     </div>
-                    <div className="text-xl font-extrabold">{t('editTitle')}</div>
-                    <div className="flex w-full flex-col gap-2 text-left">
-                        <label htmlFor="card-limit-input" className="text-sm font-bold">
-                            {label}
-                        </label>
-                        <div className="flex items-center gap-2 rounded-sm border border-n-1 bg-white px-3 py-2">
-                            <span className="text-grey-1">$</span>
-                            <input
-                                id="card-limit-input"
-                                type="number"
-                                inputMode="decimal"
-                                value={value}
-                                onChange={(e) => setValue(e.target.value)}
-                                className="w-full bg-transparent text-base focus:outline-none"
-                                min={0}
-                                step="0.01"
-                                disabled={saving}
-                            />
-                        </div>
-                        {error && <p className="text-sm text-red">{error}</p>}
-                    </div>
-                    <Button
-                        variant="purple"
-                        shadowSize="4"
-                        className="w-full"
-                        onClick={save}
-                        loading={saving}
-                        disabled={saving}
-                    >
-                        {t('saveChanges')}
-                    </Button>
+                    {error && <p className="text-sm text-red">{error}</p>}
                 </div>
-            </div>
-        </Modal>
+            }
+            ctas={[
+                {
+                    text: t('saveChanges'),
+                    variant: 'purple',
+                    shadowSize: '4',
+                    onClick: save,
+                    loading: saving,
+                    disabled: saving,
+                },
+            ]}
+        />
     )
 }
 

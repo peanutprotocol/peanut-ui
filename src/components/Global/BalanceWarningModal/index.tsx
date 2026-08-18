@@ -1,7 +1,6 @@
 'use client'
 
-import { Icon } from '@/components/Global/Icons/Icon'
-import Modal from '@/components/Global/Modal'
+import ActionModal from '@/components/Global/ActionModal'
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Slider } from '@/components/Slider'
@@ -89,42 +88,40 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
         }
     }, [visible])
     return (
-        <Modal
+        <ActionModal
             visible={visible}
             onClose={() => {}}
             preventClose={true}
+            hideModalCloseButton
             hideOverlay={true}
-            className="z-50 !items-center !justify-center !px-6"
-            classWrap="!self-center !bottom-auto !mx-auto !w-auto !max-w-md"
-        >
-            <div className="flex w-full flex-col items-center justify-center gap-6 p-6 text-center">
-                <div className="bg-yellow-400 flex size-16 items-center justify-center rounded-full">
-                    <Icon name="alert" size={24} />
+            modalClassName="z-50 !items-center !justify-center !px-6"
+            modalPanelClassName="!bottom-auto !mx-auto !w-auto !max-w-md !self-center"
+            icon="alert"
+            iconContainerClassName="bg-yellow-400 size-16"
+            iconProps={{ className: 'size-6' }}
+            title={t('balanceWarningModal.title')}
+            description={
+                <div className="space-y-3">
+                    <p>{t('balanceWarningModal.congrats')}</p>
+                    <p>{t('balanceWarningModal.selfCustody')}</p>
+                    <p>{t('balanceWarningModal.passkey')}</p>
+
+                    {t.rich('balanceWarningModal.learnMore', {
+                        platform: platformName,
+                        link: (chunks) => (
+                            <a
+                                href={platformInfo.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 underline"
+                            >
+                                {chunks}
+                            </a>
+                        ),
+                    })}
                 </div>
-
-                <div className="space-y-4">
-                    <h2 className="text-xl font-bold">{t('balanceWarningModal.title')}</h2>
-                    <div className="text-gray-600 space-y-3 text-sm">
-                        <p>{t('balanceWarningModal.congrats')}</p>
-                        <p>{t('balanceWarningModal.selfCustody')}</p>
-                        <p>{t('balanceWarningModal.passkey')}</p>
-
-                        {t.rich('balanceWarningModal.learnMore', {
-                            platform: platformName,
-                            link: (chunks) => (
-                                <a
-                                    href={platformInfo.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 underline"
-                                >
-                                    {chunks}
-                                </a>
-                            ),
-                        })}
-                    </div>
-                </div>
-
+            }
+            content={
                 <Slider
                     onAccepted={() => {
                         posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
@@ -135,7 +132,7 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
                     }}
                     title={t('balanceWarningModal.slideToContinue')}
                 />
-            </div>
-        </Modal>
+            }
+        />
     )
 }
