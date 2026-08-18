@@ -1,5 +1,5 @@
 import { PEANUTMAN_PFP } from '@/assets/mascot'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import QRCode from 'react-qr-code'
@@ -78,7 +78,7 @@ const QRCodeWrapper = ({
             {/* Loading overlay */}
             {showLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             )}
         </div>

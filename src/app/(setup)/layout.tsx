@@ -6,7 +6,7 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -136,7 +136,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
 
 const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
     return (
-        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+        <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
             <SetupLayoutContent>{children}</SetupLayoutContent>
         </Suspense>
     )

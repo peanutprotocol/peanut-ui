@@ -6,7 +6,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useCurrency } from '@/hooks/useCurrency'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, type LimitCurrency } from '@/features/limits/utils'
 import type { LimitValidationResult } from '@/features/limits/hooks/useLimitsValidation'
@@ -55,7 +55,7 @@ const InputAmountStep = ({
     const tCommon = useTranslations('common')
 
     if (currencyData?.isLoading) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     // FX fetch failed (e.g. provider outage): price is null but not loading.

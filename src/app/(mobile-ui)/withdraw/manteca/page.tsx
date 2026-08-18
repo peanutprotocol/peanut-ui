@@ -16,7 +16,7 @@ import { Card } from '@/components/0_Bruddle/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -560,7 +560,7 @@ function MantecaBankWithdrawFlow() {
     }, [countryFromUrl, selectedCountry, router])
 
     if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (step === 'success') {

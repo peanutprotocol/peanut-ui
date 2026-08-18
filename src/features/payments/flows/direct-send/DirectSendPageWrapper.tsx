@@ -13,7 +13,7 @@
 
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { AccountType } from '@/interfaces/interfaces'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -54,7 +54,7 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.send')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )

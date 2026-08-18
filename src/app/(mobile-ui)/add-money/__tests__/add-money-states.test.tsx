@@ -359,12 +359,17 @@ jest.mock('@/components/Global/AmountInput', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/PeanutLoading', () => ({
+jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>,
+    default: (props: any) =>
+        props.variant === 'mascot' ? (
+            <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>
+        ) : (
+            <div data-testid="loading-spinner" />
+        ),
 }))
 
-jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({
+jest.mock('@/components/Global/Loading/CyclingLoading', () => ({
     __esModule: true,
     default: () => <div data-testid="cycling-loading" />,
 }))

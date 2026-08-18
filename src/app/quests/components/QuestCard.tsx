@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { formatExtendedNumber } from '@/utils/general.utils'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { PRIZE_TIERS } from '../constants'
 import type { LeaderboardEntry } from '../types'
 import { UserRankCard } from './UserRankCard'
@@ -83,7 +83,7 @@ export function QuestCard({
             <div className="space-y-3 flex-1">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                        <PeanutLoading />
+                        <Loading variant="mascot" />
                     </div>
                 ) : leaderboard.length === 0 && !hasUserData && questStatus === 'not_started' && !useTestTimePeriod ? (
                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">

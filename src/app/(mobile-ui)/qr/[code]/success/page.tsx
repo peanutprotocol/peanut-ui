@@ -6,7 +6,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect } from 'react'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { confettiPresets } from '@/utils/confetti'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
@@ -42,7 +42,7 @@ export default function RedirectQrSuccessPage() {
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title={t('claimSuccess.navTitle')} />
                 <div className="flex h-full items-center justify-center">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )

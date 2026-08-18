@@ -1,7 +1,7 @@
 'use client'
 
 import { PEANUTMAN } from '@/assets/mascot'
-import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/PeanutLoading/words'
+import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/Loading/words'
 import en from '@/i18n/app/messages/en.json'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
@@ -39,7 +39,7 @@ export default function LoadingWordsPreview() {
 
                 <section className="flex flex-col gap-3">
                     <h2 className="text-sm font-bold tracking-wider text-grey-1 uppercase">
-                        Production match (same as <code>PeanutLoading</code>)
+                        Production match (same as <code>Loading variant=&quot;mascot&quot;</code>)
                     </h2>
                     <div className="flex flex-col items-center justify-center gap-6 rounded-sm border border-n-1 bg-primary-3 px-6 py-16 shadow-[4px_4px_0_0_#000]">
                         <div className="animate-spin">
@@ -56,7 +56,7 @@ export default function LoadingWordsPreview() {
                     <div className="grid gap-3 md:grid-cols-3">
                         <SizeSwatch label="sm · medium" word={WORDS[index]} className="text-sm font-medium" />
                         <SizeSwatch
-                            label="base · medium (current PeanutLoading)"
+                            label={'base · medium (current Loading variant="mascot")'}
                             word={WORDS[index]}
                             className="text-base font-medium"
                         />

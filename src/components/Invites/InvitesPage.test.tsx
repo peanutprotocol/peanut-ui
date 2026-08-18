@@ -119,9 +119,9 @@ jest.mock('./InvitesPageLayout', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
-jest.mock('../Global/PeanutLoading', () => ({
+jest.mock('../Global/Loading', () => ({
     __esModule: true,
-    default: () => <div>Loading</div>,
+    default: (props: any) => (props.variant === 'mascot' ? <div>Loading</div> : <div data-testid="loading-spinner" />),
 }))
 jest.mock('../Payment/Views/Error.validation.view', () => ({
     __esModule: true,

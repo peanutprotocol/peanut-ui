@@ -1,7 +1,6 @@
 'use client'
 
 import Loading from '@/components/Global/Loading'
-import PeanutLoading from '@/components/Global/PeanutLoading'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -15,7 +14,7 @@ export default function LoadingPage() {
         <DocPage>
             <DocHeader
                 title="Loading"
-                description="CSS spinner (Loading) for inline/button use, and branded Peanut logo spinner (PeanutLoading) for full-page or section loading states."
+                description="One Loading component: spinner variant for inline/button use, mascot variant (the old PeanutLoading) for full-page or section loading states."
                 status="production"
             />
 
@@ -55,6 +54,12 @@ export default function LoadingPage() {
                     <PropsTable
                         rows={[
                             {
+                                name: 'variant',
+                                type: "'spinner' | 'mascot'",
+                                default: "'spinner'",
+                                description: 'spinner = inline; mascot = screen-level (old PeanutLoading)',
+                            },
+                            {
                                 name: 'className',
                                 type: 'string',
                                 default: "'h-4 w-4'",
@@ -74,8 +79,8 @@ export default function LoadingPage() {
                 </DocSection.Code>
             </DocSection>
 
-            {/* PeanutLoading */}
-            <DocSection title="PeanutLoading (Branded)">
+            {/* mascot variant */}
+            <DocSection title='Loading variant="mascot" (Branded)'>
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
                         Spinning Peanut logo with optional message. Can cover the full screen as an overlay.
@@ -85,14 +90,14 @@ export default function LoadingPage() {
                     <div className="space-y-4">
                         <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Inline</p>
                         <div className="rounded-sm border border-n-1 p-4">
-                            <PeanutLoading message="Processing your transaction..." />
+                            <Loading variant="mascot" message="Processing your transaction..." />
                         </div>
                     </div>
 
                     <div className="space-y-4">
                         <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Without message</p>
                         <div className="rounded-sm border border-n-1 p-4">
-                            <PeanutLoading />
+                            <Loading variant="mascot" />
                         </div>
                     </div>
 
@@ -114,15 +119,15 @@ export default function LoadingPage() {
                     />
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Import" code={`import PeanutLoading from '@/components/Global/PeanutLoading'`} />
+                    <CodeBlock label="Import" code={`import Loading from '@/components/Global/Loading'`} />
 
                     <CodeBlock
                         label="Usage"
                         code={`{/* Inline */}
-<PeanutLoading message="Loading your wallet..." />
+<Loading variant="mascot" message="Loading your wallet..." />
 
 {/* Full screen overlay */}
-<PeanutLoading coverFullScreen message="Please wait..." />`}
+<Loading variant="mascot" coverFullScreen message="Please wait..." />`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -132,12 +137,12 @@ export default function LoadingPage() {
             {/* Design Notes */}
             <DocSection title="Design Rules">
                 <DesignNote type="info">
-                    Use Loading (CSS spinner) inside buttons, inline indicators, and small containers. Use PeanutLoading
-                    for page-level or section-level loading states where brand presence matters.
+                    Use the spinner variant inside buttons, inline indicators, and small containers. Use
+                    variant="mascot" for page-level or section-level loading states where brand presence matters.
                 </DesignNote>
                 <DesignNote type="warning">
-                    PeanutLoading with coverFullScreen renders a fixed z-50 overlay. Make sure to conditionally render
-                    it only when loading is active to avoid blocking the UI.
+                    variant="mascot" with coverFullScreen renders a fixed z-50 overlay. Make sure to conditionally
+                    render it only when loading is active to avoid blocking the UI.
                 </DesignNote>
             </DocSection>
         </DocPage>

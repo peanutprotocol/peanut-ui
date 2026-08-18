@@ -13,7 +13,7 @@ import { QuestLeaderboard } from '../components/QuestLeaderboard'
 import { UserRankCard } from '../components/UserRankCard'
 import { QUEST_CONFIG, getQuestStatus, type QuestId } from '../constants'
 import { useQuestLeaderboard } from '../hooks/useQuests'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { useAuth } from '@/context/authContext'
 
 interface QuestDetailPageProps {
@@ -184,7 +184,7 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
                     >
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                                <PeanutLoading />
+                                <Loading variant="mascot" />
                             </div>
                         ) : leaderboard.length === 0 &&
                           !userStatus &&

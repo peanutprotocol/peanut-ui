@@ -4,7 +4,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import AmountInput from '@/components/Global/AmountInput'
 import ValidationErrorView, { type ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
@@ -171,7 +171,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     if (isRecipientUserLoading || authUser === undefined) {
         return (
             <div className="flex min-h-[inherit] w-full items-center justify-center">
-                <PeanutLoading />
+                <Loading variant="mascot" />
             </div>
         )
     }

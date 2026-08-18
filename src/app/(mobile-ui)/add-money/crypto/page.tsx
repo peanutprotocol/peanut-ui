@@ -2,7 +2,7 @@
 
 import CryptoDepositView from '@/components/AddMoney/views/CryptoDeposit.view'
 import OfframpHandleGateView from '@/components/AddMoney/views/OfframpHandleGate.view'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -129,7 +129,7 @@ const AddMoneyCryptoPage = () => {
         // wait for the cached user before deciding — otherwise a migrant who
         // already provided their handle gets a flash of the gate on every visit
         if (isFetchingUser && !user) {
-            return <PeanutLoading />
+            return <Loading variant="mascot" />
         }
         return <OfframpHandleGateView onBack={onBack} onDone={() => setOfframpHandleSaved(true)} />
     }

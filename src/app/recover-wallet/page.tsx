@@ -26,7 +26,7 @@ import Card from '@/components/Global/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Icon } from '@/components/Global/Icons/Icon'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { createKernelClientForChain, type KernelClientOptions } from '@/context/kernelClient.context'
 import {
@@ -50,7 +50,7 @@ type RescueClient = Awaited<ReturnType<typeof createKernelClientForChain>>
 // the whole tree dynamic at build time.
 export default function RecoverWalletPage() {
     return (
-        <Suspense fallback={<PeanutLoading />}>
+        <Suspense fallback={<Loading variant="mascot" />}>
             <RecoverWalletInner />
         </Suspense>
     )
@@ -177,7 +177,7 @@ function RecoverWalletInner() {
         }
     }, [client, recipient.address, balance])
 
-    if (phase === 'loading') return <PeanutLoading />
+    if (phase === 'loading') return <Loading variant="mascot" />
 
     if (phase === 'invalid') {
         return (

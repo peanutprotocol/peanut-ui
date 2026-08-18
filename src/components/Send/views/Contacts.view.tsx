@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { SearchInput } from '@/components/SearchInput'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -85,7 +85,7 @@ export default function ContactsView() {
 
     // only show full loading on initial load (before any data has been fetched)
     if (isFetchingContacts && !hasLoadedOnce) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     // handle error state before checking for empty contacts

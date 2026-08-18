@@ -4,7 +4,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
@@ -56,7 +56,7 @@ const InvitesPage = () => {
     })
 
     if (isLoading) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (isError) {

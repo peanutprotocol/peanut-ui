@@ -46,7 +46,7 @@ jest.mock('@/components/AddMoney/components/MantecaDepositShareDetails', () => (
     __esModule: true,
     default: () => null,
 }))
-jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/Loading/CyclingLoading', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({ InitiateKycModal: () => null }))
 

@@ -1,7 +1,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import MantecaDetailsCard, { type MantecaCardRow } from '@/components/Global/MantecaDetailsCard'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
 import { sendLinksApi } from '@/services/sendLinks'
@@ -126,7 +126,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
     }
 
     if (isLoading) {
-        return <PeanutLoading coverFullScreen />
+        return <Loading variant="mascot" coverFullScreen />
     }
 
     return (
