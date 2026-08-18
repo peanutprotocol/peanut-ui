@@ -1,14 +1,41 @@
 'use client'
 
+import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { TOKEN_GROUPS } from '../tokens.generated'
+
+const SPACING_TOKENS = TOKEN_GROUPS['spacing'] ?? []
 
 export default function SpacingPage() {
     return (
         <DocPage>
             <DocHeader title="Spacing" description="Layout utilities and spacing conventions used across the app." />
+
+            {/* Spacing tokens — generated; empty until DS 06 lands the named scale */}
+            <DocSection title="Spacing Tokens">
+                {SPACING_TOKENS.length === 0 ? (
+                    <DesignNote type="info">
+                        No custom spacing tokens in @theme yet — the app uses the stock Tailwind 4px scale. The named
+                        scale (xs/s/m/l/…) is deferred to the DS 06 consumer sweep; this section auto-populates from
+                        globals.css when it lands (pnpm gen:ds-tokens).
+                    </DesignNote>
+                ) : (
+                    <div className="space-y-2 rounded-sm border border-n-1 p-3 text-xs">
+                        {SPACING_TOKENS.map((t) => (
+                            <div key={t.name} className="flex items-center gap-3">
+                                <code className="w-24 shrink-0 font-mono font-bold">
+                                    --spacing{t.name && `-${t.name}`}
+                                </code>
+                                <span className="w-14 shrink-0 text-grey-1">{t.value}</span>
+                                <div className="h-3 bg-purple-1" style={{ width: t.value }} />
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </DocSection>
 
             {/* Custom layout classes */}
             <DocSection title="Layout Utilities">
