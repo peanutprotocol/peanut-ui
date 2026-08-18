@@ -95,7 +95,10 @@ jest.mock('../Global/ErrorAlert', () => ({
     __esModule: true,
     default: ({ description }: { description: string }) => <div>{description}</div>,
 }))
-jest.mock('../Global/Loading', () => ({ __esModule: true, default: () => <div>Loading</div> }))
+jest.mock('../Global/Loading', () => ({
+    __esModule: true,
+    default: (props: any) => (props.variant === 'mascot' ? <div>Loading</div> : <div data-testid="loading-spinner" />),
+}))
 jest.mock('@/components/0_Bruddle/BaseInput', () => ({ BaseInput: () => <input /> }))
 
 describe('JoinWaitlistPage invite onboarding boundary', () => {

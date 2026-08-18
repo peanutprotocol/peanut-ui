@@ -146,7 +146,12 @@ jest.mock('@/components/Global/AddressLink', () => ({
 
 jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
-    default: () => <div data-testid="loading" />,
+    default: (props: any) =>
+        props.variant === 'mascot' ? (
+            <div data-testid="loading">{props.message && <span>{props.message}</span>}</div>
+        ) : (
+            <div data-testid="loading-spinner" />
+        ),
 }))
 
 jest.mock('@/components/Slider', () => ({

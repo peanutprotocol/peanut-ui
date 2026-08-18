@@ -2,21 +2,29 @@ import { PEANUTMAN } from '@/assets/mascot'
 import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 
-type LoadingProps = {
-    className?: string
-    /** 'spinner' = inline border spinner (buttons, rows). 'mascot' = screen-level
-     *  spinning peanutman (the old PeanutLoading, folded in by DS 06). */
-    variant?: 'spinner' | 'mascot'
-    /** mascot only: overlay the whole screen */
-    coverFullScreen?: boolean
-    /** mascot only: caption under the mascot */
-    message?: string
-}
+/** 'spinner' = inline border spinner (buttons, rows). 'mascot' = screen-level
+ *  spinning peanutman (the old PeanutLoading, folded in by DS 06). the union is
+ *  discriminated so mascot-only props don't silently no-op on the spinner. */
+type LoadingProps =
+    | {
+          variant?: 'spinner'
+          className?: string
+          coverFullScreen?: never
+          message?: never
+      }
+    | {
+          variant: 'mascot'
+          className?: never
+          /** overlay the whole screen */
+          coverFullScreen?: boolean
+          /** caption under the mascot */
+          message?: string
+      }
 
 const Loading = ({ className, variant = 'spinner', coverFullScreen = false, message }: LoadingProps) => {
     if (variant === 'mascot') {
         return (
-            <div className="w-full flex-col items-center justify-center self-center text-center">
+            <div role="status" className="w-full flex-col items-center justify-center self-center text-center">
                 <div
                     className={twMerge(
                         'flex w-full items-center justify-center self-center',

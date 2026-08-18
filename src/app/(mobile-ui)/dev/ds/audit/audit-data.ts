@@ -4018,7 +4018,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: 'Branded full-page/section loader: spinning PEANUTMAN_LOGO + optional message + c',
         usages: 54,
         status: 'canonical',
-        source: 'src/components/Global/PeanutLoading/index.tsx',
+        source: 'src/components/Global/Loading/index.tsx (folded by DS 06)',
         notes: "Canonical branded loader. Has a redundant 'text-center text-center' double class. CyclingLoading is a fork of this.",
     },
     {
@@ -4029,7 +4029,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: 'Near-verbatim copy of PeanutLoading (same spinning mascot + same wrapper divs) b',
         usages: 3,
         status: 'duplicate',
-        source: 'src/components/Global/PeanutLoading/CyclingLoading.tsx',
+        source: 'src/components/Global/Loading/CyclingLoading.tsx',
         notes: "Duplicates PeanutLoading's entire spinner markup. Should be a \u2019cycleWords\u2019/\u2019message='cycling'\u2019 prop on PeanutLoading, not a separate file. Only 3 of the 57 mascot-loader sites get the cycling treatment -> inconsistent.",
     },
     {

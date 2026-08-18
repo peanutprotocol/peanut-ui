@@ -54,6 +54,12 @@ export default function LoadingPage() {
                     <PropsTable
                         rows={[
                             {
+                                name: 'variant',
+                                type: "'spinner' | 'mascot'",
+                                default: "'spinner'",
+                                description: 'spinner = inline; mascot = screen-level (old PeanutLoading)',
+                            },
+                            {
                                 name: 'className',
                                 type: 'string',
                                 default: "'h-4 w-4'",

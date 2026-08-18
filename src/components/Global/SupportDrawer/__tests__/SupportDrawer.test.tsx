@@ -62,7 +62,8 @@ jest.mock('@/hooks/useCrispProxyUrl', () => ({
 }))
 jest.mock('../../Loading', () => ({
     __esModule: true,
-    default: () => <div data-testid="peanut-loading" />,
+    default: (props: any) =>
+        props.variant === 'mascot' ? <div data-testid="peanut-loading" /> : <div data-testid="loading-spinner" />,
 }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn() }))
 jest.mock('@capgo/capacitor-crisp', () => ({ CapacitorCrisp: nativeCrisp }))

@@ -216,7 +216,12 @@ jest.mock('@/components/0_Bruddle/PageContainer', () => ({
 
 jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
-    default: (_props: any) => <div data-testid="peanut-loading">Loading...</div>,
+    default: (props: any) =>
+        props.variant === 'mascot' ? (
+            <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>
+        ) : (
+            <div data-testid="loading-spinner" />
+        ),
 }))
 
 jest.mock('@/assets/mascot', () => ({
