@@ -17,6 +17,9 @@ interface ActionListCardProps {
     isDisabled?: boolean
     descriptionClassName?: string
     titleClassName?: string
+    /** default: chevron shows when no rightContent. pass false to suppress it
+     *  (replaces the rightContent={<div className="hidden" />} hack) */
+    chevron?: boolean
 }
 
 // ds-06: thin haptic wrapper over the ListItem primitive (board 17802:61530) —
@@ -32,6 +35,7 @@ export const ActionListCard = ({
     isDisabled = false,
     descriptionClassName,
     titleClassName,
+    chevron,
 }: ActionListCardProps) => {
     const { triggerHaptic } = useHaptic()
 
@@ -48,7 +52,7 @@ export const ActionListCard = ({
             body={description && <div className={twMerge(descriptionClassName)}>{description}</div>}
             leading={leftIcon}
             trailing={rightContent}
-            chevron={!rightContent}
+            chevron={chevron ?? !rightContent}
             position={position}
             onClick={isDisabled ? undefined : handleClick}
             // legacy disabled look: grey fill (rows disabled-because-completed
