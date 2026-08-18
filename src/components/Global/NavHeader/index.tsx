@@ -24,6 +24,9 @@ interface NavHeaderProps {
     titleClassName?: string
     /** trailing slot (board navigation.top.trailing) — step indicators, actions */
     rightElement?: React.ReactNode
+    /** render no back button at all (board navigation.top.trailing.*) —
+     *  ex-FlowHeader flows that hid the button on step 1 */
+    hideBackBtn?: boolean
 }
 
 // board 17802:61534 top-nav circle button: 40px visual, no shadow, pseudo-element
@@ -42,14 +45,21 @@ const NavHeader = ({
     showLogoutBtn = false,
     titleClassName,
     rightElement,
+    hideBackBtn = false,
 }: NavHeaderProps) => {
     const { logoutUser, isLoggingOut } = useAuth()
     const tNav = useTranslations('navigation')
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)
 
     return (
-        <div className="relative flex w-full flex-row items-center justify-between md:block">
-            {!onPrev ? (
+        // flow mode (hideLabel) keeps flex justify-between at every breakpoint;
+        // md:block is the title-mode desktop layout only
+        <div
+            className={twMerge('relative flex w-full flex-row items-center justify-between', !hideLabel && 'md:block')}
+        >
+            {hideBackBtn ? (
+                <div />
+            ) : !onPrev ? (
                 <Link href={href ?? '/home'} className="md:hidden">
                     <Button variant="stroke" className={navCircleBtn} data-testid="nav-back">
                         <Icon

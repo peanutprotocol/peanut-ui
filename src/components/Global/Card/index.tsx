@@ -10,6 +10,10 @@ interface CardProps {
     border?: boolean
     ref?: React.Ref<HTMLDivElement>
     'data-testid'?: string
+    role?: React.AriaRole
+    tabIndex?: number
+    onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>
+    'aria-disabled'?: boolean
 }
 
 const Card: React.FC<CardProps> = ({
@@ -20,6 +24,10 @@ const Card: React.FC<CardProps> = ({
     border = true,
     ref,
     'data-testid': dataTestId,
+    role,
+    tabIndex,
+    onKeyDown,
+    'aria-disabled': ariaDisabled,
 }) => {
     const getBorderRadius = () => {
         switch (position) {
@@ -59,6 +67,10 @@ const Card: React.FC<CardProps> = ({
             className={twMerge('w-full bg-white px-4 py-2', getBorderRadius(), getBorder(), className)}
             onClick={onClick}
             data-testid={dataTestId}
+            role={role}
+            tabIndex={tabIndex}
+            onKeyDown={onKeyDown}
+            aria-disabled={ariaDisabled}
         >
             {children}
         </div>

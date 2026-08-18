@@ -41,6 +41,19 @@ export const ListItem = ({
     <Card
         position={position}
         onClick={disabled ? undefined : onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick && !disabled ? 0 : undefined}
+        onKeyDown={
+            onClick && !disabled
+                ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          onClick()
+                      }
+                  }
+                : undefined
+        }
+        aria-disabled={disabled || undefined}
         data-testid={dataTestId}
         className={twMerge(
             'flex items-center justify-between gap-3 p-4',
