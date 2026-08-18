@@ -107,7 +107,7 @@ const BridgeLimitsView = () => {
                                             <div className="flex items-center gap-2">
                                                 <Image
                                                     src={country.flag}
-                                                    alt={country.name}
+                                                    alt=""
                                                     width={24}
                                                     height={24}
                                                     className="size-5 rounded-full object-cover"

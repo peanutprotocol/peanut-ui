@@ -12,6 +12,8 @@ function Slider({
     defaultValue = [100],
     value: controlledValue,
     onValueChange,
+    // radix renders role="slider" on the Thumb, so the accessible name must land there
+    'aria-label': ariaLabel,
     ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
     // Use internal state for the slider value to enable magnetic snapping
@@ -91,6 +93,7 @@ function Slider({
 
                 <SliderPrimitive.Thumb
                     data-slot="slider-thumb"
+                    aria-label={ariaLabel}
                     className={twMerge(
                         // after: pseudo-element extends the 16px thumb to a 44px hit area
                         'relative isolate block size-4 cursor-pointer rounded-full transition-all duration-fast ease-out outline-none after:absolute after:-inset-3.5 focus-visible:outline-2 focus-visible:outline-action-focus disabled:pointer-events-none disabled:opacity-50'

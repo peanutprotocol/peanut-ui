@@ -73,7 +73,7 @@ export const Notification = ({
                 </div>
                 {title && <div className="pl-7 text-body-m">{children}</div>}
                 {!!ctas?.length && (
-                    <div className="flex gap-2 pl-7">
+                    <div className="flex flex-wrap gap-2 pl-7">
                         {ctas.slice(0, 2).map((cta, i) => (
                             <Button
                                 key={cta.label}

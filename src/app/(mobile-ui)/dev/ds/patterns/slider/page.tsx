@@ -34,7 +34,7 @@ export default function SliderPage() {
 
 const [value, setValue] = useState([50])
 
-<Slider value={value} onValueChange={setValue} />`}
+<Slider value={value} onValueChange={setValue} aria-label="Contribution percentage" />`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -79,7 +79,7 @@ const [value, setValue] = useState([50])
                         name: '...radix props',
                         type: 'SliderPrimitive.Root',
                         default: '—',
-                        description: 'min 0, max 120, step 1 are fixed',
+                        description: 'min 0, max 120, step 1 by default (overridable)',
                     },
                 ]}
             />
