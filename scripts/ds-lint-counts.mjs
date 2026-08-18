@@ -19,18 +19,18 @@ const SRC = join(ROOT, 'src')
 const BASELINE_PATH = join(ROOT, 'scripts', 'ds-lint-baseline.json')
 
 // allowlist for every metric: image-generation surfaces render standalone html
-// with no tailwind, raw values are the tool there, not debt.
-const GLOBAL_ALLOW = ['components/og/', 'app/api/og/', 'ImageGeneration/']
+// with no tailwind, raw values are the tool there, not debt. the ds showcase
+// pages display the token source itself (colors, spacing, type ramp rendered
+// programmatically from values), so raw values there are the feature.
+const GLOBAL_ALLOW = ['components/og/', 'app/api/og/', 'ImageGeneration/', 'dev/ds/', 'dev/components/']
 
 // extra allowlist for raw-hex only: canvas/D3/mermaid surfaces paint
-// programmatically, plus the ds showcase pages that display the palette itself.
+// programmatically.
 const HEX_ALLOW = [
     'share-asset/', // canvas card renderer
     'Global/InvitesGraph/', // d3 force graph
     'dev/kyc-flows/', // mermaid theming
     'LandingPage/PioneerCard3D', // canvas 3d card
-    'dev/ds/', // token showcase renders raw palette by design
-    'dev/components/', // component showcase ditto
 ]
 
 const HEX_RE = /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g
