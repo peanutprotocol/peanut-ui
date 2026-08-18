@@ -30,6 +30,7 @@ const NAMESPACES = [
     'default-transition',
     'transition-duration',
     'border-width',
+    'font-weight',
     'animate',
     'drop-shadow',
     'spacing',

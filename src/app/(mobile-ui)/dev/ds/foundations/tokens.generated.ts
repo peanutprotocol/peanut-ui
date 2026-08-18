@@ -950,11 +950,6 @@ export const FONT_TOKENS: FontToken[] = [
         stack: 'var(--font-roboto)',
         fontVariationSettings: "'wdth' 50",
     },
-    {
-        name: 'weight-extraBlack',
-        section: 'parity',
-        stack: '1000',
-    },
 ]
 
 /** radius / shadow / blur / motion / spacing token groups, keyed by @theme namespace */
@@ -1105,6 +1100,13 @@ export const TOKEN_GROUPS: Record<string, ColorToken[]> = {
         {
             name: 'timing-function',
             value: 'linear',
+            section: 'parity',
+        },
+    ],
+    'font-weight': [
+        {
+            name: 'extraBlack',
+            value: '1000',
             section: 'parity',
         },
     ],
