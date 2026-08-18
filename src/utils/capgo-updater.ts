@@ -87,8 +87,18 @@ async function checkAndStageUpdate(
         const message = err instanceof Error ? err.message : String(err ?? '')
         // "No new version available" is the normal up-to-date path, not a failure.
         if (message !== 'No new version available') {
-            console.error('[capgo] update check failed:', message)
+            // captureConsoleIntegration turns console.error into a Sentry event, and
+            // this updater runs on every launch — transient CDN/network failures that
+            // simply retry next launch were worth ~95 events/day. Only failures that
+            // mean OTA is actually dead for this build get error level.
+            const log = OTA_BROKEN_ERRORS.some((pattern) => message.includes(pattern)) ? console.error : console.info
+            log('[capgo] update check failed:', message)
             onUpdateFailed?.(message)
         }
     }
 }
+
+// disable_auto_update_under_native: the served bundle semver-sorts below the
+// installed binary, so every device refuses it. Checksum mismatch: the bundle
+// arrived corrupt. Neither retries its way out.
+const OTA_BROKEN_ERRORS = ['disable_auto_update_under_native', 'Checksum mismatch']
