@@ -1,8 +1,7 @@
 import DocsLink from '@/components/Global/DocsLink'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 import { useSetupStore } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
@@ -24,9 +23,11 @@ import { useTranslations } from 'next-intl'
 // Fail-open on network errors — the server's 409 is the backstop.
 const isUsernameTaken = async (username: string): Promise<boolean> => {
     try {
-        // capacitorHttp doesn't support HEAD — use GET in native
-        const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+        // capacitorHttp doesn't support HEAD — use GET in native.
+        // includeAuth: false — public pre-auth check, no session token involved.
+        const res = await apiFetch(`/users/username/${username}`, {
             method: isCapacitor() ? 'GET' : 'HEAD',
+            includeAuth: false,
         })
         return res.status === 200
     } catch {

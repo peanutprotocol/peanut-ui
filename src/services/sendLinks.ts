@@ -1,10 +1,7 @@
 import { jsonParse, jsonStringify, getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
-import { serverFetch } from '@/utils/api-fetch'
-import { getAuthHeaders, authReady } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { apiFetch, serverFetch } from '@/utils/api-fetch'
 import { isDemoMode } from '@/utils/demo'
 
 export { ESendLinkStatus } from '@/services/services.types'
@@ -81,9 +78,10 @@ type UpdateLinkBody = {
 
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
-        // This call bypasses callApi (multipart upload), so the demo interceptor
-        // is invoked explicitly here. Lazy import keeps the demo module out of
-        // this service's module graph on web/tests.
+        // The demo interceptor is invoked explicitly BEFORE apiFetch: the real
+        // request may carry a multipart FormData body the demo store can't
+        // parse. Lazy import keeps the demo module out of this service's
+        // module graph on web/tests.
         if (isDemoMode()) {
             const { demoRespond } = await import('@/utils/demo-api')
             return jsonParse(await (await demoRespond('/send-links', { method: 'POST' })).text())
@@ -123,9 +121,7 @@ export const sendLinksApi = {
             headers['Content-Type'] = 'application/json'
         }
 
-        await authReady()
-        Object.assign(headers, getAuthHeaders())
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
+        const response = await apiFetch('/send-links', {
             method: 'POST',
             body: requestBody,
             headers,

@@ -9,9 +9,9 @@
  * launch — the new free badge-gated waitlist supersedes it.
  */
 
-import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
+import { PEANUT_API_KEY } from '@/constants/general.consts'
 import { authReady, getAuthHeaders } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 
 export interface CardInfoResponse {
     /** Inner gate: cardAccessGrantedAt set OR holds a SKIP_BADGE_CODES badge
@@ -69,7 +69,7 @@ async function authHeaders(): Promise<Record<string, string>> {
 export const cardApi = {
     /** GET /card — info + waitlist state. */
     getInfo: async (): Promise<CardInfoResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
+        const response = await apiFetch('/card', {
             method: 'GET',
             headers: await authHeaders(),
             cache: 'no-store',
@@ -83,7 +83,7 @@ export const cardApi = {
 
     /** POST /card/waitlist/join — idempotent stamp + position. */
     joinWaitlist: async (): Promise<{ joinedAt: string; position: number | null }> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/join`, {
+        const response = await apiFetch('/card/waitlist/join', {
             method: 'POST',
             headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
             body: '{}',
@@ -98,7 +98,7 @@ export const cardApi = {
 
     /** GET /card/waitlist/state — current waitlist state. */
     getWaitlistState: async (): Promise<WaitlistStateResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/state`, {
+        const response = await apiFetch('/card/waitlist/state', {
             method: 'GET',
             headers: await authHeaders(),
             cache: 'no-store',

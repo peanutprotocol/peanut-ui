@@ -1,4 +1,3 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
 import { jsonParse } from '@/utils/general.utils'
 import {
     type TRequestChargeResponse,
@@ -6,15 +5,14 @@ import {
     type TCharge,
     type CreateChargeRequest,
 } from './services.types'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getAuthToken, authReady } from '@/utils/auth-token'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
 import { isDemoMode } from '@/utils/demo'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
-        // This call bypasses callApi (multipart FormData via fetchWithSentry), so
-        // the demo interceptor is invoked explicitly here. Lazy import keeps the
+        // The demo interceptor is invoked explicitly BEFORE apiFetch: the real
+        // request carries a multipart FormData body the demo store can't parse,
+        // so the demo path gets the JSON payload instead. Lazy import keeps the
         // demo module out of this service's module graph on web/tests.
         if (isDemoMode()) {
             const { demoRespond } = await import('@/utils/demo-api')
@@ -35,13 +33,8 @@ export const chargesApi = {
             }
         })
 
-        await authReady()
-        const headers: Record<string, string> = {}
-        const token = getAuthToken()
-        if (token) headers['Authorization'] = `Bearer ${token}`
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/charges`, {
+        const response = await apiFetch('/charges', {
             method: 'POST',
-            headers,
             body: formData,
         })
 

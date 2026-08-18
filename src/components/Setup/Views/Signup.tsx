@@ -2,12 +2,12 @@ import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import DocsLink from '@/components/Global/DocsLink'
-import { PEANUT_API_URL, USERNAME_MIN_LENGTH } from '@/constants/general.consts'
+import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -51,10 +51,12 @@ const SignupStep = () => {
         }
 
         try {
-            // here we expect 404 or 400 so dont use the fetchWithSentry helper
+            // public pre-auth availability check — includeAuth: false so it never
+            // waits on (or sends) a session token. 404/400 are expected statuses.
             // capacitorHttp doesn't support HEAD — use GET in native
-            const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+            const res = await apiFetch(`/users/username/${username}`, {
                 method: isCapacitor() ? 'GET' : 'HEAD',
+                includeAuth: false,
             })
             switch (res.status) {
                 case 200:

@@ -32,7 +32,9 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
 
     const headers: Record<string, string> = {}
     const hasContentType = Object.keys(callerHeaders).some((k) => k.toLowerCase() === 'content-type')
-    if (fetchOptions.body && !hasContentType) {
+    // FormData must keep its fetch-generated multipart boundary — forcing
+    // application/json here would break attachment uploads (send-links, charges).
+    if (fetchOptions.body && !hasContentType && !(fetchOptions.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json'
     }
     Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)

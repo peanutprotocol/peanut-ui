@@ -1,7 +1,5 @@
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 import { AccountType } from '@/interfaces/interfaces'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { authReady, getAuthHeaders } from '@/utils/auth-token'
 
 export interface OnrampQuoteResponse {
     from: string
@@ -30,18 +28,16 @@ export async function getOnrampQuote(
     sourceAmount?: number
 ): Promise<{ data?: OnrampQuoteResponse; error?: string }> {
     try {
-        const url = new URL(`${PEANUT_API_URL}/bridge/onramp/quote`)
-        url.searchParams.append('accountType', accountType)
+        const params = new URLSearchParams({ accountType })
         if (sourceAmount !== undefined) {
-            url.searchParams.append('sourceAmount', String(sourceAmount))
+            params.append('sourceAmount', String(sourceAmount))
         }
 
-        // park until the session token can legitimately be read (guarded mode
-        // holds this until unlock) so this caller never fires unauthenticated
-        await authReady()
-        const response = await fetchWithSentry(url.toString(), {
+        // apiFetch awaits authReady() (guarded mode holds it until unlock) and
+        // attaches the session token, so this caller never fires unauthenticated.
+        const response = await apiFetch(`/bridge/onramp/quote?${params.toString()}`, {
             method: 'GET',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            headers: { 'Content-Type': 'application/json' },
         })
 
         const data = await response.json()
