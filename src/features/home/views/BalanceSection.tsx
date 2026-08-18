@@ -41,16 +41,21 @@ export function BalanceSection({ balance, isFetching, isHidden, onToggleVisibili
                         <span className="text-heading-xl text-foreground-primary">
                             {isHidden ? '****' : formatExtendedNumber(printableUsdc(balance))}
                         </span>
-                        <button
-                            type="button"
-                            onClick={onToggleVisibility}
-                            className="cursor-pointer"
-                            aria-pressed={isHidden}
-                            aria-label={isHidden ? t('showBalance') : t('hideBalance')}
-                        >
-                            <Icon name={isHidden ? 'eye-slash' : 'eye'} size={20} className="text-foreground-primary" />
-                        </button>
                     </>
+                )}
+                {/* toggle stays reachable even when the balance query errors
+                    (balance undefined, not fetching) — it also controls the
+                    activity amounts, matching the old page's behavior */}
+                {!isFetching && (
+                    <button
+                        type="button"
+                        onClick={onToggleVisibility}
+                        className="cursor-pointer"
+                        aria-pressed={isHidden}
+                        aria-label={isHidden ? t('showBalance') : t('hideBalance')}
+                    >
+                        <Icon name={isHidden ? 'eye-slash' : 'eye'} size={20} className="text-foreground-primary" />
+                    </button>
                 )}
             </div>
             <div className="flex items-start justify-between px-10">

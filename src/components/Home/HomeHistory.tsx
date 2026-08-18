@@ -534,7 +534,8 @@ export default HomeHistory
 
 export const HistorySkeleton = ({ position }: { position: CardPosition }) => {
     return (
-        <Card position={position} className="flex items-center justify-between gap-3">
+        // p-4 matches ListItem row height so content doesn't jump on load
+        <Card position={position} className="flex items-center justify-between gap-3 p-4">
             <div className="h-8 w-8 min-w-8 animate-pulse rounded-full bg-grey-2" />
             <div className="space-y-2.5 w-full">
                 <div className="h-4.5 w-full animate-pulse rounded-full bg-grey-2" />
