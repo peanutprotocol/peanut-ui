@@ -7,13 +7,13 @@ import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
-import { COLOR_TOKENS, type ColorToken } from '../tokens.generated'
+import { COLOR_TOKENS, type ThemeToken } from '../tokens.generated'
 
 // group tokens by their name prefix (action, background, avatar, ...) keeping
 // source order. swatches use the token VALUE inline — class names are display/
 // copy text only, so nothing here depends on tailwind emitting the utility.
-function groupByPrefix(tokens: ColorToken[]): Map<string, ColorToken[]> {
-    const groups = new Map<string, ColorToken[]>()
+function groupByPrefix(tokens: ThemeToken[]): Map<string, ThemeToken[]> {
+    const groups = new Map<string, ThemeToken[]>()
     for (const t of tokens) {
         const prefix = t.name.split('-')[0]
         groups.set(prefix, [...(groups.get(prefix) ?? []), t])
@@ -39,7 +39,7 @@ export default function ColorsPage() {
         setTimeout(() => setCopiedColor(null), 1500)
     }
 
-    const renderGroups = (groups: Map<string, ColorToken[]>) => (
+    const renderGroups = (groups: Map<string, ThemeToken[]>) => (
         <div className="space-y-4">
             {[...groups.entries()].map(([prefix, tokens]) => (
                 <div key={prefix}>

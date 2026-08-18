@@ -7,7 +7,7 @@
  * use in new code), semantic (figma-verified, use these), or v3-parity shims. */
 export type TokenSection = 'legacy' | 'semantic' | 'parity'
 
-export interface ColorToken {
+export interface ThemeToken {
     name: string
     value: string
     section: TokenSection
@@ -29,7 +29,7 @@ export interface FontToken {
     [modifier: string]: string | undefined
 }
 
-export const COLOR_TOKENS: ColorToken[] = [
+export const COLOR_TOKENS: ThemeToken[] = [
     {
         name: 'primary-1',
         value: '#ff90e8',
@@ -953,7 +953,7 @@ export const FONT_TOKENS: FontToken[] = [
 ]
 
 /** radius / shadow / blur / motion / spacing token groups, keyed by @theme namespace */
-export const TOKEN_GROUPS: Record<string, ColorToken[]> = {
+export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
     radius: [
         {
             name: 'round',

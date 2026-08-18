@@ -126,7 +126,7 @@ export async function renderTokensModule(tokens) {
  * use in new code), semantic (figma-verified, use these), or v3-parity shims. */
 export type TokenSection = 'legacy' | 'semantic' | 'parity'
 
-export interface ColorToken {
+export interface ThemeToken {
     name: string
     value: string
     section: TokenSection
@@ -148,14 +148,14 @@ export interface FontToken {
     [modifier: string]: string | undefined
 }
 
-export const COLOR_TOKENS: ColorToken[] = ${j(tokens.colors)}
+export const COLOR_TOKENS: ThemeToken[] = ${j(tokens.colors)}
 
 export const TEXT_STYLES: TextStyle[] = ${j(tokens.textStyles)}
 
 export const FONT_TOKENS: FontToken[] = ${j(tokens.fonts)}
 
 /** radius / shadow / blur / motion / spacing token groups, keyed by @theme namespace */
-export const TOKEN_GROUPS: Record<string, ColorToken[]> = ${j(tokens.groups)}
+export const TOKEN_GROUPS: Record<string, ThemeToken[]> = ${j(tokens.groups)}
 `
     const config = await prettier.resolveConfig(OUT_PATH)
     return prettier.format(source, { ...config, filepath: OUT_PATH })
