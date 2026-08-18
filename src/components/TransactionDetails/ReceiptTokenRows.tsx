@@ -23,7 +23,9 @@ export function ReceiptTokenRows({
     const t = useTranslations('transaction')
     const { tokenData, isLoading } = useTokenDisplay(transaction)
 
-    if (!transaction.tokenDisplayDetails || !tokenData?.icon || !tokenData?.symbol) return null
+    // keep the row (with its skeleton) while the fallback lookup is in flight;
+    // drop it only when the lookup settled without usable icon + symbol
+    if (!transaction.tokenDisplayDetails || (!isLoading && (!tokenData?.icon || !tokenData?.symbol))) return null
 
     return (
         <>
@@ -34,7 +36,7 @@ export function ReceiptTokenRows({
                 <ReceiptRow
                     label={t('rows.tokenAndNetwork')}
                     value={
-                        isLoading ? (
+                        isLoading || !tokenData ? (
                             <div className="h-6 w-32 animate-pulse rounded-sm bg-background-disabled" />
                         ) : (
                             <div className="flex items-center gap-2">

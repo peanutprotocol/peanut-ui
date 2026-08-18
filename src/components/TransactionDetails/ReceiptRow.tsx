@@ -24,9 +24,22 @@ export const ReceiptRow = ({ label, value, moreInfoText, loading, allowCopy, cop
     <div
         className={twMerge(
             'flex w-full flex-col justify-between gap-1 py-3',
-            onClick && 'cursor-pointer transition-colors duration-instant active:bg-background-disabled'
+            onClick &&
+                'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled'
         )}
         onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={
+            onClick
+                ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          onClick()
+                      }
+                  }
+                : undefined
+        }
         translate="no"
     >
         <div className="relative flex items-center">
