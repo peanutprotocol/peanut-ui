@@ -68,6 +68,8 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # no git ops after checkout — don't leave the token in git config
+                  persist-credentials: false
 
             - uses: actions/setup-node@v4
               with:
