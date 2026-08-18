@@ -128,11 +128,19 @@
        `background/iconBubble/x` → `--color-background-icon-bubble-x`.
        light values; dark theme overrides land later under [data-theme='dark'].
        new screens use ONLY these (+ the type/spacing/motion tokens below).
+       DEFERRED to the DS 06 consumer sweep (token board 17292:3144):
+       - the primitive palette (gray/0-950, pink/*, blue/*, ...): ~300 live
+         call-sites already use those class names as dead no-ops (v3 replaced
+         the stock scales) — defining the tokens would silently style them.
+       - the named spacing scale (xs/s/m/l/xl/2xl...): --spacing-<name> keys
+         make w-xl/w-2xl etc. resolve, and ~70 dead call-sites use exactly
+         those classes today. both need their call-sites triaged first.
        ─────────────────────────────────────────────────────────────────────── */
 
     --color-action-primary: #ff90e8;
     --color-action-primary-hover: #ffa3ec;
-    --color-action-ghost-hover: #ff90e8;
+    --color-action-secondary: #ffc900;
+    --color-action-ghost-hover: #bd33a1;
     --color-action-focus: #2563eb;
 
     --color-background-default: #ffffff;
@@ -199,6 +207,9 @@
     --text-heading-xl: 2.625rem;
     --text-heading-xl--line-height: 3rem;
     --text-heading-xl--font-weight: 800;
+    --text-heading-l: 2.25rem;
+    --text-heading-l--line-height: 2.5rem;
+    --text-heading-l--font-weight: 800;
     --text-heading-m: 1.875rem;
     --text-heading-m--line-height: 2.25rem;
     --text-heading-m--font-weight: 800;
@@ -705,6 +716,12 @@
         --border-width-s: 1.5px;
         --border-width-m: 2px;
         --border-width-l: 2.5px;
+
+        /* figma icon-size tokens (Size/*) — plain vars for the same reason */
+        --icon-size-xs: 16px;
+        --icon-size-s: 20px;
+        --icon-size-m: 24px;
+        --icon-size-l: 32px;
     }
 
     html,
