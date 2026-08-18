@@ -190,7 +190,7 @@ export const SuccessClaimLinkView = ({
                 <PeanutMascot
                     pose="cheering"
                     alt={t('success.peanutMascotAlt')}
-                    className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
+                    className="absolute -top-32 left-1/2 -z-10 h-60 w-auto -translate-x-1/2"
                 />
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}

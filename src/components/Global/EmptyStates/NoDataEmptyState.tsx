@@ -11,15 +11,15 @@ const NoDataEmptyState = ({ message, cta, animSize }: NoDataEmptyStateProps) => 
     const mascotSizeClass = useMemo(() => {
         switch (animSize) {
             case 'sm':
-                return 'size-24'
+                return 'h-24 w-auto'
             case 'md':
-                return 'size-32'
+                return 'h-32 w-auto'
             case 'lg':
-                return 'size-48'
+                return 'h-48 w-auto'
             case 'xl':
-                return 'size-64'
+                return 'h-64 w-auto'
             default:
-                return 'size-24'
+                return 'h-24 w-auto'
         }
     }, [animSize])
 

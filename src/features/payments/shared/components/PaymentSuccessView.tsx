@@ -293,7 +293,7 @@ const PaymentSuccessView = ({
                 <PeanutMascot
                     pose="cheering"
                     alt="Peanut Mascot"
-                    className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
+                    className="absolute -top-32 left-1/2 -z-10 h-60 w-auto -translate-x-1/2"
                 />
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">

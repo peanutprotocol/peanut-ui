@@ -82,8 +82,15 @@ export const MASCOT_ANIMATION_LOADERS: Record<MascotPose, () => Promise<{ defaul
 export const MASCOT_HERO_CLASS = 'relative h-[35dvh] max-w-full md:h-[65dvh]'
 
 /**
- * In-app state screens — errors, empty states, waitlist confirmations — where the mascot
- * sits above a headline rather than leading the screen. Same height-not-square rule as
- * MASCOT_HERO_CLASS.
+ * In-app state screens — errors, empty states, card status — where the mascot sits above a
+ * headline rather than leading the screen. Same height-not-square rule as MASCOT_HERO_CLASS.
+ *
+ * These screens carry a headline, a line or two of copy and a button, and no more, so the
+ * mascot was reading as an afterthought next to the ones it leads: the invalid-invite screen
+ * drew it at 118px against 208-303px on the setup steps a user had just walked through.
+ * 12rem puts it in the same family without competing with the headline.
+ *
+ * This is for a mascot the screen is built around. A mascot used as an icon inside a fixed
+ * slot — the delete-account modal, the home carousel — sizes to that slot instead.
  */
-export const MASCOT_STATE_CLASS = 'h-32 w-auto'
+export const MASCOT_STATE_CLASS = 'h-48 w-auto'
