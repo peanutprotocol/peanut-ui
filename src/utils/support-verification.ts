@@ -39,8 +39,13 @@ export function buildSupportVerificationSummary(
     const identityVerified = identityStatus === 'verified'
     const emailOnFile = Boolean(email)
 
+    // An absent capability read-model is NOT a verified-identity signal: deriving
+    // over the empty state would report `needs-identity` on every op, which an
+    // agent cannot tell apart from a genuinely unverified user. Report nothing.
     const gateState = { rails, nextActions, identityVerified, isLoading: false }
-    const gates = SUMMARY_OPERATIONS.map((op) => `${op}:${deriveGate(gateState, op).kind}`).join(' ')
+    const gates = capabilities
+        ? SUMMARY_OPERATIONS.map((op) => `${op}:${deriveGate(gateState, op).kind}`).join(' ')
+        : ''
 
     // Per-rail verdicts. `gates` gives the op-level kind but not the rail; this
     // names every rail that isn't clear (blocked/fixable/pending/requires-info)

@@ -92,8 +92,17 @@ describe('buildSupportVerificationSummary', () => {
         const summary = buildSupportVerificationSummary(undefined, undefined, undefined)
         expect(summary.identityStatus).toBe('unknown')
         expect(summary.emailOnFile).toBe(false)
+        // no capability read-model — must NOT read as "needs-identity on everything",
+        // which an agent can't tell apart from a genuinely unverified user
+        expect(summary.gates).toBe('')
+        expect(summary.verificationRails).toBeUndefined()
         expect(summary.failureReason).toBeUndefined()
         expect(summary.pendingActions).toBeUndefined()
+    })
+
+    test('still reports gates for a user whose read-model is present but empty', () => {
+        const summary = buildSupportVerificationSummary(caps([]), undefined, undefined)
+        expect(summary.gates).toBe('pay:needs-identity deposit:needs-identity withdraw:needs-identity')
     })
 
     test('reports action_required identity status', () => {
