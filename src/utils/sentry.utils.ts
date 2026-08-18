@@ -449,38 +449,6 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
     })
 }
 
-// One Sentry note per session when the native fallback rescues a request —
-// enough to measure how often the WebView path is being rejected without
-// producing an event per API call.
-let nativeFallbackReported = false
-const noteNativeFallback = (url: string, cause: unknown): void => {
-    if (nativeFallbackReported) return
-    nativeFallbackReported = true
-    const causeError = cause instanceof Error ? cause : null
-    Sentry.captureMessage('native http fallback engaged', {
-        level: 'warning',
-        tags: { transport: 'cap-native-http' },
-        extra: {
-            url: sanitizeUrl(url),
-            causeName: causeError?.name,
-            causeMessage: causeError?.message,
-        },
-    })
-}
-
-// One Sentry note per session when a tokenless session runs on the OS HTTP
-// client — measures how many users still sit on legacy cookie-jar auth.
-let legacyCookieTransportReported = false
-const noteLegacyCookieTransport = (url: string): void => {
-    if (legacyCookieTransportReported) return
-    legacyCookieTransportReported = true
-    Sentry.captureMessage('legacy-cookie native transport engaged', {
-        level: 'info',
-        tags: { transport: 'cap-native-http', authMode: 'legacy-cookie' },
-        extra: { url: sanitizeUrl(url) },
-    })
-}
-
 export type FetchWithSentryOptions = RequestInit & { preferNativeTransport?: boolean }
 
 export const fetchWithSentry = async (
@@ -503,7 +471,6 @@ export const fetchWithSentry = async (
     if (preferNativeTransport && canUseNativeHttp(url, options)) {
         try {
             const response = await nativeHttpRequest(url, options, timeoutMs)
-            noteLegacyCookieTransport(url)
             await reportNonOkResponse(url, options, response)
             return response
         } catch {
@@ -553,7 +520,6 @@ export const fetchWithSentry = async (
         if (canUseNativeHttp(url, options)) {
             try {
                 const response = await nativeHttpRequest(url, options, timeoutMs)
-                noteNativeFallback(url, error)
                 await reportNonOkResponse(url, options, response)
                 return response
             } catch {
