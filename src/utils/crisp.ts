@@ -31,6 +31,12 @@ export function setCrispUserData(
         bridgeCustomerLink,
         mantecaUserId,
         posthogPersonLink,
+        identityStatus,
+        emailOnFile,
+        verificationGates,
+        verificationRails,
+        failureReason,
+        pendingActions,
     } = userData
 
     if (email) {
@@ -59,6 +65,12 @@ export function setCrispUserData(
                 ['bridge_user_id', bridgeCustomerLink || ''],
                 ['manteca_user_id', mantecaUserId || ''],
                 ['posthog_person', posthogPersonLink || ''],
+                ['identity_status', identityStatus || ''],
+                ['email_on_file', emailOnFile === undefined ? '' : emailOnFile ? 'yes' : 'no'],
+                ['verification_gates', verificationGates || ''],
+                ['verification_rails', verificationRails || ''],
+                ['failure_reason', failureReason || ''],
+                ['pending_actions', pendingActions || ''],
             ],
         ],
     ])
