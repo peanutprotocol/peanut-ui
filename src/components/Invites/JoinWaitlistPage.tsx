@@ -8,7 +8,6 @@ import { twMerge } from 'tailwind-merge'
 import ValidatedInput from '../Global/ValidatedInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '../Global/ErrorAlert'
-import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import PeanutLoading from '../Global/PeanutLoading'
@@ -288,12 +287,12 @@ const JoinWaitlistPage = () => {
         }
     }, [isFetchingUser, user, router])
 
-    const stepImage = step === 'jail' ? PeanutPointing.src : PeanutWavingHello.src
+    const stepPose = step === 'jail' ? 'pointing' : 'waving-hello'
 
     if (isAutoAccepting) return <PeanutLoading coverFullScreen />
 
     return (
-        <InvitesPageLayout image={stepImage}>
+        <InvitesPageLayout pose={stepPose}>
             <div
                 className={twMerge(
                     'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',

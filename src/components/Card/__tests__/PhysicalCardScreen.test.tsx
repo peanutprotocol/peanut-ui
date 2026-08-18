@@ -18,6 +18,13 @@ const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRend
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
 }))
+// PeanutMascot loads lottie-web, which needs a canvas jsdom does not have.
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: ({ pose, alt }: { pose: string; alt?: string }) => (
+        <div data-testid="peanut-mascot" data-pose={pose} aria-label={alt} />
+    ),
+}))
 jest.mock('next/image', () => ({
     __esModule: true,
     // eslint-disable-next-line @next/next/no-img-element -- test stub, not real markup

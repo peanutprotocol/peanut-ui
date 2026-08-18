@@ -1,6 +1,6 @@
 /**
  * DeleteAccountButton — modal state-machine tests.
- * Strategy: mock the deps (auth, toast, service, posthog, mascots) and stub
+ * Strategy: mock the deps (auth, toast, service, posthog, mascot) and stub
  * ActionModal to a minimal surface that renders the title + CTA buttons, so we
  * can drive confirm -> loading -> done -> logout and the error-toast branch.
  */
@@ -21,8 +21,13 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => ({ logoutUser: mockLo
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/services/users', () => ({ usersApi: { requestDeletion: (...a: unknown[]) => mockRequestDeletion(...a) } }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => mockCapture(...a) } }))
-jest.mock('@/assets/mascot', () => ({ PeanutSad: { src: 'sad' }, PeanutCrying: { src: 'cry' } }))
-jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
+// PeanutMascot loads lottie-web, which needs a canvas jsdom does not have.
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: ({ pose, alt }: { pose: string; alt?: string }) => (
+        <div data-testid="peanut-mascot" data-pose={pose} aria-label={alt} />
+    ),
+}))
 
 // Minimal ActionModal: render title + CTAs as buttons when visible, and surface
 // the lock props (preventClose / hideModalCloseButton) as data-attributes so we

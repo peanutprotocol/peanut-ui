@@ -17,8 +17,7 @@ import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
-import { PeanutCheering } from '@/assets/mascot'
-import Image from 'next/image'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useHaptic } from 'use-haptic'
 import { useTranslations } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
@@ -188,12 +187,9 @@ export const SuccessClaimLinkView = ({
                 />
             </div>
             <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
-                <Image
-                    src={PeanutCheering.src}
-                    unoptimized
+                <PeanutMascot
+                    pose="cheering"
                     alt={t('success.peanutMascotAlt')}
-                    width={240}
-                    height={240}
                     className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
                 />
                 <PeanutActionDetailsCard {...cardProps} />

@@ -1,11 +1,10 @@
-import { PeanutTooCool } from '@/assets/mascot'
-import Image from 'next/image'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 
 export function Careers() {
     return (
         <div className="flex h-full flex-col-reverse items-center justify-center lg:flex-row">
             <div className="w-4/5 md:w-1/2">
-                <Image src={PeanutTooCool} unoptimized alt="" className="h-full w-auto md:h-fit md:w-fit" />
+                <PeanutMascot pose="too-cool" className="aspect-square w-full" />
             </div>
             <div>
                 <div className="font-display text-xl lg:text-3xl">{'<'} Hey there! Want to work at Peanut?</div>

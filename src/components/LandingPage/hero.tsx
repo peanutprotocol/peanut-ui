@@ -1,6 +1,6 @@
 'use client'
 
-import { PeanutWhistling } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -17,18 +17,18 @@ import { type CTAButton } from '@/components/LandingPage/landing.types'
  * overlaps with the h2 subtitle below. Measures the h2 position on mount
  * and resize, then sets its own bottom edge to sit 6% into the h2.
  */
-function PeanutMascot() {
-    const imgRef = useRef<HTMLImageElement>(null)
+function HeroMascot() {
+    const hostRef = useRef<HTMLDivElement>(null)
 
     const position = useCallback(() => {
-        const img = imgRef.current
+        const host = hostRef.current
         const hero = document.getElementById('hero')
         const h2 = hero?.querySelector('h2')
-        if (!img || !hero || !h2) return
+        if (!host || !hero || !h2) return
 
         const heroRect = hero.getBoundingClientRect()
         const h2Rect = h2.getBoundingClientRect()
-        const peanutHeight = img.getBoundingClientRect().height
+        const peanutHeight = host.getBoundingClientRect().height
 
         if (peanutHeight === 0) return // not rendered yet
 
@@ -37,41 +37,25 @@ function PeanutMascot() {
         const peanutBottom = h2Rect.top - heroRect.top + overlap
         const peanutTop = peanutBottom - peanutHeight
 
-        img.style.top = `${peanutTop}px`
+        host.style.top = `${peanutTop}px`
     }, [])
 
     useEffect(() => {
-        const img = imgRef.current
-        if (!img) return
-
-        // Position once image loads and on resize
-        const onLoad = () => {
-            position()
-            // Re-position after a short delay to account for layout shifts
-            setTimeout(position, 500)
-        }
-
-        if (img.complete) {
-            onLoad()
-        } else {
-            img.addEventListener('load', onLoad)
-        }
-
+        // The host box is sized by CSS, so it is measurable on first layout — no
+        // waiting on a decoded image. The delayed pass absorbs later layout shifts.
+        position()
+        const settle = setTimeout(position, 500)
         window.addEventListener('resize', position)
         return () => {
-            img.removeEventListener('load', onLoad)
+            clearTimeout(settle)
             window.removeEventListener('resize', position)
         }
     }, [position])
 
     return (
-        <Image
-            ref={imgRef}
-            src={PeanutWhistling}
-            unoptimized
-            alt="Peanut Guy"
-            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
-        />
+        <div ref={hostRef} className="absolute left-1/2 z-10 h-[40vh] w-[90%] -translate-x-1/2">
+            <PeanutMascot pose="waving-chill" alt="Peanut Guy" className="size-full" />
+        </div>
     )
 }
 
@@ -195,7 +179,7 @@ export function Hero({
                     className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
                 />
             </div>
-            <PeanutMascot />
+            <HeroMascot />
 
             <div className="relative z-20 flex w-full flex-col items-center justify-center">
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">

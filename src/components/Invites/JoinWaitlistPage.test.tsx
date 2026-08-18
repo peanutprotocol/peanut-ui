@@ -56,10 +56,6 @@ jest.mock('@/utils/general.utils', () => ({
 }))
 jest.mock('@/utils/format.utils', () => ({ isValidEmail: () => true }))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
-jest.mock('@/assets/mascot', () => ({
-    PeanutWavingHello: { src: '/waving.svg' },
-    PeanutPointing: { src: '/pointing.svg' },
-}))
 jest.mock('./InvitesPageLayout', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

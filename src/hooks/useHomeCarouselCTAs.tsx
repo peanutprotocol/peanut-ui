@@ -8,6 +8,7 @@ import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils
 import { useNotifications } from './useNotifications'
 import { useRouter } from 'next/navigation'
 import { useCapabilities } from './useCapabilities'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import type { StaticImageData } from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
@@ -20,7 +21,7 @@ import { useTransactionHistory } from './useTransactionHistory'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { PEANUTMAN_MOBILE, PeanutWavingHello } from '@/assets/mascot'
+import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useMigrationFlag } from './useMigrationFlag'
 import { openStore } from '@/utils/migration.utils'
@@ -42,6 +43,7 @@ export type CarouselCTA = {
     icon: IconName
     logo?: StaticImageData
     logoSize?: number
+    mascotPose?: MascotPose
     // optional handlers for notification prompt
     onClick?: () => void | Promise<void>
     onClose?: () => void
@@ -160,11 +162,10 @@ export const useHomeCarouselCTAs = () => {
                 id: 'user-interview',
                 title: t('userInterview.title'),
                 description: t('userInterview.description'),
-                icon: 'peanut-support', // required by the type; hidden — logo takes precedence
-                logo: PeanutWavingHello,
-                logoSize: 44,
-                // The shared icon container is size-8; without this override the
-                // Tailwind preflight img max-width clamps the logo back to 32px.
+                icon: 'peanut-support', // required by the type; hidden — the mascot takes precedence
+                mascotPose: 'waving-hello',
+                // The mascot fills its container, and the shared one is size-8;
+                // widen it so the mascot reads at 44px like the other CTA logos.
                 iconContainerClassName: 'size-11',
                 onClick: async () => {
                     posthog.capture(ANALYTICS_EVENTS.USER_INTERVIEW_CTA_CLICKED)

@@ -1,8 +1,7 @@
 'use client'
 
-import { PeanutSad } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
-import Image from 'next/image'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -44,7 +43,7 @@ function ValidationErrorView({
 
     return (
         <div className="flex flex-col items-center justify-center space-y-4 rounded-lg text-center">
-            <Image src={PeanutSad.src} unoptimized alt={t('validation.sadPeanutAlt')} width={96} height={96} />
+            <PeanutMascot pose="sad" alt={t('validation.sadPeanutAlt')} className="size-24" />
             <div className="space-y-2">
                 <h1 className="text-lg font-semibold">{title}</h1>
                 <p className="text-sm font-normal md:max-w-xs">{message}</p>

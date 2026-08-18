@@ -4,13 +4,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import Image from 'next/image'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import CardFace from '@/components/Card/CardFace'
 import { rainApi } from '@/services/rain'
-import { PeanutWalking } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 
 export const PHYSICAL_WAITLIST_QUERY_KEY = 'rain-physical-waitlist'
 
@@ -75,7 +74,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
-                    <Image src={PeanutWalking} unoptimized alt="" aria-hidden className="h-32 w-auto" />
+                    <PeanutMascot pose="walking" className="size-32" />
                     <h1 className="text-xl font-extrabold">{t('onListTitle')}</h1>
                     <p className="text-sm text-grey-1">
                         {data.position === null

@@ -4,7 +4,6 @@ import { Suspense } from 'react'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import SignTestTransaction from '@/components/Setup/Views/SignTestTransaction'
-import { PeanutWhistling } from '@/assets/mascot'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 
@@ -20,7 +19,7 @@ function FinishSetupPageContent() {
         <SetupWrapper
             layoutType="signup"
             screenId="sign-test-transaction"
-            image={PeanutWhistling.src}
+            image={{ pose: 'waving-chill' }}
             showLogoutButton={true}
             onLogout={logoutUser}
             isLoggingOut={isLoggingOut}

@@ -1,4 +1,4 @@
-import { PEANUTMAN_MOBILE, PeanutPointing, PeanutThinking, PeanutTooCool, PeanutWhistling } from '@/assets/mascot'
+import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
@@ -7,7 +7,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'unsupported-browser',
         layoutType: 'standard',
-        image: PEANUTMAN_MOBILE.src,
+        image: { src: PEANUTMAN_MOBILE.src },
         component: InstallPWA,
         showBackButton: false,
         showSkipButton: false,
@@ -16,7 +16,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'android-initial-pwa-install',
         layoutType: 'android-initial-pwa-install',
-        image: PEANUTMAN_MOBILE.src,
+        image: { src: PEANUTMAN_MOBILE.src },
         component: InstallPWA,
         showBackButton: false,
         showSkipButton: false,
@@ -27,7 +27,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'pwa-install',
         layoutType: 'standard',
-        image: PEANUTMAN_MOBILE.src,
+        image: { src: PEANUTMAN_MOBILE.src },
         component: InstallPWA,
         showBackButton: false,
         showSkipButton: true,
@@ -36,7 +36,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'landing',
         layoutType: 'signup',
-        image: PeanutWhistling.src,
+        image: { pose: 'waving-chill' },
         component: LandingStep,
         showBackButton: false,
         showSkipButton: false,
@@ -45,7 +45,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'welcome',
         layoutType: 'signup',
-        image: PeanutPointing.src,
+        image: { pose: 'pointing' },
         component: JoinWaitlist,
         showBackButton: true,
         showSkipButton: false,
@@ -54,7 +54,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'signup',
         layoutType: 'signup',
-        image: PeanutThinking.src,
+        image: { pose: 'thinking' },
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
@@ -63,7 +63,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'passkey-permission',
         layoutType: 'signup',
-        image: PeanutTooCool.src,
+        image: { pose: 'too-cool' },
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
@@ -72,7 +72,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'sign-test-transaction',
         layoutType: 'signup',
-        image: PeanutWhistling.src,
+        image: { pose: 'waving-chill' },
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,

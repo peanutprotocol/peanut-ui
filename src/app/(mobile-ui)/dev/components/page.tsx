@@ -14,6 +14,8 @@ import Checkbox from '@/components/0_Bruddle/Checkbox'
 import CopyField from '@/components/Global/CopyField'
 import Loading from '@/components/Global/Loading'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
@@ -35,9 +37,24 @@ const TOC: { id: string; label: string; icon: IconName }[] = [
     { id: 'cards', label: 'Cards', icon: 'docs' },
     { id: 'inputs', label: 'Inputs', icon: 'clip' },
     { id: 'feedback', label: 'Feedback', icon: 'meter' },
+    { id: 'mascot', label: 'Mascot', icon: 'smile' },
     { id: 'navigation', label: 'Navigation', icon: 'link' },
     { id: 'layouts', label: 'Layouts', icon: 'switch' },
     { id: 'patterns', label: 'Patterns', icon: 'bulb' },
+]
+
+// Every pose, with the screen each one leads. Keep in sync with MascotPose.
+const MASCOT_POSES: { pose: MascotPose; use: string }[] = [
+    { pose: 'cheering', use: 'payment / claim success' },
+    { pose: 'thinking', use: 'loading, verification waits' },
+    { pose: 'too-cool', use: 'passkey setup, confident flex' },
+    { pose: 'pointing', use: 'waitlist, look-over-there' },
+    { pose: 'sad', use: 'validation errors' },
+    { pose: 'waving-hello', use: 'greetings, invites, setup' },
+    { pose: 'waving-chill', use: 'landing hero, low-key wins' },
+    { pose: 'walking', use: 'physical card on the way' },
+    { pose: 'pointing-down', use: 'marketing CTA above a card' },
+    { pose: 'worried', use: 'errors, empty states' },
 ]
 
 const ALL_ICONS: IconName[] = [
@@ -823,6 +840,85 @@ export default function ComponentsPage() {
                         <p className="text-xs text-grey-1">branded empty state with crying peanutman animation.</p>
                         <NoDataEmptyState message="nothing here yet" animSize="sm" />
                         <CopySnippet code={`<NoDataEmptyState message="Nothing here yet" animSize="sm" />`} />
+                    </Section>
+                </div>
+
+                <Divider />
+
+                {/* ━━━━━━━━━━━━━━━━━━ MASCOT ━━━━━━━━━━━━━━━━━━ */}
+                <div id="mascot" className="scroll-mt-16 space-y-6">
+                    <Section
+                        title="PeanutMascot"
+                        importPath={`import PeanutMascot from '@/components/Global/PeanutMascot'`}
+                        status="production"
+                        quality={5}
+                    >
+                        <p className="text-xs text-grey-1">
+                            the animated mascot. ten poses, each a lottie comp loaded on demand — one pose per screen,
+                            not all ten. plays on a shared clock, holds a static frame under prefers-reduced-motion, and
+                            pauses when scrolled out of view.
+                        </p>
+                        <PropTable
+                            rows={[
+                                ['pose', MASCOT_POSES.map(({ pose }) => pose).join(' | '), '(required)'],
+                                ['className', 'sizing + positioning classes', '(none)'],
+                                ['alt', 'string — omit to make it decorative', '(none)'],
+                                ['loop', 'boolean', 'true'],
+                            ]}
+                        />
+                        <div className="rounded-sm border border-error bg-error-1/10 p-3 text-xs">
+                            <span className="font-bold">sizing:</span> the host is a plain div with{' '}
+                            <span className="font-bold">no intrinsic size</span> — unlike{' '}
+                            <span className="font-mono">{'<Image width= height= />'}</span>. always give it a real box
+                            on both axes. <span className="font-mono">h-32 w-auto</span> collapses to zero width and
+                            renders nothing.
+                        </div>
+                        <CopySnippet
+                            code={`<PeanutMascot pose="cheering" className="size-24" alt="Peanut cheering" />`}
+                        />
+                    </Section>
+
+                    <Section title="All ten poses">
+                        <p className="text-xs text-grey-1">
+                            same 96px box for every pose — the component fits the artwork, not the canvas, so they read
+                            at a consistent size side by side.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            {MASCOT_POSES.map(({ pose, use }) => (
+                                <div
+                                    key={pose}
+                                    className="flex flex-col items-center gap-1 rounded-sm border border-n-1 bg-primary-3/20 p-2"
+                                >
+                                    <PeanutMascot pose={pose} className="size-24" />
+                                    <span className="font-mono text-[11px] font-bold">{pose}</span>
+                                    <span className="text-center text-[10px] leading-tight text-grey-1">{use}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </Section>
+
+                    <Section title="Labelled vs decorative">
+                        <p className="text-xs text-grey-1">
+                            pass <span className="font-mono">alt</span> when the mascot carries meaning a screen reader
+                            needs (it becomes <span className="font-mono">role=&quot;img&quot;</span> with that label).
+                            omit it next to copy that already says the same thing — the host goes{' '}
+                            <span className="font-mono">aria-hidden</span>.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="flex flex-col items-center gap-1 rounded-sm border border-n-1 p-2">
+                                <PeanutMascot pose="waving-hello" className="size-24" alt="Peanut waving hello" />
+                                <span className="text-[10px] font-bold">labelled</span>
+                                <span className="text-center text-[10px] text-grey-1">role=&quot;img&quot;</span>
+                            </div>
+                            <div className="flex flex-col items-center gap-1 rounded-sm border border-n-1 p-2">
+                                <PeanutMascot pose="waving-hello" className="size-24" />
+                                <span className="text-[10px] font-bold">decorative</span>
+                                <span className="text-center text-[10px] text-grey-1">aria-hidden</span>
+                            </div>
+                        </div>
+                        <CopySnippet
+                            code={`<PeanutMascot pose="sad" className="size-24" alt="Something went wrong" />\n<PeanutMascot pose="sad" className="size-24" />`}
+                        />
                     </Section>
                 </div>
 

@@ -1,5 +1,7 @@
 'use client'
 
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
@@ -14,11 +16,11 @@ const STAR_POSITIONS = [
 ] as const
 
 interface InvitesPageLayoutProps {
-    image: string
+    pose: MascotPose
     children: React.ReactNode
 }
 
-const InvitesPageLayout = ({ image, children }: InvitesPageLayoutProps) => {
+const InvitesPageLayout = ({ pose, children }: InvitesPageLayoutProps) => {
     const t = useTranslations('invites')
 
     return (
@@ -46,14 +48,11 @@ const InvitesPageLayout = ({ image, children }: InvitesPageLayoutProps) => {
                     ))}
                     {/* animated clouds background */}
                     <CloudsBackground minimal />
-                    {/* main illustration image */}
-                    <Image
-                        src={image}
+                    {/* main illustration — the mascot host needs a height of its own */}
+                    <PeanutMascot
+                        pose={pose}
                         alt={t('illustrationAlt')}
-                        width={500}
-                        height={500}
-                        className={'relative w-full max-w-[80%] object-contain md:max-w-[75%] lg:max-w-xl'}
-                        priority
+                        className="relative h-[50dvh] w-full max-w-[80%] md:h-[85dvh] md:max-w-[75%] lg:max-w-xl"
                     />
                 </div>
 

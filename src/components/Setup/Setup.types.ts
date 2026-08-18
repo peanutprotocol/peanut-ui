@@ -1,3 +1,8 @@
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
+
+/** A setup screen leads with either a still image (its URL) or an animated mascot pose. */
+export type SetupIllustration = { src: string } | { pose: MascotPose }
+
 export type ScreenId =
     | 'landing'
     | 'welcome'
@@ -43,7 +48,7 @@ export interface StepComponentProps {
 export interface ISetupStep {
     screenId: ScreenId
     layoutType: LayoutType
-    image: string
+    image: SetupIllustration
     component: React.ComponentType<StepComponentProps>
     showBackButton?: boolean
     showSkipButton?: boolean
