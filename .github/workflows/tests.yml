@@ -64,11 +64,11 @@ jobs:
     ds-lint:
         runs-on: ubuntu-latest
         steps:
+            # no submodules/token: the count script only reads src/**/*.ts(x)
+            # and the only submodule (src/content) holds none. no git ops after
+            # checkout either, so don't persist credentials.
             - uses: actions/checkout@v4
               with:
-                  submodules: true
-                  token: ${{ secrets.SUBMODULE_TOKEN }}
-                  # no git ops after checkout — don't leave the token in git config
                   persist-credentials: false
 
             - uses: actions/setup-node@v4
