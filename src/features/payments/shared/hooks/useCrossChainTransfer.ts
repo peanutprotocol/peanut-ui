@@ -45,6 +45,7 @@ import {
     type BridgeStatusResponse,
 } from '@/services/rhino-bridge'
 import { chainIdToRhinoName } from '@/constants/rhino.consts'
+import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
 import { areEvmAddressesEqual, getTokenSymbol } from '@/utils/general.utils'
 
@@ -356,7 +357,12 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                 })
                 setPath('sda')
             } catch (err) {
-                const message = err instanceof Error ? err.message : 'failed to calculate cross-chain transfer'
+                const raw = err instanceof Error ? err.message : 'failed to calculate cross-chain transfer'
+                // Rhino tags an unroutable pair NoRouteFoundError; the backend
+                // surfaces the tag verbatim. Map it to the copy the Confirm view
+                // already special-cases — its Retry button sends the user back to
+                // fix the input for this constant.
+                const message = raw.includes('NoRouteFoundError') ? ROUTE_NOT_FOUND_ERROR : raw
                 setError(message)
                 setIsFeeEstimationError(true)
                 captureException(err)
