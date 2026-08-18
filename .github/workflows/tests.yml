@@ -22,7 +22,7 @@ jobs:
     # Prettier formatting + content-link validation. Fast, no node_modules
     # needed beyond what setup-node cache restores.
     # (Renamed from "lint" — the job never actually ran a linter; ESLint now
-    # lives in its own advisory job below.)
+    # lives in its own blocking job below.)
     format:
         runs-on: ubuntu-latest
         steps:
