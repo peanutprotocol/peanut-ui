@@ -137,15 +137,16 @@ const ImageSection = ({
     const isSignup = layoutType === 'signup'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
 
-    // The mascot host is a plain div with no intrinsic size, so its default needs a
-    // height on both axes; the still keeps the intrinsic-width sizing it always had.
+    // The mascot host is a plain div, so unlike the still it has no intrinsic aspect to
+    // derive a height from. aspect-square restores the box the square sprite used to
+    // occupy; the still keeps the intrinsic-width sizing it always had.
     const illustration =
         'pose' in image ? (
             <PeanutMascot
                 pose={image.pose}
                 alt={t('illustrationAlt')}
                 className={
-                    imageClassName || 'relative h-[35dvh] w-full max-w-[80%] md:h-[85dvh] md:max-w-[75%] lg:max-w-xl'
+                    imageClassName || 'relative aspect-square max-h-[85%] w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl'
                 }
             />
         ) : (

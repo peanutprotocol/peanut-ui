@@ -7,10 +7,13 @@ export const MASCOT_CANVAS_HEIGHT = 1000
 /**
  * Fraction of the host box the artwork fills — the one knob for "make the mascots bigger
  * everywhere". The WebP sprites this replaces filled 76%-97% of their box depending on
- * pose (median ~86%), so 0.88 keeps every screen close to today while making the set
- * consistent for the first time.
+ * pose (median ~86%), which is why the set never looked consistently sized.
+ *
+ * 0.93 sits at the top of that range, so no screen ends up smaller than it was while the
+ * whole set finally renders at one size. Measured against the old rasters on real screens,
+ * this lands every pose within a few percent of its previous height or slightly above.
  */
-export const MASCOT_ART_FILL = 0.88
+export const MASCOT_ART_FILL = 0.93
 
 /**
  * Union of the drawn artwork's bounding box across a full loop, per pose, in viewBox units.

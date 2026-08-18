@@ -52,7 +52,7 @@ const InvitesPageLayout = ({ pose, children }: InvitesPageLayoutProps) => {
                     <PeanutMascot
                         pose={pose}
                         alt={t('illustrationAlt')}
-                        className="relative h-[50dvh] w-full max-w-[80%] md:h-[85dvh] md:max-w-[75%] lg:max-w-xl"
+                        className="relative aspect-square w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl"
                     />
                 </div>
 
