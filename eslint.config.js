@@ -209,8 +209,22 @@ module.exports = [
         // PublicProfile is the one place we intentionally keep an isInternalReferrer +
         // window.history.length check. The referrer signal is orthogonal to useSafeBack's
         // counter; migrating loses information for external-referrer cold-loads.
+        // Scoped, not blanket off: only the two selectors that idiom needs are dropped
+        // (history.length + the router.back it gates), so the other restrictions still
+        // apply here. The file also has one pre-ban query push (`/invite?code=…`) —
+        // treat it as a DS 10 ratchet allowlist member (TASK-21450): the query-push
+        // restrictions are not re-applied; migrate it to nuqs, then re-add.
         files: ['src/components/Profile/components/PublicProfile.tsx'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                ...RESTRICTED_SYNTAX_BASE.filter(
+                    (r) =>
+                        !r.selector.includes("[property.name='length']") &&
+                        !r.selector.includes("[callee.property.name='back']")
+                ),
+            ],
+        },
     },
     {
         // DS 10 ratchet allowlist — do not add files; migrate to nuqs instead
