@@ -1,6 +1,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import MantecaDetailsCard, { type MantecaCardRow } from '@/components/Global/MantecaDetailsCard'
+import Card from '@/components/Global/Card'
+import { PaymentInfoRow, type PaymentInfoRowProps } from '@/components/Payment/PaymentInfoRow'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
@@ -35,7 +36,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
     const { price, isLoading } = useCurrency(currency)
     const { claimLink: claimLinkSecure } = useClaimLink()
 
-    const detailsCardRows: MantecaCardRow[] = [
+    const detailsCardRows: (PaymentInfoRowProps & { key: string })[] = [
         {
             key: 'destinationAddress',
             label: t('manteca.destinationAddress'),
@@ -131,7 +132,11 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
 
     return (
         <>
-            <MantecaDetailsCard rows={detailsCardRows} />
+            <Card className="rounded-sm">
+                {detailsCardRows.map(({ key, ...row }) => (
+                    <PaymentInfoRow key={key} {...row} />
+                ))}
+            </Card>
 
             {error && <ErrorAlert description={error} />}
             <Button disabled={isSubmitting} loading={isSubmitting} shadowSize="4" onClick={handleWithdraw}>

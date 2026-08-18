@@ -23,12 +23,15 @@ interface InfoCardProps {
     customContent?: React.ReactNode
 }
 
+// ds-06: variants use the notification-priority token colors (board 17802:61535
+// priorities / badge tokens): warning=attention, info=info, error=error,
+// success=success, default=helper. borderless tinted fill, dark text.
 const VARIANT_CLASSES = {
-    warning: 'border-yellow-9 bg-yellow-10 text-yellow-11',
-    error: 'border-error-5 bg-error-6 text-error',
-    info: 'border-secondary-7 bg-secondary-9 text-black',
-    default: 'border-grey-1 bg-grey-4 text-black',
-    success: 'border-success-1 bg-success-6 text-success-7',
+    warning: 'border-transparent bg-background-badge-attention text-foreground-primary',
+    error: 'border-transparent bg-background-badge-error text-foreground-primary',
+    info: 'border-transparent bg-background-badge-info text-foreground-primary',
+    default: 'border-transparent bg-background-badge-helper text-foreground-primary',
+    success: 'border-transparent bg-background-badge-success text-foreground-primary',
 } as const
 
 const BASE_TEXT_CLASSES = 'text-start text-xs md:text-sm'
