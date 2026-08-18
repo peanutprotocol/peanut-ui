@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- jest.mock factories stub component props with `any`; matches the sibling add-money-states.test.tsx style. */
 /**
  * Regression coverage for the deposit/withdraw method list's bank gate.
  *

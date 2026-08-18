@@ -22,7 +22,7 @@ jobs:
     # Prettier formatting + content-link validation. Fast, no node_modules
     # needed beyond what setup-node cache restores.
     # (Renamed from "lint" — the job never actually ran a linter; ESLint now
-    # lives in its own advisory job below.)
+    # lives in its own blocking job below.)
     format:
         runs-on: ubuntu-latest
         steps:
@@ -55,13 +55,11 @@ jobs:
             - name: Validate sitemap, footer, and blog links
               run: pnpm validate-links
 
-    # Advisory ESLint pass. Allowed to fail without blocking merge while the
-    # codebase is brought up to baseline. Not in ci-success.needs so a red
-    # eslint job doesn't gate the PR. Promote to blocking once errors are at
-    # zero (or after team decides a warn floor).
+    # Blocking ESLint pass (DS 10, TASK-21450). Errors reached zero on
+    # feat/design-system, so this gates the PR via ci-success.needs. Warnings
+    # do not fail the job; add a warn floor only if the team decides one.
     eslint:
         runs-on: ubuntu-latest
-        continue-on-error: true
         steps:
             - uses: actions/checkout@v4
               with:
@@ -384,7 +382,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, typecheck, unit, e2e, report]
+        needs: [format, eslint, typecheck, unit, e2e, report]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -393,6 +391,7 @@ jobs:
                       echo "::error::One or more required jobs failed or were cancelled"
                       echo "Job results:"
                       echo "  format:    ${{ needs.format.result }}"
+                      echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  e2e:       ${{ needs.e2e.result }}"
