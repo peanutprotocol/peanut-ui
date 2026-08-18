@@ -26,7 +26,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import { STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
-import PeanutLoading from '@/components/Global/PeanutLoading'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { isNativeBridge } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
@@ -88,7 +87,7 @@ export default function SmartStoreRedirect() {
         return () => clearTimeout(fallback)
     }, [inNativeApp, settled, migrationOn, targetStore])
 
-    if (inNativeApp) return <PeanutLoading coverFullScreen />
+    if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
     if (settled && !migrationOn) notFound()
 

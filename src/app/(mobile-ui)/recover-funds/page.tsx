@@ -17,7 +17,7 @@ import ErrorAlert from '@/components/Global/ErrorAlert'
 import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { erc20Abi, parseUnits, encodeFunctionData, formatUnits } from 'viem'
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
@@ -184,7 +184,7 @@ export default function RecoverFundsPage() {
     if (!peanutAddress) return null
 
     if (fetchingBalances) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (status === 'review' && (!selectedBalance || !recipient.address)) {

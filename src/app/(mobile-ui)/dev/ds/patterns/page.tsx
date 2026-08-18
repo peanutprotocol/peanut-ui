@@ -38,7 +38,7 @@ export default function PatternsPage() {
                 />
                 <CatalogCard
                     title="Loading"
-                    description="CSS spinner (Loading) and branded animation (PeanutLoading)"
+                    description="One Loading component — spinner and mascot variants"
                     href="/dev/ds/patterns/loading"
                     icon="processing"
                     status="production"

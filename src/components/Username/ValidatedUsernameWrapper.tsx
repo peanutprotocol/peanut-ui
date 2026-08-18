@@ -27,7 +27,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { verifyPeanutUsername } from '@/lib/validation/recipient'
 import type { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 
 interface ValidatedUsernameWrapperProps {
     username: string
@@ -87,7 +87,7 @@ export function ValidatedUsernameWrapper({
     if (isValidating) {
         return (
             <div className={loadingClassName}>
-                <PeanutLoading />
+                <Loading variant="mascot" />
             </div>
         )
     }
@@ -105,7 +105,7 @@ export function ValidatedUsernameWrapper({
     if (!isValidated) {
         return (
             <div className={loadingClassName}>
-                <PeanutLoading />
+                <Loading variant="mascot" />
             </div>
         )
     }

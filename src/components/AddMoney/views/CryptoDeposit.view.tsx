@@ -6,8 +6,8 @@ import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
+import Loading from '@/components/Global/Loading'
+import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
 import ChainChip from '../components/ChainChip'
 import HowToDepositModal from '../components/HowToDepositModal'
 import SupportedNetworksModal from '../components/SupportedNetworksModal'
@@ -140,7 +140,7 @@ const CryptoDepositView = ({
                 {/* loading state */}
                 {(isLoading || status === 'loading') && (
                     <div className="flex h-[60vh] items-center justify-center">
-                        {status === 'loading' ? <CyclingLoading /> : <PeanutLoading />}
+                        {status === 'loading' ? <CyclingLoading /> : <Loading variant="mascot" />}
                     </div>
                 )}
 

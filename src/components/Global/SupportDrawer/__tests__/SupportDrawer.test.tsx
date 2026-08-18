@@ -60,7 +60,7 @@ jest.mock('@/hooks/useCrispProxyUrl', () => ({
     useCrispProxyUrl: (_data: unknown, _msg: unknown, tokenId?: string) =>
         tokenId ? `/crisp-proxy?crisp_token_id=${tokenId}` : '/crisp-proxy',
 }))
-jest.mock('../../PeanutLoading', () => ({
+jest.mock('../../Loading', () => ({
     __esModule: true,
     default: () => <div data-testid="peanut-loading" />,
 }))

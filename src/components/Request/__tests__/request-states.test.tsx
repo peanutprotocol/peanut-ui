@@ -301,7 +301,7 @@ jest.mock('@/hooks/useUserInteractions', () => ({
     useUserInteractions: () => mockUseUserInteractions(),
 }))
 
-jest.mock('@/components/Global/PeanutLoading', () => ({
+jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
     default: () => <div data-testid="peanut-loading" />,
 }))

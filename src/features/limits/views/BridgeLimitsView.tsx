@@ -11,7 +11,7 @@ import Image from 'next/image'
 import * as Accordion from '@radix-ui/react-accordion'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useState, useMemo } from 'react'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { getQrCountriesWithFlags, type QrCountryId } from '../consts'
 import { BANK_TRANSFER_REGIONS, type BridgeRegion, formatAmountWithCurrency } from '../utils'
 import LimitsError from '../components/LimitsError'
@@ -50,7 +50,7 @@ const BridgeLimitsView = () => {
         <div className="space-y-6 flex min-h-[inherit] flex-col">
             <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
 
-            {isLoading && <PeanutLoading coverFullScreen />}
+            {isLoading && <Loading variant="mascot" coverFullScreen />}
 
             {error && <LimitsError />}
 

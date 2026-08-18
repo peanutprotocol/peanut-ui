@@ -6,7 +6,7 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
@@ -105,7 +105,7 @@ const PointsPage = () => {
     }, [])
 
     if (isLoading || isTierInfoLoading || !tierInfo?.data) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (isInvitesError || isTierInfoError) {

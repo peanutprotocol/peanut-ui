@@ -11,7 +11,7 @@
 
 import { ContributePotPage } from './ContributePotPage'
 import { requestsApi } from '@/services/requests'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -61,7 +61,7 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )

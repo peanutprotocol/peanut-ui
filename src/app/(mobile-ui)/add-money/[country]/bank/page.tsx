@@ -18,7 +18,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount, railJurisdictionForBank } from '@/utils/bridge.utils'
@@ -369,7 +369,7 @@ function BridgeBankOnrampPage() {
 
     // Show loading while user is being fetched and no step in URL yet
     if (!urlState.step && user === null) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (!selectedCountry) {
@@ -387,13 +387,13 @@ function BridgeBankOnrampPage() {
 
     // Still determining initial step
     if (!urlState.step) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (urlState.step === 'showDetails') {
         // Show loading while useEffect redirects if data is missing
         if (!onrampData?.transferId) {
-            return <PeanutLoading />
+            return <Loading variant="mascot" />
         }
         return <AddMoneyBankDetails onBack={() => setUrlState({ step: 'inputAmount' })} />
     }
@@ -571,7 +571,7 @@ export default function OnrampBankPage() {
     }, [isMantecaRoute, selectedCountry, router])
 
     if (isMantecaRoute) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     return <BridgeBankOnrampPage />

@@ -2,7 +2,7 @@
 
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import ReConsentModal from '@/components/Global/ReConsentModal'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import TopNavbar from '@/components/Global/TopNavbar'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import OfflineScreen from '@/components/Global/OfflineScreen'
@@ -148,7 +148,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         if (!isReady) {
             return (
                 <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             )
         }
@@ -157,7 +157,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         if (!isReady || isFetchingUser || !user || isCheckingAccount || needsRedirect) {
             return (
                 <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             )
         }

@@ -4074,7 +4074,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 1,
         status: 'adhoc',
         source: 'src/app/quests/explore/loading.tsx',
-        notes: 'A 5th, totally off-brand loading treatment. Replace with <PeanutLoading/> like the sibling recipient/loading.tsx route does. Hardcoded hex duplicates yellow-1.',
+        notes: 'A 5th, totally off-brand loading treatment. Replace with <Loading variant="mascot" /> like the sibling recipient/loading.tsx route does. Hardcoded hex duplicates yellow-1.',
     },
     {
         name: 'ContactsListSkeleton',

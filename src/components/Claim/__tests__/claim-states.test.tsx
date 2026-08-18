@@ -214,7 +214,7 @@ jest.mock('@/components/0_Bruddle/PageContainer', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/PeanutLoading', () => ({
+jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
     default: (_props: any) => <div data-testid="peanut-loading">Loading...</div>,
 }))

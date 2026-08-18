@@ -1,6 +1,6 @@
 'use client'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import PeanutLoading from '../Global/PeanutLoading'
+import Loading from '../Global/Loading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
@@ -300,7 +300,7 @@ function InvitePageContent() {
     }, [isDeadBareLink, router])
 
     if (isClaimingBadgeCampaigns || !shouldShowContent || isDeadBareLink) {
-        return <PeanutLoading coverFullScreen />
+        return <Loading variant="mascot" coverFullScreen />
     }
 
     if (showsInvalidInvite) {
@@ -365,7 +365,7 @@ function InvitePageContent() {
 
 export default function InvitesPage() {
     return (
-        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+        <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
             <InvitePageContent />
         </Suspense>
     )

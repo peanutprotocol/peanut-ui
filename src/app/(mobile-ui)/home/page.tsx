@@ -4,7 +4,6 @@ import { Button, type ButtonSize, type ButtonVariant } from '@/components/0_Brud
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
-import PeanutLoading from '@/components/Global/PeanutLoading'
 import HomeHistory from '@/components/Home/HomeHistory'
 import { UserHeader } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
@@ -193,7 +192,7 @@ export default function Home() {
     ])
 
     if (isLoading) {
-        return <PeanutLoading coverFullScreen />
+        return <Loading variant="mascot" coverFullScreen />
     }
 
     return (

@@ -15,8 +15,8 @@ import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
+import Loading from '@/components/Global/Loading'
+import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -1041,7 +1041,7 @@ export default function QRPayPage() {
 
     // show loading while KYC state is being determined
     if (isLoadingKycState) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     // provider rejection: user is sumsub-approved but manteca rejected
@@ -1257,7 +1257,7 @@ export default function QRPayPage() {
 
     // show loading spinner if we're still loading payment data
     if (isLoadingPaymentData || loadingState === 'Paying') {
-        return loadingState === 'Paying' ? <CyclingLoading /> : <PeanutLoading />
+        return loadingState === 'Paying' ? <CyclingLoading /> : <Loading variant="mascot" />
     }
 
     //Success

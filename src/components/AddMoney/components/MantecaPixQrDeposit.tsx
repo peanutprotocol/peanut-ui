@@ -8,7 +8,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
-import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
+import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
 import { useTranslations } from 'next-intl'
 
 const MantecaPixQrDeposit: FC<{

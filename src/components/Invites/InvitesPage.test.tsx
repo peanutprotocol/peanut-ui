@@ -119,7 +119,7 @@ jest.mock('./InvitesPageLayout', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
-jest.mock('../Global/PeanutLoading', () => ({
+jest.mock('../Global/Loading', () => ({
     __esModule: true,
     default: () => <div>Loading</div>,
 }))

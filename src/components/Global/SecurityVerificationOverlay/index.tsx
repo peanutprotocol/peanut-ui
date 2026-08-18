@@ -1,5 +1,5 @@
 'use client'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 
@@ -26,7 +26,7 @@ export default function SecurityVerificationOverlay() {
             role="status"
             aria-live="polite"
         >
-            <PeanutLoading message={t('securityVerificationOverlay.message')} />
+            <Loading variant="mascot" message={t('securityVerificationOverlay.message')} />
         </div>
     )
 }

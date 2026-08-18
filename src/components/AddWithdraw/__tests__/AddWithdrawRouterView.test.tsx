@@ -94,7 +94,7 @@ jest.mock('../../Common/CountryList', () => ({
     ),
 }))
 
-jest.mock('../../Global/PeanutLoading', () => ({
+jest.mock('../../Global/Loading', () => ({
     __esModule: true,
     default: () => <div data-testid="loading" />,
 }))
