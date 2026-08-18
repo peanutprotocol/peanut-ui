@@ -28,6 +28,8 @@ import fs from 'fs'
 import path from 'path'
 import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
 import { SUPPORTED_LOCALES } from '../src/i18n/types'
+import { isPublishedContent, parseContentFrontmatter } from './verify-content-frontmatter'
+import { isKnownRouteOrLocaleRedirect } from './verify-content-routes'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
@@ -37,15 +39,6 @@ const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
 const LOCALE_PATH_PREFIX = new RegExp(
     `^/(${SUPPORTED_LOCALES.map((locale) => locale.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})/`
 )
-// These locales no longer render pages, but their old URLs remain valid link
-// destinations because redirects.json forwards both the bare root and every
-// subpath. Keep this list separate from SUPPORTED_LOCALES: adding it to the
-// route/sitemap loops would recreate phantom static pages.
-const REDIRECTED_LOCALE_ALIASES = ['es-es']
-const REDIRECTED_LOCALE_PATH_PREFIX = new RegExp(
-    `^/(${REDIRECTED_LOCALE_ALIASES.map((locale) => locale.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?:/|$)`
-)
-
 // `content/deposit/` mixes two URL families on the same dynamic route:
 //   exchanges → /{locale}/deposit/from-{slug}
 //   rails     → /{locale}/deposit/via-{slug}
@@ -96,7 +89,7 @@ function gateReceiveSources(): string[] {
         .filter((slug) => slug !== 'index')
         .filter((slug) => {
             const en = path.join(CONTENT_DIR, 'receive-from', slug, 'en.md')
-            return fs.existsSync(en) && isPublished(fs.readFileSync(en, 'utf-8'))
+            return fs.existsSync(en) && isPublishedContent(fs.readFileSync(en, 'utf-8'))
         })
 }
 
@@ -130,36 +123,6 @@ function isContentPage(filePath: string): boolean {
     if (basename === 'README.md') return false
     if (basename.endsWith('-index.md')) return false
     return true
-}
-
-// --- Frontmatter parsing ---
-
-function parseFrontmatter(content: string): Record<string, unknown> {
-    const match = content.match(/^---\n([\s\S]*?)\n---/)
-    if (!match) return {}
-    const frontmatter: Record<string, unknown> = {}
-    for (const line of match[1].split('\n')) {
-        const colonIdx = line.indexOf(':')
-        if (colonIdx === -1) continue
-        const key = line.slice(0, colonIdx).trim()
-        let value: string | boolean = line.slice(colonIdx + 1).trim()
-        if (value === 'true') value = true
-        else if (value === 'false') value = false
-        // Strip quotes
-        if (
-            typeof value === 'string' &&
-            ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
-        ) {
-            value = value.slice(1, -1)
-        }
-        frontmatter[key] = value
-    }
-    return frontmatter
-}
-
-function isPublished(content: string): boolean {
-    const fm = parseFrontmatter(content)
-    return fm.published !== false
 }
 
 // --- Build valid paths from actual routes ---
@@ -350,10 +313,6 @@ function cleanUrl(url: string): string {
     return url.split('?')[0].split('#')[0].replace(/\/$/, '')
 }
 
-function isKnownRouteOrLocaleRedirect(url: string, validPaths: Set<string>): boolean {
-    return validPaths.has(url) || REDIRECTED_LOCALE_PATH_PREFIX.test(url)
-}
-
 // --- Pass 1: Internal link validation ---
 
 function checkLinks(validPaths: Set<string>) {
@@ -364,7 +323,7 @@ function checkLinks(validPaths: Set<string>) {
     for (const file of files) {
         if (!isContentPage(file)) continue
         const content = fs.readFileSync(file, 'utf-8')
-        if (!isPublished(content)) {
+        if (!isPublishedContent(content)) {
             skippedUnpublished++
             continue
         }
@@ -417,7 +376,7 @@ function checkPublishedHasRoute(validPaths: Set<string>) {
             const enFile = path.join(CONTENT_DIR, ct.dir, slug, 'en.md')
             if (!fs.existsSync(enFile)) continue
             const content = fs.readFileSync(enFile, 'utf-8')
-            if (!isPublished(content)) continue
+            if (!isPublishedContent(content)) continue
 
             const url = ct.urlPattern('en', slug)
             if (!validPaths.has(url)) {
@@ -432,7 +391,7 @@ function checkPublishedHasRoute(validPaths: Set<string>) {
         const enFile = path.join(CONTENT_DIR, intent, 'en.md')
         if (!fs.existsSync(enFile)) continue
         const content = fs.readFileSync(enFile, 'utf-8')
-        if (!isPublished(content)) continue
+        if (!isPublishedContent(content)) continue
 
         const url = `/en/${intent}`
         if (!validPaths.has(url)) {
@@ -489,9 +448,9 @@ function checkFrontmatter() {
     for (const file of files) {
         if (!isContentPage(file)) continue
         const content = fs.readFileSync(file, 'utf-8')
-        const fm = parseFrontmatter(content)
+        const fm = parseContentFrontmatter(content)
 
-        if (!isPublished(content)) continue
+        if (!isPublishedContent(content)) continue
 
         if (!fm.title || (typeof fm.title === 'string' && fm.title.trim() === '')) {
             error('frontmatter', 'Published file missing title', rel(file))
@@ -520,7 +479,7 @@ function checkLocaleCoverage() {
             const enFile = path.join(slugDir, 'en.md')
             if (!fs.existsSync(enFile)) continue
             const content = fs.readFileSync(enFile, 'utf-8')
-            if (!isPublished(content)) continue
+            if (!isPublishedContent(content)) continue
 
             for (const locale of PRIMARY_LOCALES) {
                 if (locale === 'en') continue
@@ -559,9 +518,9 @@ function checkContentPolish() {
     for (const file of files) {
         if (!isContentPage(file)) continue
         const content = fs.readFileSync(file, 'utf-8')
-        if (!isPublished(content)) continue
+        if (!isPublishedContent(content)) continue
 
-        const fm = parseFrontmatter(content)
+        const fm = parseContentFrontmatter(content)
 
         // Frontmatter override: skip_polish_check: true bypasses this check
         if (fm.skip_polish_check === true) continue
@@ -604,7 +563,7 @@ function checkExplicitPublished() {
 
     for (const file of files) {
         const content = fs.readFileSync(file, 'utf-8')
-        const fm = parseFrontmatter(content)
+        const fm = parseContentFrontmatter(content)
 
         if (fm.published === false) {
             warn('draft-content', 'File is explicitly unpublished (draft)', rel(file))
@@ -659,7 +618,7 @@ function checkPageCountRegression() {
     const files = getAllMdFiles(CONTENT_DIR)
     const publishedCount = files.filter((f) => {
         const content = fs.readFileSync(f, 'utf-8')
-        return isPublished(content)
+        return isPublishedContent(content)
     }).length
 
     let baseline = 0

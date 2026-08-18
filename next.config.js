@@ -306,7 +306,7 @@ let nextConfig = {
     //
     // The SEO problem it leaves behind — /en/help/ and /en/help both returning
     // 200 — is solved narrowly instead: redirects.json ends with a
-    // `/:locale(en|es-419|es-ar|pt-br)/:path*/` -> slashless permanent (308)
+    // `/:locale(en|es-419|es-ar|pt-br)/:path+/` -> slashless permanent (308)
     // redirect, which only covers the locale-prefixed marketing tree and cannot
     // touch /relay, /monitoring, /passkeys or the recipient catch-all. Keep that
     // locale list in sync with SUPPORTED_LOCALES (src/i18n/types.ts).
