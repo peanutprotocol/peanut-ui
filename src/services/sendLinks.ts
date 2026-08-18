@@ -2,7 +2,6 @@ import { jsonParse, jsonStringify, getFromLocalStorage, saveToLocalStorage } fro
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
-import { isDemoMode } from '@/utils/demo'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
@@ -78,17 +77,7 @@ type UpdateLinkBody = {
 
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
-        // The demo interceptor is invoked explicitly BEFORE apiFetch: the real
-        // request may carry a multipart FormData body the demo store can't
-        // parse. Lazy import keeps the demo module out of this service's
-        // module graph on web/tests.
-        if (isDemoMode()) {
-            const { demoRespond } = await import('@/utils/demo-api')
-            return jsonParse(await (await demoRespond('/send-links', { method: 'POST' })).text())
-        }
-
         let requestBody: FormData | string
-        const headers: Record<string, string> = {}
 
         // check if attachment is a File or Blob object
         if (sendLink.attachment && (sendLink.attachment instanceof File || sendLink.attachment instanceof Blob)) {
@@ -116,15 +105,16 @@ export const sendLinksApi = {
                 }
             }
         } else {
-            // no file, or attachment is not a File/Blob, send as JSON
+            // no file, or attachment is not a File/Blob, send as JSON —
+            // apiFetch sets Content-Type: application/json for string bodies
             requestBody = jsonStringify(sendLink)
-            headers['Content-Type'] = 'application/json'
         }
 
+        // demo mode is handled inside apiFetch (the POST /send-links demo
+        // handler serves a canned link and never reads the body)
         const response = await apiFetch('/send-links', {
             method: 'POST',
             body: requestBody,
-            headers,
         })
 
         if (!response.ok) {

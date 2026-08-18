@@ -35,10 +35,7 @@ export async function getOnrampQuote(
 
         // apiFetch awaits authReady() (guarded mode holds it until unlock) and
         // attaches the session token, so this caller never fires unauthenticated.
-        const response = await apiFetch(`/bridge/onramp/quote?${params.toString()}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-        })
+        const response = await apiFetch(`/bridge/onramp/quote?${params.toString()}`, { method: 'GET' })
 
         const data = await response.json()
         if (!response.ok) {

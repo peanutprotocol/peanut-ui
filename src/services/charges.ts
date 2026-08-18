@@ -10,10 +10,11 @@ import { isDemoMode } from '@/utils/demo'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
-        // The demo interceptor is invoked explicitly BEFORE apiFetch: the real
-        // request carries a multipart FormData body the demo store can't parse,
-        // so the demo path gets the JSON payload instead. Lazy import keeps the
-        // demo module out of this service's module graph on web/tests.
+        // The demo interceptor is invoked explicitly BEFORE apiFetch so the
+        // demo store gets the exact JSON payload shape (intentional mapping —
+        // parseBody now degrades gracefully for FormData callers that skip
+        // this, but this keeps the recorded charge exact). Lazy import keeps
+        // the demo module out of this service's module graph on web/tests.
         if (isDemoMode()) {
             const { demoRespond } = await import('@/utils/demo-api')
             // pass the charge data so the demo store captures the real amount.

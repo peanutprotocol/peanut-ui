@@ -18,7 +18,15 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
-const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate'])
+// /tokens/* are public too — the canned {} fallback is NOT a valid shape for
+// them (fetchWalletBalances crashed on `{}.balances.filter` in recover-funds).
+const PASSTHROUGH_GET = new Set([
+    '/bridge/exchange-rate',
+    '/manteca/prices',
+    '/fx/rate',
+    '/tokens/price',
+    '/tokens/wallet-portfolio',
+])
 
 const EMPTY_GRAPH = {
     nodes: [] as unknown[],
@@ -46,6 +54,22 @@ type DemoRequestBody = {
 }
 
 function parseBody(options?: RequestInit): DemoRequestBody {
+    // Multipart callers (charges, send-links attachments) reach here through
+    // apiFetch's demo routing with a FormData body — read it field-by-field so
+    // a caller without an explicit JSON pre-intercept still records real
+    // values instead of silently degrading to {} (e.g. amount '0').
+    if (options?.body instanceof FormData) {
+        const out: Record<string, unknown> = {}
+        options.body.forEach((value, key) => {
+            if (typeof value !== 'string') return // File/Blob — not body data
+            try {
+                out[key] = JSON.parse(value) // objects/numbers arrive JSON-stringified
+            } catch {
+                out[key] = value // plain strings stay as-is
+            }
+        })
+        return out as DemoRequestBody
+    }
     try {
         return typeof options?.body === 'string' ? JSON.parse(options.body) : {}
     } catch {
@@ -337,7 +361,19 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
     { method: 'POST', pattern: '/users/accounts', handler: () => ({ id: 'demo-bank' }) },
-    { method: 'GET', pattern: '/users/username/:username', handler: ({ params }) => demoApiUser(params.username) },
+    {
+        method: 'GET',
+        pattern: '/users/username/:username',
+        handler: ({ params }) => {
+            // Only the demo cast resolves: the demo user plus the seeded contacts
+            // (recipient resolution + profile lookups keep working). Everything
+            // else 404s — Signup's availability probe reads 200 as "taken", so a
+            // blanket 200 blocked signup for EVERY username when the demo flag
+            // was still latched from a 'demo' invite-code entry.
+            const cast = new Set([DEMO_USER.user.username, ...DEMO_CONTACTS.map((c) => c.username)])
+            return cast.has(params.username) ? demoApiUser(params.username) : json({ error: 'not found' }, 404)
+        },
+    },
     { method: 'GET', pattern: '/users/:userId/rewards', handler: () => [] },
     { method: 'GET', pattern: '/users/:userId', handler: ({ params }) => demoCounterparty(params.userId) },
     {
