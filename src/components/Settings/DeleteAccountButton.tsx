@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
@@ -99,9 +100,9 @@ const DeleteAccountButton: FC = () => {
                 hideModalCloseButton={lockModal}
                 icon={
                     isDone ? (
-                        <PeanutMascot pose="worried" alt={t('cryingPeanutAlt')} className="size-32" />
+                        <PeanutMascot pose="worried" alt={t('cryingPeanutAlt')} className={MASCOT_STATE_CLASS} />
                     ) : (
-                        <PeanutMascot pose="sad" alt={t('sadPeanutAlt')} className="size-32" />
+                        <PeanutMascot pose="sad" alt={t('sadPeanutAlt')} className={MASCOT_STATE_CLASS} />
                     )
                 }
                 iconContainerClassName="size-32 rounded-none bg-transparent"

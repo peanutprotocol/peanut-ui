@@ -64,3 +64,26 @@ export const MASCOT_ANIMATION_LOADERS: Record<MascotPose, () => Promise<{ defaul
     'waving-hello': () => import('@/assets/mascot/lottie/waving-hello.json'),
     worried: () => import('@/assets/mascot/lottie/worried.json'),
 }
+
+/**
+ * The onboarding hero box: setup steps, the invite page and the waitlist all lead with a
+ * mascot, and a user walks through several of them in a row, so they render at one size.
+ *
+ * Height only, no aspect-square. The host derives its width from the pose (see
+ * PeanutMascot), which is what keeps a wide pose the same HEIGHT as a narrow one — a
+ * square box fits the wider dimension instead and renders 'waving-chill' 23% shorter than
+ * 'thinking'. Sizing off the box's own height rather than a percentage of the parent also
+ * decouples it from how tall the white content panel below happens to be: the panel varies
+ * per screen, which is what made the mascot shrink on the landing and finish steps.
+ *
+ * 35dvh matches the signup image container's own floor (see SetupWrapper), so the mascot
+ * never asks that container for more room than it already reserves.
+ */
+export const MASCOT_HERO_CLASS = 'relative h-[35dvh] max-w-full md:h-[65dvh]'
+
+/**
+ * In-app state screens — errors, empty states, waitlist confirmations — where the mascot
+ * sits above a headline rather than leading the screen. Same height-not-square rule as
+ * MASCOT_HERO_CLASS.
+ */
+export const MASCOT_STATE_CLASS = 'h-32 w-auto'

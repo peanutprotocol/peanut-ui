@@ -5,6 +5,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 
 type ClaimErrorViewProps = {
     title: string
@@ -19,7 +20,7 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
 
     return (
         <div className="flex flex-col items-center justify-center space-y-4 rounded-lg text-center">
-            <PeanutMascot pose="worried" alt={t('errors.sadPeanutAlt')} className="size-24" />
+            <PeanutMascot pose="worried" alt={t('errors.sadPeanutAlt')} className={MASCOT_STATE_CLASS} />
             <div className="space-y-2">
                 <h1 className="text-lg font-semibold">{title}</h1>
                 <p className="text-sm font-normal md:max-w-xs">{message}</p>

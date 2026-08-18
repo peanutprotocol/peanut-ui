@@ -183,3 +183,31 @@ describe('MASCOT_ART_BOXES', () => {
         }
     })
 })
+
+describe('mascot sizing', () => {
+    type Pose = keyof typeof MASCOT_ART_BOXES
+
+    it('gives the host the pose art aspect, so a height-only box fits the pose', async () => {
+        const { container } = render(<PeanutMascot pose="waving-chill" className="h-[35dvh]" />)
+
+        await waitFor(() => expect(mockLoadAnimation).toHaveBeenCalled())
+        const host = container.firstElementChild as HTMLElement
+        const art = MASCOT_ART_BOXES['waving-chill']
+        expect(parseFloat(host.style.aspectRatio)).toBeCloseTo(art.w / art.h, 6)
+    })
+
+    // The reason the aspect above exists: the poses are 0.55 to 1.21 wide-to-tall, so a
+    // square box fits the wider dimension and the wide poses come out short. Given each
+    // pose the box its own aspect asks for and every one renders at the same height.
+    it('renders every pose at the same height once the box carries its aspect', () => {
+        const hostHeight = 300
+
+        for (const pose of Object.keys(MASCOT_ART_BOXES) as Pose[]) {
+            const art = MASCOT_ART_BOXES[pose]
+            const placement = getMascotPlacement(pose, hostHeight * (art.w / art.h), hostHeight)
+            const artHeight = (placement.height * art.h) / MASCOT_CANVAS_HEIGHT
+
+            expect([pose, artHeight]).toEqual([pose, expect.closeTo(hostHeight * MASCOT_ART_FILL, 6)])
+        }
+    })
+})

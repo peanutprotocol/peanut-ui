@@ -2,6 +2,7 @@
 import type { FC } from 'react'
 import { useTranslations } from 'next-intl'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
@@ -77,7 +78,11 @@ const ApplicationStatusScreen: FC<Props> = ({
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 {variant === 'pending' && <Loading />}
                 {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
-                    <PeanutMascot pose="worried" alt={t('status.mascotAlt')} className="size-32 select-none" />
+                    <PeanutMascot
+                        pose="worried"
+                        alt={t('status.mascotAlt')}
+                        className={`${MASCOT_STATE_CLASS} select-none`}
+                    />
                 )}
                 <div className="flex flex-col gap-3">
                     <h1 className="text-2xl font-extrabold text-n-1">{t(copyKeys.title)}</h1>

@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
 import CloudsBackground from '../0_Bruddle/CloudsBackground'
 import starImage from '@/assets/icons/star.png'
+import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 
 const STAR_POSITIONS = [
     'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
@@ -48,12 +49,9 @@ const InvitesPageLayout = ({ pose, children }: InvitesPageLayoutProps) => {
                     ))}
                     {/* animated clouds background */}
                     <CloudsBackground minimal />
-                    {/* main illustration — the mascot host needs a height of its own */}
-                    <PeanutMascot
-                        pose={pose}
-                        alt={t('illustrationAlt')}
-                        className="relative aspect-square w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl"
-                    />
+                    {/* main illustration — same hero box as the setup steps, so the mascot
+                        does not change size as a user walks from an invite into signup */}
+                    <PeanutMascot pose={pose} alt={t('illustrationAlt')} className={MASCOT_HERO_CLASS} />
                 </div>
 
                 {children}

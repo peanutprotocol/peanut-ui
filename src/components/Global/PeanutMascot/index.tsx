@@ -4,7 +4,7 @@ import type { AnimationItem } from 'lottie-web'
 import { useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
-import { MASCOT_ANIMATION_LOADERS, MASCOT_HOLD_FRAMES, MASCOT_SPEED } from './PeanutMascot.consts'
+import { MASCOT_ANIMATION_LOADERS, MASCOT_ART_BOXES, MASCOT_HOLD_FRAMES, MASCOT_SPEED } from './PeanutMascot.consts'
 import type { MascotPlacement, PeanutMascotProps } from './PeanutMascot.types'
 import { getMascotPlacement, jitterFrame, subscribeToMascotClock } from './PeanutMascot.utils'
 
@@ -113,10 +113,17 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
         return () => stop()
     }, [animation, isVisible, loop, prefersReducedMotion])
 
+    const art = MASCOT_ART_BOXES[pose]
+
     return (
         <div
             ref={hostRef}
             className={twMerge('relative overflow-hidden', className)}
+            // The artwork's own aspect, so a call site can give a height alone and get a box
+            // the pose actually fits — every pose then renders at that height instead of the
+            // wide ones coming out short. Ignored when the classes make both dimensions
+            // definite, so square boxes are unaffected.
+            style={{ aspectRatio: art.w / art.h }}
             role={alt ? 'img' : undefined}
             aria-label={alt || undefined}
             aria-hidden={alt ? undefined : true}

@@ -10,6 +10,7 @@ import Loading from '@/components/Global/Loading'
 import CardFace from '@/components/Card/CardFace'
 import { rainApi } from '@/services/rain'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 
 export const PHYSICAL_WAITLIST_QUERY_KEY = 'rain-physical-waitlist'
 
@@ -74,7 +75,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
-                    <PeanutMascot pose="walking" className="size-32" />
+                    <PeanutMascot pose="walking" className={MASCOT_STATE_CLASS} />
                     <h1 className="text-xl font-extrabold">{t('onListTitle')}</h1>
                     <p className="text-sm text-grey-1">
                         {data.position === null

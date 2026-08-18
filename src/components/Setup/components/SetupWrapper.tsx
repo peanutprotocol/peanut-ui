@@ -2,6 +2,7 @@ import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import {
     type BeforeInstallPromptEvent,
@@ -137,17 +138,15 @@ const ImageSection = ({
     const isSignup = layoutType === 'signup'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
 
-    // The mascot host is a plain div, so unlike the still it has no intrinsic aspect to
-    // derive a height from. aspect-square restores the box the square sprite used to
-    // occupy; the still keeps the intrinsic-width sizing it always had.
+    // Mascots get the shared onboarding hero box so every setup step — and the invite and
+    // waitlist pages, which use the same constant — shows the character at one height. The
+    // still keeps the intrinsic-width sizing it always had.
     const illustration =
         'pose' in image ? (
             <PeanutMascot
                 pose={image.pose}
                 alt={t('illustrationAlt')}
-                className={
-                    imageClassName || 'relative aspect-square max-h-[85%] w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl'
-                }
+                className={imageClassName || MASCOT_HERO_CLASS}
             />
         ) : (
             <Image
