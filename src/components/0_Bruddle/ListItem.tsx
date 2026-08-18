@@ -66,9 +66,21 @@ export const ListItem = ({
     >
         <div className="flex min-w-0 items-center gap-3">
             {leading}
+            {/* plain strings get the board one-line truncation; custom nodes render
+                in a block wrapper untruncated (a div inside a span is invalid html
+                and truncate only ellipsizes text anyway) */}
             <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="truncate text-body-m-semibold text-foreground-primary">{title}</span>
-                {body && <span className="truncate text-body-s text-foreground-secondary">{body}</span>}
+                {typeof title === 'string' ? (
+                    <span className="truncate text-body-m-semibold text-foreground-primary">{title}</span>
+                ) : (
+                    <div className="min-w-0 text-body-m-semibold text-foreground-primary">{title}</div>
+                )}
+                {body &&
+                    (typeof body === 'string' ? (
+                        <span className="truncate text-body-s text-foreground-secondary">{body}</span>
+                    ) : (
+                        <div className="min-w-0 text-body-s text-foreground-secondary">{body}</div>
+                    ))}
             </div>
         </div>
         {(trailing || chevron) && (
