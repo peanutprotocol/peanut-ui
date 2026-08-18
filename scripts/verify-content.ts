@@ -27,13 +27,24 @@
 import fs from 'fs'
 import path from 'path'
 import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
+import { SUPPORTED_LOCALES } from '../src/i18n/types'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
 const APP_DIR = path.join(process.cwd(), 'src/app/[locale]/(marketing)')
 
-const SUPPORTED_LOCALES = ['en', 'es-419', 'es-ar', 'es-es', 'pt-br']
 const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
+const LOCALE_PATH_PREFIX = new RegExp(
+    `^/(${SUPPORTED_LOCALES.map((locale) => locale.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})/`
+)
+// These locales no longer render pages, but their old URLs remain valid link
+// destinations because redirects.json forwards both the bare root and every
+// subpath. Keep this list separate from SUPPORTED_LOCALES: adding it to the
+// route/sitemap loops would recreate phantom static pages.
+const REDIRECTED_LOCALE_ALIASES = ['es-es']
+const REDIRECTED_LOCALE_PATH_PREFIX = new RegExp(
+    `^/(${REDIRECTED_LOCALE_ALIASES.map((locale) => locale.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?:/|$)`
+)
 
 // `content/deposit/` mixes two URL families on the same dynamic route:
 //   exchanges → /{locale}/deposit/from-{slug}
@@ -339,6 +350,10 @@ function cleanUrl(url: string): string {
     return url.split('?')[0].split('#')[0].replace(/\/$/, '')
 }
 
+function isKnownRouteOrLocaleRedirect(url: string, validPaths: Set<string>): boolean {
+    return validPaths.has(url) || REDIRECTED_LOCALE_PATH_PREFIX.test(url)
+}
+
 // --- Pass 1: Internal link validation ---
 
 function checkLinks(validPaths: Set<string>) {
@@ -359,7 +374,7 @@ function checkLinks(validPaths: Set<string>) {
 
         for (const link of links) {
             const clean = cleanUrl(link.url)
-            if (!validPaths.has(clean)) {
+            if (!isKnownRouteOrLocaleRedirect(clean, validPaths)) {
                 error(
                     'broken-link',
                     `Broken link: ${link.url}${link.text ? ` "${link.text}"` : ''}`,
@@ -445,7 +460,7 @@ function checkFooterManifest(validPaths: Set<string>) {
         for (const entry of entries) {
             if (entry.external) continue
             const clean = cleanUrl(entry.href)
-            if (!validPaths.has(clean)) {
+            if (!isKnownRouteOrLocaleRedirect(clean, validPaths)) {
                 error(
                     'footer',
                     `Footer manifest "${section}" links to non-existent route: ${entry.href}`,
@@ -766,7 +781,7 @@ function checkSitemapCoverage(validPaths: Set<string>) {
         if (validPaths.has(url)) continue
         // Collapse identical messages across locales — one entry per pattern
         // is enough to fix; the full count is in the summary line.
-        const key = url.replace(/^\/(en|es-419|es-ar|es-es|pt-br)\//, '/{locale}/')
+        const key = url.replace(LOCALE_PATH_PREFIX, '/{locale}/')
         if (reported.has(key)) {
             missing++
             continue

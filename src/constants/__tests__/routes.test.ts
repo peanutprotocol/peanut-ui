@@ -43,6 +43,14 @@ describe('DEDICATED_ROUTES', () => {
         const missing = segments.filter((s) => !(DEDICATED_ROUTES as readonly string[]).includes(s))
         expect(missing).toEqual([])
     })
+
+    it('reserves every bare marketing hub redirected into /en', () => {
+        expect(DEDICATED_ROUTES).toEqual(expect.arrayContaining(['pricing', 'stories', 'content']))
+        for (const route of ['pricing', 'stories', 'content']) {
+            expect(isReservedRoute(`/${route}`)).toBe(true)
+            expect(isReservedRoute(`/${route.toUpperCase()}`)).toBe(true)
+        }
+    })
 })
 
 describe('couldBeRecipient — catch-all guard', () => {

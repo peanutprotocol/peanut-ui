@@ -46,7 +46,7 @@ const corridorDate = (destination: string, origin: string, locale: string): Date
 const singletonDate = (intent: string, locale: string): Date | undefined =>
     contentGeneratedAt(readSingletonContent<ContentFrontmatter>(intent, locale))
 
-async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
+export async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
     type SitemapEntry = {
         path: string
         priority: number

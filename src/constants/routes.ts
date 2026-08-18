@@ -74,9 +74,9 @@ export const DEDICATED_ROUTES = [
     // bare paths were still recipient-shaped (7 lowercase letters each), so
     // /pricing, /stories and /content rendered a payment-profile shell on a 200
     // instead of resolving to the real page. Reserved here + 301'd to /en/… in
-    // redirects.json. NOTE: 'pricing' is also reserved server-side (the username
-    // API rejects it), but 'stories' and 'content' are still claimable as
-    // usernames — see the PR body, backend needs to add them to its reserved list.
+    // redirects.json. All three are also reserved server-side; the paired API
+    // hotfix must deploy before these redirects reach production so a future
+    // username can never be shadowed by a marketing route.
     'pricing',
     'stories',
     'content',

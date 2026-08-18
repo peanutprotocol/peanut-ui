@@ -38,9 +38,9 @@ const DISALLOWED_PATHS = [
     '/withdraw',
 ]
 
-export default function robots(): MetadataRoute.Robots {
+export function buildRobots(isProductionDomain: boolean): MetadataRoute.Robots {
     // Block indexing on staging, preview deploys, and non-production domains
-    if (!IS_PRODUCTION_DOMAIN) {
+    if (!isProductionDomain) {
         return {
             rules: [{ userAgent: '*', disallow: ['/'] }],
         }
@@ -104,11 +104,16 @@ export default function robots(): MetadataRoute.Robots {
                 disallow: DISALLOWED_PATHS,
             },
 
-            // Rate-limit aggressive SEO crawlers
-            { userAgent: 'AhrefsBot', crawlDelay: 10 },
-            { userAgent: 'SemrushBot', crawlDelay: 10 },
-            { userAgent: 'MJ12bot', crawlDelay: 10 },
+            // A named group replaces (rather than inherits) the wildcard group,
+            // so these rate-limited crawlers must repeat the shared policy too.
+            { userAgent: 'AhrefsBot', disallow: DISALLOWED_PATHS, crawlDelay: 10 },
+            { userAgent: 'SemrushBot', disallow: DISALLOWED_PATHS, crawlDelay: 10 },
+            { userAgent: 'MJ12bot', disallow: DISALLOWED_PATHS, crawlDelay: 10 },
         ],
         sitemap: `${BASE_URL}/sitemap.xml`,
     }
+}
+
+export default function robots(): MetadataRoute.Robots {
+    return buildRobots(IS_PRODUCTION_DOMAIN)
 }
