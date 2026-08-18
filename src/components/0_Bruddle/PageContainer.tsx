@@ -9,7 +9,8 @@ const PageContainer = (props: PageContainerProps) => {
     return (
         <div
             className={twMerge(
-                'flex min-h-[inherit] w-full items-start justify-center *:w-full md:pl-24 md:*:max-w-xl',
+                // desktop = the same centered mobile column (no sidebar offset — DS 13)
+                'flex min-h-[inherit] w-full items-start justify-center *:w-full md:*:max-w-xl',
                 props.alignItems === 'center' ? 'items-center' : 'items-start',
                 props.className
             )}

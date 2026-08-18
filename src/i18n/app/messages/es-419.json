@@ -72,7 +72,9 @@
         "claim": "Reclamar",
         "peanutLogoAlt": "Logo de Peanut",
         "receipt": "Recibo",
-        "supportUnread": "Nueva respuesta de soporte"
+        "supportUnread": "Nueva respuesta de soporte",
+        "card": "Tarjeta",
+        "scanQr": "Escanear QR"
     },
     "home": {
         "rewards": "Recompensas",

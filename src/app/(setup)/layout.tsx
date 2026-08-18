@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, Suspense } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
 import Loading from '@/components/Global/Loading'
+import { AppShell } from '@/components/Global/AppShell'
 import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -108,29 +109,14 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     }
 
     return (
-        <>
-            {/* Status-bar safe zone + feedback ribbon.
-                Android 15 (targetSdk 36) forces edge-to-edge, so the webview draws
-                UNDER the status bar — without this the ribbon/status icons collide
-                in a blank strip (see bug report). Fill the inset with the brand
-                periwinkle (matches the onboarding illustration) so the top reads as
-                intentional. env(safe-area-inset-top) resolves to 0 on web and on
-                non-edge-to-edge Android, so this is a no-op there. */}
-            <div className="bg-secondary-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-                <Banner />
-            </div>
+        <AppShell
+            variant="onboarding"
+            banner={<Banner />}
+            bottomInsetClassName={bottomInsetFill}
+            modals={<SupportDrawer />}
+        >
             {children}
-            {/* Bottom safe-area zone. Mirrors the periwinkle status-bar strip above:
-                on Android 15 edge-to-edge the webview draws under the nav bar, where the
-                page's beige (bg-background) would otherwise show. Fill the inset with the
-                brand periwinkle so the bottom matches the top. No-op on web (inset = 0). */}
-            <div
-                aria-hidden
-                className={`pointer-events-none fixed inset-x-0 bottom-0 -z-10 ${bottomInsetFill}`}
-                style={{ height: 'env(safe-area-inset-bottom)' }}
-            />
-            <SupportDrawer />
-        </>
+        </AppShell>
     )
 }
 

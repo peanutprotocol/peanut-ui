@@ -72,7 +72,9 @@
         "claim": "Claim",
         "peanutLogoAlt": "Peanut Logo",
         "receipt": "Receipt",
-        "supportUnread": "New support reply"
+        "supportUnread": "New support reply",
+        "card": "Card",
+        "scanQr": "Scan QR"
     },
     "home": {
         "rewards": "Rewards",
