@@ -41,15 +41,15 @@ const Card: React.FC<CardProps> = ({
 
         switch (position) {
             case 'single':
-                return 'border border-black'
+                return 'border border-border-default'
             case 'first':
-                return 'border border-black'
+                return 'border border-border-default'
             case 'middle':
-                return 'border border-black border-t-0'
+                return 'border border-border-default border-t-0'
             case 'last':
-                return 'border border-black border-t-0'
+                return 'border border-border-default border-t-0'
             default:
-                return 'border border-black'
+                return 'border border-border-default'
         }
     }
 
