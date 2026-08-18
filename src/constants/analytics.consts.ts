@@ -52,6 +52,9 @@ export const ANALYTICS_EVENTS = {
 
     // ── Send ──
     SEND_METHOD_SELECTED: 'send_method_selected',
+    // Emitted for every direct send that ends in the error toast, whatever the
+    // step. Until this existed a failed send left no analytics trace at all.
+    SEND_FAILED: 'send_failed',
 
     // ── Send Link ──
     SEND_LINK_CREATED: 'send_link_created',
