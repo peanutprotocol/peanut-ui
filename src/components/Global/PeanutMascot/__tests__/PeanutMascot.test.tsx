@@ -7,6 +7,7 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import {
     MASCOT_ART_BOXES,
     MASCOT_ART_FILL,
+    MASCOT_CANVAS_HEIGHT,
     MASCOT_CANVAS_WIDTH,
 } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { getMascotPlacement, subscribeToMascotClock } from '@/components/Global/PeanutMascot/PeanutMascot.utils'
@@ -153,6 +154,32 @@ describe('subscribeToMascotClock', () => {
         } finally {
             raf.mockRestore()
             caf.mockRestore()
+        }
+    })
+})
+
+describe('MASCOT_ART_BOXES', () => {
+    // The art boxes are measured against a fixed comp size that is duplicated in
+    // MASCOT_CANVAS_WIDTH/HEIGHT. Re-export one rig at a different canvas size and every
+    // placement using it silently mis-centres, with nothing else in the suite noticing.
+    it('matches the canvas every rig is actually authored on', () => {
+        const poses = Object.keys(MASCOT_ART_BOXES) as (keyof typeof MASCOT_ART_BOXES)[]
+        expect(poses).toHaveLength(10)
+
+        for (const pose of poses) {
+            const comp = require(`@/assets/mascot/lottie/${pose}.json`)
+            expect([pose, comp.w, comp.h]).toEqual([pose, MASCOT_CANVAS_WIDTH, MASCOT_CANVAS_HEIGHT])
+
+            // The art box drives placement, so it has to be a real, positive box. It is
+            // NOT required to sit inside the canvas: 'walking' reaches 16.8 units past the
+            // bottom edge mid-stride. That is a property of the rig, it was equally true of
+            // the sprite rendered from the same comp, and it is harmless here because the
+            // art box — overflow included — is what gets fitted to the host.
+            const art = MASCOT_ART_BOXES[pose]
+            expect(art.w).toBeGreaterThan(0)
+            expect(art.h).toBeGreaterThan(0)
+            expect(art.w).toBeLessThanOrEqual(MASCOT_CANVAS_WIDTH)
+            expect(art.h).toBeLessThanOrEqual(MASCOT_CANVAS_HEIGHT)
         }
     })
 })

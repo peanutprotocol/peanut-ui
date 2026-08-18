@@ -24,8 +24,8 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
         let cancelled = false
         let instance: AnimationItem | null = null
 
-        void Promise.all([import('lottie-web/build/player/lottie_light'), MASCOT_ANIMATION_LOADERS[pose]()]).then(
-            ([lottie, animationData]) => {
+        void Promise.all([import('lottie-web/build/player/lottie_light'), MASCOT_ANIMATION_LOADERS[pose]()])
+            .then(([lottie, animationData]) => {
                 if (cancelled) return
                 instance = lottie.default.loadAnimation({
                     container,
@@ -36,8 +36,13 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
                     rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
                 })
                 setAnimation(instance)
-            }
-        )
+            })
+            // A failed chunk here must not escape. The app installs a global
+            // unhandledrejection handler that reloads the page on ChunkLoadError, so an
+            // uncaught rejection would reload a payment-success screen — discarding its
+            // state — because a decorative mascot could not be fetched. The old <img>
+            // failed silently and so does this: the box stays empty.
+            .catch(() => {})
 
         return () => {
             cancelled = true

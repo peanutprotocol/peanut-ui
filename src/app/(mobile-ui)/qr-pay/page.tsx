@@ -1681,10 +1681,13 @@ const QrPayPageLoading = ({ message }: { message: string }) => {
     return (
         <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
             <div className="relative">
+                {/* left-1/2 + -translate-x-1/2 centres this over the card below. The old
+                    <Image layout="fill"> got its centring from the inline inset:0 that
+                    next/image emitted, which silently overrode the size classes. */}
                 <PeanutMascot
                     pose="thinking"
                     alt={t('peanutManAlt')}
-                    className="absolute z-0 h-32 w-32 -translate-y-20"
+                    className="absolute left-1/2 z-0 h-32 w-32 -translate-x-1/2 -translate-y-20"
                 />
 
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
