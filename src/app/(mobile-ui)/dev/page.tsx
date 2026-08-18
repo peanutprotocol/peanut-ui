@@ -64,12 +64,6 @@ export default function DevToolsPage() {
             icon: 'credit-card',
         },
         {
-            name: 'Components',
-            description: 'The component showcase — every Bruddle primitive and Global component with all variants.',
-            path: '/dev/components',
-            icon: 'docs',
-        },
-        {
             name: 'Rejection screen builder',
             description:
                 'Iterate the full mobile CardRejectionScreen — bouncer mascot, door tally, waitlist state — inside a phone frame.',

@@ -100,6 +100,28 @@ export default function BaseInputPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <DocSection title="Related Inputs (reference)">
+                <DocSection.Content>
+                    <p className="text-xs text-grey-1">
+                        Specialized inputs built on top of BaseInput. AmountInput has its own page under Patterns.
+                    </p>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="ValidatedInput — async validation with debounce, used in setup flows"
+                        code={`import ValidatedInput from '@/components/Global/ValidatedInput'`}
+                    />
+                    <CodeBlock
+                        label="GeneralRecipientInput — multi-type recipient input (address, username, ...)"
+                        code={`import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'`}
+                    />
+                    <CodeBlock
+                        label="FileUploadInput — file upload with drag-and-drop"
+                        code={`import FileUploadInput from '@/components/Global/FileUploadInput'`}
+                    />
+                </DocSection.Code>
+            </DocSection>
         </DocPage>
     )
 }

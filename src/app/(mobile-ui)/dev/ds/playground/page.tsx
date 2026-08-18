@@ -19,21 +19,18 @@ export default function PlaygroundPage() {
                     description="Tune shake intensity + hold-to-claim progress and fire the double-star confetti burst."
                     href="/dev/shake-test"
                     icon="gift"
-                    status="production"
                 />
                 <CatalogCard
                     title="Perk Success"
                     description="The perk-unlock success screen with mock perks — preview the celebration + confetti flow."
                     href="/dev/perk-success-test"
                     icon="check-circle"
-                    status="production"
                 />
                 <CatalogCard
                     title="Share Builder"
                     description="Iterator for the D3 card-waitlist share asset — stress-test tiers, names and edge cases."
                     href="/dev/share-builder"
                     icon="copy"
-                    status="production"
                 />
             </CatalogGrid>
         </DocPage>
