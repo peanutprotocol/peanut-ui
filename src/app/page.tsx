@@ -13,9 +13,12 @@ export const metadata = landingMetadata(DEFAULT_LOCALE)
 export default function RootPage() {
     return (
         <>
-            <HtmlLang locale={DEFAULT_LOCALE} />
             <LocaleSuggestion locale={DEFAULT_LOCALE} />
             <LandingPageCapacitorGate>
+                {/* Inside the gate: on native this route is only a bootstrap
+                    shell that redirects away, and the device locale — not this
+                    page's English — is what <html lang> should report there. */}
+                <HtmlLang locale={DEFAULT_LOCALE} />
                 <LandingPageShell>
                     <LandingPageContent locale={DEFAULT_LOCALE} />
                 </LandingPageShell>

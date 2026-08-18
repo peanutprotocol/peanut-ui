@@ -21,8 +21,11 @@ export function HtmlLang({ locale }: { locale: Locale }) {
         claimHtmlLang()
         document.documentElement.lang = locale
         return () => {
-            releaseHtmlLang()
+            // Restore first: releaseHtmlLang lets AppIntlProvider re-apply the
+            // app locale over this, which is the right answer whenever one is
+            // mounted. The snapshot only stands in when none is.
             document.documentElement.lang = previous
+            releaseHtmlLang()
         }
     }, [locale])
 
