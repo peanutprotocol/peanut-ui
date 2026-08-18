@@ -33,7 +33,10 @@ export default function TogglePage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="Toggle"
-                        code={`import { Toggle } from '@/components/0_Bruddle/Toggle'
+                        code={`import { useState } from 'react'
+import { Toggle } from '@/components/0_Bruddle/Toggle'
+
+const [enabled, setEnabled] = useState(false)
 
 <Toggle checked={enabled} onChange={setEnabled} aria-label="Show full name" />`}
                     />
