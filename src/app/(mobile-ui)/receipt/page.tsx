@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
@@ -57,7 +57,7 @@ export default function NativeReceiptPage() {
             </div>
             <div className="flex flex-1 flex-col items-center justify-center">
                 {isLoading || !entry ? (
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 ) : (
                     <TransactionDetailsReceipt
                         className="w-full"

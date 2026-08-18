@@ -4,7 +4,7 @@ import { type CardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { KycStatusItem } from '@/components/Kyc/KycStatusItem'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
@@ -232,7 +232,7 @@ const HistoryPage = () => {
     }, [combinedAndSortedEntries])
 
     if (isLoading && combinedAndSortedEntries.length === 0) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (isError) {

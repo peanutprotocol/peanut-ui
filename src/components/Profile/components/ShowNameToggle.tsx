@@ -1,6 +1,7 @@
 'use client'
 
 import { updateUserById } from '@/app/actions/users'
+import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { useAuth } from '@/context/authContext'
 import { useState } from 'react'
 
@@ -27,18 +28,7 @@ const ShowNameToggle = () => {
                 setShowFullName(!newValue)
             })
     }
-    return (
-        <button
-            onClick={handleToggleChange}
-            className="relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full border border-black transition-colors duration-200 ease-in-out focus:outline-none"
-        >
-            <span
-                className={`inline-block h-4 w-4 transform rounded-full transition-all duration-200 ease-in-out ${
-                    showFullName ? 'translate-x-6 bg-primary-1' : 'translate-x-1 bg-gray-1'
-                }`}
-            />
-        </button>
-    )
+    return <Toggle checked={showFullName} onChange={handleToggleChange} aria-label="Show full name" />
 }
 
 export default ShowNameToggle

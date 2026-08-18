@@ -7,7 +7,7 @@ import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
 import { useVisualViewport } from '@/hooks/useVisualViewport'
-import PeanutLoading from '../PeanutLoading'
+import Loading from '../Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
 import { notificationsApi } from '@/services/notifications'
@@ -269,7 +269,7 @@ const SupportDrawer = () => {
                     <div className="relative h-full w-full overflow-hidden md:max-w-xl">
                         {(!isCrispReady || isAwaitingToken) && !isCrispFailed && (
                             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
-                                <PeanutLoading />
+                                <Loading variant="mascot" />
                             </div>
                         )}
                         {isCrispFailed && (

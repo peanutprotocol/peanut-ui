@@ -2,7 +2,7 @@
 
 import ActionModal from '@/components/Global/ActionModal'
 import AddressLink from '@/components/Global/AddressLink'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.view'
 import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.view'
@@ -595,7 +595,7 @@ export default function WithdrawCryptoPage() {
     }, [needsAmountRedirect, router, amountStepHref])
 
     if (needsAmountRedirect) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     return (

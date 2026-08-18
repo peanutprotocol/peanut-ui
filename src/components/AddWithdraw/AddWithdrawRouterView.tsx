@@ -20,7 +20,7 @@ import { isMantecaCountry } from '@/constants/manteca.consts'
 import Card from '@/components/Global/Card'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { CountryList } from '../Common/CountryList'
-import PeanutLoading from '../Global/PeanutLoading'
+import Loading from '../Global/Loading'
 import SavedAccountsView from '../Common/SavedAccountsView'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import posthog from 'posthog-js'
@@ -196,7 +196,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     if (isLoadingPreferences) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-center gap-8">
-                <PeanutLoading />
+                <Loading variant="mascot" />
             </div>
         )
     }

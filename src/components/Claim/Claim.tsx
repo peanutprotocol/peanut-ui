@@ -36,7 +36,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import PageContainer from '../0_Bruddle/PageContainer'
-import PeanutLoading from '../Global/PeanutLoading'
+import Loading from '../Global/Loading'
 import * as _consts from './Claim.consts'
 import FlowManager from './Link/FlowManager'
 import { type ClaimXChainPreview } from './Claim.consts'
@@ -448,7 +448,7 @@ export const Claim = ({}) => {
         >
             {linkState === _consts.claimLinkStateType.LOADING && (
                 <div className="flex flex-col items-center gap-4 px-4">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                     {isSendLinkLoading && failureCount > 0 && (
                         <p className="text-gray-600 text-center text-sm">
                             {failureCount < 3 ? t('loading.loadingYourLink') : t('loading.takingLonger')}

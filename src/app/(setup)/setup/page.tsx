@@ -1,6 +1,6 @@
 'use client'
 
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId, type ISetupStep } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -254,7 +254,7 @@ function SetupPageContent() {
     if (isLoading || !sessionChecked)
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                <PeanutLoading />
+                <Loading variant="mascot" />
             </div>
         )
 
@@ -285,7 +285,7 @@ function SetupPageContent() {
         console.warn('SetupPage: No current step found, and no blocking modal. Possibly init issue.')
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                <PeanutLoading />
+                <Loading variant="mascot" />
             </div>
         )
     }
@@ -299,7 +299,7 @@ function SetupPageContent() {
         console.warn('SetupPage: No current step after modal checks.')
         return (
             <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                <PeanutLoading />
+                <Loading variant="mascot" />
             </div>
         )
     }
@@ -337,7 +337,7 @@ function SetupPageContent() {
 
 export default function SetupPage() {
     return (
-        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+        <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
             <SetupPageContent />
         </Suspense>
     )

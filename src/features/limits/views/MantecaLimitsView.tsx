@@ -10,7 +10,7 @@ import { useState } from 'react'
 import PeriodToggle from '../components/PeriodToggle'
 import LimitsProgressBar from '../components/LimitsProgressBar'
 import Image from 'next/image'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import {
     getLimitData,
     getLimitColorClass,
@@ -37,7 +37,7 @@ const MantecaLimitsView = () => {
         <div className="space-y-6 flex min-h-[inherit] flex-col">
             <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
 
-            {isLoading && <PeanutLoading coverFullScreen />}
+            {isLoading && <Loading variant="mascot" coverFullScreen />}
 
             {error && <LimitsError />}
 

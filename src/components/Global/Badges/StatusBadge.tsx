@@ -39,24 +39,26 @@ interface StatusBadgeProps {
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'small', customText }) => {
     const t = useTranslations('common')
 
+    // board 17802:61533 colors: pending=attention, processing=info, fail=error,
+    // success=success, accent=soon/custom. borderless, dark text.
     const getStatusStyles = () => {
         switch (status) {
             case 'completed':
             case 'closed':
-                return 'bg-success-2 text-success-4 border border-success-5'
+            case 'refunded':
+                return 'bg-background-badge-success text-foreground-primary'
             case 'pending':
+                return 'bg-background-badge-attention text-foreground-primary'
             case 'processing':
-                return 'bg-secondary-4 text-yellow-6 border border-yellow-7'
+                return 'bg-background-badge-info text-foreground-primary'
             case 'failed':
             case 'cancelled':
-                return 'bg-error-1 text-error border border-error-2'
-            case 'refunded':
-                return 'bg-success-2 text-success-4 border border-success-5'
+                return 'bg-background-badge-error text-foreground-primary'
             case 'soon':
             case 'custom':
-                return 'bg-primary-3 text-primary-4'
+                return 'bg-background-badge-accent text-foreground-primary'
             default:
-                return 'bg-grey-2 text-grey-1'
+                return 'bg-background-badge-helper text-foreground-primary'
         }
     }
 

@@ -17,7 +17,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
@@ -177,7 +177,7 @@ export function SemanticRequestConfirmView() {
     if (!charge || isFetchingCharge) {
         return (
             <div className="flex min-h-[inherit] flex-col items-center justify-center">
-                <PeanutLoading />
+                <Loading variant="mascot" />
             </div>
         )
     }

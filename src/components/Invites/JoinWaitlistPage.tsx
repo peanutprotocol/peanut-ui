@@ -11,7 +11,7 @@ import ErrorAlert from '../Global/ErrorAlert'
 import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import PeanutLoading from '../Global/PeanutLoading'
+import Loading from '../Global/Loading'
 import { useSetupStore } from '@/redux/hooks'
 import { useNotifications } from '@/hooks/useNotifications'
 import { updateUserById } from '@/app/actions/users'
@@ -290,7 +290,7 @@ const JoinWaitlistPage = () => {
 
     const stepImage = step === 'jail' ? PeanutPointing.src : PeanutWavingHello.src
 
-    if (isAutoAccepting) return <PeanutLoading coverFullScreen />
+    if (isAutoAccepting) return <Loading variant="mascot" coverFullScreen />
 
     return (
         <InvitesPageLayout image={stepImage}>
@@ -359,7 +359,7 @@ const JoinWaitlistPage = () => {
                     )}
 
                     {/* Step 3: Jail Screen */}
-                    {step === 'jail' && isLoadingWaitlistPosition && <PeanutLoading coverFullScreen />}
+                    {step === 'jail' && isLoadingWaitlistPosition && <Loading variant="mascot" coverFullScreen />}
                     {step === 'jail' && !isLoadingWaitlistPosition && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
                             <h1 className="text-xl font-extrabold">{t('inviteOnlyTitle')}</h1>

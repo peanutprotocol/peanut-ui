@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import SignTestTransaction from '@/components/Setup/Views/SignTestTransaction'
 import { PeanutWhistling } from '@/assets/mascot'
@@ -37,7 +37,7 @@ function FinishSetupPageContent() {
 
 export default function FinishSetupPage() {
     return (
-        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+        <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
             <FinishSetupPageContent />
         </Suspense>
     )

@@ -93,6 +93,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     // When the logo fails AND the caller supplied a `fallback`, prefer that
     // semantic visual (icon + colors) over whatever icon/colors were originally
     // passed for the no-logo case.
+    const nameColors = name ? getColorForUsername(name) : undefined
     const useFallback = logoFailed && fallback
     const effectiveIcon = useFallback ? fallback.icon : icon
     const effectiveIconFill = useFallback && fallback.iconFillColor ? fallback.iconFillColor : iconFillColor
@@ -111,9 +112,9 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                 // apply dynamic styles (e.g., background color)
 
                 style={{
-                    background: name ? getColorForUsername(name).lightShade : undefined,
-                    border: name && !effectiveIcon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
-                    color: name ? getColorForUsername(name).darkShade : !effectiveIcon ? effectiveTextColor : undefined,
+                    background: nameColors?.lightShade,
+                    border: nameColors && !effectiveIcon ? `1px solid ${nameColors.borderShade}` : undefined,
+                    color: nameColors ? nameColors.darkShade : !effectiveIcon ? effectiveTextColor : undefined,
                     ...effectiveInlineStyle,
                 }}
             >

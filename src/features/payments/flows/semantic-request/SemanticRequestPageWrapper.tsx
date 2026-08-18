@@ -14,7 +14,7 @@
 
 import { SemanticRequestPage } from './SemanticRequestPage'
 import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSearchParams } from 'next/navigation'
@@ -90,7 +90,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )

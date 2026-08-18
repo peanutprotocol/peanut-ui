@@ -7,7 +7,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
@@ -105,7 +105,7 @@ export default function CardRecoveryPage() {
         }
     }, [getClientForChain, t])
 
-    if (!preview && !error) return <PeanutLoading />
+    if (!preview && !error) return <Loading variant="mascot" />
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">

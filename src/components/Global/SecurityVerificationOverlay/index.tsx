@@ -1,5 +1,5 @@
 'use client'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 
@@ -21,12 +21,8 @@ export default function SecurityVerificationOverlay() {
     const { isSecurityVerificationOpen } = useModalsContext()
     if (!isSecurityVerificationOpen) return null
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background"
-            role="status"
-            aria-live="polite"
-        >
-            <PeanutLoading message={t('securityVerificationOverlay.message')} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+            <Loading variant="mascot" message={t('securityVerificationOverlay.message')} />
         </div>
     )
 }

@@ -2,7 +2,7 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
-import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
+import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'

@@ -4,7 +4,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { notificationsApi, type InAppItem } from '@/services/notifications'
 import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import { deepLinkToNativePath } from '@/utils/native-routes'
@@ -135,7 +135,7 @@ export default function NotificationsPage() {
     }
 
     if (isInitialLoading && notifications.length === 0) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     return (

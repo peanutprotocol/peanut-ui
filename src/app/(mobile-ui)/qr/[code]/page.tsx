@@ -8,7 +8,7 @@ import { useAuth } from '@/context/authContext'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl, generateInviteCodeLink, sanitizeRedirectURL } from '@/utils/general.utils'
@@ -132,7 +132,7 @@ export default function RedirectQrClaimPage() {
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
                 <NavHeader title={tLoading('loading')} />
                 <div className="my-auto flex h-full items-center justify-center">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )
@@ -145,7 +145,7 @@ export default function RedirectQrClaimPage() {
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
                 <NavHeader title={tLoading('loading')} />
                 <div className="my-auto flex h-full items-center justify-center">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )
