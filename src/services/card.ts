@@ -9,9 +9,9 @@
  * launch — the new free badge-gated waitlist supersedes it.
  */
 
-import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
-import { authReady, getAuthHeaders } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { authReady, getAuthToken } from '@/utils/auth-token'
+import { apiFetch } from '@/utils/api-fetch'
+import { isDemoMode } from '@/utils/demo'
 
 export interface CardInfoResponse {
     /** Inner gate: cardAccessGrantedAt set OR holds a SKIP_BADGE_CODES badge
@@ -59,19 +59,27 @@ export interface WaitlistStateResponse {
     releasedAt: string | null
 }
 
-async function authHeaders(): Promise<Record<string, string>> {
+/**
+ * Fail fast — loud and local — instead of an opaque 401 from an
+ * unauthenticated request. apiFetch itself awaits authReady() and attaches
+ * the Bearer token; this only checks one exists. Demo mode has no JWT —
+ * skip so the request reaches apiFetch's demo interceptor (which serves
+ * /card). (The old api-key header was dead weight: PEANUT_API_KEY has no
+ * NEXT_PUBLIC_ prefix so it is undefined in the client bundle, and the
+ * backend dropped its api-key requirement — see api-fetch.ts.)
+ */
+async function assertAuthenticated(): Promise<void> {
+    if (isDemoMode()) return
     await authReady()
-    const headers = getAuthHeaders({ 'api-key': PEANUT_API_KEY })
-    if (!headers['Authorization']) throw new Error('Authentication required')
-    return headers
+    if (!getAuthToken()) throw new Error('Authentication required')
 }
 
 export const cardApi = {
     /** GET /card — info + waitlist state. */
     getInfo: async (): Promise<CardInfoResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
+        await assertAuthenticated()
+        const response = await apiFetch('/card', {
             method: 'GET',
-            headers: await authHeaders(),
             cache: 'no-store',
         })
         if (!response.ok) {
@@ -83,9 +91,10 @@ export const cardApi = {
 
     /** POST /card/waitlist/join — idempotent stamp + position. */
     joinWaitlist: async (): Promise<{ joinedAt: string; position: number | null }> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/join`, {
+        await assertAuthenticated()
+        // apiFetch sets Content-Type: application/json for the string body
+        const response = await apiFetch('/card/waitlist/join', {
             method: 'POST',
-            headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
             body: '{}',
             cache: 'no-store',
         })
@@ -98,9 +107,9 @@ export const cardApi = {
 
     /** GET /card/waitlist/state — current waitlist state. */
     getWaitlistState: async (): Promise<WaitlistStateResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/state`, {
+        await assertAuthenticated()
+        const response = await apiFetch('/card/waitlist/state', {
             method: 'GET',
-            headers: await authHeaders(),
             cache: 'no-store',
         })
         if (!response.ok) {

@@ -1,11 +1,7 @@
 import { jsonParse, jsonStringify, getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
-import { serverFetch } from '@/utils/api-fetch'
-import { getAuthHeaders, authReady } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { isDemoMode } from '@/utils/demo'
+import { apiFetch, serverFetch } from '@/utils/api-fetch'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
@@ -81,16 +77,7 @@ type UpdateLinkBody = {
 
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
-        // This call bypasses callApi (multipart upload), so the demo interceptor
-        // is invoked explicitly here. Lazy import keeps the demo module out of
-        // this service's module graph on web/tests.
-        if (isDemoMode()) {
-            const { demoRespond } = await import('@/utils/demo-api')
-            return jsonParse(await (await demoRespond('/send-links', { method: 'POST' })).text())
-        }
-
         let requestBody: FormData | string
-        const headers: Record<string, string> = {}
 
         // check if attachment is a File or Blob object
         if (sendLink.attachment && (sendLink.attachment instanceof File || sendLink.attachment instanceof Blob)) {
@@ -118,17 +105,16 @@ export const sendLinksApi = {
                 }
             }
         } else {
-            // no file, or attachment is not a File/Blob, send as JSON
+            // no file, or attachment is not a File/Blob, send as JSON —
+            // apiFetch sets Content-Type: application/json for string bodies
             requestBody = jsonStringify(sendLink)
-            headers['Content-Type'] = 'application/json'
         }
 
-        await authReady()
-        Object.assign(headers, getAuthHeaders())
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
+        // demo mode is handled inside apiFetch (the POST /send-links demo
+        // handler serves a canned link and never reads the body)
+        const response = await apiFetch('/send-links', {
             method: 'POST',
             body: requestBody,
-            headers,
         })
 
         if (!response.ok) {

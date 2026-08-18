@@ -18,7 +18,15 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
-const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate'])
+// /tokens/* are public too — the canned {} fallback is NOT a valid shape for
+// them (fetchWalletBalances crashed on `{}.balances.filter` in recover-funds).
+const PASSTHROUGH_GET = new Set([
+    '/bridge/exchange-rate',
+    '/manteca/prices',
+    '/fx/rate',
+    '/tokens/price',
+    '/tokens/wallet-portfolio',
+])
 
 const EMPTY_GRAPH = {
     nodes: [] as unknown[],
@@ -46,6 +54,32 @@ type DemoRequestBody = {
 }
 
 function parseBody(options?: RequestInit): DemoRequestBody {
+    // Multipart callers (charges, send-links attachments) reach here through
+    // apiFetch's demo routing with a FormData body — read it field-by-field so
+    // a caller without an explicit JSON pre-intercept still records real
+    // values instead of silently degrading to {} (e.g. amount '0').
+    if (options?.body instanceof FormData) {
+        const out: Record<string, unknown> = {}
+        options.body.forEach((value, key) => {
+            if (typeof value !== 'string') return // File/Blob — not body data
+            // Only object/array fields arrive JSON-stringified (charges appends
+            // non-File objects via JSON.stringify); parse just those. Parsing
+            // every string would coerce "123"/"true" into numbers/booleans and
+            // violate declared string fields (reference, username) — gating on
+            // the first char is simpler and safer than a known-field list.
+            const trimmed = value.trim()
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                try {
+                    out[key] = JSON.parse(trimmed)
+                    return
+                } catch {
+                    // malformed — keep the raw string
+                }
+            }
+            out[key] = value
+        })
+        return out as DemoRequestBody
+    }
     try {
         return typeof options?.body === 'string' ? JSON.parse(options.body) : {}
     } catch {
@@ -337,7 +371,50 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
     { method: 'POST', pattern: '/users/accounts', handler: () => ({ id: 'demo-bank' }) },
-    { method: 'GET', pattern: '/users/username/:username', handler: ({ params }) => demoApiUser(params.username) },
+    {
+        method: 'GET',
+        pattern: '/users/username/:username',
+        handler: ({ params }) => {
+            // Only the demo cast resolves: the demo user plus the seeded contacts
+            // (recipient resolution + profile lookups keep working). Everything
+            // else 404s — Signup's availability probe reads 200 as "taken", so a
+            // blanket 200 blocked signup for EVERY username when the demo flag
+            // was still latched from a 'demo' invite-code entry. Responses carry
+            // the CANONICAL record's identity — inventing one via demoApiUser
+            // gave 'demo' userId 'demo-demo' instead of 'demo-user'/DEMO_ADDRESS.
+            if (params.username === DEMO_USER.user.username) {
+                const { userId, username, fullName, showFullName } = DEMO_USER.user
+                return {
+                    userId,
+                    username,
+                    accounts: DEMO_USER.accounts.map((a) => ({ identifier: a.identifier, type: a.type })),
+                    fullName,
+                    firstName: fullName?.split(' ')[0] ?? username,
+                    lastName: fullName?.split(' ').slice(1).join(' ') ?? '',
+                    showFullName,
+                    totalUsdSentToCurrentUser: '0',
+                    totalUsdReceivedFromCurrentUser: '0',
+                    isVerified: true,
+                }
+            }
+            const contact = DEMO_CONTACTS.find((c) => c.username === params.username)
+            if (!contact) return json({ error: 'not found' }, 404)
+            return {
+                userId: contact.userId,
+                username: contact.username,
+                // contacts carry no account data — synthesize the same
+                // username-keyed peanut-wallet demoApiUser always used
+                accounts: [{ identifier: contact.username, type: 'peanut-wallet' }],
+                fullName: contact.fullName,
+                firstName: contact.fullName?.split(' ')[0] ?? contact.username,
+                lastName: contact.fullName?.split(' ').slice(1).join(' ') ?? '',
+                showFullName: contact.showFullName,
+                totalUsdSentToCurrentUser: '0',
+                totalUsdReceivedFromCurrentUser: '0',
+                isVerified: contact.isVerified,
+            }
+        },
+    },
     { method: 'GET', pattern: '/users/:userId/rewards', handler: () => [] },
     { method: 'GET', pattern: '/users/:userId', handler: ({ params }) => demoCounterparty(params.userId) },
     {
@@ -650,6 +727,7 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
     // Live-rate passthrough to the real backend (best-effort).
+    let passthroughFailed = false
     if (method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), PASSTHROUGH_TIMEOUT_MS)
@@ -660,10 +738,11 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
             })
             if (res.ok) return res
         } catch {
-            // fall through to the canned handler below
+            // fall through to the canned handler below (the FX trio has one)
         } finally {
             clearTimeout(timeout)
         }
+        passthroughFailed = true
     }
 
     for (const route of compiled) {
@@ -676,6 +755,14 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
         })
         const result = route.handler({ params, options })
         return result instanceof Response ? result : json(result)
+    }
+
+    // A failed passthrough with no canned fallback (e.g. /tokens/*) must NOT
+    // degrade to the 200 defaultShape below — callers would parse {} as success
+    // and crash on missing fields (the recover-funds balances TypeError).
+    // Surface a real failure so their error paths run instead.
+    if (passthroughFailed) {
+        return json({ error: 'demo passthrough unavailable' }, 503)
     }
 
     if (process.env.NODE_ENV !== 'production') {
