@@ -2,7 +2,7 @@
 // in capacitor (static export), dynamic routes don't work — use query params instead.
 // on web, use the normal path-based urls.
 
-import { couldBeRecipient, isReservedRoute } from '@/constants/routes'
+import { couldBeRecipient, isPlausibleUsername, isReservedRoute } from '@/constants/routes'
 import { isCapacitor } from './capacitor'
 
 // Deep links are peanut.me links by definition — that's the host the Android
@@ -12,7 +12,7 @@ import { isCapacitor } from './capacitor'
 const APP_HOSTS = /^(.+\.)?peanut\.me$/
 
 export function profileUrl(username: string): string {
-    return isCapacitor() ? `/send?recipient=${encodeURIComponent(username)}` : `/${username}`
+    return isCapacitor() ? `/profile/view?username=${encodeURIComponent(username)}` : `/${username}`
 }
 
 export function sendUrl(username: string): string {
@@ -150,8 +150,17 @@ function mapDeepLinkPath(parsed: URL): string | null {
         if (couldBeRecipient(segments[0])) {
             const chargeId = parsed.searchParams.get('chargeId')
             if (chargeId) return chargePayUrl(chargeId)
-            // usernames, addresses and semantic pay paths (user@chain/amount)
-            // all funnel into /send?recipient= — SendRouterView dispatches
+            /*
+             * No charge params: a bare `/<username>` is the public profile
+             * (mirrors the web catch-all's profile branch); anything else — an
+             * amount segment, `user@chain`, address, ENS — is a payment shape
+             * and goes to the send dispatcher.
+             */
+            if (segments.length === 1 && isPlausibleUsername(segments[0])) {
+                return profileUrl(decodeURIComponent(segments[0]))
+            }
+            // addresses and semantic pay paths (user@chain/amount) all funnel
+            // into /send?recipient= — SendRouterView dispatches
             return recipientPayUrl(decodeURIComponent(segments.join('/')))
         }
         return null

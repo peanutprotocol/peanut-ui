@@ -121,7 +121,7 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
  * Note: Most dev tools routes are NOT public - they require both authentication and specific user authorization
  * Exception: /dev/payment-graph is public (uses API key instead of user auth)
  */
-export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|dev\/payment-graph)/
+export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view|dev\/payment-graph)/
 
 /**
  * Regex for dev-only public routes: ALL /dev pages (index + every tool/preview).
@@ -164,6 +164,16 @@ export function isReservedRoute(path: string): boolean {
  * this server-side, update both call sites.
  */
 const USERNAME_PATTERN = /^[a-z][a-z0-9]{3,11}$/
+
+/** Whether a path segment is shaped like a bare Peanut username — as opposed
+ *  to an address, ENS name, or `user@chain` handle (see couldBeRecipient). */
+export function isPlausibleUsername(segment: string): boolean {
+    try {
+        return USERNAME_PATTERN.test(decodeURIComponent(segment).toLowerCase())
+    } catch {
+        return false
+    }
+}
 
 /**
  * Helper to check if a first segment could plausibly identify a payment recipient:

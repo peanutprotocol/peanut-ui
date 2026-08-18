@@ -34,8 +34,8 @@ describe('native-routes', () => {
         })
 
         describe('profileUrl', () => {
-            it('should return /send with recipient query param', () => {
-                expect(profileUrl('alice')).toBe('/send?recipient=alice')
+            it('should return the query-param public-profile stand-in', () => {
+                expect(profileUrl('alice')).toBe('/profile/view?username=alice')
             })
         })
 
@@ -315,8 +315,20 @@ describe('native-routes', () => {
             // the root recipient catch-all is pruned from the native export —
             // a passthrough would chunk-error, so recipient paths funnel into
             // /send?recipient= and anything unmappable is dropped (null)
-            it('funnels a bare profile path into /send?recipient=', () => {
-                expect(deepLinkToNativePath('/kushagra')).toBe('/send?recipient=kushagra')
+            // A bare `/<username>` is a profile link, not a payment shape — it
+            // maps to the in-app profile stand-in rather than the send form.
+            it('maps a bare username onto the in-app public profile', () => {
+                expect(deepLinkToNativePath('/kushagra')).toBe('/profile/view?username=kushagra')
+                expect(deepLinkToNativePath('https://peanut.me/brbalinda')).toBe('/profile/view?username=brbalinda')
+            })
+
+            it('funnels payment-shaped recipient paths into /send?recipient=', () => {
+                expect(deepLinkToNativePath('/alice/10USDC')).toBe(
+                    `/send?recipient=${encodeURIComponent('alice/10USDC')}`
+                )
+                expect(deepLinkToNativePath('/0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5')).toBe(
+                    `/send?recipient=${encodeURIComponent('0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5')}`
+                )
             })
 
             it('funnels a semantic pay path (user@chain/amount) into /send?recipient=', () => {
