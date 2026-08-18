@@ -14,7 +14,7 @@
 // one-line reason — do not weaken the detection.
 
 import { readdirSync, readFileSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, sep } from 'node:path'
 
 const SRC = join(__dirname, '..', '..')
 
@@ -39,7 +39,8 @@ describe('no direct fetchWithSentry calls against PEANUT_API_URL', () => {
         for (const p of walk(SRC)) {
             if (!/\.(ts|tsx)$/.test(p)) continue
             if (/\.test\.(ts|tsx)$/.test(p)) continue
-            const rel = relative(SRC, p)
+            // posix-normalized so EXEMPT matches on Windows checkouts too
+            const rel = relative(SRC, p).split(sep).join('/')
             if (rel.includes('__tests__') || rel.includes('__mocks__')) continue
             if (EXEMPT.has(rel)) continue
             const text = readFileSync(p, 'utf8')
@@ -65,5 +66,12 @@ describe('no direct fetchWithSentry calls against PEANUT_API_URL', () => {
             }
         }
         expect(stale).toEqual([])
+    })
+
+    it('keeps the wrapper down to exactly one sanctioned direct call', () => {
+        // The whole-file exemption above would hide a SECOND direct call added
+        // to api-fetch.ts — pin the count so that can't happen silently.
+        const text = readFileSync(join(SRC, 'utils/api-fetch.ts'), 'utf8')
+        expect(text.match(/fetchWithSentry\(/g)).toHaveLength(1)
     })
 })

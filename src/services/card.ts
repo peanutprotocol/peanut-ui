@@ -12,6 +12,7 @@
 import { PEANUT_API_KEY } from '@/constants/general.consts'
 import { authReady, getAuthHeaders } from '@/utils/auth-token'
 import { apiFetch } from '@/utils/api-fetch'
+import { isDemoMode } from '@/utils/demo'
 
 export interface CardInfoResponse {
     /** Inner gate: cardAccessGrantedAt set OR holds a SKIP_BADGE_CODES badge
@@ -60,6 +61,9 @@ export interface WaitlistStateResponse {
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
+    // Demo mode has no JWT — skip the auth gate so the request reaches
+    // apiFetch's demo interceptor (which serves /card) instead of throwing.
+    if (isDemoMode()) return { 'api-key': PEANUT_API_KEY }
     await authReady()
     const headers = getAuthHeaders({ 'api-key': PEANUT_API_KEY })
     if (!headers['Authorization']) throw new Error('Authentication required')
