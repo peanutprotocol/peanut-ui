@@ -30,7 +30,7 @@ export default function PatternsPage() {
                 />
                 <CatalogCard
                     title="Navigation"
-                    description="NavHeader and FlowHeader for screen navigation"
+                    description="NavHeader for screen navigation"
                     href="/dev/ds/patterns/navigation"
                     icon="link"
                     status="production"

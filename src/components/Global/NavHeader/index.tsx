@@ -22,7 +22,17 @@ interface NavHeaderProps {
     icon?: IconName
     showLogoutBtn?: boolean
     titleClassName?: string
+    /** trailing slot (board navigation.top.trailing) — step indicators, actions */
+    rightElement?: React.ReactNode
+    /** render no back button at all (board navigation.top.trailing.*) —
+     *  ex-FlowHeader flows that hid the button on step 1 */
+    hideBackBtn?: boolean
 }
+
+// board 17802:61534 top-nav circle button: 40px visual, no shadow, pseudo-element
+// extends the hit area to 44px (touch-target law — was 28px, the "opened support
+// instead of going back" bug)
+const navCircleBtn = 'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5'
 
 const NavHeader = ({
     title,
@@ -34,16 +44,30 @@ const NavHeader = ({
     disableBackBtn,
     showLogoutBtn = false,
     titleClassName,
+    rightElement,
+    hideBackBtn = false,
 }: NavHeaderProps) => {
     const { logoutUser, isLoggingOut } = useAuth()
     const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)
 
     return (
-        <div className="relative flex w-full flex-row items-center justify-between md:block">
-            {!onPrev ? (
+        // flow mode (hideLabel) keeps flex justify-between at every breakpoint;
+        // md:block is the title-mode desktop layout only
+        <div
+            className={twMerge('relative flex w-full flex-row items-center justify-between', !hideLabel && 'md:block')}
+        >
+            {hideBackBtn ? (
+                <div />
+            ) : !onPrev ? (
                 <Link href={href ?? '/home'} className="md:hidden">
-                    <Button variant="stroke" className="h-7 w-7 p-0" data-testid="nav-back">
+                    <Button
+                        variant="stroke"
+                        className={navCircleBtn}
+                        aria-label={tCommon('back')}
+                        data-testid="nav-back"
+                    >
                         <Icon
                             name={icon}
                             size={20}
@@ -54,9 +78,10 @@ const NavHeader = ({
             ) : (
                 <Button
                     variant="stroke"
-                    className="h-7 w-7 p-0"
+                    className={navCircleBtn}
                     onClick={onPrev}
                     disabled={disableBackBtn}
+                    aria-label={tCommon('back')}
                     data-testid="nav-back"
                 >
                     <Icon
@@ -77,13 +102,15 @@ const NavHeader = ({
                 </div>
             )}
 
+            {rightElement}
             {showLogoutBtn && (
                 <Button
                     onClick={() => logoutUser()}
                     loading={isLoggingOut}
                     variant="stroke"
                     icon="logout"
-                    className={twMerge('h-7 w-7 p-0 md:hidden')}
+                    aria-label={tNav('logout')}
+                    className={twMerge(navCircleBtn, 'md:hidden')}
                 />
             )}
         </div>

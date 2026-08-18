@@ -1,0 +1,64 @@
+import { twMerge } from 'tailwind-merge'
+import { Icon, type IconName } from '../Global/Icons/Icon'
+
+type IconBubbleSize = 'xs' | 's' | 'm' | 'l'
+type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue'
+
+interface IconBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
+    icon: IconName | React.ReactNode
+    size?: IconBubbleSize
+    color?: IconBubbleColor
+    iconClassName?: string
+}
+
+// board 17802:61528: bubble sizes xs=24 s=32 m=48 l=72
+const bubbleSizes: Record<IconBubbleSize, string> = {
+    xs: 'size-6',
+    s: 'size-8',
+    m: 'size-12',
+    l: 'size-18',
+}
+
+const bubbleIconSizes: Record<IconBubbleSize, number> = {
+    xs: 16,
+    s: 16,
+    m: 24,
+    l: 32,
+}
+
+const bubbleColors: Record<IconBubbleColor, string> = {
+    green: 'bg-background-icon-bubble-green',
+    red: 'bg-background-icon-bubble-red',
+    yellow: 'bg-background-icon-bubble-yellow',
+    gray: 'bg-background-icon-bubble-gray',
+    blue: 'bg-background-icon-bubble-blue',
+}
+
+/**
+ * Round colored icon container from the figma icon-bubble board (17802:61528).
+ * Sizes: xs=24, s=32, m=48 (card default), l=72px.
+ */
+export const IconBubble = ({
+    icon,
+    size = 'm',
+    color = 'green',
+    className,
+    iconClassName,
+    ...props
+}: IconBubbleProps) => (
+    <div
+        className={twMerge(
+            'flex shrink-0 items-center justify-center rounded-round text-foreground-primary',
+            bubbleSizes[size],
+            bubbleColors[color],
+            className
+        )}
+        {...props}
+    >
+        {typeof icon === 'string' ? (
+            <Icon name={icon as IconName} size={bubbleIconSizes[size]} className={iconClassName} />
+        ) : (
+            icon
+        )}
+    </div>
+)

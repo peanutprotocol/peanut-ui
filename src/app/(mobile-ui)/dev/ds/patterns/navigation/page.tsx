@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import FlowHeader from '@/components/Global/FlowHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import NavHeader from '@/components/Global/NavHeader'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -18,7 +18,7 @@ export default function NavigationPage() {
         <DocPage>
             <DocHeader
                 title="Navigation"
-                description="NavHeader for page-level navigation with title and back button. FlowHeader for multi-step flows with optional right element."
+                description="NavHeader for page-level navigation — back button, optional title, optional trailing element (board navigation.top.*)."
                 status="production"
             />
 
@@ -97,8 +97,8 @@ export default function NavigationPage() {
                 </DocSection.Code>
             </DocSection>
 
-            {/* FlowHeader */}
-            <DocSection title="FlowHeader">
+            {/* Flow usage (hideLabel + rightElement) */}
+            <DocSection title="Flow Usage (hideLabel + rightElement)">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
                         Minimal header for multi-step flows. Back button on the left, optional element on the right. No
@@ -110,8 +110,9 @@ export default function NavigationPage() {
                         <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">
                             Live Demo (step {flowStep}/3)
                         </p>
-                        <FlowHeader
-                            onPrev={flowStep > 1 ? () => setFlowStep((s) => s - 1) : undefined}
+                        <NavHeader
+                            hideLabel
+                            onPrev={() => setFlowStep((s) => Math.max(1, s - 1))}
                             disableBackBtn={flowStep <= 1}
                             rightElement={<span className="text-xs text-grey-1">{flowStep}/3</span>}
                         />
@@ -158,12 +159,12 @@ export default function NavigationPage() {
                     />
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Import" code={`import FlowHeader from '@/components/Global/FlowHeader'`} />
-
                     <CodeBlock
                         label="Usage"
-                        code={`<FlowHeader
-  onPrev={() => setStep(step - 1)}
+                        code={`<NavHeader
+  hideLabel
+  onPrev={() => setStep((s) => Math.max(1, s - 1))}
+  disableBackBtn={step <= 1}
   rightElement={<span className="text-xs text-grey-1">2/3</span>}
 />`}
                     />
@@ -175,12 +176,12 @@ export default function NavigationPage() {
             {/* Design Notes */}
             <DocSection title="Design Rules">
                 <DesignNote type="info">
-                    Use NavHeader for standalone pages (Settings, Profile, etc.). Use FlowHeader for multi-step wizards
-                    (Send, Request, Claim, etc.).
+                    NavHeader is the one top-nav header: title mode for standalone pages (Settings, Profile), hideLabel
+                    + rightElement mode for multi-step wizards (Send, Request, Claim). FlowHeader was folded into it.
                 </DesignNote>
                 <DesignNote type="info">
-                    Both use a 28px (h-7 w-7) stroke button for the back arrow. This is the standard navigation button
-                    size.
+                    The back arrow is a 40px circle button with a 44px hit area (board navigation.top.*) — the standard
+                    navigation button size.
                 </DesignNote>
             </DocSection>
         </DocPage>

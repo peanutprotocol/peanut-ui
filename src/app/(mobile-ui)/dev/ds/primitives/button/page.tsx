@@ -38,17 +38,17 @@ export default function ButtonPage() {
 
             <DoDont
                 doExample={
-                    <Button variant="purple" shadowSize="4" className="w-full">
+                    <Button variant="purple" className="w-full">
                         Continue
                     </Button>
                 }
-                doLabel="Default height (no size prop) for primary CTAs"
+                doLabel="Default (medium, 44px) for primary CTAs — shadow is built in"
                 dontExample={
-                    <Button variant="purple" size="large" className="w-full">
+                    <Button variant="purple" size="small" className="w-full">
                         Continue
                     </Button>
                 }
-                dontLabel='size="large" is actually shorter (h-10 vs h-13)'
+                dontLabel='size="small" is for compact UI, not full-width CTAs'
             />
 
             <SectionDivider />
@@ -57,7 +57,7 @@ export default function ButtonPage() {
                 <Playground
                     name="Button"
                     importPath={`import { Button } from '@/components/0_Bruddle/Button'`}
-                    defaults={{ variant: 'purple', children: 'Continue', shadowSize: '4' }}
+                    defaults={{ variant: 'purple', children: 'Continue' }}
                     controls={[
                         {
                             type: 'select',
@@ -169,38 +169,38 @@ export default function ButtonPage() {
                     <div className="flex flex-wrap items-end gap-4">
                         <div className="text-center">
                             <Button variant="stroke">default</Button>
-                            <p className="mt-2 text-xs text-grey-1">h-13 (52px)</p>
+                            <p className="mt-2 text-xs text-grey-1">medium · 44px</p>
                         </div>
                         <div className="text-center">
                             <Button variant="stroke" size="small">
                                 small
                             </Button>
-                            <p className="mt-2 text-xs text-grey-1">h-8 · 29 usages</p>
+                            <p className="mt-2 text-xs text-grey-1">40px (44px hit area)</p>
                         </div>
                         <div className="text-center">
                             <Button variant="stroke" size="medium">
                                 medium
                             </Button>
-                            <p className="mt-2 text-xs text-grey-1">h-9 · 10 usages</p>
+                            <p className="mt-2 text-xs text-grey-1">44px (= default)</p>
                         </div>
                         <div className="text-center">
                             <Button variant="stroke" size="large">
                                 large
                             </Button>
-                            <p className="mt-2 text-xs text-grey-1">h-10 · 5 usages</p>
+                            <p className="mt-2 text-xs text-grey-1">48px</p>
                         </div>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="Sizes"
-                        code={`{/* Default: h-13 (tallest) */}
+                        code={`{/* Default = medium (44px) */}
 <Button>Default</Button>
 
-{/* Named sizes are SHORTER */}
-<Button size="small">Small (h-8)</Button>
-<Button size="medium">Medium (h-9)</Button>
-<Button size="large">Large (h-10)</Button>`}
+{/* Board sizes: l=48, m=44, s=40 */}
+<Button size="small">Small (40px)</Button>
+<Button size="medium">Medium (44px)</Button>
+<Button size="large">Large (48px)</Button>`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -214,8 +214,8 @@ export default function ButtonPage() {
                         {
                             name: 'size',
                             type: "'small' | 'medium' | 'large'",
-                            default: '(none = h-13)',
-                            description: 'Height override. Default is tallest.',
+                            default: '(none = medium, 44px)',
+                            description: 'Board sizes: l=48px, m=44px, s=40px',
                         },
                         { name: 'shape', type: "'default' | 'square'", default: "'default'" },
                         {
@@ -249,13 +249,13 @@ export default function ButtonPage() {
 
             <DocSection title="Design Rules">
                 <div className="space-y-4">
-                    <DesignNote type="warning">
-                        size=&quot;large&quot; is h-10 — SHORTER than default h-13. Default is the tallest button.
-                        Primary CTAs should use NO size prop.
+                    <DesignNote type="info">
+                        Sizes follow the figma board: large=48px, medium=44px (default), small=40px with a 44px hit
+                        area. The old &quot;large is shorter than default&quot; trap is gone.
                     </DesignNote>
                     <DesignNote type="info">
-                        Primary CTA pattern: variant=&quot;purple&quot; shadowSize=&quot;4&quot;
-                        className=&quot;w-full&quot; — no size prop.
+                        Primary CTA pattern: variant=&quot;purple&quot; className=&quot;w-full&quot; — no size prop, no
+                        shadowSize (the 4px shadow is built into purple/stroke).
                     </DesignNote>
                 </div>
             </DocSection>
@@ -265,7 +265,7 @@ export default function ButtonPage() {
                     <div className="space-y-6">
                         <div>
                             <p className="text-sm font-bold">Primary CTA (most common)</p>
-                            <Button variant="purple" shadowSize="4" className="mt-2 w-full">
+                            <Button variant="purple" className="mt-2 w-full">
                                 Continue
                             </Button>
                         </div>
@@ -303,7 +303,7 @@ export default function ButtonPage() {
                     <CodeBlock label="Import" code={`import { Button } from '@/components/0_Bruddle/Button'`} />
                     <CodeBlock
                         label="Primary CTA"
-                        code={`<Button variant="purple" shadowSize="4" className="w-full">
+                        code={`<Button variant="purple" className="w-full">
   Continue
 </Button>`}
                     />

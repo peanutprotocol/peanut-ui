@@ -26,6 +26,8 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
     primitives: [
         { label: 'Button', icon: 'switch', href: '/dev/ds/primitives/button' },
         { label: 'Card', icon: 'docs', href: '/dev/ds/primitives/card' },
+        { label: 'ListItem', icon: 'docs', href: '/dev/ds/primitives/list-item' },
+        { label: 'IconBubble', icon: 'plus-circle', href: '/dev/ds/primitives/icon-bubble' },
         { label: 'BaseInput', icon: 'clip', href: '/dev/ds/primitives/base-input' },
         { label: 'BaseSelect', icon: 'clip', href: '/dev/ds/primitives/base-select' },
         { label: 'Checkbox', icon: 'check', href: '/dev/ds/primitives/checkbox' },
