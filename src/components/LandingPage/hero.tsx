@@ -1,6 +1,7 @@
 'use client'
 
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_ART_FILL } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -28,14 +29,20 @@ function HeroMascot() {
 
         const heroRect = hero.getBoundingClientRect()
         const h2Rect = h2.getBoundingClientRect()
-        const peanutHeight = host.getBoundingClientRect().height
+        const hostHeight = host.getBoundingClientRect().height
 
-        if (peanutHeight === 0) return // not rendered yet
+        if (hostHeight === 0) return // not rendered yet
+
+        // The drawing fills MASCOT_ART_FILL of the host and is centred in it, so the host
+        // carries half the remainder as padding under the feet. Measure the artwork, not the
+        // box, or the feet float above the headline by that padding instead of overlapping it.
+        const peanutHeight = hostHeight * MASCOT_ART_FILL
+        const footPadding = (hostHeight - peanutHeight) / 2
 
         // Position so peanut's feet (bottom 3%) overlap with h2 top
         const overlap = peanutHeight * 0.06
         const peanutBottom = h2Rect.top - heroRect.top + overlap
-        const peanutTop = peanutBottom - peanutHeight
+        const peanutTop = peanutBottom - peanutHeight - footPadding
 
         host.style.top = `${peanutTop}px`
     }, [])

@@ -11,6 +11,9 @@ import { getMascotPlacement, jitterFrame, subscribeToMascotClock } from './Peanu
 export default function PeanutMascot({ pose, className, alt, loop = true }: PeanutMascotProps) {
     const hostRef = useRef<HTMLDivElement>(null)
     const stageRef = useRef<HTMLDivElement>(null)
+    // Survives visibility toggles: scrolling a mascot out and back should resume the loop,
+    // not restart it — and a loop={false} one-shot must not replay on every re-entry.
+    const virtualFrame = useRef(0)
     const [animation, setAnimation] = useState<AnimationItem | null>(null)
     const [placement, setPlacement] = useState<MascotPlacement | null>(null)
     const [isVisible, setIsVisible] = useState(true)
@@ -90,21 +93,20 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
         if (!isVisible) return
 
         const totalFrames = animation.totalFrames || 1
-        let virtualFrame = 0
         let shownFrame = -1
         let stop = () => {}
 
         stop = subscribeToMascotClock((deltaSeconds) => {
-            virtualFrame += deltaSeconds * animation.frameRate * MASCOT_SPEED
-            if (virtualFrame >= totalFrames) {
+            virtualFrame.current += deltaSeconds * animation.frameRate * MASCOT_SPEED
+            if (virtualFrame.current >= totalFrames) {
                 if (!loop) {
                     animation.goToAndStop(totalFrames - 1, true)
                     stop()
                     return
                 }
-                virtualFrame -= totalFrames
+                virtualFrame.current -= totalFrames
             }
-            const heldFrame = Math.floor(virtualFrame / MASCOT_HOLD_FRAMES) * MASCOT_HOLD_FRAMES
+            const heldFrame = Math.floor(virtualFrame.current / MASCOT_HOLD_FRAMES) * MASCOT_HOLD_FRAMES
             if (heldFrame === shownFrame) return
             shownFrame = heldFrame
             animation.goToAndStop(jitterFrame(heldFrame, totalFrames), true)

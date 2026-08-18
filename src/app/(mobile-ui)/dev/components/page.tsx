@@ -867,11 +867,14 @@ export default function ComponentsPage() {
                             ]}
                         />
                         <div className="rounded-sm border border-error bg-error-1/10 p-3 text-xs">
-                            <span className="font-bold">sizing:</span> the host is a plain div with{' '}
-                            <span className="font-bold">no intrinsic size</span> — unlike{' '}
-                            <span className="font-mono">{'<Image width= height= />'}</span>. always give it a real box
-                            on both axes. <span className="font-mono">h-32 w-auto</span> collapses to zero width and
-                            renders nothing.
+                            <span className="font-bold">sizing:</span> give it a{' '}
+                            <span className="font-bold">height</span>, not a square. the host takes its aspect from the
+                            pose, so <span className="font-mono">h-48 w-auto</span> renders every pose at that height. a
+                            square box fits the wider of the two dimensions instead, which draws a wide pose like{' '}
+                            <span className="font-mono">waving-chill</span> ~23% shorter than a narrow one like{' '}
+                            <span className="font-mono">thinking</span>. prefer the shared{' '}
+                            <span className="font-mono">MASCOT_HERO_CLASS</span> /{' '}
+                            <span className="font-mono">MASCOT_STATE_CLASS</span> over a one-off box.
                         </div>
                         <CopySnippet
                             code={`<PeanutMascot pose="cheering" className="size-24" alt="Peanut cheering" />`}

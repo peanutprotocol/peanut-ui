@@ -4,7 +4,7 @@ export function Careers() {
     return (
         <div className="flex h-full flex-col-reverse items-center justify-center lg:flex-row">
             <div className="w-4/5 md:w-1/2">
-                <PeanutMascot pose="too-cool" className="aspect-square w-full" />
+                <PeanutMascot pose="too-cool" className="h-64 w-auto md:h-80" />
             </div>
             <div>
                 <div className="font-display text-xl lg:text-3xl">{'<'} Hey there! Want to work at Peanut?</div>
