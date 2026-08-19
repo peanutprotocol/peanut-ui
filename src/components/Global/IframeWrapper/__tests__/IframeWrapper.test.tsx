@@ -27,6 +27,10 @@ jest.mock('@/utils/capacitor', () => ({
 const mockBrowserOpen = jest.fn<Promise<void>, [{ url: string }]>(() => Promise.resolve())
 const mockRemoveListener = jest.fn()
 let browserFinished: (() => void) | undefined
+// when set, addListener does not resolve until resolveListener() is called —
+// lets tests unmount while registration is still in flight
+let deferListener = false
+let resolveListener: (() => void) | undefined
 jest.mock(
     '@capacitor/browser',
     () => ({
@@ -34,7 +38,11 @@ jest.mock(
             open: (options: { url: string }) => mockBrowserOpen(options),
             addListener: (_event: string, cb: () => void) => {
                 browserFinished = cb
-                return Promise.resolve({ remove: mockRemoveListener })
+                const handle = { remove: mockRemoveListener }
+                if (!deferListener) return Promise.resolve(handle)
+                return new Promise((resolve) => {
+                    resolveListener = () => resolve(handle)
+                })
             },
         },
     }),
@@ -46,6 +54,8 @@ beforeEach(() => {
     mockBrowserOpen.mockClear()
     mockRemoveListener.mockClear()
     browserFinished = undefined
+    deferListener = false
+    resolveListener = undefined
 })
 
 function findIframe(src: string): HTMLIFrameElement {
@@ -147,6 +157,20 @@ describe('IframeWrapper on android native', () => {
         expect(mockBrowserOpen).toHaveBeenCalledTimes(1)
 
         unmount()
+        expect(mockRemoveListener).toHaveBeenCalled()
+    })
+
+    it('does not open the browser when unmounted while listener registration is in flight', async () => {
+        mockIsAndroidNativeBridge = true
+        deferListener = true
+        const { unmount } = render(<IframeWrapper src="https://compliance.test/tos" visible onClose={jest.fn()} />)
+        await flush()
+
+        unmount()
+        resolveListener?.()
+        await flush()
+
+        expect(mockBrowserOpen).not.toHaveBeenCalled()
         expect(mockRemoveListener).toHaveBeenCalled()
     })
 

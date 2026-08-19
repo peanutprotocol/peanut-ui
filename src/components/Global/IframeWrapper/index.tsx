@@ -62,11 +62,15 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 // Listener first: a tab the user dismisses immediately must not
                 // close before we are listening, or the flow hangs forever.
                 Browser.addListener('browserFinished', () => onCloseRef.current('returned')).then((handle) => {
-                    // Cleanup can run while the dynamic import is still in
-                    // flight; without this the listener registers after the
-                    // fact and nobody ever removes it.
-                    if (disposed) handle.remove()
-                    else remove = () => handle.remove()
+                    // Cleanup can run while the dynamic import / listener
+                    // registration is still in flight; a late arrival must both
+                    // drop its listener AND skip the open, or a fast unmount
+                    // pops the tab after its owning flow has closed.
+                    if (disposed) {
+                        handle.remove()
+                        return
+                    }
+                    remove = () => handle.remove()
                     return Browser.open({ url: src })
                 })
             )
