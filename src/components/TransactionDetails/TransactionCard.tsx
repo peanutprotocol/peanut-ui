@@ -21,8 +21,14 @@ import {
     isStableCoin,
     shortenStringLong,
 } from '@/utils/general.utils'
-import { getAvatarUrl, getTransactionSign, isTestTransaction } from '@/utils/history.utils'
-import React, { lazy, Suspense } from 'react'
+import {
+    getAvatarUrl,
+    getTransactionSign,
+    isTestTransaction,
+    PENDING_AMOUNT_STATUSES,
+    STRUCK_AMOUNT_STATUSES,
+} from '@/utils/history.utils'
+import React, { lazy, Suspense, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import { isAddress } from 'viem'
@@ -79,7 +85,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 }) => {
     // drawer selection lives in the url (`?tx=<id>`) — an open receipt
     // survives refresh and deep-links (states/receipt boards, url-as-state).
-    const { selectedTxId, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
+    const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
+    const isSelected = isTransactionSelected(transaction.id)
+    // mount the (lazy, vaul) drawer only once this row has been selected —
+    // keeps N history rows from each carrying a mounted dialog, while the
+    // ref keeps it mounted through the close animation.
+    const hasBeenSelectedRef = useRef(false)
+    if (isSelected) hasBeenSelectedRef.current = true
     const { triggerHaptic } = useHaptic()
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -180,14 +192,24 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     //   cancelled           = strikethrough, no chip
     //   failed              = strikethrough + failed chip
     //   refunded            = strikethrough + refund chip (board is silent; kept from before)
-    const isPendingAmount = status === 'pending' || status === 'processing' || status === 'soon'
-    const isStruckAmount = status === 'cancelled' || status === 'failed' || status === 'refunded'
+    // Status families come from history.utils so they stay in lockstep with
+    // STATUS_SHOWS_SIGN (the sign rule) — don't re-list statuses here.
+    //
+    // Carve-out (kept from the old isDeclinedCardSpend rule): a FAILED card
+    // REFUND is money still owed to the user — striking it through reads as
+    // "this credit never counted". It keeps the failed chip but not the strike.
+    const isFailedCardRefund =
+        status === 'failed' &&
+        isCardPaymentEntry(transaction) &&
+        !!transaction.extraDataForDrawer?.cardPayment?.isRefund
+    const isPendingAmount = !!status && PENDING_AMOUNT_STATUSES.has(status)
+    const isStruckAmount = !!status && STRUCK_AMOUNT_STATUSES.has(status) && !isFailedCardRefund
     const showStatusChip = !!status && status !== 'completed' && status !== 'closed' && status !== 'cancelled'
 
     // Settlement cleared at a different amount than authorized (tip / FX
     // true-up) — flag the row so the balance impact isn't invisible in the
     // feed; the receipt carries the authorized/adjustment breakdown. Refunds
-    // excluded like isDeclinedCardSpend above — a refund-auth that clears at
+    // excluded like isFailedCardRefund above — a refund-auth that clears at
     // a different amount would otherwise render "Refund · Adjusted".
     const isAdjustedCardSpend =
         isCardPaymentEntry(transaction) &&
@@ -293,9 +315,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
                     <TransactionDetailsDrawer
-                        isOpen={selectedTxId === transaction.id}
+                        isOpen={isSelected}
                         onClose={closeTransactionDetails}
-                        transaction={transaction}
+                        transaction={isSelected || hasBeenSelectedRef.current ? transaction : null}
                         transactionAmount={displayAmount}
                         avatarUrl={avatarUrl}
                     />

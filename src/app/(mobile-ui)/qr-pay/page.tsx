@@ -132,7 +132,7 @@ export default function QRPayPage() {
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [qrPayment, setQrPayment] = useState<QrPayment | null>(null)
     const [currency, setCurrency] = useState<{ code: string; symbol: string; price: number } | undefined>(undefined)
-    const { openTransactionDetails, selectedTxId, closeTransactionDetails } = useTransactionDetailsDrawer()
+    const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
 
     const paymentProcessor: PaymentProcessor | null = useMemo(() => {
@@ -553,7 +553,7 @@ export default function QRPayPage() {
                 },
             },
             totalAmountCollected: Number(usdAmount),
-        } as TransactionDetails
+        }
     }, [qrPayment, currency, usdAmount, methodIcon])
 
     // Fetch Manteca payment lock immediately on QR scan (Manteca only)
@@ -1521,7 +1521,7 @@ export default function QRPayPage() {
                     </div>
                 </div>
                 <TransactionDetailsDrawer
-                    isOpen={!!receiptTransaction && selectedTxId === receiptTransaction.id}
+                    isOpen={isTransactionSelected(receiptTransaction?.id)}
                     onClose={closeTransactionDetails}
                     transaction={receiptTransaction}
                 />

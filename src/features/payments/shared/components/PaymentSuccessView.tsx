@@ -110,7 +110,7 @@ const PaymentSuccessView = ({
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const t = useTranslations('payment')
-    const { selectedTxId, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
+    const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { user: authUser } = useUserStore()
     const queryClient = useQueryClient()
     const { triggerHaptic } = useHaptic()
@@ -367,7 +367,7 @@ const PaymentSuccessView = ({
 
             {/* Transaction Details Drawer */}
             <TransactionDetailsDrawer
-                isOpen={!!receiptTransaction && selectedTxId === receiptTransaction.id}
+                isOpen={isTransactionSelected(receiptTransaction?.id)}
                 onClose={closeTransactionDetails}
                 transaction={receiptTransaction}
             />

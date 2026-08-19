@@ -35,6 +35,7 @@ jest.mock('use-haptic', () => ({
 jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
     useTransactionDetailsDrawer: () => ({
         selectedTxId: null,
+        isTransactionSelected: () => false,
         openTransactionDetails,
         closeTransactionDetails: jest.fn(),
     }),
@@ -170,5 +171,27 @@ describe('TransactionCard — settlement-adjusted flag', () => {
     it('hides it for an adjusted card REFUND', () => {
         renderCard(cardSpendTx({ settlementAdjusted: true, isRefund: true }))
         expect(screen.queryByText('· Adjusted')).not.toBeInTheDocument()
+    })
+})
+
+// States board 17966:12128: failed amounts strike through — EXCEPT a failed
+// card REFUND (credit still owed to the user; striking it reads as "this
+// credit never counted"). Locks the carve-out kept from isDeclinedCardSpend.
+describe('TransactionCard — failed strike-through and the refund carve-out', () => {
+    function renderFailed(tx: TransactionDetails) {
+        const failedTx = { ...tx, status: 'failed' } as TransactionDetails
+        return render(
+            <TransactionCard type="card_pay" name="natalia" amount={10} status="failed" transaction={failedTx} />
+        )
+    }
+
+    it('strikes the amount of a failed card spend', () => {
+        renderFailed(cardSpendTx({}))
+        expect(screen.getByText('$10')).toHaveClass('line-through')
+    })
+
+    it('does NOT strike the amount of a failed card refund', () => {
+        renderFailed(cardSpendTx({ isRefund: true }))
+        expect(screen.getByText('$10')).not.toHaveClass('line-through')
     })
 })

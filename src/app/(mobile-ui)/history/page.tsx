@@ -268,7 +268,7 @@ const HistoryPage = () => {
     const today = new Date()
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col gap-6">
+        <div className="flex min-h-[inherit] w-full flex-col gap-8">
             <NavHeader title={t('title')} />
             <div className="h-full w-full">
                 {combinedAndSortedEntries.map((item, index) => {
