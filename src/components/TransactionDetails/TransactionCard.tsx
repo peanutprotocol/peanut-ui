@@ -28,7 +28,7 @@ import {
     PENDING_AMOUNT_STATUSES,
     STRUCK_AMOUNT_STATUSES,
 } from '@/utils/history.utils'
-import React, { lazy, Suspense, useRef } from 'react'
+import React, { lazy, Suspense, useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import { isAddress } from 'viem'
@@ -89,9 +89,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const isSelected = isTransactionSelected(transaction.id)
     // mount the (lazy, vaul) drawer only once this row has been selected —
     // keeps N history rows from each carrying a mounted dialog, while the
-    // ref keeps it mounted through the close animation.
+    // ref keeps it mounted through the close animation. Written in an effect
+    // (not during render) so a discarded render can't leak the flag.
     const hasBeenSelectedRef = useRef(false)
-    if (isSelected) hasBeenSelectedRef.current = true
+    useEffect(() => {
+        if (isSelected) hasBeenSelectedRef.current = true
+    }, [isSelected])
     const { triggerHaptic } = useHaptic()
     const router = useRouter()
     const t = useTranslations('transaction')
