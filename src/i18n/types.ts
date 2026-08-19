@@ -212,7 +212,12 @@ export interface Translations {
     footerSiteDirectory: string
     footerCompare: string
     footerLearnMoreSection: string
-    footerResources: string
+    footerLegalSection: string
+    footerCardTermsUs: string
+    footerCardTermsInternational: string
+    footerCardEsign: string
+    footerCardPrivacy: string
+    footerCardProhibitedActivities: string
     footerSendTo: string // "Send to {name}"
     footerSendFrom: string // "Send from {name}"
     footerPeanutVs: string // "Peanut vs {name}"
