@@ -3,7 +3,7 @@ import { type FC, useCallback, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
@@ -36,7 +36,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const walletPlatform = useWalletPlatform()
     const walletLabel =
         walletPlatform === 'android' ? t('addToGoogleWallet') : walletPlatform === 'ios' ? t('addToAppleWallet') : null
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
 
     const isLocked = card.status === 'LOCKED'
@@ -93,8 +93,8 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 <InfoCard
                     variant="warning"
                     icon="credit-card"
-                    title={`$${(balanceDueCents / 100).toFixed(2)} will be debited based on your next deposit`}
-                    description="A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. We'll cover the difference automatically."
+                    title={t('balanceDueTitle', { amount: `$${(balanceDueCents / 100).toFixed(2)}` })}
+                    description={t('balanceDueBody')}
                 />
             )}
 

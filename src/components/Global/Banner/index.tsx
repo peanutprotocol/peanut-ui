@@ -14,11 +14,17 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { GIT_COMMIT_HASH, IS_PRODUCTION } from '@/constants/general.consts'
 import { getRunMode, isRealMoneyMode, logRunMode } from '@/utils/mode'
 import { isDemoMode } from '@/utils/demo'
+import { isIOSNative } from '@/utils/capacitor'
 
 export function Banner() {
     const pathname = usePathname()
     const connectivity = useConnectivity()
     if (!pathname) return null
+
+    // Demo mode is the app-store review sandbox: synthetic data, no real
+    // backend — none of the banners (beta feedback, connectivity, maintenance)
+    // apply there.
+    if (isDemoMode()) return null
 
     // Connectivity wins over the beta/maintenance banners: if the app can't reach
     // the backend, that's the most actionable thing to tell the user right now.
@@ -41,6 +47,14 @@ export function Banner() {
     )
         return null
 
+    // The beta feedback banner is hidden in the iOS app: it's a marquee strip
+    // pinned above every screen, and on iPhone it eats vertical space directly
+    // under the notch for what is a web-era "we're in beta, tell us things"
+    // prompt. Support is still reachable from Settings. Deliberately iOS-only —
+    // Android and web keep it, and so does the non-prod run-mode pill below,
+    // which is how testers tell sandbox from real money at a glance.
+    if (isIOSNative()) return null
+
     // show beta feedback banner when not in maintenance
     return <FeedbackBanner />
 }
@@ -59,18 +73,6 @@ function FeedbackBanner() {
 
     const handleClick = () => {
         setIsSupportModalOpen(true)
-    }
-
-    // Demo mode: this isn't a real account, so swap the feedback ask for a clear
-    // "you're in a demo" notice (non-interactive — no support modal).
-    if (isDemoMode()) {
-        return (
-            <div className="w-full">
-                <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
-                    <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">{t('demoBanner')}</span>
-                </MarqueeWrapper>
-            </div>
-        )
     }
 
     const mode = !IS_PRODUCTION ? getRunMode() : null

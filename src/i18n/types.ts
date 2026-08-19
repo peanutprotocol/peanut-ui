@@ -149,6 +149,11 @@ export interface Translations {
     landingWallOfLove: string
     landingWallOfLoveBody: string
 
+    // Landing page — code-injected supported-rails FAQ (fact lists interpolated from rhino.consts)
+    landingSupportedRailsFaqQuestion: string
+    landingSupportedRailsFaqAnswer: string // "… {evmCount} … ({evmList}), plus {otherList} … {railList} …"
+    listJoinAnd: string // conjunction used when joining name lists ("Solana and Tron")
+
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
     legalHeroSubtitlePrivacy: string
     legalHeroSubtitleTerms: string

@@ -24,9 +24,14 @@ on:
     workflow_dispatch:
         inputs:
             versionName:
-                description: 'versionName override (optional; defaults to project MARKETING_VERSION)'
+                description: 'versionName override (optional; defaults to package.json "version")'
                 required: false
                 type: string
+            pushDebug:
+                description: 'Enable OneSignal verbose logging in this build'
+                required: false
+                default: false
+                type: boolean
 
 permissions:
     contents: read
@@ -60,6 +65,20 @@ jobs:
             - name: Install dependencies
               run: pnpm install
 
+            - name: Verify SumSub Cordova plugin materialized
+              # `cap sync ios` silently drops a Cordova plugin (exit 0, no folder)
+              # when node_modules isn't fully materialized, and the archive then
+              # fails a minute later with a cryptic SwiftPM error. Catch the real
+              # cause — a partial pnpm install — here, where a re-run recovers.
+              run: |
+                  P=node_modules/@sumsub/cordova-idensic-mobile-sdk-plugin
+                  if [ ! -f "$P/package.json" ] || [ ! -f "$P/plugin.xml" ]; then
+                      echo "::error::$P is not fully installed (package.json/plugin.xml missing). This is the intermittent iOS-release flake — cap sync would drop the plugin and the archive would fail cryptically. Re-run the job (pnpm install did not materialize the plugin)."
+                      ls -la "$P" 2>&1 || true
+                      exit 1
+                  fi
+                  echo "SumSub Cordova plugin materialized."
+
             - name: Production web env
               run: |
                   # NEXT_PUBLIC_* values are baked into the static export at build time.
@@ -83,6 +102,9 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
+                  if [ "${{ github.event.inputs.pushDebug }}" = "true" ]; then
+                      echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
+                  fi
 
             - name: Build web + sync iOS
               run: |
@@ -110,6 +132,13 @@ jobs:
                   cp /tmp/profile.mobileprovision "$PROFILE_DIR/$PROFILE_UUID.mobileprovision"
                   echo "name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
                   echo "Installed provisioning profile: $PROFILE_NAME ($PROFILE_UUID)"
+                  # A profile without aps-environment ships an app that can never
+                  # register with APNs, even when the entitlements file asks for it.
+                  PROFILE_APS=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' /tmp/profile.plist 2>/dev/null || true)
+                  if [ "$PROFILE_APS" != "production" ]; then
+                      echo "::error::provisioning profile aps-environment is '${PROFILE_APS:-missing}' — enable Push Notifications on the App ID, regenerate the profile, and update IOS_PROVISIONING_PROFILE_BASE64"
+                      exit 1
+                  fi
 
             - name: Archive & export IPA
               env:
@@ -118,11 +147,21 @@ jobs:
                   # Monotonic, always-increments-even-on-rerun. TestFlight requires each
                   # upload's build number to exceed the last.
                   IOS_BUILD_NUMBER: ${{ github.run_number }}
-                  IOS_VERSION_NAME: ${{ github.event.inputs.versionName || '' }}
+                  IOS_VERSION_INPUT: ${{ github.event.inputs.versionName || '' }}
+                  IOS_TAG_NAME: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
               run: |
-                  # Only override MARKETING_VERSION when an explicit versionName is supplied;
-                  # otherwise keep the project's MARKETING_VERSION. CURRENT_PROJECT_VERSION is
-                  # always the CI run number. Info.plist reads both via $(...) build settings.
+                  # MARKETING_VERSION: explicit versionName input wins, else the pushed
+                  # tag (v1.0.31 -> 1.0.31), else package.json — the same precedence
+                  # android-release.yml uses, so the two platforms cannot report
+                  # different versions for one release. The project.pbxproj value is
+                  # itself stamped from package.json by scripts/native-ios-postsync.js
+                  # during the build step above, so this is belt-and-braces rather than
+                  # the only thing standing between us and the old hand-maintained 1.0.
+                  # CURRENT_PROJECT_VERSION is always the CI run number.
+                  # Info.plist reads both via $(...) build settings.
+                  IOS_VERSION_NAME="$IOS_VERSION_INPUT"
+                  if [ -z "$IOS_VERSION_NAME" ] && [ -n "$IOS_TAG_NAME" ]; then IOS_VERSION_NAME="${IOS_TAG_NAME#v}"; fi
+                  if [ -z "$IOS_VERSION_NAME" ]; then IOS_VERSION_NAME="$(node -p "require('./package.json').version")"; fi
                   MARKETING_ARG=()
                   if [ -n "$IOS_VERSION_NAME" ]; then MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME"); fi
 
@@ -170,6 +209,17 @@ jobs:
                       -archivePath build/ios/App.xcarchive \
                       -exportPath build/ios \
                       -exportOptionsPlist /tmp/ExportOptions.plist
+
+            - name: Verify push entitlements in exported IPA
+              run: |
+                  unzip -q build/ios/App.ipa -d /tmp/ipa-check
+                  APS=$(codesign -d --entitlements :- /tmp/ipa-check/Payload/App.app 2>/dev/null \
+                        | plutil -extract aps-environment raw -o - - || true)
+                  echo "aps-environment=$APS"
+                  if [ "$APS" != "production" ]; then
+                      echo "::error::exported ipa aps-environment is '${APS:-missing}', expected production — push would be dead in this build"
+                      exit 1
+                  fi
 
             - name: Upload to TestFlight
               uses: apple-actions/upload-testflight-build@1ad58030672057aa084b4e96beb6f7a8c627f9e6 # v5

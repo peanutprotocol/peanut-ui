@@ -2,6 +2,7 @@ import { jsonParse, jsonStringify, getFromLocalStorage, saveToLocalStorage } fro
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
+import { apiErrorFromResponse } from '@/services/api-error'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
@@ -107,6 +108,12 @@ export const sendLinksApi = {
         } else {
             // no file, or attachment is not a File/Blob, send as JSON —
             // apiFetch sets Content-Type: application/json for string bodies
+            // and carries the native-transport cookie fallback for tokenless
+            // native sessions. Known limit (same as before this refactor):
+            // the multipart branch cannot ride that fallback — FormData does
+            // not survive the native bridge (native-http.ts), so a tokenless
+            // native session uploading an attachment still goes out on the
+            // webview fetch without credentials.
             requestBody = jsonStringify(sendLink)
         }
 
@@ -118,19 +125,7 @@ export const sendLinksApi = {
         })
 
         if (!response.ok) {
-            const errorText = await response.text()
-            try {
-                // attempt to parse backend error if JSON
-                const errorJson = jsonParse(errorText)
-                console.error('API Error:', errorJson)
-                throw new Error(
-                    `HTTP error! status: ${response.status}, message: ${errorJson.message || errorJson.error || errorText}`
-                )
-            } catch {
-                // fallback to plain text error
-                console.error('API Error Text:', errorText)
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
-            }
+            throw await apiErrorFromResponse(response, 'Failed to create send link')
         }
         const responseText = await response.text()
         const data: SendLink = jsonParse(responseText)

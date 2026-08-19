@@ -198,6 +198,13 @@ jobs:
     # reachability are wired in repo settings (per the prior comment).
     e2e:
         runs-on: ubuntu-latest
+        # Without a cap a stalled step runs to the 6h default. "Install
+        # Playwright browsers" hung three times on 2026-08-18 (~30min each)
+        # while sibling runs cleared it in under two minutes. An unbounded hang
+        # is worse than a failure here: `ci-success` never reports, and
+        # content-publish-automerge merges on all-green-of-N, so N stays 0 and
+        # a content publish stalls with no error anywhere. Fail fast instead.
+        timeout-minutes: 20
         steps:
             - uses: actions/checkout@v4
               with:
@@ -213,8 +220,31 @@ jobs:
 
             - run: pnpm install --frozen-lockfile
 
+            # Cache the browser binaries — the download is the step that hangs,
+            # so the cheapest fix is to not do it on most runs. Keyed on the
+            # Playwright version, because browser builds are pinned to it.
+            - name: Resolve Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
             - name: Install Playwright browsers
+              if: steps.pw-cache.outputs.cache-hit != 'true'
+              timeout-minutes: 6
               run: npx playwright install --with-deps chromium
+
+            # The cache holds browsers, not the apt packages they link against,
+            # so system deps still need installing on a cache hit.
+            - name: Install Playwright system deps
+              if: steps.pw-cache.outputs.cache-hit == 'true'
+              timeout-minutes: 6
+              run: npx playwright install-deps chromium
 
             - name: Run E2E tests
               run: pnpm test:e2e

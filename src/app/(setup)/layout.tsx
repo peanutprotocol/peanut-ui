@@ -26,18 +26,17 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const hasKeepWebBypass = useKeepWebBypass()
 
     /*
-     * Bottom-inset fill color. Periwinkle is for Android 15 edge-to-edge (matches
-     * the status-bar strip). On iOS the content directly above the home-indicator
-     * inset is the white panel, so periwinkle reads as a stray bar on Face ID
-     * devices — fill with white there instead. This applies to ALL iOS (native
-     * app, home-screen PWA, and Safari), not just the Capacitor native build, so
-     * key off the device type rather than isIOSNative(). State + effect (not a
-     * render-time platform check) so the static export's prerendered HTML hydrates
-     * cleanly.
+     * Bottom-inset fill color. The content directly above the bottom inset (iOS
+     * home indicator / Android 15 edge-to-edge nav bar) is the setup flow's white
+     * panel, so a periwinkle fill reads as a stray strip — fill with white on
+     * every native build (both platforms) AND on all iOS device types (native,
+     * home-screen PWA, Safari — the Face ID home-indicator bar is the same in
+     * each). State + effect (not a render-time platform check) so the static
+     * export's prerendered HTML hydrates cleanly.
      */
     const [bottomInsetFill, setBottomInsetFill] = useState('bg-secondary-3')
     useEffect(() => {
-        if (deviceType === DeviceType.IOS) setBottomInsetFill('bg-white')
+        if (isCapacitor() || deviceType === DeviceType.IOS) setBottomInsetFill('bg-white')
     }, [deviceType])
 
     // configure status bar for native. the setup/onboarding flow has a periwinkle

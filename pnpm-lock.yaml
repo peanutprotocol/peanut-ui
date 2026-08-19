@@ -213,9 +213,6 @@ importers:
       posthog-node:
         specifier: 5.29.2
         version: 5.29.2
-      pulltorefreshjs:
-        specifier: ^0.1.22
-        version: 0.1.22
       qr-scanner:
         specifier: ^1.4.2
         version: 1.4.2
@@ -316,9 +313,6 @@ importers:
       '@types/node':
         specifier: 20.4.2
         version: 20.4.2
-      '@types/pulltorefreshjs':
-        specifier: ^0.1.7
-        version: 0.1.7
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.27
@@ -3291,9 +3285,6 @@ packages:
 
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
-
-  '@types/pulltorefreshjs@0.1.7':
-    resolution: {integrity: sha512-Y0g/yfuycIvpvUmP97n5NE2+HDAOwfREGVERjhMWw2Y0ODh5wvbflcQ5gXPZ+ihgoq+BQZjA1DL8apw2wAsJXA==}
 
   '@types/react-dom@18.3.7':
     resolution: {integrity: sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ==}
@@ -6968,9 +6959,6 @@ packages:
 
   psl@1.15.0:
     resolution: {integrity: sha512-JZd3gMVBAVQkSs6HdNZo9Sdo0LNcQeMNP3CozBJb3JYC/QUYZTnKxP+f8oWRX4rHP5EurWxqAHTSwUCjlNKa1w==}
-
-  pulltorefreshjs@0.1.22:
-    resolution: {integrity: sha512-haxNVEHnS4NCQA7NeG7TSV69z4uqy/N7nfPRuc4dPWe8H6ygUrMjdNeohE+6v0lVVX/ukSjbLYwPUGUYtFKfvQ==}
 
   pump@3.0.3:
     resolution: {integrity: sha512-todwxLMY7/heScKmntwQG8CXVkWUOdYxIvY2s0VWAAMh/nd8SoYiRaKjlr7+iCs984f2P8zvrfWcDDYVb73NfA==}
@@ -12086,8 +12074,6 @@ snapshots:
 
   '@types/prop-types@15.7.15': {}
 
-  '@types/pulltorefreshjs@0.1.7': {}
-
   '@types/react-dom@18.3.7(@types/react@18.3.27)':
     dependencies:
       '@types/react': 18.3.27
@@ -17020,8 +17006,6 @@ snapshots:
   psl@1.15.0:
     dependencies:
       punycode: 2.3.1
-
-  pulltorefreshjs@0.1.22: {}
 
   pump@3.0.3:
     dependencies:

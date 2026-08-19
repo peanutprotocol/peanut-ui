@@ -21,7 +21,12 @@ export default function SecurityVerificationOverlay() {
     const { isSecurityVerificationOpen } = useModalsContext()
     if (!isSecurityVerificationOpen) return null
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+        <div
+            // stop under the black status-bar strip instead of painting beige over it.
+            // no role/aria here: the Loading mascot inside already renders its own
+            // role="status" live region — nesting two would announce twice.
+            className="fixed inset-x-0 top-safe-top bottom-0 z-50 flex items-center justify-center bg-background"
+        >
             <Loading variant="mascot" message={t('securityVerificationOverlay.message')} />
         </div>
     )

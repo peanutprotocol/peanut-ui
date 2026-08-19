@@ -1005,6 +1005,28 @@ export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
             "section": "semantic"
         }
     ],
+    "spacing": [
+        {
+            "name": "safe-top",
+            "value": "var(--safe-top, env(safe-area-inset-top, 0px))",
+            "section": "semantic"
+        },
+        {
+            "name": "safe-right",
+            "value": "var(--safe-right, env(safe-area-inset-right, 0px))",
+            "section": "semantic"
+        },
+        {
+            "name": "safe-bottom",
+            "value": "var(--safe-bottom, env(safe-area-inset-bottom, 0px))",
+            "section": "semantic"
+        },
+        {
+            "name": "safe-left",
+            "value": "var(--safe-left, env(safe-area-inset-left, 0px))",
+            "section": "semantic"
+        }
+    ],
     "shadow": [
         {
             "name": "sm",

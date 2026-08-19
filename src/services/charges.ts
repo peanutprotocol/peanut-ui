@@ -6,6 +6,7 @@ import {
     type CreateChargeRequest,
 } from './services.types'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
+import { apiErrorFromResponse } from './api-error'
 import { isDemoMode } from '@/utils/demo'
 
 export const chargesApi = {
@@ -19,6 +20,26 @@ export const chargesApi = {
             const { demoRespond } = await import('@/utils/demo-api')
             // pass the charge data so the demo store captures the real amount.
             return (await demoRespond('/charges', { method: 'POST', body: JSON.stringify(data) })).json()
+        }
+
+        /*
+         * Multipart is used ONLY when a real file rides along. Everything else
+         * goes as JSON through apiFetch so a tokenless native session (legacy
+         * cookie-jar auth) gets the native-transport cookie fallback — FormData
+         * can't cross the native bridge (see native-http.ts), so the multipart
+         * path silently sent such POSTs with no auth at all.
+         */
+        const attachment: unknown = data.attachment
+        const hasFileAttachment = attachment instanceof File || attachment instanceof Blob
+        if (!hasFileAttachment) {
+            const response = await apiFetch('/charges', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            })
+            if (!response.ok) {
+                throw await apiErrorFromResponse(response, 'Failed to create charge')
+            }
+            return response.json()
         }
 
         const formData = new FormData()
@@ -40,7 +61,7 @@ export const chargesApi = {
         })
 
         if (!response.ok) {
-            throw new Error(`Failed to create charge: ${response.statusText}`)
+            throw await apiErrorFromResponse(response, 'Failed to create charge')
         }
 
         return response.json()

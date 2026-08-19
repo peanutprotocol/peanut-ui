@@ -63,6 +63,16 @@ export interface RainCardSummary {
 export interface RainCardOverview {
     status: RainCardApplicationStatus
     balance: RainCardBalance | null
+    /**
+     * `true` when the backend could not read the balance from Rain, so `balance`
+     * is a stale cached value or `null` — NOT an authoritative zero. A null
+     * balance with this set must never be summed as 0 into the displayed
+     * spendable total (that was the $0-balance bug, PEANUT-UI-QD5).
+     *
+     * Optional so an older/cached API response without the field still parses;
+     * absent is treated as "available", matching pre-change behaviour.
+     */
+    balanceUnavailable?: boolean
     cards: RainCardSummary[]
 }
 
@@ -621,6 +631,12 @@ export const rainApi = {
         return rainRequest<{ ready: boolean; hasApplication: boolean; readyAt?: string }>({
             method: 'GET',
             path: '/rain/cards/readiness',
+            // The caller polls this on a 30s budget it only re-checks BETWEEN
+            // requests, so an unbounded request stretches the post-Sumsub
+            // "Setting up your card…" screen well past it (the default budget
+            // is 20s, and idempotent GETs get a silent retry on top). A single
+            // webhook-stamped flag read has no business taking longer.
+            timeoutMs: 8_000,
         })
     },
 

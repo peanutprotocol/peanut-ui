@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import { isCapacitor } from '@/utils/capacitor'
+import { cancelHaptic, vibrateHaptic } from '@/utils/haptics'
 import Card from '@/components/Global/Card'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
@@ -45,20 +47,20 @@ export default function DevShakeTestPage() {
             }
 
             // Trigger haptic feedback when intensity changes
-            if (newIntensity !== lastIntensity && 'vibrate' in navigator) {
+            if (newIntensity !== lastIntensity) {
                 // Progressive vibration patterns that match shake intensity - MAX STRENGTH!
                 switch (newIntensity) {
                     case 'weak':
-                        navigator.vibrate(50) // Short but noticeable pulse
+                        vibrateHaptic(50) // Short but noticeable pulse
                         break
                     case 'medium':
-                        navigator.vibrate([100, 40, 100]) // Medium pulse pattern
+                        vibrateHaptic([100, 40, 100]) // Medium pulse pattern
                         break
                     case 'strong':
-                        navigator.vibrate([150, 40, 150, 40, 150]) // Strong pulse pattern
+                        vibrateHaptic([150, 40, 150, 40, 150]) // Strong pulse pattern
                         break
                     case 'intense':
-                        navigator.vibrate([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
+                        vibrateHaptic([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
                         break
                 }
                 lastIntensity = newIntensity
@@ -81,9 +83,7 @@ export default function DevShakeTestPage() {
             setHoldProgress(0)
 
             // Final success haptic feedback - POWERFUL celebratory double pulse!
-            if ('vibrate' in navigator) {
-                navigator.vibrate([300, 100, 300])
-            }
+            vibrateHaptic([300, 100, 300])
 
             // Show success and trigger confetti
             setShowSuccess(true)
@@ -119,9 +119,7 @@ export default function DevShakeTestPage() {
                 setShakeIntensity('none')
                 setHoldStartTime(null)
 
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(0)
-                }
+                cancelHaptic()
             }, remainingPreviewTime)
 
             setHoldTimer(resetTimer)
@@ -134,9 +132,7 @@ export default function DevShakeTestPage() {
             setShakeIntensity('none')
             setHoldStartTime(null)
 
-            if ('vibrate' in navigator) {
-                navigator.vibrate(0)
-            }
+            cancelHaptic()
         }
     }, [holdTimer, progressInterval, holdStartTime])
 
@@ -150,9 +146,7 @@ export default function DevShakeTestPage() {
         setShakeIntensity('none')
         setHoldStartTime(null)
         setShowSuccess(false)
-        if ('vibrate' in navigator) {
-            navigator.vibrate(0)
-        }
+        cancelHaptic()
     }, [holdTimer, progressInterval])
 
     return (
@@ -188,9 +182,11 @@ export default function DevShakeTestPage() {
                             <div className="flex justify-between">
                                 <span>Haptics:</span>
                                 <span className="font-mono font-bold">
-                                    {typeof navigator !== 'undefined' && 'vibrate' in navigator
-                                        ? '✅ Available'
-                                        : '❌ Not Available'}
+                                    {isCapacitor()
+                                        ? '✅ @capacitor/haptics (native engine)'
+                                        : typeof navigator !== 'undefined' && 'vibrate' in navigator
+                                          ? '✅ Vibration API (web)'
+                                          : '❌ None — iOS web has no Vibration API'}
                                 </span>
                             </div>
                         </div>
@@ -202,13 +198,10 @@ export default function DevShakeTestPage() {
                         {/* Simple vibration test button */}
                         <Button
                             onClick={() => {
-                                if ('vibrate' in navigator) {
-                                    const success = navigator.vibrate(200)
-                                    console.log('Vibration API called, success:', success)
-                                    alert(`Vibration triggered! Did you feel it? API returned: ${success}`)
-                                } else {
-                                    alert('Vibration API not available on this device')
-                                }
+                                vibrateHaptic(200)
+                                alert(
+                                    `Haptic fired via ${isCapacitor() ? 'the native engine' : 'the web Vibration API'}. Did you feel it?`
+                                )
                             }}
                             variant="primary-soft"
                             shadowSize="4"

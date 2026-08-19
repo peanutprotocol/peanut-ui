@@ -14,7 +14,7 @@ export const usePointsConfetti = (points: number | undefined, elementRef: React.
             hasShownConfettiRef.current = true
 
             // Wait for next frame to ensure layout is complete
-            requestAnimationFrame(() => {
+            const frame = requestAnimationFrame(() => {
                 if (elementRef.current) {
                     const rect = elementRef.current.getBoundingClientRect()
                     const x = (rect.left + rect.width / 2) / window.innerWidth
@@ -23,6 +23,8 @@ export const usePointsConfetti = (points: number | undefined, elementRef: React.
                     shootDoubleStarConfetti({ origin: { x, y } })
                 }
             })
+            return () => cancelAnimationFrame(frame)
         }
+        return undefined
     }, [points, elementRef])
 }

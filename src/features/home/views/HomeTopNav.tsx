@@ -3,7 +3,7 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 
@@ -18,7 +18,7 @@ interface HomeTopNavProps {
  */
 export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
     const t = useTranslations('home')
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     return (
         <div className="flex items-center justify-between">

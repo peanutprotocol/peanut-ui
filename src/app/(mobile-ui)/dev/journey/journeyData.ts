@@ -44,7 +44,9 @@ export const FUNNEL_STATES: FunnelState[] = [
         id: 'application-in-flight',
         label: 'Application in flight',
         description: 'Card exists but none ACTIVE — pending / review / RFI.',
-        specStages: ['finish_setup'],
+        specStages: [],
+        noEmailReason:
+            'finish_setup was deleted (0 sends ever — NOT_ACTIVATED is written nowhere). No stage copy is true here, so the machine is silent by design.',
     },
     {
         id: 'card-active-unfunded',
@@ -60,10 +62,10 @@ export const FUNNEL_STATES: FunnelState[] = [
     },
     {
         id: 'spent',
-        label: 'Spent — graduated',
-        description: 'First real spend done. Out of the activation machine.',
-        specStages: [],
-        noEmailReason: 'Graduated — the lifecycle machine never emails again.',
+        label: 'Spent → dormant',
+        description:
+            'First real spend done — silent while active. Going quiet for 6 weeks (any formerly-transacting spender, card or QR) re-enters as win_back.',
+        specStages: ['win_back'],
     },
 ]
 

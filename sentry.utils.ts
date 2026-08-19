@@ -3,6 +3,8 @@
 
 import type { ErrorEvent } from '@sentry/nextjs'
 
+import { CRITICAL_FLOW_TAG } from '@/utils/sentry-critical-flow'
+
 /**
  * Patterns to filter out from Sentry reporting.
  * These are generally noise that doesn't require action.
@@ -63,6 +65,10 @@ const IGNORED_ERRORS = {
  * Check if error message matches any ignored pattern
  */
 export function shouldIgnoreError(event: ErrorEvent): boolean {
+    // Explicit captures from money-moving flows are never noise. Cancellations
+    // stay filtered even there — a user backing out of the passkey sheet is not
+    // a defect, and those would drown out the real failures.
+    const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
     const message = event.message || ''
     const exceptionValue = event.exception?.values?.[0]?.value || ''
     const exceptionType = event.exception?.values?.[0]?.type || ''
@@ -73,13 +79,16 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     const searchTexts = [message, exceptionValue, exceptionType, culprit]
 
     // Check all ignore patterns
-    for (const patterns of Object.values(IGNORED_ERRORS)) {
+    for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {
+        if (isCriticalFlow && group !== 'userRejected') continue
         for (const pattern of patterns) {
             if (searchTexts.some((text) => text.toLowerCase().includes(pattern.toLowerCase()))) {
                 return true
             }
         }
     }
+
+    if (isCriticalFlow) return false
 
     // Ignore errors from browser extensions (client-side only, but safe to check everywhere)
     const frames = event.exception?.values?.[0]?.stacktrace?.frames || []

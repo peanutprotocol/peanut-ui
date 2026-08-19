@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { twMerge } from 'tailwind-merge'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
@@ -29,7 +29,7 @@ export const BottomNav = () => {
     const t = useTranslations('navigation')
     const pathname = usePathname()
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const hasUnreadSupport = useSupportUnread()
 
     return (

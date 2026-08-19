@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import InfoCard from '@/components/Global/InfoCard'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { parseCents } from '@/components/TransactionDetails/transaction-details.utils'
@@ -19,6 +20,7 @@ import { parseCents } from '@/components/TransactionDetails/transaction-details.
  * totals") without asserting one — Rain doesn't report why capture ≠ auth.
  */
 export function CardAdjustmentNotice({ transaction }: { transaction: TransactionDetails }) {
+    const t = useTranslations('transaction.cardRows')
     const card = transaction.extraDataForDrawer?.cardPayment
     if (!card?.settlementAdjusted || card.isRefund) return null
 
@@ -33,7 +35,7 @@ export function CardAdjustmentNotice({ transaction }: { transaction: Transaction
         <InfoCard
             variant="info"
             icon="info"
-            description={`The final amount was $${(deltaCents / 100).toFixed(2)} higher than the initial hold. This is common with tips and updated totals. Don’t recognize it? Contact the merchant.`}
+            description={t('settlementAdjustedNotice', { amount: `$${(deltaCents / 100).toFixed(2)}` })}
         />
     )
 }

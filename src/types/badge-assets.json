@@ -1,5 +1,6 @@
 {
     "assets": {
+        "ACAI_POWERED": "/badges/acai_powered.svg",
         "ARBITRUM": "/badges/arbitrum.svg",
         "ARBIVERSE_DEVCONNECT_BA_2025": "/badges/arbiverse_devconnect.svg",
         "BETA_TESTER": "/badges/beta_tester.svg",
@@ -15,6 +16,7 @@
         "DEVCONNECT_BA_2025": "/badges/devconnect_2025.svg",
         "DOUBLE_DIGITS": "/badges/double_digits.svg",
         "DUNBAR": "/badges/dunbar.svg",
+        "ENS": "/badges/ens.svg",
         "ETHFLORIPA_HUB": "/badges/ethfloripa_hub.svg",
         "EVENT_ALUMNI": "/badges/event_alumni.svg",
         "FESTA_JUNINA_2026": "/badges/festa_junina_2026.svg",
@@ -41,11 +43,14 @@
         "SECOND_INVITE": "/badges/second_invite.svg",
         "SEEDLING_DEVCONNECT_BA_2025": "/badges/seedlings_devconnect.svg",
         "SHHHHH": "/badges/shhhhh.svg",
+        "SPLITTER": "/badges/splitter.svg",
         "SUPPORT_SURVIVOR": "/badges/bug_whisperer.svg",
+        "SURF_UP": "/badges/surf_up.svg",
         "TERERE": "/badges/terere.svg",
         "THIRD_INVITE": "/badges/third_invite.svg",
         "TOKEN_NATION_SP_2026": "/badges/token_nation_2026.svg",
         "TOUCHED_GRASS": "/badges/touched_grass.svg",
+        "TRON": "/badges/tron.svg",
         "VERIFIED": "/badges/verified.svg",
         "WAITLIST_SKIP": "/badges/skip_pass.svg"
     }
