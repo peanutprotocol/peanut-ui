@@ -107,9 +107,24 @@ jobs:
                   fi
 
             - name: Build web + sync iOS
+              env:
+                  # MeaWallet MPP SDK (Apple Pay push provisioning): postsync
+                  # vendors the xcframework only when these are set, so the
+                  # build stays green until the secrets are provisioned.
+                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER }}
+                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD }}
               run: |
                   node scripts/native-build.js && npx cap sync ios
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
+
+            - name: Write MeaWallet config
+              # mea_config (encrypted, non-sensitive per MeaWallet, but kept out
+              # of git) — the Copy MeaWallet Config build phase bundles it when
+              # present; skipped until the secret is provisioned.
+              if: ${{ secrets.MEAWALLET_CONFIG_BASE64 != '' }}
+              env:
+                  MEA_CONFIG: ${{ secrets.MEAWALLET_CONFIG_BASE64 }}
+              run: echo "$MEA_CONFIG" | base64 -d > ios/App/App/mea_config
 
             - name: Install Apple distribution certificate
               uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7

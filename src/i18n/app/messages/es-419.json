@@ -1271,6 +1271,8 @@
             "navTitle": "Tu tarjeta",
             "addToGoogleWallet": "Agregar a Google Wallet",
             "addToAppleWallet": "Agregar a Apple Wallet",
+            "walletAddSuccess": "Tarjeta agregada a tu billetera",
+            "walletAddFailed": "No pudimos agregar la tarjeta a tu billetera. Intenta de nuevo.",
             "cardNumberCopied": "Número de tarjeta copiado",
             "cvvCopied": "CVV copiado",
             "autoRenewTitle": "Tu tarjeta se renueva pronto",

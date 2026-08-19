@@ -20,6 +20,23 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+
+        // meawallet mpp sdk (google pay push provisioning) — credential-gated
+        // private maven. credentials via env (CI secret) or gradle property;
+        // declared unconditionally (gradle only contacts a repo when a
+        // dependency actually resolves from it, and the mpp dependency itself
+        // is gated on the same credentials in app/build.gradle).
+        def meaUser = System.getenv('MEAWALLET_NEXUS_USER') ?: (findProperty('MEAWALLET_NEXUS_USER') ?: null)
+        def meaPass = System.getenv('MEAWALLET_NEXUS_PASSWORD') ?: (findProperty('MEAWALLET_NEXUS_PASSWORD') ?: null)
+        if (meaUser && meaPass) {
+            maven {
+                url 'https://nexus.ext.meawallet.com/repository/mpp-android-group/'
+                credentials {
+                    username meaUser
+                    password meaPass
+                }
+            }
+        }
     }
 
     // sumsub eid module pulls from a private maven repo requiring credentials.

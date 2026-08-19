@@ -15,6 +15,7 @@ import CancelCardModal from '@/components/Card/CancelCardModal'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useCardReveal } from '@/hooks/useCardReveal'
+import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
 import { cardBalanceDueCents } from '@/utils/balance.utils'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
@@ -38,6 +39,18 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
         walletPlatform === 'android' ? t('addToGoogleWallet') : walletPlatform === 'ios' ? t('addToAppleWallet') : null
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
+    const { nativeAvailable, isAdding, addToWallet } = usePushProvisioning({ id: card.id, last4: card.last4 })
+
+    const handleAddToWallet = useCallback(async () => {
+        if (isAdding) return
+        const result = await addToWallet()
+        if (result.added) {
+            triggerHaptic()
+            toast.success(t('walletAddSuccess'))
+        } else if (!result.canceled) {
+            toast.error(t('walletAddFailed'))
+        }
+    }, [isAdding, addToWallet, triggerHaptic, toast, t])
 
     const isLocked = card.status === 'LOCKED'
     const closeAction = () => void setAction(null)
@@ -116,9 +129,25 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                         href="/card/physical"
                         position={walletLabel ? 'middle' : 'last'}
                     />
-                    {walletLabel && (
-                        <ProfileMenuItem icon="wallet" label={walletLabel} href="/card/add-to-wallet" position="last" />
-                    )}
+                    {walletLabel &&
+                        // Native one-tap provisioning when the binary + flag support
+                        // it; the manual screenshot carousel everywhere else.
+                        (nativeAvailable ? (
+                            <ProfileMenuItem
+                                icon="wallet"
+                                label={walletLabel}
+                                onClick={() => void handleAddToWallet()}
+                                href="/dummy"
+                                position="last"
+                            />
+                        ) : (
+                            <ProfileMenuItem
+                                icon="wallet"
+                                label={walletLabel}
+                                href="/card/add-to-wallet"
+                                position="last"
+                            />
+                        ))}
                 </div>
             </div>
 

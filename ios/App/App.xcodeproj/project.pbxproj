@@ -13,6 +13,7 @@
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		7A1C0DE7C11B0A4D2E5F3901 /* AppViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3902 /* AppViewController.swift */; };
 		7A1C0DE7C11B0A4D2E5F3903 /* ClipboardDetectPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3904 /* ClipboardDetectPlugin.swift */; };
+		7A1C0DE7C11B0A4D2E5F3905 /* PushProvisioningPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
@@ -26,6 +27,7 @@
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7A1C0DE7C11B0A4D2E5F3902 /* AppViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewController.swift; sourceTree = "<group>"; };
 		7A1C0DE7C11B0A4D2E5F3904 /* ClipboardDetectPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardDetectPlugin.swift; sourceTree = "<group>"; };
+		7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushProvisioningPlugin.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -70,6 +72,7 @@
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				7A1C0DE7C11B0A4D2E5F3902 /* AppViewController.swift */,
 				7A1C0DE7C11B0A4D2E5F3904 /* ClipboardDetectPlugin.swift */,
+				7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -90,6 +93,7 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				7A1C0DE7C11B0A4D2E5F3907 /* Copy MeaWallet Config */,
 			);
 			buildRules = (
 			);
@@ -156,6 +160,23 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		7A1C0DE7C11B0A4D2E5F3907 /* Copy MeaWallet Config */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy MeaWallet Config";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# mea_config is the MeaWallet MPP SDK environment config. It is gitignored\n# (CI writes it from a secret; local devs fetch it from 1Password), so it is\n# copied conditionally instead of living in the Resources phase — a missing\n# file must not fail builds that don't ship push provisioning.\nif [ -f \"${SRCROOT}/App/mea_config\" ]; then\n  cp \"${SRCROOT}/App/mea_config\" \"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/mea_config\"\n  echo \"mea_config copied into app bundle\"\nelse\n  echo \"mea_config not present — push provisioning disabled in this build\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -164,6 +185,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3901 /* AppViewController.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3903 /* ClipboardDetectPlugin.swift in Sources */,
+				7A1C0DE7C11B0A4D2E5F3905 /* PushProvisioningPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

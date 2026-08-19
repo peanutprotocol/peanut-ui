@@ -113,12 +113,27 @@ jobs:
                       echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
                   fi
 
+            - name: Write MeaWallet config
+              # mea_config for the MPP SDK (Google Pay push provisioning) —
+              # gitignored; bundled from res/raw when present, skipped until the
+              # secret is provisioned.
+              if: ${{ secrets.MEAWALLET_CONFIG_BASE64 != '' }}
+              env:
+                  MEA_CONFIG: ${{ secrets.MEAWALLET_CONFIG_BASE64 }}
+              run: |
+                  mkdir -p android/app/src/main/res/raw
+                  echo "$MEA_CONFIG" | base64 -d > android/app/src/main/res/raw/mea_config
+
             - name: Build signed AAB
               env:
                   # native sentry sdk dsn — read by android/app/build.gradle into a
                   # manifest placeholder. same project dsn the js layer bakes into
                   # the static export above; no new secret needed.
                   SENTRY_DSN_ANDROID: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+                  # MeaWallet MPP SDK — gradle gates both the dependency and the
+                  # plugin source on these; absent secrets build without the SDK.
+                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER }}
+                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD }}
               run: |
                   # versionName: manual dispatch input wins; else the tag name minus
                   # its leading 'v' (v1.0.10 -> 1.0.10); else build.gradle's
