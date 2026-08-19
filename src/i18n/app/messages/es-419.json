@@ -53,7 +53,8 @@
             "closed": "Cerrado",
             "custom": "Personalizado",
             "unknown": "Desconocido"
-        }
+        },
+        "exchangeRate": "Tipo de cambio"
     },
     "navigation": {
         "home": "Inicio",
@@ -221,7 +222,8 @@
             "claimablePerk": "Recompensa disponible"
         },
         "pendingTasks": {
-            "completeBefore": "Complete before {deadline}"
+            "completeBefore": "Complete before {deadline}",
+            "dismiss": "Descartar {task}"
         }
     },
     "profile": {
@@ -475,6 +477,11 @@
             "free": "¡Gratis!",
             "arrivesHours": "Debería llegar en horas.",
             "arrivesMinutes": "Debería llegar en minutos."
+        },
+        "row": {
+            "approximate": "Este es un valor aproximado. El monto que recibas puede variar según el tipo de cambio de tu banco.",
+            "amountYouReceive": "Monto que vas a recibir",
+            "appliesWhenConverting": "Se aplica el tipo de cambio al convertir a {currency}"
         }
     },
     "setup": {
@@ -1144,7 +1151,8 @@
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "walletNotReady": "La billetera no está lista — vuelve a intentarlo en un momento",
-            "unexpectedStrategy": "Estrategia de retiro inesperada — contacta a soporte"
+            "unexpectedStrategy": "Estrategia de retiro inesperada — contacta a soporte",
+            "cardDetailsLoading": "Los datos de la tarjeta aún se están cargando — vuelve a intentarlo en un momento"
         },
         "countryConfirm": {
             "noCandidatesTitle": "Necesitamos revisar tus datos",
@@ -1268,6 +1276,8 @@
             "autoRenewTitle": "Tu tarjeta se renueva pronto",
             "autoRenewBody": "Tu tarjeta se renovará automáticamente en {days, plural, one {# día} other {# días}}, la fecha de vencimiento cambiará.",
             "dismiss": "Descartar",
+            "balanceDueTitle": "Se debitarán {amount} de tu próximo depósito",
+            "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. Cubrimos la diferencia automáticamente.",
             "payAsCreditTitle": "Paga como crédito",
             "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elige crédito — tu tarjeta Peanut corre en la red de crédito.",
             "managementTitle": "Gestión de la tarjeta",
@@ -1755,7 +1765,6 @@
             "tokenOnChain": "{token} en {chain}",
             "txId": "ID de TX",
             "fee": "Comisión",
-            "exchangeRate": "Tipo de cambio",
             "transferId": "ID de transferencia",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
@@ -1819,7 +1828,8 @@
             "evidenceRequested": "Evidencia solicitada",
             "flagAlt": "Bandera de {country}",
             "initialHold": "Retención inicial",
-            "adjustment": "Ajuste"
+            "adjustment": "Ajuste",
+            "settlementAdjustedNotice": "El monto final fue {amount} mayor que la retención inicial. Es común con propinas y totales actualizados. ¿No lo reconoces? Contacta al comercio."
         },
         "dispute": {
             "pending": "En disputa — Esperando revisión",
@@ -3000,8 +3010,10 @@
         "easterEggImageAlt": "Ilustración de huevo de pascua",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
-            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual."
-        }
+            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
+            "title": "Una pequeña actualización de nuestros términos"
+        },
+        "maintenanceBanner": "Modo mantenimiento: algunas funciones no estarán disponibles. Tus fondos están seguros."
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",

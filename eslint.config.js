@@ -9,6 +9,7 @@ const reactHooksPlugin = require('eslint-plugin-react-hooks')
 const nextPlugin = require('@next/eslint-plugin-next')
 const importPlugin = require('eslint-plugin-import-x')
 const globals = require('globals')
+const copyPropsFromCatalog = require('./eslint-rules/copy-props-from-catalog')
 
 // Barrel paths banned by CLAUDE.md ("no barrel imports — never `import * as X from
 // '@/constants'` or create `index.ts` barrels. Import from specific files"). The bare
@@ -276,7 +277,11 @@ module.exports = [
             // affected users, so the copy stays English-only.
             'src/app/(mobile-ui)/fix-card-signature/**',
         ],
+        plugins: { local: { rules: { 'copy-props-from-catalog': copyPropsFromCatalog } } },
         rules: {
+            // Companion to jsx-no-literals below, which only sees JSX children:
+            // this catches copy handed to a component as a prop.
+            'local/copy-props-from-catalog': 'error',
             'react/jsx-no-literals': [
                 'error',
                 {

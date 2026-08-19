@@ -68,6 +68,12 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
             sampleRate: 1.0,
             tracesSampleRate: 0,
             beforeSend: beforeSendHandler,
+            // A WebView that can't reach the bundler can't reach ingest either,
+            // so the report of the failure died with the session. The offline
+            // transport parks undeliverable envelopes in IndexedDB and flushes
+            // them on a later launch — the failures worth reading are exactly
+            // the ones that happen while the network is misbehaving.
+            transport: Sentry.makeBrowserOfflineTransport(Sentry.makeFetchTransport),
             integrations: (defaults) => [
                 ...withoutBrowserTracing(defaults),
                 Sentry.captureConsoleIntegration({ levels: ['error'] }),

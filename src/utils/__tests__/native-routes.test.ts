@@ -357,6 +357,9 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('/0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5@42161/34.4USDC')).toBe(
                     '/send?recipient=0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5%4042161%2F34.4USDC'
                 )
+                expect(deepLinkToNativePath('/0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5')).toBe(
+                    `/send?recipient=${encodeURIComponent('0x36eA9C25FA1fa0e5ea15b02cFa1d4CAaeBFa2Cf5')}`
+                )
             })
 
             it('funnels a semantic pay path (user@chain/amount) into /send?recipient=', () => {
