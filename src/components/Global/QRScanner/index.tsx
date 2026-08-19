@@ -80,7 +80,7 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     const t = useTranslations('global')
     return (
         // portalled overlay escapes the layout's safe-area padding; max() keeps the old 2.5rem on web
-        <div className="fixed left-0 top-0 z-50 grid w-full grid-flow-col items-center pb-2 pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] text-center text-white">
+        <div className="fixed top-0 left-0 z-50 grid w-full grid-flow-col items-center pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] pb-2 text-center text-white">
             <Button
                 variant="transparent-light"
                 className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"

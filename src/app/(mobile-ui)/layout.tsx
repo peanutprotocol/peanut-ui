@@ -189,9 +189,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 'pb-[calc(6rem_+_var(--safe-bottom))]',
                 isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
                 isHome && 'p-0',
-                isUserLoggedIn
-                    ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
-                    : 'pb-[calc(1rem_+_var(--safe-bottom))]',
+                isUserLoggedIn ? 'pb-[calc(6rem_+_var(--safe-bottom))]' : 'pb-[calc(1rem_+_var(--safe-bottom))]',
                 isDev && 'p-0 pb-0',
                 isHome && isCapacitor() && 'px-0 pt-0'
             )}

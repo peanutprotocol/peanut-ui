@@ -27,7 +27,7 @@ export default function ProfileViewPage() {
 
     return (
         <ValidatedUsernameWrapper username={username}>
-            <div className="mx-auto h-full w-full space-y-8 self-start">
+            <div className="mx-auto space-y-8 h-full w-full self-start">
                 <PublicProfile
                     username={username}
                     isLoggedIn={!!user}

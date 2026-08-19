@@ -88,7 +88,7 @@ export default function DevSafeAreaPage() {
                 <NavHeader title="Safe Area" />
             </div>
 
-            <div className="flex h-full flex-col space-y-4 px-4 pb-8">
+            <div className="space-y-4 flex h-full flex-col px-4 pb-8">
                 <p className="text-sm text-grey-1">
                     What the app actually reserves for the status bar and system bars on this device. On Android 15+
                     Capacitor measures the insets natively — max(system bars, display cutout) — and overwrites the
