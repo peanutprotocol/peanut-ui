@@ -37,7 +37,7 @@ jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 HTMLMediaElement.prototype.pause = jest.fn()
 HTMLMediaElement.prototype.load = jest.fn()
 
-const LONG_PAYLOAD = 'y'.repeat(100)
+const EMV_PAYLOAD = '000201' + 'y'.repeat(94)
 
 it('camera scan: onScan failure is captured with the qr_scan_processing tag', async () => {
     const error = new Error('routing exploded')
@@ -53,15 +53,15 @@ it('camera scan: onScan failure is captured with the qr_scan_processing tag', as
     })
 
     await act(async () => {
-        onDecode({ data: LONG_PAYLOAD })
+        onDecode({ data: EMV_PAYLOAD })
     })
 
-    expect(onScan).toHaveBeenCalledWith(LONG_PAYLOAD)
+    expect(onScan).toHaveBeenCalledWith(EMV_PAYLOAD)
     expect(captureException).toHaveBeenCalledWith(
         error,
         expect.objectContaining({
             tags: { error_type: 'qr_scan_processing' },
-            extra: expect.objectContaining({ qrLength: 100, qrPrefix: LONG_PAYLOAD.slice(0, 64) }),
+            extra: expect.objectContaining({ qrLength: 100, qrPrefix: EMV_PAYLOAD.slice(0, 64) }),
         })
     )
 })

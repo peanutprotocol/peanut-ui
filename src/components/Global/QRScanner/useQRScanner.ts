@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { captureException } from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor } from '@/utils/capacitor'
+import { reportQrScanError } from './utils'
 
 // ============================================================================
 // Configuration
@@ -183,10 +183,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 // console.info, not error: captureConsoleIntegration would turn an
                 // error-level log into a second Sentry event on top of the capture below.
                 console.info('Error processing QR code:', err)
-                captureException(err, {
-                    tags: { error_type: 'qr_scan_processing' },
-                    extra: { qrLength: data.length, qrPrefix: data.slice(0, 64) },
-                })
+                reportQrScanError(err, data)
                 toast.error(t('qrScanner.qrProcessingError'))
                 processingQRRef.current = false
                 // Resume scanner on error so user can try again
