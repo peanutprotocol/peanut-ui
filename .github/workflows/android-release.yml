@@ -115,14 +115,18 @@ jobs:
 
             - name: Write MeaWallet config
               # mea_config for the MPP SDK (Google Pay push provisioning) —
-              # gitignored; bundled from res/raw when present, skipped until the
+              # gitignored; bundled from res/raw when present, no-op until the
               # secret is provisioned.
-              if: ${{ secrets.MEAWALLET_CONFIG_BASE64 != '' }}
               env:
                   MEA_CONFIG: ${{ secrets.MEAWALLET_CONFIG_BASE64 }}
               run: |
-                  mkdir -p android/app/src/main/res/raw
-                  echo "$MEA_CONFIG" | base64 -d > android/app/src/main/res/raw/mea_config
+                  if [ -n "$MEA_CONFIG" ]; then
+                      mkdir -p android/app/src/main/res/raw
+                      echo "$MEA_CONFIG" | base64 -d > android/app/src/main/res/raw/mea_config
+                      echo "mea_config written"
+                  else
+                      echo "MEAWALLET_CONFIG_BASE64 not set — push provisioning stays stubbed"
+                  fi
 
             - name: Build signed AAB
               env:

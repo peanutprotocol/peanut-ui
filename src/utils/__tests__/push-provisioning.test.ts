@@ -25,7 +25,11 @@ const mockIsAndroidNative = isAndroidNative as jest.MockedFunction<typeof isAndr
 
 describe('getPushProvisioningAvailability', () => {
     beforeEach(() => {
+        // clearAllMocks keeps implementations — reset the platform answers
+        // explicitly so one test's mockReturnValue can't leak into the next.
         jest.clearAllMocks()
+        mockIsIOSNative.mockReturnValue(false)
+        mockIsAndroidNative.mockReturnValue(false)
     })
 
     it('is unavailable on web without touching the plugin', async () => {

@@ -47,7 +47,9 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
         if (result.added) {
             triggerHaptic()
             toast.success(t('walletAddSuccess'))
-        } else if (!result.canceled) {
+        } else if (!result.canceled && !result.alreadyInWallet) {
+            // alreadyInWallet is not a failure — the hook flips the row back to
+            // the carousel; canceled is the user closing the sheet.
             toast.error(t('walletAddFailed'))
         }
     }, [isAdding, addToWallet, triggerHaptic, toast, t])

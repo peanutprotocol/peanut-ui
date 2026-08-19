@@ -215,8 +215,10 @@ if (pkg.includes('IdensicMobileSDK')) {
         console.log('[postsync] CapApp-SPM Package.swift already patched for MPP')
         return
     }
-    const beforeCap = capPkg
-    capPkg = capPkg.replace(
+    // Each anchor is validated on its own — a half-applied patch would leave
+    // the binary target undeclared (or unused), and the Swift plugin would
+    // silently compile its canImport stub instead of failing the build.
+    const afterTarget = capPkg.replace(
         'targets: [\n',
         'targets: [\n' +
             '        .binaryTarget(\n' +
@@ -224,15 +226,17 @@ if (pkg.includes('IdensicMobileSDK')) {
             '            path: "Frameworks/MeaPushProvisioning.xcframework"\n' +
             '        ),\n'
     )
-    capPkg = capPkg.replace(
+    if (afterTarget === capPkg) {
+        console.error('[postsync] ERROR: CapApp-SPM Package.swift `targets: [` anchor not found — MPP patch stale')
+        process.exit(1)
+    }
+    capPkg = afterTarget.replace(
         '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin")\n',
         '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin"),\n' +
             '                "MeaPushProvisioning"\n'
     )
-    if (capPkg === beforeCap) {
-        console.error(
-            '[postsync] ERROR: CapApp-SPM Package.swift did not match expected layout — MPP patch anchors stale'
-        )
+    if (capPkg === afterTarget) {
+        console.error('[postsync] ERROR: CapApp-SPM Package.swift dependencies anchor not found — MPP patch stale')
         process.exit(1)
     }
     fs.writeFileSync(capPkgPath, capPkg)
