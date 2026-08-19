@@ -489,7 +489,6 @@ describe('GROUP 5: User-Dependent States', () => {
         })
         mockSendLinksApi.get.mockResolvedValue(link)
 
-        const mockOpenDetails = jest.fn()
         renderClaim()
 
         // Sender should see receipt, NOT the ClaimedView
