@@ -9,7 +9,6 @@ import { TransactionDetailsReceipt } from '@/components/TransactionDetails/Trans
 import { type TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
-import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -83,7 +82,6 @@ export const Claim = ({}) => {
     })
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
-    const { selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
 
     const [initialKYCStep, setInitialKYCStep] = useState<number>(0)
 
@@ -263,6 +261,15 @@ export const Claim = ({}) => {
         }))
     }
 
+    // the receipt shown on sender/already-claimed states — pure derivation
+    // (used to be pushed into the drawer hook's state via an effect)
+    const selectedTransaction = useMemo(() => {
+        const isReceiptState =
+            linkState === _consts.claimLinkStateType.CLAIM_SENDER ||
+            linkState === _consts.claimLinkStateType.ALREADY_CLAIMED
+        return isReceiptState ? transactionForDrawer : null
+    }, [linkState, transactionForDrawer])
+
     const showTransactionReceipt = useMemo(() => {
         if (!selectedTransaction) return false
         // check for showing txn receipt only to the creator after link is claimed
@@ -422,16 +429,6 @@ export const Claim = ({}) => {
             setLinkUrl(resolveClaimLink(pageUrl)) // TanStack Query will automatically fetch when linkUrl changes
         }
     }, [])
-
-    useEffect(() => {
-        if (!transactionForDrawer) return
-        if (
-            linkState === _consts.claimLinkStateType.CLAIM_SENDER ||
-            linkState === _consts.claimLinkStateType.ALREADY_CLAIMED
-        ) {
-            openTransactionDetails(transactionForDrawer)
-        }
-    }, [linkState, transactionForDrawer])
 
     // redirect to bank flow if user is KYC approved and step is bank
     useEffect(() => {

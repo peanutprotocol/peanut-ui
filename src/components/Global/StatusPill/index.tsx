@@ -8,16 +8,21 @@ interface StatusPillProps {
     status: StatusPillType
 }
 
+/**
+ * icon-only status chip per the states board (17966:12128): 3px padding,
+ * 14px icon, round, on the badge background tokens — same status → color
+ * mapping as StatusBadge.
+ */
 const StatusPill = ({ status }: StatusPillProps) => {
-    const colorClasses: Record<StatusPillType, string> = {
-        completed: 'border-success-5 bg-success-2 text-success-4',
-        pending: 'border-yellow-8 bg-secondary-4 text-yellow-6',
-        cancelled: 'border-error-2 bg-error-1 text-error',
-        refunded: 'border-success-5 bg-success-2 text-success-4',
-        failed: 'border-error-2 bg-error-1 text-error',
-        processing: 'border-yellow-8 bg-secondary-4 text-yellow-6',
-        soon: 'border-yellow-8 bg-secondary-4 text-yellow-6',
-        closed: 'border-success-5 bg-success-2 text-success-4',
+    const bgClasses: Record<StatusPillType, string> = {
+        completed: 'bg-background-badge-success',
+        closed: 'bg-background-badge-success',
+        refunded: 'bg-background-badge-success',
+        pending: 'bg-background-badge-attention',
+        processing: 'bg-background-badge-info',
+        soon: 'bg-background-badge-accent',
+        cancelled: 'bg-background-badge-error',
+        failed: 'bg-background-badge-error',
     }
 
     const iconClasses: Record<StatusPillType, IconName> = {
@@ -31,25 +36,14 @@ const StatusPill = ({ status }: StatusPillProps) => {
         closed: 'success',
     }
 
-    const iconSize: Record<StatusPillType, number> = {
-        completed: 7,
-        failed: 6,
-        processing: 10,
-        soon: 7,
-        pending: 8,
-        cancelled: 6,
-        refunded: 8,
-        closed: 7,
-    }
-
     return (
         <div
             className={twMerge(
-                'flex size-[14px] items-center justify-center rounded-full border',
-                colorClasses[status]
+                'flex items-center justify-center rounded-round p-[3px] text-foreground-primary',
+                bgClasses[status]
             )}
         >
-            <Icon name={iconClasses[status]} size={iconSize[status]} />
+            <Icon name={iconClasses[status]} size={14} />
         </div>
     )
 }

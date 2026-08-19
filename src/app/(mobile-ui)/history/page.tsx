@@ -34,6 +34,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import type { HistoryEntry, HistoryResponse } from '@/hooks/useTransactionHistory'
 import { AccountType } from '@/interfaces/interfaces'
 import { completeHistoryEntry, dedupeHistoryEntriesByUuid } from '@/utils/history.utils'
+import { twMerge } from 'tailwind-merge'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
@@ -240,7 +241,7 @@ const HistoryPage = () => {
         Sentry.captureException(error)
         return (
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <h2 className="text-base font-bold">{t('transactions')}</h2>{' '}
+                <h2 className="text-heading-card text-foreground-primary">{t('transactions')}</h2>{' '}
                 <EmptyState icon="alert" title={t('errorTitle')} description={t('errorDescription')} />
             </div>
         )
@@ -267,7 +268,7 @@ const HistoryPage = () => {
     const today = new Date()
 
     return (
-        <div className="mx-auto space-y-6 w-full md:space-y-3 md:max-w-2xl">
+        <div className="flex min-h-[inherit] w-full flex-col gap-6">
             <NavHeader title={t('title')} />
             <div className="h-full w-full">
                 {combinedAndSortedEntries.map((item, index) => {
@@ -296,8 +297,14 @@ const HistoryPage = () => {
 
                     return (
                         <React.Fragment key={item.uuid}>
+                            {/* date group header — board 17966:12128: Label/M, 8px above the group's rows */}
                             {showHeader && (
-                                <div className="mt-4 mb-2 px-1 text-sm font-semibold">
+                                <div
+                                    className={twMerge(
+                                        'mb-2 text-label-m text-foreground-primary',
+                                        index > 0 && 'mt-2'
+                                    )}
+                                >
                                     {groupHeader(itemDate, group)}
                                 </div>
                             )}

@@ -77,9 +77,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     haveSentMoneyToUser = false,
     hideTxnAmount = false,
 }) => {
-    // hook to manage the state of the details drawer (open/closed, selected transaction)
-    const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
-        useTransactionDetailsDrawer()
+    // drawer selection lives in the url (`?tx=<id>`) — an open receipt
+    // survives refresh and deep-links (states/receipt boards, url-as-state).
+    const { selectedTxId, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { triggerHaptic } = useHaptic()
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -173,12 +173,16 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolUpper}`
     }
 
-    // Spec §4.4: declined card transactions stay in the feed but are visually
-    // de-emphasized so they don't compete with successful items. Scope to
-    // declined SPENDS specifically — refunds also populate cardPayment, but
-    // a failed refund (e.g. processing error) shouldn't be greyed out.
-    const isDeclinedCardSpend =
-        status === 'failed' && isCardPaymentEntry(transaction) && !transaction.extraDataForDrawer?.cardPayment?.isRefund
+    // States board 17966:12128 amount treatment — the single place both the
+    // home widget and the history page inherit:
+    //   incoming successful = base state (no "+", no badge — see getTransactionSign)
+    //   pending family      = greyed amount + pending chip
+    //   cancelled           = strikethrough, no chip
+    //   failed              = strikethrough + failed chip
+    //   refunded            = strikethrough + refund chip (board is silent; kept from before)
+    const isPendingAmount = status === 'pending' || status === 'processing' || status === 'soon'
+    const isStruckAmount = status === 'cancelled' || status === 'failed' || status === 'refunded'
+    const showStatusChip = !!status && status !== 'completed' && status !== 'closed' && status !== 'cancelled'
 
     // Settlement cleared at a different amount than authorized (tip / FX
     // true-up) — flag the row so the balance impact isn't invisible in the
@@ -245,7 +249,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                   ? t('type.reward')
                                   : t(getActionLabelKey(type, status))}
                         </span>
-                        {status && <StatusPill status={status} />}
+                        {showStatusChip && status && <StatusPill status={status} />}
                         {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
                     </div>
                 }
@@ -260,13 +264,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 <>
                                     <span
                                         className={twMerge(
-                                            'text-body-m-semibold',
-                                            status === 'refunded' && 'text-gray-1 line-through',
-                                            // Declined card spends: gray the amount so the row reads
-                                            // as "didn't go through" without the opacity-60 wash
-                                            // we used before (which dimmed merchant name + icons
-                                            // too and made the row hard to read at a glance).
-                                            isDeclinedCardSpend && 'text-gray-1'
+                                            'text-body-m-semibold text-foreground-primary',
+                                            isPendingAmount && 'opacity-40',
+                                            isStruckAmount && 'line-through'
                                         )}
                                     >
                                         {displayAmount}
@@ -274,8 +274,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     {currencyDisplayAmount && (
                                         <span
                                             className={twMerge(
-                                                'text-body-s text-gray-1',
-                                                status === 'refunded' && 'line-through'
+                                                'text-body-s text-foreground-secondary',
+                                                isPendingAmount && 'opacity-40',
+                                                isStruckAmount && 'line-through'
                                             )}
                                         >
                                             {currencyDisplayAmount}
@@ -292,9 +293,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
                     <TransactionDetailsDrawer
-                        isOpen={isDrawerOpen && selectedTransaction?.id === transaction.id}
+                        isOpen={selectedTxId === transaction.id}
                         onClose={closeTransactionDetails}
-                        transaction={selectedTransaction}
+                        transaction={transaction}
                         transactionAmount={displayAmount}
                         avatarUrl={avatarUrl}
                     />

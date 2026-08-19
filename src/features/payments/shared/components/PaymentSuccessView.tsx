@@ -110,8 +110,7 @@ const PaymentSuccessView = ({
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const t = useTranslations('payment')
-    const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
-        useTransactionDetailsDrawer()
+    const { selectedTxId, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { user: authUser } = useUserStore()
     const queryClient = useQueryClient()
     const { triggerHaptic } = useHaptic()
@@ -164,7 +163,9 @@ const PaymentSuccessView = ({
             : undefined
 
         let details: Partial<TransactionDetails> = {
-            id: paymentDetails?.payerTransactionHash,
+            // the drawer selection is `?tx=<id>` in the url — fall back to the
+            // charge uuid so the receipt stays openable when the hash is absent
+            id: paymentDetails?.payerTransactionHash ?? chargeDetails.uuid,
             txHash: paymentDetails?.payerTransactionHash,
             status: 'completed' as StatusPillType,
             amount: parseFloat(amountValue),
@@ -221,6 +222,10 @@ const PaymentSuccessView = ({
         usdAmount,
         t,
     ])
+
+    // the one transaction this view's receipt drawer shows — the drawer opens
+    // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer)
+    const receiptTransaction = transactionDetailsProp ?? transactionForDrawer
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
     usePointsConfetti(points, pointsDivRef)
@@ -344,14 +349,13 @@ const PaymentSuccessView = ({
                     ) : (
                         <CreateAccountButton onClick={() => router.push('/setup')} />
                     )}
-                    {!isExternalWalletFlow && (transactionDetailsProp || transactionForDrawer) && (
+                    {!isExternalWalletFlow && receiptTransaction && (
                         <Button
                             variant="primary-soft"
                             shadowSize="4"
                             onClick={() => {
-                                const txDetails = transactionDetailsProp ?? transactionForDrawer
-                                if (txDetails) {
-                                    openTransactionDetails(txDetails)
+                                if (receiptTransaction) {
+                                    openTransactionDetails(receiptTransaction)
                                 }
                             }}
                         >
@@ -363,9 +367,9 @@ const PaymentSuccessView = ({
 
             {/* Transaction Details Drawer */}
             <TransactionDetailsDrawer
-                isOpen={isDrawerOpen}
+                isOpen={!!receiptTransaction && selectedTxId === receiptTransaction.id}
                 onClose={closeTransactionDetails}
-                transaction={selectedTransaction}
+                transaction={receiptTransaction}
             />
         </div>
     )

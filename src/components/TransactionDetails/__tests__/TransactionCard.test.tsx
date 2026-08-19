@@ -34,8 +34,7 @@ jest.mock('use-haptic', () => ({
 
 jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
     useTransactionDetailsDrawer: () => ({
-        isDrawerOpen: false,
-        selectedTransaction: null,
+        selectedTxId: null,
         openTransactionDetails,
         closeTransactionDetails: jest.fn(),
     }),

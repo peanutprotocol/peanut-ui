@@ -581,8 +581,7 @@ function applyDefaults() {
 
     mockUseTransactionDetailsDrawer.mockReturnValue({
         openTransactionDetails: jest.fn(),
-        selectedTransaction: null,
-        isDrawerOpen: false,
+        selectedTxId: null,
         closeTransactionDetails: jest.fn(),
     })
 
@@ -1067,8 +1066,7 @@ describe('GROUP 4: Success States', () => {
         const openTransactionDetails = jest.fn()
         mockUseTransactionDetailsDrawer.mockReturnValue({
             openTransactionDetails,
-            selectedTransaction: null,
-            isDrawerOpen: false,
+            selectedTxId: null,
             closeTransactionDetails: jest.fn(),
         })
 

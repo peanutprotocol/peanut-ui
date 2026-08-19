@@ -74,11 +74,6 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => mockUseWallet(),
 }))
 
-const mockUseTransactionDetailsDrawer = jest.fn()
-jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
-    useTransactionDetailsDrawer: () => mockUseTransactionDetailsDrawer(),
-}))
-
 jest.mock('@/hooks/useTransactionHistory', () => ({
     EHistoryUserRole: { SENDER: 'SENDER' },
 }))
@@ -301,13 +296,6 @@ function applyDefaults() {
         balance: BigInt(100000000),
     })
 
-    mockUseTransactionDetailsDrawer.mockReturnValue({
-        openTransactionDetails: jest.fn(),
-        selectedTransaction: null,
-        isDrawerOpen: false,
-        closeTransactionDetails: jest.fn(),
-    })
-
     // Default: API returns nothing (not called yet)
     mockSendLinksApi.get.mockResolvedValue(undefined)
 }
@@ -379,14 +367,6 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
         const link = makeSendLink({ status: 'CLAIMED', claim: { txHash: '0xCLAIM' } })
         mockSendLinksApi.get.mockResolvedValue(link)
 
-        // Mock transaction drawer to provide selectedTransaction
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: jest.fn(),
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: false,
-            closeTransactionDetails: jest.fn(),
-        })
-
         renderClaim()
 
         await waitFor(() => {
@@ -397,13 +377,6 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
     test('CANCELLED link shows ClaimedView (link no longer available)', async () => {
         const link = makeSendLink({ status: 'CANCELLED' })
         mockSendLinksApi.get.mockResolvedValue(link)
-
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: jest.fn(),
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: false,
-            closeTransactionDetails: jest.fn(),
-        })
 
         renderClaim()
 
@@ -416,13 +389,6 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
         const link = makeSendLink({ status: 'CLAIMING' })
         mockSendLinksApi.get.mockResolvedValue(link)
 
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: jest.fn(),
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: false,
-            closeTransactionDetails: jest.fn(),
-        })
-
         renderClaim()
 
         await waitFor(() => {
@@ -433,13 +399,6 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
     test('FAILED link with txHash shows as already claimed (funds left)', async () => {
         const link = makeSendLink({ status: 'FAILED', claim: { txHash: '0xFAILED' } })
         mockSendLinksApi.get.mockResolvedValue(link)
-
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: jest.fn(),
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: false,
-            closeTransactionDetails: jest.fn(),
-        })
 
         renderClaim()
 
@@ -531,13 +490,6 @@ describe('GROUP 5: User-Dependent States', () => {
         mockSendLinksApi.get.mockResolvedValue(link)
 
         const mockOpenDetails = jest.fn()
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: mockOpenDetails,
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: true,
-            closeTransactionDetails: jest.fn(),
-        })
-
         renderClaim()
 
         // Sender should see receipt, NOT the ClaimedView
