@@ -13,15 +13,17 @@ it.each([
     ['emv', '000201' + '0014com.mercadolibre' + 'x'.repeat(20)],
     ['url', CLAIM_URL],
     ['other', '0xab5801a7d398351b8be11c439e05c5b3259aec9b'],
-])('classifies a payload as %s', (kind, payload) => {
+])('classifies a payload as %s and sends it in full', (kind, payload) => {
     reportQrScanError(new Error('boom'), payload)
     expect(mockCaptureException.mock.calls[0][1]).toEqual({
         tags: { error_type: 'qr_scan_processing' },
-        extra: { qrLength: payload.length, qrKind: kind },
+        extra: { qrLength: payload.length, qrKind: kind, qrPayload: payload },
     })
 })
 
-it('never ships raw scan content — a claim link secret stays on-device', () => {
+it('sends the full payload, claim-link fragment included — accepted trade-off (PR #2757)', () => {
     reportQrScanError(new Error('boom'), CLAIM_URL)
-    expect(JSON.stringify(mockCaptureException.mock.calls[0][1])).not.toContain('secret')
+    expect(mockCaptureException.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ extra: expect.objectContaining({ qrPayload: CLAIM_URL }) })
+    )
 })

@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 /**
  * The camera path's onScan failure is reported to Sentry under its own tag,
- * with derived payload context only — never the raw scan content.
+ * with the full scanned payload (accepted trade-off, PR #2757).
  */
 import { renderHook, act } from '@testing-library/react'
 import { captureException } from '@sentry/nextjs'
@@ -61,7 +61,7 @@ it('camera scan: onScan failure is captured with the qr_scan_processing tag', as
         error,
         expect.objectContaining({
             tags: { error_type: 'qr_scan_processing' },
-            extra: { qrLength: 100, qrKind: 'pix' },
+            extra: { qrLength: 100, qrKind: 'pix', qrPayload: PIX_PAYLOAD },
         })
     )
 })

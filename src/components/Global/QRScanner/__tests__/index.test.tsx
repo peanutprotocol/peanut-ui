@@ -124,13 +124,13 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
     })
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
-    // the failure is reported to Sentry under its own tag, but the raw scan
-    // content is never sent — only derived, non-sensitive fields
+    // the failure is reported to Sentry under its own tag, with the full
+    // pasted value (accepted trade-off, PR #2757)
     expect(mockCaptureException).toHaveBeenCalledWith(
         error,
         expect.objectContaining({
             tags: { error_type: 'qr_scan_processing' },
-            extra: { qrLength: ADDRESS.length, qrKind: 'other' },
+            extra: { qrLength: ADDRESS.length, qrKind: 'other', qrPayload: ADDRESS },
         })
     )
 })
@@ -150,11 +150,11 @@ it('"Click to paste": onScan failure is not misreported as a clipboard error', a
     expect(onScan).toHaveBeenCalledWith(PIX_PAYLOAD)
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
-    // a Pix payload is classified, never excerpted
+    // a Pix payload is classified and sent in full
     expect(mockCaptureException).toHaveBeenCalledWith(
         expect.any(Error),
         expect.objectContaining({
-            extra: { qrLength: 100, qrKind: 'pix' },
+            extra: { qrLength: 100, qrKind: 'pix', qrPayload: PIX_PAYLOAD },
         })
     )
 })
