@@ -37,7 +37,9 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
             <DrawerPrimitive.Content
                 ref={ref}
                 className={twMerge(
-                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-[10px] border bg-background',
+                    // chrome per the TX Details board (17490:115877): page background,
+                    // no border, handle 32x5 sitting 8px from the top with 24px below.
+                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-[10px] bg-background-page',
                     className
                 )}
                 aria-describedby={undefined}
@@ -45,7 +47,7 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 onTouchMove={(e) => e.stopPropagation()}
             >
                 {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
-                <div className="mx-auto my-4 h-1.5 w-10 rounded-full bg-black" />
+                <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-round bg-foreground-secondary" />
                 <div className="flex w-full justify-center">
                     <div
                         className={twMerge(

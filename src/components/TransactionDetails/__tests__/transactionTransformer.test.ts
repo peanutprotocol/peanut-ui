@@ -522,13 +522,13 @@ describe('mapTransactionDataForDrawer', () => {
             extraData: { kind: 'CARD_SPEND_AUTH', provider: 'RAIN', merchantName: 'Acme Coffee', usdAmount: '-14.68' },
         })
 
-        it('a negative auth stays pending (never "refunded") so the + sign shows', () => {
+        it('a negative auth stays pending (never "refunded") and reads as an incoming base-state amount', () => {
             const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
             expect(result.status).toBe('pending')
             expect(result.direction).toBe('receive')
-            // 'refunded'/'failed'/'cancelled' would suppress the sign; a pending
-            // receive keeps the '+'. This is what makes the credit read as +$14.68.
-            expect(getTransactionSign(result)).toBe('+')
+            // incoming carries no sign (states board 17966:12128 base state) —
+            // the point is it must NOT read as an outgoing '-' spend.
+            expect(getTransactionSign(result)).toBe('')
         })
 
         it('flags the drawer cardPayment as a refund', () => {

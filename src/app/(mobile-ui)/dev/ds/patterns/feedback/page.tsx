@@ -104,8 +104,9 @@ export default function FeedbackPage() {
             <DocSection title="StatusPill">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
-                        Tiny 14px circular icon indicator. Uses the same StatusType as StatusBadge (minus
-                        &quot;custom&quot;). Pairs well with list items.
+                        20px round icon chip (3px padding, 14px icon) on the badge background tokens — states board
+                        17966:12128. Uses the same StatusType as StatusBadge (minus &quot;custom&quot;). Pairs well with
+                        list items.
                     </p>
 
                     <div className="space-y-4">

@@ -39,6 +39,7 @@ import { isPixRecurringCode } from '@/utils/withdraw.utils'
 import { formatUnits, parseUnits } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { getCurrencyPrice } from '@/app/actions/currency'
@@ -131,8 +132,7 @@ export default function QRPayPage() {
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [qrPayment, setQrPayment] = useState<QrPayment | null>(null)
     const [currency, setCurrency] = useState<{ code: string; symbol: string; price: number } | undefined>(undefined)
-    const { openTransactionDetails, selectedTransaction, isDrawerOpen, closeTransactionDetails } =
-        useTransactionDetailsDrawer()
+    const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
 
     const paymentProcessor: PaymentProcessor | null = useMemo(() => {
@@ -517,6 +517,44 @@ export default function QRPayPage() {
                 return null
         }
     }, [qrType])
+
+    // receipt transaction for the success drawer — built up-front (not in the
+    // cta's onClick) because the drawer opens off the url's `?tx=` match.
+    const receiptTransaction: TransactionDetails | null = useMemo(() => {
+        if (!qrPayment || !currency) return null
+        const now = new Date()
+        return {
+            // Manteca synthetic id — the only key /receipt/<id>
+            // resolves, and what Activity rows already carry.
+            // `externalId` is UUID-shaped, so it slips past the
+            // id-shape gate and 404s silently instead of erroring.
+            id: qrPayment.id,
+            direction: 'qr_payment',
+            userName: qrPayment.details.merchant.name,
+            fullName: qrPayment.details.merchant.name,
+            amount: Number(usdAmount),
+            currency: {
+                amount: qrPayment.details.paymentAssetAmount,
+                code: currency.code,
+            },
+            initials: 'QR',
+            currencySymbol: currency.symbol,
+            status: 'completed',
+            date: now,
+            createdAt: now,
+            extraDataForDrawer: {
+                originalType: 'TRANSACTION_INTENT',
+                originalUserRole: EHistoryUserRole.SENDER,
+                kind: 'QR_PAY',
+                provider: 'MANTECA',
+                avatarUrl: methodIcon,
+                receipt: {
+                    exchange_rate: currency.price.toString(),
+                },
+            },
+            totalAmountCollected: Number(usdAmount),
+        }
+    }, [qrPayment, currency, usdAmount, methodIcon])
 
     // Fetch Manteca payment lock immediately on QR scan (Manteca only)
     // OPTIMIZATION: We fetch payment details BEFORE KYC check completes for faster UX
@@ -1457,38 +1495,9 @@ export default function QRPayPage() {
                                     shadowSize="4"
                                     disabled={false}
                                     onClick={() => {
-                                        const now = new Date()
-                                        openTransactionDetails({
-                                            // Manteca synthetic id — the only key /receipt/<id>
-                                            // resolves, and what Activity rows already carry.
-                                            // `externalId` is UUID-shaped, so it slips past the
-                                            // id-shape gate and 404s silently instead of erroring.
-                                            id: qrPayment!.id,
-                                            direction: 'qr_payment',
-                                            userName: qrPayment!.details.merchant.name,
-                                            fullName: qrPayment!.details.merchant.name,
-                                            amount: Number(usdAmount),
-                                            currency: {
-                                                amount: qrPayment!.details.paymentAssetAmount,
-                                                code: currency.code,
-                                            },
-                                            initials: 'QR',
-                                            currencySymbol: currency.symbol,
-                                            status: 'completed',
-                                            date: now,
-                                            createdAt: now,
-                                            extraDataForDrawer: {
-                                                originalType: 'TRANSACTION_INTENT',
-                                                originalUserRole: EHistoryUserRole.SENDER,
-                                                kind: 'QR_PAY',
-                                                provider: 'MANTECA',
-                                                avatarUrl: methodIcon,
-                                                receipt: {
-                                                    exchange_rate: currency.price.toString(),
-                                                },
-                                            },
-                                            totalAmountCollected: Number(usdAmount),
-                                        })
+                                        if (receiptTransaction) {
+                                            openTransactionDetails(receiptTransaction)
+                                        }
                                     }}
                                 >
                                     {t('success.seeReceipt')}
@@ -1512,9 +1521,9 @@ export default function QRPayPage() {
                     </div>
                 </div>
                 <TransactionDetailsDrawer
-                    isOpen={isDrawerOpen}
+                    isOpen={isTransactionSelected(receiptTransaction?.id)}
                     onClose={closeTransactionDetails}
-                    transaction={selectedTransaction}
+                    transaction={receiptTransaction}
                 />
                 {/* Mounted only while open: the modal's shown-guard is a ref that lives
                     for the mount, so a persistent mount would swallow the MODAL_SHOWN /

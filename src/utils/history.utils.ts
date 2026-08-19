@@ -299,10 +299,18 @@ const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
     refunded: false,
 }
 
+// Status families for the states-board amount treatment (board 17966:12128).
+// One source next to STATUS_SHOWS_SIGN so sign, strikethrough, and grey-out
+// stay in lockstep — TransactionCard consumes these instead of re-listing.
+export const PENDING_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['pending', 'processing', 'soon'])
+export const STRUCK_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['cancelled', 'failed', 'refunded'])
+
 // Direction → balance-change sign. A `Record` (not a switch) so the compiler
 // enforces exhaustiveness: adding a `TransactionDirection` without a sign is a
 // build error, not a silent `''` at runtime.
-const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
+// States board 17966:12128: an incoming transaction is the base state and
+// carries NO "+" prefix — only outgoing amounts get a sign ("-$38").
+const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | ''> = {
     send: '-',
     request_received: '-',
     withdraw: '-',
@@ -310,15 +318,15 @@ const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
     bank_claim: '-',
     claim_external: '-',
     qr_payment: '-',
-    receive: '+',
-    request_sent: '+',
-    add: '+',
-    bank_deposit: '+',
-    bank_request_fulfillment: '+',
+    receive: '',
+    request_sent: '',
+    add: '',
+    bank_deposit: '',
+    bank_request_fulfillment: '',
 }
 
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */
-export function getTransactionSign(transaction: Pick<TransactionDetails, 'direction' | 'status'>): '-' | '+' | '' {
+export function getTransactionSign(transaction: Pick<TransactionDetails, 'direction' | 'status'>): '-' | '' {
     if (transaction.status && !STATUS_SHOWS_SIGN[transaction.status]) {
         return ''
     }
