@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { captureException } from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -240,7 +241,13 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         try {
             await onScan(data)
         } catch (err) {
-            console.error('Error processing QR code:', err)
+            // console.info, not error: captureConsoleIntegration would turn an
+            // error-level log into a second Sentry event on top of the capture below.
+            console.info('Error processing QR code:', err)
+            captureException(err, {
+                tags: { error_type: 'qr_scan_processing' },
+                extra: { qrLength: data.length, qrPrefix: data.slice(0, 64) },
+            })
             toast.error(t('qrScanner.qrProcessingError'))
         }
     }

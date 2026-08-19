@@ -14,12 +14,14 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { isAndroidNative } from '@/utils/capacitor'
+import { captureException } from '@sentry/nextjs'
 
 const mockToastError = jest.fn()
 
 jest.mock('@capacitor/clipboard', () => ({ Clipboard: { read: jest.fn() } }))
 jest.mock('@/utils/clipboard-detect', () => ({ clipboardHasStrings: jest.fn() }))
 jest.mock('@/utils/capacitor', () => ({ isAndroidNative: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 // general.utils transitively imports env-requiring constants; passthrough keeps
 // the chip text assertable as the full address.
 jest.mock('@/utils/general.utils', () => ({ printableAddress: (a: string) => a }))
@@ -52,10 +54,12 @@ const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRend
 const mockRead = Clipboard.read as jest.MockedFunction<typeof Clipboard.read>
 const mockHasStrings = clipboardHasStrings as jest.MockedFunction<typeof clipboardHasStrings>
 const mockIsAndroidNative = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
+const mockCaptureException = captureException as jest.MockedFunction<typeof captureException>
 
 // all-lowercase: viem isAddress enforces checksum on mixed-case forms
 const ADDRESS = '0xab5801a7d398351b8be11c439e05c5b3259aec9b'
 const CHIP_LABEL = 'Use copied address'
+const LONG_PAYLOAD = 'x'.repeat(100)
 
 const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) => {
     render(<QRScanner onScan={onScan} />)
@@ -110,7 +114,8 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
     mockHasStrings.mockResolvedValue(true)
     mockRead.mockResolvedValue({ value: ADDRESS, type: 'text/plain' })
 
-    const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
+    const error = new Error('routing exploded')
+    const onScan = jest.fn().mockRejectedValue(error)
     renderScanner(onScan)
 
     const chip = await screen.findByText(CHIP_LABEL)
@@ -119,12 +124,20 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
     })
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
+    // the failure is also reported to Sentry under its own tag, with the payload
+    expect(mockCaptureException).toHaveBeenCalledWith(
+        error,
+        expect.objectContaining({
+            tags: { error_type: 'qr_scan_processing' },
+            extra: expect.objectContaining({ qrLength: ADDRESS.length, qrPrefix: ADDRESS }),
+        })
+    )
 })
 
 it('"Click to paste": onScan failure is not misreported as a clipboard error', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(false)
-    mockRead.mockResolvedValue({ value: 'some text', type: 'text/plain' })
+    mockRead.mockResolvedValue({ value: LONG_PAYLOAD, type: 'text/plain' })
 
     const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
     renderScanner(onScan)
@@ -133,9 +146,16 @@ it('"Click to paste": onScan failure is not misreported as a clipboard error', a
     await act(async () => {
         fireEvent.click(paste)
     })
-    expect(onScan).toHaveBeenCalledWith('some text')
+    expect(onScan).toHaveBeenCalledWith(LONG_PAYLOAD)
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
+    // long payloads are truncated to the first 64 chars before leaving the device
+    expect(mockCaptureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+            extra: expect.objectContaining({ qrLength: 100, qrPrefix: LONG_PAYLOAD.slice(0, 64) }),
+        })
+    )
 })
 
 it('Android chip: onScan failure surfaces a processing error instead of rejecting unhandled', async () => {
