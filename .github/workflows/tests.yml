@@ -228,7 +228,9 @@ jobs:
             # sibling runs minutes apart cleared the same step in seconds. The
             # stall is transient, so retry with a per-attempt cap — one bad
             # mirror then costs an attempt instead of the whole job — and drop
-            # to the canonical archive after the first failure. Still exits
+            # to the canonical archive after the first failure. `timeout` owns
+            # the attempt's process group, so --kill-after reaps an apt child
+            # that ignores the SIGTERM it sends first. Still exits
             # non-zero once the attempts are spent: a genuinely missing system
             # library must stay a red job, not a silent one.
             - name: Install Playwright system deps
@@ -236,11 +238,10 @@ jobs:
               timeout-minutes: 9
               run: |
                   for attempt in 1 2 3; do
-                      if timeout 150 npx playwright install-deps chromium; then
+                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
-                      sudo pkill -9 -f '[a]pt-get' || true
                       sudo rm -rf /var/lib/apt/lists/partial/* || true
                       if [ "${attempt}" = 1 ]; then
                           sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
