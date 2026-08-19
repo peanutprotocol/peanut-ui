@@ -52,6 +52,9 @@ export const ANALYTICS_EVENTS = {
 
     // ── Send ──
     SEND_METHOD_SELECTED: 'send_method_selected',
+    // Emitted for every direct send that ends in the error toast, whatever the
+    // step. Until this existed a failed send left no analytics trace at all.
+    SEND_FAILED: 'send_failed',
 
     // ── Send Link ──
     SEND_LINK_CREATED: 'send_link_created',
@@ -185,6 +188,11 @@ export const ANALYTICS_EVENTS = {
     // Withdraw refused with 409 STALE_CARD_APPROVAL — stored session-key
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
+    // One-tap mixed spend via per-transaction ephemeral session key
+    // (SESSION_KEY_SPEND flag). A fallback means the passkey path took over —
+    // `reason` says why; watch this before widening the flag.
+    SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
+    SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',
 
     // ── Card: waitlist + early-access funnel (M2 Card Waitlist Launch) ──
     // /shhhhh closed-beta landing page → /card.

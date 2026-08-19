@@ -4,7 +4,8 @@
  * sentence is the receipt's only action, so it must not hide behind a tap.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+import { renderWithIntl as render } from '@/test-utils/intl'
 
 jest.mock('@/components/Global/InfoCard', () => ({
     __esModule: true,

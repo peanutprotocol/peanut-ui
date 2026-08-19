@@ -48,6 +48,9 @@ const mockOpenExternalUrl = jest.fn<Promise<void>, [string]>()
 let mockIsCapacitor = false
 jest.mock('@/utils/capacitor', () => ({
     isNativeBridge: () => mockIsCapacitor,
+    // mobile-release's mascot picker + useAppHaptic call these
+    isAndroidNative: () => false,
+    isCapacitor: () => false,
     openExternalUrl: (url: string) => mockOpenExternalUrl(url),
 }))
 const mockBrowserListener = { remove: jest.fn() }

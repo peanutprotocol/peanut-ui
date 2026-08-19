@@ -62,7 +62,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             // would skip the withdrawal and get the cancel rejected by the
             // backend ("Withdrawal signature required"). Fail closed instead.
             if (!overview) {
-                throw new Error('Card details still loading — please retry in a moment')
+                throw new Error(t('errors.cardDetailsLoading'))
             }
             // Cancel can be terminal on Rain's side (collateral contract may
             // become unreachable), so we MUST drain it BEFORE the cancel.

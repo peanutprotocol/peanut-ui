@@ -2,6 +2,11 @@ import { jsonParse, jsonStringify, getFromLocalStorage, saveToLocalStorage } fro
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
+import { apiErrorFromResponse } from '@/services/api-error'
+import { getAuthHeaders, authReady } from '@/utils/auth-token'
+import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_URL } from '@/constants/general.consts'
+import { isDemoMode } from '@/utils/demo'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
@@ -77,11 +82,19 @@ type UpdateLinkBody = {
 
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
-        let requestBody: FormData | string
+        // This call bypasses callApi (multipart upload), so the demo interceptor
+        // is invoked explicitly here. Lazy import keeps the demo module out of
+        // this service's module graph on web/tests.
+        if (isDemoMode()) {
+            const { demoRespond } = await import('@/utils/demo-api')
+            return jsonParse(await (await demoRespond('/send-links', { method: 'POST' })).text())
+        }
+
+        let response: Response
 
         // check if attachment is a File or Blob object
         if (sendLink.attachment && (sendLink.attachment instanceof File || sendLink.attachment instanceof Blob)) {
-            requestBody = new FormData()
+            const requestBody = new FormData()
 
             requestBody.append(
                 'attachment',
@@ -104,33 +117,28 @@ export const sendLinksApi = {
                     }
                 }
             }
+
+            await authReady()
+            response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
+                method: 'POST',
+                body: requestBody,
+                headers: getAuthHeaders(),
+            })
         } else {
-            // no file, or attachment is not a File/Blob, send as JSON —
-            // apiFetch sets Content-Type: application/json for string bodies
-            requestBody = jsonStringify(sendLink)
+            /*
+             * No file → JSON through apiFetch, which carries the native-transport
+             * cookie fallback for tokenless native sessions. The multipart branch
+             * above can't use it: FormData doesn't survive the native bridge, and
+             * apiFetch would stamp a JSON content-type on it.
+             */
+            response = await apiFetch('/send-links', {
+                method: 'POST',
+                body: jsonStringify(sendLink),
+            })
         }
 
-        // demo mode is handled inside apiFetch (the POST /send-links demo
-        // handler serves a canned link and never reads the body)
-        const response = await apiFetch('/send-links', {
-            method: 'POST',
-            body: requestBody,
-        })
-
         if (!response.ok) {
-            const errorText = await response.text()
-            try {
-                // attempt to parse backend error if JSON
-                const errorJson = jsonParse(errorText)
-                console.error('API Error:', errorJson)
-                throw new Error(
-                    `HTTP error! status: ${response.status}, message: ${errorJson.message || errorJson.error || errorText}`
-                )
-            } catch {
-                // fallback to plain text error
-                console.error('API Error Text:', errorText)
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
-            }
+            throw await apiErrorFromResponse(response, 'Failed to create send link')
         }
         const responseText = await response.text()
         const data: SendLink = jsonParse(responseText)

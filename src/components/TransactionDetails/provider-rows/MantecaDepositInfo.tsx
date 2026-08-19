@@ -46,6 +46,9 @@ export function MantecaDepositInfo({
             {depositDetails.depositAlias && <ReceiptRow label="Alias" value={depositDetails.depositAlias} allowCopy />}
             {country?.id === 'AR' && (
                 <>
+                    {/* Not copy: the field name the user's Argentine banking app shows.
+                        Translating it would break the match they are transcribing. */}
+                    {/* eslint-disable-next-line local/copy-props-from-catalog */}
                     <ReceiptRow label="Razón Social" value={MANTECA_ARG_DEPOSIT_NAME} />
                     <ReceiptRow label="CUIT" value={MANTECA_ARG_DEPOSIT_CUIT} />
                 </>

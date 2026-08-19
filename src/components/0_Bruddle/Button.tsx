@@ -3,7 +3,7 @@ import React, { forwardRef, useCallback, useEffect, useRef } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useLongPress } from '@/hooks/useLongPress'
 
 export type ButtonVariant =
@@ -116,7 +116,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         const localRef = useRef<HTMLButtonElement>(null)
         const buttonRef = (ref as React.RefObject<HTMLButtonElement>) || localRef
 
-        const { triggerHaptic } = useHaptic()
+        const { triggerHaptic } = useAppHaptic()
         const { isLongPressed, pressProgress, handlers: longPressHandlers } = useLongPress(longPress)
 
         useEffect(() => {

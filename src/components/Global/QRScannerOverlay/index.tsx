@@ -16,13 +16,13 @@ import { serverFetch } from '@/utils/api-fetch'
 import { openExternalUrl } from '@/utils/capacitor'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
-import { recipientPayUrl, qrClaimUrl } from '@/utils/native-routes'
+import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useState, type ChangeEvent } from 'react'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 enum EModalType {
     QR_NOT_SUPPORTED = 'QR_NOT_SUPPORTED',
@@ -217,7 +217,7 @@ export default function QRScannerOverlay() {
     const toast = useToast()
     const { user } = useAuth()
     const payUserUrl = user?.user.username ? `${BASE_URL}/pay/${user.user.username}` : ''
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
 
     const showModal = (type: EModalType) => {
@@ -232,7 +232,14 @@ export default function QRScannerOverlay() {
         let redirectUrl: string | undefined = undefined
         let toConfirmUrl: string | undefined = undefined
         const normalized = data.toLowerCase()
-        const recognized = recognizeQr(normalized)
+        // Recognize the RAW scan: in base58 the case IS the address (a lowercase l
+        // is not a Solana character, and Tron anchors on an uppercase T), so
+        // lowercasing first lost ~half of all Solana and every Tron address.
+        // Retry lowercased only when the payload is all-uppercase — QR alphanumeric
+        // mode encodes uppercase only, so that case came from the encoder. Any
+        // lowercase letter means the case is the user's, and a mixed-case EIP-55
+        // checksum must stay rejectable instead of laundered into a payable address.
+        const recognized = recognizeQr(data) ?? (data === data.toUpperCase() ? recognizeQr(normalized) : null)
 
         const getLogData = () => {
             if (recognized === EQrType.PIX_KEY) {
@@ -291,7 +298,13 @@ export default function QRScannerOverlay() {
                             redirectUrl = qrClaimUrl(redirectQrCode)
                         }
                     } else {
-                        redirectUrl = path
+                        // An IRL request QR is `/<recipient>/<amount><token>?id=<uuid>`,
+                        // which on native resolves to a route the static export doesn't
+                        // ship — the router falls back to a full page load and the
+                        // WebView lands on a localhost error page. Reuse the deep-link
+                        // mapper so a scanned link routes exactly like the same link
+                        // opened from a notification or an App Link.
+                        redirectUrl = deepLinkToNativePath(path) ?? path
                     }
                 }
                 break

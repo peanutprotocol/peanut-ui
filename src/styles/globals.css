@@ -271,6 +271,16 @@
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --ease-sharp: cubic-bezier(0.87, 0, 0.13, 1);
 
+    /* safe-area insets — see the :root contract below @theme. ported from the
+       v3 tailwind.config.js spacing extension (deleted in the v4 migration).
+       the env() step in the fallback chain is load-bearing: an undefined
+       custom property invalidates the whole declaration, so a
+       min-h-[calc(...)] would silently collapse to `auto`. */
+    --spacing-safe-top: var(--safe-top, env(safe-area-inset-top, 0px));
+    --spacing-safe-right: var(--safe-right, env(safe-area-inset-right, 0px));
+    --spacing-safe-bottom: var(--safe-bottom, env(safe-area-inset-bottom, 0px));
+    --spacing-safe-left: var(--safe-left, env(safe-area-inset-left, 0px));
+
     /* ───────────────────────────────────────────────────────────────────────
        v3-parity theme values (renames + defaults that changed in tailwind 4)
        ─────────────────────────────────────────────────────────────────────── */
@@ -1005,6 +1015,25 @@
     .bg-peanut-repeat-small {
         @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:50px_50px] bg-repeat;
     }
+}
+
+/* Safe-area contract. --safe-area-inset-* is the raw source: on Android 15+
+   (targetSdk 36 forces edge-to-edge) Capacitor's built-in SystemBars plugin
+   overwrites these as an inline style on <html> with natively measured values —
+   max(systemBars, displayCutout) per edge, in CSS px. Everywhere else (web, iOS,
+   Android < 15) they keep the env() seed below, so behavior there is unchanged.
+   The names are Capacitor's; do not rename them, and do not move this rule into
+   @layer — only the inline style on <html> should outrank it. */
+:root {
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+
+    --safe-top: var(--safe-area-inset-top);
+    --safe-right: var(--safe-area-inset-right);
+    --safe-bottom: var(--safe-area-inset-bottom);
+    --safe-left: var(--safe-area-inset-left);
 }
 
 @layer components {

@@ -32,6 +32,8 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => <span /> }))
 // import must come after jest.mock
 import { BridgeDepositInstructions } from '../BridgeDepositInstructions'
 
+// these components call useTranslations; IntlWrapper supplies the en catalog
+// so the English assertions below keep asserting the real shipped copy
 const FULL_REFERENCE = 'BRGTESTREF1234567890'
 const SHORT_REFERENCE = FULL_REFERENCE.slice(0, 10)
 

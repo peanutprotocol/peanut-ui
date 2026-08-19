@@ -4,13 +4,17 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import { printableUsdc } from '@/utils/balance.utils'
 import { formatExtendedNumber } from '@/utils/general.utils'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
+import { twMerge } from 'tailwind-merge'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 
 interface BalanceSectionProps {
     balance: bigint | undefined
     isFetching: boolean
+    /** balance is the persisted last-known-good while the live sum is still
+     *  pending — dim it rather than asserting it as current */
+    isStale?: boolean
     isHidden: boolean
     onToggleVisibility: () => void
 }
@@ -25,10 +29,10 @@ const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; href: string; ic
  * balance block (figma home board 17830:75689): centered usd balance with
  * visibility toggle, plus the add / send / request submenu underneath.
  */
-export function BalanceSection({ balance, isFetching, isHidden, onToggleVisibility }: BalanceSectionProps) {
+export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggleVisibility }: BalanceSectionProps) {
     const t = useTranslations('home')
     const tNav = useTranslations('navigation')
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     return (
         <div className="flex flex-col gap-6 pb-4">
@@ -36,12 +40,12 @@ export function BalanceSection({ balance, isFetching, isHidden, onToggleVisibili
                 {isFetching || balance === undefined ? (
                     <Loading />
                 ) : (
-                    <>
+                    <span className={twMerge('flex items-center gap-2', isStale && 'opacity-50')}>
                         <span className="text-heading-s text-foreground-primary">$</span>
                         <span className="text-heading-xl text-foreground-primary">
                             {isHidden ? '****' : formatExtendedNumber(printableUsdc(balance))}
                         </span>
-                    </>
+                    </span>
                 )}
                 {/* toggle stays reachable even when the balance query errors
                     (balance undefined, not fetching) — it also controls the

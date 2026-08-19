@@ -4,6 +4,9 @@ import en from '../messages/en.json'
 import es419 from '../messages/es-419.json'
 import esAR from '../messages/es-AR.json'
 import ptBR from '../messages/pt-BR.json'
+import marketingEs419 from '../../es-419.json'
+import marketingEsAr from '../../es-ar.json'
+import marketingPtBr from '../../pt-br.json'
 import { leafEntries } from './catalog-helpers'
 
 /**
@@ -94,6 +97,17 @@ const CATALOGS: Record<keyof typeof RULES, Record<string, unknown>> = {
     'pt-BR': ptBR,
 }
 
+// The marketing catalogs (src/i18n/*.json) hold the landing copy, which is
+// where the trust rules matter most — it is the first page a stranger sees.
+// They were outside this suite until 18 Aug 2026, which is how "Pix sem CPF"
+// shipped to peanut.me/pt-br and stayed green. These are full catalogs, not
+// deltas, so they are checked raw.
+const MARKETING_CATALOGS: Record<keyof typeof RULES, Record<string, unknown>> = {
+    'es-419': marketingEs419,
+    'es-AR': marketingEsAr,
+    'pt-BR': marketingPtBr,
+}
+
 it('every non-en app locale has glossary rules', () => {
     const expected = APP_LOCALES.filter((locale) => locale !== 'en').sort()
     expect(Object.keys(RULES).sort()).toEqual(expected)
@@ -108,6 +122,18 @@ describe.each(Object.keys(RULES) as Array<keyof typeof RULES>)('%s glossary comp
             .filter(([, value]) => rule.pattern.test(value))
             .map(([path, value]) => `${path}: ${value}`)
         // fix the string, or — if it quotes third-party UI — add the key to the rule's exceptions
+        expect(violations).toEqual([])
+    })
+})
+
+describe.each(Object.keys(RULES) as Array<keyof typeof RULES>)('%s marketing glossary compliance', (locale) => {
+    const entries = leafEntries(MARKETING_CATALOGS[locale])
+
+    it.each(RULES[locale].map((rule) => [rule.name, rule] as const))('%s', (_name, rule) => {
+        const violations = entries
+            .filter(([path]) => !rule.exceptions?.includes(path))
+            .filter(([, value]) => rule.pattern.test(value))
+            .map(([path]) => path)
         expect(violations).toEqual([])
     })
 })

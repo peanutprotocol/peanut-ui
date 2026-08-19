@@ -4,7 +4,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 interface ActionListCardProps {
     title: string | React.ReactNode
@@ -37,7 +37,7 @@ export const ActionListCard = ({
     titleClassName,
     chevron,
 }: ActionListCardProps) => {
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     const handleClick = () => {
         triggerHaptic()

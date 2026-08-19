@@ -20,6 +20,7 @@ import ShowNameToggle from './components/ShowNameToggle'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
+import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -34,6 +35,7 @@ export const Profile = () => {
     const { hasCardAccess } = useCardInfo()
     const t = useTranslations('profile')
     const { locale } = useAppLocale()
+    const hideReferralRewards = isReferralRewardsHidden()
 
     const logout = async () => {
         await logoutUser()
@@ -76,14 +78,16 @@ export const Profile = () => {
                             icon="achievements"
                             label={t('menu.yourBadges')}
                             href="/badges"
-                            position="middle"
+                            position={hideReferralRewards ? 'last' : 'middle'}
                         />
-                        <ProfileMenuItem
-                            icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}
-                            label={t('menu.points')}
-                            href="/rewards"
-                            position="last"
-                        />
+                        {!hideReferralRewards && (
+                            <ProfileMenuItem
+                                icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}
+                                label={t('menu.points')}
+                                href="/rewards"
+                                position="last"
+                            />
+                        )}
                     </div>
                     <div>
                         <ProfileMenuItem

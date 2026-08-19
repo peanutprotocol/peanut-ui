@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -175,7 +176,7 @@ export function ReceiptDetailsCard({
             {/* Exchange rate and original currency for completed bank_deposit transactions */}
             {rowVisibilityConfig.exchangeRate && transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                 <ReceiptRow
-                    label={t('rows.exchangeRate')}
+                    label={tCommon('exchangeRate')}
                     value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate, 4)}`}
                 />
             )}
@@ -225,7 +226,7 @@ export function ReceiptDetailsCard({
             {/* Onramp deposit instructions for bridge_onramp transactions */}
             {rowVisibilityConfig.depositInstructions && <BridgeDepositInstructions transaction={transaction} />}
 
-            {rowVisibilityConfig.points && transaction.points && (
+            {rowVisibilityConfig.points && transaction.points && !isReferralRewardsHidden() && (
                 <ReceiptRow
                     label={t('rows.pointsEarned')}
                     value={

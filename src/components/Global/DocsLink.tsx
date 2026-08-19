@@ -32,6 +32,9 @@ export function localizeDocsHref(href: string, appLocale: string): string {
  * static export. On web it's a normal new-tab link; in Capacitor those routes
  * 404 → SPA falls back to home, so we open the absolute production URL in the
  * in-app browser instead.
+ *
+ * An `/en/…` path is retargeted at the reader's app locale, so call sites can
+ * keep writing the canonical English path.
  */
 export default function DocsLink({ href, className, children, ...rest }: DocsLinkProps) {
     const locale = useLocale()

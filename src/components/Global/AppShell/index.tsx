@@ -41,8 +41,10 @@ export const AppShell = ({
                 {/* Status-bar safe zone + banner ribbon. Android 15 (targetSdk 36)
                     forces edge-to-edge, so the webview draws UNDER the status bar —
                     fill the inset with the brand periwinkle (matches the onboarding
-                    illustration). env() resolves to 0 on web — no-op there. */}
-                <div className="bg-secondary-3 pt-[env(safe-area-inset-top)]">{banner}</div>
+                    illustration). --safe-top resolves to env(), which is 0 on web and
+                    on non-edge-to-edge Android — no-op there. On Android 15+ Capacitor
+                    overwrites it with the natively measured inset. */}
+                <div className="bg-secondary-3 pt-safe-top">{banner}</div>
                 {children}
                 {/* Bottom safe-area fill. Mirrors the strip above so the bottom
                     matches on edge-to-edge Android; iOS fills white (the panel
@@ -50,7 +52,7 @@ export const AppShell = ({
                 <div
                     aria-hidden
                     className={twMerge(
-                        'pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-[env(safe-area-inset-bottom)]',
+                        'pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-safe-bottom',
                         bottomInsetClassName
                     )}
                 />
@@ -60,7 +62,13 @@ export const AppShell = ({
     }
 
     return (
-        <div className="flex min-h-[100dvh] w-full flex-col bg-background-page pt-[env(safe-area-inset-top)]">
+        <div className="flex min-h-[100dvh] w-full flex-col bg-background-page pt-safe-top">
+            {/* Status-bar safe zone. On Android 15+ edge-to-edge the webview draws
+                under the status bar, where bg-background-page would otherwise show
+                beige. Fill the inset strip (above the feedback ribbon) with black so
+                the top always reads black. Height is the natively measured inset on
+                Android 15+ and env() elsewhere, so still a no-op on web (inset = 0). */}
+            <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-black" />
             {banner}
             {/* Scrollable content — one centered mobile column on every viewport */}
             <div
@@ -72,7 +80,7 @@ export const AppShell = ({
                 </div>
             </div>
             {nav && (
-                <div className="fixed inset-x-0 bottom-0 z-10 bg-background-page pb-[env(safe-area-inset-bottom)]">
+                <div className="fixed inset-x-0 bottom-0 z-10 bg-background-page pb-safe-bottom">
                     <div className="mx-auto w-full max-w-md">{nav}</div>
                 </div>
             )}

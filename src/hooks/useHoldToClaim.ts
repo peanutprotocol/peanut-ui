@@ -1,4 +1,5 @@
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
+import { cancelHaptic, vibrateHaptic } from '@/utils/haptics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type ShakeIntensity = 'none' | 'weak' | 'medium' | 'strong' | 'intense'
@@ -123,24 +124,19 @@ export function useHoldToClaim({
             }
 
             // Trigger haptic feedback when intensity changes (only while holding)
-            if (
-                isHolding &&
-                newIntensity !== lastHapticIntensityRef.current &&
-                newIntensity !== 'none' &&
-                'vibrate' in navigator
-            ) {
+            if (isHolding && newIntensity !== lastHapticIntensityRef.current && newIntensity !== 'none') {
                 switch (newIntensity) {
                     case 'weak':
-                        navigator.vibrate(50)
+                        vibrateHaptic(50)
                         break
                     case 'medium':
-                        navigator.vibrate([100, 40, 100])
+                        vibrateHaptic([100, 40, 100])
                         break
                     case 'strong':
-                        navigator.vibrate([150, 40, 150, 40, 150])
+                        vibrateHaptic([150, 40, 150, 40, 150])
                         break
                     case 'intense':
-                        navigator.vibrate([200, 40, 200, 40, 200, 40, 200])
+                        vibrateHaptic([200, 40, 200, 40, 200, 40, 200])
                         break
                 }
                 lastHapticIntensityRef.current = newIntensity
@@ -182,9 +178,7 @@ export function useHoldToClaim({
         lastTapTimeRef.current = Date.now()
 
         // Haptic feedback for tap
-        if ('vibrate' in navigator) {
-            navigator.vibrate(20)
-        }
+        vibrateHaptic(20)
 
         // Check for completion
         if (progressRef.current >= 100 && !isCompleteRef.current) {
@@ -210,7 +204,7 @@ export function useHoldToClaim({
                 setIsShaking(false)
                 setShakeIntensity('none')
                 holdStartTimeRef.current = null
-                if ('vibrate' in navigator) navigator.vibrate(0)
+                cancelHaptic()
             }, remainingPreviewTime)
             holdTimerRef.current = resetTimer
         } else {
@@ -220,7 +214,7 @@ export function useHoldToClaim({
             setIsShaking(false)
             setShakeIntensity('none')
             holdStartTimeRef.current = null
-            if ('vibrate' in navigator) navigator.vibrate(0)
+            cancelHaptic()
         }
     }, [])
 
@@ -255,19 +249,19 @@ export function useHoldToClaim({
             else if (progress < 75) newIntensity = 'strong'
             else newIntensity = 'intense'
 
-            if (newIntensity !== lastIntensity && 'vibrate' in navigator) {
+            if (newIntensity !== lastIntensity) {
                 switch (newIntensity) {
                     case 'weak':
-                        navigator.vibrate(50)
+                        vibrateHaptic(50)
                         break
                     case 'medium':
-                        navigator.vibrate([100, 40, 100])
+                        vibrateHaptic([100, 40, 100])
                         break
                     case 'strong':
-                        navigator.vibrate([150, 40, 150, 40, 150])
+                        vibrateHaptic([150, 40, 150, 40, 150])
                         break
                     case 'intense':
-                        navigator.vibrate([200, 40, 200, 40, 200, 40, 200])
+                        vibrateHaptic([200, 40, 200, 40, 200, 40, 200])
                         break
                 }
                 lastIntensity = newIntensity

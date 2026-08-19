@@ -21,6 +21,8 @@
  *    - restricts withdraw token selector to only USDC on Arbitrum
  *    - shows info message explaining cross-chain is temporarily unavailable
  *    - same-chain withdrawals (USDC on Arbitrum) continue to work
+ *    - ALWAYS on in the iOS app (see DISABLE_XCHAIN_WITHDRAW_GLOBALLY below); the
+ *      constant is the cross-platform ops kill-switch on top of that
  *
  * 5. disableXchainSend: disables cross-chain sends via Rhino SDA (claim, request payments)
  *    - restricts token selector to only USDC on Arbitrum for claim and req_pay flows
@@ -57,6 +59,8 @@
  *
  */
 
+import { isIOSNative } from '@/utils/capacitor'
+
 export type PaymentProvider = 'MANTECA'
 
 interface MaintenanceConfig {
@@ -75,11 +79,25 @@ interface MaintenanceConfig {
 // Manteca first-party bank/kyc rails currently exist only in Argentina (ARS) and Brazil (BRL).
 export type MantecaCurrency = 'ARS' | 'BRL'
 
+// Cross-platform ops kill-switch for cross-chain withdrawals. Currently off:
+// cross-chain is live on web and Android (stables via SDA + non-stables via
+// swaps, fee shown honestly). Set true to lock every platform to USDC on Arbitrum.
+const DISABLE_XCHAIN_WITHDRAW_GLOBALLY = false
+
 const underMaintenanceConfig: MaintenanceConfig = {
     enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
     enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
-    disableXchainWithdraw: false, // cross-chain withdrawals re-enabled (stables via SDA + non-stables via swaps, fee shown honestly); set true to lock to USDC on Arbitrum
+    /**
+     * Cross-chain withdraw is force-disabled in the iOS app, on top of the global
+     * kill-switch. Getter, not a constant: the platform is only knowable once the
+     * Capacitor bridge exists on `window`, so it must be read at render time —
+     * module-eval time is too early (and is `false` during prerender).
+     * Web and Android are untouched.
+     */
+    get disableXchainWithdraw() {
+        return DISABLE_XCHAIN_WITHDRAW_GLOBALLY || isIOSNative()
+    },
     disableXchainSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
     disableCardLaunchCTA: false, // kill-switch for the in-app "shhh" card CTA (funnel card step + activated home splash). Set true to mute it (dial down in-app load); /card flow + /shhhhh + waitlist stay reachable regardless.

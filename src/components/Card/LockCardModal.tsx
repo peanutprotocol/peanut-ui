@@ -68,7 +68,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                 // would skip the withdrawal and get the lock rejected by the
                 // backend ("Withdrawal signature required"). Fail closed instead.
                 if (!overview) {
-                    throw new Error('Card details still loading — please retry in a moment')
+                    throw new Error(t('errors.cardDetailsLoading'))
                 }
                 // If the user has spending power, return collateral to their
                 // smart wallet BEFORE locking so funds stay liquid. The

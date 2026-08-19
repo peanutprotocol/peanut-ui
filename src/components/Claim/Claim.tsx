@@ -43,7 +43,7 @@ import { ClaimedView, ClaimErrorView } from './Generic'
 import { twMerge } from 'tailwind-merge'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useSearchParams } from 'next/navigation'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
 import type { IOfframpForm } from '@/constants/cashout.consts'
 
@@ -97,7 +97,7 @@ export const Claim = ({}) => {
 
     const { setFlowStep: setClaimBankFlowStep } = useClaimBankFlow()
     const searchParams = useSearchParams()
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     // TanStack Query for fetching send link with automatic retry
     const {
         data: sendLink,

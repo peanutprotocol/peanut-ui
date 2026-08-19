@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import {
-    cspReportGroupKey,
-    normalizeCspReports,
-    sentryCspIngestUrl,
-    shouldIgnoreCspReport,
-    type CspReport,
-} from '@/utils/csp-report.utils'
+import { normalizeCspReports, selectReportsToForward, sentryCspIngestUrl } from '@/utils/csp-report.utils'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * One JSON parse plus at most MAX_FORWARDS_PER_REQUEST parallel fetches of
+ * FORWARD_TIMEOUT_MS each — this can never legitimately need more than a few
+ * seconds. Worth declaring on an unauthenticated route, because the fallback is
+ * a project default measured in minutes (`vercel.json` says 300s, though its
+ * `app/api/**` glob misses this project's `src/`-prefixed routes — see
+ * SERVER_FETCH_TIMEOUT_MS in sentry.utils.ts).
+ */
+export const maxDuration = 10
 
 /**
  * Collector for the report-only CSP's violation reports.
@@ -25,6 +29,17 @@ export const dynamic = 'force-dynamic'
  * extension-scheme filter in csp-report.utils.ts is a cheap extra that saves an
  * outbound request; Sentry's own default inbound filter already drops that
  * class server-side, so it is not doing the real work.
+ *
+ * Unauthenticated by necessity — browsers POST violation reports with no
+ * credentials. What that exposes is our invocation and egress cost, not Sentry
+ * quota: `report-uri` used to point straight at Sentry and that URL embeds the
+ * public DSN key shipped in every client bundle, so anyone could always POST
+ * there directly, with or without this route. The control for the cost is a
+ * Vercel WAF rate limit on this path (Firewall → Rate Limit, `/api/csp-report`,
+ * ~100 requests / 60s per IP, action deny) — it runs before the function and
+ * holds across instances, where an in-memory limiter would reset on every cold
+ * start and miss any distributed source entirely. Until that rule exists,
+ * `maxDuration` and MAX_FORWARDS_PER_REQUEST are what bound a single request.
  */
 
 /** Both wire formats, plus plain JSON from anything replaying a report. */
@@ -45,16 +60,6 @@ const SEEN_GROUPS_MAX = 500
 const seenGroups = new Set<string>()
 
 const FORWARD_TIMEOUT_MS = 3000
-
-/**
- * Hard cap on forwards per request. This endpoint is unauthenticated and a
- * Reporting-API batch is an array, so without a cap one POST could fan out
- * arbitrarily many events. That matters more than it looks: Sentry bills CSP
- * reports against the *error* quota under a per-DSN-key rate limit, so an
- * uncapped fan-out could exhaust the quota that real application exceptions
- * depend on. A genuine browser batch is a handful of reports.
- */
-const MAX_FORWARDS_PER_REQUEST = 20
 
 function shouldForward(groupKey: string): boolean {
     if (!seenGroups.has(groupKey)) {
@@ -85,27 +90,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         if (!ingestUrl) return noContent
 
         const reports = normalizeCspReports(await request.json())
-
-        const seenInBatch = new Set<string>()
-        const forwardable: CspReport[] = []
-        for (const report of reports) {
-            if (shouldIgnoreCspReport(report)) continue
-
-            const groupKey = cspReportGroupKey(report)
-            // One slot per distinct group: a batch is usually dominated by
-            // repeats of a single violation, and 20 copies of it must not
-            // crowd a genuinely new group out of the per-request cap.
-            if (seenInBatch.has(groupKey)) continue
-            seenInBatch.add(groupKey)
-
-            // Cap BEFORE shouldForward, never after: shouldForward records
-            // each group as seen, so admitting more than we can send would
-            // mark groups seen that were never actually sent — their real
-            // first sighting lost, every later repeat sampled away.
-            if (seenInBatch.size > MAX_FORWARDS_PER_REQUEST) break
-
-            if (shouldForward(groupKey)) forwardable.push(report)
-        }
+        const forwardable = selectReportsToForward(reports, shouldForward)
 
         // Sentry derives the event's browser and request context from the
         // headers of whoever POSTs to its security endpoint. That used to be

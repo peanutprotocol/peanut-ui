@@ -80,14 +80,18 @@ const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
     CARD_CLOSED_BETA: 'I was testing the Peanut card before you knew it existed. IYKYK 🤫💳',
     CARD_ALPHA: 'I tested the Peanut card while it was still held together with tape and hope 🩹💳',
     ARBITRUM: 'Peanut × Arbitrum. Fast chains, faster money 🔵',
+    TRON: 'Peanut × Tron. I came in on the rail most dollars already ride 🔺',
     MANICERO: 'Small maní, big energy. I earned the Manicero badge 🥜',
     TOUCHED_GRASS: 'Touched grass badge. Proof that I do go outside 🌱',
+    SURF_UP: "Caught the wave early. Surf's up 🏄",
+    SPLITTER: 'I split the bill before it was cool. Now I skip the line 🫰',
     OFFRAMP_USER: 'I migrated to Peanut. New home, same money, one shiny badge 🥜',
     PSYOPS_DIVISION: 'Enlisted in the Peanut Psyops Division. The influence game is real 🧠',
     EVENT_ALUMNI: 'Old school. I was in the room before most of you 🎟️',
     ETHFLORIPA_HUB: 'Ilha da Magia, baby. Coconuts and consensus 🥥',
     IRL_NOMADS: 'Nomad mode on. My office is wherever the wifi is ☕',
     WAITLIST_SKIP: "Got the skip pass. It's not what you know, it's who invites you 🔑",
+    ENS: 'One ENS name, no address to copy. Money still landed 🔷',
 }
 
 // Share text is:

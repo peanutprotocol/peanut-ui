@@ -15,13 +15,14 @@ const step = (type: string, extra: Partial<SpecEmailStep> = {}): SpecEmailStep =
 const spec = (): JourneySpec => ({
     generatedFrom: 'test',
     rules: {
-        step1AfterDays: 2,
-        step2AfterDays: 6,
+        stepAfterDays: [2, 6, 12],
         governorDays: 3,
         freshnessDays: 30,
+        dormancyDays: 42,
         holdoutFraction: 0.1,
         sendWindowUtc: { startHour: 13, endHour: 21 },
         maxSendsPerCycle: 500,
+        maxSendsPerDay: 500,
     },
     welcome: step('lifecycle.welcome'),
     stages: [
@@ -77,9 +78,9 @@ describe('emailReview', () => {
         expect(buildEmailRenderList(withUnmapped).map((render) => render.eventType)).toContain('lifecycle.brand_new_1')
     })
 
-    it('flags exactly the two open product decisions', () => {
+    it('flags exactly the open product decisions (finish_setup settled: killed in lifecycle v2)', () => {
         expect(decisionFlagFor('lifecycle.first_spend_1')?.label).toMatch(/rewards branch/)
-        expect(decisionFlagFor('lifecycle.finish_setup_2')?.label).toMatch(/kill or keep/)
+        expect(decisionFlagFor('lifecycle.finish_setup_2')).toBeNull()
         expect(decisionFlagFor('lifecycle.welcome')).toBeNull()
     })
 })

@@ -39,6 +39,11 @@ if [ ! -f android/keystore.properties ]; then
     echo "    See docs/NATIVE-RELEASE.md §4 (Signing & keystore)."
 fi
 
+# NODE_ENV must be set for the cap CLI process: capacitor.config.ts derives
+# webContentsDebuggingEnabled from it, and without this a release build shipped
+# with remote debugging enabled.
+export NODE_ENV=production
+
 # 1. static export  → 2. copy web assets + plugins into android/  → 3. signed bundle
 node scripts/native-build.js
 pnpm exec cap sync android

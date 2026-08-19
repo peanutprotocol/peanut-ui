@@ -19,7 +19,7 @@ import { useState, useCallback } from 'react'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { type TRequestChargeResponse, type TCharge, type TChargeTransactionType } from '@/services/services.types'
-import { isNativeCurrency } from '@/utils/general.utils'
+import { isNativeCurrency, validateEnsName } from '@/utils/general.utils'
 import { BASE_URL } from '@/constants/general.consts'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { type Address } from 'viem'
@@ -32,6 +32,13 @@ export interface CreateChargeParams {
     tokenSymbol: string
     tokenDecimals: number
     recipientAddress: Address
+    /**
+     * Whatever the payer typed for the recipient, unfiltered. Only forwarded to
+     * the API when it is actually a name (`vitalik.eth`, `alice.peanut.me`);
+     * addresses and bare Peanut usernames are dropped below, so callers can pass
+     * their raw identifier without repeating the rule.
+     */
+    recipientEnsName?: string
     transactionType?: TChargeTransactionType
     requestId?: string
     reference?: string
@@ -99,6 +106,12 @@ export const useChargeManager = (): UseChargeManagerReturn => {
                     ? { amount: params.currencyAmount, currency: params.currencyCode }
                     : { amount: params.tokenAmount, currency: 'USD' }
 
+            // We resolve ENS client-side and send the address, so the name is
+            // lost before any money moves — and the server needs it to award the
+            // ENS badge. The server takes it on trust (the badge grants nothing),
+            // so this is the only filter: a name has a dot; `alice` and `0x…` do not.
+            const recipientEnsName = params.recipientEnsName?.trim().toLowerCase()
+
             const createPayload: {
                 pricing_type: 'fixed_price'
                 local_price: { amount: string; currency: string }
@@ -112,6 +125,7 @@ export const useChargeManager = (): UseChargeManagerReturn => {
                     tokenSymbol: string
                     tokenDecimals: number
                     recipientAddress: Address
+                    recipientEnsName?: string
                 }
                 transactionType?: TChargeTransactionType
                 attachment?: File
@@ -132,6 +146,7 @@ export const useChargeManager = (): UseChargeManagerReturn => {
                     tokenSymbol: params.tokenSymbol,
                     tokenDecimals: params.tokenDecimals,
                     recipientAddress: params.recipientAddress,
+                    ...(validateEnsName(recipientEnsName) ? { recipientEnsName } : {}),
                 },
                 transactionType: params.transactionType,
             }

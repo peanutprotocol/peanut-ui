@@ -1,9 +1,11 @@
 /**
  * Card API service — virtual-card waitlist + flow access.
  *
- * Client-side fetches to /card and /card/waitlist/*. Matches the pattern in
- * services/rain.ts and services/manteca.ts: shared auth-token path, no
- * Next.js server-action indirection.
+ * Client-side fetches to /card and /card/waitlist/* via apiFetch, so auth
+ * works on both web and native. Native builds hold the JWT in Preferences and
+ * send it as an Authorization header — the cookie jar is empty there, so the
+ * old cookie-only header threw `Authentication required` on native, blanking
+ * hasCardAccess and dropping the card nav onto /shhhhh.
  *
  * Pioneer purchase API (`purchase()`) was removed in Phase 4 of the M2
  * launch — the new free badge-gated waitlist supersedes it.
@@ -20,13 +22,13 @@ export interface CardInfoResponse {
     /** Rain card geography eligibility — true iff user's country is in the
      *  Rain card geo list. Not affected by waitlist state. */
     isEligible: boolean
-    eligibilityReason?: string
     /** True iff the user's KYC country is KNOWN and on Rain's prohibited-issuance
      *  list. Distinct from `!isEligible`, which is also true when the country is
      *  simply unknown (no KYC yet) — the card state machine blocks on this, never
      *  on unknown. OPTIONAL: the BE that returns it deploys first; older APIs
      *  omit it and the FE must treat that as "not blocked". */
     geoProhibited?: boolean
+    eligibilityReason?: string
     // ─── Waitlist fields (Card Waitlist Launch — M2 2026-06-01) ──
     /** Outer gate. True iff user can ENTER the /card flow (via /shhhhh
      *  early access or post-public-launch). */
