@@ -3,9 +3,11 @@
 import { updateUserById } from '@/app/actions/users'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { useAuth } from '@/context/authContext'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 const ShowNameToggle = () => {
+    const t = useTranslations('profile')
     const { fetchUser, user } = useAuth()
     const [showFullName, setShowFullName] = useState(user?.user.showFullName ?? false)
 
@@ -28,7 +30,7 @@ const ShowNameToggle = () => {
                 setShowFullName(!newValue)
             })
     }
-    return <Toggle checked={showFullName} onChange={handleToggleChange} aria-label="Show full name" />
+    return <Toggle checked={showFullName} onChange={handleToggleChange} aria-label={t('menu.showMyFullName')} />
 }
 
 export default ShowNameToggle
