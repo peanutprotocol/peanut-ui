@@ -64,9 +64,11 @@ describe('chargesApi.create transport', () => {
         const withFile = { ...chargeData, attachment: new File(['x'], 'receipt.png', { type: 'image/png' }) }
         await chargesApi.create(withFile)
 
-        // apiFetch keeps the FormData multipart boundary (no JSON content-type)
-        // and native-http keeps FormData on the webview fetch, so multipart is
-        // safe through the one sanctioned fetch path too.
+        // apiFetch keeps the FormData multipart boundary (no JSON content-type);
+        // native-http keeps FormData on the webview fetch. Known limit carried
+        // over from the pre-refactor code: a tokenless native session gets no
+        // credential on this multipart path (FormData can't ride the native
+        // transport).
         expect(mockFetchWithSentry).not.toHaveBeenCalled()
         expect(mockApiFetch).toHaveBeenCalledTimes(1)
         const [, init] = mockApiFetch.mock.calls[0]

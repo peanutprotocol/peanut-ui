@@ -109,7 +109,11 @@ export const sendLinksApi = {
             // no file, or attachment is not a File/Blob, send as JSON —
             // apiFetch sets Content-Type: application/json for string bodies
             // and carries the native-transport cookie fallback for tokenless
-            // native sessions (FormData stays on the webview fetch inside it).
+            // native sessions. Known limit (same as before this refactor):
+            // the multipart branch cannot ride that fallback — FormData does
+            // not survive the native bridge (native-http.ts), so a tokenless
+            // native session uploading an attachment still goes out on the
+            // webview fetch without credentials.
             requestBody = jsonStringify(sendLink)
         }
 

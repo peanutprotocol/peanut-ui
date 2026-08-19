@@ -6,7 +6,8 @@
  * so profileUrl() and the deep-link mapper route bare usernames here. Mirrors the
  * profile branch of src/app/[...recipient]/client.tsx.
  */
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { useQueryState } from 'nuqs'
 import { useEffect } from 'react'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
@@ -14,10 +15,9 @@ import { useAuth } from '@/context/authContext'
 import { sendUrl } from '@/utils/native-routes'
 
 export default function ProfileViewPage() {
-    const searchParams = useSearchParams()
     const router = useRouter()
     const { user } = useAuth()
-    const username = searchParams.get('username')
+    const [username] = useQueryState('username')
 
     useEffect(() => {
         if (!username) router.replace('/home')

@@ -268,9 +268,6 @@ module.exports = [
             'src/app/(mobile-ui)/card-payment/page.tsx',
             'src/app/(mobile-ui)/dev/payment-graph/page.tsx',
             'src/app/(mobile-ui)/pay-request/page.tsx',
-            // dev-originated native public-profile route (a70720fdd) — landed via
-            // the 2026-08 dev back-merge, predates the ban on its own branch
-            'src/app/(mobile-ui)/profile/view/page.tsx',
             'src/app/(mobile-ui)/qr-pay/page.tsx',
             'src/app/(mobile-ui)/qr/\\[code\\]/page.tsx',
             'src/app/(mobile-ui)/qr/\\[code\\]/success/page.tsx',
@@ -325,7 +322,6 @@ module.exports = [
         // (RESTRICTED_SYNTAX_BASE) still applies.
         files: [
             'src/app/(mobile-ui)/add-money/page.tsx',
-            'src/app/(mobile-ui)/dev/leaderboard/page.tsx',
             'src/app/(mobile-ui)/qr-pay/page.tsx',
             'src/app/(mobile-ui)/withdraw/page.tsx',
             'src/app/lp/card/CardLandingPage.tsx',
