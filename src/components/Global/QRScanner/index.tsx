@@ -15,6 +15,7 @@ import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
 import { isAndroidNative } from '@/utils/capacitor'
 import { printableAddress } from '@/utils/general.utils'
+import { reportQrScanError } from './utils'
 
 // ============================================================================
 // Configuration
@@ -240,7 +241,10 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         try {
             await onScan(data)
         } catch (err) {
-            console.error('Error processing QR code:', err)
+            // console.info, not error: captureConsoleIntegration would turn an
+            // error-level log into a second Sentry event on top of the capture below.
+            console.info('Error processing QR code:', err)
+            reportQrScanError(err, data)
             toast.error(t('qrScanner.qrProcessingError'))
         }
     }
