@@ -49,13 +49,7 @@ export function ReceiptReferralNudge({
 
     if (variant === 'button') {
         return (
-            <ShareButton
-                url={inviteLink}
-                title=""
-                variant="primary-soft"
-                showIcon={false}
-                onSuccess={captureInviteShared}
-            >
+            <ShareButton url={inviteLink} title="" variant="stroke" showIcon={false} onSuccess={captureInviteShared}>
                 <Icon name="invite-heart" size={16} />
                 <span className="text-body-s">{label}</span>
             </ShareButton>

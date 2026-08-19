@@ -15,15 +15,16 @@ export interface ReceiptRowProps {
 }
 
 /**
- * Label + value row for receipt cards (DS 09, list-row recipe). Rows carry no
- * border logic — the parent card owns the dashed dividers via
+ * Label + value row for receipt cards (DS 09, TX Details board 17490:115877):
+ * label left in foreground-secondary, value right-aligned in bold. Rows carry
+ * no border logic — the parent card owns the dashed dividers via
  * `divide-y divide-dashed divide-border-default`, so a row never needs to
  * know whether it is last.
  */
 export const ReceiptRow = ({ label, value, moreInfoText, loading, allowCopy, copyValue, onClick }: ReceiptRowProps) => (
     <div
         className={twMerge(
-            'flex w-full flex-col justify-between gap-1 py-3',
+            'flex w-full items-center justify-between gap-3 py-3',
             onClick &&
                 'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled'
         )}
@@ -42,8 +43,8 @@ export const ReceiptRow = ({ label, value, moreInfoText, loading, allowCopy, cop
         }
         translate="no"
     >
-        <div className="relative flex items-center">
-            <span className="text-label-m text-foreground-primary">{label}</span>
+        <div className="relative flex shrink-0 items-center">
+            <span className="text-body-s text-foreground-secondary">{label}</span>
             {moreInfoText && (
                 <div className="relative z-20 flex items-center justify-center px-2">
                     <Tooltip content={moreInfoText} position="right">
@@ -55,13 +56,11 @@ export const ReceiptRow = ({ label, value, moreInfoText, loading, allowCopy, cop
         {loading ? (
             <Loading />
         ) : (
-            <div className="flex items-center justify-between">
+            <div className="flex min-w-0 items-center justify-end gap-2 text-right text-label-l text-foreground-primary">
                 {/* min-w-0 + break-words: a single unbreakable token (wallet
                     address, tx hash) must wrap inside the card, not stretch
                     the row and escape the layout. */}
-                <div className="flex w-fit min-w-0 justify-end text-label-l break-words text-foreground-primary">
-                    <span className="min-w-0">{value}</span>
-                </div>
+                <span className="min-w-0 break-words">{value}</span>
                 {allowCopy && typeof value === 'string' && (
                     <CopyToClipboard textToCopy={copyValue ?? value} fill="black" iconSize="4" />
                 )}

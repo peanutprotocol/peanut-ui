@@ -62,7 +62,7 @@ export function ReceiptActions({
     const { user } = useUserStore()
     const { isActivated } = useActivationStatus()
     const { closeRequest, rejectRequest, cancelSendLink } = useReceiptActions(transaction)
-    const { isPendingBankRequest, isPendingRequestee, isPendingRequester, isPendingSentLink, isQRPayment } = vm
+    const { isPendingBankRequest, isPendingRequestee, isPendingRequester, isPendingSentLink } = vm
 
     const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
     const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
@@ -143,7 +143,7 @@ export function ReceiptActions({
                                 disabled={isLoading || cancelLinkState === 'cancelled'}
                                 onClick={() => setShowCancelLinkModal(true)}
                                 loading={isLoading}
-                                variant="primary-soft"
+                                variant="stroke"
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
                             >
@@ -169,7 +169,7 @@ export function ReceiptActions({
                         loading={isLoading}
                         disabled={isLoading}
                         onClick={handleCloseRequest}
-                        variant="primary-soft"
+                        variant="stroke"
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
@@ -195,7 +195,7 @@ export function ReceiptActions({
                         iconSize={18}
                         disabled={isLoading}
                         onClick={handleRejectRequest}
-                        variant="primary-soft"
+                        variant="stroke"
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
@@ -216,7 +216,7 @@ export function ReceiptActions({
 
             {showShareReceipt && (
                 <div className="pr-1">
-                    <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={receiptUrl!}>
+                    <ShareButton variant={showSplitCta ? 'stroke' : 'purple'} url={receiptUrl!}>
                         {t('actions.shareReceipt')}
                     </ShareButton>
                 </div>

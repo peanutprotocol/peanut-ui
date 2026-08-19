@@ -207,7 +207,7 @@ function CancelButton({ label, disabled, onClick }: { label?: string; disabled: 
         <Button
             disabled={disabled}
             onClick={onClick}
-            variant={'primary-soft'}
+            variant={'stroke'}
             className="flex w-full items-center gap-1"
             shadowSize="4"
         >

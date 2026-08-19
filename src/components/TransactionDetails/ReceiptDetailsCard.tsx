@@ -23,6 +23,8 @@ import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { formatAmount, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
 import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
+import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
+import { RequestPotContributorRows } from './provider-rows/RequestPotContributorRows'
 
 // IBAN / CLABE are the standard scheme names — same in every locale.
 const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> = {
@@ -31,18 +33,24 @@ const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> =
 }
 
 /**
- * The receipt's details card (DS 09). One Card owns the layout: horizontal
- * padding + dashed dividers between rows via `divide-y`, so no row (or
- * provider sub-row) carries border logic of its own.
+ * The receipt's details card (DS 09, TX Details board 17490:115877 — "Always
+ * use receipt style here"). One Card owns the layout: horizontal padding +
+ * dashed dividers between rows via `divide-y`, so no row (or provider
+ * sub-row) carries border logic of its own. Request pots also own their
+ * progress bar and contributors list here, per the Activity/Request board.
  */
 export function ReceiptDetailsCard({
     transaction,
     vm,
     shouldShowQrShare,
+    convertedAmount,
 }: {
     transaction: TransactionDetails
     vm: ReceiptViewModel
     shouldShowQrShare: boolean
+    /** "BRL 15.00" — local-fiat / destination-token equivalent for the
+     *  "Estimate conversion" row (board 17835:84507). */
+    convertedAmount?: string
 }) {
     const t = useTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -72,6 +80,9 @@ export function ReceiptDetailsCard({
             position={shouldShowQrShare ? 'first' : 'single'}
             className="divide-y divide-dashed divide-border-default px-4 py-0"
         >
+            {/* Request-pot progress (board): first row of the card. */}
+            <RequestPotProgressRow transaction={transaction} />
+
             {rowVisibilityConfig.createdAt && (
                 <ReceiptRow label={t('rows.created')} value={formatDate(new Date(transaction.createdAt!.toString()))} />
             )}
@@ -98,6 +109,9 @@ export function ReceiptDetailsCard({
             {rowVisibilityConfig.closed && transaction.cancelledDate && (
                 <ReceiptRow label={t('rows.closedAt')} value={formatDate(new Date(transaction.cancelledDate))} />
             )}
+
+            {/* Contributors after the date rows, per the request board. */}
+            <RequestPotContributorRows vm={vm} />
 
             {rowVisibilityConfig.to && (
                 <ReceiptRow
@@ -149,6 +163,13 @@ export function ReceiptDetailsCard({
 
             {rowVisibilityConfig.mantecaDepositInfo && (
                 <MantecaDepositInfo transaction={transaction} country={country} />
+            )}
+
+            {/* Local-fiat / destination-token equivalent (board: "Estimate
+                conversion ≈ BRL 15.00"), suppressed on cancelled receipts
+                like the other money rows. */}
+            {convertedAmount && transaction.status !== 'cancelled' && (
+                <ReceiptRow label={t('rows.estimateConversion')} value={`≈ ${convertedAmount}`} />
             )}
 
             {/* Exchange rate and original currency for completed bank_deposit transactions */}
@@ -208,9 +229,10 @@ export function ReceiptDetailsCard({
                 <ReceiptRow
                     label={t('rows.pointsEarned')}
                     value={
-                        <div className="flex items-center gap-2">
-                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
-                            <span>{formatPoints(transaction.points)}</span>
+                        // board 17835:84517: "+11" then the star, right-aligned
+                        <div className="flex items-center gap-1">
+                            <span>+{formatPoints(transaction.points)}</span>
+                            <Image src={STAR_STRAIGHT_ICON} alt="star" width={14} height={14} />
                         </div>
                     }
                     onClick={() => router.push('/rewards')}

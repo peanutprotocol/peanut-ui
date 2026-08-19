@@ -38,22 +38,17 @@ export function PerkRewardReceipt({
 
     return (
         <div ref={contentRef} className={twMerge('flex flex-col gap-4', className)}>
-            {/* Perk Reward Header — top section with logo, amount, and status */}
-            <Card position="single" className="px-4 py-6">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                        <PerkIcon size="medium" />
-                        <div className="flex flex-col">
-                            <h2 className="text-heading-card text-foreground-primary">{t('perk.title')}</h2>
-                            <p className="text-heading-s text-foreground-primary">{amountDisplay}</p>
-                        </div>
+            {/* head (board composition): centered icon → type line → amount →
+                badge. Completed = base state, no badge (states board). */}
+            <div className="flex flex-col items-center gap-4 text-center">
+                <PerkIcon size="medium" />
+                <div className="flex w-full flex-col items-center gap-2">
+                    <div className="flex w-full flex-col items-center gap-1">
+                        <h2 className="text-body-s text-foreground-secondary">{t('perk.title')}</h2>
+                        <p className="text-heading-l text-foreground-primary">{amountDisplay}</p>
                     </div>
-                    <div className="flex-shrink-0">
-                        {transaction.status === 'completed' ? (
-                            <span className="rounded-round bg-background-badge-success px-3 py-1 text-label-m text-foreground-primary">
-                                {t('perk.statusCompleted')}
-                            </span>
-                        ) : transaction.status === 'pending' || transaction.status === 'processing' ? (
+                    {transaction.status !== 'completed' &&
+                        (transaction.status === 'pending' || transaction.status === 'processing' ? (
                             <span className="rounded-round bg-background-badge-attention px-3 py-1 text-label-m text-foreground-primary">
                                 {tCommon('status.processing')}
                             </span>
@@ -63,11 +58,10 @@ export function PerkRewardReceipt({
                                     (transaction.status && STATUS_LABEL_KEYS[transaction.status]) ?? 'status.unknown'
                                 )}
                             </span>
-                        )}
-                    </div>
+                        ))}
+                    <p className="text-body-s text-foreground-secondary">{t('perk.subtitle')}</p>
                 </div>
-                <p className="mt-3 text-body-s text-foreground-secondary">{t('perk.subtitle')}</p>
-            </Card>
+            </div>
 
             {/* Perk details — date + reason. Reason has a payment-UUID suffix
                 stripped because PerkUsage uses it for idempotency (purchase-

@@ -1739,6 +1739,7 @@
             "txId": "ID de TX",
             "fee": "Comisión",
             "exchangeRate": "Tipo de cambio",
+            "estimateConversion": "Conversión estimada",
             "transferId": "ID de transferencia",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",

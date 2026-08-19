@@ -4,13 +4,11 @@ import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useTranslations } from 'next-intl'
 import Card from '@/components/Global/Card'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
-import ContributorCard from '@/components/Global/Contributors/ContributorCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
-import { getAvatarUrl } from '@/utils/history.utils'
+import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
 import { PerkIcon } from './PerkIcon'
 import { ReceiptActions } from './ReceiptActions'
@@ -109,6 +107,10 @@ export const TransactionDetailsReceipt = ({
         amountDisplay = t('amountCollected', { amount: formattedTotalAmountCollected })
     }
 
+    // States board (17966:12128): '-' marks outgoing money; incoming stays
+    // unsigned (base state — no '+'). Pots show a collected total, never a sign.
+    const headSign = !transaction.isRequestPotLink && getTransactionSign(transaction) === '-' ? '-' : ''
+
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
     // kind-keyed predicates so adding a new flow only needs a predicate update.
@@ -142,18 +144,14 @@ export const TransactionDetailsReceipt = ({
 
     return (
         <div ref={contentRef} className={twMerge('flex flex-col gap-4', className)}>
-            {/* show qr code at the top if applicable */}
-            {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
-                <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
-            )}
-
-            {/* transaction header card */}
+            {/* head (board 17490:115877): centered bubble → type line → amount → badge */}
             <TransactionDetailsHeaderCard
                 direction={transaction.direction}
                 userName={transaction.userName}
                 nameKey={transaction.nameKey}
                 nameParams={transaction.nameParams}
                 amountDisplay={amountDisplay}
+                sign={headSign}
                 initials={transaction.initials}
                 status={transaction.status}
                 isVerified={transaction.isVerified}
@@ -163,15 +161,7 @@ export const TransactionDetailsReceipt = ({
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
                 isNameClickable={isNameClickable}
                 isAvatarClickable={isAvatarClickable}
-                showProgessBar={transaction.isRequestPotLink}
-                goal={Number(transaction.amount)}
-                // Use the raw numeric field, NOT formattedTotalAmountCollected — the
-                // latter is comma-grouped ("1,234.56"), so Number() → NaN for any pot
-                // that has collected ≥ $1,000, blanking the progress bar.
-                progress={Number(transaction.totalAmountCollected)}
                 isRequestPotTransaction={transaction.isRequestPotLink}
-                isTransactionClosed={transaction.status === 'closed'}
-                convertedAmount={convertedAmount ?? undefined}
                 showFullName={transaction.showFullName}
                 fullName={transaction.fullName}
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
@@ -208,8 +198,14 @@ export const TransactionDetailsReceipt = ({
                 </Card>
             )}
 
-            {/* details card (date, fee, memo, provider rows) */}
-            <ReceiptDetailsCard transaction={transaction} vm={vm} shouldShowQrShare={shouldShowQrShare} />
+            {/* the one receipt-style card (dates, conversion, fee, memo,
+                provider rows, pot progress + contributors) */}
+            <ReceiptDetailsCard
+                transaction={transaction}
+                vm={vm}
+                shouldShowQrShare={shouldShowQrShare}
+                convertedAmount={convertedAmount ?? undefined}
+            />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse
@@ -229,6 +225,12 @@ export const TransactionDetailsReceipt = ({
                 LocalRailNudge already fires. */}
             {!isPublic && <CardUsdAbroadNotice transaction={transaction} />}
 
+            {/* CTA zone (board): QR for shareable pending links/requests sits
+                with the CTAs, not above the head. */}
+            {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
+                <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
+            )}
+
             <ReceiptActions
                 transaction={transaction}
                 vm={vm}
@@ -240,23 +242,6 @@ export const TransactionDetailsReceipt = ({
                 onClose={onClose}
                 setIsModalOpen={setIsModalOpen}
             />
-
-            {vm.requestPotContributors.length > 0 && (
-                <>
-                    <h2 className="text-heading-card text-foreground-primary">
-                        {t('contributors', { count: vm.requestPotContributors.length })}
-                    </h2>
-                    <div className="overflow-y-auto">
-                        {vm.requestPotContributors.map((contributor, index) => (
-                            <ContributorCard
-                                position={getCardPosition(index, vm.requestPotContributors.length)}
-                                key={contributor.uuid}
-                                contributor={contributor}
-                            />
-                        ))}
-                    </div>
-                </>
-            )}
         </div>
     )
 }

@@ -1739,6 +1739,7 @@
             "txId": "TX ID",
             "fee": "Fee",
             "exchangeRate": "Exchange rate",
+            "estimateConversion": "Estimate conversion",
             "transferId": "Transfer ID",
             "pointsEarned": "Points earned",
             "networkFee": "Network fee",

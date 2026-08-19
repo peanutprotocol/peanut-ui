@@ -10,12 +10,14 @@ export const ReceiptSupportLink = () => {
     const t = useTranslations('transaction')
 
     return (
+        // board Link Button (17980:18031): Body/XS underline, foreground/secondary,
+        // trailing icon
         <button
             onClick={() => setIsSupportModalOpen(true)}
-            className="flex w-full items-center justify-center gap-2 text-body-s font-medium text-foreground-secondary underline transition-colors duration-instant hover:text-foreground-primary"
+            className="flex w-full items-center justify-center gap-1 text-body-xs text-foreground-secondary underline transition-colors duration-instant hover:text-foreground-primary"
         >
-            <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
             {t('actions.reportIssue')}
+            <Icon name="peanut-support" size={14} className="text-foreground-secondary" />
         </button>
     )
 }
