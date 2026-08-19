@@ -59,7 +59,7 @@ const mockCaptureException = captureException as jest.MockedFunction<typeof capt
 // all-lowercase: viem isAddress enforces checksum on mixed-case forms
 const ADDRESS = '0xab5801a7d398351b8be11c439e05c5b3259aec9b'
 const CHIP_LABEL = 'Use copied address'
-const EMV_PAYLOAD = '000201' + 'x'.repeat(94)
+const PIX_PAYLOAD = '00020101021226' + '0014br.gov.bcb.pix' + 'x'.repeat(68)
 
 const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) => {
     render(<QRScanner onScan={onScan} />)
@@ -124,13 +124,13 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
     })
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
-    // the failure is reported to Sentry under its own tag, but clipboard text is
-    // never excerpted — only EMVCo merchant QRs carry a payload prefix
+    // the failure is reported to Sentry under its own tag, but the raw scan
+    // content is never sent — only derived, non-sensitive fields
     expect(mockCaptureException).toHaveBeenCalledWith(
         error,
         expect.objectContaining({
             tags: { error_type: 'qr_scan_processing' },
-            extra: { qrLength: ADDRESS.length, qrPrefix: undefined },
+            extra: { qrLength: ADDRESS.length, qrKind: 'other' },
         })
     )
 })
@@ -138,7 +138,7 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
 it('"Click to paste": onScan failure is not misreported as a clipboard error', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(false)
-    mockRead.mockResolvedValue({ value: EMV_PAYLOAD, type: 'text/plain' })
+    mockRead.mockResolvedValue({ value: PIX_PAYLOAD, type: 'text/plain' })
 
     const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
     renderScanner(onScan)
@@ -147,14 +147,14 @@ it('"Click to paste": onScan failure is not misreported as a clipboard error', a
     await act(async () => {
         fireEvent.click(paste)
     })
-    expect(onScan).toHaveBeenCalledWith(EMV_PAYLOAD)
+    expect(onScan).toHaveBeenCalledWith(PIX_PAYLOAD)
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
-    // an EMVCo merchant payload is excerpted, truncated to the first 64 chars
+    // a Pix payload is classified, never excerpted
     expect(mockCaptureException).toHaveBeenCalledWith(
         expect.any(Error),
         expect.objectContaining({
-            extra: expect.objectContaining({ qrLength: 100, qrPrefix: EMV_PAYLOAD.slice(0, 64) }),
+            extra: { qrLength: 100, qrKind: 'pix' },
         })
     )
 })

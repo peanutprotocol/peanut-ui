@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 /**
  * The camera path's onScan failure is reported to Sentry under its own tag,
- * with the scanned payload truncated to 64 chars.
+ * with derived payload context only — never the raw scan content.
  */
 import { renderHook, act } from '@testing-library/react'
 import { captureException } from '@sentry/nextjs'
@@ -37,7 +37,7 @@ jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 HTMLMediaElement.prototype.pause = jest.fn()
 HTMLMediaElement.prototype.load = jest.fn()
 
-const EMV_PAYLOAD = '000201' + 'y'.repeat(94)
+const PIX_PAYLOAD = '00020101021226' + '0014br.gov.bcb.pix' + 'y'.repeat(68)
 
 it('camera scan: onScan failure is captured with the qr_scan_processing tag', async () => {
     const error = new Error('routing exploded')
@@ -53,15 +53,15 @@ it('camera scan: onScan failure is captured with the qr_scan_processing tag', as
     })
 
     await act(async () => {
-        onDecode({ data: EMV_PAYLOAD })
+        onDecode({ data: PIX_PAYLOAD })
     })
 
-    expect(onScan).toHaveBeenCalledWith(EMV_PAYLOAD)
+    expect(onScan).toHaveBeenCalledWith(PIX_PAYLOAD)
     expect(captureException).toHaveBeenCalledWith(
         error,
         expect.objectContaining({
             tags: { error_type: 'qr_scan_processing' },
-            extra: expect.objectContaining({ qrLength: 100, qrPrefix: EMV_PAYLOAD.slice(0, 64) }),
+            extra: { qrLength: 100, qrKind: 'pix' },
         })
     )
 })
