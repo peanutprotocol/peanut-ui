@@ -221,8 +221,24 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                 <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
                 <div
-                    className={twMerge(isAvatarClickable && 'cursor-pointer')}
+                    className={twMerge(
+                        isAvatarClickable &&
+                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                    )}
                     onClick={isAvatarClickable ? handleUserProfileClick : undefined}
+                    role={isAvatarClickable ? 'button' : undefined}
+                    tabIndex={isAvatarClickable ? 0 : undefined}
+                    aria-label={isAvatarClickable ? nameForAvatar : undefined}
+                    onKeyDown={
+                        isAvatarClickable
+                            ? (event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                      event.preventDefault()
+                                      handleUserProfileClick()
+                                  }
+                              }
+                            : undefined
+                    }
                 >
                     {avatarUrl ? (
                         <div className="flex size-12 items-center justify-center rounded-full">
