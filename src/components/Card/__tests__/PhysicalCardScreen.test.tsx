@@ -33,9 +33,11 @@ const mockGet = rainApi.getPhysicalWaitlist as jest.Mock
 const renderScreen = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     return render(
-        <QueryClientProvider client={queryClient}>
-            <PhysicalCardScreen cardId="card-1" last4="4242" />
-        </QueryClientProvider>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <PhysicalCardScreen cardId="card-1" last4="4242" />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 

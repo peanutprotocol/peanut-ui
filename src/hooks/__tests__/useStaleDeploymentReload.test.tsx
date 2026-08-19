@@ -35,6 +35,34 @@ jest.mock('@/utils/cache.utils', () => ({
     isStandalonePwa: () => mockIsStandalonePwa(),
 }))
 
+let appStateHandler: ((state: { isActive: boolean }) => void) | null = null
+const mockRemoveListener = jest.fn()
+
+jest.mock(
+    '@capacitor/app',
+    () => ({
+        App: {
+            addListener: (_event: string, handler: (state: { isActive: boolean }) => void) => {
+                appStateHandler = handler
+                return Promise.resolve({ remove: mockRemoveListener })
+            },
+        },
+    }),
+    { virtual: true }
+)
+
+const TWELVE_HOURS_MS = 12 * 60 * 60_000
+
+function setDocumentAge(ms: number) {
+    jest.spyOn(performance, 'now').mockReturnValue(ms)
+}
+
+/** Foreground the app the way Capacitor's appStateChange would. */
+async function resumeApp() {
+    await waitFor(() => expect(appStateHandler).not.toBeNull())
+    appStateHandler!({ isActive: true })
+}
+
 const mockReload = jest.fn()
 const mockReplace = jest.fn()
 
@@ -70,6 +98,7 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    jest.restoreAllMocks()
     sessionStorage.clear()
     process.env.NEXT_PUBLIC_GIT_COMMIT_HASH = BUILD_COMMIT
     mockPathname = '/home'
@@ -78,6 +107,7 @@ beforeEach(() => {
     mockIsStandalonePwa.mockReturnValue(false)
     mockIsCapacitor.mockReturnValue(false)
     mockPurgeCaches.mockResolvedValue(undefined)
+    appStateHandler = null
 })
 
 describe('useStaleDeploymentReload', () => {
@@ -271,5 +301,108 @@ describe('useStaleDeploymentReload', () => {
 
         await waitFor(() => expect(global.fetch).toHaveBeenCalled())
         expect(mockReload).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Native bounds the document's age rather than the deployment's: the WebView
+     * never reloads on its own, so a wedged module-level promise or accumulated
+     * heap persists until the user force-quits.
+     */
+    describe('native document age', () => {
+        beforeEach(() => {
+            mockIsCapacitor.mockReturnValue(true)
+        })
+
+        it('reloads on resume once the document is old enough', async () => {
+            setDocumentAge(TWELVE_HOURS_MS)
+            renderWithLoading()
+
+            await resumeApp()
+
+            await waitFor(() => expect(mockReload).toHaveBeenCalledTimes(1))
+        })
+
+        it('leaves a young document alone', async () => {
+            setDocumentAge(TWELVE_HOURS_MS - 60_000)
+            renderWithLoading()
+
+            await resumeApp()
+
+            expect(mockReload).not.toHaveBeenCalled()
+        })
+
+        it('never checks the version endpoint — there is no deployment to be stale against', async () => {
+            setDocumentAge(TWELVE_HOURS_MS)
+            global.fetch = jest.fn() as unknown as typeof fetch
+            renderWithLoading()
+
+            await resumeApp()
+
+            expect(global.fetch).not.toHaveBeenCalled()
+        })
+
+        it('waits rather than interrupting a pending transaction', async () => {
+            setDocumentAge(TWELVE_HOURS_MS)
+            mockPendingCount = 1
+            renderWithLoading()
+
+            await resumeApp()
+
+            expect(mockReload).not.toHaveBeenCalled()
+        })
+
+        it('waits rather than interrupting a flow whose state is only in memory', async () => {
+            setDocumentAge(TWELVE_HOURS_MS)
+            mockPathname = '/kyc'
+            renderWithLoading()
+
+            await resumeApp()
+
+            expect(mockReload).not.toHaveBeenCalled()
+        })
+
+        it('reloads at the route-change boundary too', async () => {
+            setDocumentAge(TWELVE_HOURS_MS)
+            mockPathname = '/kyc'
+            const { rerender } = renderWithLoading()
+
+            await resumeApp()
+            expect(mockReload).not.toHaveBeenCalled()
+
+            mockPathname = '/home'
+            rerender()
+
+            await waitFor(() => expect(mockReload).toHaveBeenCalledTimes(1))
+        })
+
+        it('does not purge the web service worker caches', async () => {
+            setDocumentAge(TWELVE_HOURS_MS)
+            renderWithLoading()
+
+            await resumeApp()
+
+            await waitFor(() => expect(mockReload).toHaveBeenCalled())
+            expect(mockPurgeCaches).not.toHaveBeenCalled()
+        })
+
+        it('does not set the one-attempt latch, which only makes sense for a deployment mismatch', async () => {
+            setDocumentAge(TWELVE_HOURS_MS)
+            renderWithLoading()
+
+            await resumeApp()
+
+            await waitFor(() => expect(mockReload).toHaveBeenCalled())
+            expect(sessionStorage.getItem('peanut-stale-deploy-attempted')).toBeNull()
+        })
+
+        it('honours the reload guard so a resume storm cannot loop', async () => {
+            sessionStorage.setItem('peanut-stale-deploy-reload-at', String(Date.now()))
+            setDocumentAge(TWELVE_HOURS_MS)
+            renderWithLoading()
+
+            await resumeApp()
+
+            expect(mockReload).not.toHaveBeenCalled()
+        })
     })
 })

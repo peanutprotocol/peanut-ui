@@ -36,6 +36,13 @@ export default function DevToolsPage() {
             icon: 'dollar',
         },
         {
+            name: 'Safe Area',
+            description:
+                'Per-device status-bar/system-bar insets: env() vs the natively measured values Capacitor injects, plus webview version and platform context.',
+            path: '/dev/safe-area',
+            icon: 'globe-lock',
+        },
+        {
             name: 'Activation Journey',
             description:
                 'Per funnel state: every in-app surface (verbatim copy + source file) and every lifecycle email/push, fetched live from the sandbox API journey-spec.',

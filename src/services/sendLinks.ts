@@ -1,7 +1,8 @@
 import { jsonParse, jsonStringify, getFromLocalStorage, saveToLocalStorage } from '@/utils/general.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import type { SendLink } from '@/services/services.types'
-import { serverFetch } from '@/utils/api-fetch'
+import { apiFetch, serverFetch } from '@/utils/api-fetch'
+import { apiErrorFromResponse } from '@/services/api-error'
 import { getAuthHeaders, authReady } from '@/utils/auth-token'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
@@ -89,12 +90,11 @@ export const sendLinksApi = {
             return jsonParse(await (await demoRespond('/send-links', { method: 'POST' })).text())
         }
 
-        let requestBody: FormData | string
-        const headers: Record<string, string> = {}
+        let response: Response
 
         // check if attachment is a File or Blob object
         if (sendLink.attachment && (sendLink.attachment instanceof File || sendLink.attachment instanceof Blob)) {
-            requestBody = new FormData()
+            const requestBody = new FormData()
 
             requestBody.append(
                 'attachment',
@@ -117,34 +117,28 @@ export const sendLinksApi = {
                     }
                 }
             }
+
+            await authReady()
+            response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
+                method: 'POST',
+                body: requestBody,
+                headers: getAuthHeaders(),
+            })
         } else {
-            // no file, or attachment is not a File/Blob, send as JSON
-            requestBody = jsonStringify(sendLink)
-            headers['Content-Type'] = 'application/json'
+            /*
+             * No file → JSON through apiFetch, which carries the native-transport
+             * cookie fallback for tokenless native sessions. The multipart branch
+             * above can't use it: FormData doesn't survive the native bridge, and
+             * apiFetch would stamp a JSON content-type on it.
+             */
+            response = await apiFetch('/send-links', {
+                method: 'POST',
+                body: jsonStringify(sendLink),
+            })
         }
 
-        await authReady()
-        Object.assign(headers, getAuthHeaders())
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
-            method: 'POST',
-            body: requestBody,
-            headers,
-        })
-
         if (!response.ok) {
-            const errorText = await response.text()
-            try {
-                // attempt to parse backend error if JSON
-                const errorJson = jsonParse(errorText)
-                console.error('API Error:', errorJson)
-                throw new Error(
-                    `HTTP error! status: ${response.status}, message: ${errorJson.message || errorJson.error || errorText}`
-                )
-            } catch {
-                // fallback to plain text error
-                console.error('API Error Text:', errorText)
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
-            }
+            throw await apiErrorFromResponse(response, 'Failed to create send link')
         }
         const responseText = await response.text()
         const data: SendLink = jsonParse(responseText)

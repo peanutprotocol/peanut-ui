@@ -29,7 +29,7 @@ import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import { formatUnits } from 'viem'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { Icon } from '../Global/Icons/Icon'
 
@@ -71,7 +71,7 @@ const HomeHistory = ({
     // check if the username is the same as the current user
     const { fetchBalance } = useWallet()
     const queryClient = useQueryClient()
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const { fetchUser } = useAuth()
     const isViewingOwnHistory = useMemo(
         () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),

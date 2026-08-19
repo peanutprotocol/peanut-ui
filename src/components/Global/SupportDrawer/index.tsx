@@ -18,6 +18,8 @@ import {
 import type { AppLocale } from '@/i18n/app/config'
 import { notificationsApi } from '@/services/notifications'
 import { isCapacitor } from '@/utils/capacitor'
+import { ensureNativeCameraPermission } from '@/utils/camera-permission'
+import { ensureNativeCrispConfigured } from '@/utils/crisp'
 
 const DISMISS_THRESHOLD = 100
 
@@ -157,38 +159,50 @@ const SupportDrawer = () => {
     useEffect(() => {
         if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
 
-        import('@capgo/capacitor-crisp').then(({ CapacitorCrisp }) => {
-            // set user data before opening
-            if (userData.email || userData.fullName) {
-                CapacitorCrisp.setUser({
-                    email: userData.email || undefined,
-                    nickname: userData.fullName || userData.username || undefined,
-                    avatar: userData.avatar || undefined,
-                })
-            }
-            if (crispTokenId) {
-                CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
-            }
-            // set custom data for support agents
-            if (userData.walletAddress) {
-                CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
-            }
-            if (userData.userId) {
-                CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
-            }
-            if (prefilledMessage) {
-                CapacitorCrisp.sendMessage({ value: prefilledMessage })
-            }
+        ensureNativeCrispConfigured()
+            .then(async ({ CapacitorCrisp }) => {
+                /*
+                 * Settle the CAMERA runtime permission before the native Crisp UI
+                 * opens: the app manifest declares CAMERA (QR scanner), which makes
+                 * Crisp's "Take a photo" throw a SecurityException when it is
+                 * declared-but-ungranted — the SDK never requests it itself.
+                 * Result deliberately ignored: a denied camera must not block chat.
+                 */
+                await ensureNativeCameraPermission()
+                // set user data before opening
+                if (userData.email || userData.fullName) {
+                    CapacitorCrisp.setUser({
+                        email: userData.email || undefined,
+                        nickname: userData.fullName || userData.username || undefined,
+                        avatar: userData.avatar || undefined,
+                    })
+                }
+                if (crispTokenId) {
+                    CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
+                }
+                // set custom data for support agents
+                if (userData.walletAddress) {
+                    CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
+                }
+                if (userData.userId) {
+                    CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
+                }
+                if (prefilledMessage) {
+                    CapacitorCrisp.sendMessage({ value: prefilledMessage })
+                }
 
-            CapacitorCrisp.openMessenger()
-            // The chat is now in front of the user, so the badge has done its
-            // job. There is no isCrispReady on this path — the native messenger
-            // reports nothing back — so clear it here rather than in the web
-            // effect above.
-            clearSupportBadge()
-            // close our drawer since native UI takes over
-            setIsSupportModalOpen(false)
-        })
+                CapacitorCrisp.openMessenger()
+                // The chat is now in front of the user, so the badge has done its
+                // job. There is no isCrispReady on this path — the native messenger
+                // reports nothing back — so clear it here rather than in the web
+                // effect above.
+                clearSupportBadge()
+                // close our drawer since native UI takes over
+                setIsSupportModalOpen(false)
+            })
+            .catch((err: unknown) => {
+                console.warn('[SupportDrawer] native crisp open failed:', err)
+            })
     }, [
         isSupportModalOpen,
         isAwaitingToken,

@@ -82,6 +82,30 @@ export function isIOSNative(): boolean {
 }
 
 /**
+ * Below Android 15 the app window is never edge-to-edge (enforcement starts at
+ * SDK 35), so the webview never extends under the system bars and the correct
+ * safe-area inset is zero on every edge — but some WebViews still report
+ * nonzero env(safe-area-inset-*), which draws a phantom status-bar band below
+ * the real status bar. Capacitor's native inset injection is 15+ only, so on
+ * older Android we occupy the same slot ourselves: the inline style on <html>
+ * that outranks the env() seed in globals.css (see the :root contract there).
+ * No-op on web, iOS and Android 15+.
+ */
+export async function zeroLegacyAndroidSafeAreaInsets(): Promise<void> {
+    if (!isAndroidNative()) return
+    try {
+        const { Device } = await import('@capacitor/device')
+        const { androidSDKVersion } = await Device.getInfo()
+        if (!androidSDKVersion || androidSDKVersion >= 35) return
+        for (const edge of ['top', 'right', 'bottom', 'left']) {
+            document.documentElement.style.setProperty(`--safe-area-inset-${edge}`, '0px')
+        }
+    } catch {
+        // older binary running OTA'd JS without @capacitor/device — keep the env() seed
+    }
+}
+
+/**
  * returns the base url for api calls
  * - in capacitor: returns the production backend url (since /api/ routes don't exist in static export)
  * - on web: returns empty string (relative paths work via next.js proxy)

@@ -40,14 +40,20 @@ export const useLogin = () => {
 
     // wait for user to be fetched, then redirect
     useEffect(() => {
-        // run only if login button is clicked to prevent un-intentional redirects
-        if (isloginClicked && user) {
+        /*
+         * Gate on loginResolved (ceremony finished), not just the click: a stale
+         * user can re-appear mid-ceremony (refetchOnWindowFocus fires when the
+         * OS passkey sheet blurs/refocuses the webview) and `isloginClicked &&
+         * user` would then paint /home — balance and activity included — before
+         * the passkey was ever verified.
+         */
+        if (isloginClicked && loginResolved && user) {
             const redirect = consumePostAuthRedirect(searchParams.get('redirect_uri'))
             router.push(redirect.destination)
             setIsloginClicked(false)
             setLoginResolved(false)
         }
-    }, [user, router, searchParams, isloginClicked])
+    }, [user, router, searchParams, isloginClicked, loginResolved])
 
     // the ceremony succeeded but the user object never arrived (e.g. token not
     // stored / fetch failed) — without this the UI idles on the setup screen forever.

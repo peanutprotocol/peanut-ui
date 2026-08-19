@@ -141,6 +141,18 @@ describe('Withdraw Utilities', () => {
                 '00020126850014br.gov.bcb.pix2563pix.voluti.com.br/qr/v3/at/c75d8412-3935-49d1-9d80-6435716962665204000053039865802BR5925SMARTPAY_SERVICOS_DIGITAI6013FLORIANOPOLIS62070503***6304575A',
                 true,
             ],
+            // Uppercase GUI — the canonical BCB form, and what most PSPs print
+            // into a "Pix copia e cola". Every fixture above is lowercase, which
+            // is how the case-sensitive check survived: scanning lowercases first,
+            // so only the PASTE paths ever saw a raw uppercase payload.
+            [
+                '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D',
+                true,
+            ],
+            [
+                '00020126850014Br.Gov.Bcb.Pix2563pix.voluti.com.br/qr/v3/at/c75d8412-3935-49d1-9d80-6435716962665204000053039865802BR5925SMARTPAY_SERVICOS_DIGITAI6013FLORIANOPOLIS62070503***6304575A',
+                true,
+            ],
             // Invalid - starts with 000201 but no br.gov.bcb.pix
             ['000201260014something.else', false],
             // Invalid - has br.gov.bcb.pix but wrong prefix

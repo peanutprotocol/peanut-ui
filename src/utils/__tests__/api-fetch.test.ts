@@ -5,7 +5,8 @@
 
 import { apiFetch, serverFetch } from '../api-fetch'
 import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getAuthHeaders } from '@/utils/auth-token'
+import { getAuthHeaders, getAuthToken } from '@/utils/auth-token'
+import { isCapacitor } from '@/utils/capacitor'
 
 jest.mock('@/utils/sentry.utils', () => ({
     fetchWithSentry: jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) })),
@@ -13,10 +14,15 @@ jest.mock('@/utils/sentry.utils', () => ({
 
 jest.mock('@/utils/auth-token', () => ({
     authReady: jest.fn(() => Promise.resolve()),
+    getAuthToken: jest.fn(() => 'test-token'),
     getAuthHeaders: jest.fn((extra?: Record<string, string>) => ({
         Authorization: 'Bearer test-token',
         ...extra,
     })),
+}))
+
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: jest.fn(() => false),
 }))
 
 jest.mock('@/constants/general.consts', () => ({
@@ -95,6 +101,41 @@ describe('apiFetch', () => {
 
             const callArgs = mockFetchWithSentry.mock.calls[0][1]
             expect((callArgs?.headers as Record<string, string>)['Content-Type']).toBeUndefined()
+        })
+    })
+
+    describe('native transport preference', () => {
+        const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>
+        const mockGetAuthToken = getAuthToken as jest.MockedFunction<typeof getAuthToken>
+
+        it('prefers the OS transport on native when no token is readable', async () => {
+            mockIsCapacitor.mockReturnValue(true)
+            mockGetAuthToken.mockReturnValue(null)
+
+            await apiFetch('/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+            const callArgs = mockFetchWithSentry.mock.calls[0][1] as Record<string, unknown>
+            expect(callArgs.preferNativeTransport).toBe(true)
+        })
+
+        it('does not set the flag on native when a token is present', async () => {
+            mockIsCapacitor.mockReturnValue(true)
+            mockGetAuthToken.mockReturnValue('test-token')
+
+            await apiFetch('/users/me')
+
+            const callArgs = mockFetchWithSentry.mock.calls[0][1] as Record<string, unknown>
+            expect(callArgs).not.toHaveProperty('preferNativeTransport')
+        })
+
+        it('does not set the flag on web even without a token', async () => {
+            mockIsCapacitor.mockReturnValue(false)
+            mockGetAuthToken.mockReturnValue(null)
+
+            await apiFetch('/users/me')
+
+            const callArgs = mockFetchWithSentry.mock.calls[0][1] as Record<string, unknown>
+            expect(callArgs).not.toHaveProperty('preferNativeTransport')
         })
     })
 

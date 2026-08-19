@@ -6,7 +6,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 interface ActionListCardProps {
     title: string | React.ReactNode
@@ -33,7 +33,7 @@ export const ActionListCard = ({
     descriptionClassName,
     titleClassName,
 }: ActionListCardProps) => {
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     const handleCardClick = () => {
         triggerHaptic()

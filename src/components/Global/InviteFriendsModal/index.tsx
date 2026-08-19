@@ -8,6 +8,7 @@ import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
+import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 interface InviteFriendsModalProps {
     visible: boolean
@@ -51,7 +52,11 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
             visible={visible}
             onClose={handleClose}
             title={t('inviteFriendsModal.title')}
-            description={t('inviteFriendsModal.description')}
+            // Inviting is fine under guideline 3.1.5(ii); promising payment for it
+            // is not. iOS gets the same share flow minus the earnings claim.
+            description={t(
+                isReferralRewardsHidden() ? 'inviteFriendsModal.descriptionNoRewards' : 'inviteFriendsModal.description'
+            )}
             icon="user-plus"
             content={
                 <>

@@ -86,6 +86,8 @@ jest.mock('@/components/Global/ActionModal', () => ({
 // import must come after jest.mock
 import { CancelDepositActions } from '../CancelDepositActions'
 
+// these components call useTranslations; IntlWrapper supplies the en catalog
+// so the English assertions below keep asserting the real shipped copy
 const pendingBridgeOnramp = {
     id: 'tx-1',
     direction: 'bank_deposit',
