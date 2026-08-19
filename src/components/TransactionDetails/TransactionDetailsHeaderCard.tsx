@@ -13,10 +13,7 @@ import { printableUserHandle } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import React from 'react'
-import Card from '../Global/Card'
-import { Icon, type IconName } from '../Global/Icons/Icon'
 import { VerifiedUserLabel } from '../UserHeader'
-import ProgressBar from '../Global/ProgressBar'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 import { PEANUTMAN } from '@/assets/mascot'
@@ -30,6 +27,10 @@ interface TransactionDetailsHeaderCardProps {
     nameKey?: TransactionNameKey
     nameParams?: Record<string, string>
     amountDisplay: string
+    /** '-' for outgoing money; '' otherwise. Incoming never shows '+' — the
+     *  states board (17966:12128) treats incoming-successful as the base
+     *  state with no indicators. */
+    sign?: '-' | ''
     initials: string
     status?: StatusType
     isVerified?: boolean
@@ -39,12 +40,7 @@ interface TransactionDetailsHeaderCardProps {
     haveSentMoneyToUser?: boolean
     isNameClickable?: boolean
     isAvatarClickable?: boolean
-    showProgessBar?: boolean
-    progress?: number
-    goal?: number
     isRequestPotTransaction?: boolean
-    isTransactionClosed: boolean
-    convertedAmount?: string
     showFullName?: boolean
     fullName?: string
     countryCode?: string | null
@@ -163,42 +159,27 @@ const getTitle = (
     return titleText
 }
 
-const getIcon = (
-    direction: TransactionDirection,
-    isLinkTransaction?: boolean,
-    isTestTransaction?: boolean
-): IconName | undefined => {
-    if (isLinkTransaction || isTestTransaction) {
-        return undefined
-    }
-
-    switch (direction) {
-        case 'send':
-        case 'bank_request_fulfillment':
-        case 'qr_payment':
-            return 'arrow-up-right'
-        case 'request_sent':
-        case 'receive':
-        case 'request_received':
-            return 'arrow-down-left'
-        case 'withdraw':
-        case 'bank_claim':
-        case 'claim_external':
-            return 'arrow-up'
-        case 'add':
-        case 'bank_deposit':
-            return 'arrow-down'
-        default:
-            return undefined
-    }
+/** Amount treatment per the states board (17966:12128): pending = greyed,
+ *  cancelled/refunded/failed = strikethrough, everything else = base. */
+const amountStateClasses = (status?: StatusType) => {
+    if (status === 'pending' || status === 'processing') return 'text-foreground-secondary'
+    if (status === 'cancelled' || status === 'refunded' || status === 'failed') return 'line-through'
+    return ''
 }
 
+/**
+ * Receipt head (DS 09, TX Details board 17490:115877): centered composition —
+ * IconBubble/avatar on top, transaction-type line, big amount, status badge.
+ * Completed transactions show NO badge (base state per the states board);
+ * pending/failed/cancelled do.
+ */
 export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCardProps> = ({
     direction,
     userName,
     nameKey,
     nameParams,
     amountDisplay,
+    sign = '',
     initials,
     status,
     isVerified = false,
@@ -208,12 +189,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     haveSentMoneyToUser = false,
     isNameClickable = false,
     isAvatarClickable = false,
-    showProgessBar = false,
-    progress,
-    goal,
     isRequestPotTransaction,
-    isTransactionClosed,
-    convertedAmount,
     showFullName,
     fullName,
     countryCode,
@@ -232,56 +208,67 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(userName)
-    const icon = getIcon(direction, isLinkTransaction, isTest)
 
     const handleUserProfileClick = () => {
         router.push(profileUrl(userName))
     }
 
-    const isNoGoalSet = isRequestPotTransaction && goal === 0
+    const showBadge = !!status && status !== 'completed'
 
     return (
-        <Card className="relative p-4 md:p-6" position="single">
+        <div className="flex flex-col items-center gap-4 text-center">
             {isTest ? (
-                <div className="flex items-center gap-3">
-                    <div>
-                        <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-8" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-extrabold">{t('enjoyPeanut')}</h2>
-                    </div>
-                </div>
+                <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
-                <div className="flex items-center gap-3">
-                    <div
-                        className={twMerge(isAvatarClickable && 'cursor-pointer')}
-                        onClick={isAvatarClickable ? handleUserProfileClick : undefined}
-                    >
-                        {avatarUrl ? (
-                            <div className="flex h-16 w-16 items-center justify-center rounded-full">
-                                <Image
-                                    src={avatarUrl}
-                                    alt="Icon"
-                                    className="size-full rounded-full object-cover"
-                                    width={160}
-                                    height={160}
-                                />
-                            </div>
-                        ) : (
-                            <TransactionAvatarBadge
-                                initials={initials}
-                                userName={nameForAvatar}
-                                isLinkTransaction={isLinkTransaction}
-                                transactionType={typeForAvatar}
-                                context="header"
-                                size="small"
-                                countryCode={countryCode}
+                <div
+                    className={twMerge(
+                        isAvatarClickable &&
+                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                    )}
+                    onClick={isAvatarClickable ? handleUserProfileClick : undefined}
+                    role={isAvatarClickable ? 'button' : undefined}
+                    tabIndex={isAvatarClickable ? 0 : undefined}
+                    aria-label={isAvatarClickable ? nameForAvatar : undefined}
+                    onKeyDown={
+                        isAvatarClickable
+                            ? (event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                      event.preventDefault()
+                                      handleUserProfileClick()
+                                  }
+                              }
+                            : undefined
+                    }
+                >
+                    {avatarUrl ? (
+                        <div className="flex size-12 items-center justify-center rounded-full">
+                            <Image
+                                src={avatarUrl}
+                                alt="Icon"
+                                className="size-full rounded-full object-cover"
+                                width={160}
+                                height={160}
                             />
-                        )}
-                    </div>
-                    <div className="space-y-1 w-full">
-                        <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
-                            {icon && <Icon name={icon} size={10} />}
+                        </div>
+                    ) : (
+                        <TransactionAvatarBadge
+                            initials={initials}
+                            userName={nameForAvatar}
+                            isLinkTransaction={isLinkTransaction}
+                            transactionType={typeForAvatar}
+                            context="header"
+                            size="small"
+                            countryCode={countryCode}
+                        />
+                    )}
+                </div>
+            )}
+            <div className="flex w-full flex-col items-center gap-2">
+                <div className="flex w-full flex-col items-center gap-1">
+                    <h2 className="flex items-center justify-center text-body-s text-foreground-secondary">
+                        {isTest ? (
+                            t('enjoyPeanut')
+                        ) : (
                             <VerifiedUserLabel
                                 username={userName}
                                 name={
@@ -297,38 +284,22 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                           ) as string)
                                 }
                                 isVerified={isVerified}
-                                className="flex items-center gap-1"
+                                className="flex items-center justify-center gap-1"
                                 haveSentMoneyToUser={haveSentMoneyToUser}
                                 iconSize={18}
                                 onNameClick={isNameClickable ? handleUserProfileClick : undefined}
                             />
-
-                            <div className="ml-auto">
-                                {status && <StatusBadge status={status} size="small" className="py-0" />}
-                            </div>
-                        </h2>
-                        <h1
-                            className={twMerge(
-                                'text-3xl font-extrabold md:text-4xl',
-                                ['cancelled', 'refunded'].includes(status ?? '') && 'text-grey-1 line-through',
-                                isNoGoalSet && 'text-xl text-black md:text-3xl'
-                            )}
-                        >
+                        )}
+                    </h2>
+                    {!isTest && (
+                        <h1 className={twMerge('text-heading-l text-foreground-primary', amountStateClasses(status))}>
+                            {sign}
                             {amountDisplay}
                         </h1>
-
-                        {convertedAmount && <h2 className="font-bold">≈ {convertedAmount}</h2>}
-
-                        {isNoGoalSet && <h4 className="text-sm font-medium text-black">{t('noGoalSet')}</h4>}
-                    </div>
+                    )}
                 </div>
-            )}
-
-            {!isNoGoalSet && showProgessBar && goal !== undefined && progress !== undefined && (
-                <div className="mt-4">
-                    <ProgressBar goal={goal} progress={progress} isClosed={isTransactionClosed} />
-                </div>
-            )}
-        </Card>
+                {showBadge && <StatusBadge status={status!} size="medium" />}
+            </div>
+        </div>
     )
 }

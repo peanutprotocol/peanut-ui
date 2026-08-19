@@ -1,14 +1,12 @@
 'use client'
 
+import { AppShell } from '@/components/Global/AppShell'
+import { BottomNav } from '@/components/Global/BottomNav'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SupportDrawer from '@/components/Global/SupportDrawer'
-import TopNavbar from '@/components/Global/TopNavbar'
-import WalletNavigation from '@/components/Global/WalletNavigation'
 import { useUserStore } from '@/redux/hooks'
 import { Banner } from '@/components/Global/Banner'
-
-import classNames from 'classnames'
 import { twMerge } from 'tailwind-merge'
 
 export default function PaymentLayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -16,58 +14,25 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
     const isUserLoggedIn = !!user?.user.userId || false
 
     return (
-        <div className="flex min-h-[100dvh] w-full bg-background">
-            {/* Wrapper div for desktop layout */}
-            <div className="flex w-full">
-                {/* Sidebar - Fixed on desktop */}
-                <div className="hidden md:block">
-                    <div className="fixed top-0 left-0 z-20 h-screen w-64">
-                        <WalletNavigation />
-                    </div>
-                </div>
-
-                {/* Main content area */}
-                <div className="flex w-full flex-1 flex-col">
-                    {/* Banner component handles maintenance and feedback banners */}
-                    <Banner />
-
-                    {/* Fixed top navbar */}
-                    <div className="sticky top-0 z-10 w-full">
-                        <TopNavbar />
-                    </div>
-
-                    {/* Scrollable content area */}
-                    <div
-                        className={classNames(
-                            twMerge(
-                                'flex-1 overflow-y-auto bg-background p-6 md:pb-6',
-                                isUserLoggedIn ? 'pb-24' : 'pb-4'
-                            )
-                        )}
-                    >
-                        <div
-                            className={twMerge(
-                                'flex w-full items-center justify-center md:ml-auto md:min-h-full md:w-[calc(100%_-_160px)]',
-                                isUserLoggedIn ? 'min-h-[calc(100dvh_-_160px)]' : 'min-h-[calc(100dvh_-_64px)]'
-                            )}
-                        >
-                            {children}
-                        </div>
-                    </div>
-
-                    {/* Mobile navigation */}
-
-                    <div className="fixed right-0 bottom-0 left-0 z-10 bg-background md:hidden">
-                        <WalletNavigation />
-                    </div>
-                </div>
-            </div>
-
-            {/* Modals */}
-            <GuestLoginModal />
-            <SupportDrawer />
-
-            <QRScannerOverlay />
-        </div>
+        <AppShell
+            variant="app"
+            banner={<Banner />}
+            nav={isUserLoggedIn && <BottomNav />}
+            contentClassName={
+                isUserLoggedIn
+                    ? 'pb-[calc(6rem_+_env(safe-area-inset-bottom))]'
+                    : 'pb-[calc(1rem_+_env(safe-area-inset-bottom))]'
+            }
+            innerClassName={twMerge(isUserLoggedIn ? 'min-h-[calc(100dvh_-_160px)]' : 'min-h-[calc(100dvh_-_64px)]')}
+            modals={
+                <>
+                    <GuestLoginModal />
+                    <SupportDrawer />
+                    <QRScannerOverlay />
+                </>
+            }
+        >
+            {children}
+        </AppShell>
     )
 }

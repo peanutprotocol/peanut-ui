@@ -17,6 +17,7 @@ interface ListItemProps {
     onClick?: () => void
     className?: string
     'data-testid'?: string
+    'aria-label'?: string
 }
 
 /**
@@ -37,6 +38,7 @@ export const ListItem = ({
     onClick,
     className,
     'data-testid': dataTestId,
+    'aria-label': ariaLabel,
 }: ListItemProps) => (
     <Card
         position={position}
@@ -54,6 +56,7 @@ export const ListItem = ({
                 : undefined
         }
         aria-disabled={disabled || undefined}
+        aria-label={ariaLabel}
         data-testid={dataTestId}
         className={twMerge(
             'flex items-center justify-between gap-3 p-4',

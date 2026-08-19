@@ -72,7 +72,9 @@
         "claim": "Reclamar",
         "peanutLogoAlt": "Logo de Peanut",
         "receipt": "Recibo",
-        "supportUnread": "Nueva respuesta de soporte"
+        "supportUnread": "Nueva respuesta de soporte",
+        "card": "Tarjeta",
+        "scanQr": "Escanear QR"
     },
     "home": {
         "rewards": "Recompensas",
@@ -222,7 +224,10 @@
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}"
-        }
+        },
+        "openProfile": "Abrir tu perfil",
+        "showBalance": "Mostrar saldo",
+        "hideBalance": "Ocultar saldo"
     },
     "profile": {
         "language": "Idioma",
@@ -1734,6 +1739,7 @@
             "txId": "ID de TX",
             "fee": "Comisión",
             "exchangeRate": "Tipo de cambio",
+            "estimateConversion": "Conversión estimada",
             "transferId": "ID de transferencia",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",

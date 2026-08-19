@@ -41,7 +41,6 @@ const renderHeader = (props: { isNameClickable: boolean; isAvatarClickable: bool
             countryCode={props.bank ? 'US' : undefined}
             isNameClickable={props.isNameClickable}
             isAvatarClickable={props.isAvatarClickable}
-            isTransactionClosed={false}
         />,
         { wrapper: IntlWrapper }
     )

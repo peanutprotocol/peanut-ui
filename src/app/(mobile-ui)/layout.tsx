@@ -1,14 +1,13 @@
 'use client'
 
+import { AppShell } from '@/components/Global/AppShell'
+import { BottomNav } from '@/components/Global/BottomNav'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import ReConsentModal from '@/components/Global/ReConsentModal'
 import Loading from '@/components/Global/Loading'
-import TopNavbar from '@/components/Global/TopNavbar'
-import WalletNavigation from '@/components/Global/WalletNavigation'
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
 import { useAuth } from '@/context/authContext'
-import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -182,92 +181,45 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <div className="flex min-h-[100dvh] w-full bg-background" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-            {/* Wrapper div for desktop layout */}
-            <div className="flex w-full">
-                {/* Sidebar - Fixed on desktop */}
-
-                {!isDev && (
-                    <div className="hidden md:block">
-                        <div className="fixed top-0 left-0 z-20 h-screen w-64">
-                            <WalletNavigation />
-                        </div>
-                    </div>
-                )}
-
-                {/* Main content area */}
-                <div className="flex w-full flex-1 flex-col">
-                    {/* Banner component handles maintenance and feedback banners */}
-                    {!isDev && <Banner />}
-
-                    {/* Fixed top navbar */}
-
-                    {!isDev && (
-                        <div className="sticky top-0 z-10 w-full">
-                            <TopNavbar />
-                        </div>
-                    )}
-
-                    {/* Scrollable content area */}
-                    <div
-                        id="scrollable-content"
-                        className={classNames(
-                            twMerge(
-                                'relative flex-1 overflow-y-auto bg-background p-6 pb-[calc(6rem_+_env(safe-area-inset-bottom))] md:pb-6',
-                                !!isSupport && 'p-0 pb-[calc(5rem_+_env(safe-area-inset-bottom))] md:p-6',
-                                !!isHome && 'p-0 md:p-6 md:pr-0',
-                                isUserLoggedIn
-                                    ? 'pb-[calc(6rem_+_env(safe-area-inset-bottom))]'
-                                    : 'pb-[calc(1rem_+_env(safe-area-inset-bottom))]',
-                                isDev && 'p-0 pb-0',
-                                isHome && isCapacitor() && 'px-0 pt-0'
-                            )
-                        )}
-                    >
-                        <div
-                            className={twMerge(
-                                'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%_-_160px)]',
-                                alignStart && 'items-start',
-                                isSupport && 'h-full',
-                                isUserLoggedIn
-                                    ? 'min-h-[calc(100dvh_-_160px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))]'
-                                    : 'min-h-[calc(100dvh_-_64px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))]',
-                                isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
-                            )}
-                        >
-                            {children}
-                        </div>
-                    </div>
-
-                    {/* Mobile navigation */}
-                    {!isDev && (
-                        <div
-                            className="fixed right-0 bottom-0 left-0 z-10 bg-background md:hidden"
-                            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-                        >
-                            <WalletNavigation />
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Modal */}
-            <GuestLoginModal />
-
-            <ReConsentModal />
-
-            <SupportDrawer />
-
-            {/* Suspense is required: nuqs reads useSearchParams, which triggers
-                a client-side-rendering bailout without a boundary. */}
-            <Suspense fallback={null}>
-                <SupportDeepLink />
-            </Suspense>
-
-            <QRScannerOverlay />
-
-            <SecurityVerificationOverlay />
-        </div>
+        <AppShell
+            variant="app"
+            banner={!isDev && <Banner />}
+            nav={!isDev && isUserLoggedIn && <BottomNav />}
+            contentClassName={twMerge(
+                'pb-[calc(6rem_+_env(safe-area-inset-bottom))]',
+                isSupport && 'p-0 pb-[calc(5rem_+_env(safe-area-inset-bottom))]',
+                isHome && 'p-0',
+                isUserLoggedIn
+                    ? 'pb-[calc(6rem_+_env(safe-area-inset-bottom))]'
+                    : 'pb-[calc(1rem_+_env(safe-area-inset-bottom))]',
+                isDev && 'p-0 pb-0',
+                isHome && isCapacitor() && 'px-0 pt-0'
+            )}
+            innerClassName={twMerge(
+                alignStart && 'items-start',
+                isSupport && 'h-full',
+                isUserLoggedIn
+                    ? 'min-h-[calc(100dvh_-_160px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))]'
+                    : 'min-h-[calc(100dvh_-_64px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))]',
+                isDev && 'max-w-full min-h-[100dvh] items-start justify-start'
+            )}
+            modals={
+                <>
+                    <GuestLoginModal />
+                    <ReConsentModal />
+                    <SupportDrawer />
+                    {/* Suspense is required: nuqs reads useSearchParams, which triggers
+                        a client-side-rendering bailout without a boundary. */}
+                    <Suspense fallback={null}>
+                        <SupportDeepLink />
+                    </Suspense>
+                    <QRScannerOverlay />
+                    <SecurityVerificationOverlay />
+                </>
+            }
+        >
+            {children}
+        </AppShell>
     )
 }
 
