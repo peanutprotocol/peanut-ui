@@ -49,6 +49,14 @@ permissions:
 
 jobs:
     approve-and-merge:
+        # Read CONTENT_BOT_TOKEN from the `content-publish` environment, whose
+        # deployment branch policy allows `main` only. The token is an org admin
+        # (it needs the bypass to merge), and a dozen workflows in this repo carry
+        # `workflow_dispatch`, which runs a workflow FROM THE DISPATCHED REF. As a
+        # plain repo secret it was therefore readable by anyone with write access:
+        # push a branch with a workflow that echoes it, dispatch that branch, done.
+        # Scoped to the environment it is unreachable from any ref but `main`.
+        environment: content-publish
         # Same-repo PRs only — never a fork.
         if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
@@ -94,6 +102,14 @@ jobs:
                   fi
 
     merge-on-green:
+        # Read CONTENT_BOT_TOKEN from the `content-publish` environment, whose
+        # deployment branch policy allows `main` only. The token is an org admin
+        # (it needs the bypass to merge), and a dozen workflows in this repo carry
+        # `workflow_dispatch`, which runs a workflow FROM THE DISPATCHED REF. As a
+        # plain repo secret it was therefore readable by anyone with write access:
+        # push a branch with a workflow that echoes it, dispatch that branch, done.
+        # Scoped to the environment it is unreachable from any ref but `main`.
+        environment: content-publish
         # Self-approval fallback. Fires when `Tests` finishes for any commit; the
         # job itself works out whether there's a content publish to merge.
         if: github.event_name == 'workflow_run'
