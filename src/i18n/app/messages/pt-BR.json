@@ -2284,6 +2284,7 @@
             "loadFailed": "Não foi possível carregar os termos. Você pode aceitá-los depois pelo seu feed de atividades.",
             "genericError": "Algo deu errado. Você pode aceitar os termos depois pelo seu feed de atividades.",
             "confirmError": "Algo deu errado ao confirmar seus termos. Tente novamente.",
+            "notAcceptedYet": "Parece que os termos ainda não foram aceitos. Tente novamente.",
             "acceptTerms": "Aceitar termos",
             "notNow": "Agora não"
         },

@@ -75,6 +75,17 @@ export function isAndroidNative(): boolean {
 }
 
 /**
+ * true only when the native bridge is live AND the platform is android.
+ *
+ * Unlike {@link isAndroidNative} this is false on capacitor-flavoured WEB
+ * builds (vercel previews opened in android chrome), where native-only
+ * signals such as the in-app browser's `browserFinished` never arrive.
+ */
+export function isAndroidNativeBridge(): boolean {
+    return isNativeBridge() && window.Capacitor?.getPlatform?.() === 'android'
+}
+
+/**
  * returns true when running on ios inside capacitor
  */
 export function isIOSNative(): boolean {

@@ -6,11 +6,22 @@ import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { isAndroidNativeBridge } from '@/utils/capacitor'
+
+/**
+ * Why the wrapper closed:
+ *   - `manual`       — the user backed out
+ *   - `completed`    — the embedded flow reported completion (postMessage)
+ *   - `tos_accepted` — Bridge's iframe reported a signed agreement (postMessage)
+ *   - `returned`     — the android system-browser tab closed; carries NO
+ *                      acceptance claim, the caller must ask the provider
+ */
+export type IframeCloseSource = 'manual' | 'completed' | 'tos_accepted' | 'returned'
 
 export type IFrameWrapperProps = {
     src: string
     visible: boolean
-    onClose: (source?: 'manual' | 'completed' | 'tos_accepted') => void
+    onClose: (source?: IframeCloseSource) => void
     closeConfirmMessage?: string
 }
 
@@ -23,6 +34,51 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
     const router = useRouter()
     const { setIsSupportModalOpen } = useModalsContext()
+
+    /*
+     * Android's Capacitor WebView cannot host a third-party subframe:
+     * BridgeWebViewClient.shouldOverrideUrlLoading hands EVERY navigation to
+     * Bridge.launchIntent — it never checks request.isForMainFrame() — which
+     * cancels the load for any host outside the app origin that isn't in
+     * server.allowNavigation. The frame paints pure white and the provider
+     * never records an acceptance. iOS gates the same detour on
+     * targetFrame.isMainFrame, so only Android needs the system-browser
+     * detour. Coming back from that tab means "the user returned", not "the
+     * user accepted" — hence a `returned` source the caller resolves against
+     * the provider rather than a fabricated `tos_accepted`.
+     */
+    const [useSystemBrowser] = useState(isAndroidNativeBridge)
+    const onCloseRef = useRef(onClose)
+    useEffect(() => {
+        onCloseRef.current = onClose
+    })
+
+    useEffect(() => {
+        if (!useSystemBrowser || !visible) return
+        let disposed = false
+        let remove: (() => void) | undefined
+        void import('@capacitor/browser')
+            .then(({ Browser }) =>
+                // Listener first: a tab the user dismisses immediately must not
+                // close before we are listening, or the flow hangs forever.
+                Browser.addListener('browserFinished', () => onCloseRef.current('returned')).then((handle) => {
+                    // Cleanup can run while the dynamic import is still in
+                    // flight; without this the listener registers after the
+                    // fact and nobody ever removes it.
+                    if (disposed) handle.remove()
+                    else remove = () => handle.remove()
+                    return Browser.open({ url: src })
+                })
+            )
+            .catch((error) => {
+                console.error('[iframe-wrapper] system browser open failed', error)
+                onCloseRef.current('manual')
+            })
+        return () => {
+            disposed = true
+            remove?.()
+        }
+    }, [useSystemBrowser, visible, src])
 
     const handleCopy = (textToCopy: string) => {
         navigator.clipboard.writeText(textToCopy).then(() => {
@@ -123,6 +179,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
         window.addEventListener('message', handleMessage)
         return () => window.removeEventListener('message', handleMessage)
     }, [onClose, visible])
+
+    if (useSystemBrowser) return null
 
     return (
         <Modal
