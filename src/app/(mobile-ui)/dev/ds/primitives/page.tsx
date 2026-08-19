@@ -84,6 +84,28 @@ export default function PrimitivesPage() {
                     icon="docs"
                     status="production"
                 />
+                <CatalogCard
+                    title="Notification"
+                    description="Inline notification banner. 5 priorities, title + body, dismiss, up to 2 CTAs"
+                    href="/dev/ds/primitives/notification"
+                    icon="alert"
+                    status="limited"
+                />
+                <CatalogCard
+                    title="LinkButton"
+                    description="Standalone underlined link for lightweight navigation. Optional trailing icon"
+                    href="/dev/ds/primitives/link-button"
+                    icon="link"
+                    status="limited"
+                />
+                <CatalogCard
+                    title="Accordion"
+                    description="Expand/collapse sections over the radix base. Single or multiple, disabled items"
+                    href="/dev/ds/primitives/accordion"
+                    icon="chevron-down"
+                    status="production"
+                    usages={1}
+                />
             </CatalogGrid>
         </DocPage>
     )

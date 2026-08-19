@@ -84,6 +84,14 @@ export default function PatternsPage() {
                     status="needs-refactor"
                     quality={3}
                 />
+                <CatalogCard
+                    title="Slider"
+                    description="Percentage slider with magnetic snap points. Used by AmountInput in contribute-pot"
+                    href="/dev/ds/patterns/slider"
+                    icon="meter"
+                    status="production"
+                    usages={1}
+                />
             </CatalogGrid>
         </DocPage>
     )

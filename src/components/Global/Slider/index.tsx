@@ -12,10 +12,14 @@ function Slider({
     defaultValue = [100],
     value: controlledValue,
     onValueChange,
+    // radix renders role="slider" on the Thumb, so the accessible name must land there
+    'aria-label': ariaLabel,
     ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
-    // Use internal state for the slider value to enable magnetic snapping
-    const [internalValue, setInternalValue] = React.useState<number[]>(defaultValue || controlledValue)
+    // Use internal state for the slider value to enable magnetic snapping.
+    // Seed from the controlled value when given, so a controlled slider does
+    // not first paint at defaultValue (100) and visibly jump after mount.
+    const [internalValue, setInternalValue] = React.useState<number[]>(controlledValue ?? defaultValue)
 
     // Sync internal state when controlled value changes from external source.
     // The parent derives the controlled value from a cent-rounded amount, so a
@@ -62,7 +66,7 @@ function Slider({
 
     return (
         <div className="w-full">
-            <div className="mb-2 flex w-full items-center justify-between text-xs font-bold">
+            <div className="mb-2 flex w-full items-center justify-between text-body-s text-foreground-primary">
                 <p>0%</p>
                 <p>120%</p>
             </div>
@@ -81,30 +85,34 @@ function Slider({
             >
                 <SliderPrimitive.Track
                     data-slot="slider-track"
-                    className="relative h-1.5 w-full overflow-visible rounded-full bg-grey-2"
+                    className="relative h-1.5 w-full overflow-visible rounded-full bg-border-disabled"
                 >
                     <SliderPrimitive.Range
                         data-slot="slider-range"
-                        className="absolute h-full rounded-full bg-primary-1 transition-all duration-150 ease-out"
+                        className="absolute h-full rounded-full bg-action-primary transition-all duration-fast ease-out"
                     />
                 </SliderPrimitive.Track>
 
                 <SliderPrimitive.Thumb
                     data-slot="slider-thumb"
+                    aria-label={ariaLabel}
                     className={twMerge(
-                        'relative isolate block size-4 cursor-pointer rounded-full bg-white shadow-lg ring-0 transition-all duration-150 ease-out outline-none disabled:pointer-events-none disabled:opacity-50'
+                        // after: pseudo-element extends the 16px thumb to a 44px hit area
+                        // outline-none poisons --tw-outline-style, so the ring needs an
+                        // explicit focus-visible:outline-solid to paint (globals.css convention)
+                        'relative isolate block size-4 cursor-pointer rounded-full transition-all duration-fast ease-out outline-none after:absolute after:-inset-3.5 focus-visible:outline-2 focus-visible:outline-action-focus focus-visible:outline-solid disabled:pointer-events-none disabled:opacity-50'
                     )}
                 >
-                    {/* Vertical tick mark - only visible when at a snap point */}
+                    {/* Vertical snap tick - only visible when at a snap point */}
                     {activeSnapPoint !== undefined && (
-                        <div className="pointer-events-none absolute top-1/2 left-1/2 z-0 h-6 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-1 transition-all duration-150" />
+                        <div className="pointer-events-none absolute top-1/2 left-1/2 z-0 h-6 w-1 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-action-primary transition-all duration-fast" />
                     )}
 
                     {/* White circle with border on top of the tick */}
-                    <div className="absolute inset-0 z-10 rounded-full border-2 border-black bg-white" />
+                    <div className="shadow-2 absolute inset-0 z-10 rounded-full border border-border-default bg-background-default" />
 
                     {/* Current value label */}
-                    <div className="absolute top-full left-1/2 z-20 mt-2 -translate-x-1/2 text-xs whitespace-nowrap text-black">
+                    <div className="absolute top-full left-1/2 z-20 mt-2 -translate-x-1/2 text-label-l whitespace-nowrap text-foreground-primary">
                         {internalValue[0] % 1 === 0 ? internalValue[0].toFixed(0) : internalValue[0].toFixed(2)}%
                     </div>
                 </SliderPrimitive.Thumb>
