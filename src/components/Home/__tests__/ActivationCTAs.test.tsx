@@ -41,8 +41,13 @@ jest.mock('@/hooks/useCapabilities', () => ({
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
 }))
+let mockRegionRestricted = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
-    useIdentityVerification: () => ({ isProcessing: false, needsAction: false }),
+    useIdentityVerification: () => ({
+        isProcessing: false,
+        needsAction: false,
+        isRegionRestricted: mockRegionRestricted,
+    }),
 }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen, openSupportWithMessage: jest.fn() }),
@@ -98,6 +103,39 @@ beforeEach(() => {
     mockRails = []
     mockUser = { user: { isActivated: false, userId: 'u1' } }
     mockHasCardAccess = false
+    mockRegionRestricted = false
+})
+
+describe('ActivationCTAs — region-restricted outranks every funnel step', () => {
+    it('replaces the verify nag, which this user can never satisfy', () => {
+        mockRegionRestricted = true
+        render(<ActivationCTAs activationStep="verify" />)
+
+        expect(screen.getByText("We can't verify IDs from your country")).toBeInTheDocument()
+        expect(screen.queryByText('Verification issue')).not.toBeInTheDocument()
+    })
+
+    it('replaces the card banner too — its CTA would route to /shhhhh', () => {
+        // The card branch returns BEFORE reading `step`, so without an explicit
+        // guard the region card selected in the memo is silently discarded.
+        mockRegionRestricted = true
+        mockHasCardAccess = true
+        render(<ActivationCTAs activationStep="card" />)
+
+        expect(screen.getByText("We can't verify IDs from your country")).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Send or request money'))
+        expect(mockPush).toHaveBeenCalledWith('/send')
+        expect(mockPush).not.toHaveBeenCalledWith('/shhhhh')
+    })
+
+    it('never opens support — support cannot lift a jurisdictional block', () => {
+        mockRegionRestricted = true
+        mockRails = [bankRejected]
+        render(<ActivationCTAs activationStep="deposit" />)
+
+        fireEvent.click(screen.getByText('Send or request money'))
+        expect(mockPush).toHaveBeenCalledWith('/send')
+    })
 })
 
 describe('ActivationCTAs — rejection override respects existing transacting ability', () => {

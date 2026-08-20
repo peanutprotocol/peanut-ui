@@ -17896,6 +17896,9 @@
                                                         "userMessage"
                                                     ]
                                                 },
+                                                "canRetry": {
+                                                    "type": "boolean"
+                                                },
                                                 "rejectLabels": {
                                                     "type": "array",
                                                     "items": {

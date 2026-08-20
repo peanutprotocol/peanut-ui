@@ -38,6 +38,16 @@ export interface UseIdentityVerificationResult {
      * offer a retry that can never pass.
      */
     isRegionRestricted: boolean
+    /**
+     * Terminal for any reason OTHER than region — fraud, sanctions, age,
+     * forgery. Distinct from `isRegionRestricted` because the right ending
+     * differs: we deliberately do NOT explain these (naming the cause carries
+     * compliance exposure and tips off the people it describes), and support IS
+     * the right route, because a human can review a misclassification.
+     *
+     * Both are terminal, so neither may offer a retry.
+     */
+    isTerminalFailure: boolean
     isLoading: boolean
 }
 
@@ -58,6 +68,14 @@ export function useIdentityVerification(): UseIdentityVerificationResult {
             // non-terminal status would be the BE contradicting itself, and
             // rendering a dead end on a live flow is the worse failure.
             isRegionRestricted: status === 'failed' && identity.reason?.code === IDENTITY_REGION_RESTRICTED_CODE,
+            // `canRetry !== true` rather than `=== false`: an older backend
+            // omits the field entirely, and defaulting those to terminal is the
+            // safe direction — a retry that cannot pass is worse than a support
+            // link that wasn't strictly needed.
+            isTerminalFailure:
+                status === 'failed' &&
+                identity.canRetry !== true &&
+                identity.reason?.code !== IDENTITY_REGION_RESTRICTED_CODE,
             isLoading: isFetchingUser,
         }
     }, [identity, isFetchingUser])

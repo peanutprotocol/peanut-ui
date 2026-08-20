@@ -50,3 +50,34 @@ describe('useIdentityVerification — isRegionRestricted', () => {
         expect(r.isRegionRestricted).toBe(false)
     })
 })
+
+describe('useIdentityVerification — isTerminalFailure', () => {
+    it('is true for a decision the user cannot retry', () => {
+        const r = withIdentity({ status: 'failed', canRetry: false })
+        expect(r.isTerminalFailure).toBe(true)
+    })
+
+    it('is false when the check merely errored — a retry is worth offering', () => {
+        const r = withIdentity({ status: 'failed', canRetry: true })
+        expect(r.isFailed).toBe(true)
+        expect(r.isTerminalFailure).toBe(false)
+    })
+
+    it('defaults to terminal when an older backend omits canRetry', () => {
+        // Fail-closed on purpose: offering a retry that cannot pass is worse than
+        // a support link that was not strictly needed. This is also what makes
+        // the terminal fix land even if the FE ships ahead of the BE.
+        const r = withIdentity({ status: 'failed' })
+        expect(r.isTerminalFailure).toBe(true)
+    })
+
+    it('is false for region-restricted — that gets its own screen, with no support link', () => {
+        const r = withIdentity({ status: 'failed', canRetry: false, reason: REGION })
+        expect(r.isRegionRestricted).toBe(true)
+        expect(r.isTerminalFailure).toBe(false)
+    })
+
+    it.each(['processing', 'action_required', 'verified', 'not_started'] as const)('is false for %s', (status) => {
+        expect(withIdentity({ status, canRetry: false }).isTerminalFailure).toBe(false)
+    })
+})
