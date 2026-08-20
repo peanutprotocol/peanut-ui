@@ -119,14 +119,11 @@ const Footer = ({
                         <Link className={NAV_LINK} href={`/${locale}/help/security-disclosure`}>
                             {i18n.footerSecurity}
                         </Link>
-                        <a
-                            className={NAV_LINK}
-                            href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
-                            rel="noopener noreferrer"
-                            target="_blank"
-                        >
+                        {/* /careers, not the Notion board: the page lists the open roles
+                            and keeps Notion as the application destination only. */}
+                        <Link className={NAV_LINK} href="/careers">
                             {i18n.footerJobs}
-                        </a>
+                        </Link>
                     </div>
                     <div className="hidden items-center gap-6 md:flex">
                         <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
