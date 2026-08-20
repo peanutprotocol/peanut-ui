@@ -22,6 +22,7 @@ import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
+import { readReturnTo } from '@/utils/return-to.utils'
 import { useTranslations } from 'next-intl'
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
@@ -473,9 +474,12 @@ export default function WithdrawPage() {
                     // if bank from send flow, go back to send page
                     if (isBankFromSend) {
                         router.push('/send')
-                    } else {
-                        router.push('/home')
+                        return
                     }
+                    // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA)
+                    // wins over the /home reset, which only fits tab-bar entries
+                    const returnTo = readReturnTo(searchParams, '/withdraw')
+                    router.push(returnTo ?? '/home')
                 }}
             />
         )
