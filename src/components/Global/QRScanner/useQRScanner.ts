@@ -5,6 +5,7 @@ import QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCameraPermission } from '@/utils/camera-permission'
+import { reportQrScanError } from './utils'
 
 // ============================================================================
 // Configuration
@@ -182,7 +183,10 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     scannerRef.current?.start()
                 }
             } catch (err) {
-                console.error('Error processing QR code:', err)
+                // console.info, not error: captureConsoleIntegration would turn an
+                // error-level log into a second Sentry event on top of the capture below.
+                console.info('Error processing QR code:', err)
+                reportQrScanError(err, data)
                 toast.error(t('qrScanner.qrProcessingError'))
                 processingQRRef.current = false
                 // Resume scanner on error so user can try again
