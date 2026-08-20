@@ -6,6 +6,8 @@ import ActionModal from '@/components/Global/ActionModal'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { KycRegionRestrictedContent, useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 
 interface InitiateKycModalProps {
     visible: boolean
@@ -44,8 +46,20 @@ export const InitiateKycModal = ({
     regionName,
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
+    const tRegion = useTranslations('kyc.regionRestricted')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
+    // Enforced HERE rather than at each call site on purpose. Six gates open this
+    // modal (add-money, withdraw, the two bank pages, and both Manteca flow
+    // managers), and each one computes its variant from a rail gate that cannot
+    // see WHY identity failed: a region-restricted user reads as `needs-identity`
+    // (no rail + unverified) and would be offered "Unlock now" → the Sumsub SDK
+    // → the same guaranteed rejection, or as `blocked-rejection` → contact
+    // support. Both contradict the region screen. Short-circuiting at the one
+    // component they all share makes the invariant impossible for a future call
+    // site to miss.
+    const { isRegionRestricted } = useIdentityVerification()
+    const regionCta = useRegionRestrictedCta(onClose)
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
     const isProviderRejection = variant === 'provider_rejection'
@@ -126,6 +140,34 @@ export const InitiateKycModal = ({
     }
 
     const cta = getCta()
+
+    if (isRegionRestricted) {
+        return (
+            <ActionModal
+                visible={visible}
+                onClose={onClose}
+                title={tRegion('title')}
+                icon="globe-lock"
+                iconContainerClassName="bg-primary-1"
+                modalPanelClassName="max-w-full m-2"
+                ctaClassName="grid grid-cols-1 gap-3"
+                content={
+                    <div className="w-full">
+                        <KycRegionRestrictedContent />
+                    </div>
+                }
+                ctas={[
+                    {
+                        text: regionCta.label,
+                        onClick: regionCta.onClick,
+                        variant: 'purple',
+                        shadowSize: '4',
+                        className: 'h-11',
+                    },
+                ]}
+            />
+        )
+    }
 
     return (
         <ActionModal

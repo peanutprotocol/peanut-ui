@@ -16,6 +16,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { REGION_RESTRICTED_CTA_HREF } from '@/components/Kyc/KycRegionRestrictedContent'
 import ActionModal from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
@@ -49,6 +50,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const t = useTranslations('home.activation')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
+    const tRegion = useTranslations('kyc.regionRestricted')
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
@@ -62,7 +64,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,
     // and bouncing them through here again would imply they need to re-act.
-    const { isProcessing: isIdentityProcessing, needsAction: isIdentityActionRequired } = useIdentityVerification()
+    const {
+        isProcessing: isIdentityProcessing,
+        needsAction: isIdentityActionRequired,
+        isRegionRestricted,
+    } = useIdentityVerification()
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op
@@ -218,6 +224,23 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         (hasFixableRejection || hasBlockedRejection)
 
     const step: StepConfig | null = useMemo(() => {
+        // Highest precedence, ahead of every funnel step AND every provider
+        // rejection: a region-restricted user can never finish the funnel, so
+        // "Unlock payments" is a CTA that leads nowhere. They stay on 'verify'
+        // forever (the milestone never advances past `registered`), which is
+        // exactly the state that would nag them indefinitely. Replace the card
+        // with the explanation and point them at what still works.
+        if (isRegionRestricted) {
+            return {
+                icon: 'globe-lock',
+                iconBg: 'bg-primary-1',
+                title: tRegion('title'),
+                description: tRegion('homeDescription'),
+                ctaLabel: tRegion('cta'),
+                href: REGION_RESTRICTED_CTA_HREF,
+            }
+        }
+
         if (activationStep === 'completed' && !hasProviderRejection) return null
 
         // Hide the verify CTA while identity is processing — user already
@@ -286,6 +309,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         isIdentityProcessing,
         isIdentityActionRequired,
         hasCardAccess,
+        isRegionRestricted,
+        tRegion,
     ])
 
     if (!step) return null
@@ -323,7 +348,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     shadowSize="4"
                     className="mt-2 w-full"
                     onClick={() => {
-                        if (isEmailBlocked) {
+                        // Mirror the step-precedence above: whatever else is true
+                        // of this user's rails, the region card's CTA must just
+                        // navigate — never open support, never start a Sumsub flow.
+                        if (isRegionRestricted) {
+                            router.push(REGION_RESTRICTED_CTA_HREF)
+                        } else if (isEmailBlocked) {
                             setShowProvideEmail(true)
                         } else if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
                             // REQUIRES_SUPPORT class (or any blocked rail) — pre-fill Crisp

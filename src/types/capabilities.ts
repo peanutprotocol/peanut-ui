@@ -192,6 +192,14 @@ export interface IdentityVerification {
     status: IdentityVerificationStatus
     /** present for action_required / failed — friendly, display-ready, provider-neutral. */
     actionMessage?: string
+    /**
+     * Stable machine code + copy for WHY a `failed` identity failed, when the BE
+     * can tell. Mirrors `reason` on the rail side: branch on `code` to pick a
+     * screen, render localized copy from the catalog, fall back to `userMessage`
+     * for codes this build doesn't know. Absent ⇒ terminal, cause unknown ⇒
+     * today's generic contact-support ending.
+     */
+    reason?: CapabilityReason
     /** normalized rejection labels for specific guidance (action_required / failed). */
     rejectLabels?: string[]
     /** ISO timestamp the user submitted their verification. */

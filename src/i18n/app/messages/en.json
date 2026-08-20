@@ -2229,6 +2229,13 @@
             "ctaUnlockNow": "Unlock now",
             "ctaWithdrawFunds": "Withdraw funds"
         },
+        "regionRestricted": {
+            "title": "We can't verify IDs from your country",
+            "description": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
+            "stillAvailable": "Your funds are safe, and you can still use Peanut to send and receive money with other people.",
+            "homeDescription": "Your funds are safe — you can still send and receive money with other people.",
+            "cta": "Send or request money"
+        },
         "advisory": {
             "title": "One quick step to continue",
             "descriptionByDate": "To continue using bank transfers, please complete a short verification (required by {deadline}). It only takes a couple of minutes.",
@@ -2593,7 +2600,8 @@
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
             "country_not_supported": "This rail needs a document from a supported country. You can verify with a different ID.",
-            "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime."
+            "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
+            "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
         }
     },
     "recoverFunds": {

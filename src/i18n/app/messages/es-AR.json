@@ -797,6 +797,13 @@
             "descriptionRegionUnavailable": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos. Toma alrededor de un minuto."
         },
+        "regionRestricted": {
+            "title": "No podemos verificar identificaciones de tu país",
+            "description": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado.",
+            "stillAvailable": "Tus fondos están seguros y podés seguir usando Peanut para enviar y recibir dinero con otras personas.",
+            "homeDescription": "Tus fondos están seguros: podés seguir enviando y recibiendo dinero con otras personas.",
+            "cta": "Enviar o pedir dinero"
+        },
         "advisory": {
             "descriptionByDate": "Para seguir usando las transferencias bancarias, completá una breve verificación (obligatoria antes del {deadline}). Solo toma un par de minutos.",
             "description": "Para seguir usando las transferencias bancarias, completá una breve verificación. Solo toma un par de minutos."
@@ -999,7 +1006,8 @@
             "duplicate_customer_detected": "Bridge marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escribile a soporte si creés que es un error.",
             "country_not_supported": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
-            "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento."
+            "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
+            "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado."
         }
     },
     "recoverFunds": {
