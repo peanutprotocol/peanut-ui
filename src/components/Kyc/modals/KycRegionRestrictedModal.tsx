@@ -31,7 +31,7 @@ export const KycRegionRestrictedModal = ({ visible, onClose }: KycRegionRestrict
                     <KycRegionRestrictedContent />
                 </div>
             }
-            modalPanelClassName="max-w-full"
+            modalPanelClassName="max-w-full m-2"
             ctaClassName="grid grid-cols-1 gap-3"
             ctas={[
                 {
@@ -39,6 +39,7 @@ export const KycRegionRestrictedModal = ({ visible, onClose }: KycRegionRestrict
                     onClick: cta.onClick,
                     variant: 'purple',
                     shadowSize: '4',
+                    className: 'h-11',
                 },
             ]}
         />
