@@ -14,9 +14,9 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import Loading from '@/components/Global/Loading'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -287,7 +287,7 @@ export function SemanticRequestConfirmView() {
                     )}
                     {errorMessage && (
                         <div className="space-y-2">
-                            <ErrorAlert description={errorMessage} />
+                            <Notification priority="error">{errorMessage}</Notification>
                         </div>
                     )}
                 </div>

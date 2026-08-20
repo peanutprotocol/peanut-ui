@@ -1,6 +1,6 @@
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import ActionModal from '@/components/Global/ActionModal'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId } from '@/components/Setup/Setup.types'
@@ -211,7 +211,7 @@ const InstallPWA = ({
                     <Button onClick={handleInstall} disabled={isSetupFlowLoading} className="w-full" shadowSize="4">
                         {t('addToHomeScreen')}
                     </Button>
-                    {installCancelled && <ErrorAlert description={t('installCancelled')} />}
+                    {installCancelled && <Notification priority="error">{t('installCancelled')}</Notification>}
                 </div>
             )
         }

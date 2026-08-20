@@ -1,10 +1,10 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useCurrency } from '@/hooks/useCurrency'
 import Loading from '@/components/Global/Loading'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
@@ -123,9 +123,15 @@ const InputAmountStep = ({
                     {tCommon('continue')}
                 </Button>
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
-                {error && !limitsValidation?.isBlocking && <ErrorAlert description={error} />}
+                {error && !limitsValidation?.isBlocking && (
+                    <Notification priority="error" data-testid="error-alert">
+                        {error}
+                    </Notification>
+                )}
                 {rateUnavailable && !error && !limitsValidation?.isBlocking && (
-                    <ErrorAlert description={t('errors.rateUnavailable')} />
+                    <Notification priority="error" data-testid="error-alert">
+                        {t('errors.rateUnavailable')}
+                    </Notification>
                 )}
             </div>
         </div>

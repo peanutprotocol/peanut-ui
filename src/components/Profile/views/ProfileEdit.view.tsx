@@ -1,7 +1,7 @@
 'use client'
 import { updateUserById } from '@/app/actions/users'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
 import * as Sentry from '@sentry/nextjs'
@@ -213,7 +213,7 @@ export const ProfileEditView = () => {
                         {t('saveChanges')}
                     </Button>
 
-                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                    {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
                 </div>
             </div>
         </div>

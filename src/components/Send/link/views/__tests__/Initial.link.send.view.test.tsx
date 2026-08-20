@@ -91,11 +91,6 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: ({ description }: { description: string }) => <div data-testid="error-alert">{description}</div>,
-}))
-
 import LinkSendInitialView from '../Initial.link.send.view'
 
 // ---------- helpers ----------

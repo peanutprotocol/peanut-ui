@@ -1,12 +1,12 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { MANTECA_COUNTRIES_CONFIG } from '@/constants/manteca.consts'
 import { useTranslations } from 'next-intl'
 
@@ -65,7 +65,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
                 <Icon name="info" width={16} height={16} />
                 <span>{t('manteca.ownAccountOnly')}</span>
             </div>
-            {errorMessage && <ErrorAlert description={errorMessage} />}
+            {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
             <Button
                 disabled={
                     !destinationAddress || !isDestinationAddressValid || !!errorMessage || isDestinationAddressChanging

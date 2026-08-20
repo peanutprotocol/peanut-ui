@@ -1,7 +1,7 @@
 'use client'
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -243,7 +243,11 @@ const LinkSendInitialView = () => {
                         {isLoading ? tLoading('creatingLink') : t('link.createLink')}
                     </Button>
                 )}
-                {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}
+                {errorState?.showError && (
+                    <Notification priority="error" data-testid="error-alert">
+                        {errorState.errorMessage}
+                    </Notification>
+                )}
             </div>
         </div>
     )

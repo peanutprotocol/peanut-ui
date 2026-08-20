@@ -1,9 +1,9 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -557,9 +557,9 @@ export default function WithdrawBankPage() {
                             description={confirmPendingCopy}
                         />
                     ) : (
-                        error.showError && <ErrorAlert description={error.errorMessage} />
+                        error.showError && <Notification priority="error">{error.errorMessage}</Notification>
                     )}
-                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    {balanceErrorMessage && <Notification priority="error">{balanceErrorMessage}</Notification>}
                 </div>
             )}
 

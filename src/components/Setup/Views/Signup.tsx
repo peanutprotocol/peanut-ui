@@ -1,5 +1,5 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import DocsLink from '@/components/Global/DocsLink'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
@@ -151,7 +151,7 @@ const SignupStep = () => {
                     </div>
                     {error && (
                         <div className="pb-1">
-                            <ErrorAlert description={error} className="gap-2" iconSize={14} />
+                            <Notification priority="error">{error}</Notification>
                         </div>
                     )}
                 </div>

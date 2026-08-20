@@ -1,6 +1,7 @@
 'use client'
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
@@ -15,7 +16,6 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
@@ -772,7 +772,7 @@ function MantecaBankWithdrawFlow() {
                     </Button>
                     {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
                     {balanceErrorMessage && !limitsValidation.isBlocking && (
-                        <ErrorAlert description={balanceErrorMessage} />
+                        <Notification priority="error">{balanceErrorMessage}</Notification>
                     )}
                 </div>
             )}
@@ -886,7 +886,7 @@ function MantecaBankWithdrawFlow() {
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (
-                            <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
+                            <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
                         )}
                     </div>
                 </div>
@@ -953,7 +953,7 @@ function MantecaBankWithdrawFlow() {
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('withdraw')}
                     </Button>
                     {(errorMessage || sumsubFlow.error) && (
-                        <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
+                        <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
                     )}
                 </div>
             )}

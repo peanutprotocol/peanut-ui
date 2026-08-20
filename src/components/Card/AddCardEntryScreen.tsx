@@ -1,8 +1,8 @@
 'use client'
 import { type FC, useState } from 'react'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -57,7 +57,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
              * by it. Other surfaces (Withdraw, Send link) get away with
              * below-CTA because their pages scroll; this one fits the
              * viewport so the FAB collision is unavoidable. */}
-            {applyError && <ErrorAlert description={applyError} />}
+            {applyError && <Notification priority="error">{applyError}</Notification>}
             <Button
                 onClick={handleClick}
                 loading={isApplying}

@@ -21,9 +21,9 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
@@ -184,7 +184,7 @@ function RecoverWalletInner() {
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <div className="my-auto flex flex-col gap-6">
                     <h1 className="text-2xl font-extrabold">Wallet recovery</h1>
-                    <ErrorAlert description={fatal} />
+                    <Notification priority="error">{fatal}</Notification>
                 </div>
             </div>
         )
@@ -241,7 +241,7 @@ function RecoverWalletInner() {
                 </Card>
 
                 {nothingToRecover ? (
-                    <ErrorAlert description="This wallet has no recoverable balance." />
+                    <Notification priority="error">This wallet has no recoverable balance.</Notification>
                 ) : (
                     <>
                         <GeneralRecipientInput
@@ -263,7 +263,7 @@ function RecoverWalletInner() {
                         >
                             {isSigning ? 'Confirm on your device…' : 'Recover funds'}
                         </Button>
-                        {!!signError && <ErrorAlert description={signError} />}
+                        {!!signError && <Notification priority="error">{signError}</Notification>}
                     </>
                 )}
             </div>

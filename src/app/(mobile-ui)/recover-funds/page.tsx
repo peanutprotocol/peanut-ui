@@ -1,6 +1,7 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces/interfaces'
@@ -13,7 +14,6 @@ import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName, getTo
 import { type RecipientState } from '@/context/WithdrawFlowContext'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
@@ -384,7 +384,7 @@ export default function RecoverFundsPage() {
                 >
                     {t('review')}
                 </Button>
-                {!!errorMessage && <ErrorAlert description={errorMessage} />}
+                {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
             </div>
         </div>
     )

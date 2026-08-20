@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { Notification } from './Notification'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
@@ -43,28 +43,33 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
-const Toast: React.FC<ToastMessage> = ({ type = 'info', message, content, className }) => {
-    const colors = {
-        success: 'border-green-500 ',
-        error: 'border-red-500 ',
-        info: 'border-blue-500 ',
-        warning: 'border-yellow-500 ',
-    }
+// toast tone -> notification priority (board 17369:136904: a toast is the
+// notification component in its floating, dismissible format)
+const TOAST_PRIORITY = {
+    success: 'success',
+    error: 'error',
+    info: 'info',
+    warning: 'attention',
+} as const
 
+const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
+    type = 'info',
+    message,
+    content,
+    className,
+    onDismiss,
+}) => {
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 80 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 80 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className={twMerge(
-                'border-2 px-6 py-1',
-                'card max-w-[calc(100vw_-_2rem)] shadow-4 md:max-w-md',
-                colors[type],
-                className
-            )}
+            className="max-w-[calc(100vw_-_2rem)] md:max-w-md"
         >
-            {content ?? <p className="text-center text-sm font-bold break-words">{message}</p>}
+            <Notification priority={TOAST_PRIORITY[type]} onDismiss={onDismiss} className={className}>
+                {content ?? message}
+            </Notification>
         </motion.div>
     )
 }
@@ -138,7 +143,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                 <div className="fixed right-4 bottom-[100px] z-[99999] flex flex-col items-end gap-2">
                     <AnimatePresence mode="sync">
                         {toasts.map((toast) => (
-                            <Toast key={toast.id} {...toast} />
+                            <Toast key={toast.id} {...toast} onDismiss={() => dismiss(toast.id)} />
                         ))}
                     </AnimatePresence>
                 </div>

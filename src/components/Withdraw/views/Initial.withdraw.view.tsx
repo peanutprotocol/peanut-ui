@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -241,7 +241,9 @@ export default function InitialWithdrawView({
                     {t('review')}
                 </Button>
 
-                {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
+                {error.showError && !!error.errorMessage && (
+                    <Notification priority="error">{error.errorMessage}</Notification>
+                )}
             </div>
         </div>
     )

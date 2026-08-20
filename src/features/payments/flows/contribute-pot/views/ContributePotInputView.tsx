@@ -13,9 +13,9 @@
  */
 
 import NavHeader from '@/components/Global/NavHeader'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { useContributePotFlow } from '../useContributePotFlow'
 import { useState } from 'react'
@@ -112,8 +112,10 @@ export function ContributePotInputView() {
                 />
 
                 {/* error display */}
-                {isInsufficientBalance && <ErrorAlert description={t('errors.insufficientRequest')} />}
-                {error.showError && <ErrorAlert description={error.errorMessage} />}
+                {isInsufficientBalance && (
+                    <Notification priority="error">{t('errors.insufficientRequest')}</Notification>
+                )}
+                {error.showError && <Notification priority="error">{error.errorMessage}</Notification>}
 
                 {/* payment options */}
                 <RequestPotActionList

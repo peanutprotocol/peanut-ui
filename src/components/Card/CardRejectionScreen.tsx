@@ -17,11 +17,11 @@
  */
 
 import { type FC, useEffect, useRef, useState } from 'react'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { ScaledRejectionAsset } from '@/components/Card/share-asset/ScaledRejectionAsset'
 import { captureShareAsset, canShareImageFiles } from '@/components/Card/share-asset/captureShareAsset'
@@ -216,7 +216,7 @@ const CardRejectionScreen: FC<Props> = ({
             </div>
 
             <div className="flex flex-col gap-3">
-                {joinError && <ErrorAlert description={joinError} />}
+                {joinError && <Notification priority="error">{joinError}</Notification>}
                 <Button
                     onClick={handleAppeal}
                     loading={sharing}

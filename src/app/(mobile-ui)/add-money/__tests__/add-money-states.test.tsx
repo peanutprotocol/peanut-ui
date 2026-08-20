@@ -417,15 +417,6 @@ jest.mock('@/components/Global/Icons/Icon', () => ({
     Icon: (props: any) => <span data-testid={`icon-${props.name}`} />,
 }))
 
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="error-alert" role="alert">
-            {props.description}
-        </div>
-    ),
-}))
-
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
     default: (props: any) =>

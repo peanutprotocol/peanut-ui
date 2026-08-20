@@ -1,4 +1,5 @@
 import DocsLink from '@/components/Global/DocsLink'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import { isCapacitor } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
@@ -12,7 +13,6 @@ import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
 import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
 import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -213,7 +213,7 @@ const SetupPasskey = () => {
                     {preflightWarning && <p className="text-body-s font-bold text-orange-1">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
-                            <ErrorAlert description={t('passkey.usernameTaken')} />
+                            <Notification priority="error">{t('passkey.usernameTaken')}</Notification>
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
@@ -226,7 +226,7 @@ const SetupPasskey = () => {
                             </Button>
                         </>
                     )}
-                    {inlineError && <ErrorAlert description={inlineError} />}
+                    {inlineError && <Notification priority="error">{inlineError}</Notification>}
                 </div>
                 <div>
                     <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">

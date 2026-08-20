@@ -14,10 +14,10 @@
  */
 
 import { useEffect, useContext, useMemo } from 'react'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
@@ -196,8 +196,10 @@ export function SemanticRequestInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {isInsufficientBalance && <ErrorAlert description={t('errors.insufficientPayment')} />}
-                    {error.showError && <ErrorAlert description={error.errorMessage} />}
+                    {isInsufficientBalance && (
+                        <Notification priority="error">{t('errors.insufficientPayment')}</Notification>
+                    )}
+                    {error.showError && <Notification priority="error">{error.errorMessage}</Notification>}
                 </div>
 
                 {/* action list for non-logged in users */}

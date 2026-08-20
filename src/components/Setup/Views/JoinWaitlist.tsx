@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useState } from 'react'
@@ -10,7 +11,6 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useLogin } from '@/hooks/useLogin'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -149,7 +149,7 @@ const JoinWaitlist = () => {
 
             {error && (
                 <div className="pb-1">
-                    <ErrorAlert description={error} className="gap-2" iconSize={14} />
+                    <Notification priority="error">{error}</Notification>
                 </div>
             )}
 

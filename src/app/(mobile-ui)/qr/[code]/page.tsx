@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { serverFetch } from '@/utils/api-fetch'
@@ -9,7 +10,6 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 import Loading from '@/components/Global/Loading'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl, generateInviteCodeLink, sanitizeRedirectURL } from '@/utils/general.utils'
 import { getShakeClass } from '@/utils/perk.utils'
@@ -220,7 +220,7 @@ export default function RedirectQrClaimPage() {
                     {isLoading ? t('claim.claiming') : t('claim.holdToClaim')}
                 </HoldToClaimButton>
 
-                {error && <ErrorAlert description={error} />}
+                {error && <Notification priority="error">{error}</Notification>}
             </div>
         </div>
     )

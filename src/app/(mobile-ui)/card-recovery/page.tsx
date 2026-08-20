@@ -1,11 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 import type { Hex } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -111,7 +111,7 @@ export default function CardRecoveryPage() {
         <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title={t('navTitle')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
-                {error && <ErrorAlert description={error} />}
+                {error && <Notification priority="error">{error}</Notification>}
 
                 {step === 'done' && txHash ? (
                     <Card className="flex flex-col gap-3 p-6">

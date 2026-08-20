@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -469,9 +469,11 @@ function BridgeBankOnrampPage() {
                     </Button>
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
-                        <ErrorAlert description={error.errorMessage} />
+                        <Notification priority="error">{error.errorMessage}</Notification>
                     )}
-                    {localCurrency !== 'USD' && isRateError && <ErrorAlert description={t('errors.rateUnavailable')} />}
+                    {localCurrency !== 'USD' && isRateError && (
+                        <Notification priority="error">{t('errors.rateUnavailable')}</Notification>
+                    )}
                 </div>
 
                 <OnrampConfirmationModal

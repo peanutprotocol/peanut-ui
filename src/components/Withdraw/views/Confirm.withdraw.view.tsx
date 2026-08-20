@@ -1,10 +1,10 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -241,11 +241,13 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {insufficientBalance && !error && <ErrorAlert description={tErrors('notEnoughBalanceAddFunds')} />}
-                {belowMinimumMessage && !insufficientBalance && !error && (
-                    <ErrorAlert description={belowMinimumMessage} />
+                {insufficientBalance && !error && (
+                    <Notification priority="error">{tErrors('notEnoughBalanceAddFunds')}</Notification>
                 )}
-                {error && <ErrorAlert description={error} />}
+                {belowMinimumMessage && !insufficientBalance && !error && (
+                    <Notification priority="error">{belowMinimumMessage}</Notification>
+                )}
+                {error && <Notification priority="error">{error}</Notification>}
             </div>
         </div>
     )

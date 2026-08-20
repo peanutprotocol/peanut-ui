@@ -1,5 +1,6 @@
 'use client'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useForm, Controller, type ControllerRenderProps, type FieldPath, type RegisterOptions } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -17,7 +18,6 @@ import {
     isValidSortCode,
     isValidUKAccountNumber,
 } from '@/utils/bridge-accounts.utils'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
@@ -389,7 +389,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     </div>
                     <div className="mt-2 w-fit text-start">
                         {errors[name] && touchedFields[name] && (
-                            <ErrorAlert description={errors[name]?.message ?? ''} />
+                            <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
                         )}
                     </div>
                 </div>
@@ -423,7 +423,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     )}
                 />
                 <div className="mt-2 w-fit text-start">
-                    {errors[name] && touchedFields[name] && <ErrorAlert description={errors[name]?.message ?? ''} />}
+                    {errors[name] && touchedFields[name] && (
+                        <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
+                    )}
                 </div>
             </div>
         )
@@ -672,9 +674,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             {tWithdraw('review')}
                         </Button>
                         {submissionError ? (
-                            <ErrorAlert description={submissionError} />
+                            <Notification priority="error">{submissionError}</Notification>
                         ) : (
-                            error && <ErrorAlert description={error} />
+                            error && <Notification priority="error">{error}</Notification>
                         )}
                     </form>
                 </div>

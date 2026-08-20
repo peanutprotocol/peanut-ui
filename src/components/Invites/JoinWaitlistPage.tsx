@@ -1,13 +1,13 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { invitesApi } from '@/services/invites'
 import { useEffect, useRef, useState } from 'react'
 import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
 import ValidatedInput from '../Global/ValidatedInput'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '../Global/ErrorAlert'
 import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
@@ -323,7 +323,7 @@ const JoinWaitlistPage = () => {
                                 className="h-12"
                             />
 
-                            {emailError && <ErrorAlert description={emailError} />}
+                            {emailError && <Notification priority="error">{emailError}</Notification>}
 
                             <Button
                                 shadowSize="4"
@@ -405,10 +405,10 @@ const JoinWaitlistPage = () => {
                             </div>
 
                             {!isValid && !isChanging && !!inviteCode && (
-                                <ErrorAlert description={tSetup('waitlist.inviterNotFound')} />
+                                <Notification priority="error">{tSetup('waitlist.inviterNotFound')}</Notification>
                             )}
 
-                            {error && <ErrorAlert description={error} />}
+                            {error && <Notification priority="error">{error}</Notification>}
 
                             <button onClick={handleLogout} className="text-body-s underline">
                                 {isLoggingOut ? t('pleaseWait') : t('logInDifferentAccount')}

@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
@@ -301,7 +301,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         </Button>
                     )}
 
-                    {errorState.errorMessage && <ErrorAlert description={errorState.errorMessage} />}
+                    {errorState.errorMessage && <Notification priority="error">{errorState.errorMessage}</Notification>}
                 </div>
             </div>
         </div>
