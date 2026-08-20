@@ -12,9 +12,9 @@ const baseUrl = BASE_URL || 'https://peanut.me'
 const IS_PRODUCTION_DOMAIN = baseUrl === 'https://peanut.me'
 
 export const metadata: Metadata = {
-    title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+    title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
     description:
-        'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars. Easily transfer funds across borders. Enjoy cheap, instant remittances and cash out to local banks without technical hassle.',
+        'Peanut is a money app for people who cross borders — send and receive money globally, spend with the Peanut Card, cash in and out through local rails.',
     metadataBase: new URL(baseUrl),
     icons: { icon: '/favicon.ico' },
     alternates: { canonical: '/' },
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     robots: IS_PRODUCTION_DOMAIN ? { index: true, follow: true } : { index: false, follow: false },
     openGraph: {
         type: 'website',
-        title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+        title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
         description:
             'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars.',
         url: baseUrl,
@@ -33,12 +33,12 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+        title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
         description:
             'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars.',
         images: ['/metadata-img.png'],
-        creator: '@PeanutProtocol',
-        site: '@PeanutProtocol',
+        creator: '@joinpeanut',
+        site: '@joinpeanut',
     },
     applicationName: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
 }
@@ -58,7 +58,7 @@ const jsonLd = {
                 url: `${baseUrl}/metadata-img.png`,
             },
             sameAs: [
-                'https://twitter.com/PeanutProtocol',
+                'https://x.com/joinpeanut',
                 'https://github.com/peanutprotocol',
                 'https://www.linkedin.com/company/peanut-trade/',
             ],
