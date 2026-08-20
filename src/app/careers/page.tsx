@@ -1,11 +1,12 @@
 import { generateMetadata } from '@/app/metadata'
-import { Careers } from '@/components/Jobs'
+import { Careers } from '@/components/Jobs/Careers'
+import Footer from '@/components/LandingPage/Footer'
 
 export const metadata = generateMetadata({
-    title: 'Careers | Join Peanut - Instant Global P2P Payments',
+    title: 'Careers | Work at Peanut',
     description:
-        'Explore career opportunities at Peanut. Join our team to build the future of fast, global peer-to-peer payments with digital dollars.',
-    keywords: 'careers, jobs, employment, Peanut careers, P2P payments jobs, fintech jobs, crypto jobs, tech jobs',
+        'Open roles at Peanut, the money app for people who cross borders — send and receive money globally, spend with the Peanut Card, and cash in and out through local rails.',
+    keywords: 'careers, jobs, remote jobs, Peanut careers, fintech jobs, stablecoin jobs, growth jobs',
     // Without this the page inherits the root layout's `canonical: '/'` and
     // declares the homepage as its canonical while sitting in the sitemap.
     canonical: '/careers',
@@ -13,8 +14,13 @@ export const metadata = generateMetadata({
 
 export default function CareersPage() {
     return (
-        <div className="flex h-screen flex-col items-center justify-center">
-            <Careers />
-        </div>
+        // /careers lives outside [locale], so it never inherits the marketing
+        // layout's footer — render it here explicitly.
+        <main className="flex min-h-dvh flex-col bg-white">
+            <div className="flex-1">
+                <Careers />
+            </div>
+            <Footer />
+        </main>
     )
 }
