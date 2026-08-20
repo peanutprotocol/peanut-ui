@@ -6,6 +6,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils/balance.utils'
 import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
+import { withReturnTo } from '@/utils/return-to.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveRegionAccess } from '@/utils/regions.utils'
 import { useTranslations } from 'next-intl'
@@ -34,7 +35,13 @@ export default function ExchangeRatePage() {
             formattedBalance,
             unlockedRegionPaths
         )
-        router.push(redirectRoute)
+
+        // The CTA drops the user into the add-money / withdraw roots, whose back
+        // buttons reset to /home. Tell them where the user actually came from so
+        // back returns to this widget — query string included, so the currency
+        // pair and amount they were looking at are still there.
+        const returnTo = `${window.location.pathname}${window.location.search}`
+        router.push(withReturnTo(redirectRoute, returnTo))
     }
 
     return (
