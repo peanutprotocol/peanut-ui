@@ -188,22 +188,26 @@ const CardRejectionScreen: FC<Props> = ({
                     ref={captureRef}
                     username={safeUsername}
                     mascot={mascot}
-                    className="overflow-hidden rounded-sm border-2 border-black shadow-[0.25rem_0.25rem_0_#000]"
+                    className="overflow-hidden rounded-sm border-2 border-border-default shadow-[0.25rem_0.25rem_0_#000]"
                 />
 
                 {/* Scarcity tally + appeal pitch — screen HTML, not on the asset */}
                 <div className="flex flex-col gap-2 text-center">
-                    <h1 className="text-2xl font-extrabold text-n-1">{t('title')}</h1>
-                    <p className="text-grey-1">
+                    <h1 className="text-heading-s text-foreground-primary">{t('title')}</h1>
+                    <p className="text-foreground-secondary">
                         {t.rich('tally', {
                             applicants: applicants.toLocaleString('en-US'),
                             admitted,
-                            strong: (chunks) => <span className="font-extrabold text-n-1">{chunks}</span>,
+                            strong: (chunks) => (
+                                <span className="font-extrabold text-foreground-primary">{chunks}</span>
+                            ),
                         })}
                     </p>
-                    <p className="text-grey-1">
+                    <p className="text-foreground-secondary">
                         {t.rich('appealLine', {
-                            strong: (chunks) => <span className="font-extrabold text-n-1">{chunks}</span>,
+                            strong: (chunks) => (
+                                <span className="font-extrabold text-foreground-primary">{chunks}</span>
+                            ),
                         })}
                         <br />
                         {t('comeBackTomorrow')}
@@ -224,7 +228,7 @@ const CardRejectionScreen: FC<Props> = ({
                     {t('tweetToAppeal')}
                 </Button>
                 {showJoined ? (
-                    <div className="flex h-13 items-center justify-center gap-2 text-center text-sm font-bold text-n-1">
+                    <div className="flex h-13 items-center justify-center gap-2 text-center text-body-s font-bold text-foreground-primary">
                         <Icon name="check-circle" size={18} />
                         {t('onTheList')}
                     </div>

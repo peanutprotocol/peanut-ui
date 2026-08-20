@@ -128,13 +128,13 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             preventClose={phase === 'loading'}
             hideModalCloseButton={phase === 'loading'}
             icon="lock"
-            iconContainerClassName="bg-yellow-1"
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t(isSuccess ? copyKeys.success : copyKeys.title)}
             description={t(isSuccess ? copyKeys.successBody : copyKeys.body)}
             content={
                 isSuccess ? undefined : (
                     <>
-                        {phase === 'error' && error && <p className="text-sm text-red">{error}</p>}
+                        {phase === 'error' && error && <p className="text-body-s text-foreground-error">{error}</p>}
                         {mode === 'lock' && (
                             <SlideToAction
                                 label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}

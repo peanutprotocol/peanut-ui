@@ -98,7 +98,7 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
                         <Image src={step.image} alt="" aria-hidden className="h-auto w-full" priority />
                     </div>
 
-                    <div className="text-xl font-extrabold">{t(step.titleKey)}</div>
+                    <div className="text-heading-xs">{t(step.titleKey)}</div>
 
                     <div
                         className="flex items-center gap-2"
@@ -109,7 +109,7 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
                                 key={i}
                                 className={twMerge(
                                     'h-2 w-2 rounded-full transition-colors',
-                                    i === index ? 'bg-primary-1' : 'bg-grey-4'
+                                    i === index ? 'bg-action-primary' : 'bg-background-disabled'
                                 )}
                             />
                         ))}

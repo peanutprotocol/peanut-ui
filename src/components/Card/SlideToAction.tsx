@@ -54,7 +54,7 @@ const SlideToAction: FC<Props> = ({ label, onComplete, disabled = false, thresho
         <div
             ref={trackRef}
             className={twMerge(
-                'relative flex h-14 w-full items-center overflow-hidden rounded-sm border border-n-1 bg-primary-1 text-n-1',
+                'relative flex h-14 w-full items-center overflow-hidden rounded-sm border border-border-default bg-action-primary text-foreground-primary',
                 disabled && 'opacity-60',
                 className
             )}
@@ -62,7 +62,7 @@ const SlideToAction: FC<Props> = ({ label, onComplete, disabled = false, thresho
         >
             <motion.span
                 style={{ opacity: labelOpacity }}
-                className="pointer-events-none absolute inset-0 flex items-center justify-center text-base font-bold"
+                className="pointer-events-none absolute inset-0 flex items-center justify-center text-body-m font-bold"
             >
                 {label}
             </motion.span>
@@ -74,7 +74,7 @@ const SlideToAction: FC<Props> = ({ label, onComplete, disabled = false, thresho
                 dragElastic={0}
                 dragMomentum={false}
                 onDragEnd={handleDragEnd}
-                className="z-10 flex h-full cursor-grab items-center justify-center bg-white active:cursor-grabbing"
+                className="z-10 flex h-full cursor-grab items-center justify-center bg-background-default active:cursor-grabbing"
                 aria-label={t('slideHandleAria')}
             >
                 <Icon name="chevron-up" size={24} className="rotate-90" />

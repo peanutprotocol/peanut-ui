@@ -116,11 +116,11 @@ export default function CardRecoveryPage() {
                 {step === 'done' && txHash ? (
                     <Card className="flex flex-col gap-3 p-6">
                         <h2 className="text-h7 font-bold">{t('doneTitle')}</h2>
-                        <p className="text-sm text-grey-1">
+                        <p className="text-body-s text-foreground-secondary">
                             {t('doneBody', { amount: `$${formatCents(recoveredCents ?? preview!.amountCents)}` })}
                         </p>
                         <a
-                            className="text-black underline"
+                            className="text-foreground-primary underline"
                             target="_blank"
                             rel="noreferrer"
                             href={`${getExplorerUrl(String(PEANUT_WALLET_CHAIN.id)) ?? ''}/tx/${txHash}`}
@@ -135,7 +135,7 @@ export default function CardRecoveryPage() {
                                 <h2 className="text-h7 font-bold">
                                     {preview.hasRecoverableCard ? t('title') : t('noCardOnFile')}
                                 </h2>
-                                <p className="text-sm text-grey-1">{t('description')}</p>
+                                <p className="text-body-s text-foreground-secondary">{t('description')}</p>
 
                                 <Row label={t('recoverable')} value={`$${formatCents(preview.amountCents)} USDC`} />
                                 <Row label={t('destination')} value={shorten(preview.recipient)} />
@@ -178,8 +178,8 @@ export default function CardRecoveryPage() {
 function Row({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex items-center justify-between">
-            <span className="text-sm text-grey-1">{label}</span>
-            <span className="text-sm font-medium text-n-1">{value}</span>
+            <span className="text-body-s text-foreground-secondary">{label}</span>
+            <span className="text-body-s font-medium text-foreground-primary">{value}</span>
         </div>
     )
 }

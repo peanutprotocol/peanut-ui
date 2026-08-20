@@ -76,8 +76,8 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
                     <Image src={PeanutWalking} unoptimized alt="" aria-hidden className="h-32 w-auto" />
-                    <h1 className="text-xl font-extrabold">{t('onListTitle')}</h1>
-                    <p className="text-sm text-grey-1">
+                    <h1 className="text-heading-xs">{t('onListTitle')}</h1>
+                    <p className="text-body-s text-foreground-secondary">
                         {/* position is nullable — without the branch a user with no
                             queue position is told they are "#null" on the list. */}
                         {data.position === null
@@ -88,10 +88,10 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
             ) : (
                 <div className="flex flex-col items-center gap-6 text-center">
                     <div className="flex flex-col gap-2">
-                        <h1 className="text-xl font-extrabold">{t('comingSoonTitle')}</h1>
-                        <p className="text-sm text-grey-1">{t('comingSoonBody')}</p>
+                        <h1 className="text-heading-xs">{t('comingSoonTitle')}</h1>
+                        <p className="text-body-s text-foreground-secondary">{t('comingSoonBody')}</p>
                     </div>
-                    {error && <p className="text-sm text-red">{error}</p>}
+                    {error && <p className="text-body-s text-foreground-error">{error}</p>}
                     <Button
                         variant="purple"
                         shadowSize="4"

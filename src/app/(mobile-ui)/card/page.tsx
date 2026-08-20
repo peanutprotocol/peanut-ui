@@ -591,7 +591,7 @@ const CardPage: FC = () => {
         return (
             <PageContainer>
                 <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4">
-                    <p className="text-center text-n-1">{t('page.loadFailed')}</p>
+                    <p className="text-center text-foreground-primary">{t('page.loadFailed')}</p>
                     <Button onClick={() => refetchCardInfo()} variant="purple" shadowSize="4">
                         {tCommon('retry')}
                     </Button>

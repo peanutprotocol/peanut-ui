@@ -89,16 +89,16 @@ const ApplicationStatusScreen: FC<Props> = ({
                     />
                 )}
                 <div className="flex flex-col gap-3">
-                    <h1 className="text-2xl font-extrabold text-n-1">{t(copyKeys.title)}</h1>
-                    {reasonText && <p className="text-grey-1">{reasonText}</p>}
-                    <p className="text-grey-1">{t(copyKeys.body)}</p>
+                    <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
+                    {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
+                    <p className="text-foreground-secondary">{t(copyKeys.body)}</p>
                 </div>
                 {variant === 'geo-blocked' && (
                     <a
                         href={PROHIBITED_ACTIVITIES_POLICY_URL}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-black underline"
+                        className="text-foreground-primary underline"
                     >
                         {t('status.geoBlockedPolicyLink')}
                     </a>
@@ -108,11 +108,11 @@ const ApplicationStatusScreen: FC<Props> = ({
                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
                             {t('uploadProofOfAddress')}
                         </Button>
-                        {uploadError && <p className="text-sm text-error">{uploadError}</p>}
+                        {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
                     </div>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
-                    <button type="button" onClick={onContactSupport} className="text-black underline">
+                    <button type="button" onClick={onContactSupport} className="text-foreground-primary underline">
                         {tCommon('contactSupport')}
                     </button>
                 )}

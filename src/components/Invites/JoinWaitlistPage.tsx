@@ -296,7 +296,7 @@ const JoinWaitlistPage = () => {
         <InvitesPageLayout image={stepImage}>
             <div
                 className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',
+                    'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',
                     'flex flex-col items-end justify-center gap-5 pt-8'
                 )}
             >
@@ -304,8 +304,8 @@ const JoinWaitlistPage = () => {
                     {/* Step 1: Email Collection */}
                     {step === 'email' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">{t('emailTitle')}</h1>
-                            <p className="text-base font-medium">{t('emailDescription')}</p>
+                            <h1 className="text-heading-xs text-foreground-primary">{t('emailTitle')}</h1>
+                            <p className="text-body-m">{t('emailDescription')}</p>
 
                             <BaseInput
                                 type="email"
@@ -335,7 +335,7 @@ const JoinWaitlistPage = () => {
                             </Button>
 
                             {emailError && (
-                                <button onClick={handleSkipEmail} className="text-sm underline">
+                                <button onClick={handleSkipEmail} className="text-body-s underline">
                                     {tCommon('skipForNow')}
                                 </button>
                             )}
@@ -345,14 +345,14 @@ const JoinWaitlistPage = () => {
                     {/* Step 2: Enable Notifications (skippable) */}
                     {step === 'notifications' && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">{t('notificationsTitle')}</h1>
-                            <p className="text-base font-medium">{t('notificationsDescription')}</p>
+                            <h1 className="text-heading-xs text-foreground-primary">{t('notificationsTitle')}</h1>
+                            <p className="text-body-m">{t('notificationsDescription')}</p>
 
                             <Button shadowSize="4" onClick={handleEnableNotifications}>
                                 {tNotifications('enable')}
                             </Button>
 
-                            <button onClick={() => setStep('jail')} className="text-sm underline">
+                            <button onClick={() => setStep('jail')} className="text-body-s underline">
                                 {tNotifications('notNow')}
                             </button>
                         </div>
@@ -362,12 +362,12 @@ const JoinWaitlistPage = () => {
                     {step === 'jail' && isLoadingWaitlistPosition && <Loading variant="mascot" coverFullScreen />}
                     {step === 'jail' && !isLoadingWaitlistPosition && (
                         <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">{t('inviteOnlyTitle')}</h1>
+                            <h1 className="text-heading-xs text-foreground-primary">{t('inviteOnlyTitle')}</h1>
 
-                            <h2 className="text-xl font-bold">
+                            <h2 className="text-heading-xs text-foreground-primary">
                                 {data?.position ? t('inLineWithPosition', { position: data.position }) : t('inLine')}
                             </h2>
-                            <p className="text-base font-medium">{t('skipTheLine')}</p>
+                            <p className="text-body-m">{t('skipTheLine')}</p>
 
                             <div className="flex items-center gap-2">
                                 <ValidatedInput
@@ -410,7 +410,7 @@ const JoinWaitlistPage = () => {
 
                             {error && <ErrorAlert description={error} />}
 
-                            <button onClick={handleLogout} className="text-sm underline">
+                            <button onClick={handleLogout} className="text-body-s underline">
                                 {isLoggingOut ? t('pleaseWait') : t('logInDifferentAccount')}
                             </button>
                         </div>
