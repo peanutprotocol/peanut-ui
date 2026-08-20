@@ -173,7 +173,7 @@ const ValidatedInput = ({
         <div className="w-full">
             <div
                 className={twMerge(
-                    'relative w-full rounded-sm border border-n-1 bg-white focus:border-primary-1 dark:border-white',
+                    'relative w-full rounded-sm border border-border-default bg-background-default focus:border-action-primary dark:border-white',
                     value && !isValidating && !isValid && debouncedValue === value
                         ? 'border-error dark:border-error'
                         : '',
@@ -183,7 +183,7 @@ const ValidatedInput = ({
             >
                 <div className="absolute top-1/2 left-1 z-10 flex -translate-y-1/2 items-center gap-1">
                     {infoText && (
-                        <div className="notranslate flex h-6 w-6 items-center justify-center bg-white">
+                        <div className="notranslate flex h-6 w-6 items-center justify-center bg-background-default">
                             <MoreInfo text={infoText} />
                         </div>
                     )}
@@ -205,7 +205,7 @@ const ValidatedInput = ({
                                 : undefined
                         }
                         className={twMerge(
-                            `notranslate h-12 w-full border-0 bg-white pr-1 text-sm font-medium outline-none focus:outline-none active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
+                            `notranslate h-12 w-full border-0 bg-background-default pr-1 text-body-s font-medium outline-none focus:outline-none active:bg-background-default dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
                             !!infoText ? 'pl-0' : 'pl-4'
                         )}
                         placeholder={placeholder}
@@ -225,7 +225,7 @@ const ValidatedInput = ({
                             className={`h-full ${
                                 isValidating
                                     ? 'opacity-100'
-                                    : 'bg-white opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
+                                    : 'bg-background-default opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
                             }`}
                         >
                             {isValidating ? (
@@ -270,7 +270,7 @@ const ValidatedInput = ({
                                 dismissSuggestion()
                                 onUpdate({ value: suggestion, isValid: false, isChanging: true })
                             }}
-                            className="flex w-full items-start gap-1.5 rounded-sm border border-n-1 bg-white px-3 py-2 text-left text-xs font-medium text-n-1 transition-colors hover:bg-n-3 dark:border-white dark:bg-n-1 dark:text-white dark:hover:bg-n-2"
+                            className="flex w-full items-start gap-1.5 rounded-sm border border-border-default bg-background-default px-3 py-2 text-left text-body-xs font-medium text-foreground-primary transition-colors hover:bg-n-3 dark:border-white dark:bg-n-1 dark:text-white dark:hover:bg-n-2"
                         >
                             <Icon name="paste" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                             <span className="break-all">

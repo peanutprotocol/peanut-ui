@@ -69,9 +69,9 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
             <Card
                 position={position}
                 className={twMerge(
-                    '!overflow-visible border border-black p-4 py-3.5 shadow-4',
-                    isSelected ? 'bg-primary-3' : 'bg-white',
-                    !isEnabled && 'bg-grey-2'
+                    '!overflow-visible border border-border-default p-4 py-3.5 shadow-4',
+                    isSelected ? 'bg-primary-3' : 'bg-background-default',
+                    !isEnabled && 'bg-background-disabled'
                 )}
                 border={true}
             >
@@ -94,7 +94,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                 />
                             )}
                             {chainDetails.iconURI && !chainLogoPlaceholder && !chainImageError && (
-                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black dark:bg-grey-1">
                                     <Image
                                         src={chainDetails.iconURI}
                                         alt={`${chainDetails.name} logo`}
@@ -110,11 +110,11 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                             )}
                         </div>
                         <div className={twMerge('flex flex-col items-start')}>
-                            <span className="text-base font-semibold text-black">{balance.symbol}</span>
+                            <span className="text-body-m font-semibold text-foreground-primary">{balance.symbol}</span>
                             <span
                                 className={twMerge(
-                                    'text-sm font-medium text-grey-1',
-                                    isPopularToken ? 'text-xs' : 'ml-1'
+                                    'text-body-s font-medium text-foreground-secondary',
+                                    isPopularToken ? 'text-body-xs' : 'ml-1'
                                 )}
                             >
                                 {t.rich('tokenSelector.onChain', {
@@ -127,8 +127,8 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
 
                     {!isPopularToken && !!formattedBalance ? (
                         <div className="flex flex-col items-end">
-                            <div className="text-base font-medium text-black">{formattedBalance}</div>
-                            <div className="text-xs font-normal text-grey-1">
+                            <div className="text-body-m font-medium text-foreground-primary">{formattedBalance}</div>
+                            <div className="text-body-xs font-normal text-foreground-secondary">
                                 {/* token value in usd */}
                                 {balance.price && balance.price * Number(formattedBalance) > 0
                                     ? `$ ${formatAmount(balance.price * Number(formattedBalance))}`
@@ -137,7 +137,11 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                         </div>
                     ) : (
                         (isEnabled || isPopularToken) && (
-                            <Icon name="chevron-up" size={24} className="flex-shrink-0 rotate-90 text-black" />
+                            <Icon
+                                name="chevron-up"
+                                size={24}
+                                className="flex-shrink-0 rotate-90 text-foreground-primary"
+                            />
                         )
                     )}
                 </div>

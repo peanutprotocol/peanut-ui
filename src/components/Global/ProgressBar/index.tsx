@@ -75,14 +75,14 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
     }
 
     const getBackgroundColor = () => {
-        if (!isClosed) return 'bg-grey-2'
+        if (!isClosed) return 'bg-background-disabled'
         return isGoalAchieved ? 'bg-success-3' : 'bg-error-4'
     }
 
     const renderStatusText = () => {
         if (!isClosed) return null
         return (
-            <div className="flex items-center gap-1 text-base font-medium">
+            <div className="flex items-center gap-1 text-body-m font-medium">
                 <Image src={COIN_ICON} alt="coin" width={18} height={18} />
                 <p>{getStatusText()}</p>
             </div>
@@ -92,7 +92,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
     const renderLabels = () => {
         if (!isClosed) {
             return (
-                <div className="flex w-full items-center justify-between text-sm">
+                <div className="flex w-full items-center justify-between text-body-s">
                     <p className="text-grey-5">{t('progressBar.contributed', { amount: formatCurrency(progress) })}</p>
                     <p className="text-grey-5">
                         {t('progressBar.remaining', { amount: formatCurrency(Math.max(goal - progress, 0)) })}
@@ -104,10 +104,13 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
         if (isOverGoal) {
             return (
                 <div className="relative flex w-full items-center pb-2">
-                    <p className="absolute -translate-x-1/2 text-sm font-medium" style={{ left: `${goalPercentage}%` }}>
+                    <p
+                        className="absolute -translate-x-1/2 text-body-s font-medium"
+                        style={{ left: `${goalPercentage}%` }}
+                    >
                         100%
                     </p>
-                    <p className="absolute right-0 text-sm font-medium">{formatCurrency(progress)}</p>
+                    <p className="absolute right-0 text-body-s font-medium">{formatCurrency(progress)}</p>
                 </div>
             )
         }
@@ -121,7 +124,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
             <div className="relative flex w-full items-center pb-2">
                 <p
                     className={twMerge(
-                        'absolute text-sm',
+                        'absolute text-body-s',
                         progressPercentage < 10 ? 'left-0' : isTooCloseToGoal ? 'left-0' : '-translate-x-1/2'
                     )}
                     style={progressPercentage < 10 || isTooCloseToGoal ? {} : { left: `${progressPercentage}%` }}
@@ -129,7 +132,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
                     {formatCurrency(progress)}
                 </p>
                 <div className="absolute right-0 flex flex-col items-end">
-                    <p className="text-sm">100%</p>
+                    <p className="text-body-s">100%</p>
                 </div>
             </div>
         )
@@ -157,7 +160,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
 
         return (
             <div className={containerClasses} style={containerStyle}>
-                {isGoalAchieved && <p className="absolute right-0 bottom-full mb-2 text-sm whitespace-nowrap">100%</p>}
+                {isGoalAchieved && (
+                    <p className="absolute right-0 bottom-full mb-2 text-body-s whitespace-nowrap">100%</p>
+                )}
                 <div className={twMerge('h-4 w-[3px] rounded-sm transition-all duration-300', markerColor)} />
             </div>
         )

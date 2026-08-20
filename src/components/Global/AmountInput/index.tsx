@@ -262,18 +262,22 @@ const AmountInput = ({
 
     return (
         <form
-            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-4 dark:border-white ${className}`}
+            className={`relative cursor-text rounded-sm border border-border-default bg-background-default p-4 dark:border-white ${className}`}
             action=""
             onClick={() => inputRef.current?.focus()}
         >
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-2">
                 <div className="flex items-center gap-1 font-bold">
-                    <label className={`text-xl ${displayValue ? 'text-black' : 'text-gray-1'}`}>{displaySymbol}</label>
+                    <label
+                        className={`text-heading-xs ${displayValue ? 'text-foreground-primary' : 'text-foreground-secondary'}`}
+                    >
+                        {displaySymbol}
+                    </label>
 
                     {/* Input with fake caret */}
                     <div className="relative">
                         <input
-                            className={`h-12 max-w-80 bg-transparent text-6xl font-black text-black caret-primary-1 transition-colors outline-none placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 disabled:opacity-100 disabled:[-webkit-text-fill-color:black] dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1 dark:disabled:[-webkit-text-fill-color:white]`}
+                            className={`h-12 max-w-80 bg-transparent text-display font-black text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-h1 placeholder:text-foreground-secondary focus:border-action-primary disabled:opacity-100 disabled:[-webkit-text-fill-color:black] dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-action-primary dark:disabled:[-webkit-text-fill-color:white]`}
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 isEditingRef.current = true
@@ -313,14 +317,19 @@ const AmountInput = ({
 
                 {/* Conversion */}
                 {showConversion && (
-                    <label className={twMerge('text-lg font-bold', !Number(alternativeValue) && 'text-gray-1')}>
+                    <label
+                        className={twMerge(
+                            'text-heading-card',
+                            !Number(alternativeValue) && 'text-foreground-secondary'
+                        )}
+                    >
                         ≈ {alternativeDisplaySymbol} {alternativeDisplayValue}{' '}
                     </label>
                 )}
 
                 {/* Balance */}
                 {walletBalance && !hideBalance && (
-                    <div className="text-center text-grey-1">
+                    <div className="text-center text-foreground-secondary">
                         {t('amountInput.balance')} {secondaryDenomination ? 'USD ' : '$ '}
                         {walletBalance}
                     </div>

@@ -81,7 +81,7 @@ export default function CameraPermissionModal({ visible, onRetry, onClose, onPas
             onClose={onClose}
             icon="camera"
             iconContainerClassName="bg-yellow-400"
-            iconProps={{ className: 'text-black' }}
+            iconProps={{ className: 'text-foreground-primary' }}
             title={t('qrScanner.cameraPermission.title')}
             modalClassName="!z-[60]"
             modalPanelClassName="max-w-md mx-8"
@@ -104,13 +104,13 @@ export default function CameraPermissionModal({ visible, onRetry, onClose, onPas
                     : []),
             ]}
             footer={
-                <button onClick={onClose} className="text-sm text-grey-1 underline">
+                <button onClick={onClose} className="text-body-s text-foreground-secondary underline">
                     {t('qrScanner.cameraPermission.dismiss')}
                 </button>
             }
             content={
                 <div className="flex w-full flex-col gap-4">
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         {steps
                             ? t('qrScanner.cameraPermission.withStepsHint')
                             : t('qrScanner.cameraPermission.noStepsHint')}
@@ -128,7 +128,7 @@ export default function CameraPermissionModal({ visible, onRetry, onClose, onPas
                                             className="w-full rounded-sm"
                                             placeholder="blur"
                                         />
-                                        <p className="text-center text-xs text-grey-1">{label}</p>
+                                        <p className="text-center text-body-xs text-foreground-secondary">{label}</p>
                                     </div>
                                 )
                             })}

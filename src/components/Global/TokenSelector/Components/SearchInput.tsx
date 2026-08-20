@@ -29,13 +29,19 @@ const SearchInput: React.FC<SearchInputProps> = ({
         <div className={twMerge('relative', className)}>
             <BaseInput
                 variant="md"
-                className={twMerge('h-10 w-full border border-black px-10 text-sm font-normal', inputClassName)}
+                className={twMerge(
+                    'h-10 w-full border border-border-default px-10 text-body-s font-normal',
+                    inputClassName
+                )}
                 placeholder={placeholder ?? t('tokenSelector.searchPlaceholder')}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 {...rest}
             />
-            <Icon name="search" className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-grey-1" />
+            <Icon
+                name="search"
+                className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-foreground-secondary"
+            />
             {value && (
                 <Button
                     variant="transparent"
@@ -44,7 +50,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
                     aria-label={t('tokenSelector.clearSearch')}
                 >
                     <div className="flex size-6 items-center justify-center">
-                        <Icon name="cancel" className="h-5 w-5 text-grey-1" />
+                        <Icon name="cancel" className="h-5 w-5 text-foreground-secondary" />
                     </div>
                 </Button>
             )}
