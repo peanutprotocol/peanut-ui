@@ -111,11 +111,15 @@ const UserCard = ({
                                 <AddressLink
                                     // address={amount ? `$${amount}` : username}
                                     address={getAddressLinkTitle()}
-                                    className={twMerge(
-                                        'text-body-m font-medium',
-                                        type === 'request_pay' &&
-                                            'text-heading-s text-foreground-primary md:text-heading-m'
-                                    )}
+                                    // ds size tokens only on the raw-span branch (isLink=false).
+                                    // the link branch goes through AddressLink's twMerge, which
+                                    // deletes ds text tokens (unconfigured twMerge groups them
+                                    // as colors) — keep stock classes there.
+                                    className={
+                                        type === 'request_pay'
+                                            ? 'text-heading-s font-medium text-foreground-primary md:text-heading-m'
+                                            : 'text-base font-medium'
+                                    }
                                     isLink={type !== 'request_pay'}
                                 />
                             )}
@@ -126,7 +130,7 @@ const UserCard = ({
                             username={username}
                             isVerified={isVerified}
                             haveSentMoneyToUser={haveSentMoneyToUser}
-                            className="text-body-m font-medium"
+                            className="text-base font-medium"
                         />
                     )}
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />

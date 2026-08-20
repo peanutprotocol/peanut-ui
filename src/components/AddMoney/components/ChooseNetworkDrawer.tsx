@@ -25,7 +25,7 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
         <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DrawerContent className="pt-4">
                 <DrawerHeader className="pt-0 text-center">
-                    <DrawerTitle className="text-heading-card text-foreground-primary">{t('title')}</DrawerTitle>
+                    <DrawerTitle className="font-bold text-foreground-primary">{t('title')}</DrawerTitle>
                     <DrawerDescription>{t('description')}</DrawerDescription>
                 </DrawerHeader>
 

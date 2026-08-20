@@ -215,7 +215,11 @@ export default function RecoverFundsPage() {
 
                         <div className="space-y-1">
                             <h1 className="text-body-s font-normal text-foreground-secondary">
-                                {t('youWillReceiveTo')} <AddressLink address={recipient.address} />
+                                {t('youWillReceiveTo')}{' '}
+                                <AddressLink
+                                    address={recipient.address}
+                                    className="text-sm font-normal text-foreground-secondary"
+                                />
                             </h1>
                             <h2 className="text-heading-s">
                                 {t('amountInChain', {
@@ -266,7 +270,11 @@ export default function RecoverFundsPage() {
 
                         <div className="space-y-1">
                             <h1 className="text-body-s font-normal text-foreground-secondary">
-                                {t('sentTo')} <AddressLink address={recipient.address} />
+                                {t('sentTo')}{' '}
+                                <AddressLink
+                                    address={recipient.address}
+                                    className="text-sm font-normal text-foreground-secondary"
+                                />
                             </h1>
                             <h2 className="text-heading-s">
                                 {t('amountInChain', {

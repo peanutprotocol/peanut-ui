@@ -88,7 +88,7 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
             >
                 <Icon name="cancel" size={18} fill="white" />
             </Button>
-            <span className="text-heading-m text-foreground-primary">{t('qrScanner.scanToPay')}</span>
+            <span className="text-heading-m text-foreground-inverse">{t('qrScanner.scanToPay')}</span>
             <Button
                 variant="transparent-light"
                 className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"

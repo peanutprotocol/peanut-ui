@@ -60,7 +60,7 @@ const Section: React.FC<SectionProps> = ({ title, icon, children, className, tit
     <div className={twMerge('space-y-2', className)}>
         <div className="flex items-center gap-2">
             {icon && <Icon name={icon} size={16} className="text-foreground-secondary" />}
-            <h2 className={twMerge('text-body-m font-bold text-foreground-primary', titleClassName)}>{title}</h2>
+            <h2 className={`text-body-m ${twMerge('font-bold text-foreground-primary', titleClassName)}`}>{title}</h2>
         </div>
         {children}
     </div>

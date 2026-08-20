@@ -77,7 +77,7 @@ const LimitsPageView = () => {
 
     return (
         <div className="space-y-6 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={goBack} titleClassName="text-heading-xs md:text-heading-s" />
+            <NavHeader title={t('title')} onPrev={goBack} titleClassName="text-xl md:text-2xl" />
 
             {/* page description */}
             <InfoCard variant="info" description={t('pageDescription')} />

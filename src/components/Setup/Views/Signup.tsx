@@ -151,7 +151,7 @@ const SignupStep = () => {
                     </div>
                     {error && (
                         <div className="pb-1">
-                            <ErrorAlert description={error} className="gap-2 text-body-xs" iconSize={14} />
+                            <ErrorAlert description={error} className="gap-2" iconSize={14} />
                         </div>
                     )}
                 </div>

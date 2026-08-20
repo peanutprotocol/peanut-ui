@@ -1,5 +1,6 @@
 'use client'
 
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import NavHeader from '@/components/Global/NavHeader'
 import { useParams } from 'next/navigation'
 import { useMemo } from 'react'
@@ -105,9 +106,7 @@ const MantecaDepositShareDetails = ({
                                 height={48}
                                 className="h-12 w-12 rounded-full object-cover"
                             />
-                            <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
-                                <Icon name="bank" size={12} />
-                            </div>
+                            <IconBubble icon="bank" size="xs" color="yellow" className="absolute -right-1 -bottom-1" />
                         </div>
                         <div>
                             <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">

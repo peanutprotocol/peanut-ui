@@ -112,10 +112,11 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                         <div className={twMerge('flex flex-col items-start')}>
                             <span className="text-body-m font-semibold text-foreground-primary">{balance.symbol}</span>
                             <span
-                                className={twMerge(
-                                    'text-body-s font-medium text-foreground-secondary',
-                                    isPopularToken ? 'text-body-xs' : 'ml-1'
-                                )}
+                                className={
+                                    isPopularToken
+                                        ? 'text-body-xs font-medium text-foreground-secondary'
+                                        : 'ml-1 text-body-s font-medium text-foreground-secondary'
+                                }
                             >
                                 {t.rich('tokenSelector.onChain', {
                                     chainName: chainDetails.name,

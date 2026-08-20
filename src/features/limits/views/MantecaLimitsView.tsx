@@ -35,7 +35,7 @@ const MantecaLimitsView = () => {
 
     return (
         <div className="space-y-6 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
+            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
 

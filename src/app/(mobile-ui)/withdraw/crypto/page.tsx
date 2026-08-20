@@ -657,7 +657,7 @@ export default function WithdrawCryptoPage() {
                         usdAmount={usdAmount}
                         message={
                             <AddressLink
-                                className="text-body-s font-normal text-foreground-secondary no-underline"
+                                className="text-sm font-normal text-foreground-secondary no-underline"
                                 address={withdrawData.address}
                             />
                         }

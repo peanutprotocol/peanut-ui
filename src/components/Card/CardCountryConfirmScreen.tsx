@@ -77,7 +77,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                             type="button"
                             onClick={() => setSelected(iso2)}
                             aria-pressed={selected === iso2}
-                            className={`w-full rounded-sm border border-n-1 p-4 text-left text-body-s font-semibold ${
+                            className={`w-full rounded-sm border border-border-default p-4 text-left text-body-s font-semibold ${
                                 selected === iso2 ? 'bg-primary-3' : 'bg-background-default'
                             }`}
                         >

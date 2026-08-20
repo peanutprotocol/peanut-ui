@@ -212,10 +212,9 @@ export const PasskeyDocsLink = ({ className }: { className?: string }) => {
     const t = useTranslations('setup')
     return (
         <p
-            className={twMerge(
-                'border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary',
-                className
-            )}
+            // ds text tokens stay outside twMerge — unconfigured twMerge groups
+            // them as colors and deletes the size (see LinkButton.tsx:40)
+            className={`text-body-xs text-foreground-secondary ${twMerge('border-t border-border-subtle pt-2 text-center', className)}`}
         >
             <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                 {t('passkey.learnMore')}

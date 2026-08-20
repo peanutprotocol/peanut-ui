@@ -318,10 +318,7 @@ const AmountInput = ({
                 {/* Conversion */}
                 {showConversion && (
                     <label
-                        className={twMerge(
-                            'text-heading-card',
-                            !Number(alternativeValue) && 'text-foreground-secondary'
-                        )}
+                        className={`text-heading-card ${!Number(alternativeValue) ? 'text-foreground-secondary' : ''}`}
                     >
                         ≈ {alternativeDisplaySymbol} {alternativeDisplayValue}{' '}
                     </label>
