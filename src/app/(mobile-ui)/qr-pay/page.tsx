@@ -3,6 +3,7 @@
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
@@ -92,7 +93,7 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
-    const t = useTranslations('qrPay')
+    const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
@@ -1679,7 +1680,7 @@ export default function QRPayPage() {
 }
 
 const QrPayPageLoading = ({ message }: { message: string }) => {
-    const t = useTranslations('qrPay')
+    const t = useAppTranslations('qrPay')
     return (
         <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
             <div className="relative">
