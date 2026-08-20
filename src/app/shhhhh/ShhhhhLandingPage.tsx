@@ -59,7 +59,11 @@ function WaitlistJoined({
 const statValues = ['150M+', '1', '1', '0'] as const
 const statLabelKeys = ['statMerchants', 'statBalance', 'statCard', 'statMiddlemen'] as const
 
-const faqKeys = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const
+// q4 ("WHAT'S THE $10?") is deliberately absent: the welcome-reward claim it
+// made is not backed by a seeded perk, so it was removed rather than reworded.
+// The remaining keys keep their names — renumbering four catalogs to close the
+// gap risks mis-pairing a question with someone else's answer for no gain.
+const faqKeys = ['q1', 'q2', 'q3', 'q5', 'q6', 'q7', 'q8'] as const
 
 // The full skip set: keep the codes in sync with SKIP_BADGE_CODES
 // (peanut-api-ts src/card/waitlist.ts, pinned in waitlist.test.ts). Icons come

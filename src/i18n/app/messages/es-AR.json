@@ -1245,9 +1245,6 @@
             },
             "q3": {
                 "answer": "Es tuya. Sin custodia: tus stablecoins se quedan en tu billetera hasta el momento en que usás la tarjeta. No tenemos la custodia. No la prestamos."
-            },
-            "q4": {
-                "answer": "Una recompensa de bienvenida. Completá la verificación + $100 de gasto con la tarjeta → se desbloquean $10 en tu saldo. Aplica igual si te registraste por tu cuenta o si te refirieron. Si vos referís a alguien, también podés recibir $10 cuando esa persona active su tarjeta. Sujeto a elegibilidad y a los términos del programa."
             }
         },
         "ready": {
