@@ -104,8 +104,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const prevStatusRef = useRef(liveKycStatus)
     const showWrapperRef = useRef(showWrapper)
     showWrapperRef.current = showWrapper
-    const isMultiLevelRef = useRef(isMultiLevel)
-    isMultiLevelRef.current = isMultiLevel
     // tracks the effective region intent across initiate + refresh so the correct template is always used
     const regionIntentRef = useRef<KYCRegionIntent | undefined>(regionIntent)
     // tracks the level name across initiate + refresh (e.g. 'peanut-additional-docs')
@@ -163,11 +161,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             // the bug this branch would cause, so hold the state while the SDK is
             // open. The SDK's own rejection / retry handlers still close explicitly,
             // and every other terminal state (REJECTED, FAILED) still closes here.
-            if (liveKycStatus === 'ACTION_REQUIRED' && showWrapperRef.current && isMultiLevelRef.current) return
+            // `showWrapper` and `isMultiLevel` are read as committed state, not through
+            // a ref, so an interrupted render can never leak a value this guard acts on.
+            // Both are in the dep array below: a re-run with an unchanged status is a
+            // no-op, because prevStatusRef already holds that status.
+            if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
             // close modal for any non-success terminal state (REJECTED, ACTION_REQUIRED, FAILED, etc.)
             setIsVerificationProgressModalOpen(false)
         }
-    }, [liveKycStatus, onKycSuccess])
+    }, [liveKycStatus, onKycSuccess, showWrapper, isMultiLevel])
 
     // fetch current status to recover from missed websocket events.
     // skip when regionIntent is undefined to avoid creating an applicant with the wrong template
