@@ -936,7 +936,8 @@
         },
         "guestVerification": {
             "otherMethod": "Reclamar con otro método",
-            "description": "Quien envió no está verificado para este método. Tendrás que crear una cuenta, verificar tu identidad y luego tus fondos se depositarán en tu banco."
+            "senderUnverifiedDescription": "Quien envió todavía no puede enviar a un banco. Puedes reclamar con otro método, o crear una cuenta y verificar tu identidad para recibirlo en tu banco.",
+            "accountRequiredDescription": "Necesitas una cuenta de Peanut para reclamar con este método. Crea una y verifica tu identidad, y tus fondos se depositarán en tu banco."
         },
         "actions": {
             "claimOn": "Reclamar en",

@@ -936,7 +936,8 @@
         },
         "guestVerification": {
             "otherMethod": "Resgatar com outro método",
-            "description": "Quem enviou não está verificado para este método. Você vai precisar criar uma conta, verificar sua identidade e então seus fundos serão depositados no seu banco."
+            "senderUnverifiedDescription": "Quem enviou ainda não pode enviar para um banco. Você pode resgatar com outro método, ou criar uma conta e verificar sua identidade para receber no seu banco.",
+            "accountRequiredDescription": "Você precisa de uma conta Peanut para resgatar com este método. Crie uma e verifique sua identidade, e seus fundos serão depositados no seu banco."
         },
         "actions": {
             "claimOn": "Resgatar no",
