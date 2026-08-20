@@ -132,9 +132,30 @@ describe('auth-token', () => {
                 expect(mockPreferences.get).toHaveBeenCalledWith({ key: 'jwt-token' })
             })
 
-            it('returns null when Preferences holds no token', async () => {
+            it('returns null when neither Preferences nor the cookie jar holds a token', async () => {
                 await auth.authReady()
                 expect(auth.getAuthToken()).toBeNull()
+            })
+
+            it('falls back to the CapacitorHttp cookie jar for legacy cookie-auth sessions', async () => {
+                // Preferences empty (default), but an older cookie-auth binary
+                // left the JWT in the OS cookie jar.
+                mockCapCookies.getCookies.mockResolvedValue({ 'jwt-token': 'legacy-cookie-jwt' })
+                await auth.authReady()
+                expect(auth.getAuthToken()).toBe('legacy-cookie-jwt')
+            })
+
+            it('attaches the Authorization header from the cookie-jar fallback (QR-pay POST fix)', async () => {
+                mockCapCookies.getCookies.mockResolvedValue({ 'jwt-token': 'legacy-cookie-jwt' })
+                await auth.authReady()
+                expect(auth.getAuthHeaders()).toEqual({ Authorization: 'Bearer legacy-cookie-jwt' })
+            })
+
+            it('prefers the Preferences token over the cookie jar when both exist', async () => {
+                mockPreferences.get.mockResolvedValue({ value: 'prefs-token' })
+                mockCapCookies.getCookies.mockResolvedValue({ 'jwt-token': 'legacy-cookie-jwt' })
+                await auth.authReady()
+                expect(auth.getAuthToken()).toBe('prefs-token')
             })
 
             it('returns null when the Preferences plugin is unavailable (older binary)', async () => {

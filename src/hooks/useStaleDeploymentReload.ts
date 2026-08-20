@@ -49,6 +49,30 @@ const POLL_INTERVAL_MS = 30 * 60_000
 const RELOAD_AT_KEY = 'peanut-stale-deploy-reload-at'
 const RELOAD_ATTEMPTED_KEY = 'peanut-stale-deploy-attempted'
 
+/*
+ * Native has no deployment to be stale against — it serves local files and
+ * updates through Capgo OTA. What it has instead is a document that never
+ * ends: the service worker's controllerchange reload is skipped, no
+ * navigation replaces the document (the static export routes on query params
+ * alone), and the OS keeps the WebView alive for days. So everything the
+ * document accumulates accumulates for that entire time, and — worse — any
+ * module-level promise that wedges stays wedged: that is why a Crisp helper
+ * that never settled meant no support chat until the user force-quit, and why
+ * one failed confetti burst meant no celebrations ever again.
+ *
+ * Bound the document's lifetime instead of the deployment's. Twelve hours
+ * means at most one reload a day, taken on a resume, which is a boundary the
+ * user already experiences as the app coming back.
+ */
+const MAX_NATIVE_DOCUMENT_AGE_MS = 12 * 60 * 60_000
+
+// performance.now() is milliseconds since this document's timeOrigin, so it
+// resets to zero on exactly the event we are trying to cause — no bookkeeping,
+// and no way for the age check to survive the reload it triggers.
+function documentAgeMs(): number {
+    return typeof performance === 'undefined' ? 0 : performance.now()
+}
+
 /**
  * Routes whose in-progress state lives in component memory and cannot survive a
  * reload: the Sumsub WebSDK session and the card application's pending terms /
@@ -85,6 +109,14 @@ export function useStaleDeploymentReload() {
     const isSafeRef = useRef(true)
     isSafeRef.current = !hasPendingTransactions && !isSendingUserOp && !isLoading && !hasUnsafeSegment(pathname)
 
+    // replace() rather than reload() in standalone: it leaves no history entry,
+    // which is the form least likely to bounce an Android PWA session out to
+    // the browser.
+    const reloadDocument = useCallback(() => {
+        if (isStandalonePwa()) window.location.replace(window.location.href)
+        else window.location.reload()
+    }, [])
+
     const reloadIfStaleAndSafe = useCallback(() => {
         if (isDisabledRef.current || !isStaleRef.current || !isSafeRef.current) return
 
@@ -107,14 +139,34 @@ export function useStaleDeploymentReload() {
         }
 
         isDisabledRef.current = true
-        void purgeCaches(DOCUMENT_CACHE_PATTERNS).then(() => {
-            // replace() rather than reload() in standalone: it leaves no history
-            // entry, which is the form least likely to bounce an Android PWA
-            // session out to the browser.
-            if (isStandalonePwa()) window.location.replace(window.location.href)
-            else window.location.reload()
-        })
-    }, [])
+        void purgeCaches(DOCUMENT_CACHE_PATTERNS).then(reloadDocument)
+    }, [reloadDocument])
+
+    /*
+     * The native counterpart. Deliberately does NOT set RELOAD_ATTEMPTED_KEY:
+     * that latch exists because a reload cannot fix a deployment mismatch the
+     * server keeps serving, whereas a reload always fixes document age. It also
+     * skips purgeCaches — those are the web service worker's Workbox caches,
+     * and the native export is served locally, so there is nothing there worth
+     * deleting and a stale SW still in the WebView is better left alone.
+     */
+    const reloadIfDocumentIsOld = useCallback(() => {
+        if (isDisabledRef.current || !isSafeRef.current) return
+        if (documentAgeMs() < MAX_NATIVE_DOCUMENT_AGE_MS) return
+
+        const lastReloadAt = Number(readSessionFlag(RELOAD_AT_KEY) || 0)
+        if (Date.now() - lastReloadAt < RELOAD_GUARD_MS) return
+
+        try {
+            sessionStorage.setItem(RELOAD_AT_KEY, String(Date.now()))
+        } catch {
+            // no sessionStorage -> no loop protection -> don't auto-reload
+            return
+        }
+
+        isDisabledRef.current = true
+        reloadDocument()
+    }, [reloadDocument])
 
     const checkVersion = useCallback(async () => {
         if (isDisabledRef.current || isStaleRef.current || !buildCommit()) return
@@ -167,11 +219,43 @@ export function useStaleDeploymentReload() {
         }
     }, [checkVersion, reloadIfStaleAndSafe])
 
+    // Native: the resume is the boundary. A document old enough to be worth
+    // replacing is one the user has already left and come back to, so the
+    // reload lands where they expect the app to be starting anyway.
+    useEffect(() => {
+        if (!isCapacitor()) return
+
+        let disposed = false
+        let removeListener: (() => void) | undefined
+
+        import('@capacitor/app')
+            .then(({ App }) =>
+                App.addListener('appStateChange', ({ isActive }) => {
+                    if (isActive) reloadIfDocumentIsOld()
+                })
+            )
+            .then((handle) => {
+                if (disposed) void handle.remove()
+                else removeListener = () => void handle.remove()
+            })
+            .catch(() => {
+                // no app plugin -> the route-change boundary below still applies
+            })
+
+        return () => {
+            disposed = true
+            removeListener?.()
+        }
+    }, [reloadIfDocumentIsOld])
+
     // The other safe boundaries: a route change, or a money flow finishing and
     // reopening the gate. No fetch here — this only acts on staleness a
-    // previous check already latched.
+    // previous check already latched, or on an age already reached.
     useEffect(() => {
-        if (isCapacitor()) return
+        if (isCapacitor()) {
+            reloadIfDocumentIsOld()
+            return
+        }
         reloadIfStaleAndSafe()
-    }, [pathname, hasPendingTransactions, isSendingUserOp, isLoading, reloadIfStaleAndSafe])
+    }, [pathname, hasPendingTransactions, isSendingUserOp, isLoading, reloadIfStaleAndSafe, reloadIfDocumentIsOld])
 }

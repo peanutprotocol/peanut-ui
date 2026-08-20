@@ -2,9 +2,10 @@
 // was retired once peanut-api-ts dropped its api-key requirement (eb616b8c)
 // and CORS already allowed *.peanut.me + capacitor:// + vercel previews.
 
-import { getAuthHeaders, authReady } from './auth-token'
+import { getAuthHeaders, getAuthToken, authReady } from './auth-token'
 import { fetchWithSentry } from './sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { isCapacitor } from './capacitor'
 import { isDemoMode } from './demo'
 
 type FetchOptions = RequestInit & {
@@ -37,7 +38,21 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     }
     Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)
 
-    const args: Parameters<typeof fetchWithSentry> = [`${PEANUT_API_URL}${path}`, { ...fetchOptions, headers }]
+    /*
+     * No JS-readable token on native means either logged out or a legacy
+     * cookie-jar session whose JWT lives only in the OS-level cookie store —
+     * unreadable from JS on Android (CapacitorCookies.getCookies ignores its
+     * url param there), so the two are indistinguishable here. Prefer the OS
+     * HTTP client for both: it attaches that cookie where the WebView sends
+     * nothing, and the /users/me sliding refresh then migrates the session to
+     * Preferences + header auth.
+     */
+    const preferNativeTransport = isCapacitor() && !getAuthToken()
+
+    const args: Parameters<typeof fetchWithSentry> = [
+        `${PEANUT_API_URL}${path}`,
+        { ...fetchOptions, headers, ...(preferNativeTransport && { preferNativeTransport }) },
+    ]
     if (timeoutMs !== undefined) args[2] = timeoutMs
     return fetchWithSentry(...args)
 }

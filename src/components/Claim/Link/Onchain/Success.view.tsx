@@ -19,7 +19,7 @@ import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
@@ -35,7 +35,7 @@ export const SuccessClaimLinkView = ({
     const router = useRouter()
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const params = useSearchParams()
     const campaignTag = badgeCampaignForLegacyWire(params)
     const senderDisplay = useRecipientDisplay({

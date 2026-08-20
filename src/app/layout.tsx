@@ -174,6 +174,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {process.env.NODE_ENV !== 'development' && (
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
+                            /*
+                             * Native: builds before 2026-04 registered the PWA service worker
+                             * inside the Capacitor WebView, and those registrations persist in
+                             * WebView storage across app updates (the native bundle ships no
+                             * sw.js, so they can never self-update — they sit frozen in front of
+                             * all GET traffic). Actively evict them; takes effect next launch.
+                             */
+                            if ('serviceWorker' in navigator && window.Capacitor) {
+                                navigator.serviceWorker.getRegistrations()
+                                    .then((regs) => regs.forEach((r) => r.unregister()))
+                                    .catch(() => {});
+                            }
                             if ('serviceWorker' in navigator && !window.Capacitor) {
                                 window.addEventListener('load', async () => {
                                     try {
@@ -222,22 +234,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 )}
 
                 {/* Note: Google Tag Manager (gtag.js) does not support version pinning.*/}
-                {process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_GA_KEY && (
-                    <>
-                        <Script
-                            src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
-                            strategy="afterInteractive"
-                        />
-                        <Script id="google-analytics" strategy="afterInteractive">
-                            {`
+                {process.env.NODE_ENV !== 'development' &&
+                    process.env.NEXT_PUBLIC_GA_KEY &&
+                    process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true' &&
+                    process.env.NEXT_PUBLIC_PERF_BARE !== 'true' && (
+                        <>
+                            <Script
+                                src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
+                                strategy="afterInteractive"
+                            />
+                            <Script id="google-analytics" strategy="afterInteractive">
+                                {`
                                 window.dataLayer = window.dataLayer || [];
                                 function gtag(){dataLayer.push(arguments);}
                                 gtag('js', new Date());
                                 gtag('config', '${process.env.NEXT_PUBLIC_GA_KEY}');
                             `}
-                        </Script>
-                    </>
-                )}
+                            </Script>
+                        </>
+                    )}
             </head>
             <body
                 className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}

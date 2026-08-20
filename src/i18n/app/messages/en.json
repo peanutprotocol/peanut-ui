@@ -1033,7 +1033,8 @@
             "minPixAmountBrl": "Minimum PIX amount is {amount} BRL",
             "maxQrAmount": "QR payment amount exceeds maximum limit of ${amount}",
             "minQrAmount": "QR payment amount must be at least ${amount}",
-            "genericQrDetails": "An error occurred while getting the QR details."
+            "genericQrDetails": "An error occurred while getting the QR details.",
+            "authError": "Couldn't verify your session. Please try again."
         },
         "claim": {
             "navTitle": "Claim QR Code",
@@ -1316,7 +1317,28 @@
             "submitting": "Submitting…",
             "cta": "Recover funds"
         },
-        "uploadProofOfAddress": "Upload proof of address"
+        "uploadProofOfAddress": "Upload proof of address",
+        "fixSignature": {
+            "navTitle": "Fix card signature",
+            "intro": "This tool repairs a wallet state issue that stops your card from funding itself automatically. It takes up to two quick passkey confirmations.",
+            "checkingWallet": "Checking your wallet…",
+            "checkAgain": "Check again",
+            "step1": "1. Repair wallet state",
+            "needed": "needed",
+            "nonceBricked": "Your wallet is blocking new card permissions after an earlier security upgrade. One confirmation clears it.",
+            "undeployed": "Your wallet needs a one-time on-chain activation before card permissions can work.",
+            "repairing": "Repairing…",
+            "repairNow": "Repair now",
+            "step2": "2. Re-enable automatic funding",
+            "allSet": "All set! Automatic funding is back on and a funding run has been started — your card balance should update within a few minutes.",
+            "oneMoreConfirmation": "One more confirmation re-enables automatic card funding with a fresh permission.",
+            "waitingForConfirmation": "Waiting for confirmation…",
+            "loadingCard": "Loading your card…",
+            "reEnableFunding": "Re-enable funding",
+            "noActiveCard": "No active card found on this account — please contact support.",
+            "regrantFailed": "Re-enabling did not complete — please try again or contact support.",
+            "diagnostics": "Diagnostics: nonce {nonce} / floor {floor}"
+        }
     },
     "addMoney": {
         "title": "Add Money",
@@ -2651,12 +2673,11 @@
                 "iosSafari2": "Step 2: tap “Website Settings”",
                 "iosSafari3": "Step 3: set Camera to “Allow”"
             },
-            "useCopiedAddress": "Use copied address",
+            "useCopiedCode": "Use copied code",
             "paymentMethods": {
                 "evmName": "ETH & EVMs",
                 "evmAlt": "Ethereum and EVMs"
-            },
-            "pastedTextNotAnAddress": "Copied text is not a wallet address"
+            }
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "We're working on an integration.",
@@ -2694,7 +2715,8 @@
             "title": "Invite friends!",
             "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
             "shareSheetTitle": "Share your invite link",
-            "shareCta": "Share Invite Link"
+            "shareCta": "Share Invite Link",
+            "descriptionNoRewards": "Share your link so friends can join you on Peanut."
         },
         "confirmInviteModal": {
             "title": "Don't lose your invite!",
@@ -3026,6 +3048,7 @@
         "sendLinkAlreadyClaimed": "Send link already claimed",
         "lowLiquidity": "Low liquidity. Please try a smaller amount or different route.",
         "networkBusyTimeout": "The network is busy and your request timed out. Please try again in a moment.",
+        "sessionExpired": "Your session has expired. Please log in again.",
         "connectionTimeout": "Peanut is taking too long to respond — check your connection and try again.",
         "genericSupport": "There was an issue with your request. Please contact support.",
         "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",

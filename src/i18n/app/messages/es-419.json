@@ -1033,7 +1033,8 @@
             "minPixAmountBrl": "El monto mínimo de PIX es {amount} BRL",
             "maxQrAmount": "El monto del pago QR supera el límite máximo de ${amount}",
             "minQrAmount": "El monto del pago QR debe ser de al menos ${amount}",
-            "genericQrDetails": "Ocurrió un error al obtener los detalles del QR."
+            "genericQrDetails": "Ocurrió un error al obtener los detalles del QR.",
+            "authError": "No pudimos verificar tu sesión. Inténtalo de nuevo."
         },
         "claim": {
             "navTitle": "Reclamar código QR",
@@ -1316,7 +1317,28 @@
             "submitting": "Enviando…",
             "cta": "Recuperar fondos"
         },
-        "uploadProofOfAddress": "Subir comprobante de domicilio"
+        "uploadProofOfAddress": "Subir comprobante de domicilio",
+        "fixSignature": {
+            "navTitle": "Reparar la firma de la tarjeta",
+            "intro": "Esta herramienta repara un problema de estado de la billetera que impide que tu tarjeta se recargue automáticamente. Requiere hasta dos confirmaciones rápidas con tu passkey.",
+            "checkingWallet": "Revisando tu billetera…",
+            "checkAgain": "Revisar de nuevo",
+            "step1": "1. Reparar el estado de la billetera",
+            "needed": "requerido",
+            "nonceBricked": "Tu billetera está bloqueando los nuevos permisos de la tarjeta tras una actualización de seguridad anterior. Una confirmación lo resuelve.",
+            "undeployed": "Tu billetera necesita una activación en cadena por única vez antes de que los permisos de la tarjeta funcionen.",
+            "repairing": "Reparando…",
+            "repairNow": "Reparar ahora",
+            "step2": "2. Reactivar la recarga automática",
+            "allSet": "¡Listo! La recarga automática está activa de nuevo y ya se inició una recarga: el saldo de tu tarjeta debería actualizarse en unos minutos.",
+            "oneMoreConfirmation": "Una confirmación más reactiva la recarga automática de la tarjeta con un permiso nuevo.",
+            "waitingForConfirmation": "Esperando la confirmación…",
+            "loadingCard": "Cargando tu tarjeta…",
+            "reEnableFunding": "Reactivar la recarga",
+            "noActiveCard": "No se encontró una tarjeta activa en esta cuenta. Contacta al soporte.",
+            "regrantFailed": "La reactivación no se completó. Inténtalo de nuevo o contacta al soporte.",
+            "diagnostics": "Diagnóstico: nonce {nonce} / piso {floor}"
+        }
     },
     "addMoney": {
         "title": "Agregar dinero",
@@ -2651,12 +2673,11 @@
                 "iosSafari2": "Paso 2: toca “Ajustes del sitio web”",
                 "iosSafari3": "Paso 3: configura la cámara en “Permitir”"
             },
-            "useCopiedAddress": "Usar dirección copiada",
+            "useCopiedCode": "Usar código copiado",
             "paymentMethods": {
                 "evmName": "ETH y EVMs",
                 "evmAlt": "Ethereum y EVMs"
-            },
-            "pastedTextNotAnAddress": "El texto copiado no es una dirección de billetera"
+            }
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "Estamos trabajando en una integración.",
@@ -2694,7 +2715,8 @@
             "title": "¡Invita a tus amigos!",
             "description": "Comparte tu enlace. Cada vez que un amigo que trajiste haga un pago, ganas recompensas.",
             "shareSheetTitle": "Comparte tu enlace de invitación",
-            "shareCta": "Compartir enlace de invitación"
+            "shareCta": "Compartir enlace de invitación",
+            "descriptionNoRewards": "Comparte tu enlace para que tus amigos se unan a ti en Peanut."
         },
         "confirmInviteModal": {
             "title": "¡No pierdas tu invitación!",
@@ -3026,6 +3048,7 @@
         "sendLinkAlreadyClaimed": "El enlace de envío ya fue reclamado.",
         "lowLiquidity": "Baja liquidez. Prueba con un monto menor o una ruta diferente.",
         "networkBusyTimeout": "La red está congestionada y tu solicitud expiró. Inténtalo de nuevo en un momento.",
+        "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
         "connectionTimeout": "Peanut está tardando demasiado en responder. Revisa tu conexión e inténtalo de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte.",
         "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",

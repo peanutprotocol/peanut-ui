@@ -32,6 +32,11 @@ on:
                 description: 'versionName override (optional; defaults to package.json)'
                 required: false
                 type: string
+            pushDebug:
+                description: 'Enable OneSignal verbose logging in this build'
+                required: false
+                default: false
+                type: boolean
 
 permissions:
     contents: read
@@ -104,22 +109,16 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
-
-            - name: Decode google-services.json
-              # FCM credentials for native push. When the secret is unset the file
-              # is skipped and build.gradle simply omits the google-services plugin
-              # (push disabled, build still succeeds).
-              env:
-                  ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
-              run: |
-                  if [ -n "$ANDROID_GOOGLE_SERVICES_JSON" ]; then
-                      echo "$ANDROID_GOOGLE_SERVICES_JSON" | base64 -d > android/app/google-services.json
-                      echo "✅ google-services.json written"
-                  else
-                      echo "⚠️  ANDROID_GOOGLE_SERVICES_JSON unset — native push disabled for this build"
+                  if [ "${{ github.event.inputs.pushDebug }}" = "true" ]; then
+                      echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
                   fi
 
             - name: Build signed AAB
+              env:
+                  # native sentry sdk dsn — read by android/app/build.gradle into a
+                  # manifest placeholder. same project dsn the js layer bakes into
+                  # the static export above; no new secret needed.
+                  SENTRY_DSN_ANDROID: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
               run: |
                   # versionName: manual dispatch input wins; else the tag name minus
                   # its leading 'v' (v1.0.10 -> 1.0.10); else build.gradle's
@@ -144,9 +143,6 @@ jobs:
                   releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
                   tracks: ${{ github.event.inputs.track || 'internal' }}
                   status: completed
-                  # First releases have no reviewed base, so Play can't auto-submit
-                  # for review; commit the edit and review from the Console instead.
-                  changesNotSentForReview: true
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.
 

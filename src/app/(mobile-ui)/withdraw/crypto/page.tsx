@@ -30,7 +30,7 @@ import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
 import { Slider } from '@/components/Slider'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
@@ -109,7 +109,7 @@ export default function WithdrawCryptoPage() {
         strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
     } | null>(null)
 
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     // local state for transaction execution
     const [isSendingTx, setIsSendingTx] = useState(false)

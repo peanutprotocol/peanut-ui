@@ -12,6 +12,10 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 // Jest worker alive → "force exited" warning. Nothing here needs the clients.
 jest.mock('@/app/actions/clients', () => ({}))
 
+// The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
+// module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
+// Jest worker alive → "force exited" warning. Nothing here needs the clients.
+
 const body = async (path: string, options?: RequestInit) => {
     const res = await demoRespond(path, options)
     return { res, data: await res.json() }
@@ -103,6 +107,36 @@ describe('demoRespond — routing', () => {
         // subsequent loads report it stamped → the modal stays dismissed
         const after = await body('/users/me')
         expect(after.data.user.activationCelebratedAt).toBeTruthy()
+    })
+
+    it('persists the celebration stamp across cold starts via localStorage', async () => {
+        // in-memory-only state re-showed the modal on every demo launch; a fresh
+        // module registry per isolateModules block simulates the cold start
+        const store: Record<string, string> = {}
+        ;(globalThis as { window?: unknown }).window = {
+            localStorage: {
+                getItem: (k: string) => store[k] ?? null,
+                setItem: (k: string, v: string) => {
+                    store[k] = v
+                },
+            },
+        }
+        try {
+            await jest.isolateModulesAsync(async () => {
+                const { demoRespond: freshRespond } = await import('@/utils/demo-api')
+                await freshRespond('/update-user', {
+                    method: 'POST',
+                    body: JSON.stringify({ username: 'demo', dismissActivationCelebration: true }),
+                })
+            })
+            await jest.isolateModulesAsync(async () => {
+                const { demoRespond: freshRespond } = await import('@/utils/demo-api')
+                const data = await (await freshRespond('/users/me')).json()
+                expect(data.user.activationCelebratedAt).toBeTruthy()
+            })
+        } finally {
+            delete (globalThis as { window?: unknown }).window
+        }
     })
 })
 

@@ -32,11 +32,17 @@ jest.mock('next/image', () => ({
     __esModule: true,
     default: (props: { alt?: string }) => <img alt={props.alt ?? ''} />,
 }))
-jest.mock('../CameraPermissionModal', () => ({ __esModule: true, default: () => null }))
+// Stands in for the real modal's paste CTA: the modal owns the whole screen in
+// the denied state, so paste is only reachable if it is rendered inside it.
+jest.mock('../CameraPermissionModal', () => ({
+    __esModule: true,
+    default: ({ onPaste }: { onPaste?: () => void }) =>
+        onPaste ? <button onClick={onPaste}>{'Click to paste'}</button> : null,
+}))
+const cameraState = { error: null as string | null, isPermissionDenied: false }
 jest.mock('../useQRScanner', () => ({
     useQRScanner: () => ({
-        error: null,
-        isPermissionDenied: false,
+        ...cameraState,
         isScanning: true,
         isCameraReady: true,
         videoRef: { current: null },
@@ -59,7 +65,10 @@ const mockCaptureException = captureException as jest.MockedFunction<typeof capt
 
 // all-lowercase: viem isAddress enforces checksum on mixed-case forms
 const ADDRESS = '0xab5801a7d398351b8be11c439e05c5b3259aec9b'
-const CHIP_LABEL = 'Use copied address'
+const CHIP_LABEL = 'Use copied code'
+// a Pix "copia e cola" payload — the pasted-payment shape the chip used to refuse
+const PIX_CODE =
+    '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-3456-7890-123456789abc5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
 const PIX_PAYLOAD = '00020101021226' + '0014br.gov.bcb.pix' + 'x'.repeat(68)
 
 const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) => {
@@ -69,6 +78,30 @@ const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) 
 
 beforeEach(() => {
     jest.clearAllMocks()
+    cameraState.error = null
+    cameraState.isPermissionDenied = false
+})
+
+// Pasting a Pix code needs no camera, but the paste UI used to live only inside
+// the live viewfinder — so on native, where the OS camera grant is a sticky
+// per-install decision, declining it removed the app's only paste entry point.
+describe.each([
+    ['camera permission denied', { isPermissionDenied: true, error: null as string | null }],
+    ['camera unavailable', { isPermissionDenied: false, error: 'Camera unavailable' }],
+])('%s: paste stays reachable', (_label, state) => {
+    it('pastes a Pix code without a working camera', async () => {
+        Object.assign(cameraState, state)
+        mockIsAndroidNative.mockReturnValue(false)
+        mockHasStrings.mockResolvedValue(false)
+        mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
+
+        const onScan = renderScanner()
+
+        await act(async () => {
+            fireEvent.click(await screen.findByText('Click to paste'))
+        })
+        expect(onScan).toHaveBeenCalledWith(PIX_CODE)
+    })
 })
 
 it('web/PWA: never reads the clipboard at open and shows no chip', async () => {
@@ -97,6 +130,36 @@ it('iOS native: probes hasStrings only at open; the read happens on chip tap', a
     })
     expect(mockRead).toHaveBeenCalledTimes(1)
     expect(onScan).toHaveBeenCalledWith(ADDRESS)
+})
+
+it('iOS native: the chip hands a pasted Pix code straight to the scan path', async () => {
+    mockIsAndroidNative.mockReturnValue(false)
+    mockHasStrings.mockResolvedValue(true)
+    mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
+
+    const onScan = renderScanner()
+
+    const chip = await screen.findByText(CHIP_LABEL)
+    await act(async () => {
+        fireEvent.click(chip)
+    })
+    // hasStrings cannot say WHAT was copied, so the chip must not filter on
+    // evmAddress — that refused every Pix copia-e-cola as "not a wallet address"
+    expect(onScan).toHaveBeenCalledWith(PIX_CODE)
+    expect(mockToastError).not.toHaveBeenCalled()
+})
+
+it('"Click to paste": a pasted Pix code reaches onScan verbatim', async () => {
+    mockIsAndroidNative.mockReturnValue(false)
+    mockHasStrings.mockResolvedValue(false)
+    mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
+
+    const onScan = renderScanner()
+
+    await act(async () => {
+        fireEvent.click(await screen.findByText('Click to paste'))
+    })
+    expect(onScan).toHaveBeenCalledWith(PIX_CODE)
 })
 
 it('Android native: keeps the read-at-open address preview', async () => {

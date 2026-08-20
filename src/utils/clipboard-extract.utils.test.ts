@@ -58,3 +58,24 @@ describe('extractPaymentValue', () => {
         expect(extractPaymentValue('no digits here', 'routingNumber')).toBeNull()
     })
 })
+
+/**
+ * A pasted EMV payload must survive intact or not at all. The substring search
+ * finds the key/txid/amount digits INSIDE the payload, so an uppercase payload —
+ * which isPixEmvcoQr used to reject — came back as a bare UUID, silently
+ * dropping the amount and merchant the copia-e-cola code encodes.
+ */
+describe('pix copia-e-cola payloads are all-or-nothing', () => {
+    const UPPER =
+        '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+
+    it('returns an uppercase payload whole, not the UUID inside it', () => {
+        expect(extractPaymentValue(UPPER, 'pixKey')).toBe(UPPER)
+    })
+
+    it('returns null for an unusable payload rather than a fragment of it', () => {
+        // recurring (PIX Automático) is a real payload we must refuse outright
+        const recurring = UPPER.replace('0136123e4567-e12b-12d1-a456-426655440000', '0136BR.GOV.BCB.PIX/rec/abc123')
+        expect(extractPaymentValue(recurring, 'pixKey')).toBeNull()
+    })
+})

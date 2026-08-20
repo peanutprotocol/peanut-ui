@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { Card } from '@/components/0_Bruddle/Card'
 
 interface CarouselCTAProps {
@@ -40,7 +40,7 @@ const CarouselCTA = ({
     isPerkClaim,
 }: CarouselCTAProps) => {
     const t = useTranslations('home.carousel')
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     const handleClose = (e: React.MouseEvent) => {
         e.stopPropagation()

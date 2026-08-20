@@ -4,6 +4,7 @@
 
 import type { StaticImageData } from 'next/image'
 
+import { isAndroidNative } from '@/utils/capacitor'
 import { isLegacyWebKit } from '@/utils/webkit.utils'
 
 import cheeringGif from './peanut-cheering.gif'
@@ -27,9 +28,12 @@ import wavingHelloWebp from './peanut-waving-hello.webp'
 import whistlingGif from './peanut-whistling.gif'
 import whistlingWebp from './peanut-whistling.webp'
 
-// Legacy/unverifiable WebKit can't animate WebP (see isLegacyWebKit) — it gets the
-// GIF fallbacks (bigger files, 1-bit alpha); everyone else the smaller WebP.
-const pick = (webp: StaticImageData, gif: StaticImageData): StaticImageData => (isLegacyWebKit() ? gif : webp)
+// Legacy/unverifiable WebKit can't animate WebP (see isLegacyWebKit) and the
+// Android WebView decodes it too slowly to hold the frame rate (same symptom
+// the GIF fallback fixed on old iOS) — both get the GIF fallbacks (bigger
+// files, 1-bit alpha); everyone else the smaller WebP.
+const pick = (webp: StaticImageData, gif: StaticImageData): StaticImageData =>
+    isLegacyWebKit() || isAndroidNative() ? gif : webp
 
 // Animated mascots (alpha background — downscaled 512→320px; webp via gif2webp -q 70)
 export const PeanutWhistling = pick(whistlingWebp, whistlingGif) // whistling, peace-sign, mid-stride — chill / effortless: landing hero, setup intro, low-key "you're in" wins

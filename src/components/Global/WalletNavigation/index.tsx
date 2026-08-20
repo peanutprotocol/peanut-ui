@@ -13,7 +13,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { localizeDocsHref } from '@/components/Global/DocsLink'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 type NavPathProps = {
     labelKey: 'send' | 'request' | 'add' | 'withdraw' | 'history' | 'docs' | 'support'
@@ -77,7 +77,7 @@ type MobileNavProps = {
 const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
     const t = useTranslations('navigation')
     const { setIsSupportModalOpen } = useModalsContext()
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const hasUnreadSupport = useSupportUnread()
 
     return (

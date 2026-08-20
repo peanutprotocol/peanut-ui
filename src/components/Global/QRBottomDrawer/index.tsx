@@ -2,7 +2,7 @@ import Divider from '@/components/0_Bruddle/Divider'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import { QR_DRAWER_EXPANDED_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 
@@ -65,26 +65,30 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     wrapper (even when nothing overflows), so the outer class only covers the
                     drag handle area. content touches need the wrapper's own copy, applied
                     only while collapsed so overflowing content can scroll at full snap. */}
-                {/* mt-0 h-[100dvh] (twMerge drops the wrapper's mt-24): vaul resolves a
+                {/* mt-0 + full height (twMerge drops the wrapper's mt-24): vaul resolves a
                     snap point as `window.innerHeight - snapPoint`, so the drawer has to be
                     exactly innerHeight tall for a px snap to equal the visible height.
                     It must be dvh, NOT h-full: a percentage height on a fixed element
                     resolves against the initial containing block, which on a mobile browser
                     with a retractable toolbar is the LARGE viewport — taller than
                     innerHeight — and the peek would grow by the toolbar's height, putting
-                    the drawer back over the paste link. dvh tracks innerHeight.
+                    the drawer back over the paste link. dvh tracks innerHeight. h-screen
+                    (100vh) is the fallback for iOS 15.0–15.3 WebViews, which predate dvh —
+                    without a valid height the drawer translates entirely off-screen. Inside
+                    a WebView there is no retractable toolbar, so there vh == dvh exactly.
 
                     The scroll area is capped to the expanded window instead of the shared
                     80vh: 3.625rem is the drag-handle block above it (p-5 top + my-4 + the
                     handle), and being rem-based it grows with the reader's font size, so
                     the scroll region lands on the bottom of the viewport at any setting.
                     Without this, content taller than the window is simply cut off — the
-                    80vh cap is never reached, so nothing scrolls. The 520px is
-                    QR_DRAWER_EXPANDED_PX, spelled out because Tailwind only emits an
+                    80vh cap is never reached, so nothing scrolls. QR_DRAWER_EXPANDED_PX
+                    reaches the cap through a CSS variable because Tailwind only emits an
                     arbitrary value it can read literally in the source. */}
                 <DrawerContent
-                    className={`mt-0 h-[100dvh] touch-none p-5 ${className || ''}`}
-                    scrollAreaClassName={`max-h-[calc(520px-3.625rem)] ${activeSnapPoint === snapPoints[0] ? 'touch-none' : ''}`}
+                    className={`mt-0 h-screen touch-none p-5 supports-[height:100dvh]:h-[100dvh] ${className || ''}`}
+                    style={{ '--qr-drawer-expanded': `${QR_DRAWER_EXPANDED_PX}px` } as CSSProperties}
+                    scrollAreaClassName={`max-h-[calc(var(--qr-drawer-expanded)-3.625rem)] ${activeSnapPoint === snapPoints[0] ? 'touch-none' : ''}`}
                 >
                     <DrawerTitle className="mb-8 space-y-2">
                         <h2 className="text-lg font-bold">

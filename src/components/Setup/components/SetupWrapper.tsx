@@ -242,7 +242,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     const headingDescription = shouldShowBraveInstalledHeaderOnly ? t('description') : description
 
     return (
-        <div className="flex min-h-[calc(100dvh_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] flex-col overflow-hidden">
+        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-hidden">
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}

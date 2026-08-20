@@ -49,7 +49,7 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 <div className="flex w-full justify-center">
                     <div
                         className={twMerge(
-                            'max-h-[80vh] w-full overflow-auto pb-[env(safe-area-inset-bottom)] md:max-w-xl',
+                            'max-h-[80vh] w-full overflow-auto pb-safe-bottom md:max-w-xl',
                             scrollAreaClassName
                         )}
                     >

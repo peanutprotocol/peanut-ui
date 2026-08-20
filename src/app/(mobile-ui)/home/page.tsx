@@ -31,9 +31,10 @@ import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { updateUserById } from '@/app/actions/users'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
+import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
@@ -63,7 +64,8 @@ export default function Home() {
     const tNav = useTranslations('navigation')
     const { showPermissionModal } = useNotifications()
     const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
-    const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance } = useWallet()
+    const { balance, isFetchingBalance, spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } =
+        useWallet()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { resetWithdrawFlow } = useWithdrawFlow()
     const { user } = useUserStore()
@@ -73,7 +75,7 @@ export default function Home() {
     })
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     const { isFetchingUser, fetchUser } = useAuth()
     const { isKycApproved } = useCapabilities()
@@ -201,7 +203,7 @@ export default function Home() {
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isKycApproved} />
-                    {isActivated && (
+                    {isActivated && !isReferralRewardsHidden() && (
                         <Link onClick={() => triggerHaptic()} href="/rewards" className="flex items-center gap-0">
                             <InvitesIcon />
                             <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">
@@ -228,6 +230,7 @@ export default function Home() {
                         isBalanceHidden={isBalanceHidden}
                         onToggleBalanceVisibility={handleToggleBalanceVisibility}
                         isFetchingBalance={isFetchingSpendableBalance}
+                        isBalanceStale={isSpendableBalanceStale}
                     />
 
                     <ActionButtonGroup>
@@ -395,11 +398,13 @@ function WalletBalance({
     isBalanceHidden,
     onToggleBalanceVisibility,
     isFetchingBalance,
+    isBalanceStale,
 }: {
     balance: bigint | undefined
     isBalanceHidden: boolean
     onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
     isFetchingBalance?: boolean
+    isBalanceStale?: boolean
 }) {
     const balanceDisplay = useMemo(() => {
         if (isBalanceHidden) {
@@ -420,10 +425,12 @@ function WalletBalance({
                         <Loading />
                     </span>
                 ) : (
-                    <>
+                    // stale = painted from the persisted last-known-good while the live
+                    // sum is still pending; dim it rather than asserting it as current
+                    <span className={twMerge('flex items-end', isBalanceStale && 'opacity-50')}>
                         <span className="text-[32px] md:text-[40px]">$ </span>
                         {balanceDisplay}
-                    </>
+                    </span>
                 )}
             </div>
 

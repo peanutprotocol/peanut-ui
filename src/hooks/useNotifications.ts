@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useSyncExternalStore } from 'react'
-import { captureException, captureMessage } from '@sentry/nextjs'
+import { addBreadcrumb, captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { isDemoMode } from '@/utils/demo'
@@ -76,6 +76,15 @@ function handleLoginError(err: unknown) {
             extra: { error: msg },
         })
     }
+    /*
+     * A failed login() means the device subscription never gets the external_id
+     * the backend targets by — pushes silently reach zero recipients. Keep this
+     * loud in Sentry.
+     */
+    captureException(err, {
+        tags: { source: 'onesignal_login' },
+        extra: { disabledExternalIdLogin: disableExternalIdLogin },
+    })
 }
 
 // link/unlink the OneSignal subscription to the logged-in user
@@ -83,11 +92,12 @@ async function syncExternalIdLink() {
     if (!state.oneSignalInitialized) return
     const id = currentExternalId
     if (id && lastLinkedExternalId !== id) {
-        lastLinkedExternalId = id
         if (disableExternalIdLogin) return
         try {
             const adapter = await getOneSignalAdapter()
             await adapter.login(id)
+            // commit only on success so transient failures retry on the next sync
+            lastLinkedExternalId = id
         } catch (err: unknown) {
             handleLoginError(err)
         }
@@ -96,7 +106,9 @@ async function syncExternalIdLink() {
         try {
             const adapter = await getOneSignalAdapter()
             await adapter.logout()
-        } catch (_) {}
+        } catch (err) {
+            addBreadcrumb({ category: 'onesignal', message: 'logout failed', data: { error: String(err) } })
+        }
     }
 }
 
@@ -175,6 +187,7 @@ async function ensureInitialized() {
         await adapter.init()
 
         adapter.onPermissionChange((permissionState) => {
+            addBreadcrumb({ category: 'onesignal', message: 'permission change', data: { permissionState } })
             // update permission state and immediately re-evaluate ui visibility
             setState({ permissionState })
             evaluateVisibility()
@@ -188,6 +201,7 @@ async function ensureInitialized() {
         })
 
         adapter.onSubscriptionChange(async (optedIn) => {
+            addBreadcrumb({ category: 'onesignal', message: 'subscription change', data: { optedIn } })
             // link subscription to logged-in user if available
             if (currentExternalId && !disableExternalIdLogin) {
                 try {

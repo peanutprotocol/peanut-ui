@@ -53,6 +53,7 @@ import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { cancelHaptic, notifyHaptic, vibrateHaptic } from '@/utils/haptics'
 import { PeanutThinking } from '@/assets/mascot'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { useAuth } from '@/context/authContext'
@@ -83,6 +84,9 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
     'PAYMENT_DESTINATION_DECODING_ERROR',
     'PIX_MIN_AMOUNT',
     'PIX_RECURRING_NOT_SUPPORTED',
+    // Missing auth header (AJV 400) — retrying sends the same headerless request,
+    // so fail fast rather than waiting out three attempts.
+    "required property 'authorization'",
 ]
 
 type PaymentProcessor = 'MANTECA'
@@ -604,6 +608,12 @@ export default function QRPayPage() {
             } else if (error.message.includes('PIX_RECURRING_NOT_SUPPORTED')) {
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(pixRecurringErrorMessage)
+            } else if (error.message.includes("required property 'authorization'")) {
+                // Session token wasn't attached to the request (not a provider
+                // outage) — surface an honest, retryable message instead of
+                // blaming the payment rail.
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(t('errors.authError'))
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(
@@ -822,14 +832,10 @@ export default function QRPayPage() {
         setHoldProgress(0)
 
         // 3. Final success haptic feedback - POWERFUL celebratory double pulse!
-        if ('vibrate' in navigator) {
-            navigator.vibrate([300, 100, 300])
-        }
+        notifyHaptic('success')
 
         // 4. Trigger confetti immediately
-        setTimeout(() => {
-            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
-        }, 100)
+        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
 
         // 5. Surface the reward. The perk was already issued AND claimed
         //    server-side during QR-payment processing, and qrPayment.perk
@@ -875,9 +881,7 @@ export default function QRPayPage() {
                 setShakeIntensity('none')
                 holdStartTimeRef.current = null
 
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(0)
-                }
+                cancelHaptic()
             }, remainingPreviewTime)
 
             holdTimerRef.current = resetTimer
@@ -890,9 +894,7 @@ export default function QRPayPage() {
             setShakeIntensity('none')
             holdStartTimeRef.current = null
 
-            if ('vibrate' in navigator) {
-                navigator.vibrate(0)
-            }
+            cancelHaptic()
         }
     }, [])
 
@@ -923,20 +925,20 @@ export default function QRPayPage() {
             }
 
             // Trigger haptic feedback when intensity changes
-            if (newIntensity !== lastIntensity && 'vibrate' in navigator) {
+            if (newIntensity !== lastIntensity) {
                 // Progressive vibration patterns that match shake intensity - MAX STRENGTH!
                 switch (newIntensity) {
                     case 'weak':
-                        navigator.vibrate(50) // Short but noticeable pulse
+                        vibrateHaptic(50) // Short but noticeable pulse
                         break
                     case 'medium':
-                        navigator.vibrate([100, 40, 100]) // Medium pulse pattern
+                        vibrateHaptic([100, 40, 100]) // Medium pulse pattern
                         break
                     case 'strong':
-                        navigator.vibrate([150, 40, 150, 40, 150]) // Strong pulse pattern
+                        vibrateHaptic([150, 40, 150, 40, 150]) // Strong pulse pattern
                         break
                     case 'intense':
-                        navigator.vibrate([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
+                        vibrateHaptic([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
                         break
                 }
                 lastIntensity = newIntensity

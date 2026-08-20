@@ -35,6 +35,23 @@
     --secondary-color: #6340df;
     --background-color: #90a8ed;
     --accent-color: #6340df;
+
+    /* Safe-area contract. --safe-area-inset-* is the raw source: on Android 15+
+       (targetSdk 36 forces edge-to-edge) Capacitor's built-in SystemBars plugin
+       overwrites these as an inline style on <html> with natively measured values —
+       max(systemBars, displayCutout) per edge, in CSS px. Everywhere else (web, iOS,
+       Android < 15) they keep the env() seed below, so behavior there is unchanged.
+       The names are Capacitor's; do not rename them, and do not move this rule into
+       @layer — only the inline style on <html> should outrank it. */
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+
+    --safe-top: var(--safe-area-inset-top);
+    --safe-right: var(--safe-area-inset-right);
+    --safe-bottom: var(--safe-area-inset-bottom);
+    --safe-left: var(--safe-area-inset-left);
 }
 
 @layer components {
