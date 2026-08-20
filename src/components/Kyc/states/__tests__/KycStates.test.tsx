@@ -73,7 +73,7 @@ describe('KYC state cards', () => {
         // backend prose must never render (it would be English in every locale).
         render(<KycActionRequired onResume={jest.fn()} actionMessage="Some backend prose." rejectLabels={[]} />)
 
-        expect(screen.getByText(/resubmit your documents/i)).toBeInTheDocument()
+        expect(screen.getByText(/tap below to continue/i)).toBeInTheDocument()
         expect(screen.queryByText('Some backend prose.')).not.toBeInTheDocument()
         expect(screen.queryByTestId('reject-labels-list')).not.toBeInTheDocument()
     })

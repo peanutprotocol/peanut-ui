@@ -237,6 +237,7 @@ export const useMultiPhaseKycFlow = ({
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
         isActionFlow,
+        isMultiLevel,
     } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
 
     // keep ref in sync
@@ -441,10 +442,6 @@ export const useMultiPhaseKycFlow = ({
     }, [clearPreparingTimer, stopTracking])
 
     const isModalOpen = isVerificationProgressModalOpen || forceShowModal
-
-    // multi-level only for first-time LATAM (workflow with conditional questionnaire).
-    // cross-region LATAM uses an applicant action (single level, not multi-level).
-    const isMultiLevel = regionIntent === 'LATAM' && !isActionFlow
 
     // Derive preparing stage from elapsed time for progressive copy
     const preparingStage = useMemo<'initial' | 'configuring' | 'slow'>(() => {

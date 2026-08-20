@@ -2525,7 +2525,7 @@
         },
         "errorStartActionFailed": "Não conseguimos iniciar a verificação. Tente novamente.",
         "errorInvalidResponse": "Resposta inválida do servidor",
-        "actionMessageActionRequired": "Precisamos de um pouco mais para verificar sua identidade. Reenvie seus documentos.",
+        "actionMessageActionRequired": "Precisamos de um pouco mais para verificar sua identidade. Toque abaixo para continuar.",
         "actionMessageFailed": "Não conseguimos verificar sua identidade. Fale com o suporte.",
         "successTitle": "Verificação concluída!",
         "successCloseWindow": "Você já pode fechar esta janela."
