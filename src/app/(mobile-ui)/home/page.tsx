@@ -34,7 +34,6 @@ import { updateUserById } from '@/app/actions/users'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
@@ -203,7 +202,7 @@ export default function Home() {
             <div className="h-full w-full space-y-6 p-5">
                 <div className="flex items-center justify-between gap-2">
                     <UserHeader username={username!} fullName={userFullName} isVerified={isKycApproved} />
-                    {isActivated && !isReferralRewardsHidden() && (
+                    {isActivated && (
                         <Link onClick={() => triggerHaptic()} href="/rewards" className="flex items-center gap-0">
                             <InvitesIcon />
                             <span className="whitespace-nowrap pl-1 text-sm font-semibold md:text-base">

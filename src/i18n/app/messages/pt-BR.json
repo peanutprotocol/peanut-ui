@@ -76,7 +76,7 @@
         "supportUnread": "Nova resposta do suporte"
     },
     "home": {
-        "rewards": "Recompensas",
+        "rewards": "Cashback",
         "activation": {
             "steps": {
                 "verify": {
@@ -166,25 +166,25 @@
         },
         "perk": {
             "surpriseTitle": "Você acabou de ganhar ${amount}!",
-            "surpriseDescriptionFirst": "Confira suas recompensas agora e ganhe mais.",
-            "surpriseDescriptionNext": "Confira suas recompensas e como ganhar mais.",
-            "usedPeanut": "<name>{inviteeName}</name> usou o Peanut",
-            "rewardClaimed": "Recompensa resgatada!",
+            "surpriseDescriptionFirst": "Confira seu cashback e como ganhar mais.",
+            "surpriseDescriptionNext": "Confira seu cashback e como ganhar mais.",
+            "usedPeanut": "<name>{inviteeName}</name> pagou com o Peanut",
+            "rewardClaimed": "Cashback resgatado!",
             "shareAndEarn": "Compartilhe e ganhe",
             "inviteFriendsToEarnMore": "Convide amigos para ganhar mais",
-            "holdToUnwrap": "Segure para abrir sua recompensa"
+            "holdToUnwrap": "Segure para abrir seu cashback"
         },
         "carousel": {
-            "rewardReady": "Recompensa de <b>+${amount}</b> pronta!",
-            "usedPeanutTapToClaim": "<name>{inviteeName}</name> usou o Peanut. Toque para resgatar.",
-            "tapToClaim": "Toque para resgatar sua recompensa.",
+            "rewardReady": "Cashback de <b>+${amount}</b> pronto!",
+            "usedPeanutTapToClaim": "<name>{inviteeName}</name> pagou com o Peanut. Toque para resgatar.",
+            "tapToClaim": "Toque para resgatar seu cashback.",
             "card": {
                 "title": "Peça seu <b>Peanut Card</b>",
                 "description": "Beta fechado. <b>Emblemas furam a fila.</b> Desbloqueie $10 no seu primeiro gasto de $100."
             },
             "invite": {
-                "title": "Convide amigos. Ganhe recompensas",
-                "description": "Ganhe recompensas sempre que seus amigos usarem o Peanut."
+                "title": "Convide amigos. Ganhe cashback",
+                "description": "Ganhe cashback sempre que seus amigos pagarem com o Peanut."
             },
             "notifications": {
                 "title": "Fique por dentro!",
@@ -197,11 +197,11 @@
             },
             "qrPay": {
                 "title": "Pague com <b>códigos QR</b>",
-                "description": "Tenha a melhor taxa de câmbio, pague como um <b>local</b> e ganhe <b>recompensas</b>."
+                "description": "Tenha a melhor taxa de câmbio, pague como um <b>local</b> e ganhe <b>cashback</b>."
             },
             "latamInvite": {
-                "title": "Ganhe <b>recompensas</b> em pagamentos QR",
-                "description": "Convide amigos para <b>ganhar mais recompensas</b>. Quanto mais eles usam, mais você ganha!"
+                "title": "Ganhe <b>cashback</b> em pagamentos QR",
+                "description": "Convide amigos para <b>ganhar mais cashback</b>. Quanto mais eles pagam, mais você ganha!"
             },
             "bugBounty": {
                 "title": "Ajude a gente a melhorar e <b>ganhe $5!</b>",
@@ -234,14 +234,14 @@
             "peanutCard": "Cartão Peanut",
             "newBadge": "Novo!",
             "yourBadges": "Seus selos",
-            "points": "Pontos",
             "personalDetails": "Dados pessoais",
             "unlockedRegions": "Regiões desbloqueadas",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
             "exchangeRatesAndFees": "Câmbio e taxas",
-            "starAlt": "estrela"
+            "starAlt": "estrela",
+            "cashback": "Cashback"
         },
         "logOut": "Sair",
         "edit": {
@@ -1001,15 +1001,15 @@
         },
         "success": {
             "youPaid": "Você pagou {merchant}",
-            "earnedRewardTitle": "Você ganhou uma recompensa!",
-            "earnedHoldToClaim": "Você ganhou ${amount}! Segure para resgatar sua recompensa.",
-            "holdToClaim": "Você ganhou uma recompensa! Segure para resgatar.",
-            "earnedInviteFriends": "Você ganhou ${amount}! Convide amigos para ganhar ainda mais.",
-            "inviteFriends": "Convide amigos para ganhar ainda mais recompensas.",
+            "earnedRewardTitle": "Você ganhou cashback!",
+            "earnedHoldToClaim": "Você ganhou ${amount}! Segure para abrir seu cashback.",
+            "holdToClaim": "Você ganhou cashback! Segure para abrir.",
+            "earnedInviteFriends": "Você ganhou ${amount}! Convide amigos para ganhar ainda mais cashback.",
+            "inviteFriends": "Convide amigos para ganhar ainda mais cashback.",
             "inviteFriendsCta": "Convide amigos e ganhe",
             "savedVsCardCents": "você economizou ~{count, plural, one {# centavo} other {# centavos}} comparado ao cartão!",
             "savedVsCardDollars": "você economizou ~${amount} comparado ao cartão!",
-            "claimReward": "Resgatar recompensa",
+            "claimReward": "Abrir cashback",
             "splitThisBill": "Dividir essa conta",
             "seeReceipt": "Ver recibo"
         },
@@ -1042,7 +1042,7 @@
             "alreadyClaimed": "Este código QR já foi resgatado por outro usuário.",
             "notAvailable": "Este código QR não está disponível para resgate.",
             "inviteQrTitle": "Seu QR de convite",
-            "inviteQrDescription": "Compartilhe onde quiser. Os pontos continuam chegando com a atividade dos seus amigos e dos amigos deles.",
+            "inviteQrDescription": "Compartilhe onde quiser. Quem escanear pode entrar no Peanut com você.",
             "permanentNote": "<strong>Obs.:</strong> é permanente depois de resgatado.",
             "claiming": "Resgatando...",
             "holdToClaim": "Segure para torná-lo seu para sempre",
@@ -1054,7 +1054,7 @@
             "title": "Este QR agora é seu!",
             "description": "Seu adesivo agora está vinculado ao seu perfil para sempre.",
             "putItAnywhere": "Cole onde quiser!",
-            "stickerDescription": "Cole no seu notebook, na garrafa de água ou onde quiser que as pessoas te encontrem. Quem escanear vai poder entrar no Peanut com o seu convite e contribuir para os seus pontos para sempre.",
+            "stickerDescription": "Cole no seu notebook, na garrafa de água ou onde quiser que as pessoas te encontrem. Quem escanear vai poder entrar no Peanut com o seu convite.",
             "shareQr": "Compartilhar código QR",
             "linkCopied": "Link copiado",
             "shareTitle": "Meu código QR do Peanut",
@@ -1694,7 +1694,7 @@
             "card_pay": "Pagamento",
             "refund": "Reembolso",
             "setup": "Configuração",
-            "reward": "Recompensa"
+            "reward": "Cashback"
         },
         "title": {
             "sentViaLink": "Você enviou por link",
@@ -1775,14 +1775,14 @@
             "address": "Endereço"
         },
         "perkBanner": {
-            "title": "Você ganhou uma recompensa!",
-            "capped": "Recompensa de ${amount} — limite da campanha atingido!",
-            "received": "Você recebeu uma recompensa de ${amount}!",
-            "generic": "Você recebeu uma recompensa da Peanut!"
+            "title": "Você ganhou cashback!",
+            "capped": "Cashback de ${amount} — limite da campanha atingido!",
+            "received": "Você recebeu ${amount} de cashback!",
+            "generic": "Você recebeu cashback da Peanut!"
         },
         "perk": {
-            "title": "Recompensa Peanut",
-            "subtitle": "Ganhe recompensas sempre que seus amigos usarem o Peanut.",
+            "title": "Cashback Peanut",
+            "subtitle": "Ganhe cashback sempre que seus amigos pagarem com o Peanut.",
             "statusCompleted": "Concluído",
             "received": "Recebido"
         },
@@ -1798,7 +1798,7 @@
             "rejectRequest": "Recusar cobrança",
             "splitBill": "Dividir essa conta",
             "shareReceipt": "Compartilhar comprovante",
-            "inviteFriends": "Convide amigos e ganhe mais recompensas",
+            "inviteFriends": "Convide amigos e ganhe mais cashback",
             "reportIssue": "Problemas com esta transação?",
             "cancelDeposit": "Cancelar depósito",
             "cancelDepositRequest": "Cancelar cobrança",
@@ -1885,27 +1885,36 @@
         "yesterday": "Ontem"
     },
     "rewards": {
-        "title": "Recompensas",
+        "title": "Cashback",
         "youHave": "Você tem",
         "pendingCallout": "esperando por você. Comece a gastar para resgatar.",
-        "noPendingRewards": "Nenhuma recompensa pendente por enquanto.",
-        "lifetimeRewards": "Recompensas totais: {amount}. Para ganhar mais, convide amigos.",
+        "noPendingRewards": "Nenhum cashback pendente por enquanto.",
+        "lifetimeRewards": "Cashback total: {amount}",
         "inviteNow": "Convidar agora",
         "pointsLabel": "{count, plural, one {ponto} other {pontos}}",
         "pointsAbbrev": "{count, plural, one {pt} other {pts}}",
         "pointsToNextTier": "{count, plural, one {# ponto} other {# pontos}} para o próximo nível",
         "tierBadgeAlt": "Nível {tier}",
         "invitedYou": "convidou você.",
-        "earnWhenFriendsUse": "Você ganha recompensas sempre que seus amigos usam o Peanut!",
+        "earnWhenFriendsUse": "Você ganha cashback sempre que seus amigos pagam com o Peanut!",
         "peopleYouInvited": "Pessoas que você convidou",
         "noInvitesYet": "Você ainda não convidou ninguém",
-        "shareInviteLinkPrompt": "Envie seu link de convite para começar a ganhar mais recompensas",
+        "shareInviteLinkPrompt": "Envie seu link de convite para começar a ganhar mais cashback",
         "shareInviteLink": "Compartilhar link de convite",
         "loadPointsFailed": "Erro ao carregar os pontos!",
         "loadInvitesFailed": "Erro ao carregar os convites!",
         "contactSupport": "Por favor, fale com o Suporte.",
         "friendsEarnedYou": "Seus amigos fizeram você ganhar",
-        "starAlt": "estrela"
+        "starAlt": "estrela",
+        "networkTitle": "Sua rede",
+        "inCashbackSoFar": "em cashback até agora",
+        "howItWorks": {
+            "title": "Como funciona o cashback",
+            "step1": "Convide amigos para o Peanut.",
+            "step2": "Eles pagam com o Peanut normalmente.",
+            "step3": "Seu cashback vai se acumulando no saldo.",
+            "step4": "Faça qualquer pagamento para resgatar."
+        }
     },
     "invites": {
         "illustrationAlt": "Ilustração da seção",
@@ -2713,7 +2722,7 @@
         },
         "inviteFriendsModal": {
             "title": "Convide seus amigos!",
-            "description": "Compartilhe seu link. Toda vez que um amigo que você trouxe fizer um pagamento, você ganha recompensas.",
+            "description": "Compartilhe seu link. Toda vez que um amigo que você trouxe fizer um pagamento, você ganha cashback.",
             "shareSheetTitle": "Compartilhe seu link de convite",
             "shareCta": "Compartilhar link de convite",
             "descriptionNoRewards": "Compartilhe seu link para que seus amigos entrem no Peanut com você."

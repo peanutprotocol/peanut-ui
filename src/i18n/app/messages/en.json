@@ -76,7 +76,7 @@
         "supportUnread": "New support reply"
     },
     "home": {
-        "rewards": "Rewards",
+        "rewards": "Cashback",
         "activation": {
             "steps": {
                 "verify": {
@@ -166,25 +166,25 @@
         },
         "perk": {
             "surpriseTitle": "You just earned ${amount}!",
-            "surpriseDescriptionFirst": "Check out your rewards now and earn more.",
-            "surpriseDescriptionNext": "Check out your rewards and how to earn more.",
-            "usedPeanut": "<name>{inviteeName}</name> used Peanut",
-            "rewardClaimed": "Reward claimed!",
-            "shareAndEarn": "Share & earn",
-            "inviteFriendsToEarnMore": "Invite friends to earn more",
-            "holdToUnwrap": "Hold to unwrap your reward"
+            "surpriseDescriptionFirst": "Check out your cashback and how to earn more.",
+            "surpriseDescriptionNext": "Check out your cashback and how to earn more.",
+            "usedPeanut": "<name>{inviteeName}</name> paid with Peanut",
+            "rewardClaimed": "Cashback claimed!",
+            "shareAndEarn": "Share & Earn",
+            "inviteFriendsToEarnMore": "Invite Friends to Earn More",
+            "holdToUnwrap": "Hold to unwrap your cashback"
         },
         "carousel": {
-            "rewardReady": "<b>+${amount}</b> reward ready!",
-            "usedPeanutTapToClaim": "<name>{inviteeName}</name> used Peanut. Tap to claim.",
-            "tapToClaim": "Tap to claim your reward.",
+            "rewardReady": "<b>+${amount}</b> cashback ready!",
+            "usedPeanutTapToClaim": "<name>{inviteeName}</name> paid with Peanut. Tap to claim.",
+            "tapToClaim": "Tap to claim your cashback.",
             "card": {
                 "title": "Get your <b>Peanut Card</b>",
                 "description": "Closed beta. <b>Badges skip the line.</b> $10 unlocks on your first $100 spend."
             },
             "invite": {
-                "title": "Invite friends. Earn rewards",
-                "description": "Earn rewards every time your friends use Peanut."
+                "title": "Invite friends. Earn Cashback",
+                "description": "Earn cashback every time your friends pay with Peanut."
             },
             "notifications": {
                 "title": "Stay in the loop!",
@@ -197,11 +197,11 @@
             },
             "qrPay": {
                 "title": "Pay with <b>QR code payments</b>",
-                "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>rewards</b>."
+                "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>cashback</b>."
             },
             "latamInvite": {
-                "title": "Earn <b>rewards</b> on QR payments",
-                "description": "Invite friends to <b>earn more rewards</b>. The more they use, the more you earn!"
+                "title": "Earn <b>cashback</b> on QR payments",
+                "description": "Invite friends to <b>earn more cashback</b>. The more they pay, the more you earn!"
             },
             "bugBounty": {
                 "title": "Help us improve and <b>get $5!</b>",
@@ -234,14 +234,14 @@
             "peanutCard": "Peanut Card",
             "newBadge": "New!",
             "yourBadges": "Your Badges",
-            "points": "Points",
             "personalDetails": "Personal details",
             "unlockedRegions": "Unlocked regions",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
             "exchangeRatesAndFees": "Exchange rates and fees",
-            "starAlt": "star"
+            "starAlt": "star",
+            "cashback": "Cashback"
         },
         "logOut": "Log out",
         "edit": {
@@ -1001,15 +1001,15 @@
         },
         "success": {
             "youPaid": "You paid {merchant}",
-            "earnedRewardTitle": "You earned a reward!",
-            "earnedHoldToClaim": "You earned ${amount}! Hold to claim your reward.",
-            "holdToClaim": "You earned a reward! Hold to claim.",
-            "earnedInviteFriends": "You earned ${amount}! Invite friends to earn even more.",
-            "inviteFriends": "Invite friends to earn even more rewards.",
+            "earnedRewardTitle": "You earned Cashback!",
+            "earnedHoldToClaim": "You earned ${amount}! Hold to unwrap your cashback.",
+            "holdToClaim": "You earned cashback! Hold to unwrap.",
+            "earnedInviteFriends": "You earned ${amount}! Invite friends to earn even more cashback.",
+            "inviteFriends": "Invite friends to earn even more cashback.",
             "inviteFriendsCta": "Invite friends & earn",
             "savedVsCardCents": "saved ~{count, plural, one {# cent} other {# cents}} compared to card!",
             "savedVsCardDollars": "saved ~${amount} compared to card!",
-            "claimReward": "Claim Reward",
+            "claimReward": "Unwrap Cashback",
             "splitThisBill": "Split this bill",
             "seeReceipt": "See receipt"
         },
@@ -1042,7 +1042,7 @@
             "alreadyClaimed": "This QR code has already been claimed by another user.",
             "notAvailable": "This QR code is not available for claiming.",
             "inviteQrTitle": "Your Invite QR",
-            "inviteQrDescription": "Share anywhere. Points keep coming from the activity of friends & their friends.",
+            "inviteQrDescription": "Share anywhere. Anyone who scans can join you on Peanut.",
             "permanentNote": "<strong>Note:</strong> Permanent once claimed.",
             "claiming": "Claiming...",
             "holdToClaim": "Hold to make it yours forever",
@@ -1054,7 +1054,7 @@
             "title": "This QR is now yours!",
             "description": "Your sticker is now linked to your profile forever.",
             "putItAnywhere": "Put it anywhere!",
-            "stickerDescription": "Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone who scans will be able to join Peanut with your invite and contribute towards your points forever.",
+            "stickerDescription": "Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone who scans will be able to join Peanut with your invite.",
             "shareQr": "Share QR Code",
             "linkCopied": "Link copied",
             "shareTitle": "My Peanut QR Code",
@@ -1694,7 +1694,7 @@
             "card_pay": "Pay",
             "refund": "Refund",
             "setup": "Setup",
-            "reward": "Reward"
+            "reward": "Cashback"
         },
         "title": {
             "sentViaLink": "You sent via link",
@@ -1775,14 +1775,14 @@
             "address": "Address"
         },
         "perkBanner": {
-            "title": "You earned a reward!",
-            "capped": "${amount} reward — campaign limit reached!",
-            "received": "You received a ${amount} reward!",
-            "generic": "You received a Peanut reward!"
+            "title": "You earned Cashback!",
+            "capped": "${amount} cashback — campaign limit reached!",
+            "received": "You received ${amount} cashback!",
+            "generic": "You received Peanut cashback!"
         },
         "perk": {
-            "title": "Peanut Reward",
-            "subtitle": "Earn rewards every time your friends use Peanut.",
+            "title": "Peanut Cashback",
+            "subtitle": "Earn cashback every time your friends pay with Peanut.",
             "statusCompleted": "Completed",
             "received": "Received"
         },
@@ -1798,7 +1798,7 @@
             "rejectRequest": "Reject request",
             "splitBill": "Split this bill",
             "shareReceipt": "Share Receipt",
-            "inviteFriends": "Invite friends to earn more rewards",
+            "inviteFriends": "Invite friends to earn more cashback",
             "reportIssue": "Issues with this transaction?",
             "cancelDeposit": "Cancel deposit",
             "cancelDepositRequest": "Cancel Request",
@@ -1885,27 +1885,36 @@
         "yesterday": "Yesterday"
     },
     "rewards": {
-        "title": "Rewards",
+        "title": "Cashback",
         "youHave": "You have",
         "pendingCallout": "waiting for you. Start spending to claim.",
-        "noPendingRewards": "No pending rewards right now.",
-        "lifetimeRewards": "Lifetime rewards: {amount}. To earn more, invite friends.",
+        "noPendingRewards": "No cashback waiting right now.",
+        "lifetimeRewards": "Lifetime cashback: {amount}",
         "inviteNow": "Invite Now",
         "pointsLabel": "{count, plural, one {point} other {points}}",
         "pointsAbbrev": "{count, plural, one {pt} other {pts}}",
         "pointsToNextTier": "{count, plural, one {# point} other {# points}} to next tier",
         "tierBadgeAlt": "Tier {tier}",
         "invitedYou": "invited you.",
-        "earnWhenFriendsUse": "You earn rewards whenever your friends use Peanut!",
+        "earnWhenFriendsUse": "You earn cashback whenever your friends pay with Peanut!",
         "peopleYouInvited": "People you invited",
         "noInvitesYet": "No invites yet",
-        "shareInviteLinkPrompt": "Send your invite link to start earning more rewards",
+        "shareInviteLinkPrompt": "Send your invite link to start earning more cashback",
         "shareInviteLink": "Share Invite link",
         "loadPointsFailed": "Error loading points!",
         "loadInvitesFailed": "Error loading invites!",
         "contactSupport": "Please contact Support.",
         "friendsEarnedYou": "Your friends earned you",
-        "starAlt": "star"
+        "starAlt": "star",
+        "networkTitle": "Your Network",
+        "inCashbackSoFar": "in cashback so far",
+        "howItWorks": {
+            "title": "How cashback works",
+            "step1": "Invite friends to Peanut.",
+            "step2": "They pay with Peanut like normal.",
+            "step3": "Cashback builds up in your balance.",
+            "step4": "Make any payment to claim it."
+        }
     },
     "invites": {
         "illustrationAlt": "Section illustration",
@@ -2713,7 +2722,7 @@
         },
         "inviteFriendsModal": {
             "title": "Invite friends!",
-            "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
+            "description": "Share your link. Every time a friend you brought makes a payment, you earn cashback.",
             "shareSheetTitle": "Share your invite link",
             "shareCta": "Share Invite Link",
             "descriptionNoRewards": "Share your link so friends can join you on Peanut."

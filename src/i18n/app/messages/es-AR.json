@@ -61,22 +61,22 @@
             "youCanNow": "Ahora podés:"
         },
         "perk": {
-            "surpriseDescriptionFirst": "Mirá tus recompensas ahora y ganá más.",
-            "surpriseDescriptionNext": "Mirá tus recompensas y cómo ganar más.",
+            "surpriseDescriptionFirst": "Mirá tu cashback y cómo ganar más.",
+            "surpriseDescriptionNext": "Mirá tu cashback y cómo ganar más.",
             "shareAndEarn": "Compartí y ganá",
             "inviteFriendsToEarnMore": "Invitá amigos para ganar más",
-            "holdToUnwrap": "Mantené presionado para abrir tu recompensa"
+            "holdToUnwrap": "Mantené presionado para abrir tu cashback"
         },
         "carousel": {
-            "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
-            "tapToClaim": "Tocá para reclamar tu recompensa.",
+            "usedPeanutTapToClaim": "<name>{inviteeName}</name> pagó con Peanut. Tocá para reclamar.",
+            "tapToClaim": "Tocá para reclamar tu cashback.",
             "card": {
                 "title": "Conseguí tu <b>Peanut Card</b>",
                 "description": "Beta cerrada. <b>Las insignias saltan la fila.</b> Desbloqueá $10 con tu primer gasto de $100."
             },
             "invite": {
-                "title": "Invitá amigos. Ganá recompensas",
-                "description": "Ganá recompensas cada vez que tus amigos usan Peanut."
+                "title": "Invitá amigos. Ganá cashback",
+                "description": "Ganá cashback cada vez que tus amigos pagan con Peanut."
             },
             "notifications": {
                 "title": "¡Mantenete al tanto!",
@@ -89,11 +89,11 @@
             },
             "qrPay": {
                 "title": "Pagá con <b>códigos QR</b>",
-                "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>recompensas</b>."
+                "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>cashback</b>."
             },
             "latamInvite": {
-                "title": "Ganá <b>recompensas</b> en pagos QR",
-                "description": "Invitá amigos para <b>ganar más recompensas</b>. ¡Cuanto más usan, más ganás!"
+                "title": "Ganá <b>cashback</b> en pagos QR",
+                "description": "Invitá amigos para <b>ganar más cashback</b>. ¡Cuanto más pagan, más ganás!"
             },
             "bugBounty": {
                 "title": "Ayudanos a mejorar y <b>¡ganá $5!</b>",
@@ -449,10 +449,10 @@
             "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte para recibir ayuda."
         },
         "success": {
-            "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para reclamar tu recompensa.",
-            "holdToClaim": "¡Ganaste una recompensa! Mantené presionado para reclamarla.",
-            "earnedInviteFriends": "¡Ganaste ${amount}! Invitá amigos para ganar aún más.",
-            "inviteFriends": "Invitá amigos para ganar aún más recompensas.",
+            "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para abrir tu cashback.",
+            "holdToClaim": "¡Ganaste cashback! Mantené presionado para abrirlo.",
+            "earnedInviteFriends": "¡Ganaste ${amount}! Invitá amigos para ganar aún más cashback.",
+            "inviteFriends": "Invitá amigos para ganar aún más cashback.",
             "inviteFriendsCta": "Invitá amigos y ganá"
         },
         "errors": {
@@ -467,13 +467,13 @@
             "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte"
         },
         "claim": {
-            "inviteQrDescription": "Compartilo donde sea. Los puntos siguen llegando por la actividad de tus amigos y sus amigos.",
+            "inviteQrDescription": "Compartilo donde sea. Cualquiera que lo escanee puede unirse a Peanut con vos.",
             "holdToClaim": "Mantené presionado para hacerlo tuyo para siempre",
             "claimFailed": "No se pudo reclamar el código QR. Intentalo de nuevo."
         },
         "claimSuccess": {
             "putItAnywhere": "¡Pegalo donde quieras!",
-            "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación y sumar a tus puntos para siempre.",
+            "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación.",
             "shareText": "¡Escaneá mi código QR para conectar conmigo en Peanut!"
         }
     },
@@ -704,10 +704,10 @@
     "transaction": {
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "perk": {
-            "subtitle": "Ganá recompensas cada vez que tus amigos usan Peanut."
+            "subtitle": "Ganá cashback cada vez que tus amigos pagan con Peanut."
         },
         "actions": {
-            "inviteFriends": "Invitá amigos y ganá más recompensas",
+            "inviteFriends": "Invitá amigos y ganá más cashback",
             "cancelDepositFailed": "No pudimos cancelar este depósito. Intentalo de nuevo o contactá a soporte."
         },
         "toast": {
@@ -737,11 +737,15 @@
     "rewards": {
         "youHave": "Tenés",
         "pendingCallout": "esperándote. Empezá a gastar para reclamarlo.",
-        "noPendingRewards": "No tenés recompensas pendientes por ahora.",
-        "lifetimeRewards": "Recompensas totales: {amount}. Para ganar más, invitá a tus amigos.",
-        "earnWhenFriendsUse": "¡Ganás recompensas cada vez que tus amigos usan Peanut!",
-        "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más recompensas",
-        "contactSupport": "Por favor contactá a Soporte."
+        "noPendingRewards": "No tenés cashback pendiente por ahora.",
+        "lifetimeRewards": "Cashback total: {amount}",
+        "earnWhenFriendsUse": "¡Ganás cashback cada vez que tus amigos pagan con Peanut!",
+        "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más cashback",
+        "contactSupport": "Por favor contactá a Soporte.",
+        "howItWorks": {
+            "step1": "Invitá a tus amigos a Peanut.",
+            "step4": "Hacé cualquier pago para reclamarlo."
+        }
     },
     "invites": {
         "invalidCodeMessage": "El código de invitación que intentás usar no es válido. Revisá la URL e intentalo de nuevo.",
@@ -1057,7 +1061,7 @@
         },
         "inviteFriendsModal": {
             "title": "¡Invitá a tus amigos!",
-            "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás recompensas.",
+            "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás cashback.",
             "shareSheetTitle": "Compartí tu enlace de invitación"
         },
         "confirmInviteModal": {

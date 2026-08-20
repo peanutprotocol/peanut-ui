@@ -20,11 +20,10 @@ import { type PointsInvite } from '@/services/services.types'
 import { formatPoints } from '@/utils/format.utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 const InvitesPage = () => {
     const t = useTranslations('rewards')
@@ -56,14 +55,6 @@ const InvitesPage = () => {
         enabled: !isLoading && !isError,
     })
 
-    // Guideline 3.1.5(ii) — see /rewards; the deep link has to close too.
-    const hideReferralRewards = isReferralRewardsHidden()
-    useEffect(() => {
-        if (hideReferralRewards) router.replace('/home')
-    }, [hideReferralRewards, router])
-
-    if (hideReferralRewards) return null
-
     if (isLoading) {
         return <PeanutLoading />
     }
@@ -79,7 +70,7 @@ const InvitesPage = () => {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} />
+            <NavHeader title={t('networkTitle')} onPrev={onBack} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">
@@ -90,6 +81,7 @@ const InvitesPage = () => {
                             <span className="text-3xl font-extrabold text-black">
                                 ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
                             </span>
+                            <span className="text-sm text-grey-1">{t('inCashbackSoFar')}</span>
                             <span className="flex items-center gap-1 text-sm text-grey-1">
                                 <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={14} height={14} />
                                 {formatPoints(totalPointsEarned)} {t('pointsLabel', { count: totalPointsEarned })}
