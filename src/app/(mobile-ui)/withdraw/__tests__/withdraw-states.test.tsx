@@ -195,6 +195,22 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 
+// Native (?country=…) views are React.lazy'd. These stubs count mounts so the
+// remount regression below can see a torn-down + rebuilt subtree.
+const mockBankViewMounts = jest.fn()
+jest.mock('../_withdraw-bank', () => {
+    const NativeBankView = () => {
+        React.useEffect(() => mockBankViewMounts(), [])
+        return <div data-testid="native-bank-view" />
+    }
+    return { __esModule: true, default: NativeBankView }
+})
+
+jest.mock('@/components/AddWithdraw/AddWithdrawCountriesList', () => ({
+    __esModule: true,
+    default: () => <div data-testid="native-countries-list" />,
+}))
+
 jest.mock('@/components/AddWithdraw/AddWithdrawRouterView', () => ({
     AddWithdrawRouterView: (props: any) => (
         <div data-testid="add-withdraw-router-view">
@@ -617,5 +633,42 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         fireEvent.click(screen.getByText('Continue'))
         expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/withdraw/manteca'))
         expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('country=argentina'))
+    })
+})
+
+// ============================================================
+// GROUP 7: Native sub-views (?country=…) must stay on screen
+// ============================================================
+describe('GROUP 7: Native sub-view mounting', () => {
+    // React.lazy() called inside the render body hands back a fresh, unresolved
+    // lazy every time, so each re-render re-suspended: React hid the rendered
+    // view and showed the Suspense fallback (null) until the import re-resolved.
+    // The user saw the withdraw screen blank and load a second time.
+    const isHidden = (el: HTMLElement) => {
+        let node: HTMLElement | null = el
+        while (node) {
+            if (node.style?.display === 'none') return true
+            node = node.parentElement
+        }
+        return false
+    }
+
+    test('the lazy bank view survives a re-render without blanking', async () => {
+        const { rerender } = renderWithdraw({ country: 'us', view: 'bank' })
+        expect(await screen.findByTestId('native-bank-view')).toBeInTheDocument()
+        expect(mockBankViewMounts).toHaveBeenCalledTimes(1)
+
+        const queryClient = createQueryClient()
+        rerender(
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <WithdrawPage />
+                </QueryClientProvider>
+            </IntlWrapper>
+        )
+
+        // synchronously after the re-render — no awaiting a second import
+        expect(isHidden(screen.getByTestId('native-bank-view'))).toBe(false)
+        expect(mockBankViewMounts).toHaveBeenCalledTimes(1)
     })
 })
