@@ -164,12 +164,12 @@ export default function RedirectQrClaimPage() {
                     <Card className="space-y-4 p-6">
                         <div className="flex items-center justify-center">
                             <div className="bg-red-100 flex h-16 w-16 items-center justify-center rounded-full">
-                                <Icon name="cancel" size={32} className="text-red-600" />
+                                <Icon name="cancel" size={32} className="text-foreground-error" />
                             </div>
                         </div>
                         <div className="space-y-2 text-center">
-                            <h1 className="text-2xl font-extrabold">{t('claim.unavailableTitle')}</h1>
-                            <p className="text-base text-grey-1">
+                            <h1 className="text-heading-s">{t('claim.unavailableTitle')}</h1>
+                            <p className="text-body-m text-foreground-secondary">
                                 {redirectQrData?.claimed ? t('claim.alreadyClaimed') : t('claim.notAvailable')}
                             </p>
                         </div>
@@ -194,16 +194,16 @@ export default function RedirectQrClaimPage() {
                         </div>
                     </div>
                     <div className="space-y-2 text-center">
-                        <h1 className="text-2xl font-extrabold">{t('claim.inviteQrTitle')}</h1>
-                        <p className="text-base text-grey-1">{t('claim.inviteQrDescription')}</p>
+                        <h1 className="text-heading-s">{t('claim.inviteQrTitle')}</h1>
+                        <p className="text-body-m text-foreground-secondary">{t('claim.inviteQrDescription')}</p>
                     </div>
                 </Card>
 
                 {/* Important note */}
-                <Card className="border-2 border-secondary-1 bg-secondary-1/10 p-4">
+                <Card className="border-2 border-action-secondary bg-action-secondary/10 p-4">
                     <div className="flex gap-3">
-                        <Icon name="info" size={20} className="flex-shrink-0 text-secondary-1" />
-                        <p className="text-sm font-medium">
+                        <Icon name="info" size={20} className="flex-shrink-0 text-action-secondary" />
+                        <p className="text-body-s font-medium">
                             {t.rich('claim.permanentNote', { strong: (chunks) => <strong>{chunks}</strong> })}
                         </p>
                     </div>

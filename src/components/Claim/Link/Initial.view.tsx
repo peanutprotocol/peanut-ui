@@ -974,7 +974,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 </div>
             ) : (
                 <div className="-mt-1 md:hidden">
-                    <div className="pb-1 text-center text-2xl font-extrabold">{t('receive')}</div>
+                    <div className="pb-1 text-center text-heading-s">{t('receive')}</div>
                 </div>
             )}
             <div className="my-auto space-y-4 flex h-full flex-col justify-center">
@@ -1043,7 +1043,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         />
                     )}
                     {recipientType === 'username' && !!claimToExternalWallet && (
-                        <div className="text-xs text-grey-1">{t('initial.usdcArbitrumOnly')}</div>
+                        <div className="text-body-xs text-foreground-secondary">{t('initial.usdcArbitrumOnly')}</div>
                     )}
                 </div>
 
@@ -1061,7 +1061,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 !isValidRecipient ||
                                 (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
                             }
-                            className="text-sm md:text-base"
+                            className="text-body-s md:text-body-m"
                         >
                             {getButtonText()}
                         </Button>
@@ -1106,7 +1106,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         />
                         <Button
                             variant="transparent"
-                            className="h-fit p-0 text-sm underline"
+                            className="h-fit p-0 text-body-s underline"
                             onClick={() => {
                                 setShowConfirmationModal(false)
                                 setClaimToExternalWallet(false)

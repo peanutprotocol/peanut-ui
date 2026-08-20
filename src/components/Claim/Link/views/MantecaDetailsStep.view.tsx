@@ -61,7 +61,7 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
                 validate={validateDestinationAddress}
                 smartPasteKind="cbuCvuAlias"
             />
-            <div className="flex items-center gap-2 text-xs text-grey-1">
+            <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
                 <Icon name="info" width={16} height={16} />
                 <span>{t('manteca.ownAccountOnly')}</span>
             </div>

@@ -267,7 +267,7 @@ export default function SendLinkActionList({
             {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
                 <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
-                    <p className="text-center text-sm">{t('actions.invitedBy', { username })}</p>
+                    <p className="text-center text-body-s">{t('actions.invitedBy', { username })}</p>
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
                 </div>
             )}

@@ -22,8 +22,8 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
         <div className="space-y-4 flex flex-col items-center justify-center rounded-lg text-center">
             <Image src={PeanutCrying.src} unoptimized alt={t('errors.sadPeanutAlt')} width={96} height={96} />
             <div className="space-y-2">
-                <h1 className="text-lg font-semibold">{title}</h1>
-                <p className="text-sm font-normal md:max-w-xs">{message}</p>
+                <h1 className="text-heading-card text-foreground-primary">{title}</h1>
+                <p className="text-body-s font-normal md:max-w-xs">{message}</p>
             </div>
             <div className="flex w-full flex-col gap-2">
                 <Button onClick={onPrimaryClick} size="medium" shadowSize="4" variant="purple" className="w-full">
@@ -40,7 +40,10 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
                 >
                     {t('errors.talkToSupport')}
                 </Button>
-                <Link href="/home" className="mt-2 cursor-pointer text-sm text-grey-1 underline underline-offset-2">
+                <Link
+                    href="/home"
+                    className="mt-2 cursor-pointer text-body-s text-foreground-secondary underline underline-offset-2"
+                >
                     {t('errors.goBackToHome')}
                 </Link>
             </div>

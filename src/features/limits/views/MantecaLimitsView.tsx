@@ -35,7 +35,7 @@ const MantecaLimitsView = () => {
 
     return (
         <div className="space-y-6 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
 
@@ -67,21 +67,21 @@ const MantecaLimitsView = () => {
                                                     className="size-5 rounded-full object-cover"
                                                 />
                                             )}
-                                            <span className="text-xs text-grey-1">
+                                            <span className="text-body-xs text-foreground-secondary">
                                                 {t('totalAllowed', { asset: limit.asset })}
                                             </span>
                                         </div>
                                         <PeriodToggle value={period} onChange={setPeriod} />
                                     </div>
 
-                                    <div className="text-2xl font-bold">
+                                    <div className="text-heading-s text-foreground-primary">
                                         {formatAmountWithCurrency(limitData.limit, limit.asset)}
                                     </div>
 
                                     <LimitsProgressBar total={limitData.limit} remaining={limitData.remaining} />
 
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-grey-1">{t('remaining', { period })}</span>
+                                    <div className="flex items-center justify-between text-body-s">
+                                        <span className="text-foreground-secondary">{t('remaining', { period })}</span>
                                         <span className={`font-medium ${getLimitColorClass(remainingPercent, 'text')}`}>
                                             {formatAmountWithCurrency(limitData.remaining, limit.asset)}
                                         </span>
@@ -90,7 +90,7 @@ const MantecaLimitsView = () => {
                             )
                         })}
                         {/* info text */}
-                        <div className="flex items-center justify-center gap-2 text-xs text-grey-1">
+                        <div className="flex items-center justify-center gap-2 text-body-xs text-foreground-secondary">
                             <Icon name="info" size={16} />
                             <p>{t('appliesTo')}</p>
                         </div>

@@ -214,10 +214,10 @@ export default function RecoverFundsPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('youWillReceiveTo')} <AddressLink address={recipient.address} />
                             </h1>
-                            <h2 className="text-2xl font-extrabold">
+                            <h2 className="text-heading-s">
                                 {t('amountInChain', {
                                     amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
                                     symbol: selectedBalance!.symbol,
@@ -265,10 +265,10 @@ export default function RecoverFundsPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('sentTo')} <AddressLink address={recipient.address} />
                             </h1>
-                            <h2 className="text-2xl font-extrabold">
+                            <h2 className="text-heading-s">
                                 {t('amountInChain', {
                                     amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
                                     symbol: selectedBalance!.symbol,
@@ -345,7 +345,7 @@ export default function RecoverFundsPage() {
                         ))
                     ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                            <div className="text-center text-xl font-bold text-grey-1">{t('noTokens')}</div>
+                            <div className="text-center text-heading-xs text-foreground-secondary">{t('noTokens')}</div>
                         </div>
                     )}
                 </ScrollableList>

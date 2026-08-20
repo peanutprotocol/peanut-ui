@@ -21,7 +21,7 @@ const LimitsProgressBar = ({ total, remaining }: LimitsProgressBarProps) => {
     const clampedPercent = Math.min(Math.max(remainingPercent, 0), 100)
 
     return (
-        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-grey-2">
+        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-background-disabled">
             <div
                 className={twMerge(
                     'absolute left-0 h-full rounded-full transition-all duration-300',

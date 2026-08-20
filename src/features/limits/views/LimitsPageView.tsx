@@ -77,7 +77,7 @@ const LimitsPageView = () => {
 
     return (
         <div className="space-y-6 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={goBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={goBack} titleClassName="text-heading-xs md:text-heading-s" />
 
             {/* page description */}
             <InfoCard variant="info" description={t('pageDescription')} />
@@ -174,7 +174,7 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
                             router.push(route)
                         }}
                         description={label.description}
-                        descriptionClassName="text-xs"
+                        descriptionClassName="text-body-xs"
                     />
                 )
             })}
@@ -223,7 +223,7 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
                         }}
                         isDisabled={isPending}
                         description={label.description}
-                        descriptionClassName="text-xs"
+                        descriptionClassName="text-body-xs"
                         rightContent={isPending && <StatusBadge status="pending" customText={tCommon('pending')} />}
                     />
                 )

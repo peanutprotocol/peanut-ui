@@ -199,7 +199,9 @@ export const SuccessClaimLinkView = ({
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
                 {campaignTag?.toLowerCase() === 'devconnect_ba_2025' && (
-                    <p className="text-center text-xs text-grey-1">{t('success.devconnectReturnHint')}</p>
+                    <p className="text-center text-body-xs text-foreground-secondary">
+                        {t('success.devconnectReturnHint')}
+                    </p>
                 )}
             </div>
         </div>

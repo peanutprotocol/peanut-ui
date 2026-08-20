@@ -194,7 +194,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 {!!authUser?.user.userId ? (
                     <NavHeader onPrev={() => resetRequestState()} title={tNav('request')} />
                 ) : (
-                    <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
+                    <div className="text-center text-heading-xs md:hidden">{tNav('request')}</div>
                 )}
 
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
@@ -215,7 +215,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             {!!authUser?.user.userId ? (
                 <NavHeader onPrev={onBack} title={tNav('request')} />
             ) : (
-                <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
+                <div className="text-center text-heading-xs md:hidden">{tNav('request')}</div>
             )}
 
             <div className="my-auto space-y-4 flex h-full flex-col justify-center">

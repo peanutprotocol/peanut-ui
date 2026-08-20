@@ -81,7 +81,7 @@ export default function LimitsWarningCard({
             className={twMerge('p-4', className)}
             customContent={
                 <div className="flex flex-col gap-2">
-                    <ul className="space-y-1 list-inside list-disc text-xs md:text-sm">
+                    <ul className="space-y-1 list-inside list-disc text-body-xs md:text-body-s">
                         {items.map((item, index) => (
                             <li key={index}>
                                 {item.isLink && item.href ? (
@@ -103,7 +103,7 @@ export default function LimitsWarningCard({
                             <button
                                 onClick={onIncreaseLimits}
                                 disabled={isIncreaseLimitsLoading}
-                                className="flex items-center gap-1 text-xs md:text-sm"
+                                className="flex items-center gap-1 text-body-xs md:text-body-s"
                             >
                                 <Icon name="plus-circle" className="text-yellow-11" size={12} />
                                 <span className="font-semibold text-yellow-11 underline">
@@ -116,7 +116,7 @@ export default function LimitsWarningCard({
                             <div className="my-1 border-t border-yellow-9" />
                             <button
                                 onClick={() => openSupportWithMessage(LIMITS_COPY.SUPPORT_MESSAGE)}
-                                className="flex items-center gap-1 text-xs md:text-sm"
+                                className="flex items-center gap-1 text-body-xs md:text-body-s"
                             >
                                 <Icon name="plus-circle" className="text-yellow-11" size={12} />
                                 <span className="font-semibold text-yellow-11 underline">{t('needHigherLimits')}</span>
