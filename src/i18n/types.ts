@@ -152,6 +152,13 @@ export interface Translations {
     landingSupportedRailsFaqQuestion: string
     landingSupportedRailsFaqAnswer: string // "… {evmCount} … ({evmList}), plus {otherList} … {railList} …"
     listJoinAnd: string // conjunction used when joining name lists ("Solana and Tron")
+    // …and the rich chip body of the same FAQ item (SupportedRailsFaqAnswer).
+    // The plain-text answer above is one sentence; this is its headings.
+    landingSupportedRailsCrypto: string // "… {evmCount} … {otherList}:"
+    landingSupportedRailsTokens: string
+    landingSupportedRailsTokenNote: string
+    landingSupportedRailsBanks: string
+    landingSupportedRailsFree: string
 
     // Landing page — problem fold (three named cards, icons drawn by the component)
     landingProblemHeading: string

@@ -116,10 +116,12 @@ export function LandingPageClient({
         }
         return faqData.questions.map((q) => ({
             ...q,
-            ...(q.id === SUPPORTED_RAILS_FAQ_ID ? { answerContent: <SupportedRailsFaqAnswer /> } : {}),
+            ...(q.id === SUPPORTED_RAILS_FAQ_ID
+                ? { answerContent: <SupportedRailsFaqAnswer strings={strings.supportedRails} /> }
+                : {}),
             ...(learnMore[q.id] ? { learnMoreHref: learnMore[q.id] } : {}),
         }))
-    }, [faqData.questions, locale])
+    }, [faqData.questions, locale, strings.supportedRails])
 
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)

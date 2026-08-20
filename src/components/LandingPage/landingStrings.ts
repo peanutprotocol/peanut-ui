@@ -1,6 +1,6 @@
 import en from '@/i18n/en.json'
 import { type Translations } from '@/i18n/types'
-import type { LandingProblemStrings } from './landing.types'
+import type { LandingProblemStrings, LandingSupportedRailsStrings } from './landing.types'
 
 // Narrowed copy bag handed from the server landing page down through
 // LandingPageClient. Keeps the client bundle from importing all locale
@@ -28,6 +28,8 @@ export interface LandingStrings {
     wallOfLove: string
     wallOfLoveBody: string
     problem: LandingProblemStrings
+    /** Headings for the rich supported-rails FAQ body (SupportedRailsFaqAnswer). */
+    supportedRails: LandingSupportedRailsStrings
     /** Passed straight through to ExchangeRateWidget's `labels`. */
     exchange: {
         youSend: string
@@ -73,6 +75,14 @@ export function landingStrings(i18n: Translations): LandingStrings {
             sendHomeBody: i18n.landingProblemSendHomeBody,
             paidAbroadTitle: i18n.landingProblemPaidAbroadTitle,
             paidAbroadBody: i18n.landingProblemPaidAbroadBody,
+        },
+        supportedRails: {
+            crypto: i18n.landingSupportedRailsCrypto,
+            tokens: i18n.landingSupportedRailsTokens,
+            tokenNote: i18n.landingSupportedRailsTokenNote,
+            banks: i18n.landingSupportedRailsBanks,
+            free: i18n.landingSupportedRailsFree,
+            joinAnd: i18n.listJoinAnd,
         },
         exchange: {
             youSend: i18n.exchangeYouSend,
