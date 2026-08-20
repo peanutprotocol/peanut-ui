@@ -25,7 +25,12 @@ interface ActivationStatus {
     dismissCardStep: () => void
 }
 
-const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed'
+// v2 (2026-08-20): rotated when the card step moved AFTER deposit. The v1
+// flag was written by users dismissing the mis-timed PRE-deposit banner —
+// exactly the funded card-eligible cohort this change re-targets — so
+// honoring it would permanently suppress the step for the people it is for.
+// Worst case of the rotation: one extra "Maybe later".
+const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed_v2'
 
 /**
  * derives the user's activation status for gating rewards/referral UI.
@@ -119,15 +124,24 @@ export function useActivationStatus(): ActivationStatus {
         // replaces `outbound`/`completed` (funded states); `verify` and
         // `deposit` keep the trunk.
         //
-        // The #2262 problem this MUST not resurrect — the Bridge/region-picker
-        // KYC detour for card-only EU/NA users — is guarded independently:
-        // UnlockedRegions redirects hasCardAccess users to /card before any
-        // Bridge KYC starts, and /add-money lists the KYC-free crypto path
-        // first. Still fires for already-activated users who simply never took
-        // the card (the funnel would otherwise be `completed`).
+        // The #2262 problem this must not fully resurrect — the Bridge/
+        // region-picker KYC detour for card-only EU/NA users — is mitigated
+        // (not guaranteed) by two best-effort guards: UnlockedRegions
+        // redirects hasCardAccess users to /card before Bridge KYC starts
+        // (skipped while its card queries are still loading), and /add-money
+        // offers the KYC-free crypto path first (its bank rows still reach
+        // Bridge KYC). Residual exposure equals the pre-#2262 baseline; the
+        // full fix is the single-resolver consolidation (TASK-20837). The
+        // `completed` arm is belt-and-braces only: no shipped surface renders
+        // ActivationCTAs for an isActivated user (home swaps to the carousel),
+        // so it can only matter in the isActivated=false + milestone-lag edge.
         const hasCardAccess = cardInfo?.hasCardAccess ?? false
         const hasCard = !!findActiveCard(overview)
-        const isFunded = activationStep === 'outbound' || activationStep === 'completed'
+        // Funded = the BE milestone says so, OR the live chain balance is
+        // positive — a user whose inbound is still mid-poller (milestone stuck
+        // at 'verified') has real money and must not be told "add money"
+        // while the card step is withheld.
+        const isFunded = activationStep === 'outbound' || activationStep === 'completed' || hasBalance
         if (isFunded && hasCardAccess && !hasCard && !cardDismissed && !underMaintenanceConfig.disableCardLaunchCTA) {
             activationStep = 'card'
         }

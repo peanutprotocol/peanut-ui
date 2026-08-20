@@ -41,13 +41,15 @@ jest.mock('@/services/card', () => ({
 
 const mockFindActiveCard = jest.fn()
 jest.mock('@/components/Card/cardState.utils', () => ({
-    findActiveCard: () => mockFindActiveCard(),
+    findActiveCard: (overview: unknown) => mockFindActiveCard(overview),
 }))
 
 jest.mock('@/config/underMaintenance.config', () => ({
     __esModule: true,
     default: { disableCardLaunchCTA: false },
 }))
+// eslint-disable-next-line import/first
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 function setup(opts: {
     milestone?: 'registered' | 'verified' | 'funded' | 'activated'
@@ -77,6 +79,7 @@ function setup(opts: {
 beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    ;(underMaintenanceConfig as { disableCardLaunchCTA: boolean }).disableCardLaunchCTA = false
 })
 
 describe('card gate: card comes AFTER deposit, never before', () => {
@@ -110,10 +113,35 @@ describe('card gate: card comes AFTER deposit, never before', () => {
         expect(result.current.activationStep).toBe('card')
     })
 
-    it('dismissed card step stays dismissed even when funded', () => {
-        localStorage.setItem('peanut_card_activation_dismissed', 'true')
+    it('dismissed card step stays dismissed even when funded (v2 key)', () => {
+        localStorage.setItem('peanut_card_activation_dismissed_v2', 'true')
         const { result } = setup({ milestone: 'funded', hasCardAccess: true })
         expect(result.current.activationStep).toBe('outbound')
+    })
+
+    it('the PRE-deposit v1 dismissal does not suppress the post-deposit step (key rotation)', () => {
+        // The v1 flag was set by users dismissing the mis-timed pre-deposit
+        // banner — the exact cohort the relocated step targets.
+        localStorage.setItem('peanut_card_activation_dismissed', 'true')
+        const { result } = setup({ milestone: 'funded', hasCardAccess: true })
+        expect(result.current.activationStep).toBe('card')
+    })
+
+    it('live chain balance counts as funded even when the BE milestone lags at verified', () => {
+        // Inbound mid-poller: milestone stuck at 'verified' but money is real.
+        const { result } = setup({ milestone: 'verified', balance: '40', hasCardAccess: true })
+        expect(result.current.activationStep).toBe('card')
+    })
+
+    it('the disableCardLaunchCTA kill switch mutes the card step', () => {
+        ;(underMaintenanceConfig as { disableCardLaunchCTA: boolean }).disableCardLaunchCTA = true
+        const { result } = setup({ milestone: 'funded', hasCardAccess: true })
+        expect(result.current.activationStep).toBe('outbound')
+    })
+
+    it('the hook passes the rain overview through to findActiveCard', () => {
+        setup({ milestone: 'funded', hasCardAccess: true })
+        expect(mockFindActiveCard).toHaveBeenCalledWith(undefined) // useRainCardOverview mock returns overview: undefined
     })
 })
 
