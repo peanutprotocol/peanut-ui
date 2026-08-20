@@ -1,6 +1,7 @@
 'use client'
 
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -35,7 +36,6 @@ import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowCont
 import useClaimLink from '../useClaimLink'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
 import ActionModal from '@/components/Global/ActionModal'
-import { Slider } from '@/components/Slider'
 import { BankFlowManager } from './views/BankFlowManager.view'
 import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
@@ -1091,15 +1091,15 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 iconContainerClassName="bg-yellow-400"
                 footer={
                     <div className="space-y-3 w-full">
-                        <Slider
-                            onValueChange={(v) => {
-                                if (!v) return
+                        <SlideToConfirm
+                            label={tCommon('slideToProceed')}
+                            onConfirm={() => {
                                 // for cross-chain claims, advance to the confirm screen first
                                 if (isXChain) {
                                     setShowConfirmationModal(false)
                                     onNext()
                                 } else {
-                                    // direct on-chain claim – initiate immediately
+                                    // direct on-chain claim - initiate immediately
                                     handleClaimLink(true)
                                 }
                             }}

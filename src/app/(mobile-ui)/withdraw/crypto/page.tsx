@@ -1,6 +1,7 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import AddressLink from '@/components/Global/AddressLink'
 import Loading from '@/components/Global/Loading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
@@ -28,7 +29,6 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
-import { Slider } from '@/components/Slider'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -44,6 +44,7 @@ import { useTranslations } from 'next-intl'
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const t = useTranslations('withdraw')
+    const tCommon = useTranslations('common')
     const tNav = useTranslations('navigation')
     const toFriendlyError = useFriendlyError()
     // Send → Exchange or Wallet lands here as /withdraw/crypto?method=crypto.
@@ -692,12 +693,7 @@ export default function WithdrawCryptoPage() {
                 icon="alert"
                 footer={
                     <div className="w-full">
-                        <Slider
-                            onValueChange={(v: boolean) => {
-                                if (!v) return
-                                handleCompatibilityProceed()
-                            }}
-                        />
+                        <SlideToConfirm label={tCommon('slideToProceed')} onConfirm={handleCompatibilityProceed} />
                     </div>
                 }
             />

@@ -146,7 +146,7 @@ export const CountryList = ({
                 {inputDescription && <p className="text-xs font-normal">{inputDescription}</p>}
                 <SearchInput
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={setSearchTerm}
                     onClear={() => setSearchTerm('')}
                     placeholder={t('countryList.searchPlaceholder')}
                 />

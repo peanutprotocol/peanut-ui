@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import ActionModal from '@/components/Global/ActionModal'
-import SlideToAction from '@/components/Card/SlideToAction'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -151,9 +151,9 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                 isConfirm ? (
                     <>
                         {error && <p className="text-body-s text-foreground-error">{error}</p>}
-                        <SlideToAction
+                        <SlideToConfirm
                             label={phase === 'canceling' ? t('cancel.canceling') : t('cancel.slideToCancel')}
-                            onComplete={runCancel}
+                            onConfirm={runCancel}
                             disabled={phase === 'canceling'}
                         />
                     </>

@@ -1,6 +1,6 @@
 import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useTranslations } from 'next-intl'
-import { Slider } from '@/components/Slider'
 import ChainChip from '@/components/AddMoney/components/ChainChip'
 import {
     RHINO_SUPPORTED_EVM_CHAINS,
@@ -70,10 +70,7 @@ export default function TokenAndNetworkConfirmationModal({
             }
             footer={
                 <div className="w-full">
-                    <Slider
-                        onValueChange={(v) => v && onAccept()}
-                        title={t('tokenAndNetworkConfirmationModal.slideToProceed')}
-                    />
+                    <SlideToConfirm onConfirm={onAccept} label={t('tokenAndNetworkConfirmationModal.slideToProceed')} />
                 </div>
             }
             ctas={[]}

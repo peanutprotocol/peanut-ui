@@ -1,9 +1,9 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import { Slider } from '@/components/Slider'
 import { useTranslations } from 'next-intl'
 
 interface OnrampConfirmationModalProps {
@@ -22,6 +22,7 @@ export const OnrampConfirmationModal = ({
     currency,
 }: OnrampConfirmationModalProps) => {
     const t = useTranslations('addMoney.confirmationModal')
+    const tCommon = useTranslations('common')
     return (
         <ActionModal
             visible={visible}
@@ -32,7 +33,7 @@ export const OnrampConfirmationModal = ({
             title={t('title')}
             footer={
                 <div className="w-full">
-                    <Slider onValueChange={(v) => v && onConfirm()} />
+                    <SlideToConfirm label={tCommon('slideToProceed')} onConfirm={onConfirm} />
                 </div>
             }
             content={

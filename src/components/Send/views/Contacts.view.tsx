@@ -129,7 +129,7 @@ export default function ContactsView() {
                     {/* search input - always show when there are contacts or when searching */}
                     <SearchInput
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={setSearchQuery}
                         onClear={() => setSearchQuery('')}
                         placeholder={t('contacts.searchPlaceholder')}
                     />

@@ -4,7 +4,6 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import { useCallback, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
 
 interface CopyFieldProps {
     text: string
@@ -37,11 +36,7 @@ const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: Cop
             <Button
                 disabled={disabled && !onDisabledClick}
                 variant={variant ? variant : 'stroke'}
-                className={twMerge(
-                    'h-10 w-fit',
-                    disabled &&
-                        'bg-gray-200 focus-within:bg-gray-300 active:bg-gray-300 cursor-not-allowed text-black opacity-80 focus-within:text-black active:text-black'
-                )}
+                className="h-10 w-fit"
                 onClick={handleClick}
                 shadowSize={shadowSize}
             >

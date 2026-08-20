@@ -668,9 +668,10 @@ jest.mock('@/components/User/UserCard', () => ({
     default: (props: any) => <div data-testid="user-card">{props.username}</div>,
 }))
 
-jest.mock('@/components/Slider', () => ({
-    Slider: (props: any) => (
-        <button data-testid="slider" onClick={() => props.onValueChange?.(true)}>
+jest.mock('@/components/0_Bruddle/SlideToConfirm', () => ({
+    __esModule: true,
+    default: (props: any) => (
+        <button data-testid="slider" onClick={() => props.onConfirm?.()}>
             Slide to confirm
         </button>
     ),

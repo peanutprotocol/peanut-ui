@@ -173,10 +173,8 @@ const ValidatedInput = ({
         <div className="w-full">
             <div
                 className={twMerge(
-                    'relative w-full rounded-sm border border-border-default bg-background-default focus:border-action-primary dark:border-white',
-                    value && !isValidating && !isValid && debouncedValue === value
-                        ? 'border-error dark:border-error'
-                        : '',
+                    'relative w-full rounded-sm border border-border-default bg-background-default focus:border-action-primary',
+                    value && !isValidating && !isValid && debouncedValue === value ? 'border-error' : '',
                     className
                 )}
                 translate="no"
@@ -205,7 +203,7 @@ const ValidatedInput = ({
                                 : undefined
                         }
                         className={twMerge(
-                            `notranslate h-12 w-full border-0 bg-background-default pr-1 text-body-s font-medium outline-none focus:outline-none active:bg-background-default dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
+                            `notranslate h-12 w-full border-0 bg-background-default pr-1 text-body-s font-medium outline-none focus:outline-none active:bg-background-default`,
                             !!infoText ? 'pl-0' : 'pl-4'
                         )}
                         placeholder={placeholder}
@@ -229,15 +227,15 @@ const ValidatedInput = ({
                             }`}
                         >
                             {isValidating ? (
-                                <div className="flex h-full w-12 items-center justify-center dark:bg-n-1">
+                                <div className="flex h-full w-12 items-center justify-center">
                                     <Loading />
                                 </div>
                             ) : !!isSetupFlow && !isValid && !isInputChanging ? (
                                 <div className="mr-2 flex h-full items-center justify-center rounded-full">
-                                    <Icon size={20} className="text-secondary-2" name="error" />
+                                    <Icon size={20} className="text-error" name="error" />
                                 </div>
                             ) : !!isSetupFlow && !!isValid && !isInputChanging ? (
-                                <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-secondary-8">
+                                <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-success-3">
                                     <Icon size={12} className="rounded-full p-0 text-white" name="check" />
                                 </div>
                             ) : (
@@ -246,9 +244,9 @@ const ValidatedInput = ({
                                         e.preventDefault()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
-                                    className="flex h-full w-6 items-center justify-center pr-2 md:w-8 md:pr-0 dark:bg-n-1"
+                                    className="flex h-full w-6 items-center justify-center pr-2 md:w-8 md:pr-0"
                                 >
-                                    <Icon className="h-6 w-6 dark:fill-white" name="cancel" />
+                                    <Icon className="h-6 w-6" name="cancel" />
                                 </button>
                             )}
                         </div>
@@ -270,7 +268,7 @@ const ValidatedInput = ({
                                 dismissSuggestion()
                                 onUpdate({ value: suggestion, isValid: false, isChanging: true })
                             }}
-                            className="flex w-full items-start gap-1.5 rounded-sm border border-border-default bg-background-default px-3 py-2 text-left text-body-xs font-medium text-foreground-primary transition-colors hover:bg-n-3 dark:border-white dark:bg-n-1 dark:text-white dark:hover:bg-n-2"
+                            className="flex w-full items-start gap-1.5 rounded-sm border border-border-default bg-background-default px-3 py-2 text-left text-body-xs font-medium text-foreground-primary transition-colors hover:bg-background-disabled"
                         >
                             <Icon name="paste" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                             <span className="break-all">
