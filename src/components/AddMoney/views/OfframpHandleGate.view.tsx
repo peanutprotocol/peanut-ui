@@ -56,8 +56,8 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
             <NavHeader title={t('methods.migrateFromOfframp')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-xl font-extrabold">{t('offrampGate.title')}</h2>
-                    <p className="text-base font-medium text-grey-1">{t('offrampGate.description')}</p>
+                    <h2 className="text-heading-xs text-foreground-primary">{t('offrampGate.title')}</h2>
+                    <p className="text-body-m text-foreground-secondary">{t('offrampGate.description')}</p>
                 </div>
                 <div className="flex flex-col gap-2">
                     <BaseInput
@@ -72,7 +72,7 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
                         autoCapitalize="none"
                         spellCheck={false}
                     />
-                    {error && <p className="text-sm font-medium text-error">{error}</p>}
+                    {error && <p className="text-body-s font-medium text-foreground-error">{error}</p>}
                 </div>
                 <Button
                     variant="purple"

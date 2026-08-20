@@ -105,18 +105,20 @@ const MantecaDepositShareDetails = ({
                                 height={48}
                                 className="h-12 w-12 rounded-full object-cover"
                             />
-                            <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
+                            <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
                                 <Icon name="bank" size={12} />
                             </div>
                         </div>
                         <div>
-                            <p className="text-gray-600 flex items-center gap-1 text-center text-sm">
+                            <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
                                 <Icon name="arrow-down" size={10} /> {t('manteca.youreAdding')}
                             </p>
-                            <p className="text-2xl font-bold">
+                            <p className="text-heading-s text-foreground-primary">
                                 {currencySymbol} {formatCurrency(depositAmount)}
                             </p>
-                            <div className="text-lg font-bold">≈ {formatCurrency(usdAmount)} USD</div>
+                            <div className="text-heading-card text-foreground-primary">
+                                ≈ {formatCurrency(usdAmount)} USD
+                            </div>
                         </div>
                     </div>
                 </Card>

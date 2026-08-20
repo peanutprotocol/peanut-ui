@@ -25,13 +25,13 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
         <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DrawerContent className="pt-4">
                 <DrawerHeader className="pt-0 text-center">
-                    <DrawerTitle className="text-lg font-bold">{t('title')}</DrawerTitle>
+                    <DrawerTitle className="text-heading-card text-foreground-primary">{t('title')}</DrawerTitle>
                     <DrawerDescription>{t('description')}</DrawerDescription>
                 </DrawerHeader>
 
                 <div className="flex flex-col px-4 pb-6">
                     {/* evm - card with expanded networks */}
-                    <div className="overflow-hidden rounded-t-sm border border-black bg-white">
+                    <div className="overflow-hidden rounded-t-sm border border-border-default bg-background-default">
                         <ActionListCard
                             title="EVM"
                             description={t('evmDescription', { count: evmChainCount })}
@@ -49,7 +49,10 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                             onClick={() => onSelect('EVM')}
                         />
                         {/* expanded chain list */}
-                        <div onClick={() => onSelect('EVM')} className="mx-4 border-t border-dashed border-black py-3">
+                        <div
+                            onClick={() => onSelect('EVM')}
+                            className="mx-4 border-t border-dashed border-border-default py-3"
+                        >
                             <div className="flex flex-wrap gap-2">
                                 <EvmChainChips />
                             </div>

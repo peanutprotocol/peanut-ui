@@ -1,5 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Card from '@/components/Global/Card'
 import CopyToClipboard, { type CopyToClipboardRef } from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -59,20 +60,22 @@ const RhinoDepositView = ({
 
     if (depositAddressStatus === 'failed') {
         return (
-            <div className="space-y-8 flex min-h-[inherit] w-full flex-col justify-start pb-5 md:pb-0">
+            <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 pb-5 md:pb-0">
                 <NavHeader title={headerTitle} onPrev={onBack} />
 
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
                     <Card>
                         <div className="flex w-full flex-col items-center justify-center gap-2">
-                            <div className="flex size-9 items-center justify-center rounded-full bg-secondary-1">
-                                <Icon name="alert" size={20} />
-                            </div>
-                            <h1 className="text-base font-bold">{t('marketMovedTitle')}</h1>
+                            <IconBubble icon="alert" size="s" color="yellow" />
+                            <h1 className="text-heading-card text-foreground-primary">{t('marketMovedTitle')}</h1>
 
-                            <p className="text-center text-sm text-grey-1">{t('marketMovedDescription')}</p>
+                            <p className="text-center text-body-s text-foreground-secondary">
+                                {t('marketMovedDescription')}
+                            </p>
 
-                            <p className="text-center text-sm font-bold text-grey-1">{t('marketMovedNote')}</p>
+                            <p className="text-center text-body-s font-bold text-foreground-secondary">
+                                {t('marketMovedNote')}
+                            </p>
                         </div>
                     </Card>
                     <Button onClick={resetStatus} shadowSize="4" loading={isResetting} disabled={isResetting}>
@@ -84,7 +87,7 @@ const RhinoDepositView = ({
     }
 
     return (
-        <div className="space-y-8 flex w-full flex-col justify-start pb-5 md:pb-0">
+        <div className="flex w-full flex-col justify-start gap-8 pb-5 md:pb-0">
             <NavHeader title={headerTitle} onPrev={onBack} />
 
             <div className="my-auto flex w-full flex-grow flex-col items-center justify-center gap-4 md:my-0">
@@ -105,24 +108,24 @@ const RhinoDepositView = ({
                     className="w-full"
                 >
                     <List
-                        className="flex w-full items-center rounded-xl bg-white p-0"
+                        className="flex w-full items-center rounded-sm bg-background-default p-0"
                         aria-label={t('selectNetworkType')}
                     >
                         <Trigger
                             value="EVM"
-                            className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
+                            className="flex-1 rounded-sm border border-transparent py-1.5 text-body-s font-medium text-foreground-secondary transition-all duration-fast data-[state=active]:border-action-primary data-[state=active]:bg-action-primary/10 data-[state=active]:text-action-primary"
                         >
                             EVM
                         </Trigger>
                         <Trigger
                             value="SOL"
-                            className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
+                            className="flex-1 rounded-sm border border-transparent py-1.5 text-body-s font-medium text-foreground-secondary transition-all duration-fast data-[state=active]:border-action-primary data-[state=active]:bg-action-primary/10 data-[state=active]:text-action-primary"
                         >
                             Solana
                         </Trigger>
                         <Trigger
                             value="TRON"
-                            className="flex-1 rounded-xl border border-transparent py-1.5 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1"
+                            className="flex-1 rounded-sm border border-transparent py-1.5 text-body-s font-medium text-foreground-secondary transition-all duration-fast data-[state=active]:border-action-primary data-[state=active]:bg-action-primary/10 data-[state=active]:text-action-primary"
                         >
                             Tron
                         </Trigger>
@@ -148,7 +151,7 @@ const RhinoDepositView = ({
                             size="small"
                             onClick={() => copyRef.current?.copy()}
                         >
-                            <p className="w-full text-sm" ref={containerRef}>
+                            <p className="w-full text-body-s" ref={containerRef}>
                                 {truncatedAddress}
                             </p>
                             <CopyToClipboard ref={copyRef} type="icon" textToCopy={depositAddressData.depositAddress} />
@@ -161,7 +164,7 @@ const RhinoDepositView = ({
                             containerClassName="items-center"
                             customContent={
                                 <div className="flex items-center gap-2">
-                                    <p className="text-sm">{t('supportedTokensInline')}</p>
+                                    <p className="text-body-s">{t('supportedTokensInline')}</p>
                                     {getSupportedTokens(chainType).map((token) => (
                                         <ChainChip
                                             key={token.name}
@@ -173,29 +176,29 @@ const RhinoDepositView = ({
                             }
                         />
 
-                        <div className="space-y-1 w-full">
+                        <div className="flex w-full flex-col gap-1">
                             <div className="flex w-full items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <Icon name="info" size={18} className="text-grey-1" />
-                                    <p className="text-sm text-grey-1">
+                                    <Icon name="info" size={18} className="text-foreground-secondary" />
+                                    <p className="text-body-s text-foreground-secondary">
                                         {t('minDepositForLabel', { network: amountLimitsTitle })}
                                     </p>
                                 </div>
 
-                                <p className="text-sm font-medium text-grey-1">
+                                <p className="text-body-s font-medium text-foreground-secondary">
                                     {depositAddressData.minDepositLimitUsd} USD
                                 </p>
                             </div>
 
                             <div className="flex w-full items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <Icon name="info" size={18} className="text-grey-1" />
-                                    <p className="text-sm text-grey-1">
+                                    <Icon name="info" size={18} className="text-foreground-secondary" />
+                                    <p className="text-body-s text-foreground-secondary">
                                         {t('maxDepositForLabel', { network: amountLimitsTitle })}
                                     </p>
                                 </div>
 
-                                <p className="text-sm font-medium text-grey-1">
+                                <p className="text-body-s font-medium text-foreground-secondary">
                                     {depositAddressData.maxDepositLimitUsd} USD
                                 </p>
                             </div>
@@ -203,7 +206,9 @@ const RhinoDepositView = ({
 
                         {chainType === 'EVM' && (
                             <Card className="space-y-2 p-4">
-                                <h3 className="text-sm font-bold text-black">{t('supportedEvmNetworks')}</h3>
+                                <h3 className="text-body-s font-bold text-foreground-primary">
+                                    {t('supportedEvmNetworks')}
+                                </h3>
                                 <div className="flex flex-wrap gap-2">
                                     {SUPPORTED_EVM_CHAINS.map((chain) => (
                                         <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />

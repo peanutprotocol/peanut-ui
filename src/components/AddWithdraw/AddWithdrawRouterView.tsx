@@ -18,7 +18,7 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { isMantecaCountry } from '@/constants/manteca.consts'
 import Card from '@/components/Global/Card'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CountryList } from '../Common/CountryList'
 import Loading from '../Global/Loading'
 import SavedAccountsView from '../Common/SavedAccountsView'
@@ -207,10 +207,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <Card className="my-auto flex flex-col items-center justify-center gap-4 p-4">
                     <div className="space-y-2">
-                        <AvatarWithBadge icon="alert" size="small" className="mx-auto bg-yellow-1" />
+                        <IconBubble icon="alert" size="m" color="yellow" className="mx-auto" />
                         <div className="space-y-1 text-center">
-                            <h2 className="text-lg font-bold">{t('noAccountsTitle')}</h2>
-                            <p className="text-sm text-grey-1">
+                            <h2 className="text-heading-card text-foreground-primary">{t('noAccountsTitle')}</h2>
+                            <p className="text-body-s text-foreground-secondary">
                                 {t.rich('noAccountsDescription', { br: () => <br /> })}
                             </p>
                         </div>
@@ -264,7 +264,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             <div className="flex min-h-[inherit] flex-col justify-normal gap-6">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="space-y-2 flex h-full flex-col justify-center">
-                    <h2 className="text-base font-bold">{tAddMoney('recentMethods')}</h2>
+                    <h2 className="text-heading-card text-foreground-primary">{tAddMoney('recentMethods')}</h2>
                     <DepositMethodList
                         methods={recentMethodsWithType as DepositMethod[]}
                         onItemClick={handleMethodSelected}
@@ -273,9 +273,9 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1">
-                    <div className="h-[1px] w-full bg-grey-1"></div>
-                    <span className="text-xs font-bold text-grey-1 lg:text-sm">{tCommon('or')}</span>
-                    <div className="h-[1px] w-full bg-grey-1"></div>
+                    <div className="h-px w-full bg-border-subtle"></div>
+                    <span className="text-label-m text-foreground-secondary">{tCommon('or')}</span>
+                    <div className="h-px w-full bg-border-subtle"></div>
                 </div>
                 <Button icon="plus" className="mb-5" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
                     {tAddMoney('selectNewMethod')}

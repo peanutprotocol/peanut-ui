@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -89,25 +90,27 @@ const CryptoDepositView = ({
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
                     <Card>
                         <div className="flex w-full flex-col items-center justify-center gap-2">
-                            <div className="flex size-9 items-center justify-center rounded-full bg-secondary-1">
-                                <Icon name="alert" size={20} />
-                            </div>
-                            <h1 className="text-base font-bold">
+                            <IconBubble icon="alert" size="s" color="yellow" />
+                            <h1 className="text-heading-card text-foreground-primary">
                                 {isOfframp ? t('transferSentBackTitle') : t('marketMovedTitle')}
                             </h1>
                             {isOfframp ? (
                                 <>
-                                    <p className="text-center text-sm text-grey-1">
+                                    <p className="text-center text-body-s text-foreground-secondary">
                                         {t('transferSentBackDescription')}
                                     </p>
-                                    <p className="text-center text-sm font-bold text-grey-1">
+                                    <p className="text-center text-body-s font-bold text-foreground-secondary">
                                         {t('transferSentBackNote')}
                                     </p>
                                 </>
                             ) : (
                                 <>
-                                    <p className="text-center text-sm text-grey-1">{t('marketMovedDescription')}</p>
-                                    <p className="text-center text-sm font-bold text-grey-1">{t('marketMovedNote')}</p>
+                                    <p className="text-center text-body-s text-foreground-secondary">
+                                        {t('marketMovedDescription')}
+                                    </p>
+                                    <p className="text-center text-body-s font-bold text-foreground-secondary">
+                                        {t('marketMovedNote')}
+                                    </p>
                                 </>
                             )}
                         </div>
@@ -126,14 +129,14 @@ const CryptoDepositView = ({
 
             <div className="my-auto flex w-full flex-col gap-4">
                 {/* subtitle */}
-                <p className="text-center text-sm text-grey-1">
+                <p className="text-center text-body-s text-foreground-secondary">
                     {isOfframp
                         ? t.rich('sendUsdcOnArbitrum', {
-                              b: (chunks) => <span className="font-bold text-n-1">{chunks}</span>,
+                              b: (chunks) => <span className="font-bold text-foreground-primary">{chunks}</span>,
                           })
                         : t.rich('sendTokensToAddress', {
                               network: networkLabel,
-                              b: (chunks) => <span className="font-bold text-n-1">{chunks}</span>,
+                              b: (chunks) => <span className="font-bold text-foreground-primary">{chunks}</span>,
                           })}
                 </p>
 
@@ -155,7 +158,12 @@ const CryptoDepositView = ({
                             description={t('addressErrorDescription')}
                         />
                         {onRetry && (
-                            <Button variant="stroke" className="w-full bg-white" shadowSize="4" onClick={onRetry}>
+                            <Button
+                                variant="stroke"
+                                className="w-full bg-background-default"
+                                shadowSize="4"
+                                onClick={onRetry}
+                            >
                                 {tCommon('tryAgain')}
                             </Button>
                         )}
@@ -173,32 +181,32 @@ const CryptoDepositView = ({
                         </div>
 
                         {/* deposit address + networks + tokens card — white bg */}
-                        <div className="flex flex-col overflow-hidden rounded-sm border border-black bg-white">
+                        <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
                             {/* address section */}
                             <div className="flex flex-col gap-2 p-4">
                                 <div className="flex items-center gap-1">
                                     {isOfframp ? (
                                         <Tooltip content={t('migrationAddressTooltip')} position="bottom">
                                             <span className="flex items-center gap-1">
-                                                <span className="text-sm font-bold">
+                                                <span className="text-body-s font-bold">
                                                     {t('migrationDepositAddress')}
                                                 </span>
-                                                <Icon name="info" size={18} className="text-grey-1" />
+                                                <Icon name="info" size={18} className="text-foreground-secondary" />
                                             </span>
                                         </Tooltip>
                                     ) : (
                                         <Tooltip content={tooltipText[network]} position="bottom">
                                             <span className="flex items-center gap-1">
-                                                <span className="text-sm font-bold">
+                                                <span className="text-body-s font-bold">
                                                     {isEvm ? t('universalDepositAddress') : t('depositAddress')}
                                                 </span>
-                                                <Icon name="info" size={18} className="text-grey-1" />
+                                                <Icon name="info" size={18} className="text-foreground-secondary" />
                                             </span>
                                         </Tooltip>
                                     )}
                                 </div>
                                 <div className="flex items-start justify-between gap-2">
-                                    <p className="text-sm break-all">
+                                    <p className="text-body-s break-all">
                                         <span className="font-semibold">
                                             {depositAddressData.depositAddress.slice(0, 6)}
                                         </span>
@@ -222,9 +230,9 @@ const CryptoDepositView = ({
                                         setShowSupportedNetworks(true)
                                     }
                                 }}
-                                className={`border-t border-black p-4 ${isEvm && !isOfframp ? 'cursor-pointer' : ''}`}
+                                className={`border-t border-border-default p-4 ${isEvm && !isOfframp ? 'cursor-pointer' : ''}`}
                             >
-                                <p className="mb-2 text-sm font-bold">
+                                <p className="mb-2 text-body-s font-bold">
                                     {isOfframp ? t('network') : t('supportedNetworks')}
                                 </p>
                                 <div className="flex items-center gap-2">
@@ -240,7 +248,7 @@ const CryptoDepositView = ({
                                                         alt={chain}
                                                         width={22}
                                                         height={22}
-                                                        className="h-5 w-5 rounded-full border border-black object-cover"
+                                                        className="h-5 w-5 rounded-full border border-border-default object-cover"
                                                     />
                                                 ))}
                                             </>
@@ -266,8 +274,8 @@ const CryptoDepositView = ({
                             </div>
 
                             {/* supported tokens section */}
-                            <div className="border-t border-black p-4">
-                                <p className="mb-2 text-sm font-bold">
+                            <div className="border-t border-border-default p-4">
+                                <p className="mb-2 text-body-s font-bold">
                                     {isOfframp ? t('token') : t('supportedTokens')}
                                 </p>
                                 <div className="flex flex-wrap gap-1.5">
@@ -291,35 +299,41 @@ const CryptoDepositView = ({
                         />
 
                         {/* min/max limits */}
-                        <div className="space-y-1 w-full">
+                        <div className="flex w-full flex-col gap-1">
                             <div className="flex w-full items-center justify-between">
-                                <p className="text-sm text-grey-1">
+                                <p className="text-body-s text-foreground-secondary">
                                     {isOfframp
                                         ? t('minPerTransfer')
                                         : t('minDepositFor', { network: amountLimitsLabel })}
                                 </p>
-                                <p className="text-sm font-bold">
+                                <p className="text-body-s font-bold">
                                     {depositAddressData.minDepositLimitUsd.toLocaleString()} USD
                                 </p>
                             </div>
                             <div className="flex w-full items-center justify-between">
-                                <p className="text-sm text-grey-1">
+                                <p className="text-body-s text-foreground-secondary">
                                     {isOfframp
                                         ? t('maxPerTransfer')
                                         : t('maxDepositFor', { network: amountLimitsLabel })}
                                 </p>
-                                <p className="text-sm font-bold">
+                                <p className="text-body-s font-bold">
                                     {depositAddressData.maxDepositLimitUsd.toLocaleString()} USD
                                 </p>
                             </div>
-                            {!isOfframp && <p className="pt-1 text-sm text-grey-1">{t('bridgingFeeNote')}</p>}
-                            {isOfframp && <p className="pt-1 text-sm text-grey-1">{t('multipleTransfersNote')}</p>}
+                            {!isOfframp && (
+                                <p className="pt-1 text-body-s text-foreground-secondary">{t('bridgingFeeNote')}</p>
+                            )}
+                            {isOfframp && (
+                                <p className="pt-1 text-body-s text-foreground-secondary">
+                                    {t('multipleTransfersNote')}
+                                </p>
+                            )}
                         </div>
 
                         {/* how to deposit button */}
                         <Button
                             variant="stroke"
-                            className="w-full bg-white"
+                            className="w-full bg-background-default"
                             shadowSize="4"
                             onClick={() => setShowHowToDeposit(true)}
                         >

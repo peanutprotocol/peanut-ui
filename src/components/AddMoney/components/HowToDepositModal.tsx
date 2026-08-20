@@ -29,14 +29,14 @@ const HowToDepositModal = ({ visible, onClose, variant = 'default' }: HowToDepos
             title={isOfframp ? t('titleOfframp') : t('title')}
             content={
                 <div className="flex w-full flex-col gap-5 text-left">
-                    <div className="flex flex-col overflow-hidden rounded-sm border border-black bg-white">
+                    <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
                         {steps.map((item, index) => (
                             <div
                                 key={index}
-                                className={`px-4 py-3 ${index !== steps.length - 1 ? 'border-b border-black' : ''}`}
+                                className={`px-4 py-3 ${index !== steps.length - 1 ? 'border-b border-border-default' : ''}`}
                             >
-                                <p className="text-sm font-bold">{item.step}</p>
-                                <p className="text-sm text-grey-1">{item.text}</p>
+                                <p className="text-body-s font-bold">{item.step}</p>
+                                <p className="text-body-s text-foreground-secondary">{item.text}</p>
                             </div>
                         ))}
                     </div>

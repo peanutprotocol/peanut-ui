@@ -362,7 +362,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                             : undefined
                                     }
                                     className={twMerge(
-                                        'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
+                                        'h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-body-s',
                                         errors[name] && touchedFields[name] && 'border-error'
                                     )}
                                     onBlur={async (_e) => {
@@ -378,7 +378,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     }}
                                     rightContent={
                                         showCharCount && maxLength ? (
-                                            <span className="text-xs">
+                                            <span className="text-body-xs">
                                                 {field.value?.length ?? 0}/{maxLength}
                                             </span>
                                         ) : undefined
@@ -416,7 +416,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             onBlur={field.onBlur}
                             error={!!(errors[name] && touchedFields[name])}
                             className={twMerge(
-                                'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
+                                'h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-body-s',
                                 errors[name] && touchedFields[name] && 'border-error'
                             )}
                         />
@@ -449,7 +449,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 />
 
                 <div className="space-y-4">
-                    <h3 className="text-base font-bold">{t('heading')}</h3>
+                    <h3 className="text-heading-card text-foreground-primary">{t('heading')}</h3>
                     <form
                         onSubmit={(e) => {
                             e.preventDefault()

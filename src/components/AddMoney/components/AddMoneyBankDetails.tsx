@@ -278,9 +278,11 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
             <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-5">
                 <Card className="p-4">
-                    <p className="text-xs font-normal text-gray-1">{t('bankDetails.amountToSend')}</p>
+                    <p className="text-body-xs text-foreground-secondary">{t('bankDetails.amountToSend')}</p>
                     <div className="flex items-baseline gap-2">
-                        <p className="text-2xl font-extrabold text-black md:text-4xl">{formattedCurrencyAmount}</p>
+                        <p className="text-heading-s text-foreground-primary md:text-heading-l">
+                            {formattedCurrencyAmount}
+                        </p>
                         <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="4" />
                     </div>
 
@@ -293,9 +295,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 </Card>
 
                 <Card className="p-4">
-                    <p className="text-xs font-normal text-gray-1">{t('bankDetails.depositReference')}</p>
+                    <p className="text-body-xs text-foreground-secondary">{t('bankDetails.depositReference')}</p>
                     <div className="flex items-baseline gap-2">
-                        <p className="text-xl font-extrabold text-black md:text-4xl">
+                        <p className="text-heading-xs text-foreground-primary md:text-heading-l">
                             {shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
                                 tCommon('loading')}
                         </p>
@@ -317,7 +319,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 </Card>
 
                 <Card className="gap-2 rounded-sm">
-                    <h1 className="text-xs">{t('bankDetails.title')}</h1>
+                    <h1 className="text-label-m text-foreground-secondary">{t('bankDetails.title')}</h1>
 
                     {/* resolveBridgeAccountHolderName maps Bridge's stale/absent legal entity name to the current one (Sp. Z.o.o. -> S.A.) */}
                     <PaymentInfoRow

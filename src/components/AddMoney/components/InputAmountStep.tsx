@@ -77,7 +77,7 @@ const InputAmountStep = ({
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {maintenanceBanner}
-                <div className="text-sm font-bold">{t('howMuchToAdd')}</div>
+                <div className="text-body-s font-bold">{t('howMuchToAdd')}</div>
 
                 <AmountInput
                     initialAmount={tokenAmount}
@@ -102,7 +102,7 @@ const InputAmountStep = ({
                 {/* limits warning/error card */}
                 {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
-                <div className="flex items-center gap-2 text-xs text-grey-1">
+                <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
                     <Icon name="info" width={16} height={16} />
                     <span>{t('mustMatchBankTransfer')}</span>
                 </div>

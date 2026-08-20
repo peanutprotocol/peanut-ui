@@ -67,12 +67,16 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                         description={method.description || method.currency}
                         leftIcon={
                             method.type === 'crypto' ? (
-                                <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
+                                <AvatarWithBadge
+                                    icon="wallet-outline"
+                                    size="extra-small"
+                                    className="bg-background-icon-bubble-yellow"
+                                />
                             ) : method.id === 'bank-transfer-add' ? (
                                 <AvatarWithBadge
                                     icon="bank"
                                     size="extra-small"
-                                    className="bg-yellow-1"
+                                    className="bg-background-icon-bubble-yellow"
                                     inlineStyle={{ color: 'black' }}
                                 />
                             ) : method.type === 'country' ? (
@@ -85,13 +89,17 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                                     loading="lazy"
                                 />
                             ) : (
-                                <AvatarWithBadge name={method.title} size="extra-small" className="bg-yellow-1" />
+                                <AvatarWithBadge
+                                    name={method.title}
+                                    size="extra-small"
+                                    className="bg-background-icon-bubble-yellow"
+                                />
                             )
                         }
                         onClick={() => onItemClick(method)}
                         position={determinedPosition}
                         className={twMerge(classNames.join(' '))}
-                        descriptionClassName="text-xs"
+                        descriptionClassName="text-body-xs"
                     />
                 )
             })}

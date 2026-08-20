@@ -34,7 +34,7 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
     return (
         <>
             <div className="flex flex-col gap-2">
-                <h2 className="text-base font-bold">{t('howWouldYouLikeToAdd')}</h2>
+                <h2 className="text-heading-card text-foreground-primary">{t('howWouldYouLikeToAdd')}</h2>
                 <div className="flex flex-col">
                     {hasOfframpMigrationEntry && (
                         <ActionListCard
@@ -42,7 +42,11 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
                             description={t('methods.migrateFromOfframpDescription')}
                             position="first"
                             leftIcon={
-                                <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
+                                <AvatarWithBadge
+                                    icon="wallet-outline"
+                                    size="extra-small"
+                                    className="bg-background-icon-bubble-yellow"
+                                />
                             }
                             onClick={() => router.push(OFFRAMP_MIGRATION_ROUTE)}
                         />
@@ -51,7 +55,13 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
                         title={t('methods.crypto')}
                         description={t('methods.cryptoDescription')}
                         position={hasOfframpMigrationEntry ? 'middle' : 'first'}
-                        leftIcon={<AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />}
+                        leftIcon={
+                            <AvatarWithBadge
+                                icon="wallet-outline"
+                                size="extra-small"
+                                className="bg-background-icon-bubble-yellow"
+                            />
+                        }
                         onClick={() => setIsDrawerOpen(true)}
                     />
                     <ActionListCard
@@ -62,7 +72,7 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
                             <AvatarWithBadge
                                 icon="bank"
                                 size="extra-small"
-                                className="bg-yellow-1"
+                                className="bg-background-icon-bubble-yellow"
                                 inlineStyle={{ color: 'black' }}
                             />
                         }

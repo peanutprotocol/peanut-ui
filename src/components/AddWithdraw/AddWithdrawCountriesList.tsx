@@ -465,7 +465,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         return (
             <div className="space-y-2">
-                <h2 className="text-base font-bold">{title}</h2>
+                <h2 className="text-heading-card text-foreground-primary">{title}</h2>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
@@ -480,7 +480,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                 isDisabled={method.isSoon}
                                 title={method.title}
                                 description={method.description}
-                                descriptionClassName={'text-xs'}
+                                descriptionClassName={'text-body-xs'}
                                 leftIcon={
                                     typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge

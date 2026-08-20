@@ -405,7 +405,7 @@ function BridgeBankOnrampPage() {
             <div className="space-y-8 flex flex-col justify-start">
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
-                    <div className="text-sm font-bold">{t('howMuchToAdd')}</div>
+                    <div className="text-body-s font-bold">{t('howMuchToAdd')}</div>
                     <AmountInput
                         initialAmount={rawTokenAmount}
                         setPrimaryAmount={handleTokenAmountChange}
