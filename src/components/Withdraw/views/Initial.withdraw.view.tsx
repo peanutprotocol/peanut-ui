@@ -216,7 +216,7 @@ export default function InitialWithdrawView({
                     the user must see where funds will actually go before any
                     review/warning step (external tester feedback). */}
                 {!!recipient.name && !!recipient.address && isValidRecipient && !inputChanging && (
-                    <p className="text-left text-xs text-grey-1">
+                    <p className="text-left text-body-xs text-foreground-secondary">
                         {recipient.name} {t('resolvesTo')}{' '}
                         <span className="font-mono">{printableAddress(recipient.address)}</span>
                     </p>

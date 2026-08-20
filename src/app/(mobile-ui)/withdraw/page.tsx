@@ -415,7 +415,7 @@ export default function WithdrawPage() {
                 />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="space-y-1">
-                        <div className="text-xl font-bold">
+                        <div className="text-heading-xs text-foreground-primary">
                             {isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                         </div>
                     </div>

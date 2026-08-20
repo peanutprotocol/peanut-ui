@@ -212,10 +212,10 @@ const UnlockedRegions = () => {
 
     return (
         <div className="space-y-8 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
             <div className="my-auto">
                 <h1 className="font-bold">{t('title')}</h1>
-                <p className="mt-2 text-sm">{t('description')}</p>
+                <p className="mt-2 text-body-s">{t('description')}</p>
 
                 {/* Pending Bridge verification tasks (ToS / hosted re-verification).
                     Non-dismissible here — this is where the /home card's X sends
@@ -238,7 +238,7 @@ const UnlockedRegions = () => {
                 {lockedRegions.length > 0 && (
                     <>
                         <h1 className="mt-5 font-bold">{t('lockedTitle')}</h1>
-                        <p className="mt-2 text-sm">{t('lockedDescription')}</p>
+                        <p className="mt-2 text-body-s">{t('lockedDescription')}</p>
 
                         <RegionsList regions={lockedRegions} isLocked={true} onRegionClick={handleRegionClick} />
                     </>
@@ -404,7 +404,7 @@ const RegionsList = ({ regions, isLocked, onRegionClick }: RegionsListProps) => 
                         }}
                         isDisabled={!isLocked}
                         description={label.description}
-                        descriptionClassName="text-xs"
+                        descriptionClassName="text-body-xs"
                         rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
                     />
                 )

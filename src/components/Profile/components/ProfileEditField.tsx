@@ -25,7 +25,9 @@ const ProfileEditField: React.FC<ProfileEditFieldProps> = ({
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <label className={twMerge('text-sm font-bold', disabled && 'text-grey-1')}>{label}</label>
+                <label className={twMerge('text-body-s font-bold', disabled && 'text-foreground-secondary')}>
+                    {label}
+                </label>
                 {badge && <StatusBadge status="soon" size="small" customText={badge} />}
             </div>
             <BaseInput
@@ -34,7 +36,7 @@ const ProfileEditField: React.FC<ProfileEditFieldProps> = ({
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
                 className={twMerge(
-                    'h-10 w-full rounded-sm border border-black p-3 focus:border-primary-1 focus:ring-1 focus:ring-primary-1 focus:outline-none',
+                    'h-10 w-full rounded-sm border border-border-default p-3 focus:border-action-primary focus:ring-1 focus:ring-action-primary focus:outline-none',
                     disabled && 'bg-grey-4'
                 )}
                 disabled={disabled}

@@ -194,11 +194,14 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // Determine delivery time text based on destination currency
     const deliveryTimeText = destinationCurrency === 'USD' ? l.arrivesHours : l.arrivesMinutes
 
+    // DS note: token-level restyle only. the widget still composes raw .btn
+    // shells instead of DS Card/ListItem and needs a figma board before a
+    // structural rebuild — flagged in the ds-apply-pages PR, not done here.
     return (
-        <div className="btn btn-shadow-primary-4 mx-auto mt-12 flex h-fit w-full flex-col items-center justify-center gap-4 bg-white p-7 md:w-[420px]">
+        <div className="btn btn-shadow-primary-4 mx-auto mt-12 flex h-fit w-full flex-col items-center justify-center gap-4 bg-background-default p-7 md:w-[420px]">
             <div className="w-full">
-                <h2 className="text-left text-sm">{l.youSend}</h2>
-                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
+                <h2 className="text-left text-body-s">{l.youSend}</h2>
+                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
                             <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
@@ -235,7 +238,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     height={160}
                                     className="size-4 rounded-full object-cover"
                                 />
-                                {sourceCurrency} <Icon name="chevron-down" className="text-gray-1" size={14} />
+                                {sourceCurrency}{' '}
+                                <Icon name="chevron-down" className="text-foreground-secondary" size={14} />
                             </button>
                         }
                     />
@@ -251,8 +255,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             </button>
 
             <div className="w-full">
-                <h2 className="text-left text-sm">{l.recipientGets}</h2>
-                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
+                <h2 className="text-left text-body-s">{l.recipientGets}</h2>
+                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
                             <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
@@ -294,14 +298,15 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     height={160}
                                     className="size-4 rounded-full object-cover"
                                 />
-                                {destinationCurrency} <Icon name="chevron-down" className="text-gray-1" size={14} />
+                                {destinationCurrency}{' '}
+                                <Icon name="chevron-down" className="text-foreground-secondary" size={14} />
                             </button>
                         }
                     />
                 </div>
             </div>
 
-            <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
+            <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
                 {showLoading ? (
                     <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-grey-2" />
                 ) : isError ? (
@@ -314,15 +319,15 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             </div>
 
             {typeof destinationAmount === 'number' && destinationAmount > 0 && (
-                <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">
+                <div className="flex w-full flex-col gap-3 rounded-sm border border-border-default px-4 py-2">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-left text-sm font-normal">{l.bankFee}</h2>
-                        <h2 className="text-left text-sm font-normal">{l.free}</h2>
+                        <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
+                        <h2 className="text-left text-body-s font-normal">{l.free}</h2>
                     </div>
 
                     <div className="flex items-center justify-between">
-                        <h2 className="text-left text-sm font-normal">{l.peanutFee}</h2>
-                        <h2 className="text-left text-sm font-normal">{l.free}</h2>
+                        <h2 className="text-left text-body-s font-normal">{l.peanutFee}</h2>
+                        <h2 className="text-left text-body-s font-normal">{l.free}</h2>
                     </div>
                 </div>
             )}
@@ -332,15 +337,15 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                 icon={ctaIcon}
                 iconSize={13}
                 shadowSize="4"
-                className="w-full text-base font-bold"
+                className="w-full text-body-m font-bold"
             >
                 {ctaLabel}
             </Button>
 
             {typeof destinationAmount === 'number' && destinationAmount > 0 && (
                 <div className="flex items-center gap-1">
-                    <Icon name="info" className="text-gray-1" size={14} />
-                    <p className="text-xs text-gray-1">{deliveryTimeText}</p>
+                    <Icon name="info" className="text-foreground-secondary" size={14} />
+                    <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>
                 </div>
             )}
         </div>

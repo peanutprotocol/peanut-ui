@@ -184,7 +184,13 @@ export default function ConfirmWithdrawView({
                     />
                     <PaymentInfoRow
                         label={t('confirm.to')}
-                        value={<AddressLink isLink={false} address={toAddress} className="text-black no-underline" />}
+                        value={
+                            <AddressLink
+                                isLink={false}
+                                address={toAddress}
+                                className="text-foreground-primary no-underline"
+                            />
+                        }
                     />
                     <PaymentInfoRow
                         label={t('confirm.networkFee')}

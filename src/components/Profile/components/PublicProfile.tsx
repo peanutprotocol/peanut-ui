@@ -222,8 +222,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <Card position="single" className="space-y-2 p-4 text-center">
                             {isLoggedIn ? (
                                 <>
-                                    <h2 className="text-lg font-extrabold">{t('allSetTitle')}</h2>
-                                    <p className="mx-auto max-w-[55%] text-sm">{t('allSetDescription')}</p>
+                                    <h2 className="text-heading-card text-foreground-primary">{t('allSetTitle')}</h2>
+                                    <p className="mx-auto max-w-[55%] text-body-s">{t('allSetDescription')}</p>
                                 </>
                             ) : (
                                 <div className="space-y-4">
@@ -235,7 +235,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                                 width={20}
                                                 height={20}
                                             />
-                                            <h2 className="text-lg font-extrabold">{t('joinPeanut')}</h2>
+                                            <h2 className="text-heading-card text-foreground-primary">
+                                                {t('joinPeanut')}
+                                            </h2>
                                             <Image
                                                 src={HandThumbsUpV2.src}
                                                 className="scale-x-[-1] transform"
@@ -273,8 +275,10 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <HomeHistory username={username} />
                         {isSelfProfile && (
                             <div className="mt-3 mb-1 flex w-full items-center justify-center gap-2 rounded-md bg-grey-4/25 px-3 py-2">
-                                <Icon name="info" size={16} className="text-grey-1" />
-                                <p className="text-center text-sm text-grey-1">{t('activityPrivateNote')}</p>
+                                <Icon name="info" size={16} className="text-foreground-secondary" />
+                                <p className="text-center text-body-s text-foreground-secondary">
+                                    {t('activityPrivateNote')}
+                                </p>
                             </div>
                         )}
                     </div>

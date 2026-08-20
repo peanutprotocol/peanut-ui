@@ -1,12 +1,12 @@
 'use client'
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import ActionModal from '@/components/Global/ActionModal'
 import Card from '@/components/Global/Card'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
-import NavigationArrow from '@/components/Global/NavigationArrow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -49,13 +49,13 @@ export default function BackupPage() {
                 />
 
                 <div className="space-y-2">
-                    <h1 className="font-bold text-black">{t('enableNow')}</h1>
+                    <h1 className="text-heading-card text-foreground-primary">{t('enableNow')}</h1>
                     <Card>
                         <ol className="space-y-4 list-decimal py-2 pl-5">
                             {backupSteps.map((step, index) => (
                                 <li key={index}>
-                                    <p className="font-bold text-black">{step.title}</p>
-                                    <p className="text-sm text-black">{step.description}</p>
+                                    <p className="font-bold text-foreground-primary">{step.title}</p>
+                                    <p className="text-body-s text-foreground-primary">{step.description}</p>
                                 </li>
                             ))}
                         </ol>
@@ -69,25 +69,25 @@ export default function BackupPage() {
                 </div>
 
                 <div>
-                    <h1 className="mb-2 font-bold text-black">{t('faqHeading')}</h1>
-                    <Card position="first" onClick={() => setActiveModal('lose-phone')}>
-                        <div className="flex cursor-pointer justify-between py-1">
-                            <p className="text-sm font-medium text-black">{t('faq.losePhone')}</p>
-                            <NavigationArrow size={24} className="fill-black" />
-                        </div>
-                    </Card>
-                    <Card position="middle" onClick={() => setActiveModal('change-phone')}>
-                        <div className="flex cursor-pointer justify-between py-1">
-                            <p className="text-sm font-medium text-black">{t('faq.changePhone')}</p>
-                            <NavigationArrow size={24} className="fill-black" />
-                        </div>
-                    </Card>
-                    <Card position="last" onClick={() => setActiveModal('export-keys')}>
-                        <div className="flex cursor-pointer justify-between py-1">
-                            <p className="text-sm font-medium text-black">{t('faq.exportKeys')}</p>
-                            <NavigationArrow size={24} className="fill-black" />
-                        </div>
-                    </Card>
+                    <h1 className="mb-2 text-heading-card text-foreground-primary">{t('faqHeading')}</h1>
+                    <ListItem
+                        position="first"
+                        title={t('faq.losePhone')}
+                        chevron
+                        onClick={() => setActiveModal('lose-phone')}
+                    />
+                    <ListItem
+                        position="middle"
+                        title={t('faq.changePhone')}
+                        chevron
+                        onClick={() => setActiveModal('change-phone')}
+                    />
+                    <ListItem
+                        position="last"
+                        title={t('faq.exportKeys')}
+                        chevron
+                        onClick={() => setActiveModal('export-keys')}
+                    />
                 </div>
             </div>
 
@@ -97,7 +97,7 @@ export default function BackupPage() {
                 onClose={closeModal}
                 icon="info"
                 title={t('faq.losePhone')}
-                titleClassName="font-extrabold text-xl"
+                titleClassName="text-heading-xs"
                 content={
                     <div className="space-y-3 w-full">
                         <InfoCard
@@ -123,10 +123,10 @@ export default function BackupPage() {
                 onClose={closeModal}
                 icon="info"
                 title={t('faq.changePhone')}
-                titleClassName="font-extrabold text-xl"
+                titleClassName="text-heading-xs"
                 content={
                     <div className="space-y-3 w-full">
-                        <ol className="list-decimal pl-5 text-left text-sm text-black">
+                        <ol className="list-decimal pl-5 text-left text-body-s text-foreground-primary">
                             <li>{t('changePhoneModal.step1')}</li>
                             <li>{t('changePhoneModal.step2', { platform })}</li>
                             <li>{t('changePhoneModal.step3')}</li>
@@ -161,13 +161,15 @@ export default function BackupPage() {
                 onClose={closeModal}
                 icon="info"
                 title={t('faq.exportKeys')}
-                titleClassName="font-extrabold text-xl"
+                titleClassName="text-heading-xs"
                 content={
                     <div className="space-y-4 w-full text-left">
                         <div>
-                            <h4 className="font-bold text-black">{t('exportKeysModal.saferTitle')}</h4>
-                            <p className="mt-1 text-sm text-black">{t('exportKeysModal.saferIntro')}</p>
-                            <ul className="space-y-1 mt-2 list-disc pl-5 text-sm text-black">
+                            <h4 className="font-bold text-foreground-primary">{t('exportKeysModal.saferTitle')}</h4>
+                            <p className="mt-1 text-body-s text-foreground-primary">
+                                {t('exportKeysModal.saferIntro')}
+                            </p>
+                            <ul className="space-y-1 mt-2 list-disc pl-5 text-body-s text-foreground-primary">
                                 <li>{t('exportKeysModal.bullets.screenshot')}</li>
                                 <li>{t('exportKeysModal.bullets.textMessage')}</li>
                                 <li>{t('exportKeysModal.bullets.noteApp')}</li>
@@ -175,11 +177,13 @@ export default function BackupPage() {
                             </ul>
                         </div>
                         <div>
-                            <h4 className="font-bold text-black">{t('exportKeysModal.tradeoffTitle')}</h4>
-                            <p className="mt-1 text-sm text-black">{t('exportKeysModal.tradeoffDescription')}</p>
+                            <h4 className="font-bold text-foreground-primary">{t('exportKeysModal.tradeoffTitle')}</h4>
+                            <p className="mt-1 text-body-s text-foreground-primary">
+                                {t('exportKeysModal.tradeoffDescription')}
+                            </p>
                         </div>
-                        <div className="flex items-start gap-2 text-xs text-gray-1">
-                            <span className="mt-0.5 flex size-4 flex-shrink-0 items-center justify-center rounded-full border border-gray-1">
+                        <div className="flex items-start gap-2 text-body-xs text-foreground-secondary">
+                            <span className="mt-0.5 flex size-4 flex-shrink-0 items-center justify-center rounded-full border border-border-subtle">
                                 i
                             </span>
                             <p>{t('exportKeysModal.futureNote')}</p>

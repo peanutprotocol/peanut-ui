@@ -657,7 +657,7 @@ export default function WithdrawCryptoPage() {
                         usdAmount={usdAmount}
                         message={
                             <AddressLink
-                                className="text-sm font-normal text-grey-1 no-underline"
+                                className="text-body-s font-normal text-foreground-secondary no-underline"
                                 address={withdrawData.address}
                             />
                         }
@@ -682,7 +682,7 @@ export default function WithdrawCryptoPage() {
                         {!!withdrawData?.address && (
                             <p>
                                 {t('compatibilityModal.sendingTo')}{' '}
-                                <span className="font-mono font-medium text-n-1 dark:text-white">
+                                <span className="font-mono font-medium text-foreground-primary dark:text-foreground-inverse">
                                     {printableAddress(withdrawData.address)}
                                 </span>
                             </p>
