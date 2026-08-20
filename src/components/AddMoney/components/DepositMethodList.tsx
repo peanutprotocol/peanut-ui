@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { twMerge } from 'tailwind-merge'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '../consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 
 export interface DepositMethod {
     type: 'crypto' | 'country'
@@ -61,11 +61,11 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                 const countryCodeForFlag = twoLetterCountryCode.toLowerCase() ?? ''
 
                 return (
-                    <ActionListCard
+                    <ListItem
                         key={`${method.type}-${method.id}`}
                         title={method.title}
-                        description={method.description || method.currency}
-                        leftIcon={
+                        body={<div className="text-body-xs">{method.description || method.currency}</div>}
+                        leading={
                             method.type === 'crypto' ? (
                                 <AvatarWithBadge
                                     icon="wallet-outline"
@@ -99,7 +99,7 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                         onClick={() => onItemClick(method)}
                         position={determinedPosition}
                         className={twMerge(classNames.join(' '))}
-                        descriptionClassName="text-body-xs"
+                        chevron
                     />
                 )
             })}

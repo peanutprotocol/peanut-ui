@@ -1,6 +1,6 @@
 'use client'
 
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -384,9 +384,9 @@ const RegionsList = ({ regions, isLocked, onRegionClick }: RegionsListProps) => 
             {regions.map((region, index) => {
                 const label = regionLabel(region)
                 return (
-                    <ActionListCard
+                    <ListItem
                         key={region.path}
-                        leftIcon={
+                        leading={
                             <Image
                                 src={region.icon}
                                 alt={label.name}
@@ -402,10 +402,10 @@ const RegionsList = ({ regions, isLocked, onRegionClick }: RegionsListProps) => 
                                 onRegionClick(region)
                             }
                         }}
-                        isDisabled={!isLocked}
-                        description={label.description}
-                        descriptionClassName="text-body-xs"
-                        rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
+                        disabled={!isLocked}
+                        body={<div className="text-body-xs">{label.description}</div>}
+                        trailing={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
+                        chevron={isLocked}
                     />
                 )
             })}

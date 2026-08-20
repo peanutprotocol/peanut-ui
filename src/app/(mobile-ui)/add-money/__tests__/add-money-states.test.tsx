@@ -512,11 +512,11 @@ jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
         ) : null,
 }))
 
-jest.mock('@/components/ActionListCard', () => ({
-    ActionListCard: (props: any) => (
+jest.mock('@/components/0_Bruddle/ListItem', () => ({
+    ListItem: (props: any) => (
         <div data-testid={`action-card-${props.title?.toLowerCase().replace(/\s+/g, '-')}`} onClick={props.onClick}>
             <span>{props.title}</span>
-            <span>{props.description}</span>
+            <span>{props.body}</span>
         </div>
     ),
 }))

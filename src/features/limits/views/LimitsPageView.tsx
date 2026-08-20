@@ -1,6 +1,6 @@
 'use client'
 
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -99,8 +99,8 @@ const LimitsPageView = () => {
             {hasRestOfWorld && (
                 <div className="space-y-2">
                     <h2 className="font-bold">{t('otherRegions')}</h2>
-                    <ActionListCard
-                        leftIcon={
+                    <ListItem
+                        leading={
                             <Image
                                 src={REST_OF_WORLD_GLOBE_ICON}
                                 alt={restOfWorldName}
@@ -112,8 +112,8 @@ const LimitsPageView = () => {
                         position="single"
                         title={restOfWorldName}
                         onClick={() => {}}
-                        isDisabled={true}
-                        rightContent={<StatusBadge status="custom" customText={tCommon('comingSoon')} />}
+                        disabled={true}
+                        trailing={<StatusBadge status="custom" customText={tCommon('comingSoon')} />}
                     />
                 </div>
             )}
@@ -122,11 +122,12 @@ const LimitsPageView = () => {
             {activeCard && (
                 <div className="space-y-2">
                     <h2 className="font-bold">{t('cardLimits.title')}</h2>
-                    <ActionListCard
+                    <ListItem
                         position="single"
-                        leftIcon={<Icon name="credit-card" size={28} />}
+                        leading={<Icon name="credit-card" size={28} />}
                         title={t('cardLimits.manage')}
-                        description={t('cardLimits.description')}
+                        body={<div>{t('cardLimits.description')}</div>}
+                        chevron
                         onClick={() => router.push('/card/limit')}
                     />
                 </div>
@@ -156,9 +157,9 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
             {regions.map((region, index) => {
                 const label = regionLabel(region)
                 return (
-                    <ActionListCard
+                    <ListItem
                         key={region.path}
-                        leftIcon={
+                        leading={
                             <Image
                                 src={region.icon}
                                 alt={label.name}
@@ -173,8 +174,8 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
                             const route = getProviderRoute(region.path, hasMantecaKyc)
                             router.push(route)
                         }}
-                        description={label.description}
-                        descriptionClassName="text-body-xs"
+                        body={<div className="text-body-xs">{label.description}</div>}
+                        chevron
                     />
                 )
             })}
@@ -203,9 +204,9 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
                 const isPending = isPendingRegion(region.path)
                 const label = regionLabel(region)
                 return (
-                    <ActionListCard
+                    <ListItem
                         key={region.path}
-                        leftIcon={
+                        leading={
                             <Image
                                 src={region.icon}
                                 alt={label.name}
@@ -221,10 +222,10 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
                                 router.push('/profile/identity-verification')
                             }
                         }}
-                        isDisabled={isPending}
-                        description={label.description}
-                        descriptionClassName="text-body-xs"
-                        rightContent={isPending && <StatusBadge status="pending" customText={tCommon('pending')} />}
+                        disabled={isPending}
+                        body={<div className="text-body-xs">{label.description}</div>}
+                        trailing={isPending && <StatusBadge status="pending" customText={tCommon('pending')} />}
+                        chevron={!isPending}
                     />
                 )
             })}

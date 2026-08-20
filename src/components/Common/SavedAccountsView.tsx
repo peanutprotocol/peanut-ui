@@ -9,7 +9,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '../Global/NavHeader'
 import Divider from '../0_Bruddle/Divider'
 import { Button } from '@/components/0_Bruddle/Button'
-import { ActionListCard } from '../ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 
 interface SavedAccountListProps {
@@ -106,13 +106,15 @@ export function SavedAccountsMapping({
                 const title = account.type === AccountType.IBAN ? formatIban(account.identifier) : account.identifier
 
                 return (
-                    <ActionListCard
+                    <ListItem
                         key={account.id}
-                        title={title}
+                        // node-wrapped so long ibans wrap instead of truncating
+                        title={<div>{title}</div>}
                         position={position}
                         onClick={() => onItemClick(account, path)}
                         className="p-4 py-2.5"
-                        leftIcon={
+                        chevron
+                        leading={
                             <div className="relative h-8 w-8">
                                 {countryCodeForFlag ? (
                                     <Image
