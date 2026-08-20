@@ -87,7 +87,8 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         name: 'Activation step: card → launch banner',
         copy: '"shhhh" — "Tap to find out if you\'re in" + "Maybe later" dismiss (localStorage)',
         cta: { label: 'Try the door →', dest: '/shhhhh' },
-        condition: 'hasCardAccess && !hasCard && !dismissed && !disableCardLaunchCTA — overrides deposit/outbound',
+        condition:
+            'FUNDED (step=outbound/completed) && hasCardAccess && !hasCard && !dismissed && !disableCardLaunchCTA — card comes AFTER deposit, never overrides verify/deposit (2026-08-20)',
         sourceFile: 'src/components/Home/CardLaunchCTA/CardLaunchCTABanner.tsx (via ActivationCTAs.tsx)',
         states: ['access-pre-kyc', 'kycd-no-card'],
     },
