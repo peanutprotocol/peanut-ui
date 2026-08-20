@@ -74,7 +74,7 @@ export const PasskeySetupHelpModal = ({
             onClose={onClose}
             icon="alert"
             iconContainerClassName="bg-yellow-400"
-            iconProps={{ className: 'text-black' }}
+            iconProps={{ className: 'text-foreground-primary' }}
             title={title}
             footer={
                 <Button icon="retry" shadowSize="4" onClick={onRetry}>
@@ -83,7 +83,7 @@ export const PasskeySetupHelpModal = ({
             }
             content={
                 <div className="flex w-full flex-col gap-4">
-                    <h2 className="mr-auto text-sm text-grey-1">{description}</h2>
+                    <h2 className="mr-auto text-body-s text-foreground-secondary">{description}</h2>
 
                     <h3 className="mr-auto font-bold">{t('tryTheseFixes')}</h3>
                     <InfoCard
@@ -103,7 +103,7 @@ export const PasskeySetupHelpModal = ({
                         />
                     )}
 
-                    <div className="rounded-lg border border-grey-2 bg-grey-2/5 p-3 text-xs text-grey-1">
+                    <div className="rounded-sm border border-border-disabled bg-background-disabled/5 p-3 text-body-xs text-foreground-secondary">
                         <p className="mb-1 font-bold">{t('stillHavingIssues')}</p>
                         <p>
                             {t.rich('contactSupport', {

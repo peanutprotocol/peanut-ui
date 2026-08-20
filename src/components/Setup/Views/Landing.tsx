@@ -65,7 +65,9 @@ const LandingStep = () => {
                         {/* heading only above the desktop QR — a lone store button
                             explains itself */}
                         {deviceType === DeviceType.WEB && (
-                            <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
+                            <p className="text-center text-body-s font-semibold text-foreground-primary">
+                                {tMigration('banner.title')}
+                            </p>
                         )}
                         <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
                     </div>
@@ -94,7 +96,7 @@ const LandingStep = () => {
                 <div className="pt-2 text-center">
                     <DocsLink
                         href="/en/help/account-recovery"
-                        className="text-xs text-grey-1 underline underline-offset-2"
+                        className="text-body-xs text-foreground-secondary underline underline-offset-2"
                     >
                         {t('landing.recoverWallet')}
                     </DocsLink>

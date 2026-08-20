@@ -149,13 +149,13 @@ const JoinWaitlist = () => {
 
             {error && (
                 <div className="pb-1">
-                    <ErrorAlert description={error} className="gap-2 text-xs" iconSize={14} />
+                    <ErrorAlert description={error} className="gap-2 text-body-xs" iconSize={14} />
                 </div>
             )}
 
             <div className="flex items-center gap-4 py-2">
                 <div className="h-px flex-1 bg-grey-1" />
-                <span className="text-sm text-grey-1">{tCommon('or')}</span>
+                <span className="text-body-s text-foreground-secondary">{tCommon('or')}</span>
                 <div className="h-px flex-1 bg-grey-1" />
             </div>
 

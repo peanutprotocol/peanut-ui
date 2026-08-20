@@ -219,7 +219,7 @@ const InstallPWA = ({
         // Scenario 4: Fallback (manual install instructions)
         return (
             <div className="space-y-4 text-center">
-                <p className="text-sm text-grey-1">{t('manualInstallHint')}</p>
+                <p className="text-body-s text-foreground-secondary">{t('manualInstallHint')}</p>
                 <Button onClick={() => handleNext()} className="w-full" shadowSize="4" variant="purple">
                     {tCommon('continue')}
                 </Button>

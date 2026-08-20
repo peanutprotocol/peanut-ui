@@ -151,12 +151,12 @@ const SignupStep = () => {
                     </div>
                     {error && (
                         <div className="pb-1">
-                            <ErrorAlert description={error} className="gap-2 text-xs" iconSize={14} />
+                            <ErrorAlert description={error} className="gap-2 text-body-xs" iconSize={14} />
                         </div>
                     )}
                 </div>
                 <div>
-                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
                                 <DocsLink href="/terms" className="underline underline-offset-2">

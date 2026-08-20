@@ -194,10 +194,10 @@ const SignTestTransaction = () => {
                     >
                         {getButtonText()}
                     </Button>
-                    {displayError && <p className="text-sm font-bold text-error">{displayError}</p>}
+                    {displayError && <p className="text-body-s font-bold text-foreground-error">{displayError}</p>}
                 </div>
                 <div>
-                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                             {t('passkey.learnMore')}
                         </DocsLink>{' '}
@@ -211,7 +211,12 @@ const SignTestTransaction = () => {
 export const PasskeyDocsLink = ({ className }: { className?: string }) => {
     const t = useTranslations('setup')
     return (
-        <p className={twMerge('border-t border-grey-1 pt-2 text-center text-xs text-grey-1', className)}>
+        <p
+            className={twMerge(
+                'border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary',
+                className
+            )}
+        >
             <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                 {t('passkey.learnMore')}
             </DocsLink>{' '}

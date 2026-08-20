@@ -210,7 +210,7 @@ const SetupPasskey = () => {
                     >
                         {t('passkey.setItUp')}
                     </Button>
-                    {preflightWarning && <p className="text-sm font-bold text-orange-1">{preflightWarning}</p>}
+                    {preflightWarning && <p className="text-body-s font-bold text-orange-1">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
                             <ErrorAlert description={t('passkey.usernameTaken')} />
@@ -229,7 +229,7 @@ const SetupPasskey = () => {
                     {inlineError && <ErrorAlert description={inlineError} />}
                 </div>
                 <div>
-                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                             {t('passkey.learnMore')}
                         </DocsLink>{' '}
