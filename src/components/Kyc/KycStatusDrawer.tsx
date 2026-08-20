@@ -9,6 +9,7 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useCallback } from 'react'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
+import { useModalsContext } from '@/context/ModalsContext'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -22,8 +23,9 @@ interface KycStatusDrawerProps {
 // provider names, no rail reads. Resuming/retrying launches Sumsub via the kept
 // useMultiPhaseKycFlow plumbing.
 export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDrawerProps) => {
-    const { identity, status, isRegionRestricted } = useIdentityVerification()
+    const { identity, status, isRegionRestricted, isTerminalFailure } = useIdentityVerification()
     const t = useTranslations('kyc')
+    const { setIsSupportModalOpen } = useModalsContext()
 
     // close drawer and release the keep-mounted hold
     const handleFlowDone = useCallback(() => {
@@ -76,6 +78,8 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                         reviewedAt={identity.reviewedAt}
                         onRetry={resumeKyc}
                         isLoading={sumsubFlow.isLoading}
+                        isTerminal={isTerminalFailure}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
                     />
                 )
             default:

@@ -1,12 +1,20 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
-import { RejectLabelsList } from '../RejectLabelsList'
+import { KycFailedContent } from '../KycFailedContent'
 import Card from '@/components/Global/Card'
 import { useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 
 // this component shows the identity-verification status when it's failed/rejected.
+//
+// `isTerminal` decides the ending, and getting it wrong is user-visible in both
+// directions. Terminal (fraud, sanctions, age, forgery) means the decision is
+// made: no retry — it cannot pass — and no reject labels, because naming the
+// cause carries compliance exposure and tips off the people it describes.
+// Support IS offered there, because a human can review a misclassification.
+// Non-terminal means our check errored, so a retry is genuinely worth offering.
+//
 // reads the provider-agnostic identity fields + normalized reject labels. The
 // backend's actionMessage is a pure function of status, so its presence gates the
 // reason row while the copy itself comes from the catalog. No provider names.
@@ -16,12 +24,17 @@ export const KycFailed = ({
     reviewedAt,
     onRetry,
     isLoading,
+    isTerminal = false,
+    onContactSupport,
 }: {
     actionMessage?: string
     rejectLabels?: string[] | null
     reviewedAt?: string
     onRetry: () => void
     isLoading?: boolean
+    isTerminal?: boolean
+    /** Required in practice when `isTerminal` — the container owns support. */
+    onContactSupport?: () => void
 }) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -50,18 +63,24 @@ export const KycFailed = ({
                 {hasReason && <PaymentInfoRow label={t('reason')} value={t('actionMessageFailed')} hideBottomBorder />}
             </Card>
 
-            <RejectLabelsList rejectLabels={rejectLabels} />
+            <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
 
-            <Button
-                icon="retry"
-                variant="purple"
-                className="w-full"
-                shadowSize="4"
-                onClick={() => onRetry()}
-                disabled={isLoading}
-            >
-                {isLoading ? tCommon('loading') : t('retryVerification')}
-            </Button>
+            {isTerminal ? (
+                <Button variant="purple" className="w-full" shadowSize="4" onClick={() => onContactSupport?.()}>
+                    {tCommon('contactSupport')}
+                </Button>
+            ) : (
+                <Button
+                    icon="retry"
+                    variant="purple"
+                    className="w-full"
+                    shadowSize="4"
+                    onClick={() => onRetry()}
+                    disabled={isLoading}
+                >
+                    {isLoading ? tCommon('loading') : t('retryVerification')}
+                </Button>
+            )}
         </div>
     )
 }

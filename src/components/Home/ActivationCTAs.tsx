@@ -319,7 +319,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // CardLaunchCTABanner) instead of the plain funnel card — so non-activated
     // card-eligible users get the same CTA as the activated launch splash.
     // Keeps the funnel's /card routing + the "Maybe later" dismissal.
-    if (activationStep === 'card') {
+    // `isRegionRestricted` deliberately re-checked here: this branch returns
+    // BEFORE reading `step`, so the region card selected in the memo above would
+    // otherwise be silently replaced by the card banner — whose CTA routes to
+    // /shhhhh. A region-restricted user can never complete a card application
+    // either, so the explanation outranks it.
+    if (activationStep === 'card' && !isRegionRestricted) {
         return (
             <CardLaunchCTABanner
                 onTryDoor={() => {

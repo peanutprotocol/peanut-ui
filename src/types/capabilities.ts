@@ -200,6 +200,15 @@ export interface IdentityVerification {
      * today's generic contact-support ending.
      */
     reason?: CapabilityReason
+    /**
+     * For `failed` only: whether a fresh attempt could plausibly succeed.
+     *
+     * false ⇒ a decision was made (fraud, sanctions, age, jurisdiction); do NOT
+     * offer a retry. true ⇒ the check itself errored, so retrying is meaningful.
+     * Absent ⇒ an older backend that can't tell; treat as terminal, since
+     * offering a retry that cannot pass is the worse of the two mistakes.
+     */
+    canRetry?: boolean
     /** normalized rejection labels for specific guidance (action_required / failed). */
     rejectLabels?: string[]
     /** ISO timestamp the user submitted their verification. */

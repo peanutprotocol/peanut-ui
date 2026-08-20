@@ -10873,6 +10873,7 @@ export interface paths {
                                     userMessage: string;
                                     details?: string;
                                 };
+                                canRetry?: boolean;
                                 rejectLabels?: string[];
                                 submittedAt?: string;
                                 reviewedAt?: string;
