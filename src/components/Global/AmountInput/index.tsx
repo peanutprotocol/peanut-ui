@@ -277,7 +277,7 @@ const AmountInput = ({
                     {/* Input with fake caret */}
                     <div className="relative">
                         <input
-                            className={`h-12 max-w-80 bg-transparent text-display font-black text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-h1 placeholder:text-foreground-secondary focus:border-action-primary disabled:opacity-100 disabled:[-webkit-text-fill-color:black] dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-action-primary dark:disabled:[-webkit-text-fill-color:white]`}
+                            className={`h-12 max-w-80 bg-transparent text-6xl font-black text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-h1 placeholder:text-foreground-secondary focus:border-action-primary disabled:opacity-100 disabled:[-webkit-text-fill-color:black] dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-action-primary dark:disabled:[-webkit-text-fill-color:white]`}
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 isEditingRef.current = true
