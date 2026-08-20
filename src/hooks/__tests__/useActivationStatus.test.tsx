@@ -48,7 +48,6 @@ jest.mock('@/config/underMaintenance.config', () => ({
     __esModule: true,
     default: { disableCardLaunchCTA: false },
 }))
-// eslint-disable-next-line import/first
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 function setup(opts: {
