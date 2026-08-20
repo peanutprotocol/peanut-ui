@@ -18,7 +18,7 @@ const SettingsPage = () => {
     const tSettings = useTranslations('settings')
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-[inherit] w-full flex-col justify-between gap-8">
             <NavHeader titleKey="settings" />
             <div className="flex flex-col">
                 <ListItem
