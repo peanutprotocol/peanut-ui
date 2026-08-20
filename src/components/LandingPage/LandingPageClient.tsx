@@ -263,8 +263,9 @@ export function LandingPageClient({
             'USDT/USDC': `/${locale}/blog/stablecoin-balance-visa-merchants`,
             GLOBAL: `/${locale}/help/supported-geographies`,
             'SELF-CUSTODIAL': `/${locale}/help/security-custody`,
-            // app route, not a locale-prefixed marketing page
-            '24/7': '/support',
+            // /support is only a permanent redirect to /en/help, so linking it
+            // would drop es/pt readers into English while its neighbours stay localized
+            '24/7': `/${locale}/help`,
         }
         return {
             visible: true,

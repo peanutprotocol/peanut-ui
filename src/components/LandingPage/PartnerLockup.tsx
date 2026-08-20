@@ -38,7 +38,7 @@ export function PartnerLockup({
             href={href}
             aria-label={ariaLabel}
             className={twMerge(
-                'group flex flex-col items-center transition-transform group-hover:opacity-90 hover:-translate-y-0.5',
+                'group flex flex-col items-center transition-transform hover:-translate-y-0.5 hover:opacity-90',
                 className
             )}
         >
