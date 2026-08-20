@@ -97,7 +97,6 @@ export default function robots(): MetadataRoute.Robots {
                     '/privacy',
                     '/terms',
                     '/exchange',
-                    '/lp/card',
                     // SEO routes (all locale-prefixed)
                     ...SUPPORTED_LOCALES.map((l) => `/${l}/`),
                 ],
