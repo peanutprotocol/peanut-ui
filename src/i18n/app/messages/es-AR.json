@@ -412,6 +412,10 @@
             "line1": "Reclamá solo a una dirección que admita la red y el token seleccionados.",
             "claimToPeanut": "¿No estás seguro? Reclamá en Peanut"
         },
+        "guestVerification": {
+            "senderUnverifiedDescription": "Quien envió todavía no puede enviar a un banco. Podés reclamar con otro método, o crear una cuenta y verificar tu identidad para recibirlo en tu banco.",
+            "accountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Creá una y verificá tu identidad, y tus fondos se depositarán en tu banco."
+        },
         "actions": {
             "invitedBy": "¡{username} te invitó, tenés acceso anticipado!"
         },
