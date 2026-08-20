@@ -15,6 +15,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
+import { readReturnTo } from '@/utils/return-to.utils'
 import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import posthog from 'posthog-js'
@@ -49,6 +50,14 @@ export default function AddMoneyPage() {
         // if on country list view, go back to method selection
         if (method === 'bank') {
             setMethod(null)
+            return
+        }
+
+        // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA) wins over
+        // the /home reset below — that reset is only right for tab-bar entries
+        const returnTo = readReturnTo(searchParams, '/add-money')
+        if (returnTo) {
+            router.push(returnTo)
             return
         }
 
