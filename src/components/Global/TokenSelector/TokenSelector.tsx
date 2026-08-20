@@ -32,7 +32,7 @@ import { Icon, type IconName } from '../Icons/Icon'
 import NetworkButton from './Components/NetworkButton'
 import NetworkListView from './Components/NetworkListView'
 import ScrollableList from './Components/ScrollableList'
-import SearchInput from '@/components/SearchInput'
+import { SearchInput } from '@/components/SearchInput'
 import TokenListItem from './Components/TokenListItem'
 import {
     RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN,

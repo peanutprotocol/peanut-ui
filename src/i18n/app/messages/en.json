@@ -3011,10 +3011,8 @@
             "payWhatYouWant": "Pay what you want",
             "sendExactAmount": "Send the exact amount!"
         },
-        "betaBanner": "Peanut is in beta! Thank you for being an early user, share your feedback here",
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
         "rainCooldownPill": "Card cool-down",
-        "betaBannerThumbsUpAlt": "Thumbs up",
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",

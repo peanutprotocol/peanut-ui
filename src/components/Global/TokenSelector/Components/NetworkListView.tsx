@@ -13,7 +13,7 @@ import EmptyState from '../../EmptyStates/EmptyState'
 import NavHeader from '../../NavHeader'
 import { type NetworkConfig } from '../TokenSelector.consts'
 import NetworkListItem from './NetworkListItem'
-import SearchInput from '@/components/SearchInput'
+import { SearchInput } from '@/components/SearchInput'
 
 interface NetworkListViewProps {
     chains: Record<string, ChainWithTokens>
