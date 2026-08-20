@@ -12,7 +12,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
@@ -121,12 +121,9 @@ const MantecaDepositShareDetails = ({
                         </div>
                     </div>
                 </Card>
-                <InfoCard
-                    variant="warning"
-                    icon="alert"
-                    title={t('manteca.sendOnlyOwnAccountTitle')}
-                    description={t('manteca.sendOnlyOwnAccountDescription')}
-                />
+                <Notification priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
+                    {t('manteca.sendOnlyOwnAccountDescription')}
+                </Notification>
                 <h2 className="font-bold">{t('manteca.accountDetails')}</h2>
                 <Card className="space-y-0 rounded-sm px-4">
                     {depositAddress && (

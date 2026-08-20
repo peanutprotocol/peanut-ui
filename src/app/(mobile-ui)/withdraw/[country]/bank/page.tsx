@@ -4,7 +4,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
-import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -460,12 +459,9 @@ export default function WithdrawBankPage() {
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {isNonEuroSepa && bankAccount?.type !== AccountType.GB && (
-                        <InfoCard
-                            variant="info"
-                            icon="info"
-                            title={t('bank.eurTitle')}
-                            description={t('bank.eurDescription')}
-                        />
+                        <Notification priority="info" title={t('bank.eurTitle')}>
+                            {t('bank.eurDescription')}
+                        </Notification>
                     )}
 
                     <Card className="rounded-sm">
@@ -550,12 +546,9 @@ export default function WithdrawBankPage() {
                         </Button>
                     )}
                     {submittedTxHash ? (
-                        <InfoCard
-                            variant="info"
-                            icon="info"
-                            title={t('bank.transferProcessing')}
-                            description={confirmPendingCopy}
-                        />
+                        <Notification priority="info" title={t('bank.transferProcessing')}>
+                            {confirmPendingCopy}
+                        </Notification>
                     ) : (
                         error.showError && <Notification priority="error">{error.errorMessage}</Notification>
                     )}

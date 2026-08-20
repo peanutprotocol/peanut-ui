@@ -13,7 +13,7 @@ import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { formatAmount } from '@/utils/general.utils'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { resolveBridgeAccountHolderName } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -286,12 +286,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                         <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="4" />
                     </div>
 
-                    <InfoCard
-                        variant="warning"
-                        className="mt-4"
-                        icon="alert"
-                        description={t('bankDetails.sendExactAmount')}
-                    />
+                    <Notification priority="attention" className="mt-4">
+                        {t('bankDetails.sendExactAmount')}
+                    </Notification>
                 </Card>
 
                 <Card className="p-4">
@@ -310,12 +307,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                         )}
                     </div>
 
-                    <InfoCard
-                        variant="warning"
-                        className="mt-4"
-                        icon="alert"
-                        description={t('bankDetails.pasteInReferenceField')}
-                    />
+                    <Notification priority="attention" className="mt-4">
+                        {t('bankDetails.pasteInReferenceField')}
+                    </Notification>
                 </Card>
 
                 <Card className="gap-2 rounded-sm">
@@ -443,25 +437,26 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                     )}
                 </Card>
 
-                <InfoCard
-                    variant="warning"
-                    icon="alert"
-                    title={t('bankDetails.doubleCheckTitle')}
-                    items={[
-                        t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
-                        t('bankDetails.doubleCheckReference', {
-                            reference:
-                                shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
-                                tCommon('loading'),
-                        }),
-                        // name mismatch is the top cause of returned deposits (Bridge BE01). the
-                        // own-name rule holds for ACH/SEPA/wire; MX SPEI supports paying from a
-                        // third-party/client account, so this item is omitted there.
-                        ...(currentCountryDetails?.id !== 'MX'
-                            ? [t('bankDetails.doubleCheckSenderName'), t('bankDetails.doubleCheckRecipientName')]
-                            : []),
-                    ]}
-                />
+                <Notification priority="attention" title={t('bankDetails.doubleCheckTitle')}>
+                    <ul className="list-inside list-disc text-start">
+                        {[
+                            t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
+                            t('bankDetails.doubleCheckReference', {
+                                reference:
+                                    shortDepositReference(onrampData?.depositInstructions?.depositMessage) ||
+                                    tCommon('loading'),
+                            }),
+                            // name mismatch is the top cause of returned deposits (Bridge BE01). the
+                            // own-name rule holds for ACH/SEPA/wire; MX SPEI supports paying from a
+                            // third-party/client account, so this item is omitted there.
+                            ...(currentCountryDetails?.id !== 'MX'
+                                ? [t('bankDetails.doubleCheckSenderName'), t('bankDetails.doubleCheckRecipientName')]
+                                : []),
+                        ].map((item, index) => (
+                            <li key={index}>{item}</li>
+                        ))}
+                    </ul>
+                </Notification>
 
                 <Button onClick={() => router.push('/home')} variant="purple" className="w-full" shadowSize="4">
                     {t('bankDetails.sentTransfer')}

@@ -26,7 +26,7 @@ import type {
     DepositAddressStatusResponse,
     RhinoChainType,
 } from '@/services/services.types'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Tooltip } from '@/components/Tooltip'
 import { useState } from 'react'
 import Image from 'next/image'
@@ -151,12 +151,9 @@ const CryptoDepositView = ({
                     user to send funds while showing no address at all */}
                 {isError && !isLoading && status !== 'loading' && (
                     <div className="flex flex-col items-center gap-4">
-                        <InfoCard
-                            variant="warning"
-                            icon="alert"
-                            title={t('addressErrorTitle')}
-                            description={t('addressErrorDescription')}
-                        />
+                        <Notification priority="attention" title={t('addressErrorTitle')}>
+                            {t('addressErrorDescription')}
+                        </Notification>
                         {onRetry && (
                             <Button
                                 variant="stroke"
@@ -291,12 +288,12 @@ const CryptoDepositView = ({
                         </div>
 
                         {/* warning card */}
-                        <InfoCard
-                            variant="warning"
-                            icon="alert"
+                        <Notification
+                            priority="attention"
                             title={isOfframp ? t('warningTitleOfframp') : t('warningTitle')}
-                            description={isOfframp ? t('warningDescriptionOfframp') : t('warningDescription')}
-                        />
+                        >
+                            {isOfframp ? t('warningDescriptionOfframp') : t('warningDescription')}
+                        </Notification>
 
                         {/* min/max limits */}
                         <div className="flex w-full flex-col gap-1">

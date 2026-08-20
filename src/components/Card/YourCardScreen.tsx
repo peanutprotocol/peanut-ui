@@ -8,7 +8,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import { Icon } from '@/components/Global/Icons/Icon'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
@@ -92,20 +92,17 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
             )}
 
             {balanceDueCents > 0 && (
-                <InfoCard
-                    variant="warning"
-                    icon="credit-card"
+                <Notification
+                    priority="attention"
                     title={t('balanceDueTitle', { amount: `$${(balanceDueCents / 100).toFixed(2)}` })}
-                    description={t('balanceDueBody')}
-                />
+                >
+                    {t('balanceDueBody')}
+                </Notification>
             )}
 
-            <InfoCard
-                variant="info"
-                icon="credit-card"
-                title={t('payAsCreditTitle')}
-                description={t('payAsCreditBody')}
-            />
+            <Notification priority="info" title={t('payAsCreditTitle')}>
+                {t('payAsCreditBody')}
+            </Notification>
 
             <div className="flex flex-col gap-2">
                 <h2 className="text-heading-card text-foreground-primary">{t('managementTitle')}</h2>

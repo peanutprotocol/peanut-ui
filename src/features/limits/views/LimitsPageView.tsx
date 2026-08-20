@@ -24,7 +24,7 @@ import { useRegionLabel } from '@/hooks/useRegionLabel'
 import CryptoLimitsSection from '../components/CryptoLimitsSection'
 import FiatLimitsLockedCard from '../components/FiatLimitsLockedCard'
 import REST_OF_WORLD_GLOBE_ICON from '@/assets/icons/rest-of-world-globe.svg'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { getProviderRoute } from '../utils'
 
 const LimitsPageView = () => {
@@ -80,7 +80,7 @@ const LimitsPageView = () => {
             <NavHeader title={t('title')} onPrev={goBack} titleClassName="text-xl md:text-2xl" />
 
             {/* page description */}
-            <InfoCard variant="info" description={t('pageDescription')} />
+            <Notification priority="info">{t('pageDescription')}</Notification>
 
             {/* fiat limits section */}
             {!hasAnyKyc && <FiatLimitsLockedCard />}

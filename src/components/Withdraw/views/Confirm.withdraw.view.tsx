@@ -5,7 +5,6 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
-import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -204,9 +203,7 @@ export default function ConfirmWithdrawView({
                     <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value={`$${peanutFee}`} />
                 </Card>
 
-                {showHighFeeWarning && (
-                    <InfoCard variant="info" icon="info" description={t('confirm.highFeeWarning')} />
-                )}
+                {showHighFeeWarning && <Notification priority="info">{t('confirm.highFeeWarning')}</Notification>}
 
                 {error ? (
                     <Button

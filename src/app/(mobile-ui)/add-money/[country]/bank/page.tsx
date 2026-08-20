@@ -23,7 +23,6 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
-import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
@@ -436,17 +435,14 @@ function BridgeBankOnrampPage() {
                         })()}
 
                     {!limitsValidation.isBlocking && (
-                        <InfoCard variant="warning" icon="alert" description={t('amountMustMatchBank')} />
+                        <Notification priority="attention">{t('amountMustMatchBank')}</Notification>
                     )}
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {!limitsValidation.isBlocking && isNonEuroSepa && !isUK && (
-                        <InfoCard
-                            variant="info"
-                            icon="info"
-                            title={t('eurAccountsOnlyTitle')}
-                            description={t('eurAccountsOnlyDescription')}
-                        />
+                        <Notification priority="info" title={t('eurAccountsOnlyTitle')}>
+                            {t('eurAccountsOnlyDescription')}
+                        </Notification>
                     )}
                     <Button
                         variant="purple"

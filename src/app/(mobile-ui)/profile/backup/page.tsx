@@ -5,7 +5,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import ActionModal from '@/components/Global/ActionModal'
 import Card from '@/components/Global/Card'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useTranslations } from 'next-intl'
@@ -60,12 +60,9 @@ export default function BackupPage() {
                             ))}
                         </ol>
                     </Card>
-                    <InfoCard
-                        variant="warning"
-                        title={t('noBackupWarning.title')}
-                        description={t('noBackupWarning.description')}
-                        icon="alert"
-                    />
+                    <Notification priority="attention" title={t('noBackupWarning.title')}>
+                        {t('noBackupWarning.description')}
+                    </Notification>
                 </div>
 
                 <div>
@@ -100,19 +97,12 @@ export default function BackupPage() {
                 titleClassName="text-heading-xs"
                 content={
                     <div className="space-y-3 w-full">
-                        <InfoCard
-                            variant="success"
-                            icon="check"
-                            iconClassName="text-success"
-                            title={t('losePhoneModal.enabledTitle')}
-                            description={t('losePhoneModal.enabledDescription', { platform })}
-                        />
-                        <InfoCard
-                            variant="error"
-                            icon="cancel"
-                            title={t('losePhoneModal.noBackupTitle')}
-                            description={t('losePhoneModal.noBackupDescription')}
-                        />
+                        <Notification priority="success" title={t('losePhoneModal.enabledTitle')}>
+                            {t('losePhoneModal.enabledDescription', { platform })}
+                        </Notification>
+                        <Notification priority="error" title={t('losePhoneModal.noBackupTitle')}>
+                            {t('losePhoneModal.noBackupDescription')}
+                        </Notification>
                     </div>
                 }
             />
@@ -131,26 +121,15 @@ export default function BackupPage() {
                             <li>{t('changePhoneModal.step2', { platform })}</li>
                             <li>{t('changePhoneModal.step3')}</li>
                         </ol>
-                        <InfoCard
-                            variant="success"
-                            icon="check"
-                            iconClassName="text-success"
-                            title={t('changePhoneModal.iphoneToIphoneTitle')}
-                            description={t('changePhoneModal.iphoneToIphoneDescription')}
-                        />
-                        <InfoCard
-                            variant="success"
-                            icon="check"
-                            iconClassName="text-success"
-                            title={t('changePhoneModal.androidToAndroidTitle')}
-                            description={t('changePhoneModal.androidToAndroidDescription')}
-                        />
-                        <InfoCard
-                            variant="warning"
-                            icon="alert"
-                            title={t('changePhoneModal.crossPlatformTitle')}
-                            description={t('changePhoneModal.crossPlatformDescription')}
-                        />
+                        <Notification priority="success" title={t('changePhoneModal.iphoneToIphoneTitle')}>
+                            {t('changePhoneModal.iphoneToIphoneDescription')}
+                        </Notification>
+                        <Notification priority="success" title={t('changePhoneModal.androidToAndroidTitle')}>
+                            {t('changePhoneModal.androidToAndroidDescription')}
+                        </Notification>
+                        <Notification priority="attention" title={t('changePhoneModal.crossPlatformTitle')}>
+                            {t('changePhoneModal.crossPlatformDescription')}
+                        </Notification>
                     </div>
                 }
             />

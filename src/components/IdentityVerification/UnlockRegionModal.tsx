@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import ActionModal from '../Global/ActionModal'
-import InfoCard from '../Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Icon } from '../Global/Icons/Icon'
 import { type Region } from '@/utils/regions.utils'
 import { useRegionLabel } from '@/hooks/useRegionLabel'
@@ -75,13 +75,16 @@ const UnlockRegionModal = ({
             content={
                 <div className="flex w-full flex-col items-start gap-2">
                     <h2 className="text-xs font-bold">{t('whatYoullUnlock')}</h2>
-                    <InfoCard
-                        variant="info"
-                        itemIcon="check"
-                        itemIconSize={12}
-                        itemIconClassName="text-secondary-7"
-                        items={unlockItems}
-                    />
+                    <Notification priority="info" className="w-full">
+                        <div className="flex flex-col gap-1">
+                            {unlockItems.map((item, index) => (
+                                <span key={index} className="flex items-center gap-2">
+                                    <Icon name="check" size={12} className="shrink-0" />
+                                    {item}
+                                </span>
+                            ))}
+                        </div>
+                    </Notification>
                     <div className="flex items-center gap-2">
                         <Icon name="info" size={12} className="text-gray-1" />
                         <p className="text-xs text-gray-1">{tKyc('doesntStoreDocumentsPeriod')}</p>

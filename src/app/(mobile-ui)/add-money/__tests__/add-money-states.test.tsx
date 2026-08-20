@@ -430,20 +430,6 @@ jest.mock('@/components/Global/ActionModal', () => ({
         ) : null,
 }))
 
-jest.mock('@/components/Global/InfoCard', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="info-card">
-            {props.title && <span>{props.title}</span>}
-            {props.description && <span>{props.description}</span>}
-            {props.items?.map((item: any, i: number) => (
-                <span key={i}>{item}</span>
-            ))}
-            {props.customContent}
-        </div>
-    ),
-}))
-
 jest.mock('@/components/Global/CopyToClipboard', () => {
     const CopyToClipboard = React.forwardRef((props: any, ref: any) => (
         <span data-testid="copy-to-clipboard" ref={ref} />

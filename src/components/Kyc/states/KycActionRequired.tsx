@@ -1,7 +1,7 @@
 import { useTranslations } from 'next-intl'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { RejectLabelsList } from '../RejectLabelsList'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 
@@ -33,7 +33,7 @@ export const KycActionRequired = ({
             <KYCStatusDrawerItem status="pending" customText={t('actionNeeded')} />
 
             {!rejectLabels?.length && actionMessage ? (
-                <InfoCard variant="info" icon="alert" description={t('actionMessageActionRequired')} />
+                <Notification priority="info">{t('actionMessageActionRequired')}</Notification>
             ) : (
                 <RejectLabelsList rejectLabels={rejectLabels} />
             )}

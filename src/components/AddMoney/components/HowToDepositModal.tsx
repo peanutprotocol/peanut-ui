@@ -1,7 +1,7 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 
 interface HowToDepositModalProps {
@@ -41,7 +41,7 @@ const HowToDepositModal = ({ visible, onClose, variant = 'default' }: HowToDepos
                         ))}
                     </div>
 
-                    <InfoCard variant="warning" icon="alert" title={isOfframp ? t('warningOfframp') : t('warning')} />
+                    <Notification priority="attention">{isOfframp ? t('warningOfframp') : t('warning')}</Notification>
                 </div>
             }
         />

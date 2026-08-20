@@ -7,7 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ChainChip from '../components/ChainChip'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Root, List, Trigger } from '@radix-ui/react-tabs'
 import Loading from '@/components/Global/Loading'
 import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
@@ -157,24 +157,14 @@ const RhinoDepositView = ({
                             <CopyToClipboard ref={copyRef} type="icon" textToCopy={depositAddressData.depositAddress} />
                         </Button>
 
-                        <InfoCard
-                            iconClassName="text-yellow-11"
-                            variant="warning"
-                            icon="alert"
-                            containerClassName="items-center"
-                            customContent={
-                                <div className="flex items-center gap-2">
-                                    <p className="text-body-s">{t('supportedTokensInline')}</p>
-                                    {getSupportedTokens(chainType).map((token) => (
-                                        <ChainChip
-                                            key={token.name}
-                                            chainName={token.name}
-                                            chainSymbol={token.logoUrl}
-                                        />
-                                    ))}
-                                </div>
-                            }
-                        />
+                        <Notification priority="attention">
+                            <div className="flex items-center gap-2">
+                                <p>{t('supportedTokensInline')}</p>
+                                {getSupportedTokens(chainType).map((token) => (
+                                    <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
+                                ))}
+                            </div>
+                        </Notification>
 
                         <div className="flex w-full flex-col gap-1">
                             <div className="flex w-full items-center justify-between">
