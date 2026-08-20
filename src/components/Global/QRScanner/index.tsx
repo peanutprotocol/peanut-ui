@@ -7,6 +7,7 @@ import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
+import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
@@ -159,36 +160,60 @@ function ScanRegionOverlay({
 }) {
     const t = useTranslations('global')
     return (
-        <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
-            {/* Darkened background with transparent scan region */}
-            <div className="absolute inset-0">
-                <div className="absolute inset-0 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.8)]" />
-                {CORNER_POSITIONS.map(({ position, rotation }, index) => (
-                    <PinkCorner key={index} className={`absolute ${position} ${rotation}`} />
-                ))}
-            </div>
-
-            {/* Supported payment methods and paste option */}
-            <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
-                <div className="mt-10 flex flex-wrap justify-center gap-2">
-                    {PAYMENT_METHODS.map((method) => (
-                        <PaymentMethodBadge
-                            key={method.name ?? 'evm'}
-                            src={method.src}
-                            alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
-                            name={method.name ?? t('qrScanner.paymentMethods.evmName')}
-                        />
+        <>
+            <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
+                {/* Darkened background with transparent scan region */}
+                <div className="absolute inset-0">
+                    <div className="absolute inset-0 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.8)]" />
+                    {CORNER_POSITIONS.map(({ position, rotation }, index) => (
+                        <PinkCorner key={index} className={`absolute ${position} ${rotation}`} />
                     ))}
                 </div>
-                <PasteActions
-                    onPaste={onPaste}
-                    detectedAddress={detectedAddress}
-                    onUseDetected={onUseDetected}
-                    showPasteChip={showPasteChip}
-                    onUsePasteChip={onUsePasteChip}
-                />
+
+                {/* Supported payment methods. This row is pinned to the top of the
+                    viewport while the paste actions rise from the bottom, so on a short
+                    screen the two meet. Measured: the gap between them is
+                    `viewportHeight - 714` px with the clipboard chip showing, so below
+                    730px it drops under the 16px this layout keeps elsewhere — hide the
+                    row rather than let it collide. */}
+                <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
+                    <div className="mt-10 flex flex-wrap justify-center gap-2 [@media(max-height:729px)]:hidden">
+                        {PAYMENT_METHODS.map((method) => (
+                            <PaymentMethodBadge
+                                key={method.name ?? 'evm'}
+                                src={method.src}
+                                alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
+                                name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                            />
+                        ))}
+                    </div>
+                </div>
             </div>
-        </div>
+
+            {/* The paste link and clipboard chips sit a fixed gap above the My QR
+                drawer's collapsed peek, so no locale's text length and no screen
+                height can push them underneath it. They used to hang off the scan
+                square, which is pinned to the top of the viewport, while the peek
+                grows from the bottom — two coordinate systems that only lined up
+                on a tall screen in English. Tailwind cannot JIT an interpolated
+                arbitrary value, so the offset is an inline style. The strip is
+                full-width and transparent, so it is click-through except for the
+                actions themselves. */}
+            <div
+                className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
+                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
+            >
+                <div className="pointer-events-auto flex flex-col items-center">
+                    <PasteActions
+                        onPaste={onPaste}
+                        detectedAddress={detectedAddress}
+                        onUseDetected={onUseDetected}
+                        showPasteChip={showPasteChip}
+                        onUsePasteChip={onUsePasteChip}
+                    />
+                </div>
+            </div>
+        </>
     )
 }
 
