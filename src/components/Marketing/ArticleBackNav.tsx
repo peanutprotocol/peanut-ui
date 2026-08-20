@@ -8,7 +8,7 @@ import { LOCALE_META } from '@/i18n/localeMeta'
 interface Props {
     /** Display name of the parent hub (e.g. "Blog", "Stories"). */
     parentLabel: string
-    /** Href of the parent hub (e.g. `/en/blog`, `/en/content?type=use-cases`). */
+    /** Href of the parent hub (e.g. `/en/stories`, `/en/content?type=use-cases`). */
     parentHref: string
     /** i18n template like "Back to {name}". */
     backToTemplate: string

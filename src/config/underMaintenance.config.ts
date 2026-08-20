@@ -31,7 +31,7 @@
  *
  * 6. disableCardPioneers: hides the card pioneers waitlist feature entirely
  *    - /card page redirects to /home
- *    - /lp/card marketing page redirects to /
+ *    - (the /lp/card marketing page is gone; it now 308s to /shhhhh regardless of this flag)
  *    - card pioneers section hidden from landing page
  *    - card pioneer modal, carousel cta, and perk rewards hidden from home
  *    - set to false to enable the feature

@@ -124,7 +124,7 @@ export interface ContentFrontmatter {
     generated_at?: string
 }
 
-/** content/team/en.md frontmatter shape — shared by /team and any page that reuses team data (e.g. /press). */
+/** content/team/en.md frontmatter shape — /press is the sole consumer since /team was removed. */
 export interface TeamMember {
     slug: string
     name: string

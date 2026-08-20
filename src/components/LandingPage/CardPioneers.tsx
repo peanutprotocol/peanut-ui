@@ -23,7 +23,7 @@ const CardPioneers = ({ strings }: { strings: LandingStrings }) => {
     const isMobile = screenWidth < 768
 
     const handleCTA = () => {
-        router.push('/lp/card')
+        router.push('/shhhhh')
     }
 
     return (
