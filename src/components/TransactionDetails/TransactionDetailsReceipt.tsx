@@ -36,7 +36,7 @@ import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
-import CancelSendLinkModal from '../Global/CancelSendLinkModal'
+import CancelSendLinkDrawer from '../Global/CancelSendLinkDrawer'
 import { twMerge } from 'tailwind-merge'
 import { bankAccountLabelKey, getAccountCopyValue, type BankAccountLabelKey } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -116,7 +116,7 @@ export const TransactionDetailsReceipt = ({
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
-    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
+    const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
     const { setIsSupportModalOpen } = useModalsContext()
@@ -135,8 +135,8 @@ export const TransactionDetailsReceipt = ({
 
     // Sync modal state to parent if callback is provided
     useEffect(() => {
-        setIsModalOpen?.(showCancelLinkModal)
-    }, [showCancelLinkModal, setIsModalOpen])
+        setIsModalOpen?.(showCancelLinkDrawer)
+    }, [showCancelLinkDrawer, setIsModalOpen])
 
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on JSX + callbacks.
@@ -384,7 +384,14 @@ export const TransactionDetailsReceipt = ({
 
             {/* details card (date, fee, memo) and more */}
             <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
-                <div className="space-y-0">
+                {/* `[&>*:last-child]:border-b-0` — the last row sits directly on the
+                    card's own black border, so its dashed rule reads as a divider to
+                    nothing. `shouldHideBorder` only reaches rows this component renders
+                    itself; the deposit-instruction sub-components below expand into rows
+                    of their own, and rows can also drop out on conditions the visibility
+                    config doesn't model (a token row still awaiting its icon fetch). The
+                    container settles it for whatever actually renders last. */}
+                <div className="space-y-0 [&>*:last-child]:border-b-0">
                     {rowVisibilityConfig.createdAt && (
                         <PaymentInfoRow
                             label={t('rows.created')}
@@ -707,7 +714,7 @@ export const TransactionDetailsReceipt = ({
                         onClose && (
                             <Button
                                 disabled={isLoading || cancelLinkState === 'cancelled'}
-                                onClick={() => setShowCancelLinkModal(true)}
+                                onClick={() => setShowCancelLinkDrawer(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
@@ -863,12 +870,15 @@ export const TransactionDetailsReceipt = ({
                 </button>
             )}
 
-            {/* Cancel Link Modal  */}
+            {/* Cancel Link Drawer */}
 
             {setIsLoading && onClose && (
-                <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal}
-                    setshowCancelLinkModal={setShowCancelLinkModal}
+                <CancelSendLinkDrawer
+                    // Rendered inside the transaction details drawer whenever that
+                    // drawer owns the close handler — vaul needs a NestedRoot there.
+                    nested={!!setIsModalOpen}
+                    showCancelLinkDrawer={showCancelLinkDrawer}
+                    setShowCancelLinkDrawer={setShowCancelLinkDrawer}
                     amount={amountDisplay}
                     isLoading={isLoading}
                     onClick={async () => {
@@ -909,7 +919,7 @@ export const TransactionDetailsReceipt = ({
                                 await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
                                 setIsLoading(false)
-                                setShowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelLinkState('cancelled')
                                 toast.success(t('toast.linkCancelled'))
 
@@ -925,7 +935,7 @@ export const TransactionDetailsReceipt = ({
 
                                 // Still close drawer even if invalidation fails
                                 setIsLoading(false)
-                                setShowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelLinkState('cancelled')
                                 toast.success(t('toast.linkCancelledRefresh'))
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
