@@ -4,6 +4,7 @@ import ShareButton from '@/components/Global/ShareButton'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
+import { QR_DRAWER_EXPANDED_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 
 interface QRBottomDrawerProps {
     url: string
@@ -14,28 +15,23 @@ interface QRBottomDrawerProps {
     className?: string
 }
 
-/**
- * Height of the collapsed drawer, in px. The QR scanner imports this to anchor
- * its paste link just above the peek, so the two never overlap.
+/*
+ * Fractional snap points made the collapsed height depend on the viewport AND
+ * the locale: vaul applies `windowHeight - snap * windowHeight` to a
+ * content-sized drawer, so the visible peek came out as
+ * `contentHeight - 0.25 * windowHeight` — 212px on a 932px screen in English,
+ * 309px on a 640px screen in pt-BR, whose "let others scan this" line wraps to
+ * two. A px snap on a viewport-height drawer is the same number everywhere.
  *
- * Fractional snap points made this height depend on the viewport AND the
- * locale: vaul applies `windowHeight - snap * windowHeight` to a content-sized
- * drawer, so the visible peek came out as `contentHeight - 0.25 * windowHeight`
- * — 212px on a 932px screen in English, 309px on a 640px screen in pt-BR,
- * whose "let others scan this" line wraps to two. A px snap on a full-height
- * drawer is the same number everywhere.
+ * Only the COLLAPSED point has to be deterministic — it is what the paste
+ * actions are anchored to. The expanded point is sized to the content so the
+ * sheet still reads as a panel; it is safe to keep it that small because the
+ * scroll area below is capped to the same window, so a longer translation or a
+ * larger font-size setting scrolls instead of being clipped.
  *
- * 150 = 87px to the bottom of the collapsed title, +34px for the iOS home
- * indicator that sits inside the peek, + slack so the handle stays grabbable.
+ * module scope: a new array each render makes vaul's snap-sync effect refire
+ * and re-apply the transform transition on every parent re-render
  */
-export const QR_DRAWER_PEEK_PX = 150
-
-// Expanded height: 448px to the bottom of the share button in the tallest
-// locale, +34px iOS safe-area padding, + room for a two-line expanded title.
-const QR_DRAWER_EXPANDED_PX = 520
-
-// module scope: a new array each render makes vaul's snap-sync effect refire
-// and re-apply the transform transition on every parent re-render
 const snapPoints = [`${QR_DRAWER_PEEK_PX}px`, `${QR_DRAWER_EXPANDED_PX}px`]
 
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
@@ -69,12 +65,26 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     wrapper (even when nothing overflows), so the outer class only covers the
                     drag handle area. content touches need the wrapper's own copy, applied
                     only while collapsed so overflowing content can scroll at full snap. */}
-                {/* mt-0 h-full (twMerge drops the wrapper's mt-24): a full-height drawer
-                    makes each px snap point an exact visible height, instead of an offset
-                    measured from wherever content-sizing happened to put the drawer. */}
+                {/* mt-0 h-[100dvh] (twMerge drops the wrapper's mt-24): vaul resolves a
+                    snap point as `window.innerHeight - snapPoint`, so the drawer has to be
+                    exactly innerHeight tall for a px snap to equal the visible height.
+                    It must be dvh, NOT h-full: a percentage height on a fixed element
+                    resolves against the initial containing block, which on a mobile browser
+                    with a retractable toolbar is the LARGE viewport — taller than
+                    innerHeight — and the peek would grow by the toolbar's height, putting
+                    the drawer back over the paste link. dvh tracks innerHeight.
+
+                    The scroll area is capped to the expanded window instead of the shared
+                    80vh: 3.625rem is the drag-handle block above it (p-5 top + my-4 + the
+                    handle), and being rem-based it grows with the reader's font size, so
+                    the scroll region lands on the bottom of the viewport at any setting.
+                    Without this, content taller than the window is simply cut off — the
+                    80vh cap is never reached, so nothing scrolls. The 520px is
+                    QR_DRAWER_EXPANDED_PX, spelled out because Tailwind only emits an
+                    arbitrary value it can read literally in the source. */}
                 <DrawerContent
-                    className={`mt-0 h-full min-h-[200px] touch-none p-5 ${className || ''}`}
-                    scrollAreaClassName={activeSnapPoint === snapPoints[0] ? 'touch-none' : undefined}
+                    className={`mt-0 h-[100dvh] touch-none p-5 ${className || ''}`}
+                    scrollAreaClassName={`max-h-[calc(520px-3.625rem)] ${activeSnapPoint === snapPoints[0] ? 'touch-none' : ''}`}
                 >
                     <DrawerTitle className="mb-8 space-y-2">
                         <h2 className="text-lg font-bold">

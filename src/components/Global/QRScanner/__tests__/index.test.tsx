@@ -47,7 +47,7 @@ jest.mock('../useQRScanner', () => ({
 }))
 
 import QRScanner from '../index'
-import { QR_DRAWER_PEEK_PX } from '@/components/Global/QRBottomDrawer'
+import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -208,7 +208,7 @@ it('paste actions are anchored a fixed gap above the drawer peek', async () => {
     const link = await screen.findByText('Click to paste')
     const anchored = link.closest('[style*="bottom"]') as HTMLElement | null
     expect(anchored).not.toBeNull()
-    expect(anchored!.style.bottom).toBe(`${QR_DRAWER_PEEK_PX + 16}px`)
+    expect(anchored!.style.bottom).toBe(`${QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX}px`)
     // fixed to the viewport, not to the scan square
     expect(anchored!.className).toContain('fixed')
 })

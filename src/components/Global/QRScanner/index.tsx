@@ -7,7 +7,7 @@ import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
-import { QR_DRAWER_PEEK_PX } from '../QRBottomDrawer'
+import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
@@ -197,7 +197,10 @@ function ScanRegionOverlay({
                 grows from the bottom — two coordinate systems that only lined up
                 on a tall screen in English. Tailwind cannot JIT an interpolated
                 arbitrary value, so the offset is an inline style. */}
-            <div className="fixed inset-x-0 z-50 flex flex-col items-center" style={{ bottom: QR_DRAWER_PEEK_PX + 16 }}>
+            <div
+                className="fixed inset-x-0 z-50 flex flex-col items-center"
+                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
+            >
                 <PasteActions
                     onPaste={onPaste}
                     detectedAddress={detectedAddress}
