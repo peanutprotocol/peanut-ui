@@ -14,9 +14,29 @@ interface QRBottomDrawerProps {
     className?: string
 }
 
+/**
+ * Height of the collapsed drawer, in px. The QR scanner imports this to anchor
+ * its paste link just above the peek, so the two never overlap.
+ *
+ * Fractional snap points made this height depend on the viewport AND the
+ * locale: vaul applies `windowHeight - snap * windowHeight` to a content-sized
+ * drawer, so the visible peek came out as `contentHeight - 0.25 * windowHeight`
+ * — 212px on a 932px screen in English, 309px on a 640px screen in pt-BR,
+ * whose "let others scan this" line wraps to two. A px snap on a full-height
+ * drawer is the same number everywhere.
+ *
+ * 150 = 87px to the bottom of the collapsed title, +34px for the iOS home
+ * indicator that sits inside the peek, + slack so the handle stays grabbable.
+ */
+export const QR_DRAWER_PEEK_PX = 150
+
+// Expanded height: 448px to the bottom of the share button in the tallest
+// locale, +34px iOS safe-area padding, + room for a two-line expanded title.
+const QR_DRAWER_EXPANDED_PX = 520
+
 // module scope: a new array each render makes vaul's snap-sync effect refire
 // and re-apply the transform transition on every parent re-render
-const snapPoints = [0.75, 1]
+const snapPoints = [`${QR_DRAWER_PEEK_PX}px`, `${QR_DRAWER_EXPANDED_PX}px`]
 
 const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
     const t = useTranslations('global')
@@ -49,8 +69,11 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     wrapper (even when nothing overflows), so the outer class only covers the
                     drag handle area. content touches need the wrapper's own copy, applied
                     only while collapsed so overflowing content can scroll at full snap. */}
+                {/* mt-0 h-full (twMerge drops the wrapper's mt-24): a full-height drawer
+                    makes each px snap point an exact visible height, instead of an offset
+                    measured from wherever content-sizing happened to put the drawer. */}
                 <DrawerContent
-                    className={`min-h-[200px] touch-none p-5 ${className || ''}`}
+                    className={`mt-0 h-full min-h-[200px] touch-none p-5 ${className || ''}`}
                     scrollAreaClassName={activeSnapPoint === snapPoints[0] ? 'touch-none' : undefined}
                 >
                     <DrawerTitle className="mb-8 space-y-2">
