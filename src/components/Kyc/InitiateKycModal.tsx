@@ -7,7 +7,7 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import { KycRegionRestrictedContent, useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
+import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 
 interface InitiateKycModalProps {
     visible: boolean
@@ -46,7 +46,6 @@ export const InitiateKycModal = ({
     regionName,
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
-    const tRegion = useTranslations('kyc.regionRestricted')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     // Enforced HERE rather than at each call site on purpose. Six gates open this
@@ -59,7 +58,6 @@ export const InitiateKycModal = ({
     // component they all share makes the invariant impossible for a future call
     // site to miss.
     const { isRegionRestricted } = useIdentityVerification()
-    const regionCta = useRegionRestrictedCta(onClose)
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
     const isProviderRejection = variant === 'provider_rejection'
@@ -141,32 +139,11 @@ export const InitiateKycModal = ({
 
     const cta = getCta()
 
+    // Render the ONE definition of this screen rather than a second copy of it:
+    // a local re-implementation could drift from the drawer/profile surface, and
+    // "these two never disagree" is the property this whole change rests on.
     if (isRegionRestricted) {
-        return (
-            <ActionModal
-                visible={visible}
-                onClose={onClose}
-                title={tRegion('title')}
-                icon="globe-lock"
-                iconContainerClassName="bg-primary-1"
-                modalPanelClassName="max-w-full m-2"
-                ctaClassName="grid grid-cols-1 gap-3"
-                content={
-                    <div className="w-full">
-                        <KycRegionRestrictedContent />
-                    </div>
-                }
-                ctas={[
-                    {
-                        text: regionCta.label,
-                        onClick: regionCta.onClick,
-                        variant: 'purple',
-                        shadowSize: '4',
-                        className: 'h-11',
-                    },
-                ]}
-            />
-        )
+        return <KycRegionRestrictedModal visible={visible} onClose={onClose} />
     }
 
     return (
