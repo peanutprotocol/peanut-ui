@@ -180,7 +180,7 @@
             "tapToClaim": "Toca para reclamar tu recompensa.",
             "card": {
                 "title": "Consigue tu <b>Peanut Card</b>",
-                "description": "Beta cerrada. <b>Las insignias saltan la fila.</b> Desbloquea $10 con tu primer gasto de $100."
+                "description": "Beta cerrada. <b>Las insignias saltan la fila.</b>"
             },
             "invite": {
                 "title": "Invita amigos. Gana recompensas",

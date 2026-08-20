@@ -180,7 +180,7 @@
             "tapToClaim": "Tap to claim your reward.",
             "card": {
                 "title": "Get your <b>Peanut Card</b>",
-                "description": "Closed beta. <b>Badges skip the line.</b> $10 unlocks on your first $100 spend."
+                "description": "Closed beta. <b>Badges skip the line.</b>"
             },
             "invite": {
                 "title": "Invite friends. Earn rewards",

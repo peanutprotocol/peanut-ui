@@ -71,8 +71,7 @@
             "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
             "tapToClaim": "Tocá para reclamar tu recompensa.",
             "card": {
-                "title": "Conseguí tu <b>Peanut Card</b>",
-                "description": "Beta cerrada. <b>Las insignias saltan la fila.</b> Desbloqueá $10 con tu primer gasto de $100."
+                "title": "Conseguí tu <b>Peanut Card</b>"
             },
             "invite": {
                 "title": "Invitá amigos. Ganá recompensas",
