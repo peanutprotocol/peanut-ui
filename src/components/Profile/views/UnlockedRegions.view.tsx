@@ -11,12 +11,14 @@ import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
 import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
+import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { deriveRegionAccess, getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { useRegionLabel } from '@/hooks/useRegionLabel'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
@@ -75,6 +77,11 @@ const UnlockedRegions = () => {
     // fails toward region KYC (the trunk), never toward /card.
     const { activationStep } = useActivationStatus()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
+    // Terminal-by-jurisdiction is read from the identity read-model, NOT from the
+    // rail status this page otherwise keys on: the rail only says "blocked", which
+    // is where the retry loop below came from. The identity block is the only
+    // place that carries WHY.
+    const { isRegionRestricted } = useIdentityVerification()
     // MIGRATION-REVIEW: unlockedRegions/lockedRegions previously came from
     // `useIdentityVerification` (raw rails + Sumsub flags). Now derived from the
     // capability rails via deriveRegionAccess (same Region shape; faithful unlock
@@ -258,8 +265,13 @@ const UnlockedRegions = () => {
                 rejectLabels={sumsubRejectLabels}
             />
 
+            <KycRegionRestrictedModal
+                visible={modalVariant === 'rejected' && isRegionRestricted}
+                onClose={handleModalClose}
+            />
+
             <KycFailedModal
-                visible={modalVariant === 'rejected'}
+                visible={modalVariant === 'rejected' && !isRegionRestricted}
                 onClose={handleModalClose}
                 onRetry={handleStartKyc}
                 isLoading={flow.isLoading}

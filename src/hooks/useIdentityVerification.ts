@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
+import { IDENTITY_REGION_RESTRICTED_CODE } from '@/constants/kyc.consts'
 import { type IdentityVerification, type IdentityVerificationStatus } from '@/types/capabilities'
 import { useMemo } from 'react'
 
@@ -29,6 +30,14 @@ export interface UseIdentityVerificationResult {
     needsAction: boolean
     /** terminal — cannot self-serve. */
     isFailed: boolean
+    /**
+     * Terminal AND caused by the document's jurisdiction. A strict subset of
+     * `isFailed`: these users get the region screen (an explanation, no retry,
+     * no support punt) instead of the generic failed treatment. Every surface
+     * that renders a rejection must check this BEFORE `isFailed`, or it will
+     * offer a retry that can never pass.
+     */
+    isRegionRestricted: boolean
     isLoading: boolean
 }
 
@@ -45,6 +54,10 @@ export function useIdentityVerification(): UseIdentityVerificationResult {
             isProcessing: status === 'processing',
             needsAction: status === 'action_required',
             isFailed: status === 'failed',
+            // Gated on `failed` as well as the code: a reason riding a
+            // non-terminal status would be the BE contradicting itself, and
+            // rendering a dead end on a live flow is the worse failure.
+            isRegionRestricted: status === 'failed' && identity.reason?.code === IDENTITY_REGION_RESTRICTED_CODE,
             isLoading: isFetchingUser,
         }
     }, [identity, isFetchingUser])

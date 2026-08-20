@@ -10868,6 +10868,11 @@ export interface paths {
                             identityVerification: {
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 actionMessage?: string;
+                                reason?: {
+                                    code: string;
+                                    userMessage: string;
+                                    details?: string;
+                                };
                                 rejectLabels?: string[];
                                 submittedAt?: string;
                                 reviewedAt?: string;

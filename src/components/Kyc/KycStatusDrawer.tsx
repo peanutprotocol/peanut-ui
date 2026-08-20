@@ -1,6 +1,7 @@
 import { KycActionRequired } from './states/KycActionRequired'
 import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
+import { KycRegionRestricted } from './states/KycRegionRestricted'
 import { KycProcessing } from './states/KycProcessing'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
@@ -21,7 +22,7 @@ interface KycStatusDrawerProps {
 // provider names, no rail reads. Resuming/retrying launches Sumsub via the kept
 // useMultiPhaseKycFlow plumbing.
 export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDrawerProps) => {
-    const { identity, status } = useIdentityVerification()
+    const { identity, status, isRegionRestricted } = useIdentityVerification()
     const t = useTranslations('kyc')
 
     // close drawer and release the keep-mounted hold
@@ -63,6 +64,11 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                     />
                 )
             case 'failed':
+                // Region-restricted rejections are terminal in a way KycFailed's
+                // "Retry verification" button contradicts — branch before it.
+                if (isRegionRestricted) {
+                    return <KycRegionRestricted reviewedAt={identity.reviewedAt} onNavigate={onClose} />
+                }
                 return (
                     <KycFailed
                         actionMessage={identity.actionMessage}
