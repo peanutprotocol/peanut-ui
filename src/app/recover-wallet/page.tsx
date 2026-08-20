@@ -25,7 +25,7 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { createKernelClientForChain, type KernelClientOptions } from '@/context/kernelClient.context'
@@ -202,15 +202,9 @@ function RecoverWalletInner() {
                         <span className="text-2xl font-extrabold">
                             {formattedBalance} {PEANUT_WALLET_TOKEN_SYMBOL}
                         </span>
-                        <a
-                            href={`${getExplorerUrl(chainId)}/tx/${txHash}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-2 text-black underline"
-                        >
-                            <span>View on explorer</span>
-                            <Icon name="external-link" size={20} />
-                        </a>
+                        <LinkButton href={`${getExplorerUrl(chainId)}/tx/${txHash}`} external icon>
+                            View on explorer
+                        </LinkButton>
                     </Card>
                 </div>
             </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { Icon } from '@/components/Global/Icons/Icon'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useTranslations } from 'next-intl'
 
@@ -10,14 +11,10 @@ export const ReceiptSupportLink = () => {
     const t = useTranslations('transaction')
 
     return (
-        // board Link Button (17980:18031): Body/XS underline, foreground/secondary,
-        // trailing icon
-        <button
-            onClick={() => setIsSupportModalOpen(true)}
-            className="flex w-full items-center justify-center gap-1 text-body-xs text-foreground-secondary underline transition-colors duration-instant hover:text-foreground-primary"
-        >
+        // board Link Button (17980:18031) with the peanut-support trailing icon
+        <LinkButton onClick={() => setIsSupportModalOpen(true)} className="w-full justify-center">
             {t('actions.reportIssue')}
             <Icon name="peanut-support" size={14} className="text-foreground-secondary" />
-        </button>
+        </LinkButton>
     )
 }

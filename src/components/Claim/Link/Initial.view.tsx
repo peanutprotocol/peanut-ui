@@ -42,6 +42,7 @@ import { previewSdaTransfer } from '@/services/rhino-sda'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getTokenSymbol } from '@/utils/general.utils'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Image from 'next/image'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
@@ -1104,16 +1105,15 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 }
                             }}
                         />
-                        <Button
-                            variant="transparent"
-                            className="h-fit p-0 text-body-s underline"
+                        <LinkButton
+                            className="self-center"
                             onClick={() => {
                                 setShowConfirmationModal(false)
                                 setClaimToExternalWallet(false)
                             }}
                         >
                             {t('addressCompatible.claimToPeanut')}
-                        </Button>
+                        </LinkButton>
                     </div>
                 }
                 preventClose={false}

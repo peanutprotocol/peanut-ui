@@ -7,6 +7,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected' | 'geo-blocked'
 
@@ -94,14 +95,9 @@ const ApplicationStatusScreen: FC<Props> = ({
                     <p className="text-foreground-secondary">{t(copyKeys.body)}</p>
                 </div>
                 {variant === 'geo-blocked' && (
-                    <a
-                        href={PROHIBITED_ACTIVITIES_POLICY_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-foreground-primary underline"
-                    >
+                    <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>
                         {t('status.geoBlockedPolicyLink')}
-                    </a>
+                    </LinkButton>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
                     <div className="flex w-full flex-col gap-2">
@@ -112,9 +108,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                     </div>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
-                    <button type="button" onClick={onContactSupport} className="text-foreground-primary underline">
-                        {tCommon('contactSupport')}
-                    </button>
+                    <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                 )}
             </div>
         </div>

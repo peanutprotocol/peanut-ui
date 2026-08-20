@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { useModalsContext } from '@/context/ModalsContext'
 import Image from 'next/image'
-import Link from 'next/link'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 import { PeanutCrying } from '@/assets/mascot'
 
@@ -40,12 +40,9 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
                 >
                     {t('errors.talkToSupport')}
                 </Button>
-                <Link
-                    href="/home"
-                    className="mt-2 cursor-pointer text-body-s text-foreground-secondary underline underline-offset-2"
-                >
+                <LinkButton href="/home" className="mt-2 self-center">
                     {t('errors.goBackToHome')}
-                </Link>
+                </LinkButton>
             </div>
         </div>
     )

@@ -8,6 +8,7 @@ import InvitesPageLayout from './InvitesPageLayout'
 import { twMerge } from 'tailwind-merge'
 import ValidatedInput from '../Global/ValidatedInput'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
@@ -335,9 +336,9 @@ const JoinWaitlistPage = () => {
                             </Button>
 
                             {emailError && (
-                                <button onClick={handleSkipEmail} className="text-body-s underline">
+                                <LinkButton onClick={handleSkipEmail} className="self-center">
                                     {tCommon('skipForNow')}
-                                </button>
+                                </LinkButton>
                             )}
                         </div>
                     )}
@@ -352,9 +353,9 @@ const JoinWaitlistPage = () => {
                                 {tNotifications('enable')}
                             </Button>
 
-                            <button onClick={() => setStep('jail')} className="text-body-s underline">
+                            <LinkButton onClick={() => setStep('jail')} className="self-center">
                                 {tNotifications('notNow')}
-                            </button>
+                            </LinkButton>
                         </div>
                     )}
 
@@ -410,9 +411,9 @@ const JoinWaitlistPage = () => {
 
                             {error && <Notification priority="error">{error}</Notification>}
 
-                            <button onClick={handleLogout} className="text-body-s underline">
+                            <LinkButton onClick={handleLogout} className="self-center">
                                 {isLoggingOut ? t('pleaseWait') : t('logInDifferentAccount')}
-                            </button>
+                            </LinkButton>
                         </div>
                     )}
                 </div>

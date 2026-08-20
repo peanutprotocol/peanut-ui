@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
 import CardLimitEditModal, { CARD_LIMITS_QUERY_KEY } from '@/components/Card/CardLimitEditModal'
 import { rainApi, type RainCardLimit } from '@/services/rain'
@@ -63,13 +64,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                                 {amount != null ? formatDollars(amount) : t('noLimitSet')}
                             </div>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => setIsEditing(true)}
-                            className="text-foreground-primary underline"
-                        >
-                            {t('edit')}
-                        </button>
+                        <LinkButton onClick={() => setIsEditing(true)}>{t('edit')}</LinkButton>
                     </div>
                 )}
             </div>

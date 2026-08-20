@@ -15,6 +15,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import NavHeader from '@/components/Global/NavHeader'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
@@ -627,13 +628,9 @@ function MantecaBankWithdrawFlow() {
                             <Button onClick={resetState} variant="purple">
                                 {tCommon('tryAgain')}
                             </Button>
-                            <Button
-                                onClick={() => setIsSupportModalOpen(true)}
-                                variant="transparent"
-                                className="text-body-s underline"
-                            >
+                            <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">
                                 {tCommon('contactSupport')}
-                            </Button>
+                            </LinkButton>
                         </Card.Content>
                     </Card>
                 </div>

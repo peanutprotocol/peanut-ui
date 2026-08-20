@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -96,13 +97,9 @@ export default function BackendErrorScreen() {
                 <Button shadowSize="4" icon="retry" size="medium" className="w-fit rounded-full" onClick={handleRetry}>
                     {t('backendErrorScreen.tryAgain')}
                 </Button>
-                <button
-                    onClick={handleForceLogout}
-                    disabled={isLoggingOut}
-                    className="text-gray-600 hover:text-gray-800 text-sm underline disabled:opacity-50"
-                >
+                <LinkButton onClick={handleForceLogout} disabled={isLoggingOut}>
                     {isLoggingOut ? t('backendErrorScreen.loggingOut') : t('backendErrorScreen.logOut')}
-                </button>
+                </LinkButton>
             </div>
         </div>
     )

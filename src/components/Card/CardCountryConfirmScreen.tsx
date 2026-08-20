@@ -5,6 +5,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { localizedCountryName } from '@/utils/country-name.utils'
 
 interface Props {
@@ -53,9 +54,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                 <div className="my-auto flex flex-col items-center gap-3 text-center">
                     <h1 className="text-heading-s text-foreground-primary">{t('countryConfirm.noCandidatesTitle')}</h1>
                     <p className="text-foreground-secondary">{t('countryConfirm.noCandidatesBody')}</p>
-                    <button type="button" onClick={onContactSupport} className="text-foreground-primary underline">
-                        {tCommon('contactSupport')}
-                    </button>
+                    <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                 </div>
             </div>
         )

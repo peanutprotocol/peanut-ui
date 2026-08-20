@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import type { Hex } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -119,14 +120,13 @@ export default function CardRecoveryPage() {
                         <p className="text-body-s text-foreground-secondary">
                             {t('doneBody', { amount: `$${formatCents(recoveredCents ?? preview!.amountCents)}` })}
                         </p>
-                        <a
-                            className="text-foreground-primary underline"
-                            target="_blank"
-                            rel="noreferrer"
+                        <LinkButton
                             href={`${getExplorerUrl(String(PEANUT_WALLET_CHAIN.id)) ?? ''}/tx/${txHash}`}
+                            external
+                            className="self-start"
                         >
                             {t('viewTransaction')}
-                        </a>
+                        </LinkButton>
                     </Card>
                 ) : (
                     preview && (
