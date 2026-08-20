@@ -3,105 +3,58 @@
 import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { ConnectivityBanner } from './ConnectivityBanner'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useConnectivity } from '@/hooks/useConnectivity'
-import { MaintenanceBanner } from './MaintenanceBanner'
-import { MarqueeWrapper } from '../MarqueeWrapper'
 import maintenanceConfig from '@/config/underMaintenance.config'
-import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
-import Image from 'next/image'
-import { useModalsContext } from '@/context/ModalsContext'
-import { GIT_COMMIT_HASH, IS_PRODUCTION } from '@/constants/general.consts'
-import { getRunMode, isRealMoneyMode, logRunMode } from '@/utils/mode'
+import { IS_PRODUCTION } from '@/constants/general.consts'
+import { logRunMode } from '@/utils/mode'
 import { isDemoMode } from '@/utils/demo'
-import { isIOSNative } from '@/utils/capacitor'
 
+/**
+ * App-wide announcement surface. The old marquee banners (beta feedback,
+ * GenericBanner) are gone — announcements now render as an inline
+ * Notification (maintenance example: figma 17994:21117). Precedence:
+ * connectivity > maintenance > nothing. The maintenance toggles in
+ * underMaintenance.config show it on every page; there is no per-page
+ * maintenance flag today.
+ */
 export function Banner() {
     const pathname = usePathname()
     const connectivity = useConnectivity()
-    if (!pathname) return null
-
-    // Demo mode is the app-store review sandbox: synthetic data, no real
-    // backend — none of the banners (beta feedback, connectivity, maintenance)
-    // apply there.
-    if (isDemoMode()) return null
-
-    // Connectivity wins over the beta/maintenance banners: if the app can't reach
-    // the backend, that's the most actionable thing to tell the user right now.
-    if (connectivity.show) {
-        return <ConnectivityBanner isOffline={connectivity.isOffline} />
-    }
-
-    // check if maintenance banner OR full maintenance is enabled - show on all pages
-    if (maintenanceConfig.enableMaintenanceBanner || maintenanceConfig.enableFullMaintenance) {
-        return <MaintenanceBanner />
-    }
-
-    // don't show beta feedback banner on landing pages, setup page, or quests pages
-    if (
-        pathname === '/' ||
-        pathname === '/setup' ||
-        pathname === '/setup/' ||
-        pathname.startsWith('/quests') ||
-        pathname.startsWith('/lp')
-    )
-        return null
-
-    // The beta feedback banner is hidden in the iOS app: it's a marquee strip
-    // pinned above every screen, and on iPhone it eats vertical space directly
-    // under the notch for what is a web-era "we're in beta, tell us things"
-    // prompt. Support is still reachable from Settings. Deliberately iOS-only —
-    // Android and web keep it, and so does the non-prod run-mode pill below,
-    // which is how testers tell sandbox from real money at a glance.
-    if (isIOSNative()) return null
-
-    // show beta feedback banner when not in maintenance
-    return <FeedbackBanner />
-}
-
-function FeedbackBanner() {
     const t = useTranslations('global')
-    const { setIsSupportModalOpen } = useModalsContext()
 
-    // Log run-mode once on mount (dev only). Big yellow banner in the
-    // browser console so you can never confuse sandbox for staging at a
-    // glance. Real-money modes get a red banner instead.
+    // dev-only run-mode console log, kept from the old beta banner so testers
+    // can still tell sandbox from real money at a glance in the console
     useEffect(() => {
         if (IS_PRODUCTION) return
         logRunMode()
     }, [])
 
-    const handleClick = () => {
-        setIsSupportModalOpen(true)
+    if (!pathname) return null
+
+    // demo mode is the app-store review sandbox: synthetic data, no real
+    // backend — no announcement applies there
+    if (isDemoMode()) return null
+
+    // connectivity wins over maintenance: if the app can't reach the backend,
+    // that's the most actionable thing to tell the user right now
+    if (connectivity.show) {
+        return (
+            <Notification priority={connectivity.isOffline ? 'error' : 'attention'} className="mx-4 mt-2">
+                {connectivity.isOffline
+                    ? "No internet connection — some features won't work until you reconnect"
+                    : 'Trouble reaching Peanut — check your connection, retrying…'}
+            </Notification>
+        )
     }
 
-    const mode = !IS_PRODUCTION ? getRunMode() : null
-    const realMoney = !IS_PRODUCTION && isRealMoneyMode()
+    if (maintenanceConfig.enableMaintenanceBanner || maintenanceConfig.enableFullMaintenance) {
+        return (
+            <Notification priority="error" className="mx-4 mt-2">
+                {t('maintenanceBanner')}
+            </Notification>
+        )
+    }
 
-    return (
-        <button onClick={handleClick} className="w-full cursor-pointer">
-            <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
-                <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
-                    {t('betaBanner')}
-                    <Image src={HandThumbsUp} alt={t('betaBannerThumbsUpAlt')} className="h-4 w-4" />
-                    {!IS_PRODUCTION && <span className="ml-2 text-sm font-semibold">version: {GIT_COMMIT_HASH}</span>}
-                    {mode && (
-                        // High-contrast yellow-on-black pill. Visually impossible
-                        // to miss; the goal is "you can never accidentally think
-                        // you're in sandbox when you're hitting prod." Real-money
-                        // modes get a flashing red emoji prefix.
-                        <span
-                            className={
-                                'ml-2 rounded-sm border border-black px-2 py-0.5 text-xs font-extrabold ' +
-                                (realMoney ? 'bg-red-500 text-white' : 'bg-yellow-300 text-black')
-                            }
-                        >
-                            {realMoney ? '⚠ REAL MONEY · ' : '⚙ '}
-                            {mode.preset.toUpperCase()}
-                        </span>
-                    )}
-                </span>
-            </MarqueeWrapper>
-        </button>
-    )
+    return null
 }
