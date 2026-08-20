@@ -8,6 +8,7 @@ import { parseAsFloat, parseAsString, useQueryStates } from 'nuqs'
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 
 export interface ExchangeRateWidgetLabels {
     youSend: string
@@ -194,17 +195,17 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // Determine delivery time text based on destination currency
     const deliveryTimeText = destinationCurrency === 'USD' ? l.arrivesHours : l.arrivesMinutes
 
-    // DS note: token-level restyle only. the widget still composes raw .btn
-    // shells instead of DS Card/ListItem and needs a figma board before a
-    // structural rebuild — flagged in the ds-apply-pages PR, not done here.
+    // no exchange-rate board exists in figma (checked 2026-08-20) — container
+    // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
+    // recipe; a dedicated board can restyle the internals later.
     return (
-        <div className="btn btn-shadow-primary-4 mx-auto mt-12 flex h-fit w-full flex-col items-center justify-center gap-4 bg-background-default p-7 md:w-[420px]">
+        <Card shadowSize="4" className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-7 md:w-[420px]">
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.youSend}</h2>
-                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-background-default p-4">
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                            <div className="h-8 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -248,7 +249,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
             <button
                 onClick={swapCurrencies}
-                className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-grey-4"
+                className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-background-disabled"
                 aria-label={l.swapCurrencies}
             >
                 <Icon name="arrow-exchange" size={18} className="rotate-90 transition-transform duration-300" />
@@ -256,10 +257,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.recipientGets}</h2>
-                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-background-default p-4">
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                            <div className="h-8 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -308,7 +309,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
             <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
                 {showLoading ? (
-                    <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-grey-2" />
+                    <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-background-disabled" />
                 ) : isError ? (
                     <span>{l.rateUnavailable}</span>
                 ) : (
@@ -348,7 +349,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                     <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>
                 </div>
             )}
-        </div>
+        </Card>
     )
 }
 

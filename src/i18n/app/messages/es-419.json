@@ -75,7 +75,8 @@
         "receipt": "Recibo",
         "supportUnread": "Nueva respuesta de soporte",
         "card": "Tarjeta",
-        "scanQr": "Escanear QR"
+        "scanQr": "Escanear QR",
+        "settings": "Ajustes"
     },
     "home": {
         "rewards": "Recompensas",

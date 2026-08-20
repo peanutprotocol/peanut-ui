@@ -181,9 +181,9 @@ export default function RecoverFundsPage() {
         setIsSigning(false)
     }, [selectedBalance, recipient.address, sendTransactions, peanutAddress, t])
 
-    if (!peanutAddress) return null
-
-    if (fetchingBalances) {
+    // wallet address not resolved yet (kernel still initializing) — show the
+    // loader instead of a blank page; balances start fetching once it lands
+    if (!peanutAddress || fetchingBalances) {
         return <Loading variant="mascot" />
     }
 
