@@ -251,10 +251,13 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
     // `regionIntent` prop so mounting the page does not create a backend record).
     // Deriving multi-level from the prop alone made the flag false for all of
     // them — the EEA questionnaire never got shown.
+    // NA shares the `bridge-requirements` workflow with EU but is NOT multi-level:
+    // only EEA applicants branch to the uplift questionnaire. Marking NA
+    // multi-level would park every US applicant in an open SDK until approval.
     it.each([
         ['EU', true],
-        ['NA', true],
         ['LATAM', true],
+        ['NA', false],
         ['ROW', false],
         ['STANDARD', false],
     ] as const)('intent %s passed as a call-time override → isMultiLevel %s', async (intent, expected) => {
@@ -330,6 +333,28 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
         })
 
         expect(result.current.isVerificationProgressModalOpen).toBe(true)
+    })
+
+    // The suppression must DEFER the transition, not consume it. prevStatusRef is
+    // left alone while the SDK is open, so closing the SDK re-runs the effect and
+    // the transition is evaluated for real. If the ref were advanced during the
+    // suppressed pass, a user who abandoned mid-questionnaire would be stranded on
+    // a stale "verifying" modal with nothing left to close it.
+    it('re-evaluates the deferred transition once the SDK closes', async () => {
+        const { result } = await openSdkOverProgressModal('EU')
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+
+        // user abandons the questionnaire — no new status event follows
+        act(() => {
+            result.current.handleClose()
+        })
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
     })
 
     // Boundary: the suppression is scoped to an OPEN SDK. Once the user is out of
