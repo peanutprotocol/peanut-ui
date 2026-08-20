@@ -180,7 +180,7 @@
             "tapToClaim": "Toque para resgatar sua recompensa.",
             "card": {
                 "title": "Peça seu <b>Peanut Card</b>",
-                "description": "Beta fechado. <b>Emblemas furam a fila.</b> Desbloqueie $10 no seu primeiro gasto de $100."
+                "description": "Beta fechado. <b>Emblemas furam a fila.</b> O resto entra na lista de espera."
             },
             "invite": {
                 "title": "Convide amigos. Ganhe recompensas",
@@ -3171,16 +3171,16 @@
                 "answer": "É seu. Sem custódia — suas stablecoins ficam na sua carteira até a hora em que você usa o cartão. Não temos a custódia. Não emprestamos seu dinheiro."
             },
             "q4": {
-                "question": "E OS $10?",
-                "answer": "Uma recompensa de boas-vindas. Complete a verificação + $100 de gasto no cartão → $10 liberados no seu saldo. Vale igual se você se cadastrou sozinho ou veio por indicação. Se você indicar alguém, também pode receber $10 quando essa pessoa ativar o cartão. Sujeito a elegibilidade e aos termos do programa."
+                "question": "PRECISO VERIFICAR MINHA IDENTIDADE?",
+                "answer": "Sim. Uma verificação de identidade antes de receber o cartão, e você precisa ter 18 anos ou mais. Quem tem selo vai direto para essa etapa."
             },
             "q5": {
                 "question": "QUANTO TEMPO DEMORA A LISTA DE ESPERA?",
                 "answer": "Durante o beta fechado, liberamos cerca de 20 pessoas por semana. A ordem importa. Os selos furam a fila por completo."
             },
             "q6": {
-                "question": "ONDE POSSO CONSEGUIR O CARTÃO?",
-                "answer": "Estamos liberando primeiro em algumas regiões e incluindo mais conforme a cobertura dos nossos parceiros cresce. A elegibilidade aparece durante o cadastro."
+                "question": "POSSO USAR ONDE EU MORO?",
+                "answer": "É um cartão Visa — aceito onde a Visa é aceita, em lojas, online e em caixas eletrônicos. Entre e teste a porta para ver o próximo passo da sua conta."
             },
             "q7": {
                 "question": "TEM TAXAS?",

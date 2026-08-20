@@ -180,7 +180,7 @@
             "tapToClaim": "Tap to claim your reward.",
             "card": {
                 "title": "Get your <b>Peanut Card</b>",
-                "description": "Closed beta. <b>Badges skip the line.</b> $10 unlocks on your first $100 spend."
+                "description": "Closed beta. <b>Badges skip the line.</b> Everyone else joins the waitlist."
             },
             "invite": {
                 "title": "Invite friends. Earn rewards",
@@ -3171,16 +3171,16 @@
                 "answer": "It's yours. Non-custodial — your stablecoins stay in your wallet until the moment you use the card. We don't hold custody. We don't lend it out."
             },
             "q4": {
-                "question": "WHAT'S THE $10?",
-                "answer": "A welcome reward. Complete verification + first $100 in card spend → $10 unlocked to your balance. Same deal whether you signed up yourself or got referred. If you referred someone, you also are eligible for $10 when they activate. Subject to eligibility and program terms."
+                "question": "DO I NEED TO VERIFY MY IDENTITY?",
+                "answer": "Yes. One identity check before you get the card, and you need to be 18 or over. Badge holders go straight to that step."
             },
             "q5": {
                 "question": "HOW LONG IS THE WAITLIST?",
                 "answer": "We're letting in about 20 people a week during closed beta. Order matters. Badges skip the line entirely."
             },
             "q6": {
-                "question": "WHERE CAN I GET THE CARD?",
-                "answer": "We're rolling out to select regions first and adding more as our partners' coverage expands. Eligibility is shown during signup."
+                "question": "CAN I USE IT WHERE I LIVE?",
+                "answer": "It's a Visa card — accepted wherever Visa is accepted, in shops, online and at ATMs. Sign in and try the door to see what's next for your account."
             },
             "q7": {
                 "question": "ANY FEES?",
