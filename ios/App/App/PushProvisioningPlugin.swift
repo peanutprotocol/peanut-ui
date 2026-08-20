@@ -32,6 +32,7 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
 #if canImport(MeaPushProvisioning)
     private var currentCall: CAPPluginCall?
     private var tokenizationResponseData: MppInitializeOemTokenizationResponseData?
+    private var pendingCard: WalletExtensionCardStore.Card?
 
     @objc func isAvailable(_ call: CAPPluginCall) {
         let passKitReady = PKPassLibrary.isPassLibraryAvailable() && PKAddPaymentPassViewController.canAddPaymentPass()
@@ -91,6 +92,11 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             self.tokenizationResponseData = data
             self.currentCall = call
+            self.pendingCard = WalletExtensionCardStore.Card(
+                cardId: cardId,
+                last4: call.getString("last4") ?? "",
+                title: call.getString("displayName") ?? "Peanut Card"
+            )
             DispatchQueue.main.async {
                 self.bridge?.viewController?.present(controller, animated: true)
             }
@@ -146,9 +152,14 @@ extension PushProvisioningPlugin: PKAddPaymentPassViewControllerDelegate {
             self.bridge?.viewController?.presentedViewController?.dismiss(animated: true)
         }
         let call = currentCall
+        let card = pendingCard
         currentCall = nil
         tokenizationResponseData = nil
+        pendingCard = nil
         if let pass = pass, error == nil {
+            // Mirror the card into the shared app-group store so the Wallet
+            // issuer-provisioning extension can answer status() without the app.
+            if let card = card { WalletExtensionCardStore.save(card) }
             call?.resolve(["added": true, "last4": pass.primaryAccountNumberSuffix])
         } else if let error = error {
             call?.resolve(["added": false, "error": error.localizedDescription])
