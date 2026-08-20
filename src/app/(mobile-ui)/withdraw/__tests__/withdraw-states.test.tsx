@@ -95,6 +95,10 @@ jest.mock('@/context/tokenSelector.context', () => ({
 jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v ?? '0'),
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    // real implementation: same-origin paths pass, everything else is rejected
+    sanitizeRedirectURL: jest.fn((url: string) =>
+        url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
+    ),
 }))
 
 const mockGetCountryFromAccount = jest.fn(
@@ -297,6 +301,30 @@ describe('GROUP 1: Method Selection', () => {
 
         fireEvent.click(screen.getByTestId('router-view-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    // The exchange-rate widget's "Try it!" CTA lands here for users with a
+    // balance; back used to reset to /home instead of the widget they came from.
+    test('Back honours ?returnTo when the flow was entered from another screen', () => {
+        renderWithdraw({ returnTo: '/profile/exchange-rate?from=USD&to=EUR' })
+
+        fireEvent.click(screen.getByTestId('router-view-back'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
+        expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+    })
+
+    test('Back ignores an off-origin ?returnTo and still resets to /home', () => {
+        renderWithdraw({ returnTo: 'https://evil.example/phish' })
+
+        fireEvent.click(screen.getByTestId('router-view-back'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    test('Back from the send flow still goes to /send, ignoring ?returnTo', () => {
+        renderWithdraw({ method: 'bank', returnTo: '/profile/exchange-rate' })
+
+        fireEvent.click(screen.getByTestId('router-view-back'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/send')
     })
 
     test('Back from bank send method selection navigates to /send', () => {
