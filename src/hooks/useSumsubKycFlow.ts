@@ -162,10 +162,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         prevStatusRef.current = liveKycStatus
 
         if (prevStatus !== 'APPROVED' && liveKycStatus === 'APPROVED') {
-            // if SDK is still open (LATAM multi-level), close it now —
+            // if SDK is still open (multi-level), close it now —
             // applicantWorkflowCompleted has fired, all levels are done.
             if (showWrapperRef.current) {
                 setShowWrapper(false)
+                // this is the third and last path that closes the SDK, so clearing
+                // here is what makes "closed ⇒ single-level" hold everywhere. A
+                // later action open (self-heal, restart-identity, start-action)
+                // would otherwise inherit a stale true and never close on submit.
+                setIsMultiLevel(false)
                 setIsVerificationProgressModalOpen(true)
                 userInitiatedRef.current = true
             }

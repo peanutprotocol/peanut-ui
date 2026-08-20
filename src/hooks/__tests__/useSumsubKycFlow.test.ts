@@ -283,6 +283,26 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
 
     // An applicant action is a single level whatever the region — cross-region
     // LATAM mints a `manteca` action token, so it must still close on submit.
+    // Every path that closes the SDK must clear the flag, or a later single-level
+    // open (self-heal, restart-identity, start-action) inherits a stale true and
+    // SumsubKycWrapper suppresses its completion close — stranding the user in the
+    // SDK. Approval is the one close path that does not run a close handler.
+    it('clears isMultiLevel when approval closes the SDK', async () => {
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU')
+        })
+        expect(result.current.isMultiLevel).toBe(true)
+
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isMultiLevel).toBe(false)
+    })
+
     it('an applicant action is single-level even for a multi-level intent', async () => {
         mockInitiate.mockResolvedValue({
             data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'manteca' },

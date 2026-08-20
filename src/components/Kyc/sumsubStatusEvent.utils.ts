@@ -44,7 +44,8 @@ export function evaluateSumsubStatusEvent({
     if (isMultiLevel) {
         // Level 1 fires completed+GREEN before Level 2 is shown — don't close.
         // Level 2 is the Manteca questionnaire (LATAM) or the EEA uplift
-        // questionnaire (EU / NA, both on `bridge-requirements`).
+        // questionnaire (EU). NA shares the `bridge-requirements` workflow but
+        // never branches to the uplift, so it is not multi-level.
         return { markSubmitted: false, autoClose: false }
     }
     if (isCompletedGreen) {

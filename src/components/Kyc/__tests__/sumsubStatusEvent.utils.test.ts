@@ -87,9 +87,9 @@ describe('evaluateSumsubStatusEvent', () => {
         })
 
         // A multi-level flow can be declined on Level 1 (documents) before the
-        // follow-up questionnaire is ever shown — EU / NA reach this on the
-        // `bridge-requirements` workflow. The SDK must stay open so the user can
-        // retry in-session instead of being dumped back to the drawer.
+        // follow-up questionnaire is ever shown — an EU applicant reaches this on
+        // the `bridge-requirements` workflow. The SDK must stay open so the user
+        // can retry in-session instead of being dumped back to the drawer.
         it('multi-level + RED keeps the SDK open for an in-session retry', () => {
             expect(
                 evaluateSumsubStatusEvent({
