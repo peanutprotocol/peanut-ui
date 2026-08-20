@@ -121,7 +121,7 @@ export function SemanticRequestConfirmView() {
             <>
                 <span className="line-through">$ {calculatedGasCost.toFixed(2)}</span>
                 {' - '}
-                <span className="text-gray-500 font-medium">{tCommon('sponsoredByPeanut')}</span>
+                <span className="font-medium text-foreground-secondary">{tCommon('sponsoredByPeanut')}</span>
             </>
         )
     }, [calculatedGasCost, isFeeEstimationError, tCommon])

@@ -163,7 +163,7 @@ export default function RedirectQrClaimPage() {
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="space-y-4 p-6">
                         <div className="flex items-center justify-center">
-                            <div className="bg-red-100 flex h-16 w-16 items-center justify-center rounded-full">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-background-badge-error">
                                 <Icon name="cancel" size={32} className="text-foreground-error" />
                             </div>
                         </div>
