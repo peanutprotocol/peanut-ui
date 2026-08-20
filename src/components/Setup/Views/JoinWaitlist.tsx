@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Divider } from '@/components/0_Bruddle/Divider'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -102,50 +103,26 @@ const JoinWaitlist = () => {
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-                <ValidatedInput
-                    placeholder={t('waitlist.inviterUsernamePlaceholder')}
-                    value={inviteCode}
-                    debounceTime={750}
-                    validate={validateInviteCode}
-                    shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
-                    onUpdate={({ value, isValid, isChanging }) => {
-                        setIsValid(isValid)
-                        setIsChanging(isChanging)
-                        setInviteCode(value)
-                        if (isChanging) setError('')
-                    }}
-                    isSetupFlow
-                    isInputChanging={isChanging}
-                    className={twMerge(
-                        !isValid && !isChanging && !!inviteCode && 'border-error dark:border-error',
-                        isValid && !isChanging && !!inviteCode && 'border-secondary-8 dark:border-secondary-8',
-                        'rounded-sm'
-                    )}
-                />
-                <Button
-                    disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
-                    onClick={() => {
-                        // Demo mode: skip signup + passkey. Soft-nav (no reload) so the
-                        // in-memory demo flag survives — a hard nav loses it and races the
-                        // no-credential logout/redirect guards before localStorage is
-                        // readable. Seed the user query so the app is logged-in instantly.
-                        if (isCapacitor() && isDemoInviteCode(inviteCode)) {
-                            enableDemoMode()
-                            dispatch(userActions.setUser(DEMO_USER))
-                            queryClient.setQueryData([USER], DEMO_USER)
-                            router.push('/home')
-                            return
-                        }
-                        dispatch(setupActions.setInviteCode(inviteCode))
-                        handleNext()
-                    }}
-                    shadowSize="4"
-                    className="h-12 w-4/12"
-                >
-                    {t('next')}
-                </Button>
-            </div>
+            <ValidatedInput
+                placeholder={t('waitlist.inviterUsernamePlaceholder')}
+                value={inviteCode}
+                debounceTime={750}
+                validate={validateInviteCode}
+                shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
+                onUpdate={({ value, isValid, isChanging }) => {
+                    setIsValid(isValid)
+                    setIsChanging(isChanging)
+                    setInviteCode(value)
+                    if (isChanging) setError('')
+                }}
+                isSetupFlow
+                isInputChanging={isChanging}
+                className={twMerge(
+                    !isValid && !isChanging && !!inviteCode && 'border-error',
+                    isValid && !isChanging && !!inviteCode && 'border-success-3',
+                    'rounded-sm'
+                )}
+            />
 
             {error && (
                 <div className="pb-1">
@@ -153,17 +130,41 @@ const JoinWaitlist = () => {
                 </div>
             )}
 
-            <div className="flex items-center gap-4 py-2">
-                <div className="h-px flex-1 bg-grey-1" />
-                <span className="text-body-s text-foreground-secondary">{tCommon('or')}</span>
-                <div className="h-px flex-1 bg-grey-1" />
-            </div>
+            <Button
+                variant="purple"
+                disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
+                onClick={() => {
+                    // Demo mode: skip signup + passkey. Soft-nav (no reload) so the
+                    // in-memory demo flag survives — a hard nav loses it and races the
+                    // no-credential logout/redirect guards before localStorage is
+                    // readable. Seed the user query so the app is logged-in instantly.
+                    if (isCapacitor() && isDemoInviteCode(inviteCode)) {
+                        enableDemoMode()
+                        dispatch(userActions.setUser(DEMO_USER))
+                        queryClient.setQueryData([USER], DEMO_USER)
+                        router.push('/home')
+                        return
+                    }
+                    dispatch(setupActions.setInviteCode(inviteCode))
+                    handleNext()
+                }}
+                shadowSize="4"
+                icon="chevron-right"
+                iconPosition="right"
+                className="w-full"
+            >
+                {t('next')}
+            </Button>
+
+            <Divider text={tCommon('or')} textClassname="text-body-s text-foreground-secondary" />
 
             <Button
+                variant="stroke"
                 onClick={() => {
                     handleNext()
                 }}
                 shadowSize="4"
+                className="w-full"
             >
                 {t('waitlist.joinWaitlist')}
             </Button>
