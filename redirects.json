@@ -142,6 +142,11 @@
         "permanent": true
     },
     {
+        "source": "/lp/card",
+        "destination": "/shhhhh",
+        "permanent": true
+    },
+    {
         "source": "/sh",
         "destination": "/card",
         "permanent": false
