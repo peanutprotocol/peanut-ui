@@ -118,9 +118,14 @@ public class PushProvisioningPlugin extends Plugin {
         String displayName = call.getString("displayName", "Peanut Card");
         UserAddress userAddress = buildUserAddress(call);
 
-        // The SDK routes intermediate results through onActivityResult —
+        // LEGACY flow on purpose: pushCard(...) is Google's TSP-only Push
+        // Provisioning, push(...) (same signature) is Unified Push Provisioning.
+        // Rain does not support UPP yet (docs.rain.xyz/docs/push-provisioning);
+        // Google deprecates legacy end of 2026, so this becomes push(...) once
+        // Rain confirms UPP support + the Google UPP onboarding is done.
+        // Intermediate results come back through onActivityResult —
         // MainActivity forwards them to handleGooglePayActivityResult above.
-        MeaPushProvisioning.GooglePay.push(cardParams, displayName, userAddress, activity, new MppPushCardToGooglePayListener() {
+        MeaPushProvisioning.GooglePay.pushCard(cardParams, displayName, userAddress, activity, new MppPushCardToGooglePayListener() {
             @Override
             public void onSuccess(String tokenReferenceId, String cardLastFourDigits, MppPaymentNetwork cardNetwork) {
                 JSObject out = new JSObject();
