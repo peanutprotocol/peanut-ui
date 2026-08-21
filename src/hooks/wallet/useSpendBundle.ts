@@ -23,6 +23,7 @@ import { usdcUnitsToRainCents, isRainBalanceKnown } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { isDemoMode } from '@/utils/demo'
 import { debitDemoBalance } from '@/utils/demo-balance'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import {
     resolveSpendStrategy,
     runCollateralSpendPreflight,
@@ -296,9 +297,10 @@ export const useSpendBundle = () => {
                         modals?.setIsSecurityVerificationOpen?.(false)
                     }
                     if (attempt.ok) {
-                        const mixedTxHash =
-                            (attempt.receipt?.transactionHash as Hex | undefined) ??
-                            (attempt.userOpHash as Hex | undefined)
+                        const mixedTxHash = resolveSettledTxHash(
+                            { receipt: attempt.receipt, userOpHash: attempt.userOpHash },
+                            'spend-bundle-mixed-stamp'
+                        ).hash as Hex | undefined
                         if (mixedTxHash) {
                             rainApi
                                 .stampWithdrawal({ preparationId: prep.preparationId, txHash: mixedTxHash })
@@ -381,7 +383,7 @@ export const useSpendBundle = () => {
                     // right category (P2P_SEND, CRYPTO_WITHDRAW, etc). Non-blocking —
                     // a stamp failure leaves the intent PENDING, which only affects
                     // history labeling, not the spend itself.
-                    const mixedTxHash = (receipt?.transactionHash as Hex | undefined) ?? (userOpHash as Hex | undefined)
+                    const mixedTxHash = resolveSettledTxHash({ receipt, userOpHash }, 'spend-bundle-stamp').hash as Hex
                     if (mixedTxHash) {
                         rainApi
                             .stampWithdrawal({ preparationId: prep.preparationId, txHash: mixedTxHash })

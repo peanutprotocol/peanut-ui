@@ -135,8 +135,22 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
                 return { ok: false, reason: 'ephemeral userOp reverted on-chain' }
             }
             receipt = userOpReceipt.receipt
-        } catch {
-            // Mirror handleSendUserOpEncoded: a receipt timeout is not a failure.
+        } catch (error) {
+            // Mirror handleSendUserOpEncoded, rescue included: viem's wait
+            // rejects on the first transport blip, and a null receipt here
+            // makes useSpendBundle stamp the withdrawal with the userOp hash —
+            // unresolvable by webhook reconciliation (TASK-21147). A rescued
+            // REVERTED op takes the same ok:false exit as the check above so
+            // the passkey fallback still runs.
+            if ((error as Error)?.name !== 'WaitForUserOperationReceiptTimeoutError') {
+                const rescued = await session.client
+                    .waitForUserOperationReceipt({ hash: userOpHash, timeout: 15_000 })
+                    .catch(() => null)
+                if (rescued && !rescued.success) {
+                    return { ok: false, reason: 'ephemeral userOp reverted on-chain' }
+                }
+                receipt = rescued?.receipt ?? null
+            }
         }
         return { ok: true, userOpHash, receipt }
     } catch (e) {

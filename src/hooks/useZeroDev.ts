@@ -8,7 +8,6 @@ import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils/general.utils'
-import { pollForUserOpReceipt } from '@/utils/userop-receipt.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
@@ -354,21 +353,34 @@ export const useZeroDev = () => {
             } catch (error) {
                 console.error('Error waiting for UserOp receipt:', error)
                 captureException(error)
-                // The wait often fails transiently while the tx lands seconds
-                // later. Re-poll briefly before giving up: a null receipt makes
-                // send flows record the userOp hash as a tx hash, which backend
-                // validation can never resolve (TASK-21147).
-                const rescued = await pollForUserOpReceipt(client, userOpHash)
+                // Rescue: viem's wait rejects on the FIRST RPC error that isn't
+                // "receipt not found" — a single transport blip aborts an
+                // otherwise-healthy 120s wait, and a null receipt makes send
+                // flows record the userOp hash as a tx hash, which backend
+                // validation can never resolve (TASK-21147). Retry the wait
+                // once, wall-clock capped — but not after a genuine exhausted
+                // timeout, where more polling has ~zero rescue odds.
+                let rescued: TransactionReceipt | null = null
+                if ((error as Error)?.name !== 'WaitForUserOperationReceiptTimeoutError') {
+                    const rescueStart = Date.now()
+                    rescued = await client
+                        .waitForUserOperationReceipt({ hash: userOpHash, timeout: 15_000 })
+                        // A mined-but-REVERTED userOp still has a valid bundle
+                        // receipt (the EntryPoint tx succeeded). Rescuing it would
+                        // record a resolvable hash for a transfer that never moved
+                        // funds — fail safe, treat reverted as not-rescued.
+                        .then((r) => (r.success ? r.receipt : null))
+                        .catch(() => null)
+                    if (rescued) {
+                        posthog.capture(ANALYTICS_EVENTS.SEND_RECEIPT_RESCUED, {
+                            elapsed_ms: Date.now() - rescueStart,
+                            chain_id: chainId,
+                        })
+                    }
+                }
                 setLoadingState('Idle')
                 dispatch(zerodevActions.setIsSendingUserOp(false))
-                if (rescued) {
-                    posthog.capture(ANALYTICS_EVENTS.SEND_RECEIPT_RESCUED, {})
-                    return { userOpHash, receipt: rescued }
-                }
-                return {
-                    userOpHash,
-                    receipt: null,
-                }
+                return { userOpHash, receipt: rescued }
             }
 
             setLoadingState('Idle')

@@ -59,14 +59,17 @@ export const ANALYTICS_EVENTS = {
     // coordinator txHash) was available — the backend cannot validate that
     // hash, so this rate should be ~0. See resolveSettledTxHash.
     SEND_TXHASH_FALLBACK: 'send_txhash_fallback',
-    // waitForUserOperationReceipt failed but the bounded re-poll recovered the
-    // receipt — the send proceeded with the real tx hash instead of falling
-    // back. High counts = flaky bundler receipt endpoint, not user impact.
+    // waitForUserOperationReceipt failed but a capped retry of the wait
+    // recovered the receipt — the send proceeded with the real tx hash.
+    // Carries elapsed_ms; deliberately NOT flow-attributed (fires below the
+    // flow layer, in useZeroDev). High counts = flaky bundler RPC.
     SEND_RECEIPT_RESCUED: 'send_receipt_rescued',
     // Client-side latency split of a successful direct send: charge_create_ms,
-    // send_money_ms (sign + bundler + receipt), record_payment_ms,
-    // tx_hash_source. Measures the client leg that prod DB timing can't see
-    // (TASK-21147: created→POST /payments was p50 7.9s with no attribution).
+    // send_money_ms (sign + bundler + receipt — INCLUDES human passkey-prompt
+    // dwell time; read p50, not the tail), record_payment_ms, tx_hash_source.
+    // Measures the client leg that prod DB timing can't see (TASK-21147:
+    // created→POST /payments was p50 7.9s with no attribution). Not captured
+    // in demo mode.
     SEND_LATENCY_BREAKDOWN: 'send_latency_breakdown',
 
     // ── Send Link ──

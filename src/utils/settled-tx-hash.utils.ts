@@ -1,9 +1,10 @@
-import type { Hash, TransactionReceipt } from 'viem'
+import type { Hash } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isDemoMode } from '@/utils/demo'
 
 export interface SettledTxResult {
-    receipt?: { transactionHash: Hash } | TransactionReceipt | null
+    receipt?: { transactionHash: Hash } | null
     userOpHash?: Hash
     txHash?: Hash
 }
@@ -27,6 +28,11 @@ export function resolveSettledTxHash(
     const receiptHash = txResult.receipt?.transactionHash
     if (receiptHash) return { hash: receiptHash, source: 'receipt' }
     if (txResult.txHash) return { hash: txResult.txHash, source: 'txHash' }
-    posthog.capture(ANALYTICS_EVENTS.SEND_TXHASH_FALLBACK, { flow })
-    return { hash: txResult.userOpHash as Hash, source: 'userOpHash' }
+    // No hash at all is a caller bug — fail loudly instead of returning
+    // undefined-as-Hash and letting recordPayment POST txHash: undefined.
+    if (!txResult.userOpHash) throw new Error('resolveSettledTxHash: txResult carries no transaction identifier')
+    // Demo mode fabricates a userOpHash by design — keep it out of the
+    // "should be ~0" prod metric.
+    if (!isDemoMode()) posthog.capture(ANALYTICS_EVENTS.SEND_TXHASH_FALLBACK, { flow })
+    return { hash: txResult.userOpHash, source: 'userOpHash' }
 }

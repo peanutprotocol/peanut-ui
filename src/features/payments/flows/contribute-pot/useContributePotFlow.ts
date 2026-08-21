@@ -206,10 +206,6 @@ export function useContributePotFlow() {
                     // then routed through the same trusted-completion path.
                     chargeId: chargeResult.uuid,
                 })
-                // For the collateral-only strategy useSpendBundle returns only
-                // `txHash` (Rain coordinator submits the on-chain tx; no UserOp
-                // hash + no receipt land here). Fall back to it so users with
-                // card collateral can pay without smart-account balance.
                 const { hash } = resolveSettledTxHash(txResult, 'contribute-pot')
 
                 setTxHash(hash)

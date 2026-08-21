@@ -1,8 +1,10 @@
 import { resolveSettledTxHash } from '../settled-tx-hash.utils'
 import posthog from 'posthog-js'
+import { isDemoMode } from '@/utils/demo'
 import type { Hash } from 'viem'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+jest.mock('@/utils/demo', () => ({ isDemoMode: jest.fn(() => false) }))
 
 const TX_HASH = ('0x' + '11'.repeat(32)) as Hash
 const USEROP_HASH = ('0x' + '22'.repeat(32)) as Hash
@@ -33,5 +35,17 @@ describe('resolveSettledTxHash', () => {
         const result = resolveSettledTxHash({ userOpHash: USEROP_HASH, receipt: null }, 'semantic-request')
         expect(result).toEqual({ hash: USEROP_HASH, source: 'userOpHash' })
         expect(posthog.capture).toHaveBeenCalledWith('send_txhash_fallback', { flow: 'semantic-request' })
+    })
+
+    it('does not capture the fallback event in demo mode', () => {
+        jest.mocked(isDemoMode).mockReturnValueOnce(true)
+        const result = resolveSettledTxHash({ userOpHash: USEROP_HASH }, 'direct-send')
+        expect(result.source).toBe('userOpHash')
+        expect(posthog.capture).not.toHaveBeenCalled()
+    })
+
+    it('throws loudly when the result carries no identifier at all', () => {
+        expect(() => resolveSettledTxHash({ receipt: null }, 'direct-send')).toThrow('no transaction identifier')
+        expect(posthog.capture).not.toHaveBeenCalled()
     })
 })
