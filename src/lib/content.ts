@@ -89,6 +89,95 @@ export function singletonLocaleFor(intent: string, lang: string): string {
     return 'en'
 }
 
+const CONTENT_ROUTE_LOCALES = new Set([...SUPPORTED_LOCALES, 'es-es'])
+const LEGAL_CONTENT_SLUGS = new Set([
+    'terms',
+    'privacy',
+    'card-terms-us',
+    'card-terms-international',
+    'card-privacy',
+    'card-prohibited-activities',
+    'card-esign',
+])
+const SINGLETON_CONTENT_SLUGS = new Set(['pricing', 'supported-networks', 'press'])
+
+function existingPageLocale(intent: string, slug: string, locale: Locale): string | null {
+    const owner = contentLocaleFor(intent, slug, locale)
+    return hasPageContent(intent, slug, owner) ? owner : null
+}
+
+function existingCorridorLocale(destination: string, origin: string, locale: Locale): string | null {
+    const owner = corridorLocaleFor(destination, origin, locale)
+    return hasCorridorContent(destination, origin, owner) ? owner : null
+}
+
+function existingSingletonLocale(intent: string, locale: Locale): string | null {
+    const owner = singletonLocaleFor(intent, locale)
+    return hasSingletonContent(intent, owner) ? owner : null
+}
+
+/** Return the locale that owns the content behind a localized marketing path. */
+function contentOwnerForPath(segments: string[], locale: Locale): string | null {
+    if (segments.length === 1) {
+        const slug = segments[0]
+        if (LEGAL_CONTENT_SLUGS.has(slug)) return existingPageLocale('legal', slug, locale)
+        if (SINGLETON_CONTENT_SLUGS.has(slug)) return existingSingletonLocale(slug, locale)
+        return existingPageLocale('countries', slug, locale)
+    }
+
+    if (segments.length === 4 && segments[0] === 'send-money-from' && segments[2] === 'to') {
+        return existingCorridorLocale(segments[3], segments[1], locale)
+    }
+
+    if (segments.length !== 2) return null
+
+    const [route, rawSlug] = segments
+    switch (route) {
+        case 'send-money-to':
+            return existingPageLocale('send-to', rawSlug, locale)
+        case 'receive-money-from':
+            return existingPageLocale('receive-from', rawSlug, locale)
+        case 'compare': {
+            const slug = rawSlug.startsWith('peanut-vs-') ? rawSlug.slice('peanut-vs-'.length) : ''
+            return slug ? existingPageLocale('compare', slug, locale) : null
+        }
+        case 'deposit': {
+            const slug = rawSlug.replace(/^(?:from-|via-)/, '')
+            return slug !== rawSlug ? existingPageLocale('deposit', slug, locale) : null
+        }
+        case 'pay-with':
+        case 'help':
+        case 'use-cases':
+        case 'stories':
+        case 'withdraw':
+        case 'blog':
+            return existingPageLocale(route, rawSlug, locale)
+        default:
+            return null
+    }
+}
+
+/**
+ * Localize an internal content href, then point it at the locale that owns its
+ * prose. Locale-native hubs and paths without content files keep the requested
+ * locale. External links and anchors pass through unchanged.
+ */
+export function resolveContentHref(href: string, locale: Locale): string {
+    if (!href.startsWith('/') || href.startsWith('//')) return href
+
+    const suffixIndex = href.search(/[?#]/)
+    const pathname = suffixIndex === -1 ? href : href.slice(0, suffixIndex)
+    const suffix = suffixIndex === -1 ? '' : href.slice(suffixIndex)
+    const segments = pathname.split('/').filter(Boolean)
+
+    if (segments[0] && CONTENT_ROUTE_LOCALES.has(segments[0].toLowerCase())) segments.shift()
+
+    const owner = contentOwnerForPath(segments, locale)
+    const targetLocale = owner ?? locale
+    const localizedPath = `/${[targetLocale, ...segments].join('/')}`
+    return `${localizedPath}${suffix}`
+}
+
 /** Supported locales whose own file exists for this page. */
 export function availableContentLocales(intent: string, slug: string): Locale[] {
     return SUPPORTED_LOCALES.filter((locale) => hasPageContent(intent, slug, locale))
@@ -381,7 +470,7 @@ export function listAllContent(locale: Locale): ContentItem[] {
                 slug,
                 title: content.frontmatter.title ?? slug,
                 description: content.frontmatter.description ?? '',
-                href: hrefFor(type, slug, locale),
+                href: hrefFor(type, slug, lang),
                 lang,
                 date: type === 'blog' ? coerceDate(content.frontmatter.date) : undefined,
                 tags: Array.isArray(content.frontmatter.tags) ? content.frontmatter.tags : undefined,

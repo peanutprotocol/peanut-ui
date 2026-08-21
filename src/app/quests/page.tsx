@@ -1,5 +1,3 @@
-'use client'
-
 import Layout from '@/components/Global/Layout'
 import {
     DropLink,

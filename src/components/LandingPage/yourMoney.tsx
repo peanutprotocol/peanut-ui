@@ -5,19 +5,26 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { linkTerms, type LinkedTerm } from './landingLinks.utils'
+import { EN_LANDING_CONTENT_HREFS, type LandingContentHrefs } from './landingContentHrefs'
 
 // The three cities named in landingGlobalCashBody, each pointing at its country
 // page. Aliases cover every spelling the catalogs use, so the line stays one
 // translated string per locale.
-const cityTerms = (locale: Locale): LinkedTerm[] => [
-    { aliases: ['New York', 'Nueva York', 'Nova York'], href: `/${locale}/united-states` },
-    { aliases: ['Madrid', 'Madri'], href: `/${locale}/spain` },
-    { aliases: ['Mexico City', 'Ciudad de México', 'Cidade do México'], href: `/${locale}/mexico` },
+const cityTerms = (contentHrefs: LandingContentHrefs): LinkedTerm[] => [
+    { aliases: ['New York', 'Nueva York', 'Nova York'], href: contentHrefs.unitedStates },
+    { aliases: ['Madrid', 'Madri'], href: contentHrefs.spain },
+    { aliases: ['Mexico City', 'Ciudad de México', 'Cidade do México'], href: contentHrefs.mexico },
 ]
 
-export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
+export function YourMoney({
+    locale = DEFAULT_LOCALE,
+    contentHrefs = EN_LANDING_CONTENT_HREFS,
+}: {
+    locale?: Locale
+    contentHrefs?: LandingContentHrefs
+}) {
     const i18n = getTranslations(locale)
-    const bodyParts = linkTerms(i18n.landingGlobalCashBody, cityTerms(locale))
+    const bodyParts = linkTerms(i18n.landingGlobalCashBody, cityTerms(contentHrefs))
 
     return (
         <section id="global-cash" className="bg-secondary-1 px-4 py-12 text-n-1 md:py-16">
