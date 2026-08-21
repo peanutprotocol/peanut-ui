@@ -159,6 +159,48 @@
                 "unavailableDescription": "Esta región no está disponible para tu cuenta. Contactá soporte para recibir ayuda."
             }
         },
+        "unlockPayments": {
+            "title": "Desbloqueá pagos",
+            "description": "Lo que ya funciona para vos y lo que podés activar con un toque.",
+            "residence": {
+                "label": "Residencia: {country}",
+                "unknown": "Residencia sin definir",
+                "verified": "Verificado",
+                "unverified": "Sin verificar"
+            },
+            "yourRegion": "Tu región",
+            "groups": {
+                "everywhere": "En todas partes",
+                "brazil": "Brasil",
+                "argentina": "Argentina",
+                "unitedStates": "Estados Unidos",
+                "mexico": "México",
+                "europe": "Europa"
+            },
+            "rows": {
+                "p2p": "Pagos de Peanut a Peanut",
+                "card": "Tarjeta Peanut",
+                "pixBank": "PIX y transferencias bancarias",
+                "pixQr": "Pagos QR con PIX",
+                "arQrBank": "Pagos QR y transferencias",
+                "arQr": "Pagos QR",
+                "bank": "Transferencias bancarias",
+                "achWire": "ACH y Wire",
+                "spei": "Transferencias SPEI",
+                "sepa": "Transferencias SEPA"
+            },
+            "chips": {
+                "active": "Activo",
+                "alwaysOn": "Siempre activo",
+                "unlock": "Desbloquear",
+                "processing": "Procesando",
+                "oneMoreStep": "1 paso más",
+                "attention": "Atención",
+                "notAvailable": "No disponible"
+            },
+            "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
+            "cardNotAvailableNote": "La tarjeta no está disponible para residentes de tu país."
+        },
         "backup": {
             "nonCustodial": {
                 "description": "Solo vos controlás esta billetera. No podemos recuperarla si perdés el acceso. El respaldo es tu responsabilidad."

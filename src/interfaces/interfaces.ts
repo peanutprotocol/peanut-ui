@@ -297,6 +297,9 @@ export interface IUserProfile {
     // user declared at signup. Read via useResidenceRestrictions(). Advisory
     // offer-shaping only: hides bank/card surfaces the user could never use.
     residenceRestrictions?: { banking: boolean; card: boolean }
+    // Residence, both flavors: declared at signup (advisory) and verified by
+    // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
+    residence?: { declared: string | null; verified: string | null }
 }
 
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue }

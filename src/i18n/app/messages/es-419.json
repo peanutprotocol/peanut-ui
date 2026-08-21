@@ -317,6 +317,48 @@
                 "notAvailableTitle": "Aún no disponible"
             }
         },
+        "unlockPayments": {
+            "title": "Desbloquea pagos",
+            "description": "Lo que ya funciona para ti y lo que puedes activar con un toque.",
+            "residence": {
+                "label": "Residencia: {country}",
+                "unknown": "Residencia sin definir",
+                "verified": "Verificado",
+                "unverified": "Sin verificar"
+            },
+            "yourRegion": "Tu región",
+            "groups": {
+                "everywhere": "En todas partes",
+                "brazil": "Brasil",
+                "argentina": "Argentina",
+                "unitedStates": "Estados Unidos",
+                "mexico": "México",
+                "europe": "Europa"
+            },
+            "rows": {
+                "p2p": "Pagos de Peanut a Peanut",
+                "card": "Tarjeta Peanut",
+                "pixBank": "PIX y transferencias bancarias",
+                "pixQr": "Pagos QR con PIX",
+                "arQrBank": "Pagos QR y transferencias",
+                "arQr": "Pagos QR",
+                "bank": "Transferencias bancarias",
+                "achWire": "ACH y Wire",
+                "spei": "Transferencias SPEI",
+                "sepa": "Transferencias SEPA"
+            },
+            "chips": {
+                "active": "Activo",
+                "alwaysOn": "Siempre activo",
+                "unlock": "Desbloquear",
+                "processing": "Procesando",
+                "oneMoreStep": "1 paso más",
+                "attention": "Atención",
+                "notAvailable": "No disponible"
+            },
+            "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
+            "cardNotAvailableNote": "La tarjeta no está disponible para residentes de tu país."
+        },
         "backup": {
             "title": "Respaldo",
             "nonCustodial": {
