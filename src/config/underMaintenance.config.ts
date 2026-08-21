@@ -11,6 +11,8 @@
  * 2. enableMaintenanceBanner: shows a banner on ALL pages (including landing and support)
  *    - pages remain functional, just shows a warning banner
  *    - use this when you want to warn users about ongoing maintenance
+ *    - scope it with maintenanceBannerPaths: [] = every page; ['/withdraw', '/add-money']
+ *      = only those pages (prefix match, so '/add-money' covers '/add-money/brazil')
  *
  * 3. disabledPaymentProviders: array of payment providers to disable
  *    - blocks QR payments for specific providers (e.g., 'MANTECA')
@@ -66,6 +68,8 @@ export type PaymentProvider = 'MANTECA'
 interface MaintenanceConfig {
     enableFullMaintenance: boolean
     enableMaintenanceBanner: boolean
+    /** Path prefixes the maintenance banner shows on. Empty = every page. Only scopes enableMaintenanceBanner; enableFullMaintenance always shows it everywhere. */
+    maintenanceBannerPaths: string[]
     disabledPaymentProviders: PaymentProvider[]
     disableXchainWithdraw: boolean
     disableXchainSend: boolean
@@ -86,7 +90,8 @@ const DISABLE_XCHAIN_WITHDRAW_GLOBALLY = false
 
 const underMaintenanceConfig: MaintenanceConfig = {
     enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
-    enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
+    enableMaintenanceBanner: false, // set to true to show maintenance banner (scope with maintenanceBannerPaths)
+    maintenanceBannerPaths: [], // [] = every page; e.g. ['/withdraw', '/add-money'] targets those pages only
     disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
     /**
      * Cross-chain withdraw is force-disabled in the iOS app, on top of the global
