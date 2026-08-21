@@ -53,13 +53,16 @@ describe('payment explorer data layer', () => {
         await expect(fetchPaymentNetwork(5000)).rejects.toMatchObject({ status: 500 })
     })
 
-    it('maps an internal timeout abort to 408 but rethrows an external abort untouched', async () => {
-        jest.mocked(serverFetch).mockRejectedValue(new DOMException('Aborted', 'AbortError'))
-        await expect(fetchPaymentNetwork(5000)).rejects.toMatchObject({ status: 408, code: 'TIMEOUT' })
-
-        const controller = new AbortController()
-        controller.abort()
-        await expect(fetchPaymentNetwork(5000, controller.signal)).rejects.toThrow(DOMException)
+    it('maps the client timeout error shape to 408 with fewer-top-users guidance', async () => {
+        // fetchWithSentry converts its internal timeout abort before rethrowing.
+        const timeout = new Error('Peanut is taking too long to respond — check your connection and try again.')
+        timeout.name = 'ConnectionTimeoutError'
+        jest.mocked(serverFetch).mockRejectedValue(timeout)
+        await expect(fetchPaymentNetwork(5000)).rejects.toMatchObject({
+            status: 408,
+            code: 'TIMEOUT',
+            message: 'The graph request timed out. Try fewer top users.',
+        })
     })
 
     it('maps a network failure to 503', async () => {

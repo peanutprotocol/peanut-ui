@@ -36,10 +36,9 @@ export default function SearchBox({ busy, error, onSearch }: SearchBoxProps) {
                 autoComplete="off"
                 spellCheck={false}
                 required
-                minLength={4}
-                maxLength={12}
-                pattern="[A-Za-z][A-Za-z0-9]{3,11}"
-                title="4–12 letters or numbers, starting with a letter"
+                maxLength={40}
+                pattern="[A-Za-z0-9_.\-]{1,40}"
+                title="1–40 letters, numbers, dots, dashes or underscores"
                 placeholder="Search username"
                 className="h-9 w-full rounded-sm border border-n-1 bg-white pl-9 pr-16 text-sm outline-none focus:ring-2 focus:ring-purple-1"
             />

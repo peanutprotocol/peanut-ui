@@ -21,13 +21,15 @@ function errorMessage(status: number): string {
     return 'The live payment network is unavailable. Try again.'
 }
 
-export async function fetchPaymentNetwork(topNodes: number, signal?: AbortSignal): Promise<ExplorerGraphResponse> {
+// serverFetch discards caller AbortSignals (it fetches with its own timeout
+// controller) and never rethrows AbortError: its internal timeout surfaces as
+// ConnectionTimeoutError. So no signal parameter — cancellation is not possible.
+export async function fetchPaymentNetwork(topNodes: number): Promise<ExplorerGraphResponse> {
     try {
         const response = await serverFetch(buildGraphEndpoint(topNodes), {
             method: 'GET',
             cache: 'no-store',
             timeoutMs: REQUEST_TIMEOUT_MS,
-            signal,
         })
         if (!response.ok) {
             throw new PaymentNetworkApiError(errorMessage(response.status), response.status)
@@ -35,8 +37,7 @@ export async function fetchPaymentNetwork(topNodes: number, signal?: AbortSignal
         return (await response.json()) as ExplorerGraphResponse
     } catch (error) {
         if (error instanceof PaymentNetworkApiError) throw error
-        if (error instanceof Error && error.name === 'AbortError') {
-            if (signal?.aborted) throw error
+        if (error instanceof Error && error.name === 'ConnectionTimeoutError') {
             throw new PaymentNetworkApiError('The graph request timed out. Try fewer top users.', 408, 'TIMEOUT')
         }
         throw new PaymentNetworkApiError(errorMessage(503), 503, 'NETWORK_ERROR')

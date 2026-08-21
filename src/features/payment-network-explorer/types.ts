@@ -71,8 +71,6 @@ export interface ExplorerFacet {
     value: string
     label: string
     observedCount: number
-    configured: boolean
-    isActive: boolean
 }
 
 export type ExplorerSelection =

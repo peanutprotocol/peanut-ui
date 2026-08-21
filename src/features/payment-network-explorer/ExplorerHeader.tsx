@@ -42,9 +42,10 @@ export default function ExplorerHeader({ view, searching, searchError, onViewCha
                         </button>
                     ))}
                 </div>
+                {/* /home, not /dev: the /dev index is notFound() on peanut.me. */}
                 <button
                     type="button"
-                    onClick={() => window.location.assign('/dev')}
+                    onClick={() => window.location.assign('/home')}
                     className="text-sm font-bold underline"
                 >
                     Close

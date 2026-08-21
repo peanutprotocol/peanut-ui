@@ -89,7 +89,11 @@ export default function PaymentNetworkExplorer() {
 
     const search = async (username: string): Promise<boolean> => {
         setSearchError(null)
-        if (data && !findNodeByUsername(data.nodes, username)) {
+        if (!data) {
+            setSearchError('The graph is not loaded yet.')
+            return false
+        }
+        if (!findNodeByUsername(data.nodes, username)) {
             setSearchError('No matching user in the loaded graph.')
             return false
         }
@@ -133,7 +137,13 @@ export default function PaymentNetworkExplorer() {
                         onViewChange={(view) => changeFilters({ view })}
                         onSearch={search}
                     />
-                    {data && <ExplorerSummary data={data} visibleRelationshipCount={relationships.length} />}
+                    {data && (
+                        <ExplorerSummary
+                            data={data}
+                            visibleRelationshipCount={relationships.length}
+                            topNodes={filters.topNodes}
+                        />
+                    )}
                     {filters.focus && (
                         <FocusBanner
                             username={filters.focus}

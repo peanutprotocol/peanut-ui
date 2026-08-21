@@ -60,24 +60,6 @@ export default function FacetChecklist({
                                     {facet.label}
                                 </span>
                                 <span className="tabular-nums text-grey-1">{facet.observedCount.toLocaleString()}</span>
-                                {facet.configured && facet.isActive && facet.observedCount === 0 ? (
-                                    <span
-                                        className="rounded-full border border-[#2a9d55] px-1.5 py-0.5 text-[9px] font-bold text-[#1f6f50]"
-                                        title="Active in the live registry; no observations in this window"
-                                        aria-label="Active in the live registry; no observations in this window"
-                                    >
-                                        live
-                                    </span>
-                                ) : null}
-                                {facet.configured && !facet.isActive ? (
-                                    <span
-                                        className="rounded-full border border-grey-1 px-1.5 py-0.5 text-[9px] font-bold text-grey-1"
-                                        title="Inactive in the live registry; historical observations remain selectable"
-                                        aria-label="Inactive in the live registry; historical observations remain selectable"
-                                    >
-                                        inactive
-                                    </span>
-                                ) : null}
                             </label>
                         )
                     })}

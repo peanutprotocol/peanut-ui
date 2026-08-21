@@ -23,12 +23,13 @@ const data: ExplorerGraphResponse = {
         { source: 'a', target: 'b', type: 'SEND_LINK', count: 2, totalUsd: 10, bidirectional: false },
         { source: 'b', target: 'a', type: 'DIRECT_TRANSFER', count: 1, totalUsd: 4, bidirectional: false },
     ],
-    stats: { totalNodes: 8000, totalEdges: 5, totalP2PEdges: 2, usersWithAccess: 1500, orphans: 0 },
+    // The deployed endpoint always sets totalNodes to the returned node count.
+    stats: { totalNodes: 2, totalEdges: 5, totalP2PEdges: 2, usersWithAccess: 1500, orphans: 0 },
 }
 
 describe('ExplorerSummary', () => {
     it('shows response stats, the filtered edge count and the fixed window label', () => {
-        render(<ExplorerSummary data={data} visibleRelationshipCount={1} />)
+        render(<ExplorerSummary data={data} visibleRelationshipCount={1} topNodes={5000} />)
         const summary = screen.getByRole('region', { name: 'Data summary' })
         expect(summary).toHaveTextContent('2 users')
         expect(summary).toHaveTextContent('1 of 2 payment edges')
@@ -36,17 +37,18 @@ describe('ExplorerSummary', () => {
         expect(summary).toHaveTextContent('Last 120 days · completed payments only')
     })
 
-    it('flags server-side sampling when fewer than all users were returned', async () => {
-        render(<ExplorerSummary data={data} visibleRelationshipCount={2} />)
+    it('flags server-side sampling when the top-users limit was reached', async () => {
+        render(<ExplorerSummary data={data} visibleRelationshipCount={2} topNodes={2} />)
         const sampling = screen.getByRole('button', { name: 'About sampling' })
         fireEvent.focus(sampling)
         expect(await screen.findByRole('tooltip')).toHaveTextContent('top users by points')
     })
 
-    it('does not flag sampling when the full user base was returned', () => {
-        render(
-            <ExplorerSummary data={{ ...data, stats: { ...data.stats, totalNodes: 2 } }} visibleRelationshipCount={2} />
-        )
+    it('does not flag sampling below the limit or for the explicit all-users choice', () => {
+        render(<ExplorerSummary data={data} visibleRelationshipCount={2} topNodes={5000} />)
+        expect(screen.queryByRole('button', { name: 'About sampling' })).not.toBeInTheDocument()
+
+        render(<ExplorerSummary data={data} visibleRelationshipCount={2} topNodes={0} />)
         expect(screen.queryByRole('button', { name: 'About sampling' })).not.toBeInTheDocument()
     })
 })

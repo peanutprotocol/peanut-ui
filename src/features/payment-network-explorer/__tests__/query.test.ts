@@ -109,6 +109,12 @@ describe('focus deep-link resolution', () => {
         expect(findNodeByUsername(nodes, '  ')).toBeNull()
     })
 
+    it('skips nodes with a null username (nullable DB column) instead of throwing', () => {
+        const orphan = { ...node('n3', 'x'), username: null as unknown as string }
+        expect(findNodeByUsername([orphan, ...nodes], 'alice')?.id).toBe('n1')
+        expect(findNodeByUsername([orphan], 'alice')).toBeNull()
+    })
+
     it('accepts plain usernames and rejects token-shaped values', () => {
         expect(isPlainUsername('alice')).toBe(true)
         expect(isPlainUsername('a'.repeat(41))).toBe(false)

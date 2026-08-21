@@ -31,8 +31,8 @@ const serwist = new Serwist({
     // first so it wins ahead of any defaultCache JS-asset rule.
     runtimeCaching: [
         {
-            // Covers the protected document/RSC path on peanut.me and every
-            // legacy/v2 graph endpoint across API origins, regardless of query.
+            // Covers the protected document/RSC path on peanut.me and the
+            // /invites/graph API path on every origin, regardless of query.
             matcher: ({ url }) => isSensitivePaymentNetworkUrl(url),
             handler: new NetworkOnly(),
         },

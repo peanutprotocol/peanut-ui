@@ -34,7 +34,7 @@ describe('usePaymentNetworkExplorer', () => {
         )
         await waitFor(() => expect(result.current.status).toBe('ready'))
         expect(result.current.data).toBe(data)
-        expect(fetchPaymentNetwork).toHaveBeenCalledWith(5000, expect.any(AbortSignal))
+        expect(fetchPaymentNetwork).toHaveBeenCalledWith(5000)
 
         // A new request object with the same topNodes must not refetch.
         rerender({ topNodes: 5000 })
@@ -42,7 +42,7 @@ describe('usePaymentNetworkExplorer', () => {
         expect(fetchPaymentNetwork).toHaveBeenCalledTimes(1)
 
         rerender({ topNodes: 500 })
-        await waitFor(() => expect(fetchPaymentNetwork).toHaveBeenCalledWith(500, expect.any(AbortSignal)))
+        await waitFor(() => expect(fetchPaymentNetwork).toHaveBeenCalledWith(500))
     })
 
     it('fails closed into the forbidden state on 403', async () => {

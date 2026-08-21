@@ -61,7 +61,8 @@ export function filterRelationships(
 export function findNodeByUsername(nodes: readonly ExplorerNode[], username: string): ExplorerNode | null {
     const query = username.trim().toLowerCase()
     if (!query) return null
-    return nodes.find((node) => node.username.toLowerCase() === query) ?? null
+    // username is nullable in the DB and the endpoint serializes it verbatim.
+    return nodes.find((node) => node.username?.toLowerCase() === query) ?? null
 }
 
 type LegacyLocation = Pick<Location, 'href'>

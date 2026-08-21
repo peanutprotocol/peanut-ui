@@ -5,7 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, 
 import type { ForceGraphMethods, ForceGraphProps } from 'react-force-graph-2d'
 import InfoTooltip from './InfoTooltip'
 import {
-    buildGraphProjection,
+    buildGraphLinkProjections,
+    buildGraphNodeProjections,
     edgeTypesPresent,
     EDGE_TYPE_LABELS,
     rankDenseGraphOverview,
@@ -63,7 +64,13 @@ export default function NetworkCanvas({
     const [focusCameraApplied, setFocusCameraApplied] = useState(false)
     const reducedMotion = useReducedMotion()
     const [size, setSize] = useState({ width: 800, height: 600 })
-    const projection = useMemo(() => buildGraphProjection(nodes, relationships), [nodes, relationships])
+    // Node wrappers are keyed on the node set alone: rebuilding them on a filter
+    // change would drop the x/y d3 stores on them and restart the whole layout.
+    const nodeProjections = useMemo(() => buildGraphNodeProjections(nodes), [nodes])
+    const projection = useMemo(
+        () => ({ nodes: nodeProjections, links: buildGraphLinkProjections(relationships) }),
+        [nodeProjections, relationships]
+    )
     const [denseView, setDenseView] = useState<{ projection: typeof projection; level: 0 | 1 | 2 }>(() => ({
         projection,
         level: 0,

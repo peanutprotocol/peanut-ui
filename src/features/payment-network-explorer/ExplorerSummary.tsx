@@ -6,9 +6,10 @@ import type { ExplorerGraphResponse } from './types'
 interface ExplorerSummaryProps {
     data: ExplorerGraphResponse
     visibleRelationshipCount: number
+    topNodes: number
 }
 
-export default function ExplorerSummary({ data, visibleRelationshipCount }: ExplorerSummaryProps) {
+export default function ExplorerSummary({ data, visibleRelationshipCount, topNodes }: ExplorerSummaryProps) {
     const { stats } = data
     return (
         <section
@@ -25,12 +26,14 @@ export default function ExplorerSummary({ data, visibleRelationshipCount }: Expl
             <span>
                 <b>{formatCompactCount(stats.usersWithAccess)}</b> with app access
             </span>
-            {data.nodes.length < stats.totalNodes && (
+            {/* The response carries no pre-limit population count (stats.totalNodes is
+                the returned node count), so sampling is derived from the request. */}
+            {topNodes > 0 && data.nodes.length >= topNodes && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-n-1 bg-primary-3 px-2 py-0.5 font-bold">
-                    top {formatCompactCount(data.nodes.length)} of {formatCompactCount(stats.totalNodes)}
+                    top {formatCompactCount(topNodes)} sample
                     <InfoTooltip label="sampling">
-                        The server returned the top users by points plus recent signups. Raise the top-users filter to
-                        widen the graph.
+                        The server returned the top users by points plus recent signups; the full network is larger.
+                        Raise the top-users filter to widen the graph.
                     </InfoTooltip>
                 </span>
             )}

@@ -420,8 +420,8 @@ let nextConfig = {
                     { key: 'Pragma', value: 'no-cache' },
                     { key: 'Referrer-Policy', value: 'no-referrer' },
                     { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
-                    // The document URL can contain one-time focus tokens or a
-                    // legacy credential before synchronous client scrubbing.
+                    // The document URL can contain a legacy ?password=
+                    // credential before synchronous client scrubbing.
                     // Keep the report-only policy, but never register a report
                     // delivery directive that could serialize that URL.
                     { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly(false) },

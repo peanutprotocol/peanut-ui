@@ -39,20 +39,28 @@ export function nodeIndex(nodes: readonly ExplorerNode[]): ReadonlyMap<string, E
     return new Map(nodes.map((node) => [node.id, node]))
 }
 
+export function buildGraphNodeProjections(nodes: readonly ExplorerNode[]): GraphNodeProjection[] {
+    return nodes.map((node) => ({ id: node.id, canonical: node }))
+}
+
+export function buildGraphLinkProjections(relationships: readonly ExplorerRelationship[]): GraphLinkProjection[] {
+    return relationships.map((relationship) => ({
+        id: relationship.id,
+        source: relationship.source,
+        target: relationship.target,
+        canonicalRelationshipId: relationship.id,
+        canonical: relationship,
+    }))
+}
+
 /** Force-layout wrappers hold references only; canonical response objects stay single-owner. */
 export function buildGraphProjection(
     nodes: readonly ExplorerNode[],
     relationships: readonly ExplorerRelationship[]
 ): { nodes: GraphNodeProjection[]; links: GraphLinkProjection[] } {
     return {
-        nodes: nodes.map((node) => ({ id: node.id, canonical: node })),
-        links: relationships.map((relationship) => ({
-            id: relationship.id,
-            source: relationship.source,
-            target: relationship.target,
-            canonicalRelationshipId: relationship.id,
-            canonical: relationship,
-        })),
+        nodes: buildGraphNodeProjections(nodes),
+        links: buildGraphLinkProjections(relationships),
     }
 }
 
@@ -161,7 +169,5 @@ export function edgeTypeFacets(relationships: readonly ExplorerRelationship[]): 
         value: type,
         label: EDGE_TYPE_LABELS[type],
         observedCount: counts.get(type) ?? 0,
-        configured: false,
-        isActive: true,
     }))
 }

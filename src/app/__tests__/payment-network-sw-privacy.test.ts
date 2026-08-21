@@ -33,7 +33,6 @@ describe('payment network service-worker privacy', () => {
         '/invites/graph',
         '/invites/graph/session',
         '/invites/graph/focus',
-        '/invites/graph/reveal',
         '/invites/graph/legacy-child',
     ])('matches the entire sensitive pathname family: %s', (pathname) => {
         expect(isSensitivePaymentNetworkPathname(pathname)).toBe(true)
@@ -80,7 +79,7 @@ describe('payment network service-worker privacy', () => {
 
     it('continues after an unreadable cache and a failing sensitive entry', async () => {
         const failingEntry = request('https://api.peanut.me/invites/graph?focus=corrupt')
-        const healthyEntry = request('https://api.peanut.me/invites/graph/reveal')
+        const healthyEntry = request('https://api.peanut.me/invites/graph/legacy-child')
         const laterCache = new FakeCache([healthyEntry, request('https://peanut.me/home')])
         const storage = {
             keys: jest.fn().mockResolvedValue(['unreadable', 'mixed', 'later']),

@@ -31,7 +31,6 @@ export function usePaymentNetworkExplorer(request: ExplorerRequest | null): Paym
             setStatus('idle')
             return
         }
-        const controller = new AbortController()
         let active = true
 
         const load = async () => {
@@ -39,12 +38,12 @@ export function usePaymentNetworkExplorer(request: ExplorerRequest | null): Paym
             setError(null)
             setStatus('loading')
             try {
-                const next = await fetchPaymentNetwork(topNodes, controller.signal)
+                const next = await fetchPaymentNetwork(topNodes)
                 if (!active) return
                 setData(next)
                 setStatus('ready')
             } catch (loadError) {
-                if (!active || controller.signal.aborted) return
+                if (!active) return
                 const apiError =
                     loadError instanceof PaymentNetworkApiError
                         ? loadError
@@ -57,7 +56,6 @@ export function usePaymentNetworkExplorer(request: ExplorerRequest | null): Paym
         void load()
         return () => {
             active = false
-            controller.abort()
         }
     }, [topNodes, reloadKey])
 
