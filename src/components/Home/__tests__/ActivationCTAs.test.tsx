@@ -97,7 +97,6 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({
 }))
 
 import ActivationCTAs from '../ActivationCTAs'
-import posthog from 'posthog-js'
 
 const bankRejected = {
     id: 'bridge.sepa_eu',
