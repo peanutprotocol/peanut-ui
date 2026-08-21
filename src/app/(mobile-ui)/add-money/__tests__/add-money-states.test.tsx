@@ -982,7 +982,7 @@ describe('GROUP 1: Landing / Method Selection', () => {
         renderWithProviders(<AddMoneyPage />)
 
         expect(screen.getByText('Crypto')).toBeInTheDocument()
-        expect(screen.getByText('Bank Transfer')).toBeInTheDocument()
+        expect(screen.getByText('Bank transfer')).toBeInTheDocument()
         expect(screen.getByText('Add Money')).toBeInTheDocument()
     })
 
@@ -1004,7 +1004,7 @@ describe('GROUP 1: Landing / Method Selection', () => {
         fireEvent.click(screen.getByTestId('action-card-migrate-from-offramp'))
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp')
         expect(screen.getByText('Crypto')).toBeInTheDocument()
-        expect(screen.getByText('Bank Transfer')).toBeInTheDocument()
+        expect(screen.getByText('Bank transfer')).toBeInTheDocument()
     })
 
     test('clicking Crypto opens the network drawer', () => {

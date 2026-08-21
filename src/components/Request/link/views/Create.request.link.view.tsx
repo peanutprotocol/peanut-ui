@@ -28,7 +28,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const CreateRequestLinkView = () => {
@@ -371,13 +371,8 @@ export const CreateRequestLinkView = () => {
         <div className="space-y-8 flex min-h-[inherit] w-full flex-col justify-start">
             <NavHeader onPrev={onBack} title={tNav('request')} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                {/* board order (17831:78719): card, amount, helper note, qr, message, cta */}
                 <PeanutActionCard type="request" />
-
-                <QRCodeWrapper
-                    isBlurred={!requestId}
-                    url={qrCodeLink}
-                    isLoading={isCreatingLink || isUpdatingRequest}
-                />
 
                 <AmountInput
                     className="w-full"
@@ -386,12 +381,14 @@ export const CreateRequestLinkView = () => {
                     onSubmit={handleTokenAmountSubmit}
                     walletBalance={peanutWalletBalance}
                     disabled={!!requestId}
-                    infoContent={
-                        <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-background-disabled p-1.5">
-                            <IconComponent name="info" size={12} className="text-foreground-secondary" />
-                            <p className="text-label-m text-foreground-secondary"> {t('leaveEmptyHint')}</p>
-                        </div>
-                    }
+                />
+
+                <Notification priority="helper">{t('leaveEmptyHint')}</Notification>
+
+                <QRCodeWrapper
+                    isBlurred={!requestId}
+                    url={qrCodeLink}
+                    isLoading={isCreatingLink || isUpdatingRequest}
                 />
 
                 <FileUploadInput

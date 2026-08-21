@@ -7,7 +7,8 @@ import { formatExtendedNumber } from '@/utils/general.utils'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { twMerge } from 'tailwind-merge'
 import { useTranslations } from 'next-intl'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
 
 interface BalanceSectionProps {
     balance: bigint | undefined
@@ -19,20 +20,34 @@ interface BalanceSectionProps {
     onToggleVisibility: () => void
 }
 
-const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; href: string; icon: IconName }> = [
-    { key: 'add', href: '/add-money', icon: 'plus' },
-    { key: 'send', href: '/send', icon: 'arrow-up-right' },
-    { key: 'request', href: '/request', icon: 'arrow-down-left' },
+// home IA (figma section 17609:2334): add + send open a bottom drawer,
+// request navigates directly
+const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; icon: IconName; drawer?: HomeDrawer }> = [
+    { key: 'add', icon: 'plus', drawer: 'add' },
+    { key: 'send', icon: 'arrow-up-right', drawer: 'send' },
+    { key: 'request', icon: 'arrow-down-left' },
 ]
 
 /**
  * balance block (figma home board 17830:75689): centered usd balance with
  * visibility toggle, plus the add / send / request submenu underneath.
+ * submenu states per component 17533:117867 (default / pressed).
  */
 export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggleVisibility }: BalanceSectionProps) {
     const t = useTranslations('home')
     const tNav = useTranslations('navigation')
     const { triggerHaptic } = useAppHaptic()
+    const router = useRouter()
+    const [openDrawer, setOpenDrawer] = useHomeDrawer()
+
+    const handleAction = (action: (typeof SUBMENU_ACTIONS)[number]) => {
+        triggerHaptic()
+        if (action.drawer) {
+            setOpenDrawer(action.drawer)
+        } else {
+            router.push('/request')
+        }
+    }
 
     return (
         <div className="flex flex-col gap-6 pb-4">
@@ -63,18 +78,28 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                 )}
             </div>
             <div className="flex items-start justify-between px-10">
-                {SUBMENU_ACTIONS.map(({ key, href, icon }) => (
-                    <Link
-                        key={key}
-                        href={href}
-                        onClick={() => triggerHaptic()}
-                        className="flex w-14 flex-col items-center gap-2"
+                {SUBMENU_ACTIONS.map((action) => (
+                    <button
+                        key={action.key}
+                        type="button"
+                        onClick={() => handleAction(action)}
+                        className="flex w-14 cursor-pointer flex-col items-center gap-2"
+                        data-testid={`home-submenu-${action.key}`}
+                        aria-expanded={action.drawer ? openDrawer === action.drawer : undefined}
                     >
-                        <span className="flex size-12 items-center justify-center rounded-round border border-border-default">
-                            <Icon name={icon} size={24} className="text-foreground-primary" />
+                        <span
+                            className={twMerge(
+                                'flex size-12 items-center justify-center rounded-round border border-border-default transition-colors duration-instant',
+                                // pressed state per submenu board 17533:117867
+                                openDrawer === action.drawer && action.drawer
+                                    ? 'border-border-button bg-action-ghost-hover'
+                                    : 'active:border-border-button active:bg-action-ghost-hover'
+                            )}
+                        >
+                            <Icon name={action.icon} size={24} className="text-foreground-primary" />
                         </span>
-                        <span className="text-button-m text-foreground-primary">{tNav(key)}</span>
-                    </Link>
+                        <span className="text-button-m text-foreground-primary">{tNav(action.key)}</span>
+                    </button>
                 ))}
             </div>
         </div>

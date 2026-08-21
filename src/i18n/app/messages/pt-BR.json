@@ -231,7 +231,13 @@
         },
         "openProfile": "Abrir seu perfil",
         "showBalance": "Mostrar saldo",
-        "hideBalance": "Ocultar saldo"
+        "hideBalance": "Ocultar saldo",
+        "drawers": {
+            "sendToFriends": "Enviar para amigos",
+            "sendToFriendsDescription": "Link, contatos, banco, cripto",
+            "withdrawToOwnAccounts": "Sacar para suas contas",
+            "withdrawToOwnAccountsDescription": "Banco, Mercado, cripto"
+        }
     },
     "profile": {
         "language": "Idioma",
@@ -1373,7 +1379,8 @@
             "title": "Escolher rede",
             "description": "Escolha a rede de onde você quer depositar:",
             "evmDescription": "{count} redes - 1 endereço",
-            "supportedTokens": "{count, plural, one {# token compatível} other {# tokens compatíveis}}"
+            "supportedTokens": "{count, plural, one {# token compatível} other {# tokens compatíveis}}",
+            "evmTokensOnNetworks": "{tokens, plural, one {# token suportado} other {# tokens suportados}} em {networks} redes"
         },
         "supportedNetworksModal": {
             "title": "Redes compatíveis",
@@ -1528,7 +1535,8 @@
             "bankAccountFailed": "Não foi possível processar a conta bancária. Tente de novo ou fale com o suporte.",
             "bankAccountSettingUp": "Sua conta bancária ainda está sendo configurada. Tente de novo em instantes."
         },
-        "pixMaintenanceBadge": "Manutenção"
+        "pixMaintenanceBadge": "Manutenção",
+        "addCryptoTitle": "Adicionar cripto"
     },
     "withdraw": {
         "amountToWithdraw": "Valor a sacar",
@@ -1677,7 +1685,9 @@
             "completeAccountSetup": "Complete a configuração da sua conta. Vá em Configurações para atualizar seu perfil.",
             "minWithdrawAmount": "O valor do saque precisa ser de pelo menos ${amount}"
         },
-        "resolvesTo": "resolve para"
+        "resolvesTo": "resolve para",
+        "addNewAccount": "Adicionar nova conta",
+        "mercadoPagoDescription": "Somente suas contas - transferência instantânea"
     },
     "transaction": {
         "drawerTitle": "Detalhes da transação",

@@ -10,6 +10,7 @@ import {
 } from '@/utils/general.utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
+import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { addMoneyCountryUrl, withdrawCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { type FC, useEffect, useRef, useState, useTransition, useCallback } from 'react'
 import { useUserStore } from '@/redux/hooks'
@@ -83,6 +84,9 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     // check if coming from send flow
     const methodParam = searchParams.get('method')
+    // withdraw board 17832:80463: the Mercado Pago add-new-account row follows
+    // the same geo gate as the send method list (hidden in brazil)
+    const isMercadoPagoAvailable = useGeoFilteredPaymentOptions().filteredMethods.some((m) => m.id === 'mercadopago')
     // this view also serves the add-money flow, so the flow guard stays local
     const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
 
@@ -247,6 +251,22 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     }
                 }}
                 onSelectNewMethodClick={() => setShouldShowAllMethods(true)}
+                onCryptoClick={() =>
+                    // set method in context, no navigation — the withdraw page owns
+                    // the amount step (same rationale as CountryList onCryptoClick)
+                    handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
+                }
+                onMercadoPagoClick={
+                    isMercadoPagoAvailable
+                        ? () => {
+                              posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
+                                  method_type: 'manteca',
+                                  country: 'argentina',
+                              })
+                              router.push('/withdraw/manteca?method=mercado-pago&country=argentina')
+                          }
+                        : undefined
+                }
             />
         )
     }
