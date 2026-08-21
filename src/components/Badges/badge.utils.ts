@@ -46,6 +46,7 @@ export function getBadgeDisplayName(code?: string, name?: string | null): string
  */
 const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
     BETA_TESTER: "I've been in the Peanut lab since the early experiments. Officially a beta tester 🧪",
+    PEANUT_SHAPER: 'I talked. They took notes. Peanut got better 🎙️',
     DEVCONNECT_BA_2025: 'Buenos Aires ✅ Peanut badge ✅ A perfect trip',
     PRODUCT_HUNT: 'I upvoted Peanut on Product Hunt before it was cool. Hope dealer, certified 🚀',
     OG_2025_10_12: 'I was here before it was cool. Certified Peanut OG 🥜',
