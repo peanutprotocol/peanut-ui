@@ -66,10 +66,11 @@ export function HomeActionDrawers() {
     const tNav = useTranslations('navigation')
     const router = useRouter()
 
-    const navigate = (href: string) => {
+    const navigate = async (href: string) => {
         // clear the drawer param first so browser-back from the destination
-        // lands on a closed home, then route
-        setDrawer(null)
+        // lands on a closed home; nuqs queues url updates, so await the reset
+        // before routing or the ?drawer entry can survive in history
+        await setDrawer(null)
         router.push(href)
     }
 

@@ -383,7 +383,10 @@ export const CreateRequestLinkView = () => {
                     disabled={!!requestId}
                 />
 
-                <Notification priority="helper">{t('leaveEmptyHint')}</Notification>
+                {/* only meaningful while the amount is empty (coderabbit #2780) */}
+                {(!tokenValue || Number(tokenValue) === 0) && (
+                    <Notification priority="helper">{t('leaveEmptyHint')}</Notification>
+                )}
 
                 <QRCodeWrapper
                     isBlurred={!requestId}

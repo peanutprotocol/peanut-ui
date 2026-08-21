@@ -1,10 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { HomeActionDrawers } from '../components/HomeActionDrawers'
 
 // url-backed drawer state — controlled per test
 let mockDrawer: string | null = null
-const mockSetDrawer = jest.fn((value: string | null) => {
+// deferred like the real nuqs setter (returns a promise) so the ordering
+// assertion below actually exercises navigate's await
+const mockSetDrawer = jest.fn(async (value: string | null) => {
     mockDrawer = value
+    await Promise.resolve()
 })
 jest.mock('nuqs', () => ({
     useQueryState: () => [mockDrawer, mockSetDrawer],
@@ -51,7 +54,7 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    it('opens the send drawer with its two options and routes on click', () => {
+    it('opens the send drawer with its two options and routes on click', async () => {
         mockDrawer = 'send'
         render(<HomeActionDrawers />)
 
@@ -59,18 +62,20 @@ describe('HomeActionDrawers', () => {
         const withdraw = screen.getByTestId('home-drawer-send-withdraw')
         fireEvent.click(withdraw)
         expect(mockSetDrawer).toHaveBeenCalledWith(null)
-        expect(mockPush).toHaveBeenCalledWith('/withdraw')
+        // push must wait for the queued url reset (coderabbit #2780)
+        expect(mockPush).not.toHaveBeenCalled()
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/withdraw'))
     })
 
-    it('opens the add drawer with bank, crypto and withdraw options', () => {
+    it('opens the add drawer with bank, crypto and withdraw options', async () => {
         mockDrawer = 'add'
         render(<HomeActionDrawers />)
 
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank')
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
 
         fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
-        expect(mockPush).toHaveBeenCalledWith('/add-money/crypto')
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto'))
 
         expect(screen.getByTestId('home-drawer-add-withdraw')).toBeInTheDocument()
     })
