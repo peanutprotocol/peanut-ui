@@ -73,7 +73,12 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                 </h1>
                 <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">{i18n.landingRailsBody}</p>
 
-                <h6 className="font-roboto-flex mt-3 text-right text-xs md:text-lg">
+                {/* p, not h6: it's a link line, not a heading — the h6 tripped
+                    Lighthouse's heading-order audit (h1 → h6 skip). The sr-only
+                    suffix reuses the section heading so "Learn more" isn't a
+                    bare generic link for screen readers and the SEO link-text
+                    audit alike. */}
+                <p className="font-roboto-flex mt-3 text-right text-xs md:text-lg">
                     <a
                         href={`/${locale}/help/supported-geographies`}
                         target="_blank"
@@ -81,8 +86,9 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                         className="text-n-1 underline"
                     >
                         {i18n.landingLearnMore}
+                        <span className="sr-only"> — {i18n.landingRailsHeading}</span>
                     </a>
-                </h6>
+                </p>
             </div>
 
             <div className="w-full">

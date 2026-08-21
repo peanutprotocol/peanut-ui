@@ -6,7 +6,7 @@ import { FAQs, Hero, Marquee, NoFees } from '@/components/LandingPage'
 import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
 import { SupportedRailsFaqAnswer } from '@/components/LandingPage/SupportedRailsFaqAnswer'
 import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
-import TweetCarousel from '@/components/LandingPage/TweetCarousel'
+import dynamic from 'next/dynamic'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import type { LandingStrings } from './landingStrings'
@@ -18,6 +18,12 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
 import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
+
+// Split out: the carousel drags the whole testimonials manifest (~64 KB of
+// JSON) into whatever chunk imports it, and it renders far below the fold.
+// SSR stays on so crawlers still see the tweets; only the client bundle moves
+// off the critical path.
+const TweetCarousel = dynamic(() => import('@/components/LandingPage/TweetCarousel'))
 
 type FAQQuestion = {
     id: string
