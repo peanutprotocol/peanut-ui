@@ -17,12 +17,16 @@ export function syncLocaleToBackend(userId: string, locale: AppLocale): void {
     } catch {
         // storage unavailable → sync every startup; the write is idempotent
     }
-    void updateUserById({ userId, locale }).then(({ error }) => {
-        if (error) return
-        try {
-            localStorage.setItem(SYNCED_KEY, synced)
-        } catch {
-            // marker lost → re-sync next startup, still idempotent
-        }
-    })
+    void updateUserById({ userId, locale })
+        .then(({ error }) => {
+            if (error) return
+            try {
+                localStorage.setItem(SYNCED_KEY, synced)
+            } catch {
+                // marker lost → re-sync next startup, still idempotent
+            }
+        })
+        // updateUserById resolves with { error } today, but best-effort must
+        // stay best-effort even if it ever starts rejecting
+        .catch(() => {})
 }
