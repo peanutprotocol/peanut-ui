@@ -3,12 +3,8 @@ import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
 import { countryData } from '@/components/AddMoney/consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import {
-    BANKING_RESTRICTED_RESIDENCE_ISO2,
-    CARD_RESTRICTED_RESIDENCE_ISO2,
-    RESTRICTED_RESIDENCE_ISO2,
-    SUPPLEMENTAL_RESIDENCE_OPTIONS,
-} from '@/constants/residence.consts'
+import { SUPPLEMENTAL_RESIDENCE_OPTIONS } from '@/constants/residence.consts'
+import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
@@ -27,6 +23,8 @@ const ResidenceStep = () => {
     const { residenceCountry, secondResidenceCountry } = useSetupStore()
     const { handleNext, isLoading } = useSetupFlow()
     const { countryCode: geoCountryCode } = useGeoLocation()
+    // server-authoritative tier lists with the bundled mirror as fallback
+    const restrictionSets = useResidenceRestrictionSets()
 
     const [view, setView] = useState<ResidenceView>('select')
     const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>('card')
@@ -71,16 +69,16 @@ const ResidenceStep = () => {
             was_prefilled: wasPrefilledRef.current,
             geo_country: geoCountryCode?.toUpperCase() || undefined,
         })
-        if (RESTRICTED_RESIDENCE_ISO2.has(residenceCountry)) {
+        if (restrictionSets.full.has(residenceCountry)) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, {
                 residence_country: residenceCountry,
             })
             setView('restricted')
             return
         }
-        const partial: PartialRestriction | null = CARD_RESTRICTED_RESIDENCE_ISO2.has(residenceCountry)
+        const partial: PartialRestriction | null = restrictionSets.cardOnly.has(residenceCountry)
             ? 'card'
-            : BANKING_RESTRICTED_RESIDENCE_ISO2.has(residenceCountry)
+            : restrictionSets.bankingOnly.has(residenceCountry)
               ? 'banking'
               : null
         if (partial) {

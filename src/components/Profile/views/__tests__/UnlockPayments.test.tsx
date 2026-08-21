@@ -32,7 +32,8 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
 
-let mockUser: { residence?: { declared: string | null; verified: string | null } } | null = null
+let mockUser: { residence?: { declared: string | null; verified: string | null }; user?: { userId: string } } | null =
+    null
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 
 jest.mock('@/hooks/useCardInfo', () => ({
@@ -58,9 +59,14 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => nu
 jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({ KycProcessingModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({ KycFailedModal: () => null }))
-jest.mock('@/components/IdentityVerification/UnlockRegionModal', () => ({
+jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
     __esModule: true,
-    default: ({ visible }: { visible: boolean }) => (visible ? <div>unlock-modal-open</div> : null),
+    default: ({ visible, methodLabel }: { visible: boolean; methodLabel: string | null }) =>
+        visible ? <div>unlock-modal-open:{methodLabel}</div> : null,
+}))
+jest.mock('@/components/Profile/views/ResidenceChangeModal', () => ({
+    __esModule: true,
+    default: ({ visible }: { visible: boolean }) => (visible ? <div>change-modal-open</div> : null),
 }))
 
 describe('UnlockPayments', () => {
@@ -79,10 +85,10 @@ describe('UnlockPayments', () => {
         expect(screen.getByText('Always on')).toBeInTheDocument()
     })
 
-    it('a bank-method tap opens the unlock modal and NEVER routes to /card', () => {
+    it('a bank-method tap opens the method-worded unlock modal and NEVER routes to /card', () => {
         render()
         fireEvent.click(screen.getByText('SEPA transfers'))
-        expect(screen.getByText('unlock-modal-open')).toBeInTheDocument()
+        expect(screen.getByText('unlock-modal-open:SEPA transfers')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })
 
@@ -108,6 +114,19 @@ describe('UnlockPayments', () => {
         expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(6)
         expect(screen.getByText('Always on')).toBeInTheDocument()
         fireEvent.click(screen.getByText('SEPA transfers'))
-        expect(screen.queryByText('unlock-modal-open')).not.toBeInTheDocument()
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+    })
+
+    it('the residence Change link opens the change modal', () => {
+        mockUser = { residence: { declared: 'BR', verified: 'BR' }, user: { userId: 'u1' } }
+        render()
+        fireEvent.click(screen.getByText('Change'))
+        expect(screen.getByText('change-modal-open')).toBeInTheDocument()
+    })
+
+    it('a declared change pending re-verification is surfaced on the row', () => {
+        mockUser = { residence: { declared: 'ES', verified: 'BR' }, user: { userId: 'u1' } }
+        render()
+        expect(screen.getByText('Update to Spain pending re-verification')).toBeInTheDocument()
     })
 })

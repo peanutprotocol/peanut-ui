@@ -3,7 +3,8 @@
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import UnlockRegionModal from '@/components/IdentityVerification/UnlockRegionModal'
+import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
+import ResidenceChangeModal from '@/components/Profile/views/ResidenceChangeModal'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
@@ -76,7 +77,7 @@ const UnlockPayments = () => {
     const locale = useLocale()
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     const restrictions = useResidenceRestrictions()
     const { isEligible, hasCardAccess } = useCardInfo()
@@ -144,6 +145,8 @@ const UnlockPayments = () => {
 
     // ── modal machinery (shared shape with UnlockedRegions.view) ───────────
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
+    const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
+    const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
     const displayRegionRef = useRef<Region | null>(null)
     if (selectedRegion) displayRegionRef.current = selectedRegion
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
@@ -212,6 +215,7 @@ const UnlockPayments = () => {
                 return
             }
             if (!row.regionPath) return
+            setSelectedMethodLabel(t(`rows.${row.labelKey}`))
             // Synthetic Region: the modal machinery only reads path (intent) and
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
@@ -221,12 +225,15 @@ const UnlockPayments = () => {
 
     const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
 
-    const residenceCountryName = residenceIso2
-        ? localizedCountryTitle(locale, {
-              iso2: residenceIso2,
-              title: countryData.find((c) => c.iso2?.toUpperCase() === residenceIso2)?.title ?? residenceIso2,
-          })
-        : null
+    const countryDisplayName = (iso2: string | null): string | null =>
+        iso2
+            ? localizedCountryTitle(locale, {
+                  iso2,
+                  title: countryData.find((c) => c.iso2?.toUpperCase() === iso2)?.title ?? iso2,
+              })
+            : null
+    const residenceCountryName = countryDisplayName(residenceIso2)
+    const declaredCountryName = countryDisplayName(residence?.declared ?? null)
 
     const showBankRestrictionNote = restrictions.banking
     const showCardRestrictionNote = !restrictions.banking && restrictions.card
@@ -256,7 +263,22 @@ const UnlockPayments = () => {
                             {residence?.verified ? t('residence.verified') : t('residence.unverified')}
                         </span>
                     )}
+                    <button
+                        type="button"
+                        className={twMerge(
+                            'shrink-0 text-xs underline underline-offset-2',
+                            !residenceIso2 && 'ml-auto'
+                        )}
+                        onClick={() => setIsChangeModalOpen(true)}
+                    >
+                        {residenceIso2 ? t('residence.change') : t('residence.set')}
+                    </button>
                 </div>
+                {residence?.verified && residence?.declared && residence.declared !== residence.verified && (
+                    <p className="mt-1 text-xs text-grey-1">
+                        {t('residence.pendingReverify', { country: declaredCountryName ?? residence.declared })}
+                    </p>
+                )}
 
                 {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
                 <div className="mt-4">
@@ -282,12 +304,22 @@ const UnlockPayments = () => {
                 {showCardRestrictionNote && <p className="mt-3 text-xs text-grey-1">{t('cardNotAvailableNote')}</p>}
             </div>
 
-            <UnlockRegionModal
+            <UnlockMethodModal
                 visible={modalVariant === 'start'}
                 onClose={handleModalClose}
-                onStartVerification={handleStartKyc}
-                selectedRegion={displayRegionRef.current}
+                onUnlock={handleStartKyc}
+                methodLabel={selectedMethodLabel}
                 isLoading={flow.isLoading}
+            />
+
+            <ResidenceChangeModal
+                visible={isChangeModalOpen}
+                onClose={() => setIsChangeModalOpen(false)}
+                userId={user?.user?.userId}
+                declared={residence?.declared ?? null}
+                verified={residence?.verified ?? null}
+                onSaved={() => fetchUser()}
+                onReverify={() => flow.handleRestartIdentity()}
             />
 
             <KycProcessingModal visible={modalVariant === 'processing'} onClose={handleModalClose} />
