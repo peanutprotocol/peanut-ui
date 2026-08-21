@@ -17,6 +17,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -177,6 +178,7 @@ function MantecaBankWithdrawFlow() {
         code: currencyCode,
         price: currencyPrice,
         isLoading: isCurrencyLoading,
+        refetch: refetchCurrency,
     } = useCurrency(selectedCountry?.currency ?? null)
 
     // validates withdrawal against user's limits
@@ -558,6 +560,20 @@ function MantecaBankWithdrawFlow() {
             router.replace('/withdraw')
         }
     }, [countryFromUrl, selectedCountry, router])
+
+    // A failed rate fetch leaves `currencyPrice` null with `isCurrencyLoading`
+    // false. Falling through to the loader below would spin forever with no way
+    // out — the frozen withdraw screen in #1848.
+    if (!isCurrencyLoading && !currencyPrice && selectedCountry && countryConfig) {
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <NavHeader title={tNav('withdraw')} onPrev={onBack} />
+                <div className="my-auto flex flex-col justify-center">
+                    <RateUnavailable onRetry={refetchCurrency} />
+                </div>
+            </div>
+        )
+    }
 
     if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
         return <PeanutLoading />
