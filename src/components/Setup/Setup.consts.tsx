@@ -1,6 +1,20 @@
-import { PEANUTMAN_MOBILE, PeanutPointing, PeanutThinking, PeanutTooCool, PeanutWhistling } from '@/assets/mascot'
+import {
+    PEANUTMAN_MOBILE,
+    PeanutPointing,
+    PeanutThinking,
+    PeanutTooCool,
+    PeanutWavingHello,
+    PeanutWhistling,
+} from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
+import {
+    InstallPWA,
+    SetupPasskey,
+    SignupStep,
+    LandingStep,
+    ResidenceStep,
+    SignTestTransaction,
+} from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
 
 export const setupSteps: ISetupStep[] = [
@@ -56,6 +70,15 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         image: PeanutThinking.src,
         component: SignupStep,
+        showBackButton: true,
+        showSkipButton: false,
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+    },
+    {
+        screenId: 'residence',
+        layoutType: 'signup',
+        image: PeanutWavingHello.src,
+        component: ResidenceStep,
         showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',

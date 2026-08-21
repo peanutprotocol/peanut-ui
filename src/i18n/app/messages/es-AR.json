@@ -272,6 +272,10 @@
             "signup": {
                 "description": "Elegí tu nombre de usuario. Será tu ID para enviar y recibir dinero."
             },
+            "residence": {
+                "title": "¿Dónde sos residente?",
+                "description": "El país de tu ciudadanía o permiso de residencia: el que muestra tu documento, no donde estás de viaje ahora. Define qué métodos de pago podemos activar para vos."
+            },
             "passkey-permission": {
                 "description": "Usá tu cara o tu huella para iniciar sesión. Sin contraseñas ni complicaciones. Solo vos."
             },
@@ -309,6 +313,24 @@
                 "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo o contactá a soporte."
             },
             "termsAgreement": "Al crear una cuenta aceptás los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>"
+        },
+        "residenceStep": {
+            "countryPlaceholder": "Seleccioná tu país",
+            "secondCountryPlaceholder": "Seleccioná tu segundo país",
+            "multiDocLink": "¿Tenés documentos de más de un país?",
+            "errors": {
+                "invalidEmail": "Ingresá un correo electrónico válido"
+            },
+            "restricted": {
+                "title": "Atención",
+                "description": "Debido a regulaciones, las transferencias bancarias y la emisión de tarjetas no están disponibles para vos. Igual podés tener dólares digitales, enviar a cualquier @usuario y retirar tu saldo cuando quieras.",
+                "continueAnyway": "Continuar de todos modos",
+                "notifyMe": "Avisame cuando esté disponible",
+                "emailPlaceholder": "tu@ejemplo.com",
+                "notifySubmit": "Avisarme",
+                "notifyDone": "Listo. Te enviaremos un correo cuando esté disponible.",
+                "changeCountry": "Elegir otro país"
+            }
         },
         "passkey": {
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Intentalo de nuevo.",
