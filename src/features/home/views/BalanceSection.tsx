@@ -7,7 +7,7 @@ import { formatExtendedNumber } from '@/utils/general.utils'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { twMerge } from 'tailwind-merge'
 import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
 
 interface BalanceSectionProps {
@@ -21,12 +21,13 @@ interface BalanceSectionProps {
 }
 
 // home IA (figma section 17609:2334): add + send open a bottom drawer,
-// request navigates directly
-const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; icon: IconName; drawer?: HomeDrawer }> = [
-    { key: 'add', icon: 'plus', drawer: 'add' },
-    { key: 'send', icon: 'arrow-up-right', drawer: 'send' },
-    { key: 'request', icon: 'arrow-down-left' },
-]
+// request navigates directly (a Link, so it keeps prefetch + anchor semantics)
+const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; icon: IconName; drawer?: HomeDrawer; href?: string }> =
+    [
+        { key: 'add', icon: 'plus', drawer: 'add' },
+        { key: 'send', icon: 'arrow-up-right', drawer: 'send' },
+        { key: 'request', icon: 'arrow-down-left', href: '/request' },
+    ]
 
 /**
  * balance block (figma home board 17830:75689): centered usd balance with
@@ -37,16 +38,11 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
     const t = useTranslations('home')
     const tNav = useTranslations('navigation')
     const { triggerHaptic } = useAppHaptic()
-    const router = useRouter()
     const [openDrawer, setOpenDrawer] = useHomeDrawer()
 
     const handleAction = (action: (typeof SUBMENU_ACTIONS)[number]) => {
         triggerHaptic()
-        if (action.drawer) {
-            setOpenDrawer(action.drawer)
-        } else {
-            router.push('/request')
-        }
+        if (action.drawer) setOpenDrawer(action.drawer)
     }
 
     return (
@@ -78,29 +74,43 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                 )}
             </div>
             <div className="flex items-start justify-between px-10">
-                {SUBMENU_ACTIONS.map((action) => (
-                    <button
-                        key={action.key}
-                        type="button"
-                        onClick={() => handleAction(action)}
-                        className="flex w-14 cursor-pointer flex-col items-center gap-2"
-                        data-testid={`home-submenu-${action.key}`}
-                        aria-expanded={action.drawer ? openDrawer === action.drawer : undefined}
-                    >
-                        <span
-                            className={twMerge(
-                                'flex size-12 items-center justify-center rounded-round border border-border-default transition-colors duration-instant',
-                                // pressed state per submenu board 17533:117867
-                                openDrawer === action.drawer && action.drawer
-                                    ? 'border-border-button bg-action-ghost-hover'
-                                    : 'active:border-border-button active:bg-action-ghost-hover'
-                            )}
+                {SUBMENU_ACTIONS.map((action) => {
+                    const inner = (
+                        <>
+                            <span
+                                className={twMerge(
+                                    'flex size-12 items-center justify-center rounded-round border border-border-default transition-colors duration-instant',
+                                    // pressed state per submenu board 17533:117867
+                                    action.drawer && openDrawer === action.drawer
+                                        ? 'border-border-button bg-action-ghost-hover'
+                                        : 'active:border-border-button active:bg-action-ghost-hover'
+                                )}
+                            >
+                                <Icon name={action.icon} size={24} className="text-foreground-primary" />
+                            </span>
+                            <span className="text-button-m text-foreground-primary">{tNav(action.key)}</span>
+                        </>
+                    )
+                    const shared = {
+                        className: 'flex w-14 cursor-pointer flex-col items-center gap-2',
+                        'data-testid': `home-submenu-${action.key}`,
+                    }
+                    return action.href ? (
+                        <Link key={action.key} href={action.href} onClick={() => triggerHaptic()} {...shared}>
+                            {inner}
+                        </Link>
+                    ) : (
+                        <button
+                            key={action.key}
+                            type="button"
+                            onClick={() => handleAction(action)}
+                            aria-expanded={openDrawer === action.drawer}
+                            {...shared}
                         >
-                            <Icon name={action.icon} size={24} className="text-foreground-primary" />
-                        </span>
-                        <span className="text-button-m text-foreground-primary">{tNav(action.key)}</span>
-                    </button>
-                ))}
+                            {inner}
+                        </button>
+                    )
+                })}
             </div>
         </div>
     )

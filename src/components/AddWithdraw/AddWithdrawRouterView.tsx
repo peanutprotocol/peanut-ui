@@ -85,8 +85,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     // check if coming from send flow
     const methodParam = searchParams.get('method')
     // withdraw board 17832:80463: the Mercado Pago add-new-account row follows
-    // the same geo gate as the send method list (hidden in brazil)
-    const isMercadoPagoAvailable = useGeoFilteredPaymentOptions().filteredMethods.some((m) => m.id === 'mercadopago')
+    // the same geo gate as the send method list (hidden in brazil). gate on
+    // !isLoading too — countryCode is null while geo resolves, and the filter
+    // only removes mercadopago once it knows the user is in BR
+    const { filteredMethods: geoMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions()
+    const isMercadoPagoAvailable = !isGeoLoading && geoMethods.some((m) => m.id === 'mercadopago')
     // this view also serves the add-money flow, so the flow guard stays local
     const isBankFromSend = useSendFlowOrigin().isBankFromSend && flow === 'withdraw'
 

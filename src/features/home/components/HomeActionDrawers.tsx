@@ -6,6 +6,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
 import { useRouter } from 'next/navigation'
+import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
 
 type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts'
@@ -65,6 +66,11 @@ export function HomeActionDrawers() {
     const tMethods = useTranslations('addMoney.methods')
     const tNav = useTranslations('navigation')
     const router = useRouter()
+    // keep the last open drawer rendered through vaul's exit animation so the
+    // sheet doesn't empty mid-slide when the url param clears
+    const lastDrawerRef = useRef<HomeDrawer | null>(null)
+    if (drawer) lastDrawerRef.current = drawer
+    const content = drawer ?? lastDrawerRef.current
 
     const navigate = async (href: string) => {
         // clear the drawer param first so browser-back from the destination
@@ -77,13 +83,13 @@ export function HomeActionDrawers() {
     return (
         <Drawer open={drawer !== null} onOpenChange={(isOpen) => !isOpen && setDrawer(null)}>
             <DrawerContent className="px-4 pb-8">
-                {drawer && (
+                {content && (
                     <div className="flex flex-col gap-4">
                         <DrawerTitle className="text-center text-heading-s text-foreground-primary">
-                            {tNav(drawer)}
+                            {tNav(content)}
                         </DrawerTitle>
                         <div className="flex flex-col">
-                            {DRAWER_OPTIONS[drawer].map((option, index, all) => (
+                            {DRAWER_OPTIONS[content].map((option, index, all) => (
                                 <ListItem
                                     key={option.key}
                                     position={getCardPosition(index, all.length)}
@@ -96,7 +102,7 @@ export function HomeActionDrawers() {
                                     body={option.bodyKey ? t(option.bodyKey) : undefined}
                                     chevron
                                     onClick={() => navigate(option.href)}
-                                    data-testid={`home-drawer-${drawer}-${option.key}`}
+                                    data-testid={`home-drawer-${content}-${option.key}`}
                                 />
                             ))}
                         </div>

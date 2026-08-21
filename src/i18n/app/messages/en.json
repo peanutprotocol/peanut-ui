@@ -736,8 +736,7 @@
             "bankDescription": "EUR, USD, MXN, ARS & more",
             "instantTransfers": "Instant transfers",
             "exchangeOrWalletTitle": "Exchange or Wallet",
-            "exchangeOrWalletDescription": "Binance, Metamask and more",
-            "yourAccountsOnly": "YOUR ACCOUNTS ONLY"
+            "exchangeOrWalletDescription": "Binance, Metamask and more"
         },
         "contacts": {
             "searchPlaceholder": "Search contacts...",

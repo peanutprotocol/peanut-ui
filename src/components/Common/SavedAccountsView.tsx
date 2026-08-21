@@ -8,6 +8,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 
 import NavHeader from '../Global/NavHeader'
 import Divider from '../0_Bruddle/Divider'
+import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -66,49 +67,58 @@ export default function SavedAccountsView({
                     dividerClassname="bg-border-subtle"
                     text={tCommon('or')}
                 />
-                {/* add-new-account section per the withdraw board (17832:80463) */}
-                <div className="space-y-2">
-                    <h2 className="text-heading-card text-foreground-primary">{tWithdraw('addNewAccount')}</h2>
-                    <ListItem
-                        position="single"
-                        leading={<IconBubble icon="bank" size="s" color="gray" />}
-                        title={tSend('methods.bankTitle')}
-                        body={tSend('methods.bankDescription')}
-                        trailing={plusTrailing}
-                        onClick={onSelectNewMethodClick}
-                        data-testid="withdraw-add-bank"
-                    />
-                    {onMercadoPagoClick && (
+                {/* add-new-account section per the withdraw board (17832:80463).
+                    only the withdraw flow passes the extra callbacks — other
+                    callers (claim's BankFlowManager) keep the legacy button so
+                    the redesign doesn't leak into their screens */}
+                {onCryptoClick || onMercadoPagoClick ? (
+                    <div className="space-y-2">
+                        <h2 className="text-heading-card text-foreground-primary">{tWithdraw('addNewAccount')}</h2>
                         <ListItem
                             position="single"
-                            leading={
-                                <Image
-                                    src={MERCADO_PAGO}
-                                    alt="Mercado Pago"
-                                    width={32}
-                                    height={32}
-                                    className="size-8 min-w-8"
-                                />
-                            }
-                            title={MERCADO_PAGO_BRAND}
-                            body={tWithdraw('mercadoPagoDescription')}
+                            leading={<IconBubble icon="bank" size="s" color="gray" />}
+                            title={tSend('methods.bankTitle')}
+                            body={tSend('methods.bankDescription')}
                             trailing={plusTrailing}
-                            onClick={onMercadoPagoClick}
-                            data-testid="withdraw-add-mercado-pago"
+                            onClick={onSelectNewMethodClick}
+                            data-testid="withdraw-add-bank"
                         />
-                    )}
-                    {onCryptoClick && (
-                        <ListItem
-                            position="single"
-                            leading={<IconBubble icon="credit-card" size="s" color="yellow" />}
-                            title={tSend('methods.exchangeOrWalletTitle')}
-                            body={tSend('methods.exchangeOrWalletDescription')}
-                            trailing={plusTrailing}
-                            onClick={onCryptoClick}
-                            data-testid="withdraw-add-crypto"
-                        />
-                    )}
-                </div>
+                        {onMercadoPagoClick && (
+                            <ListItem
+                                position="single"
+                                leading={
+                                    <Image
+                                        src={MERCADO_PAGO}
+                                        alt="Mercado Pago"
+                                        width={32}
+                                        height={32}
+                                        className="size-8 min-w-8"
+                                    />
+                                }
+                                title={MERCADO_PAGO_BRAND}
+                                body={tWithdraw('mercadoPagoDescription')}
+                                trailing={plusTrailing}
+                                onClick={onMercadoPagoClick}
+                                data-testid="withdraw-add-mercado-pago"
+                            />
+                        )}
+                        {onCryptoClick && (
+                            <ListItem
+                                position="single"
+                                leading={<IconBubble icon="credit-card" size="s" color="yellow" />}
+                                title={tSend('methods.exchangeOrWalletTitle')}
+                                body={tSend('methods.exchangeOrWalletDescription')}
+                                trailing={plusTrailing}
+                                onClick={onCryptoClick}
+                                data-testid="withdraw-add-crypto"
+                            />
+                        )}
+                    </div>
+                ) : (
+                    <Button icon="plus" onClick={onSelectNewMethodClick} shadowSize="4">
+                        {t('savedAccounts.selectNewMethod')}
+                    </Button>
+                )}
             </div>
         </div>
     )

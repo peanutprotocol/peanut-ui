@@ -38,6 +38,7 @@ export const SendRouterView = () => {
     const t = useTranslations('send')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tWithdraw = useTranslations('withdraw')
     const router = useRouter()
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
@@ -130,7 +131,9 @@ export const SendRouterView = () => {
                 case 'mercadopago':
                     return {
                         ...method,
-                        description: t('methods.instantTransfers'),
+                        // own-accounts-only constraint stays visible at the choice
+                        // point (the old YOUR ACCOUNTS ONLY badge is gone per board)
+                        description: tWithdraw('mercadoPagoDescription'),
                         identifierIcon: <Image src={MERCADO_PAGO} alt="Mercado Pago" className="size-8 min-w-8" />,
                     }
                 case 'pix':
@@ -143,7 +146,7 @@ export const SendRouterView = () => {
                     return method
             }
         })
-    }, [t])
+    }, [t, tWithdraw])
 
     // filter send options based on geolocation
     const { filteredMethods: geoFilteredMethods } = useGeoFilteredPaymentOptions({
