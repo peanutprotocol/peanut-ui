@@ -25,7 +25,7 @@ import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { PeanutDebug } from '@/context/PeanutDebug'
 
 // Harness bootstrap ships only in harness builds. In prod bundles the dynamic
@@ -44,6 +44,13 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // destination (including logged-out /setup), hence here and not (mobile-ui).
     useNativeAppLinks()
     useZeroLegacyAndroidSafeAreaInsets()
+
+    // /dev/devices viewport-harness agent; NODE_ENV guard is inlined at build
+    // time so the chunk never ships in prod bundles
+    useEffect(() => {
+        if (process.env.NODE_ENV !== 'development') return
+        import('@/dev/devsync-agent').then((m) => m.initDevsyncAgent())
+    }, [])
 
     return (
         <NuqsAdapter>
