@@ -18,7 +18,7 @@
 import StatusBadge from '../../Global/Badges/StatusBadge'
 import IconStack from '../../Global/IconStack'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { toInviteCode } from '@/utils/general.utils'
+import { toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import { type ClaimLinkData } from '@/services/sendLinks'
 import { formatUnits } from 'viem'
 import { useContext, useMemo, useState } from 'react'
@@ -84,13 +84,14 @@ export default function SendLinkActionList({
         setClaimToExternalWallet,
         setFlowStep: setClaimBankFlowStep,
         setShowVerificationModal,
+        setVerificationPromptReason,
         setClaimToMercadoPago,
         setRegionalMethodType,
         setHideTokenSelector,
     } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const [minAmountErrorInfo, setMinAmountErrorInfo] = useState<{ title: string; amount: number } | null>(null)
-    const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
+    const { claimType, senderCanReceiveBankOfframp } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const savedAccounts = useSavedAccounts()
     const { addParamStep } = useClaimLink()
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
@@ -150,6 +151,12 @@ export default function SendLinkActionList({
             case 'bank':
                 if (claimType === BankClaimType.GuestKycNeeded) {
                     addParamStep('bank')
+                    // GuestKycNeeded covers three different situations; only one of
+                    // them is actually about the sender. Say so only when the
+                    // lookup came back with a definite no.
+                    setVerificationPromptReason(
+                        senderCanReceiveBankOfframp === false ? 'sender-unverified' : 'account-required'
+                    )
                     setShowVerificationModal(true)
                 } else {
                     if (savedAccounts.length) {
@@ -166,6 +173,9 @@ export default function SendLinkActionList({
                     // remounts the flow, and Initial.view restores it from the
                     // `method` param when it re-enters via step=regional-claim.
                     addParamStep('regional-claim', { method: method.id })
+                    // the blocker is the missing account, not the sender —
+                    // mercadopago/pix never consult the sender's rails at all
+                    setVerificationPromptReason('account-required')
                     setShowVerificationModal(true)
                     return
                 }
@@ -190,16 +200,20 @@ export default function SendLinkActionList({
 
     const handleContinueWithPeanut = () => {
         // migration window: web signups are closed — hand the guest to the
-        // app stores instead (QR modal on desktop, store link on mobile)
-        if (!isLoggedIn && interceptGuestCta()) return
+        // app stores instead (QR modal on desktop, store link on mobile).
+        // the sender's invite code rides the deferred hand-off explicitly —
+        // no cookie is written until /invite, which a guest never reaches.
+        // dest defaults to this claim path (the #p= secret never rides).
+        const rawUsername = claimLinkData?.sender?.username
+        const guestInvite = isInviteLink && rawUsername ? toInviteCode(rawUsername) : undefined
+        if (!isLoggedIn && interceptGuestCta({ invite: guestInvite })) return
         addParamStep('claim')
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
-        const rawUsername = claimLinkData?.sender?.username
         if (isInviteLink && !userHasAppAccess && rawUsername) {
             const inviteCode = toInviteCode(rawUsername)
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
-            router.push(`/invite?code=${inviteCode}&redirect_uri=${redirectUri}`)
+            router.push(inviteFlowUrl(inviteCode, redirectUri))
         } else {
             router.push(`/setup?redirect_uri=${redirectUri}`)
         }

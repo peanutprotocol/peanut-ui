@@ -1,4 +1,4 @@
-// deferred deep linking: carry context (locale, invite code, campaign tag,
+// deferred deep linking: carry context (locale, invite code, badge campaign identities,
 // destination path) from mobile web through the app-store install into the
 // native app. android rides the Play Install Referrer; iOS rides a clipboard
 // hand-off written on the store-bounce tap and read once on first launch.
@@ -9,6 +9,13 @@ import { isValidLocale } from '@/i18n/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
 import { getFromCookie, saveToCookie, sanitizeRedirectURL, toInviteCode } from './general.utils'
 import { deepLinkToNativePath } from './native-routes'
+import {
+    BADGE_CAMPAIGN_QUERY_PARAM,
+    badgeCampaignIdentitiesFromDeferredSearchParams,
+    getPendingBadgeCampaigns,
+    parsePendingBadgeCampaigns,
+    queuePendingBadgeCampaigns,
+} from '@/components/Invites/badge-campaign-context'
 
 // marker param distinguishing our payload from Play's organic referrer
 // (utm_source=google-play&utm_medium=organic)
@@ -51,6 +58,9 @@ function persistRestoredLocale(locale: AppLocale): void {
 export interface DeferredPayload {
     lang?: string
     invite?: string
+    /** Current lossless multi-badge-campaign shape. */
+    badgeCampaigns?: string[]
+    /** Legacy single-campaign payload accepted during app upgrade. */
     campaign?: string
     dest?: string
 }
@@ -90,23 +100,31 @@ function stripLocalePrefix(path: string): string {
 
 /**
  * builds the payload querystring from the current web context: locale from the
- * /{locale}/ path prefix, invite/campaign from their existing cookies, dest
+ * /{locale}/ path prefix, invite/badge campaign from their existing cookies, dest
  * from the argument (defaults to the current path + query, locale stripped).
+ * `invite` overrides the cookie for surfaces that know the code before any
+ * cookie is written (the claim page's invite-link CTA).
  */
-export function buildDeferredPayload(dest?: string): string {
+export function buildDeferredPayload(dest?: string, invite?: string): string {
     const params = new URLSearchParams({ [MARKER]: '1' })
 
     const firstSegment = window.location.pathname.split('/').filter(Boolean)[0]
     if (firstSegment && isValidLocale(firstSegment)) params.set('lang', firstSegment)
 
-    const invite = getFromCookie('inviteCode')
-    if (typeof invite === 'string' && invite) params.set('invite', invite)
+    const inviteCode = invite || getFromCookie('inviteCode')
+    if (typeof inviteCode === 'string' && inviteCode) params.set('invite', inviteCode)
 
-    const campaign = getFromCookie('campaignTag')
-    if (typeof campaign === 'string' && campaign) params.set('campaign', campaign)
+    for (const badgeCampaign of getPendingBadgeCampaigns()) {
+        params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
+    }
 
+    // a page whose url carries the claim secret in the fragment (#p=) must not
+    // ride as a default dest: the fragment never rides (by design), so the
+    // restored claim page would render unclaimable. the working path is the
+    // user re-tapping the original link — a universal link with the hash intact.
+    const secretOnPage = dest === undefined && window.location.hash.startsWith('#p=')
     const destination = dest ?? stripLocalePrefix(window.location.pathname) + window.location.search
-    if (destination && destination !== '/') params.set('dest', destination)
+    if (destination && destination !== '/' && !secretOnPage) params.set('dest', destination)
 
     return params.toString()
 }
@@ -151,7 +169,13 @@ export function parseDeferredPayload(raw: string): DeferredPayload | null {
     }
     if (params.get(MARKER) !== '1') return null
     const pick = (key: string) => params.get(key) || undefined
-    return { lang: pick('lang'), invite: pick('invite'), campaign: pick('campaign'), dest: pick('dest') }
+    const badgeCampaigns = badgeCampaignIdentitiesFromDeferredSearchParams(params)
+    return {
+        lang: pick('lang'),
+        invite: pick('invite'),
+        badgeCampaigns: badgeCampaigns.length > 0 ? badgeCampaigns : undefined,
+        dest: pick('dest'),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -264,12 +288,11 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     // install→open→signup funnel and self-heals on app restart.
     const invite = payload.invite ? toInviteCode(payload.invite) : ''
     if (invite) saveToCookie('inviteCode', invite)
-    // campaignTag doesn't gate the setup step (removed in the #2346 fix), so
-    // it can safely outlive the session for badge attribution. lowercased
-    // like InvitesPage's utm_campaign handling — badge matching is
-    // case-sensitive.
-    const campaign = payload.campaign?.trim().toLowerCase()
-    if (campaign) saveToCookie('campaignTag', campaign, 30)
+    // Badge campaigns do not gate the setup step, so they can safely outlive the
+    // session for a network/configuration retry. Preserve the first trimmed
+    // spelling; backend resolution is case-insensitive.
+    const badgeCampaigns = parsePendingBadgeCampaigns(payload.badgeCampaigns ?? payload.campaign)
+    if (badgeCampaigns.length > 0) queuePendingBadgeCampaigns(badgeCampaigns, 30)
 
     const locale = payload.lang ? resolveAppLocale(payload.lang) : null
     if (locale) persistRestoredLocale(locale)

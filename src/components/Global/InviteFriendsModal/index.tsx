@@ -5,7 +5,7 @@ import ShareButton from '@/components/Global/ShareButton'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
 
@@ -24,7 +24,7 @@ interface InviteFriendsModalProps {
  * Used in: CardSuccessScreen, Profile, PointsPage
  */
 export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
-    const t = useTranslations('global')
+    const t = useAppTranslations('global')
     const { inviteLink } = generateInviteCodeLink(username)
 
     const hasTrackedShow = useRef(false)
@@ -33,7 +33,11 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
         if (visible && !hasTrackedShow.current) {
             hasTrackedShow.current = true
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.INVITE, source })
-            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, { source: source ?? REFERRAL_SOURCES.INVITE_MODAL })
+            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, {
+                source: source ?? REFERRAL_SOURCES.INVITE_MODAL,
+                // this modal always shares generateInviteCodeLink's URL
+                link_type: 'invite_code',
+            })
         }
     }, [visible, source])
 
@@ -66,9 +70,10 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                         url={inviteLink}
                         title={t('inviteFriendsModal.shareSheetTitle')}
                         onSuccess={() => {
-                            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source })
+                            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source, link_type: 'invite_code' })
                             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                                 source: source ?? REFERRAL_SOURCES.INVITE_MODAL,
+                                link_type: 'invite_code',
                             })
                         }}
                     >

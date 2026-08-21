@@ -2,7 +2,8 @@
 
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { Suspense, useEffect, useMemo, useState, useRef, useCallback, type ReactNode } from 'react'
-import { DropLink, FAQs, Hero, Marquee, NoFees, CardPioneers } from '@/components/LandingPage'
+import { FAQs, Hero, Marquee, NoFees } from '@/components/LandingPage'
+import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
 import { SupportedRailsFaqAnswer } from '@/components/LandingPage/SupportedRailsFaqAnswer'
 import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import TweetCarousel from '@/components/LandingPage/TweetCarousel'
@@ -12,11 +13,11 @@ import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
 import StoreBadges from '@/components/Migration/StoreBadges'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
-import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
-import { trackStoreClick } from '@/utils/migration.utils'
+import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
 
 type FAQQuestion = {
     id: string
@@ -37,6 +38,7 @@ type LandingPageClientProps = {
     locale: Locale
     strings: LandingStrings
     // Server-rendered slots
+    problemSlot: ReactNode
     mantecaSlot: ReactNode
     regulatedRailsSlot: ReactNode
     yourMoneySlot: ReactNode
@@ -51,6 +53,7 @@ export function LandingPageClient({
     marqueeMessages,
     locale,
     strings,
+    problemSlot,
     mantecaSlot,
     regulatedRailsSlot,
     yourMoneySlot,
@@ -63,8 +66,14 @@ export function LandingPageClient({
     // app-locale translation (LatAm-first funnel); the flag-off label still
     // comes from the content system per landing locale
     const tMigration = useTranslations('migration')
+    // the strip under the door fold speaks /shhhhh's vocabulary, not the
+    // product one every other strip repeats
+    const tDoorMarquee = useTranslations('shhhhh.marquee')
     const { deviceType } = useDeviceType()
     const isDesktop = deviceType === DeviceType.WEB
+    // Kill switch: the door fold and the closed-beta strip under it are one
+    // promise, so they go dark together.
+    const doorFoldOn = !underMaintenanceConfig.disableLandingCardFold
 
     // pwa-sunset hero CTAs are device-based: phones get one "Download now"
     // with their store's mark deep-linking to it; desktop drops the primary
@@ -77,25 +86,42 @@ export function LandingPageClient({
         const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
         return {
             label: tMigration('downloadNow'),
-            href: STORE_URL[store],
+            href: storeAnchorHref(store),
             isExternal: true,
             icon: store === 'ios' ? 'apple-logo' : 'google-play',
             // keep the content-system subtext (e.g. "Join +10,000 cool people")
             subtext: heroConfig.primaryCta.subtext,
-            // the anchor navigates; only track here
-            onClick: () => trackStoreClick(store, MIGRATION_SURFACES.LANDING_HERO),
+            // the anchor navigates itself (works even where window.open is
+            // suppressed — in-app browsers); android's hand-off rides the href,
+            // ios' rides the clipboard written here inside the tap
+            onClick: () => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO),
         }
     }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
 
     // Memoized: this component re-renders per scroll frame during the button
     // animation — don't rebuild the FAQ array + rich answer element each time.
-    const faqQuestions = useMemo(
-        () =>
-            faqData.questions.map((q) =>
-                q.id === SUPPORTED_RAILS_FAQ_ID ? { ...q, answerContent: <SupportedRailsFaqAnswer /> } : q
-            ),
-        [faqData.questions]
-    )
+    const faqQuestions = useMemo(() => {
+        // The questions come from the content system, which must not carry code
+        // concerns, so the article each one continues into is mapped here by id.
+        // "Why Peanut?" and "My question is not here" are left out on purpose:
+        // the first has no single article behind it, the second already links
+        // the help centre in its own answer.
+        const learnMore: Record<string, string> = {
+            '1': `/${locale}/help/what-are-digital-dollars`,
+            '2': `/${locale}/help/verification`,
+            '3': `/${locale}/help/passkeys`,
+            '4': `/${locale}/help/security-custody`,
+            '5': `/${locale}/help/fees-pricing`,
+            [SUPPORTED_RAILS_FAQ_ID]: `/${locale}/help/supported-geographies`,
+        }
+        return faqData.questions.map((q) => ({
+            ...q,
+            ...(q.id === SUPPORTED_RAILS_FAQ_ID
+                ? { answerContent: <SupportedRailsFaqAnswer strings={strings.supportedRails} /> }
+                : {}),
+            ...(learnMore[q.id] ? { learnMoreHref: learnMore[q.id] } : {}),
+        }))
+    }, [faqData.questions, locale, strings.supportedRails])
 
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
@@ -228,7 +254,43 @@ export function LandingPageClient({
         }
     }, [handleScrollDelta])
 
-    const marqueeProps = { visible: true, message: marqueeMessages }
+    // Only the words with a real article behind them become links; the rest
+    // stay plain text. Words come from the content system's marquee list, so an
+    // edit there just drops out of this map and renders unlinked.
+    const marqueeProps = useMemo(() => {
+        const hrefs: Record<string, string> = {
+            'No transfer fees': `/${locale}/pricing`,
+            USD: `/${locale}/help/what-are-digital-dollars`,
+            EUR: `/${locale}/help/send-euros-argentina`,
+            'USDT/USDC': `/${locale}/blog/stablecoin-balance-visa-merchants`,
+            GLOBAL: `/${locale}/help/supported-geographies`,
+            'SELF-CUSTODIAL': `/${locale}/help/security-custody`,
+            // /support is only a permanent redirect to /en/help, so linking it
+            // would drop es/pt readers into English while its neighbours stay localized
+            '24/7': `/${locale}/help`,
+        }
+        return {
+            visible: true,
+            message: marqueeMessages.map((word) => (hrefs[word] ? { label: word, href: hrefs[word] } : word)),
+        }
+    }, [marqueeMessages, locale])
+
+    // Memoized for the same reason as faqQuestions above — this component
+    // re-renders per scroll frame while the send button grows.
+    const doorMarqueeProps = useMemo(
+        () => ({
+            visible: true,
+            // the whole strip is the door: every word goes to /shhhhh
+            message: [
+                tDoorMarquee('iykyk'),
+                tDoorMarquee('wordTravels'),
+                tDoorMarquee('closedBeta'),
+                tDoorMarquee('shhhh'),
+                tDoorMarquee('peanutClub'),
+            ].map((label) => ({ label, href: '/shhhhh' })),
+        }),
+        [tDoorMarquee]
+    )
 
     return (
         <>
@@ -252,25 +314,13 @@ export function LandingPageClient({
                 }
             />
             <Marquee {...marqueeProps} />
-            {mantecaSlot}
-            <Marquee {...marqueeProps} />
-            {yourMoneySlot}
-            <Marquee {...marqueeProps} />
-            {!underMaintenanceConfig.disableCardPioneers && (
+            {doorFoldOn && (
                 <>
-                    <CardPioneers strings={strings} />
-                    <Marquee {...marqueeProps} />
+                    <ShhhhhFold />
+                    <Marquee {...doorMarqueeProps} />
                 </>
             )}
-            <TweetCarousel strings={strings} />
-            <Marquee {...marqueeProps} />
-            {regulatedRailsSlot}
-            <Marquee {...marqueeProps} />
-            <DropLink strings={strings} />
-            <Marquee {...marqueeProps} />
-            {securitySlot}
-            <Marquee {...marqueeProps} />
-            <div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>
+            {problemSlot}
             <Marquee {...marqueeProps} />
             {/* Suspense needed: NoFees renders ExchangeRateWidget which uses useSearchParams().
                Without this boundary, the entire LandingPageClient suspends during SSR,
@@ -279,7 +329,24 @@ export function LandingPageClient({
                 <NoFees locale={locale} strings={strings} />
             </Suspense>
             <Marquee {...marqueeProps} />
-            <FAQs heading={faqData.heading} questions={faqQuestions} marquee={faqData.marquee} />
+            {yourMoneySlot}
+            <Marquee {...marqueeProps} />
+            <TweetCarousel strings={strings} />
+            <Marquee {...marqueeProps} />
+            {regulatedRailsSlot}
+            <Marquee {...marqueeProps} />
+            {mantecaSlot}
+            <Marquee {...marqueeProps} />
+            {securitySlot}
+            <Marquee {...marqueeProps} />
+            <div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>
+            <Marquee {...marqueeProps} />
+            <FAQs
+                heading={faqData.heading}
+                questions={faqQuestions}
+                learnMoreLabel={strings.learnMore}
+                marquee={faqData.marquee}
+            />
             <Marquee {...marqueeProps} />
             {footerSlot}
             <StickyMobileCTA strings={strings} />

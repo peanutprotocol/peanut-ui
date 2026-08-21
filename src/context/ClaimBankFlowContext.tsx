@@ -6,6 +6,20 @@ import { type TCreateOfframpResponse } from '@/services/services.types'
 import { type Account, type CounterpartyUser } from '@/interfaces/interfaces'
 import { type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 
+/**
+ * Why the guest-verification modal is being shown. The modal used to render one
+ * hardcoded line — "The sender isn't verified for this method" — for every
+ * trigger, including a logged-out user tapping MercadoPago/Pix, where the
+ * sender's verification has nothing to do with it. Blaming a counterparty for
+ * the viewer's own missing account is both wrong and unactionable, so callers
+ * now say which case they are in.
+ */
+export type VerificationPromptReason =
+    /** The claimer has no account yet — nothing to do with the sender. */
+    | 'account-required'
+    /** We positively established the sender cannot receive a bank off-ramp. */
+    | 'sender-unverified'
+
 export enum ClaimBankFlowStep {
     SavedAccountsList = 'saved-accounts-list',
     BankDetailsForm = 'bank-details-form',
@@ -31,6 +45,9 @@ interface ClaimBankFlowContextType {
     setSenderDetails: (details: CounterpartyUser | null) => void
     showVerificationModal: boolean
     setShowVerificationModal: (show: boolean) => void
+    /** Defaults to the sender-blameless copy; only set explicitly when known. */
+    verificationPromptReason: VerificationPromptReason
+    setVerificationPromptReason: (reason: VerificationPromptReason) => void
     bankDetails: IBankAccountDetails | null
     setBankDetails: (details: IBankAccountDetails | null) => void
     savedAccounts: Account[]
@@ -64,6 +81,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [claimType, setClaimType] = useState<'claim-bank' | 'claim' | 'claimxchain' | null>(null)
     const [senderDetails, setSenderDetails] = useState<CounterpartyUser | null>(null)
     const [showVerificationModal, setShowVerificationModal] = useState(false)
+    const [verificationPromptReason, setVerificationPromptReason] =
+        useState<VerificationPromptReason>('account-required')
     const [bankDetails, setBankDetails] = useState<IBankAccountDetails | null>(null)
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
@@ -81,6 +100,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setClaimType(null)
         setSenderDetails(null)
         setShowVerificationModal(false)
+        setVerificationPromptReason('account-required')
         setBankDetails(null)
         setSavedAccounts([])
         setSelectedBankAccount(null)
@@ -109,6 +129,8 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             setSenderDetails,
             showVerificationModal,
             setShowVerificationModal,
+            verificationPromptReason,
+            setVerificationPromptReason,
             bankDetails,
             setBankDetails,
             savedAccounts,
@@ -134,6 +156,7 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             claimType,
             senderDetails,
             showVerificationModal,
+            verificationPromptReason,
             bankDetails,
             savedAccounts,
             selectedBankAccount,

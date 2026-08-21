@@ -29,6 +29,7 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 
 // localStorage key for the one-time celebration gate (per-device by design:
 // re-doing the funnel re-celebrates, see the eligibility-check effect below).
@@ -443,7 +444,16 @@ const CardPage: FC = () => {
     // fetches (and setState on an unmounted component) when an impatient user
     // navigates away from the pending screen mid-poll.
     const pollAbortRef = useRef<AbortController | null>(null)
-    useEffect(() => () => pollAbortRef.current?.abort(), [])
+    const isMountedRef = useRef(true)
+    useEffect(() => {
+        // Re-armed on run, not just cleared on cleanup: StrictMode's dev
+        // mount→cleanup→mount would otherwise leave the flag false for good.
+        isMountedRef.current = true
+        return () => {
+            isMountedRef.current = false
+            pollAbortRef.current?.abort()
+        }
+    }, [])
 
     const handleSumsubComplete = useCallback(async () => {
         sumsubCompletedRef.current = true
@@ -503,7 +513,14 @@ const CardPage: FC = () => {
             setApplyError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
         } finally {
-            if (!controller.signal.aborted) setIsIssuing(false)
+            // Release the issuance gate on EVERY exit, aborts included. Keying
+            // this on `aborted` latched `isIssuing` true forever whenever the
+            // poll was cancelled while the page stayed mounted — and nothing
+            // else ever clears it, so the user was stranded on the pending
+            // spinner (Android: the only way out was the hardware back). The
+            // ownership check keeps a superseded run from clearing the gate its
+            // successor now owns.
+            if (isMountedRef.current && pollAbortRef.current === controller) setIsIssuing(false)
         }
     }, [advanceFromApplyResponse, t])
 
@@ -535,6 +552,23 @@ const CardPage: FC = () => {
         }
         return ''
     }, [invalidateOverview, refetchCardInfo])
+
+    // PWA-reload resume (see useSumsubReloadResume). On a reload mid-Sumsub,
+    // re-apply to mint a fresh token for the same in-progress applicant and
+    // reopen the SDK — same idempotent call the token-refresh path uses. The
+    // card flow takes no initiate arguments, so the persisted state is empty.
+    useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
+        const res = await rainApi.applyForCard({ termsAccepted: false })
+        if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
+            setSumsubToken(res.sumsubAccessToken)
+            // tagged so a resume doesn't read as a fresh open in the card funnel
+            posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
+            return true
+        }
+        // user advanced past Sumsub while backgrounded — route normally
+        advanceFromApplyResponse(res)
+        return false
+    })
 
     // Outer-gate fail — the useEffect above fires notFound() to render the
     // 404 boundary; render nothing here so the page doesn't flash for the
@@ -570,8 +604,11 @@ const CardPage: FC = () => {
         // Highest priority: show the issuance spinner between "terms accepted"
         // and the overview refetch landing. Keeps the UX from flipping back
         // to Add Card for a split second while the API call is in flight.
+        // `onPrev` is not optional here: this screen carries no other control,
+        // so omitting it made a poll that ran long (or never resolved) read as
+        // a frozen app — animations running, nothing tappable.
         if (isIssuing) {
-            return <ApplicationStatusScreen variant="pending" />
+            return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
         }
         // Terminal regulatory block detected mid-funnel by the BE apply gate —
         // takes precedence over the confirmation/terms overlays (those flows
@@ -653,6 +690,7 @@ const CardPage: FC = () => {
                 const allBadges =
                     user?.user?.badges?.map((b) => ({
                         code: b.code,
+                        iconUrl: b.iconUrl,
                         earnedAt: b.earnedAt,
                     })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
                 return (

@@ -39,14 +39,31 @@ async function postJson<T>(url: string, body: Record<string, unknown>): Promise<
 
     if (!response.ok) {
         const errorMessage = typeof data === 'string' ? data : data.error || data.message || response.statusText
-        throw new Error(errorMessage)
+        throw withWireCode(new Error(errorMessage), data)
     }
 
     if (data.error) {
-        throw new Error(data.error)
+        throw withWireCode(new Error(data.error), data)
     }
 
     return data
+}
+
+/**
+ * Carry the API's `code` onto the thrown error so `friendlyError` can branch on
+ * it. Without this the discriminant was dropped at the boundary and every
+ * failure — including a rolled-back, retryable paymaster outage — reached the
+ * user as the sanitized "contact support" prose (PEANUT-UI-SJ5).
+ *
+ * Deliberately a plain Error rather than ApiError: that would also opt this
+ * endpoint into the blanket "any 5xx is retryable" rule, and a claim can fail
+ * 5xx for reasons no amount of retrying fixes (an unsupported vault, say). Only
+ * codes the API states explicitly should change the advice.
+ */
+function withWireCode(error: Error, body: unknown): Error {
+    const code = (body as { code?: unknown } | null)?.code
+    if (typeof code === 'string' && code) Object.assign(error, { code })
+    return error
 }
 
 /**
@@ -78,10 +95,9 @@ async function createClaimPayload(link: string, recipientAddress: string, onlyRe
 /**
  * Claims a link through the Peanut API
  * @param optimisticReturn - If true, returns immediately (202) and lets frontend poll for txHash
- * @param campaignTag - Optional campaign tag for badge assignment
  * @returns Transaction hash if available, or undefined if processing asynchronously
  */
-async function executeClaim({
+export async function executeClaim({
     link,
     recipientAddress,
     depositDetails,
@@ -122,7 +138,8 @@ async function executeClaim({
         ...(depositDetails && { depositDetails }),
         // UX optimization: Return immediately without waiting for blockchain confirmation
         ...(optimisticReturn && { optimisticReturn: true }),
-        // Badge assignment: Pass campaign tag for badge awarding
+        // Compatibility for already-published campaign send links. The API
+        // resolves this opaque tag through the canonical badge catalog.
         ...(campaignTag && { campaignTag }),
     })
 
@@ -153,16 +170,19 @@ async function executeClaim({
  * Fixes the chain-reset bug by design: claim contract is never asked to call
  * same-chain transfer inline to the SDA.
  */
-async function executeClaimXChain({
+export async function executeClaimXChain({
     link,
     recipientAddress,
     destinationChainId,
     destinationToken,
+    campaignTag,
+    baseUrl = `${PEANUT_API_URL}/claim`,
 }: {
     link: string
     recipientAddress: string
     destinationChainId: string
     destinationToken: string
+    campaignTag?: string
     baseUrl?: string
     isMainnet?: boolean
     slippage?: number
@@ -212,10 +232,13 @@ async function executeClaimXChain({
         keys.privateKey
     )
 
-    const data = await postJson<{ txHash?: string }>(`${PEANUT_API_URL}/claim`, {
+    const data = await postJson<{ txHash?: string }>(baseUrl, {
         claimParams,
         chainId: params.chainId,
         version: params.contractVersion,
+        // Published campaign send links keep the same badge-acquisition
+        // contract regardless of which settlement route the recipient chooses.
+        ...(campaignTag && { campaignTag }),
     })
 
     if (!data.txHash) {
@@ -365,11 +388,13 @@ const useClaimLink = () => {
             link,
             destinationChainId,
             destinationToken,
+            campaignTag,
         }: {
             address: string
             link: string
             destinationChainId: string
             destinationToken: string
+            campaignTag?: string
         }) => {
             const isTestnet = isTestnetChain(destinationChainId)
             return await executeClaimXChain({
@@ -377,6 +402,7 @@ const useClaimLink = () => {
                 recipientAddress: address,
                 destinationChainId,
                 destinationToken,
+                campaignTag,
                 isMainnet: !isTestnet,
             })
         },
@@ -393,7 +419,7 @@ const useClaimLink = () => {
      * Legacy wrapper for backward compatibility
      * Use claimLinkMutation.mutateAsync() directly for better type safety
      * @param optimisticReturn - If true, returns immediately and lets SUCCESS view poll for txHash
-     * @param campaignTag - Optional campaign tag for badge assignment
+     * @param campaignTag - Opaque compatibility tag carried by published send links
      * @returns Transaction hash if available, or undefined if processing asynchronously
      */
     const claimLink = async ({
@@ -431,17 +457,20 @@ const useClaimLink = () => {
         link,
         destinationChainId,
         destinationToken,
+        campaignTag,
     }: {
         address: string
         link: string
         destinationChainId: string
         destinationToken: string
+        campaignTag?: string
     }) => {
         return await claimLinkXChainMutation.mutateAsync({
             address,
             link,
             destinationChainId,
             destinationToken,
+            campaignTag,
         })
     }
 
@@ -475,26 +504,22 @@ const useClaimLink = () => {
      * @param link - The link to cancel
      * @param walletAddress - The user's wallet address to claim back to
      * @param userId - Optional user ID for error tracking
-     * @param campaignTag - Optional campaign tag (usually not needed for cancellations)
      * @returns The transaction hash if available, or undefined if processing asynchronously
      */
     const cancelLinkAndClaim = async ({
         link,
         walletAddress,
         userId,
-        campaignTag,
     }: {
         link: string
         walletAddress: string
         userId?: string
-        campaignTag?: string
     }): Promise<string | undefined> => {
         try {
             // Use secure SDK claim (password stays client-side)
             const txHash = await claimLink({
                 address: walletAddress,
                 link,
-                campaignTag,
             })
 
             if (txHash) {

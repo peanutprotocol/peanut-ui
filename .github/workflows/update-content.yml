@@ -20,6 +20,14 @@ concurrency:
 
 jobs:
     update:
+        # Read CONTENT_BOT_TOKEN from the `content-publish` environment, whose
+        # deployment branch policy allows `main` only. The token is an org admin
+        # (it needs the bypass to merge), and a dozen workflows in this repo carry
+        # `workflow_dispatch`, which runs a workflow FROM THE DISPATCHED REF. As a
+        # plain repo secret it was therefore readable by anyone with write access:
+        # push a branch with a workflow that echoes it, dispatch that branch, done.
+        # Scoped to the environment it is unreachable from any ref but `main`.
+        environment: content-publish
         runs-on: ubuntu-latest
         steps:
             # Base the bump on `main` — the branch peanut.me actually deploys from.
@@ -67,39 +75,80 @@ jobs:
               # merging. One guard, in one place, on the base branch.
               env:
                   GH_TOKEN: ${{ secrets.CONTENT_BOT_TOKEN || secrets.GITHUB_TOKEN }}
+                  SIGNING_KEY: ${{ secrets.CONTENT_BOT_SIGNING_KEY }}
               run: |
                   set -euo pipefail
                   BRANCH="auto/update-content-$(date -u +%Y%m%d-%H%M%S)"
                   SUBMODULE_SHA=$(git -C src/content rev-parse HEAD)
-                  PARENT=$(git rev-parse HEAD)   # main tip — bump is content-only vs main
-                  BASE_TREE=$(gh api repos/${{ github.repository }}/git/commits/$PARENT --jq '.tree.sha')
-                  # Create tree via API with updated submodule pointer
-                  TREE=$(gh api repos/${{ github.repository }}/git/trees \
-                    --method POST \
-                    -f "base_tree=$BASE_TREE" \
-                    -f "tree[][path]=src/content" \
-                    -f "tree[][mode]=160000" \
-                    -f "tree[][type]=commit" \
-                    -f "tree[][sha]=$SUBMODULE_SHA" \
-                    --jq '.sha')
-                  # Create the bump commit via the Git Data API. NOTE: API-created
-                  # commits are UNSIGNED, and `required_signatures` is active on both
-                  # the "All branches" and "Protect Prod" rulesets. This works only
-                  # because CONTENT_BOT_TOKEN belongs to an OrganizationAdmin, who has
-                  # `bypass_mode: always` on both. If that token is ever moved to a
-                  # non-admin account, this step starts failing at ref-creation and the
-                  # bump must be made as a locally signed commit instead.
-                  COMMIT_SHA=$(gh api repos/${{ github.repository }}/git/commits \
-                    --method POST \
-                    -f message="Update content submodule to latest main" \
-                    -f "tree=$TREE" \
-                    -f "parents[]=$PARENT" \
-                    --jq '.sha')
-                  # Create branch pointing at the bump commit
-                  gh api repos/${{ github.repository }}/git/refs \
-                    --method POST \
-                    -f "ref=refs/heads/$BRANCH" \
-                    -f "sha=$COMMIT_SHA"
+
+                  # Sign the bump with an SSH signing key. Every other route emits an
+                  # UNSIGNED commit, and `required_signatures` is active on the org
+                  # "All branches" ruleset:
+                  #   - POST /git/commits (the Git Data API) does not sign. It only
+                  #     attaches a signature you compute and pass in yourself. This
+                  #     step used that call from Feb 2026 and every content bump since
+                  #     was unsigned. It landed anyway because an org admin owns
+                  #     CONTENT_BOT_TOKEN and admins bypass the ruleset, so the
+                  #     failure was silent for six months.
+                  #   - GraphQL createCommitOnBranch, the one write path GitHub signs
+                  #     for you, cannot express a submodule pointer: its FileAddition
+                  #     input carries `path` and `contents` only, with no file mode,
+                  #     so a 160000 gitlink cannot be written through it.
+                  # A real local commit signed on the runner is the only route left.
+                  if [ -z "${SIGNING_KEY:-}" ]; then
+                    echo "::error::CONTENT_BOT_SIGNING_KEY is not set — refusing to create an unsigned content bump."
+                    exit 1
+                  fi
+                  KEY="$RUNNER_TEMP/content_signing_key"
+                  install -m 600 /dev/null "$KEY"
+                  printf '%s\n' "$SIGNING_KEY" > "$KEY"
+                  ssh-keygen -y -f "$KEY" > "$KEY.pub"
+
+                  # Same identity GitHub already stamped on these commits, so the
+                  # only change is that they are now signed. The address must stay a
+                  # verified email on the account holding the signing key, or the
+                  # signature is valid but GitHub still shows "Unverified".
+                  git config user.name "Hugo Montenegro"
+                  git config user.email "h@hugomontenegro.com"
+                  git config gpg.format ssh
+                  git config user.signingkey "$KEY.pub"
+
+                  git checkout -b "$BRANCH"
+                  git add src/content
+                  git commit -S -m "Update content submodule to latest main"
+
+                  # Push over CONTENT_BOT_TOKEN rather than the GITHUB_TOKEN that
+                  # actions/checkout persisted as the origin credential. Two reasons:
+                  #   - A GITHUB_TOKEN push raises no workflow events, so `Tests` would
+                  #     run for the `pull_request` event only. content-publish-
+                  #     automerge.yml expects a commit to carry two `ci-success` runs
+                  #     and merges on all-green-of-N; at N=1 a single concurrency
+                  #     cancellation makes N=0, where it declines to merge and the
+                  #     publish stalls silently. Ref creation used the PAT before, so
+                  #     this keeps the two runs the automerge gate was written against.
+                  #   - It preserves the bypass ref creation used to have, so a rule
+                  #     added to the "All branches" ruleset later cannot quietly break
+                  #     the pipeline.
+                  REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+                  git push "$REMOTE" "$BRANCH"
+                  COMMIT_SHA=$(git rev-parse HEAD)
+
+                  # Ask GitHub, not the runner, whether the signature actually
+                  # verified — the runner has no allowed-signers file and would pass
+                  # a key GitHub rejects. Publishing an unverified commit is the bug
+                  # this step exists to prevent, so it is a hard failure, not a
+                  # warning. Take the branch back down on the way out: it carries no
+                  # PR yet, and the superseded-PR sweep below only ever sees branches
+                  # that have one, so an abandoned branch would linger forever.
+                  VERIFICATION=$(gh api "repos/${{ github.repository }}/commits/$COMMIT_SHA" \
+                    --jq '.commit.verification | "\(.verified) \(.reason)"')
+                  if [ "${VERIFICATION%% *}" != "true" ]; then
+                    echo "::error::content bump $COMMIT_SHA is not verified (${VERIFICATION#* })"
+                    git push "$REMOTE" --delete "$BRANCH" || echo "::warning::could not delete $BRANCH"
+                    exit 1
+                  fi
+                  echo "Signed and verified: $COMMIT_SHA"
+
                   cat > /tmp/pr-body.md <<'BODY'
                   Auto-generated: bumps `src/content` to latest peanut-content `main`.
 

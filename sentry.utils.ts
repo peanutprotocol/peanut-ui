@@ -30,6 +30,8 @@ export function isPaymentNetworkSentryEvent(event: RoutableSentryEvent): boolean
     return sentryValueTargetsPaymentNetwork(event.request?.url) || sentryValueTargetsPaymentNetwork(event.transaction)
 }
 
+import { CRITICAL_FLOW_TAG } from '@/utils/sentry-critical-flow'
+
 /**
  * Patterns to filter out from Sentry reporting.
  * These are generally noise that doesn't require action.
@@ -69,10 +71,11 @@ const IGNORED_ERRORS = {
     // failure is already captured at the fetch site with full context, so the
     // re-thrown ServiceUnavailableError bubbling to global handlers (or being
     // console.error'd by a consumer) would only double-count it (PEANUT-UI-QDJ).
-    // Substring-matching this pattern is safe only because ServiceUnavailableError
-    // is our own internal fetchWithSentry wrapper name, not a generic string that
-    // could appear in an unrelated third-party error message.
-    alreadyReported: ['ServiceUnavailableError'],
+    // Substring-matching these patterns is safe only because both are our own
+    // internal fetchWithSentry wrapper names, not generic strings that could
+    // appear in an unrelated third-party error message. ConnectionTimeoutError
+    // is the timeout-path wrapper; ServiceUnavailableError the generic one.
+    alreadyReported: ['ServiceUnavailableError', 'ConnectionTimeoutError'],
 
     // Third-party SDK internal errors (not actionable)
     thirdPartySdkErrors: [
@@ -89,6 +92,10 @@ const IGNORED_ERRORS = {
  * Check if error message matches any ignored pattern
  */
 export function shouldIgnoreError(event: ErrorEvent): boolean {
+    // Explicit captures from money-moving flows are never noise. Cancellations
+    // stay filtered even there — a user backing out of the passkey sheet is not
+    // a defect, and those would drown out the real failures.
+    const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
     const message = event.message || ''
     const exceptionValue = event.exception?.values?.[0]?.value || ''
     const exceptionType = event.exception?.values?.[0]?.type || ''
@@ -99,13 +106,16 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     const searchTexts = [message, exceptionValue, exceptionType, culprit]
 
     // Check all ignore patterns
-    for (const patterns of Object.values(IGNORED_ERRORS)) {
+    for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {
+        if (isCriticalFlow && group !== 'userRejected') continue
         for (const pattern of patterns) {
             if (searchTexts.some((text) => text.toLowerCase().includes(pattern.toLowerCase()))) {
                 return true
             }
         }
     }
+
+    if (isCriticalFlow) return false
 
     // Ignore errors from browser extensions (client-side only, but safe to check everywhere)
     const frames = event.exception?.values?.[0]?.stacktrace?.frames || []

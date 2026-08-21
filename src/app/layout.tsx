@@ -175,6 +175,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {process.env.NODE_ENV !== 'development' && (
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
+                            /*
+                             * Native: builds before 2026-04 registered the PWA service worker
+                             * inside the Capacitor WebView, and those registrations persist in
+                             * WebView storage across app updates (the native bundle ships no
+                             * sw.js, so they can never self-update — they sit frozen in front of
+                             * all GET traffic). Actively evict them; takes effect next launch.
+                             */
+                            if ('serviceWorker' in navigator && window.Capacitor) {
+                                navigator.serviceWorker.getRegistrations()
+                                    .then((regs) => regs.forEach((r) => r.unregister()))
+                                    .catch(() => {});
+                            }
                             if ('serviceWorker' in navigator && !window.Capacitor) {
                                 window.addEventListener('load', async () => {
                                     try {
@@ -222,12 +234,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </Script>
                 )}
 
-                {/* Route-aware bootstrap: sensitive explorer URLs never load or configure GA. */}
-                {process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_GA_KEY && (
-                    <Script id="google-analytics" strategy="afterInteractive">
-                        {googleAnalyticsBootstrapScript(process.env.NEXT_PUBLIC_GA_KEY)}
-                    </Script>
-                )}
+{/* Route-aware bootstrap: sensitive explorer URLs never load or configure GA. */}
+                {process.env.NODE_ENV !== 'development' &&
+                    process.env.NEXT_PUBLIC_GA_KEY &&
+                    process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true' &&
+                    process.env.NEXT_PUBLIC_PERF_BARE !== 'true' && (
+                        <Script id="google-analytics" strategy="afterInteractive">
+                            {googleAnalyticsBootstrapScript(process.env.NEXT_PUBLIC_GA_KEY)}
+                        </Script>
+                    )}
             </head>
             <body
                 className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}

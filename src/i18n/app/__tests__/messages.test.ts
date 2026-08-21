@@ -5,6 +5,7 @@ import en from '../messages/en.json'
 import es419 from '../messages/es-419.json'
 import esAR from '../messages/es-AR.json'
 import ptBR from '../messages/pt-BR.json'
+import { leafPaths, leafValue } from './catalog-helpers'
 
 const CATALOGS = { en, 'es-419': es419, 'es-AR': esAR, 'pt-BR': ptBR } as const
 
@@ -12,17 +13,6 @@ const CATALOGS = { en, 'es-419': es419, 'es-AR': esAR, 'pt-BR': ptBR } as const
 // holds a subset of the en key set rather than all of it.
 const DELTA_LOCALES: readonly AppLocale[] = ['es-AR']
 const FULL_LOCALES = APP_LOCALES.filter((locale) => !DELTA_LOCALES.includes(locale))
-
-function leafPaths(obj: Record<string, unknown>, prefix = ''): string[] {
-    return Object.entries(obj).flatMap(([key, value]) => {
-        const path = prefix ? `${prefix}.${key}` : key
-        return typeof value === 'object' && value !== null ? leafPaths(value as Record<string, unknown>, path) : [path]
-    })
-}
-
-function leafValue(catalog: Record<string, unknown>, path: string): string {
-    return path.split('.').reduce<unknown>((node, key) => (node as Record<string, unknown>)[key], catalog) as string
-}
 
 /**
  * English strings that legitimately carry more than one translation. Spanish and

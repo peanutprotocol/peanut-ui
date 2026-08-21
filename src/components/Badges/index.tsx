@@ -1,10 +1,10 @@
 'use client'
 
-import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import NavHeader from '../Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeIcon } from './badge.utils'
+import { useBadgeCopy } from './useBadgeCopy'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { Icon } from '../Global/Icons/Icon'
@@ -14,11 +14,13 @@ import { useTranslations } from 'next-intl'
 import { useUserStore } from '@/redux/hooks'
 import { ActionListCard } from '../ActionListCard'
 import { useAuth } from '@/context/authContext'
+import { BadgeImage } from './BadgeImage'
 
 type BadgeView = { code: string; title: string; description: string; logo: string | StaticImageData }
 
 export const Badges = () => {
     const t = useTranslations('badges')
+    const badgeCopy = useBadgeCopy()
     const onBack = useSafeBack('/profile')
     const { user: authUser } = useUserStore()
     const { fetchUser } = useAuth()
@@ -34,13 +36,16 @@ export const Badges = () => {
     const badges: BadgeView[] = useMemo(() => {
         // get badges from user object and map to card fields
         const raw = authUser?.user?.badges || []
-        return raw.map((b) => ({
-            code: b.code,
-            title: getBadgeDisplayName(b.code, b.name),
-            description: b.description || '',
-            logo: getBadgeIcon(b.code),
-        }))
-    }, [authUser?.user?.badges])
+        return raw.map((b) => {
+            const copy = badgeCopy(b.code, b.name, b.description)
+            return {
+                code: b.code,
+                title: copy.name,
+                description: copy.description || '',
+                logo: getBadgeIcon(b.code, b.iconUrl),
+            }
+        })
+    }, [authUser?.user?.badges, badgeCopy])
 
     if (!badges.length) {
         return (
@@ -71,7 +76,7 @@ export const Badges = () => {
                             }}
                             position={getCardPosition(idx, badges.length)}
                             leftIcon={
-                                <Image
+                                <BadgeImage
                                     src={badge.logo}
                                     alt={badge.title}
                                     // object-contain so non-square badge SVGs

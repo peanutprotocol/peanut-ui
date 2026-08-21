@@ -279,6 +279,10 @@ export function useSemanticRequestFlow() {
                         tokenSymbol: selectedTokenData.symbol,
                         tokenDecimals: selectedTokenData.decimals,
                         recipientAddress: recipient.resolvedAddress,
+                        // The only place the typed recipient still exists — the
+                        // charge carries the address. createCharge keeps it only
+                        // if it is an ENS name, so pass it as-is.
+                        recipientEnsName: recipient.identifier,
                         transactionType: 'REQUEST',
                         reference: attachment.message,
                         attachment: attachment.file,

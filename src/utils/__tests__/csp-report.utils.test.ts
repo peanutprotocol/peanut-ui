@@ -1,6 +1,8 @@
 import {
     cspReportGroupKey,
+    MAX_FORWARDS_PER_REQUEST,
     normalizeCspReports,
+    selectReportsToForward,
     sentryCspIngestUrl,
     shouldIgnoreCspReport,
     type CspReport,
@@ -238,4 +240,114 @@ describe('sentryCspIngestUrl', () => {
             expect(sentryCspIngestUrl(dsn)).toBeNull()
         }
     )
+})
+
+describe('selectReportsToForward', () => {
+    const report = (blockedUri: string, directive = 'connect-src'): CspReport => ({
+        'blocked-uri': blockedUri,
+        'effective-directive': directive,
+        'violated-directive': directive,
+    })
+    const distinct = (count: number) =>
+        Array.from({ length: count }, (_, index) => report(`https://cdn-${index}.example/x.js`))
+    const uris = (reports: CspReport[]) => reports.map((report) => report['blocked-uri'])
+
+    const forwardAll = () => true
+    const forwardNone = () => false
+
+    it('returns nothing for an empty batch without consulting the predicate', () => {
+        const shouldForward = jest.fn(forwardAll)
+
+        expect(selectReportsToForward([], shouldForward)).toEqual([])
+        expect(shouldForward).not.toHaveBeenCalled()
+    })
+
+    it('forwards exactly what the predicate admits, in arrival order', () => {
+        const batch = [report('https://a.example/x.js'), report('https://b.example/y.js')]
+
+        expect(uris(selectReportsToForward(batch, (key) => key.includes('b.example')))).toEqual([
+            'https://b.example/y.js',
+        ])
+        expect(uris(selectReportsToForward(batch, forwardAll))).toEqual([
+            'https://a.example/x.js',
+            'https://b.example/y.js',
+        ])
+        expect(selectReportsToForward(batch, forwardNone)).toEqual([])
+    })
+
+    it('asks about each distinct group once, keeping the first report of it', () => {
+        const shouldForward = jest.fn(forwardAll)
+
+        const forwarded = selectReportsToForward(
+            [
+                report('https://cdn.example/first.js'),
+                report('https://cdn.example/second.js'), // same origin + directive
+                report('https://cdn.example/third.js'),
+            ],
+            shouldForward
+        )
+
+        expect(uris(forwarded)).toEqual(['https://cdn.example/first.js'])
+        expect(shouldForward).toHaveBeenCalledTimes(1)
+        expect(shouldForward).toHaveBeenCalledWith('connect-src|https://cdn.example')
+    })
+
+    it('separates groups the same origin reaches under different directives', () => {
+        const forwarded = selectReportsToForward(
+            [report('https://cdn.example/x.js', 'connect-src'), report('https://cdn.example/x.js', 'img-src')],
+            forwardAll
+        )
+
+        expect(forwarded).toHaveLength(2)
+    })
+
+    it('drops reports no allow-list entry could ever fix, before they cost a group slot', () => {
+        const forwarded = selectReportsToForward(
+            [
+                ...Array.from({ length: MAX_FORWARDS_PER_REQUEST }, (_, index) =>
+                    report(`chrome-extension://ext-${index}/inject.js`)
+                ),
+                report('https://cdn.example/x.js'),
+            ],
+            forwardAll
+        )
+
+        expect(uris(forwarded)).toEqual(['https://cdn.example/x.js'])
+    })
+
+    it('caps the fan-out at MAX_FORWARDS_PER_REQUEST distinct groups', () => {
+        const forwarded = selectReportsToForward(distinct(MAX_FORWARDS_PER_REQUEST + 30), forwardAll)
+
+        expect(forwarded).toHaveLength(MAX_FORWARDS_PER_REQUEST)
+        expect(uris(forwarded)).toEqual(uris(distinct(MAX_FORWARDS_PER_REQUEST)))
+    })
+
+    // The invariant the ordering exists for. The predicate records each group
+    // it is asked about as seen, so asking about a group past the cap would
+    // mark it seen without ever sending it: its real first sighting lost, every
+    // later repeat sampled away at 1%.
+    it('never asks about a group it cannot send', () => {
+        const asked: string[] = []
+
+        const forwarded = selectReportsToForward(distinct(MAX_FORWARDS_PER_REQUEST + 30), (key) => {
+            asked.push(key)
+            return true
+        })
+
+        expect(asked).toHaveLength(MAX_FORWARDS_PER_REQUEST)
+        expect(forwarded).toHaveLength(MAX_FORWARDS_PER_REQUEST)
+    })
+
+    // A rejected group is still spent: the predicate owns that decision, and
+    // re-offering it would let one flood re-enter every request.
+    it('counts a group the predicate rejected against the cap', () => {
+        const asked: string[] = []
+
+        selectReportsToForward(distinct(MAX_FORWARDS_PER_REQUEST + 5), (key) => {
+            asked.push(key)
+            return false
+        })
+
+        expect(asked).toHaveLength(MAX_FORWARDS_PER_REQUEST)
+    })
 })

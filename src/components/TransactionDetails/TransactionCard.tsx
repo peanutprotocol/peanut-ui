@@ -1,6 +1,7 @@
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import IndicatorDot from '@/components/Global/IndicatorDot'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
@@ -30,7 +31,7 @@ import { normalizeEnsName } from '@/utils/ens.utils'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { PerkIcon } from './PerkIcon'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { PEANUTMAN } from '@/assets/mascot'
 import InvitesIcon from '../Home/InvitesIcon'
@@ -79,7 +80,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // hook to manage the state of the details drawer (open/closed, selected transaction)
     const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
         useTransactionDetailsDrawer()
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const router = useRouter()
     const t = useTranslations('transaction')
 
@@ -237,7 +238,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                         <div className="flex flex-col">
                             {/* display formatted name (address or username) */}
                             <div className="flex flex-row items-center gap-2">
-                                {isPending && <div className="h-2 w-2 animate-pulsate rounded-full bg-primary-1" />}
+                                {isPending && <IndicatorDot className="h-2 w-2 animate-pulsate" />}
                                 <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                     <VerifiedUserLabel
                                         username={transaction.userName}

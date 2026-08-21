@@ -76,8 +76,9 @@ export function buildEmailRenderList(spec: JourneySpec | null): EmailRenderRef[]
 }
 
 /**
- * The two calls this review exists to settle. Everything else on the board is a
- * yes/no on the copy; these two are structural product decisions.
+ * The open structural product decisions. Everything else on the board is a
+ * yes/no on the copy. (finish_setup's kill-or-keep was settled: killed —
+ * lifecycle v2 deleted the stage after 0 sends ever.)
  */
 export const EMAIL_DECISION_FLAGS: Record<string, EmailDecisionFlag> = {
     'lifecycle.first_spend_1': {
@@ -87,14 +88,6 @@ export const EMAIL_DECISION_FLAGS: Record<string, EmailDecisionFlag> = {
     'lifecycle.first_spend_2': {
         label: 'decide: rewards branch keep/kill',
         note: 'Renders a second copy variant when the user has unclaimed rewards. Keep the branch or cut it to one message?',
-    },
-    'lifecycle.finish_setup_1': {
-        label: 'decide: kill or keep (0 prod audience)',
-        note: 'The finish_setup stage matches no users in prod today. Keep the pair for future card states, or drop the stage?',
-    },
-    'lifecycle.finish_setup_2': {
-        label: 'decide: kill or keep (0 prod audience)',
-        note: 'The finish_setup stage matches no users in prod today. Keep the pair for future card states, or drop the stage?',
     },
 }
 

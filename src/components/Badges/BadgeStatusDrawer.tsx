@@ -1,14 +1,16 @@
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
-import Image from 'next/image'
 import { useState } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
-import { getBadgeDisplayName, getBadgeIcon, getBadgeShareText } from './badge.utils'
-import { BASE_URL } from '@/constants/general.consts'
+import { captureBadgeShare, getBadgeIcon, getBadgeShareLink, getBadgeShareText } from './badge.utils'
+import { useBadgeCopy } from './useBadgeCopy'
+import { useBadgeShareImpression } from './useBadgeShareImpression'
+import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
+import { BadgeImage } from './BadgeImage'
 
 export type BadgeStatusDrawerProps = {
     isOpen: boolean
@@ -28,6 +30,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     const locale = useLocale()
     const format = useFormatter()
     const { user: authUser } = useAuth()
+    const badgeCopy = useBadgeCopy()
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const username = authUser?.user.username
     const earnedAt = badge.earnedAt ? new Date(badge.earnedAt) : undefined
@@ -42,10 +45,12 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                   hour12: false,
               })
             : undefined
-    const displayName = getBadgeDisplayName(badge.code, badge.name)
+    const { name: displayName, description: displayDescription } = badgeCopy(badge.code, badge.name, badge.description)
+    const displayIcon = getBadgeIcon(badge.code, badge.iconUrl)
 
-    // generate profile link for sharing
-    const profileLink = username ? `${BASE_URL}/${username}` : BASE_URL
+    // the sharer's own invite link, so a guest signup credits them
+    const shareLink = getBadgeShareLink(username)
+    useBadgeShareImpression(isOpen, REFERRAL_SOURCES.BADGE_UNLOCK, username)
 
     return (
         <>
@@ -64,8 +69,8 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                         >
                             <div className="flex items-center gap-3">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-full">
-                                    <Image
-                                        src={getBadgeIcon(badge.code)}
+                                    <BadgeImage
+                                        src={displayIcon}
                                         alt={t('iconAlt', { name: displayName })}
                                         className="size-full object-contain"
                                         width={160}
@@ -86,19 +91,20 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
 
                         <Card position="single">
                             <PaymentInfoRow label={t('unlockedAtLabel')} value={dateStr} />
-                            <PaymentInfoRow label={t('reasonLabel')} value={badge.description} hideBottomBorder />
+                            <PaymentInfoRow label={t('reasonLabel')} value={displayDescription} hideBottomBorder />
                         </Card>
 
                         <div className="pb-4">
                             <ShareButton
                                 title=""
+                                onSuccess={() => captureBadgeShare(REFERRAL_SOURCES.BADGE_UNLOCK, username)}
                                 generateText={() =>
                                     Promise.resolve(
-                                        getBadgeShareText(badge.code, displayName, profileLink, {
+                                        getBadgeShareText(badge.code, displayName, shareLink, {
                                             locale,
                                             localizedFallback: t('shareText', {
                                                 badge: displayName,
-                                                link: profileLink,
+                                                link: shareLink,
                                             }),
                                         })
                                     )
@@ -115,8 +121,8 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                 onClose={() => setIsDetailOpen(false)}
                 code={badge.code}
                 title={displayName}
-                description={badge.description || ''}
-                logo={getBadgeIcon(badge.code)}
+                description={displayDescription || ''}
+                logo={displayIcon}
             />
         </>
     )

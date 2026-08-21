@@ -1,14 +1,10 @@
+import { useTranslations } from 'next-intl'
 import { AccountType } from '@/interfaces/interfaces'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import useGetExchangeRate, { type IExchangeRate } from '@/hooks/useGetExchangeRate'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/hooks/useCurrency'
 import { applyBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
-
-// constants for exchange rate messages, specific to ExchangeRate component
-const APPROXIMATE_VALUE_MESSAGE =
-    "This is an approximate value. The actual amount received may vary based on your bank's exchange rate"
-const LOCAL_CURRENCY_LABEL = 'Amount you will receive'
 
 interface IExchangeRateProps extends Omit<IExchangeRate, 'enabled'> {
     nonEuroCurrency?: string
@@ -22,6 +18,8 @@ const ExchangeRate = ({
     sourceCurrency = 'USD',
     amountToConvert,
 }: IExchangeRateProps) => {
+    const t = useTranslations('exchangeRate.row')
+    const tCommon = useTranslations('common')
     const { exchangeRate, isFetchingRate } = useGetExchangeRate({ accountType, enabled: !nonEuroCurrency })
     const { exchangeRate: nonEruoExchangeRate, isLoading } = useExchangeRate({
         sourceCurrency,
@@ -33,7 +31,7 @@ const ExchangeRate = ({
     const toCurrency = accountType === AccountType.IBAN ? 'EUR' : accountType === AccountType.CLABE ? 'MXN' : 'USD'
 
     if (accountType === AccountType.US) {
-        return <PaymentInfoRow loading={isFetchingRate} label="Exchange Rate" value={`1 USD`} />
+        return <PaymentInfoRow loading={isFetchingRate} label={tCommon('exchangeRate')} value={`1 USD`} />
     }
 
     let displayValue = '-'
@@ -47,12 +45,12 @@ const ExchangeRate = ({
             : '-'
         isLoadingRate = isLoading
         rate = nonEruoExchangeRate
-        moreInfoText = APPROXIMATE_VALUE_MESSAGE
+        moreInfoText = t('approximate')
     } else {
         displayValue = exchangeRate ? `1 USD = ${parseFloat(exchangeRate).toFixed(4)} ${toCurrency}` : '-'
         isLoadingRate = isFetchingRate
         rate = exchangeRate ? parseFloat(exchangeRate) : null
-        moreInfoText = `Exchange rates apply when converting to ${toCurrency}`
+        moreInfoText = t('appliesWhenConverting', { currency: toCurrency })
     }
 
     const currency = nonEuroCurrency || toCurrency
@@ -82,16 +80,16 @@ const ExchangeRate = ({
         <>
             <PaymentInfoRow
                 loading={isLoadingRate}
-                label="Exchange Rate"
+                label={tCommon('exchangeRate')}
                 moreInfoText={moreInfoText}
                 value={displayValue}
             />
             {localCurrencyAmount && (
                 <PaymentInfoRow
                     loading={isLoadingRate}
-                    label={LOCAL_CURRENCY_LABEL}
+                    label={t('amountYouReceive')}
                     value={`~ ${currencySymbol}${localCurrencyAmount}`}
-                    moreInfoText={APPROXIMATE_VALUE_MESSAGE}
+                    moreInfoText={t('approximate')}
                 />
             )}
         </>

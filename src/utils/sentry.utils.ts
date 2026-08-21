@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { type JSONValue } from '../interfaces/interfaces'
-import { reportNetworkError, reportNetworkOk } from './connectivity'
+import { reportNetworkError } from './connectivity'
+import { canUseNativeHttp, nativeHttpRequest } from './native-http'
 
 /**
  * Endpoint + status combinations to skip reporting.
@@ -16,6 +17,19 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
     // Expected input validation, surfaced inline to the user — not a server bug.
     { pattern: /\/invites\/validate/, statuses: [400] },
+    // /tokens/price 404 means the upstream price provider declined the lookup —
+    // in practice a Mobula 429. The UI falls back to token denomination, so it is
+    // a degraded display, never a wrong number. The backend already downgraded
+    // its own log to warn for this exact reason (PEANUT-API-75); reporting it
+    // from the client re-created the same page-per-lookup noise as PEANUT-UI-QKY.
+    { pattern: /\/tokens\/price\/?(?:[?#]|$)/, statuses: [404] },
+    // Public FX pair misses and validation failures are expected user/input
+    // outcomes, not backend incidents. 503 is included deliberately: it means a
+    // provider leg is momentarily absent, which peanut-api already reports with
+    // the upstream cause attached. Reporting it here too would multiply one
+    // incident by every mounted hook and its retries — the merchant page alone
+    // runs three — and bury the backend signal that can actually be acted on.
+    { pattern: /\/fx\/rate(?:\?|$)/, statuses: [400, 404, 429, 503] },
     // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
@@ -317,11 +331,12 @@ export const SERVER_FETCH_TIMEOUT_MS = 10_000
  * Client-side budget — the actual fix. No platform ceiling applies in a
  * browser, only real mobile networks, and 10s sat below the page load itself in
  * high-latency markets (Nigeria p90 LCP 11.3s vs 6.1s globally), aborting
- * healthy requests and reporting them as failures. Bounded above by React Query
- * retries, which multiply it; the worst-case total for the default retry
- * strategy is pinned in `sentry.utils.test.ts`.
+ * healthy requests and reporting them as failures. React Query retries and the
+ * one idempotent transport retry multiply it; the worst-case total for the
+ * default retry strategy is pinned in `sentry.utils.test.ts`.
  */
 export const CLIENT_FETCH_TIMEOUT_MS = 20_000
+export const TRANSPORT_TIMEOUT_RETRY_DELAY_MS = 300
 
 /**
  * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets. It
@@ -379,22 +394,121 @@ const sanitizeHeaders = (headers: RequestInit['headers']): Record<string, unknow
     return sanitized
 }
 
+// Sanitize URL for fingerprinting by replacing IDs with placeholders
+const sanitizeUrl = (url: string) => {
+    return (
+        url
+            // Replace numeric IDs in path
+            .replace(/\/\d+(?=\/|$)/g, '/{id}')
+            // Replace UUIDs in path
+            .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi, '/{uuid}')
+            // Replace numeric IDs in query params
+            .replace(/([?&][^=&]*=)\d+/g, '$1{id}')
+    )
+}
+
+const reportNonOkResponse = async (url: string, options: RequestInit, response: Response): Promise<void> => {
+    if (response.ok) return
+    // Skip both the console warn AND Sentry submission for expected
+    // non-2xx responses (username availability 404, get-user-from-cookie
+    // 401 on cleared session, etc). Logging them clutters DevTools and
+    // gets picked up by forward-logs-shared as Sentry breadcrumbs.
+    if (shouldSkipReporting(url, response.status)) return
+
+    // console.info, not warn — captureConsoleIntegration listens on
+    // ['error','warn'], so a warn here became a SECOND Sentry event for every
+    // non-2xx in the app, grouped by this call site rather than by request.
+    // The explicit captureMessage below is the real report: it fingerprints on
+    // [method, url, status] and carries headers, body and response.
+    console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
+
+    let errorContent: JSONValue
+    try {
+        errorContent = await response.clone().json()
+    } catch {
+        errorContent = await response.clone().text()
+    }
+    const method = options.method || 'GET'
+    const featureTag = getFeatureTag(url)
+    Sentry.withScope((scope) => {
+        // Set fingerprint to group similar errors
+        scope.setFingerprint([method, sanitizeUrl(url), String(response.status)])
+        if (featureTag) scope.setTag('feature', featureTag)
+
+        Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
+            level: getErrorLevelFromStatus(response.status),
+            extra: {
+                url,
+                method,
+                requestHeaders: sanitizeHeaders(options.headers || {}),
+                requestBody: sanitizeRequestBody(url, options.body),
+                status: response.status,
+                response: sanitizeResponseBody(url, errorContent),
+            },
+        })
+    })
+}
+
+// One Sentry note per session when the native fallback rescues a request —
+// enough to measure how often the WebView path is being rejected without
+// producing an event per API call.
+let nativeFallbackReported = false
+const noteNativeFallback = (url: string, cause: unknown): void => {
+    if (nativeFallbackReported) return
+    nativeFallbackReported = true
+    const causeError = cause instanceof Error ? cause : null
+    Sentry.captureMessage('native http fallback engaged', {
+        level: 'warning',
+        tags: { transport: 'cap-native-http' },
+        extra: {
+            url: sanitizeUrl(url),
+            causeName: causeError?.name,
+            causeMessage: causeError?.message,
+        },
+    })
+}
+
+// One Sentry note per session when a tokenless session runs on the OS HTTP
+// client — measures how many users still sit on legacy cookie-jar auth.
+let legacyCookieTransportReported = false
+const noteLegacyCookieTransport = (url: string): void => {
+    if (legacyCookieTransportReported) return
+    legacyCookieTransportReported = true
+    Sentry.captureMessage('legacy-cookie native transport engaged', {
+        level: 'info',
+        tags: { transport: 'cap-native-http', authMode: 'legacy-cookie' },
+        extra: { url: sanitizeUrl(url) },
+    })
+}
+
+export type FetchWithSentryOptions = RequestInit & { preferNativeTransport?: boolean }
+
 export const fetchWithSentry = async (
     url: string,
-    options: RequestInit = {},
+    optionsWithTransport: FetchWithSentryOptions = {},
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
-    // Sanitize URL for fingerprinting by replacing IDs with placeholders
-    const sanitizeUrl = (url: string) => {
-        return (
-            url
-                // Replace numeric IDs in path
-                .replace(/\/\d+(?=\/|$)/g, '/{id}')
-                // Replace UUIDs in path
-                .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi, '/{uuid}')
-                // Replace numeric IDs in query params
-                .replace(/([?&][^=&]*=)\d+/g, '$1{id}')
-        )
+    const { preferNativeTransport, ...options } = optionsWithTransport
+
+    /*
+     * Tokenless native sessions go over the OS HTTP client FIRST, not as a
+     * rescue: legacy cookie-jar sessions hold the JWT only in the OS-level
+     * cookie store, which rides on CapacitorHttp requests but is invisible to
+     * JS (Android's CapacitorCookies.getCookies evals document.cookie and
+     * ignores its url param). A WebView POST reaches the backend with neither
+     * header nor cookie and 400s — and because it gets an HTTP response, the
+     * rejection fallback below never engages. On OS-client failure, fall
+     * through to the WebView path so logged-out flows behave as before.
+     */
+    if (preferNativeTransport && canUseNativeHttp(url, options)) {
+        try {
+            const response = await nativeHttpRequest(url, options, timeoutMs)
+            noteLegacyCookieTransport(url)
+            await reportNonOkResponse(url, options, response)
+            return response
+        } catch {
+            // OS client failed — the WebView path below is the report of record
+        }
     }
 
     // Idempotent requests get one silent retry on timeout: stalled-transport
@@ -415,7 +529,7 @@ export const fetchWithSentry = async (
             } catch (error) {
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
                     console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} timed out — retrying`)
-                    await new Promise((resolve) => setTimeout(resolve, 300))
+                    await new Promise((resolve) => setTimeout(resolve, TRANSPORT_TIMEOUT_RETRY_DELAY_MS))
                     continue
                 }
                 throw error
@@ -428,50 +542,29 @@ export const fetchWithSentry = async (
     try {
         const response = await attemptFetch()
 
-        // A response came back — the backend is reachable, clear any failure streak.
-        reportNetworkOk()
-
-        if (!response.ok) {
-            // Skip both the console warn AND Sentry submission for expected
-            // non-2xx responses (username availability 404, get-user-from-cookie
-            // 401 on cleared session, etc). Logging them clutters DevTools and
-            // gets picked up by forward-logs-shared as Sentry breadcrumbs.
-            if (!shouldSkipReporting(url, response.status)) {
-                console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
-
-                let errorContent: JSONValue
-                try {
-                    errorContent = await response.clone().json()
-                } catch {
-                    errorContent = await response.clone().text()
-                }
-                const method = options.method || 'GET'
-                const featureTag = getFeatureTag(url)
-                Sentry.withScope((scope) => {
-                    // Set fingerprint to group similar errors
-                    scope.setFingerprint([method, sanitizeUrl(url), String(response.status)])
-                    if (featureTag) scope.setTag('feature', featureTag)
-
-                    Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
-                        level: getErrorLevelFromStatus(response.status),
-                        extra: {
-                            url,
-                            method,
-                            requestHeaders: sanitizeHeaders(options.headers || {}),
-                            requestBody: sanitizeRequestBody(url, options.body),
-                            status: response.status,
-                            response: sanitizeResponseBody(url, errorContent),
-                        },
-                    })
-                })
-            }
-        }
+        await reportNonOkResponse(url, options, response)
 
         return response
     } catch (error: unknown) {
+        // WebView fetch rejected. On native, retry once over the OS HTTP client
+        // before declaring failure: the edge rejects Android WebView requests at
+        // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
+        // surface as an opaque TypeError.
+        if (canUseNativeHttp(url, options)) {
+            try {
+                const response = await nativeHttpRequest(url, options, timeoutMs)
+                noteNativeFallback(url, error)
+                await reportNonOkResponse(url, options, response)
+                return response
+            } catch {
+                // fallback failed too — report the original WebView error below
+            }
+        }
+
         // fetch rejected (timeout / DNS / connection refused) — the request never
-        // reached the backend, so flag a connectivity failure.
-        reportNetworkError()
+        // completed, so flag a connectivity failure. keyed by sanitized url so
+        // React Query retries of one slow route dedupe to a single endpoint.
+        reportNetworkError(sanitizeUrl(url))
         // console.info, not error: captureConsoleIntegration would turn an
         // error-level log into a second Sentry event on top of the explicit
         // captures below.
@@ -497,8 +590,13 @@ export const fetchWithSentry = async (
                 })
             })
 
-            const userError = new Error('Service temporarily unavailable. Please try again.')
-            userError.name = 'ServiceUnavailableError'
+            const userError = new Error('Peanut is taking too long to respond — check your connection and try again.')
+            // distinct name from the generic catch below: this path is our own
+            // AbortController firing, which an overloaded backend can trigger
+            // on a healthy connection — so the copy names both possibilities
+            // instead of blaming the user's internet. the generic path also
+            // wraps CORS/CSP/TypeError failures and stays fully neutral.
+            userError.name = 'ConnectionTimeoutError'
             userError.cause = timeoutError
             throw userError
         }

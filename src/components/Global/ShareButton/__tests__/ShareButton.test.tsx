@@ -122,4 +122,72 @@ describe('ShareButton', () => {
         expect(mockToastInfo).toHaveBeenCalledTimes(1)
         expect(mockToastError).not.toHaveBeenCalled()
     })
+
+    // A cancelled share sheet after a successful copy is still an outcome: the
+    // content is on the clipboard and the "copied" toast already showed, so
+    // consumers capturing INVITE_LINK_SHARED on onSuccess must count it.
+    it('reports success when the share sheet is cancelled after the copy landed', async () => {
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText: jest.fn().mockResolvedValue(undefined) },
+        })
+        const abort = new Error('cancelled')
+        abort.name = 'AbortError'
+        Object.defineProperty(navigator, 'share', {
+            configurable: true,
+            value: jest.fn().mockRejectedValue(abort),
+        })
+        const onSuccess = jest.fn()
+        const onError = jest.fn()
+
+        renderWithIntl(
+            <ShareButton
+                generateText={() => Promise.resolve('Badge share text')}
+                onSuccess={onSuccess}
+                onError={onError}
+            >
+                Share badge
+            </ShareButton>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Share badge' }))
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(onError).not.toHaveBeenCalled()
+        expect(mockToastError).not.toHaveBeenCalled()
+    })
+
+    it('stays quiet when the share sheet is cancelled and nothing was copied', async () => {
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText: jest.fn().mockRejectedValue(new Error('denied')) },
+        })
+        Object.defineProperty(document, 'execCommand', {
+            configurable: true,
+            value: jest.fn().mockReturnValue(false),
+        })
+        const abort = new Error('cancelled')
+        abort.name = 'AbortError'
+        Object.defineProperty(navigator, 'share', {
+            configurable: true,
+            value: jest.fn().mockRejectedValue(abort),
+        })
+        const onSuccess = jest.fn()
+        const onError = jest.fn()
+
+        renderWithIntl(
+            <ShareButton
+                generateText={() => Promise.resolve('Badge share text')}
+                onSuccess={onSuccess}
+                onError={onError}
+            >
+                Share badge
+            </ShareButton>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Share badge' }))
+
+        // cancellation is not an error — but with no copy there is no success either
+        await waitFor(() => expect(navigator.share).toHaveBeenCalledTimes(1))
+        expect(onSuccess).not.toHaveBeenCalled()
+        expect(onError).not.toHaveBeenCalled()
+    })
 })

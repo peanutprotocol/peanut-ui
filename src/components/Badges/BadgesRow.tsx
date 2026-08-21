@@ -1,19 +1,21 @@
 'use client'
 
 import Card from '@/components/Global/Card'
-import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { Tooltip } from '../Tooltip'
 import { twMerge } from 'tailwind-merge'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Global/Icons/Icon'
-import { getBadgeDisplayName, getBadgeIcon, getPublicBadgeDescription } from './badge.utils'
+import { getBadgeIcon } from './badge.utils'
+import { useBadgeCopy } from './useBadgeCopy'
+import { BadgeImage } from './BadgeImage'
 
 type UIBadge = {
     code: string
     name: string
     description: string | null
+    publicDescription?: string | null
     iconUrl: string | null
     earnedAt?: string | Date
 }
@@ -34,6 +36,7 @@ interface BadgesRowProps {
  */
 const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) => {
     const t = useTranslations('badges')
+    const badgeCopy = useBadgeCopy()
     const viewportRef = useRef<HTMLDivElement>(null)
     const [visibleCount, setVisibleCount] = useState<number>(4)
     const [startIdx, setStartIdx] = useState<number>(0)
@@ -100,11 +103,17 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                     aria-label={t('collectionLabel')}
                 >
                     {visibleBadges.map((badge) => {
-                        // use public description if viewing someone else's profile, otherwise use original
+                        // Same precedence as before, with the localized string standing
+                        // in for `badge.description`: the backend's third-person
+                        // `publicDescription` still wins when you are not the owner.
+                        const { name: displayName, description: selfDescription } = badgeCopy(
+                            badge.code,
+                            badge.name,
+                            badge.description
+                        )
                         const displayDescription = isSelfProfile
-                            ? badge.description
-                            : getPublicBadgeDescription(badge.code) || badge.description
-                        const displayName = getBadgeDisplayName(badge.code, badge.name)
+                            ? selfDescription
+                            : (badge.publicDescription ?? selfDescription)
 
                         return (
                             <Tooltip
@@ -116,8 +125,8 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                                     </div>
                                 }
                             >
-                                <Image
-                                    src={getBadgeIcon(badge.code)}
+                                <BadgeImage
+                                    src={getBadgeIcon(badge.code, badge.iconUrl)}
                                     alt={displayName}
                                     className="min-h-10 min-w-10 object-contain"
                                     height={48}

@@ -6,7 +6,12 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import { deriveRegionAccess, pendingBankRailRegionPaths, type Region } from '@/utils/regions.utils'
+import {
+    deriveRegionAccess,
+    pendingBankRailRegionPaths,
+    REST_OF_THE_WORLD_REGION,
+    type Region,
+} from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useLimits } from '@/hooks/useLimits'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -15,6 +20,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useRegionLabel } from '@/hooks/useRegionLabel'
 import CryptoLimitsSection from '../components/CryptoLimitsSection'
 import FiatLimitsLockedCard from '../components/FiatLimitsLockedCard'
 import REST_OF_WORLD_GLOBE_ICON from '@/assets/icons/rest-of-world-globe.svg'
@@ -47,12 +53,13 @@ const LimitsPageView = () => {
     // AR bank rail incorrectly badged Europe and North America.
     const pendingRegionPaths = useMemo(() => pendingBankRailRegionPaths(rails), [rails])
 
-    // rest of world region config (static)
-    const restOfWorldRegion: Region = {
+    const regionLabel = useRegionLabel()
+    // rest of world is rendered on its own below, never from the locked list
+    const restOfWorldName = regionLabel({
         path: 'rest-of-the-world',
-        name: t('restOfWorld'),
+        name: REST_OF_THE_WORLD_REGION,
         icon: REST_OF_WORLD_GLOBE_ICON,
-    }
+    }).name
 
     // filter locked regions and check for rest of world
     const { filteredLockedRegions, hasRestOfWorld } = useMemo(() => {
@@ -95,15 +102,15 @@ const LimitsPageView = () => {
                     <ActionListCard
                         leftIcon={
                             <Image
-                                src={restOfWorldRegion.icon}
-                                alt={restOfWorldRegion.name}
+                                src={REST_OF_WORLD_GLOBE_ICON}
+                                alt={restOfWorldName}
                                 width={36}
                                 height={36}
                                 className="size-8 rounded-full object-cover"
                             />
                         }
                         position="single"
-                        title={restOfWorldRegion.name}
+                        title={restOfWorldName}
                         onClick={() => {}}
                         isDisabled={true}
                         rightContent={<StatusBadge status="custom" customText={tCommon('comingSoon')} />}
@@ -140,33 +147,37 @@ interface UnlockedRegionsListProps {
 
 const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProps) => {
     const t = useTranslations('limits')
+    const regionLabel = useRegionLabel()
     const router = useRouter()
 
     return (
         <div>
             {regions.length > 0 && <h2 className="mb-2 font-bold">{t('unlockedRegions')}</h2>}
-            {regions.map((region, index) => (
-                <ActionListCard
-                    key={region.path}
-                    leftIcon={
-                        <Image
-                            src={region.icon}
-                            alt={region.name}
-                            width={36}
-                            height={36}
-                            className="size-8 rounded-full object-cover"
-                        />
-                    }
-                    position={getCardPosition(index, regions.length)}
-                    title={region.name}
-                    onClick={() => {
-                        const route = getProviderRoute(region.path, hasMantecaKyc)
-                        router.push(route)
-                    }}
-                    description={region.description}
-                    descriptionClassName="text-xs"
-                />
-            ))}
+            {regions.map((region, index) => {
+                const label = regionLabel(region)
+                return (
+                    <ActionListCard
+                        key={region.path}
+                        leftIcon={
+                            <Image
+                                src={region.icon}
+                                alt={label.name}
+                                width={36}
+                                height={36}
+                                className="size-8 rounded-full object-cover"
+                            />
+                        }
+                        position={getCardPosition(index, regions.length)}
+                        title={label.name}
+                        onClick={() => {
+                            const route = getProviderRoute(region.path, hasMantecaKyc)
+                            router.push(route)
+                        }}
+                        description={label.description}
+                        descriptionClassName="text-xs"
+                    />
+                )
+            })}
         </div>
     )
 }
@@ -179,6 +190,7 @@ interface LockedRegionsListProps {
 const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListProps) => {
     const t = useTranslations('limits')
     const tCommon = useTranslations('common')
+    const regionLabel = useRegionLabel()
     const router = useRouter()
 
     // a region shows pending only when one of ITS bank rails is mid-flight
@@ -189,27 +201,28 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
             {regions.length > 0 && <h2 className="mb-2 font-bold">{t('lockedRegions')}</h2>}
             {regions.map((region, index) => {
                 const isPending = isPendingRegion(region.path)
+                const label = regionLabel(region)
                 return (
                     <ActionListCard
                         key={region.path}
                         leftIcon={
                             <Image
                                 src={region.icon}
-                                alt={region.name}
+                                alt={label.name}
                                 width={36}
                                 height={36}
                                 className="size-8 rounded-full object-cover"
                             />
                         }
                         position={getCardPosition(index, regions.length)}
-                        title={region.name}
+                        title={label.name}
                         onClick={() => {
                             if (!isPending) {
                                 router.push('/profile/identity-verification')
                             }
                         }}
                         isDisabled={isPending}
-                        description={region.description}
+                        description={label.description}
                         descriptionClassName="text-xs"
                         rightContent={isPending && <StatusBadge status="pending" customText={tCommon('pending')} />}
                     />

@@ -6,6 +6,9 @@ export const metadata = generateMetadata({
     description:
         'Explore career opportunities at Peanut. Join our team to build the future of fast, global peer-to-peer payments with digital dollars.',
     keywords: 'careers, jobs, employment, Peanut careers, P2P payments jobs, fintech jobs, crypto jobs, tech jobs',
+    // Without this the page inherits the root layout's `canonical: '/'` and
+    // declares the homepage as its canonical while sitting in the sitemap.
+    canonical: '/careers',
 })
 
 export default function CareersPage() {

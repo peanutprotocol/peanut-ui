@@ -59,6 +59,10 @@ export interface PixelatedCardFaceProps {
      *  display the Visa wordmark for compliance reasons (it renders crisp
      *  there since the share asset is the one surface that doesn't `blurAll`). */
     hideVisa?: boolean
+    /** Colour of the offset drop shadow. Defaults to the design-system black;
+     *  the homepage door fold overrides it because a black shadow is invisible
+     *  on that fold's black ground. */
+    shadowColor?: string
     /** Fires once the hand <img> has loaded — i.e. the card face is fully
      *  painted. Capture surfaces gate the Share/Save buttons on this so a
      *  snapshot can never fire before the hand is ready. */
@@ -70,6 +74,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
     style,
     blurAll = false,
     hideVisa = false,
+    shadowColor = '#000',
     onReady,
 }) => (
     // The drop-shadow is an offset sibling, NOT a CSS box-shadow: html-to-image
@@ -80,7 +85,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
         <div
             aria-hidden
             className="pointer-events-none absolute rounded-3xl"
-            style={{ inset: 0, background: '#000', transform: 'translate(0.625rem, 0.625rem)' }}
+            style={{ inset: 0, background: shadowColor, transform: 'translate(0.625rem, 0.625rem)' }}
         />
         <div
             className={`relative h-full w-full overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}

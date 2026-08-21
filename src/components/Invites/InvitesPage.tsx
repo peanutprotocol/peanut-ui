@@ -13,14 +13,27 @@ import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
-import { saveToCookie } from '@/utils/general.utils'
+import { getValidRedirectUrl, saveRedirectUrl, saveToCookie } from '@/utils/general.utils'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useLogin } from '@/hooks/useLogin'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { profileUrl } from '@/utils/native-routes'
-import { OFFRAMP_BADGE_CODE, classifyBareCampaigns, resolveCampaigns } from './campaign-maps'
+import { captureException } from '@sentry/nextjs'
+import {
+    badgeCampaignsFromSearchParams,
+    queuePendingBadgeCampaigns,
+    sanitizeBadgeCampaignIdentities,
+} from './badge-campaign-context'
+import {
+    claimAndSettlePendingBadgeCampaigns,
+    destinationForConfirmedBadgeCampaignAcquisition,
+    isConfirmedBadgeCampaignClaim,
+    isUnavailableBadgeCampaignClaim,
+} from '@/services/badge-campaigns'
+import { destinationForInviteAcquisition } from '@/services/invite-acquisition'
 
 function InvitePageContent() {
     const t = useTranslations('invites')
@@ -29,36 +42,19 @@ function InvitePageContent() {
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
     const redirectUri = searchParams.get('redirect_uri')
+    const safeRedirectUri = redirectUri ? getValidRedirectUrl(redirectUri, '') : ''
     const { user, isFetchingUser, fetchUser } = useAuth()
 
-    // support 'campaign', 'campaignTag', and 'utm_campaign' query parameters —
-    // repeated params and comma-separated values stack (all get awarded).
-    // union + lowercase-tag mapping live in campaign-maps.ts (unit-tested).
-    // memoized: the array is an effect dependency below, and a fresh identity
-    // every render would refire the effect.
-    const campaigns = useMemo(
-        () =>
-            resolveCampaigns(
-                [...searchParams.getAll('campaign'), ...searchParams.getAll('campaignTag')],
-                inviteCode,
-                searchParams.get('utm_campaign')?.toLowerCase()
-            ),
-        [searchParams, inviteCode]
-    )
-
-    // Bare campaign link (no invite code) that's claimable without an invite. The
-    // effects below treat these specially so a returning logged-in user still gets
-    // the badge (useZeroDev's award only fires on new-account registration). The
-    // copy distinguishes the two flavours: `isWaitlistSkip` (skip + event_alumni)
-    // promises a card-waitlist skip; vanity badges (touched_grass) are claimable
-    // but show generic copy. See classifyBareCampaigns in campaign-maps.ts.
-    const { isBareClaimCampaign, isWaitlistSkip } = classifyBareCampaigns(campaigns, inviteCode)
+    // Badge campaign identities are opaque and backend-owned. The canonical
+    // namespace wins over legacy/UTM transports; inviter `code` is unrelated.
+    const urlBadgeCampaigns = useMemo(() => badgeCampaignsFromSearchParams(searchParams), [searchParams])
+    const hasUrlBadgeCampaigns = urlBadgeCampaigns.length > 0
 
     const dispatch = useAppDispatch()
     const router = useRouter()
     const { handleLoginClick, isLoggingIn } = useLogin()
-    const [isAwardingBadge, setIsAwardingBadge] = useState(false)
-    const hasStartedAwardingRef = useRef(false)
+    const [isClaimingBadgeCampaigns, setIsClaimingBadgeCampaigns] = useState(false)
+    const hasStartedBadgeClaimingRef = useRef(false)
 
     // Track if we should show content (prevents flash)
     const [shouldShowContent, setShouldShowContent] = useState(false)
@@ -73,10 +69,41 @@ function InvitePageContent() {
         enabled: !!inviteCode,
     })
 
+    // A published code-only compatibility path may carry backend-owned
+    // acquisition metadata. Combining that typed descriptor with explicit URL
+    // identities is not code inference: the browser forwards both opaque tags
+    // to the same canonical claim endpoint.
+    const legacyAcquisition = inviteCodeData?.legacyAcquisition
+    const acquisitionBadgeCampaigns = useMemo(
+        () =>
+            sanitizeBadgeCampaignIdentities([
+                ...urlBadgeCampaigns,
+                ...(legacyAcquisition ? [legacyAcquisition.campaignTag] : []),
+            ]),
+        [urlBadgeCampaigns, legacyAcquisition]
+    )
+    const hasAcquisitionBadgeCampaigns = acquisitionBadgeCampaigns.length > 0
+
+    // Invalid invite code (only reachable when an invite code was supplied).
+    // A badge-campaign-only link has no inviter to validate. When a code is present,
+    // it must validate independently; badge campaigns never make a bad inviter valid.
+    const hasValidInvite = !!inviteCode && !!inviteCodeData?.onboardingResolved && !!inviteCodeData.username
+    const isDeadBareLink = !inviteCode && !hasUrlBadgeCampaigns
+    const showsInvalidInvite =
+        !!inviteCode && !hasUrlBadgeCampaigns && !legacyAcquisition && (isError || !hasValidInvite)
+
+    // migration window: guest CTAs hand off to the stores like the other guest
+    // entry points (claim/request/pay). impression fires only when the CTA
+    // actually renders — never on the pre-auth flash, the invalid-invite error
+    // view, or the dead-bare-link redirect.
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        trackImpressionWhenGuest: shouldShowContent && !user?.user && !isDeadBareLink && !showsInvalidInvite,
+    })
+
     // track invite page view (ref guard prevents duplicate fires when shouldShowContent toggles)
     const hasTrackedPageView = useRef(false)
     useEffect(() => {
-        if (shouldShowContent && inviteCodeData?.success && !hasTrackedPageView.current) {
+        if (shouldShowContent && inviteCodeData?.onboardingResolved && !hasTrackedPageView.current) {
             hasTrackedPageView.current = true
             posthog.capture(ANALYTICS_EVENTS.INVITE_PAGE_VIEWED, {
                 invite_code: inviteCode,
@@ -96,58 +123,105 @@ function InvitePageContent() {
             setShouldShowContent(false)
             return
         }
-        // a logged-in visitor on either claim path will be auto-routed by the
+        // A logged-in visitor on either claim path will be auto-routed by the
         // effect below — keep the loading spinner so they don't see the CTA flash.
+        const canClaimBadgeCampaign = hasAcquisitionBadgeCampaigns
         if (
             user?.user &&
-            (isBareClaimCampaign || (!redirectUri && user.user.hasAppAccess && inviteCodeData?.success))
+            (canClaimBadgeCampaign || (!redirectUri && user.user.hasAppAccess && inviteCodeData?.onboardingResolved))
         ) {
             setShouldShowContent(false)
             return
         }
         setShouldShowContent(true)
-    }, [user, isFetchingUser, redirectUri, inviteCodeData, isLoading, isBareClaimCampaign, inviteCode])
+    }, [user, isFetchingUser, redirectUri, inviteCodeData, isLoading, hasAcquisitionBadgeCampaigns, inviteCode])
 
-    // Logged-in auto-claim: award the campaign badge then push /home, or fall
-    // back to the inviter's profile when there's a valid invite but no campaign.
-    // Fires on both the invite-code path (needs hasAppAccess) and the Skip Pass
-    // path (badge GRANTS access, so no hasAppAccess gate).
+    // Logged-in auto-claim. Inviter attribution and badge acquisition are
+    // independent inputs: a bad inviter is ignored without blocking a valid
+    // badge campaign, and a badge campaign never makes a bad inviter valid.
     useEffect(() => {
-        if (!user?.user || isFetchingUser || hasStartedAwardingRef.current) return
+        if (!user?.user || isFetchingUser || hasStartedBadgeClaimingRef.current) return
         // wait for invite-code validation when there is one
         if (inviteCode && (isLoading || !inviteCodeData)) return
 
-        const hasValidInvite = !!inviteCodeData?.success && !!inviteCodeData.username
+        const hasValidInvite = !!inviteCodeData?.onboardingResolved && !!inviteCodeData.username
         const isInviteAutoClaim = !redirectUri && user.user.hasAppAccess && hasValidInvite
-        if (!isInviteAutoClaim && !isBareClaimCampaign) return
+        const canClaimBadgeCampaign = hasAcquisitionBadgeCampaigns
+        if (!isInviteAutoClaim && !canClaimBadgeCampaign) return
 
-        hasStartedAwardingRef.current = true
+        hasStartedBadgeClaimingRef.current = true
 
-        if (campaigns.length > 0) {
-            setIsAwardingBadge(true)
-            // sequential on purpose: each award is an idempotent POST and the
-            // backend flips access flags as side effects — parallel fire-and-forget
-            // would race fetchUser below. awardBadge never throws (the service
-            // catches internally) — check the result instead.
-            ;(async () => {
-                for (const tag of campaigns) {
-                    const { success } = await invitesApi.awardBadge(tag)
-                    if (!success) console.error('Error awarding campaign badge', tag)
-                }
-            })().finally(async () => {
-                await fetchUser()
-                setIsAwardingBadge(false)
-                // offramp migrants came here to move their balance — land them
-                // directly on the migration deposit screen, not /home.
-                // case-insensitive: dedup keeps the first-seen casing, so the
-                // stack may carry 'offramp_user' rather than the canonical code.
-                const hasOfframp = campaigns.some((tag) => tag.toLowerCase() === OFFRAMP_BADGE_CODE.toLowerCase())
-                router.push(hasOfframp ? '/add-money/crypto?network=EVM&source=offramp' : '/home')
-            })
+        if (canClaimBadgeCampaign) {
+            setIsClaimingBadgeCampaigns(true)
+            const queuedBadgeCampaigns = queuePendingBadgeCampaigns(acquisitionBadgeCampaigns, 30)
+            void claimAndSettlePendingBadgeCampaigns(queuedBadgeCampaigns)
+                .then(async (batch) => {
+                    const confirmed = batch.claims.filter(isConfirmedBadgeCampaignClaim)
+                    if (confirmed.length > 0) {
+                        try {
+                            await fetchUser()
+                        } catch (error) {
+                            captureException(error, { tags: { error_type: 'campaign_profile_refresh_failed' } })
+                        }
+                    }
+
+                    const unavailable = batch.claims.filter(isUnavailableBadgeCampaignClaim)
+                    const retryable = batch.pending.length > 0
+                    if (unavailable.length > 0) {
+                        // Pre-joined into ONE string, matching useZeroDev.ts. Sentry's
+                        // console integration serializes each console argument, so an
+                        // object holding an array of claims landed in the issue as the
+                        // literal "[object Object]" — which campaign and why, the only
+                        // two facts worth logging, were both unreadable. Keep the
+                        // message constant so Sentry groups these into one issue.
+                        console.warn(
+                            'Badge campaign unavailable; continuing normally',
+                            unavailable.map(({ badgeCampaign, outcome }) => `${badgeCampaign}=${outcome}`).join(', ')
+                        )
+                    }
+                    if (retryable) {
+                        captureException(new Error('invite-page campaign claim retained for retry'), {
+                            tags: { error_type: 'campaign_claim_retryable' },
+                            extra: { pendingCampaigns: batch.pending, claims: batch.claims },
+                        })
+                    }
+
+                    // A validated caller continuation (notably a pending financial
+                    // claim) outranks acquisition navigation. The small backend-owned
+                    // destination enum is honored only after its matching claim is
+                    // confirmed; all other outcomes fall through to the normal app.
+                    const badgeCampaignDestination = destinationForConfirmedBadgeCampaignAcquisition(batch.claims)
+                    const legacyDestination = legacyAcquisition
+                        ? destinationForInviteAcquisition(legacyAcquisition, batch.claims)
+                        : '/home'
+                    const destination =
+                        safeRedirectUri ||
+                        (legacyDestination !== '/home'
+                            ? legacyDestination
+                            : badgeCampaignDestination !== '/home'
+                              ? badgeCampaignDestination
+                              : legacyAcquisition
+                                ? '/home'
+                                : hasValidInvite
+                                  ? profileUrl(inviteCodeData!.username!)
+                                  : '/home')
+                    router.push(destination)
+                })
+                .catch((error) => {
+                    captureException(error, { tags: { error_type: 'campaign_claim_unexpected_failure' } })
+                    router.push(
+                        safeRedirectUri ||
+                            (legacyAcquisition
+                                ? '/home'
+                                : hasValidInvite
+                                  ? profileUrl(inviteCodeData!.username!)
+                                  : '/home')
+                    )
+                })
             return
         }
 
-        // No campaign on a validated invite → route to inviter profile.
+        // No badge campaign on a validated invite → route to inviter profile.
         if (hasValidInvite) {
             router.push(profileUrl(inviteCodeData!.username!))
         }
@@ -157,11 +231,13 @@ function InvitePageContent() {
         isLoading,
         isFetchingUser,
         router,
-        campaigns,
+        acquisitionBadgeCampaigns,
+        hasAcquisitionBadgeCampaigns,
         redirectUri,
+        safeRedirectUri,
         fetchUser,
-        isBareClaimCampaign,
         inviteCode,
+        legacyAcquisition,
     ])
 
     // A bare link that resolves to nothing claimable — unknown ?campaign= value,
@@ -170,29 +246,33 @@ function InvitePageContent() {
     // is reserved for links that actually carried an invite code. Safe from a
     // redirect loop: the root redirect only fires when the params are present,
     // and we replace with a bare '/'.
-    const isDeadBareLink = !inviteCode && !isBareClaimCampaign
-    useEffect(() => {
-        if (isDeadBareLink) router.replace('/')
-    }, [isDeadBareLink, router])
 
     const handleClaim = () => {
-        // invite_code keeps its single-value shape for existing PostHog filters;
-        // stacked campaigns ride in their own property.
         posthog.capture(ANALYTICS_EVENTS.INVITE_CLAIM_CLICKED, {
-            invite_code: inviteCode || (isBareClaimCampaign ? campaigns[0] : undefined),
-            campaign_tags: campaigns.join(',') || undefined,
+            invite_code: inviteCode,
+            campaign_tags: acquisitionBadgeCampaigns,
         })
 
-        if (inviteCode) {
+        const hasBackendLegacyAcceptance = !!inviteCode && !!inviteCodeData?.success && !!legacyAcquisition
+        if (hasValidInvite || hasBackendLegacyAcceptance) {
             dispatch(setupActions.setInviteCode(inviteCode))
             dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
             // Save to cookie so PWA-install + later signup still see the invite.
             saveToCookie('inviteCode', inviteCode)
         }
-        if (campaigns.length > 0) {
-            // useZeroDev reads `campaignTag` post-signup (comma-separated for
-            // stacked campaigns) and calls /badge/award for each.
-            saveToCookie('campaignTag', campaigns.join(','))
+        // Explicit URL acquisition survives signup in the shared cookie.
+        // Backend legacy acquisition is processed by `/invites/accept`, whose
+        // typed claim result is consumed after registration.
+        if (hasUrlBadgeCampaigns) queuePendingBadgeCampaigns(urlBadgeCampaigns)
+
+        // during the migration window guests go to the stores, not signup —
+        // cookie/queue bookkeeping above still runs so a keep-web signup or
+        // post-install link re-tap recovers the invite context.
+        if (!user?.user && interceptGuestCta()) {
+            // keep the mid-flow destination (e.g. a pending claim) recoverable
+            // after the store round-trip, same as handleLoginWithBadgeCampaign
+            if (safeRedirectUri) saveRedirectUrl()
+            return
         }
 
         const signupUrl = redirectUri
@@ -201,15 +281,29 @@ function InvitePageContent() {
         router.push(signupUrl)
     }
 
-    if (isAwardingBadge || !shouldShowContent || isDeadBareLink) {
+    const handleLoginWithBadgeCampaign = () => {
+        // Existing-user login does not call `/invites/accept`, so queue both
+        // explicit and backend-resolved compatibility acquisition for the
+        // authenticated recovery flow.
+        if (hasAcquisitionBadgeCampaigns) {
+            queuePendingBadgeCampaigns(acquisitionBadgeCampaigns, 30)
+            // Return to this acquisition boundary after the passkey ceremony so
+            // the authenticated page can settle and present the badge before its
+            // normal-app fallback.
+            saveRedirectUrl()
+        }
+        void handleLoginClick()
+    }
+
+    useEffect(() => {
+        if (isDeadBareLink) router.replace('/')
+    }, [isDeadBareLink, router])
+
+    if (isClaimingBadgeCampaigns || !shouldShowContent || isDeadBareLink) {
         return <PeanutLoading coverFullScreen />
     }
 
-    // Invalid invite code (only reachable when an invite code was supplied).
-    // Bare-claim campaigns (skip / event_alumni / touched_grass) carry no invite
-    // code, so they bypass this gate and never show the invalid-invite screen;
-    // bare links with nothing claimable were bounced to '/' above.
-    if (!isBareClaimCampaign && (isError || !inviteCodeData?.success)) {
+    if (showsInvalidInvite) {
         return (
             <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
                 <ValidationErrorView
@@ -222,21 +316,16 @@ function InvitePageContent() {
         )
     }
 
-    // Three copy variants: waitlist-skip (skip + event_alumni), bare vanity badge
-    // (touched_grass — claimable but no skip), and the default inviter-code screen.
-    const isVanityClaim = isBareClaimCampaign && !isWaitlistSkip
-    const title = isWaitlistSkip
-        ? t('skipTitle')
-        : isVanityClaim
-          ? t('vanityTitle')
-          : t('inviterTitle', { username: inviteCodeData?.username ?? '' })
-    const description = isWaitlistSkip
-        ? t('skipDescription')
-        : isVanityClaim
-          ? t('vanityDescription')
-          : t('inviterDescription')
-    const ctaLabel = isWaitlistSkip ? t('skipCta') : isVanityClaim ? t('vanityCta') : t('inviterCta')
-    const loginLabel = isVanityClaim ? t('logIn') : t('alreadyHaveAccount')
+    // A bare badge-campaign link is the localized "vanity claim" case: the badge
+    // is the reason to sign up, and there is no inviter to name. The FE no longer
+    // classifies skip-vs-vanity — the backend owns that — so both collapse here.
+    const isBadgeCampaignOnly = hasAcquisitionBadgeCampaigns && !hasValidInvite
+    const title = isBadgeCampaignOnly
+        ? t('vanityTitle')
+        : t('inviterTitle', { username: inviteCodeData?.username ?? '' })
+    const description = isBadgeCampaignOnly ? t('vanityDescription') : t('inviterDescription')
+    const ctaLabel = isBadgeCampaignOnly ? t('vanityCta') : t('inviterCta')
+    const loginLabel = isBadgeCampaignOnly ? t('logIn') : t('alreadyHaveAccount')
 
     return (
         <InvitesPageLayout image={PeanutWavingHello.src}>
@@ -259,7 +348,7 @@ function InvitePageContent() {
                                 disabled={isLoggingIn}
                                 loading={isLoggingIn}
                                 variant="primary-soft"
-                                onClick={handleLoginClick}
+                                onClick={handleLoginWithBadgeCampaign}
                                 shadowSize="4"
                             >
                                 {loginLabel}
@@ -268,6 +357,7 @@ function InvitePageContent() {
                     </div>
                 </div>
             </div>
+            {storeHandoffModal}
             <UnsupportedBrowserModal allowClose={false} />
         </InvitesPageLayout>
     )

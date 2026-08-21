@@ -21,12 +21,13 @@ import { formatPoints } from '@/utils/format.utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
 import { useRef } from 'react'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { isIOSNative } from '@/utils/capacitor'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
 
 const InvitesPage = () => {
-    const t = useTranslations('rewards')
+    const t = useAppTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/rewards')
     const { user } = useAuth()
@@ -70,7 +71,7 @@ const InvitesPage = () => {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} />
+            <NavHeader title={t('invitesTitle')} onPrev={onBack} />
 
             <section className="mx-auto mb-auto mt-10 w-full space-y-4">
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">
@@ -81,6 +82,7 @@ const InvitesPage = () => {
                             <span className="text-3xl font-extrabold text-black">
                                 ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
                             </span>
+                            {isIOSNative() && <span className="text-sm text-grey-1">{t('lifetimeCaption')}</span>}
                             <span className="flex items-center gap-1 text-sm text-grey-1">
                                 <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={14} height={14} />
                                 {formatPoints(totalPointsEarned)} {t('pointsLabel', { count: totalPointsEarned })}

@@ -117,3 +117,24 @@ describe('PIX Utilities', () => {
         })
     })
 })
+
+/**
+ * A pasted "Pix copia e cola" is usually uppercase — the BCB manual prints the
+ * GUI as BR.GOV.BCB.PIX and most PSPs follow it. isPixEmvcoQr matched the GUI
+ * case-sensitively, so every paste path rejected the canonical payload while
+ * scanning kept working (the scanner lowercases before recognizeQr).
+ */
+describe('uppercase copia-e-cola payloads', () => {
+    const UPPER =
+        '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+
+    it('keeps an uppercase BR Code verbatim instead of returning null', () => {
+        expect(pixKeyToBRCode(UPPER)).toBe(UPPER)
+    })
+
+    it('routes an uppercase BR Code to qr-pay with the payload intact', () => {
+        const url = pixKeyToQrPayUrl(UPPER)
+        expect(url).not.toBeNull()
+        expect(decodeURIComponent(new URL(url!, 'https://peanut.me').searchParams.get('qrCode')!)).toBe(UPPER)
+    })
+})

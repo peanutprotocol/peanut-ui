@@ -12,7 +12,13 @@
  * If a future refactor reintroduces a wei assumption here, this fails.
  */
 
-import { completeHistoryEntry, getAvatarUrl, getReceiptUrl, getTransactionSign } from '../history.utils'
+import {
+    completeHistoryEntry,
+    dedupeHistoryEntriesByUuid,
+    getAvatarUrl,
+    getReceiptUrl,
+    getTransactionSign,
+} from '../history.utils'
 import type { HistoryEntry } from '../history.utils'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 
@@ -163,5 +169,56 @@ describe('getAvatarUrl', () => {
 
     it('falls back to undefined (generic avatar) for historical DEPRECATED_SIMPLEFI rows', () => {
         expect(getAvatarUrl(tx('DEPRECATED_SIMPLEFI', 'ARS'))).toBeUndefined()
+    })
+})
+
+/**
+ * The history page concatenates infinite-query pages. If the API cursor serves
+ * an entry on two pages, the row renders twice — byte-identical, so it reads
+ * as a double charge. Users have reported exactly that on a PIX payment the
+ * ledger had only debited once.
+ */
+describe('dedupeHistoryEntriesByUuid', () => {
+    const entry = (uuid: string, amount = '1') => ({ uuid, amount })
+
+    it('drops a boundary row the API served on two pages', () => {
+        const page1 = [entry('a'), entry('b'), entry('c')]
+        const page2 = [entry('c'), entry('d')] // 'c' repeated at the page boundary
+
+        expect(dedupeHistoryEntriesByUuid([...page1, ...page2]).map((e) => e.uuid)).toEqual(['a', 'b', 'c', 'd'])
+    })
+
+    it('keeps a websocket-prepended copy over a stale one from a later page', () => {
+        // The websocket prepends full updated entries to page 0, so for that
+        // source the FRESHEST copy is the first one. An in-flight page-2
+        // response carrying the pre-update row must not overwrite it.
+        const page0 = [
+            { uuid: 'a', status: 'COMPLETED' }, // just pushed over the socket
+            { uuid: 'b', status: 'COMPLETED' },
+        ]
+        const page2 = [{ uuid: 'a', status: 'PENDING' }] // already in flight, stale
+
+        const deduped = dedupeHistoryEntriesByUuid([...page0, ...page2])
+
+        expect(deduped).toHaveLength(2)
+        expect(deduped[0]).toEqual({ uuid: 'a', status: 'COMPLETED' })
+    })
+
+    it('keeps the fuller request-pot rollup from the earlier page', () => {
+        // Rollups reuse link.uuid on every page holding any of that pot's
+        // charges, and each copy aggregates only its own page window. The
+        // earlier copy holds the most recent charge and the larger total.
+        const page1 = [{ uuid: 'pot-1', totalAmountCollected: 250 }]
+        const page2 = [{ uuid: 'pot-1', totalAmountCollected: 40 }]
+
+        expect(dedupeHistoryEntriesByUuid([...page1, ...page2])).toEqual([{ uuid: 'pot-1', totalAmountCollected: 250 }])
+    })
+
+    it('keeps distinct entries that only look alike', () => {
+        expect(dedupeHistoryEntriesByUuid([entry('a', '5'), entry('b', '5')])).toHaveLength(2)
+    })
+
+    it('handles an empty feed', () => {
+        expect(dedupeHistoryEntriesByUuid([])).toEqual([])
     })
 })

@@ -17,9 +17,13 @@ jest.mock(
                 requestPermission: jest.fn(),
             },
             User: {
+                getOnesignalId: jest.fn().mockResolvedValue('os-id'),
+                getExternalId: jest.fn().mockResolvedValue(null),
                 pushSubscription: {
                     addEventListener: jest.fn(),
                     getOptedInAsync: jest.fn().mockResolvedValue(true),
+                    getIdAsync: jest.fn().mockResolvedValue('sub-id'),
+                    getTokenAsync: jest.fn().mockResolvedValue(null),
                 },
             },
         },

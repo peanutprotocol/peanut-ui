@@ -4,8 +4,18 @@ import * as React from 'react'
 import { twMerge } from 'tailwind-merge'
 import { Drawer as DrawerPrimitive } from 'vaul'
 
-const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
-    return <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} snapToSequentialPoint {...props} />
+type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {
+    /**
+     * Set on a drawer opened from inside another drawer. Vaul's NestedRoot stacks
+     * the two and scales the parent instead of the page; a plain Root nested in a
+     * Root double-applies the background scale and fights over the scroll lock.
+     */
+    nested?: boolean
+}
+
+const Drawer = ({ shouldScaleBackground = true, nested = false, ...props }: DrawerProps) => {
+    const Root = nested ? DrawerPrimitive.NestedRoot : DrawerPrimitive.Root
+    return <Root shouldScaleBackground={shouldScaleBackground} snapToSequentialPoint {...props} />
 }
 Drawer.displayName = 'Drawer'
 
@@ -26,10 +36,12 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 type DrawerContentProps = React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & {
     /** Screen-reader-only DialogTitle for drawers without a visible DrawerTitle (Radix a11y requirement). */
     accessibleTitle?: string
+    /** Merged onto the inner scroll wrapper — the element that owns panning when content overflows. */
+    scrollAreaClassName?: string
 }
 
 const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.Content>, DrawerContentProps>(
-    ({ className, children, accessibleTitle, ...props }, ref) => (
+    ({ className, children, accessibleTitle, scrollAreaClassName, ...props }, ref) => (
         <DrawerPortal>
             <DrawerOverlay />
             <DrawerPrimitive.Content
@@ -45,7 +57,12 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
                 <div className="mx-auto my-4 h-1.5 w-10 rounded-full bg-black" />
                 <div className="flex w-full justify-center">
-                    <div className="max-h-[80vh] w-full overflow-auto pb-[env(safe-area-inset-bottom)] md:max-w-xl">
+                    <div
+                        className={twMerge(
+                            'max-h-[80vh] w-full overflow-auto pb-safe-bottom md:max-w-xl',
+                            scrollAreaClassName
+                        )}
+                    >
                         {children}
                     </div>
                 </div>

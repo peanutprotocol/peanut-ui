@@ -16,6 +16,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset'
 import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
+import { profileShareUrl } from '@/components/Card/share-asset/share.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { CardUnlockHistoryEntry } from './cardUnlock.types'
@@ -28,7 +29,7 @@ interface Props {
     /** Full user-badges payload (with `earnedAt`) so the share asset can
      *  stamp every badge the user holds, not just the skip-the-line
      *  subset. Empty array → asset renders without stamps. */
-    badges?: Array<{ code: string; earnedAt?: string | Date | null }>
+    badges?: Array<{ code: string; iconUrl?: string | null; earnedAt?: string | Date | null }>
 }
 
 export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, badges }) => {
@@ -48,7 +49,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
     // `string | Date | undefined` — drop nulls.
     const assetBadges = (badges ?? [])
         .filter((b) => !!b.code)
-        .map((b) => ({ code: b.code, earnedAt: b.earnedAt ?? undefined }))
+        .map((b) => ({ code: b.code, iconUrl: b.iconUrl, earnedAt: b.earnedAt ?? undefined }))
 
     return (
         <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -84,7 +85,12 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}
                         />
-                        <ShareAssetActions captureRef={captureRef} source="history-replay" ready={assetReady} />
+                        <ShareAssetActions
+                            captureRef={captureRef}
+                            source="history-replay"
+                            ready={assetReady}
+                            shareUrl={profileShareUrl(username, hideUsername)}
+                        />
                     </div>
                 </div>
             </DrawerContent>

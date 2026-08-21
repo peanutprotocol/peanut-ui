@@ -3,6 +3,7 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
@@ -12,7 +13,7 @@ import type { StaticImageData } from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
 import { usePWAStatus } from './usePWAStatus'
-import { isCapacitor } from '@/utils/capacitor'
+import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
@@ -20,10 +21,14 @@ import { useTransactionHistory } from './useTransactionHistory'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { PEANUTMAN_MOBILE } from '@/assets/mascot'
+import { PEANUTMAN_MOBILE, PeanutWavingHello } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useMigrationFlag } from './useMigrationFlag'
 import { openStore } from '@/utils/migration.utils'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
+import { useFeatureFlags } from './useFeatureFlag'
 
 // Days a dismissed CTA stays hidden before reappearing. Set above 1 so dismiss feels
 // "sticky" but below 14 so we still nudge users about valuable actions they haven't
@@ -76,9 +81,15 @@ const getDismissedCTAs = (userId: string | undefined): Map<string, Date> => {
 }
 
 export const useHomeCarouselCTAs = () => {
-    const t = useTranslations('home.carousel')
+    const t = useAppTranslations('home.carousel')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
+    const flagEnabled = useFeatureFlags()
+    // User-interview campaign gate. nonProdBypass: previews/local always show
+    // the card for QA; on prod the PostHog `username` release condition decides.
+    // No mounted guard needed (cf. useMigrationFlag): the value is only read in
+    // generateCarouselCTAs, which runs after mount in an effect.
+    const interviewInviteOn = flagEnabled('user-interviews-invite', { nonProdBypass: true })
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
     const dismissedRef = useRef<Map<string, Date>>(new Map())
@@ -104,11 +115,7 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
-    const {
-        isEligible: isCardPioneerEligible,
-        hasCardAccess: hasCardAccessGranted,
-        isLoading: isCardPioneerLoading,
-    } = useCardInfo()
+    const { hasCardAccess: hasCardAccessGranted } = useCardInfo()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already
@@ -141,6 +148,33 @@ export const useHomeCarouselCTAs = () => {
     const generateCarouselCTAs = useCallback(() => {
         const _carouselCTAs: CarouselCTA[] = []
         const b = (chunks: React.ReactNode) => <b>{chunks}</b>
+
+        // User-interview invite (temporary campaign): hand-picked heavy users
+        // get asked for a 15-min call with the team. The cohort lives in the PostHog
+        // flag's `username` release condition — never in code. Leads the
+        // carousel on purpose; it targets a handful of users. X-dismissal uses
+        // the standard 7-day cooldown (id filter below). Delete this block, the
+        // flag, the i18n keys, and the dev/home-ctas preview entry when the
+        // campaign ends.
+        if (interviewInviteOn) {
+            _carouselCTAs.push({
+                id: 'user-interview',
+                title: t('userInterview.title'),
+                description: t('userInterview.description'),
+                icon: 'peanut-support', // required by the type; hidden — logo takes precedence
+                logo: PeanutWavingHello,
+                logoSize: 44,
+                // The shared icon container is size-8; without this override the
+                // Tailwind preflight img max-width clamps the logo back to 32px.
+                iconContainerClassName: 'size-11',
+                onClick: async () => {
+                    posthog.capture(ANALYTICS_EVENTS.USER_INTERVIEW_CTA_CLICKED)
+                    // Await so a native Browser.open failure surfaces in
+                    // CarouselCTA's onClick try/catch instead of vanishing.
+                    await openExternalUrl(USER_INTERVIEW_CAL_URL)
+                },
+            })
+        }
 
         // pwa-sunset notice window: get-the-app nudge leads the carousel and
         // supersedes the ios-pwa-install CTA below (TASK-20829). Mobile goes
@@ -348,9 +382,7 @@ export const useHomeCarouselCTAs = () => {
         deviceType,
         isPwa,
         userCountryCode,
-        isCardPioneerEligible,
         hasCardAccessGranted,
-        isCardPioneerLoading,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,
@@ -361,6 +393,7 @@ export const useHomeCarouselCTAs = () => {
         dismissCTA,
         openSupportWithMessage,
         migrationOn,
+        interviewInviteOn,
         tMigration,
         setIsGetAppModalOpen,
     ])

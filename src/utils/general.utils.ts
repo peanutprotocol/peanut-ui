@@ -1,6 +1,7 @@
 import { nativeCurrencyAddresses, supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { shareableUrl } from '@/utils/url.utils'
+import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@sentry/nextjs'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
@@ -493,6 +494,10 @@ export type UserPreferences = {
      *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
      *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
+    /** Last fully-settled spendable total (smart + Rain), in USDC base units as a
+     *  string. DISPLAY-only seed so a cold start paints the previous number instead
+     *  of $0 while /rain/cards is in flight or failing — see lastKnownSpendable.ts. */
+    lastKnownSpendable?: { units: string; at: number }
     /** ISO timestamp of the last "Remind me later" on the app-migration download prompt. */
     migrationPromptSnoozedAt?: string
     /** ISO timestamp the notifications pre-prompt was dismissed — replaces the
@@ -883,6 +888,19 @@ export function slugify(text: string): string {
  * people paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
  */
 export const toInviteCode = (username: string): string => username.trim().replace(/^@/, '').toLowerCase()
+
+/**
+ * invite-flow url for a guest CTA. web routes to the /invite landing page; in
+ * the native export that page is pruned (scripts/native-build.js), so write
+ * the SESSION invite cookie — the same hand-off openDeepLink and the deferred
+ * restore use — and go straight to signup. click handlers only: this writes a
+ * cookie on native, never call it during render.
+ */
+export const inviteFlowUrl = (inviteCode: string, redirectUri: string): string => {
+    if (!isCapacitor()) return `/invite?code=${inviteCode}&redirect_uri=${redirectUri}`
+    saveToCookie('inviteCode', inviteCode)
+    return `/setup?step=signup&redirect_uri=${redirectUri}`
+}
 
 export const generateInviteCodeLink = (username: string) => {
     const inviteCode = toInviteCode(username)

@@ -1,9 +1,11 @@
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import { MarqueeComp } from '../Global/MarqueeWrapper'
+import type { MarqueeItem } from '../Global/MarqueeWrapper/marquee.types'
 
 type MarqueeProps = {
     visible?: boolean
-    message?: string[]
+    /** Plain words, or `{ label, href }` for the ones that link somewhere. */
+    message?: MarqueeItem[]
     imageSrc?: string
     backgroundColor?: string
 }

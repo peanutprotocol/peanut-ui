@@ -1,6 +1,6 @@
 {
     "name": "peanut-ui",
-    "version": "1.0.8",
+    "version": "1.0.53",
     "private": true,
     "packageManager": "pnpm@10.30.1",
     "engines": {
@@ -113,7 +113,6 @@
         "pix-utils": "^2.8.2",
         "posthog-js": "^1.360.0",
         "posthog-node": "5.29.2",
-        "pulltorefreshjs": "^0.1.22",
         "qr-scanner": "^1.4.2",
         "react": "^19.2.1",
         "react-dom": "^19.2.1",
@@ -149,7 +148,6 @@
         "@types/jest": "^29.5.12",
         "@types/js-cookie": "^3.0.6",
         "@types/node": "20.4.2",
-        "@types/pulltorefreshjs": "^0.1.7",
         "@types/react": "^18.3.12",
         "@types/react-dom": "^18.3.1",
         "@types/validator": "^13.12.2",
@@ -198,7 +196,7 @@
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat)([@+/]|$))"
+            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat|nuqs)([@+/]|$))"
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",

@@ -15,8 +15,10 @@ import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { isPaymentNetworkExplorerPath } from '@/features/payment-network-explorer/privacy-route'
 
+// NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
 if (
     process.env.NODE_ENV !== 'development' &&
+    process.env.NEXT_PUBLIC_PERF_BARE !== 'true' &&
     (typeof window === 'undefined' || !isPaymentNetworkExplorerPath(window.location.pathname))
 ) {
     Sentry.init({
@@ -49,9 +51,5 @@ if (
                 projectId: 4505827431415808,
             }),
         ],
-
-        // Session replay settings
-        replaysOnErrorSampleRate: 1.0,
-        replaysSessionSampleRate: 0.1,
     })
 }

@@ -81,8 +81,56 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         expect(parseDeferredPayload(payload)).toEqual({
             lang: 'es-419',
             invite: 'abc123',
-            campaign: 'offramp',
+            badgeCampaigns: ['offramp'],
             dest: '/claim/XYZ?t=1',
+        })
+    })
+
+    it('round-trips repeated badge campaign identities without comma encoding or case loss', () => {
+        saveToCookie('campaignTag', ['Creator/Summer', 'Tag,With,Commas'])
+
+        const payload = buildDeferredPayload('/home')
+        const payloadParams = new URLSearchParams(payload)
+        expect(payloadParams.getAll('badge_campaign')).toEqual(['Creator/Summer', 'Tag,With,Commas'])
+        expect(payloadParams.has('campaign')).toBe(false)
+        expect(parseDeferredPayload(payload)).toEqual({
+            badgeCampaigns: ['Creator/Summer', 'Tag,With,Commas'],
+            dest: '/home',
+        })
+    })
+
+    it('accepts old deferred campaign payloads while preferring the canonical namespace', () => {
+        expect(parseDeferredPayload('pnutdl=1&campaign=legacy-first&campaign=legacy-second')).toEqual({
+            badgeCampaigns: ['legacy-first', 'legacy-second'],
+        })
+        expect(
+            parseDeferredPayload(
+                'pnutdl=1&utm_campaign=analytics&campaign=legacy&badge_campaign=canonical-first&badge_campaign=canonical-second'
+            )
+        ).toEqual({ badgeCampaigns: ['canonical-first', 'canonical-second'] })
+    })
+
+    it('keeps a marked historical UTM source-qualified for backend allowlist resolution', () => {
+        expect(parseDeferredPayload('pnutdl=1&utm_campaign=token-nation-2026')).toEqual({
+            badgeCampaigns: ['utm:token-nation-2026'],
+        })
+    })
+
+    it('round-trips the maximum-length source-qualified UTM identity through install handoff', () => {
+        const qualifiedUtmIdentity = `utm:${'x'.repeat(64)}`
+        saveToCookie('campaignTag', qualifiedUtmIdentity)
+
+        expect(parseDeferredPayload(buildDeferredPayload('/home'))).toEqual({
+            badgeCampaigns: [qualifiedUtmIdentity],
+            dest: '/home',
+        })
+    })
+
+    it('invite argument overrides the cookie (claim CTA knows the code pre-cookie)', () => {
+        saveToCookie('inviteCode', 'cookiecode')
+        expect(parseDeferredPayload(buildDeferredPayload('/home', 'sendercode'))).toEqual({
+            invite: 'sendercode',
+            dest: '/home',
         })
     })
 
@@ -95,6 +143,15 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
     it('strips the locale prefix from the default dest but keeps it as lang', () => {
         window.history.replaceState({}, '', '/es-419/claim/ABC?x=2')
         expect(parseDeferredPayload(buildDeferredPayload())).toEqual({ lang: 'es-419', dest: '/claim/ABC?x=2' })
+    })
+
+    it('omits the default dest when the page url carries a claim secret (#p=)', () => {
+        window.history.replaceState({}, '', '/claim?c=42161&i=99')
+        window.location.hash = '#p=s3cr3t'
+        expect(parseDeferredPayload(buildDeferredPayload())).toEqual({})
+        // an explicit dest still rides — only the default is suppressed
+        expect(parseDeferredPayload(buildDeferredPayload('/home'))).toEqual({ dest: '/home' })
+        window.location.hash = ''
     })
 
     it('omits dest for the root path and non-locale first segments', () => {
@@ -131,16 +188,16 @@ describe('parseDeferredPayload rejection', () => {
 })
 
 describe('applyDeferredPayload', () => {
-    it('writes a SESSION inviteCode cookie (matching InvitesPage — a durable one locks existing users out of login) and a 30-day campaignTag', () => {
+    it('writes a SESSION inviteCode cookie and a 30-day campaign list', () => {
         applyDeferredPayload({ invite: 'abc', campaign: 'off' })
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'abc')
         expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'off', 30)
     })
 
-    it('normalizes invite and campaign like the existing writers', () => {
+    it('normalizes invite separately while preserving campaign spelling after outer trim', () => {
         applyDeferredPayload({ invite: ' @Alice ', campaign: ' OFFRAMP ' })
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice')
-        expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'offramp', 30)
+        expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'OFFRAMP', 30)
     })
 
     it('strips the marketing locale prefix from dest (native export has no /{locale} routes)', () => {
@@ -179,7 +236,9 @@ describe('applyDeferredPayload', () => {
 describe('restoreDeferredContext', () => {
     it('restores cookies, locale and dest from the android referrer, once', async () => {
         mockIsAndroidNative.mockReturnValue(true)
-        getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&lang=es-419&invite=abc&campaign=off&dest=%2Fclaim%2FXYZ' })
+        getReferrer.mockResolvedValue({
+            referrer: 'pnutdl=1&lang=es-419&invite=abc&badge_campaign=off&dest=%2Fclaim%2FXYZ',
+        })
 
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/claim/XYZ', locale: 'es-419' })
         expect(document.cookie).toContain('inviteCode=')

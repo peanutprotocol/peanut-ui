@@ -27,6 +27,7 @@ const mockUseCrispTokenId = jest.fn()
 const mockIsCapacitor = isCapacitor as jest.Mock
 
 const nativeCrisp = {
+    configure: jest.fn(),
     setUser: jest.fn(),
     setTokenID: jest.fn(),
     setString: jest.fn(),
@@ -41,15 +42,20 @@ jest.mock('@/context/ModalsContext', () => ({
         supportPrefilledMessage: undefined,
     }),
 }))
+// Opening the drawer clears the support unread badge. That call is not what
+// this file guards, and serverFetch reaches for Capacitor Preferences, which
+// jsdom has no shim for.
+const mockMarkAllRead = jest.fn(async (_category: string) => ({ ok: true }))
+jest.mock('@/services/notifications', () => ({
+    notificationsApi: {
+        markAllRead: (category: string) => mockMarkAllRead(category),
+    },
+}))
 jest.mock('@/hooks/useCrispUserData', () => ({
     useCrispUserData: () => mockUseCrispUserData(),
 }))
 jest.mock('@/hooks/useCrispTokenId', () => ({
     useCrispTokenId: () => mockUseCrispTokenId(),
-}))
-jest.mock('@/hooks/useCrispProxyUrl', () => ({
-    useCrispProxyUrl: (_data: unknown, _msg: unknown, tokenId?: string) =>
-        tokenId ? `/crisp-proxy?crisp_token_id=${tokenId}` : '/crisp-proxy',
 }))
 jest.mock('../../PeanutLoading', () => ({
     __esModule: true,
@@ -83,7 +89,7 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
     })
 
-    it('mounts a token-bound iframe once the logged-in user’s token resolves', () => {
+    it('mounts a clean-URL iframe once the logged-in user’s token resolves', () => {
         mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
         mockUseCrispTokenId.mockReturnValue('token-abc')
 
@@ -91,7 +97,8 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
 
         const iframe = supportIframe()
         expect(iframe).toBeInTheDocument()
-        expect(iframe).toHaveAttribute('src', '/crisp-proxy?crisp_token_id=token-abc')
+        // postmortem F5: nothing user-identifying (nor the bearer token) in the URL
+        expect(iframe).toHaveAttribute('src', '/crisp-proxy')
     })
 
     it('mounts the anonymous proxy immediately for a logged-out visitor (no userId, no token)', () => {
@@ -103,6 +110,126 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
         const iframe = supportIframe()
         expect(iframe).toBeInTheDocument()
         expect(iframe).toHaveAttribute('src', '/crisp-proxy')
+    })
+})
+
+describe('SupportDrawer — crisp-proxy init handshake (postmortem F5: no PII in URLs)', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({
+            userId: 'user-abc',
+            username: 'peanut-user',
+            email: 'a@b.com',
+            fullName: 'Ada Lovelace',
+            walletAddressLink: 'https://arbiscan.io/address/0xabc',
+        })
+        mockUseCrispTokenId.mockReset().mockReturnValue('token-abc')
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+    })
+
+    // sends a request "from" the given window; the real proxy iframe's
+    // contentWindow is the only sender the drawer may answer
+    const requestInit = (origin: string, source: object) => {
+        const event = new MessageEvent('message', {
+            data: { type: 'CRISP_PROXY_REQUEST_INIT' },
+            origin,
+        })
+        // MessageEvent's init rejects a non-Window `source`; define it directly instead
+        Object.defineProperty(event, 'source', { value: source })
+        act(() => {
+            window.dispatchEvent(event)
+        })
+    }
+
+    const mountedProxyWindow = () => {
+        const proxyWindow = (supportIframe() as HTMLIFrameElement).contentWindow as Window
+        return { proxyWindow, postSpy: jest.spyOn(proxyWindow, 'postMessage') }
+    }
+
+    it('replies to CRISP_PROXY_REQUEST_INIT with the payload, addressed to the asking iframe', () => {
+        render(<SupportDrawer />)
+        const { proxyWindow, postSpy } = mountedProxyWindow()
+
+        requestInit(window.location.origin, proxyWindow)
+
+        expect(postSpy).toHaveBeenCalledWith(
+            {
+                type: 'CRISP_PROXY_INIT',
+                payload: expect.objectContaining({
+                    tokenId: 'token-abc',
+                    userData: expect.objectContaining({
+                        userId: 'user-abc',
+                        username: 'peanut-user',
+                        email: 'a@b.com',
+                        fullName: 'Ada Lovelace',
+                        walletAddressLink: 'https://arbiscan.io/address/0xabc',
+                    }),
+                }),
+            },
+            window.location.origin
+        )
+    })
+
+    it('ignores init requests from a foreign origin', () => {
+        render(<SupportDrawer />)
+        const { proxyWindow, postSpy } = mountedProxyWindow()
+
+        requestInit('https://evil.example', proxyWindow)
+
+        expect(postSpy).not.toHaveBeenCalled()
+    })
+
+    it('ignores same-origin init requests from a window that is not the mounted proxy iframe', () => {
+        render(<SupportDrawer />)
+        const stranger = { postMessage: jest.fn() }
+
+        requestInit(window.location.origin, stranger)
+
+        expect(stranger.postMessage).not.toHaveBeenCalled()
+    })
+})
+
+describe('SupportDrawer — support unread badge', () => {
+    // Opening the drawer is not the same as reading the reply: the chat has to
+    // actually render. Clearing too eagerly buries a reply nobody saw.
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+        mockUseCrispTokenId.mockReset().mockReturnValue('token-abc')
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+        mockMarkAllRead.mockClear()
+    })
+
+    it('clears the badge and tells the rest of the app once the chat renders', async () => {
+        const onUpdated = jest.fn()
+        window.addEventListener('notifications:updated', onUpdated)
+
+        render(<SupportDrawer />)
+        expect(mockMarkAllRead).not.toHaveBeenCalled()
+
+        postCrispMessage('CRISP_READY')
+
+        await waitFor(() => expect(mockMarkAllRead).toHaveBeenCalledWith('support'))
+        await waitFor(() => expect(onUpdated).toHaveBeenCalled())
+
+        window.removeEventListener('notifications:updated', onUpdated)
+    })
+
+    it('does NOT clear the badge when Crisp fails and the user only sees the email fallback', async () => {
+        render(<SupportDrawer />)
+        postCrispMessage('CRISP_FAILED')
+
+        await waitFor(() => expect(screen.getByText(SUPPORT_EMAIL)).toBeInTheDocument())
+        expect(mockMarkAllRead).not.toHaveBeenCalled()
+    })
+
+    it('does not clear the badge for a logged-out visitor', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: undefined, email: undefined })
+        mockUseCrispTokenId.mockReturnValue(undefined)
+
+        render(<SupportDrawer />)
+        postCrispMessage('CRISP_READY')
+
+        await waitFor(() => expect(supportIframe()).toBeInTheDocument())
+        expect(mockMarkAllRead).not.toHaveBeenCalled()
     })
 })
 
@@ -174,6 +301,63 @@ describe('SupportDrawer — pointer-events when opened inside a vaul drawer', ()
         expect(panel.className).toContain('pointer-events-auto')
         expect(backdrop?.className).not.toContain('pointer-events-none')
         expect(panel.className).not.toContain('pointer-events-none')
+    })
+})
+
+describe('SupportDrawer — iOS keyboard', () => {
+    // iOS leaves the layout viewport at full height when the keyboard opens, so a
+    // `bottom: 0` panel keeps Crisp's composer underneath the keys. The drawer has to
+    // lift by, and shrink to, whatever the visual viewport says is still on screen.
+    const LAYOUT_HEIGHT = 800
+
+    class FakeVisualViewport extends EventTarget {
+        height = LAYOUT_HEIGHT
+        offsetTop = 0
+        scale = 1
+    }
+
+    let viewport: FakeVisualViewport
+    let realInnerHeight: PropertyDescriptor | undefined
+
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({ userId: undefined, email: undefined })
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+
+        realInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight')
+        viewport = new FakeVisualViewport()
+        Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true })
+        Object.defineProperty(window, 'innerHeight', { value: LAYOUT_HEIGHT, configurable: true })
+    })
+
+    // Hand the window back untouched — later describes in this file share it.
+    afterEach(() => {
+        delete (window as { visualViewport?: unknown }).visualViewport
+        if (realInnerHeight) Object.defineProperty(window, 'innerHeight', realInnerHeight)
+    })
+
+    const openKeyboard = (visibleHeight: number) => {
+        viewport.height = visibleHeight
+        act(() => {
+            viewport.dispatchEvent(new Event('resize'))
+        })
+    }
+
+    // Only `bottom` is assertable here: jsdom's CSS parser drops both `env()` and
+    // `min()`, so the safe-area padding and the height clamp read back as ''.
+    it('sits flush on the bottom edge while no keyboard is up', () => {
+        render(<SupportDrawer />)
+
+        expect(screen.getByRole('dialog', { name: 'Support' }).style.bottom).toBe('0px')
+    })
+
+    it('lifts by exactly the height the keyboard covers', () => {
+        render(<SupportDrawer />)
+        const panel = screen.getByRole('dialog', { name: 'Support' })
+
+        openKeyboard(460)
+
+        expect(panel.style.bottom).toBe('340px')
     })
 })
 

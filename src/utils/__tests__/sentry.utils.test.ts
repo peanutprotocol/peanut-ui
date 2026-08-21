@@ -3,6 +3,7 @@ import { RETRY_STRATEGIES } from '../retry.utils'
 import {
     CLIENT_FETCH_TIMEOUT_MS,
     SERVER_FETCH_TIMEOUT_MS,
+    TRANSPORT_TIMEOUT_RETRY_DELAY_MS,
     fetchWithSentry,
     resolveDefaultTimeoutMs,
     sanitizeRequestBody,
@@ -18,7 +19,6 @@ jest.mock('@sentry/nextjs', () => ({
 
 jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
-    reportNetworkOk: jest.fn(),
 }))
 
 describe('fetchWithSentry — expected-response suppression', () => {
@@ -68,6 +68,51 @@ describe('fetchWithSentry — expected-response suppression', () => {
             'POST to https://api.peanut.me/invites/validate failed with status 500',
             expect.objectContaining({ level: 'error' })
         )
+    })
+
+    it('does not report an unknown public FX pair, but still returns the 404', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, { error: 'FX_RATE_UNAVAILABLE' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/fx/rate?from=ZZZ&to=EUR', { method: 'GET' })
+
+        expect(res.status).toBe(404)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    it('does not report an expected public FX rate limit response', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(429, { error: 'RATE_LIMITED' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/fx/rate?from=PLN&to=EUR', { method: 'GET' })
+
+        expect(res.status).toBe(429)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    it('does not report a /tokens/price 404 (upstream price provider declined)', async () => {
+        // Mobula 429s surface here as a 404. The UI falls back to token
+        // denomination, so it is a degraded display and never a wrong number —
+        // and the backend already downgraded its own log for this (PEANUT-API-75).
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, { error: 'Token price not available' }))
+
+        const response = await fetchWithSentry('https://api.peanut.me/tokens/price?address=0xaf88&chainId=42161', {})
+
+        expect(response.status).toBe(404)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('reports a non-2xx exactly once, via captureMessage and never via console.warn', async () => {
+        // captureConsoleIntegration listens on ['error','warn'], so a console.warn
+        // here produced a SECOND event for every non-2xx in the app, grouped by
+        // call site instead of by request — one bucket holding ~32k events and
+        // titling itself after whatever failed last (PEANUT-UI-60Y).
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/some/endpoint', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+        expect(warnSpy).not.toHaveBeenCalled()
     })
 
     it('still reports 400s from endpoints without a skip rule', async () => {
@@ -331,21 +376,24 @@ describe('fetch timeout budgets', () => {
         )
     })
 
-    // The client budget is per ATTEMPT, and React Query retries on top, so the
-    // real wait is timeout x attempts + backoff. Pinned here because the
-    // multiplier lives in another file: bump RETRY_STRATEGIES.FAST or the budget
-    // far enough and this fails instead of silently shipping a long spinner.
+    // The client budget is per transport attempt. GET/HEAD also get one local
+    // timeout retry before React Query retries, so account for both layers.
+    // Pinned here because the multiplier lives in another file: bump
+    // RETRY_STRATEGIES.FAST or the budget far enough and this fails instead of
+    // silently shipping a long spinner.
     // Bounds the DEFAULT strategy only — queries that set their own `retry`
     // (e.g. Claim.tsx) are not covered by this.
-    it('keeps the worst case under 70s for the default retry strategy', () => {
+    it('models the bounded worst case for the default retry strategy', () => {
         const { retry, retryDelay } = RETRY_STRATEGIES.FAST
         const attempts = retry + 1
         const backoff = Array.from({ length: retry }, (_, i) => retryDelay(i)).reduce((a, b) => a + b, 0)
+        const transportAttempts = 2
+        const transportBackoff = (transportAttempts - 1) * TRANSPORT_TIMEOUT_RETRY_DELAY_MS
 
-        const worstCaseMs = attempts * CLIENT_FETCH_TIMEOUT_MS + backoff
+        const worstCaseMs = attempts * (transportAttempts * CLIENT_FETCH_TIMEOUT_MS + transportBackoff) + backoff
 
-        expect(worstCaseMs).toBe(63_000)
-        expect(worstCaseMs).toBeLessThan(70_000)
+        expect(worstCaseMs).toBe(123_900)
+        expect(worstCaseMs).toBeLessThan(125_000)
     })
 
     describe('fetchWithSentry timeout resolution', () => {
@@ -377,7 +425,7 @@ describe('fetch timeout budgets', () => {
 
             global.fetch = jest.fn().mockRejectedValue(abort())
             await expect(freshFetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(
-                'Service temporarily unavailable. Please try again.'
+                'Peanut is taking too long to respond — check your connection and try again.'
             )
             expect(reportedTimeoutMs()).toBe(CLIENT_FETCH_TIMEOUT_MS)
         })
@@ -385,7 +433,7 @@ describe('fetch timeout budgets', () => {
         it('still lets a per-call timeoutMs win over the default', async () => {
             global.fetch = jest.fn().mockRejectedValue(abort())
             await expect(fetchWithSentry('https://api.peanut.me/users/me', {}, 1234)).rejects.toThrow(
-                'Service temporarily unavailable. Please try again.'
+                'Peanut is taking too long to respond — check your connection and try again.'
             )
             expect(reportedTimeoutMs()).toBe(1234)
         })

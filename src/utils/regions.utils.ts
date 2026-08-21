@@ -34,9 +34,10 @@ const MANTECA_SUPPORTED_REGIONS = ['LATAM']
 const BRIDGE_SUPPORTED_REGIONS = ['North America', 'Europe']
 
 /** Internal region identifier, NOT display copy — `deriveRegionAccess` branches
- *  on it. If region names ever become localized, this comparison must move to a
- *  stable key (e.g. `path`), or the branch silently dies outside English. */
-const REST_OF_THE_WORLD_REGION = 'Rest of the world'
+ *  on it, so it must stay English. Display copy is localized at the render site
+ *  from the region's `path` (see `useRegionLabel`); exported so the one caller
+ *  that builds a synthetic rest-of-world region does not retype the string. */
+export const REST_OF_THE_WORLD_REGION = 'Rest of the world'
 
 const SUPPORTED_REGIONS: Region[] = [
     {

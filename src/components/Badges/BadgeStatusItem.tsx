@@ -3,10 +3,11 @@ import { useTranslations } from 'next-intl'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { BadgeStatusDrawer } from './BadgeStatusDrawer'
-import Image from 'next/image'
 import InvitesIcon from '../Home/InvitesIcon'
-import { getBadgeDisplayName, getBadgeIcon } from './badge.utils'
+import { getBadgeIcon } from './badge.utils'
+import { useBadgeCopy } from './useBadgeCopy'
 import { type BadgeHistoryEntry } from './badge.types'
+import { BadgeImage } from './BadgeImage'
 
 export const BadgeStatusItem = ({
     position = 'first',
@@ -16,8 +17,9 @@ export const BadgeStatusItem = ({
     entry: BadgeHistoryEntry
 }) => {
     const t = useTranslations('badges')
+    const badgeCopy = useBadgeCopy()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const displayName = getBadgeDisplayName(entry.code, entry.name)
+    const displayName = badgeCopy(entry.code, entry.name).name
 
     const badge = useMemo(
         () => ({
@@ -39,8 +41,8 @@ export const BadgeStatusItem = ({
             >
                 {/* badge icon */}
                 <div className={'relative flex h-8 w-8 items-center justify-center rounded-full'}>
-                    <Image
-                        src={getBadgeIcon(entry.code)}
+                    <BadgeImage
+                        src={getBadgeIcon(entry.code, entry.iconUrl)}
                         alt={t('iconAlt', { name: displayName })}
                         className="size-10 object-contain"
                         width={32}

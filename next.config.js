@@ -139,8 +139,6 @@ function contentSecurityPolicyReportOnly(includeReporting = true) {
             // Token metadata lookup in TransactionDetailsReceipt — a different
             // CoinGecko host from the two image CDNs above.
             'https://api.coingecko.com',
-            'https://api.frankfurter.app',
-            'https://dolarapi.com',
             'https://ipapi.co',
             'https://api.justaname.id',
             'https://*.crisp.chat',
@@ -300,6 +298,18 @@ let nextConfig = {
         return config
     },
     reactStrictMode: false,
+    // Do NOT remove. Next's built-in trailing-slash redirect is global, and the
+    // PostHog reverse proxy below (/relay/*) is hit with trailing slashes by the
+    // SDK's POSTs (/relay/decide/, /relay/e/). A 308 on those either drops the
+    // body or costs every event an extra round trip, so the automatic redirect
+    // stays off.
+    //
+    // The SEO problem it leaves behind — /en/help/ and /en/help both returning
+    // 200 — is solved narrowly instead: redirects.json ends with a
+    // `/:locale(en|es-419|es-ar|pt-br)/:path*/` -> slashless permanent (308)
+    // redirect, which only covers the locale-prefixed marketing tree and cannot
+    // touch /relay, /monitoring, /passkeys or the recipient catch-all. Keep that
+    // locale list in sync with SUPPORTED_LOCALES (src/i18n/types.ts).
     skipTrailingSlashRedirect: true,
     async rewrites() {
         return {
@@ -443,9 +453,10 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
         // Upload a larger set of source maps for prettier stack traces (increases build time)
         widenClientFileUpload: true,
 
-        // Automatically annotate React components to show their full name in breadcrumbs and session replay
+        // Off: annotation stamps data-sentry-* attributes on every DOM node, which
+        // its only consumer (session replay) doesn't run — pure DOM weight.
         reactComponentAnnotation: {
-            enabled: true,
+            enabled: false,
         },
 
         // Uncomment to route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.

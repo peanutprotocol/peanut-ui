@@ -52,6 +52,9 @@ export const ANALYTICS_EVENTS = {
 
     // ── Send ──
     SEND_METHOD_SELECTED: 'send_method_selected',
+    // Emitted for every direct send that ends in the error toast, whatever the
+    // step. Until this existed a failed send left no analytics trace at all.
+    SEND_FAILED: 'send_failed',
 
     // ── Send Link ──
     SEND_LINK_CREATED: 'send_link_created',
@@ -132,6 +135,12 @@ export const ANALYTICS_EVENTS = {
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',
+    // User-interview campaign card (temporary) — clicked = tapped through to cal.com.
+    // No viewed event: $feature_flag_called is only a rough impression proxy —
+    // it fires per flag evaluation (prod only, dismissed users included), not
+    // per card render. Bookings on cal.com are the campaign's real metric.
+    // Non-prod taps also capture; filter insights by $host = peanut.me.
+    USER_INTERVIEW_CTA_CLICKED: 'user_interview_cta_clicked',
 
     // ── Error ──
     BACKEND_ERROR_SHOWN: 'backend_error_shown',
@@ -179,6 +188,11 @@ export const ANALYTICS_EVENTS = {
     // Withdraw refused with 409 STALE_CARD_APPROVAL — stored session-key
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
+    // One-tap mixed spend via per-transaction ephemeral session key
+    // (SESSION_KEY_SPEND flag). A fallback means the passkey path took over —
+    // `reason` says why; watch this before widening the flag.
+    SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
+    SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',
 
     // ── Card: waitlist + early-access funnel (M2 Card Waitlist Launch) ──
     // /shhhhh closed-beta landing page → /card.
@@ -304,13 +318,27 @@ export const MODAL_TYPES = {
 } as const
 
 /**
- * Valid source values for REFERRAL_CTA_SHOWN / REFERRAL_CTA_CLICKED events.
+ * Valid source values for REFERRAL_CTA_SHOWN / REFERRAL_CTA_CLICKED /
+ * INVITE_LINK_SHARED events.
+ *
+ * Referral events also carry a `link_type` property so PostHog can compare
+ * which link shape converts: 'invite_code' (/invite?code=<u>, credits the
+ * inviter at signup), 'profile' (peanut.me/<u>, credits via the guest-profile
+ * door), or 'none' (share carried no link, e.g. anti-dox card shares).
  */
 export const REFERRAL_SOURCES = {
     FLOATING_BUTTON: 'floating_button',
     CAMPAIGN_MODAL: 'campaign_modal',
     INVITE_MODAL: 'invite_modal',
     SURPRISE_MOMENT: 'surprise_moment',
+    PROFILE_HEADER: 'profile_header',
+    PUBLIC_PROFILE_GUEST: 'public_profile_guest',
+    BADGE_DETAIL: 'badge_detail',
+    BADGE_UNLOCK: 'badge_unlock',
+    QR_PAY_SUCCESS: 'qr_pay_success',
+    // Pre-existing wire value — the receipt used this as an inline literal
+    // before it was registered here. Do not rename.
+    TRANSACTION_RECEIPT: 'transaction_receipt',
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]

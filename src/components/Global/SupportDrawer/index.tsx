@@ -1,17 +1,30 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
-import { useCrispProxyUrl } from '@/hooks/useCrispProxyUrl'
+import { useVisualViewport } from '@/hooks/useVisualViewport'
 import PeanutLoading from '../PeanutLoading'
 import { Button } from '@/components/0_Bruddle/Button'
-import { SUPPORT_EMAIL } from '@/constants/crisp'
+import {
+    SUPPORT_EMAIL,
+    CRISP_LOCALE_BY_APP_LOCALE,
+    CRISP_PROXY_REQUEST_INIT_MSG,
+    CRISP_PROXY_INIT_MSG,
+    type CrispInitPayload,
+} from '@/constants/crisp'
+import type { AppLocale } from '@/i18n/app/config'
+import { notificationsApi } from '@/services/notifications'
 import { isCapacitor } from '@/utils/capacitor'
+import { ensureNativeCameraPermission } from '@/utils/camera-permission'
+import { ensureNativeCrispConfigured } from '@/utils/crisp'
 
 const DISMISS_THRESHOLD = 100
+
+/** Backdrop left showing above the panel when the keyboard squeezes it. */
+const TOP_RESERVE = 24
 
 const SupportDrawer = () => {
     const t = useTranslations('global')
@@ -25,11 +38,46 @@ const SupportDrawer = () => {
     // Bumping this key remounts the iframe, giving the user a clean retry.
     const [iframeKey, setIframeKey] = useState(0)
 
-    const crispProxyUrl = useCrispProxyUrl(userData, prefilledMessage, crispTokenId)
+    const locale = useLocale() as AppLocale
+    const crispLocale = CRISP_LOCALE_BY_APP_LOCALE[locale] ?? 'en'
+
+    // The proxy iframe pulls this via the postMessage handshake — user data and the
+    // Crisp token never appear in its URL (postmortem F5: a query string leaks into
+    // Vercel logs, browser history, Referer headers, and analytics $current_url).
+    // A ref keeps the reply current without re-registering the message listener;
+    // written in an effect, not during render, so a discarded render can't leak
+    // an uncommitted identity to the proxy.
+    const initPayload: CrispInitPayload = {
+        locale: crispLocale,
+        tokenId: crispTokenId,
+        userData,
+        prefilledMessage,
+    }
+    const initPayloadRef = useRef<CrispInitPayload>(initPayload)
+    useEffect(() => {
+        initPayloadRef.current = initPayload
+    })
+
+    // The handshake pull happens once at iframe boot; later changes (email/name
+    // resolving mid-session, a new prefill) are pushed over the same channel so
+    // Crisp never keeps a stale identity. Token/locale changes remount the iframe
+    // via its key instead — those need a session re-bind, not a data update.
+    const iframeRef = useRef<HTMLIFrameElement | null>(null)
+    useEffect(() => {
+        iframeRef.current?.contentWindow?.postMessage(
+            { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
+            window.location.origin
+        )
+    }, [userData, prefilledMessage])
+
+    // Crisp's composer sits at the very bottom of the iframe, so the panel's bottom
+    // edge is the thing the iOS keyboard covers. Only measured while the drawer is
+    // open — see the hook for why CSS alone can't see the keyboard.
+    const { height: visibleHeight, keyboardInset } = useVisualViewport(isSupportModalOpen)
 
     /*
-     * The proxy iframe boots the ENTIRE Next.js app at /crisp-proxy, and its src
-     * recomputes from a dozen async user-data fields — every change reloads it.
+     * The proxy iframe boots the ENTIRE Next.js app at /crisp-proxy, and its key
+     * recomputes when the token or locale changes — each change reloads it.
      * Mounted eagerly, that meant a hidden full app instance rebooting over and
      * over behind every screen; on low-memory iPhones the accumulated pressure
      * crashed the WKWebView content process mid-signup, hard-resetting the app
@@ -42,11 +90,57 @@ const SupportDrawer = () => {
         if (isSupportModalOpen) setHasBeenOpened(true)
     }, [isSupportModalOpen])
 
+    // Guests reach this drawer too (claim and pay links mount the same layout),
+    // and they have no notifications — the call would just 401.
+    const isLoggedIn = Boolean(userData.userId)
+
+    const clearSupportBadge = useCallback(() => {
+        if (!isLoggedIn) return
+        notificationsApi
+            .markAllRead('support')
+            .then(() => window.dispatchEvent(new CustomEvent('notifications:updated')))
+            // A failed mark-read only means the badge stays on a bit longer.
+            .catch(() => {})
+    }, [isLoggedIn])
+
+    /*
+     * Clear the support unread badge — on the web path only; the Capacitor
+     * effect below clears its own once the native messenger actually opens.
+     *
+     * "Opened the drawer" is not the same as "read the reply". When the Crisp
+     * bundle fails to load, this same component shows the email fallback
+     * instead, and clearing then would bury a reply nobody saw. So wait until
+     * the chat is really in front of the user.
+     *
+     * The closing edge matters just as much: a reply arriving while the drawer
+     * is open — the normal case in a live conversation — would otherwise light
+     * the badge with nothing new behind it, and leave it lit until the user
+     * opened support again.
+     */
+    const wasShowingChat = useRef(false)
+    useEffect(() => {
+        const isShowingChat = isSupportModalOpen && isCrispReady && !isCrispFailed
+        if (isShowingChat) {
+            wasShowingChat.current = true
+            clearSupportBadge()
+        } else if (wasShowingChat.current && !isSupportModalOpen) {
+            wasShowingChat.current = false
+            clearSupportBadge()
+        }
+    }, [isSupportModalOpen, isCrispReady, isCrispFailed, clearSupportBadge])
+
     const handleRetry = useCallback(() => {
         setIsCrispFailed(false)
         setIsCrispReady(false)
         setIframeKey((k) => k + 1)
     }, [])
+
+    // a token/locale change replaces the iframe (see the key below) — clear the
+    // previous proxy's status so the loader shows until the new one reports
+    useEffect(() => {
+        setIsCrispReady(false)
+        setIsCrispFailed(false)
+    }, [crispTokenId, crispLocale])
 
     // A logged-in user's token is computed asynchronously (SHA-256 of their userId).
     // Until it resolves we must NOT load the proxy: a token-less load makes Crisp fall
@@ -65,34 +159,59 @@ const SupportDrawer = () => {
     useEffect(() => {
         if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
 
-        import('@capgo/capacitor-crisp').then(({ CapacitorCrisp }) => {
-            // set user data before opening
-            if (userData.email || userData.fullName) {
-                CapacitorCrisp.setUser({
-                    email: userData.email || undefined,
-                    nickname: userData.fullName || userData.username || undefined,
-                    avatar: userData.avatar || undefined,
-                })
-            }
-            if (crispTokenId) {
-                CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
-            }
-            // set custom data for support agents
-            if (userData.walletAddress) {
-                CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
-            }
-            if (userData.userId) {
-                CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
-            }
-            if (prefilledMessage) {
-                CapacitorCrisp.sendMessage({ value: prefilledMessage })
-            }
+        ensureNativeCrispConfigured()
+            .then(async ({ CapacitorCrisp }) => {
+                /*
+                 * Settle the CAMERA runtime permission before the native Crisp UI
+                 * opens: the app manifest declares CAMERA (QR scanner), which makes
+                 * Crisp's "Take a photo" throw a SecurityException when it is
+                 * declared-but-ungranted — the SDK never requests it itself.
+                 * Result deliberately ignored: a denied camera must not block chat.
+                 */
+                await ensureNativeCameraPermission()
+                // set user data before opening
+                if (userData.email || userData.fullName) {
+                    CapacitorCrisp.setUser({
+                        email: userData.email || undefined,
+                        nickname: userData.fullName || userData.username || undefined,
+                        avatar: userData.avatar || undefined,
+                    })
+                }
+                if (crispTokenId) {
+                    CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
+                }
+                // set custom data for support agents
+                if (userData.walletAddress) {
+                    CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
+                }
+                if (userData.userId) {
+                    CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
+                }
+                if (prefilledMessage) {
+                    CapacitorCrisp.sendMessage({ value: prefilledMessage })
+                }
 
-            CapacitorCrisp.openMessenger()
-            // close our drawer since native UI takes over
-            setIsSupportModalOpen(false)
-        })
-    }, [isSupportModalOpen, isAwaitingToken, userData, crispTokenId, prefilledMessage, setIsSupportModalOpen])
+                CapacitorCrisp.openMessenger()
+                // The chat is now in front of the user, so the badge has done its
+                // job. There is no isCrispReady on this path — the native messenger
+                // reports nothing back — so clear it here rather than in the web
+                // effect above.
+                clearSupportBadge()
+                // close our drawer since native UI takes over
+                setIsSupportModalOpen(false)
+            })
+            .catch((err: unknown) => {
+                console.warn('[SupportDrawer] native crisp open failed:', err)
+            })
+    }, [
+        isSupportModalOpen,
+        isAwaitingToken,
+        userData,
+        crispTokenId,
+        prefilledMessage,
+        setIsSupportModalOpen,
+        clearSupportBadge,
+    ])
 
     // drag-to-dismiss state
     const panelRef = useRef<HTMLDivElement>(null)
@@ -119,12 +238,25 @@ const SupportDrawer = () => {
         setDragOffset(0)
     }, [dragOffset, setIsSupportModalOpen])
 
-    // listen for crisp ready once — persists across open/close cycles
+    // listen for crisp messages once — persists across open/close cycles.
+    // Registered at drawer mount, long before the iframe can mount (hasBeenOpened
+    // gate), so the proxy's init request can never race past this listener.
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== window.location.origin) return
 
-            if (event.data?.type === 'CRISP_READY') {
+            if (
+                event.data?.type === CRISP_PROXY_REQUEST_INIT_MSG &&
+                event.source === iframeRef.current?.contentWindow
+            ) {
+                // the proxy iframe asks for its init payload — reply only to OUR
+                // mounted iframe (not any same-origin frame), and directly to it,
+                // never broadcast
+                ;(event.source as Window | null)?.postMessage(
+                    { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
+                    window.location.origin
+                )
+            } else if (event.data?.type === 'CRISP_READY') {
                 setIsCrispReady(true)
                 setIsCrispFailed(false)
             } else if (event.data?.type === 'CRISP_FAILED') {
@@ -170,10 +302,24 @@ const SupportDrawer = () => {
                 role="dialog"
                 aria-label={t('supportDrawer.label')}
                 aria-modal={isSupportModalOpen}
-                className={`fixed inset-x-0 bottom-0 z-[999999] flex max-h-[85vh] flex-col rounded-t-[10px] border bg-background pt-4 ${
+                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-[10px] border bg-background pt-4 ${
                     isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
                 }`}
                 style={{
+                    // Sit on top of the keyboard rather than behind it: `bottom: 0` is the
+                    // bottom of the *layout* viewport, which iOS leaves under the keyboard.
+                    bottom: keyboardInset,
+                    // …and never be taller than what's actually on screen, so lifting the
+                    // panel pushes the conversation down instead of off the top edge. The
+                    // reserved strip keeps the drag handle out from under the notch and
+                    // leaves a backdrop target to tap-to-close; with no keyboard up it is
+                    // slack and 85dvh wins, so the resting look is unchanged.
+                    height: visibleHeight
+                        ? `min(85dvh, calc(${visibleHeight}px - env(safe-area-inset-top) - ${TOP_RESERVE}px))`
+                        : '85dvh',
+                    // The keyboard already covers the home indicator; padding for it too
+                    // would just wedge a dead strip between the composer and the keys.
+                    paddingBottom: keyboardInset ? 0 : 'env(safe-area-inset-bottom)',
                     transform: isSupportModalOpen ? `translateY(${dragOffset}px)` : 'translateY(100%)',
                     transition: isDragging ? 'none' : 'transform 300ms ease-out',
                 }}
@@ -188,8 +334,9 @@ const SupportDrawer = () => {
                     <div className="h-1.5 w-10 rounded-full bg-black" />
                 </div>
 
-                <div className="flex w-full justify-center">
-                    <div className="relative h-[80vh] w-full overflow-auto md:max-w-xl">
+                {/* min-h-0 lets the iframe row shrink below its content when the panel does */}
+                <div className="flex min-h-0 w-full flex-1 justify-center">
+                    <div className="relative h-full w-full overflow-hidden md:max-w-xl">
                         {(!isCrispReady || isAwaitingToken) && !isCrispFailed && (
                             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
                                 <PeanutLoading />
@@ -209,8 +356,12 @@ const SupportDrawer = () => {
                         )}
                         {!isCapacitor() && hasBeenOpened && !isAwaitingToken && (
                             <iframe
-                                key={iframeKey}
-                                src={crispProxyUrl}
+                                // token/locale changes need a full session re-bind, so they
+                                // remount the proxy; everything else updates live over the
+                                // postMessage channel (see the push effect above)
+                                key={`${iframeKey}:${crispTokenId ?? ''}:${crispLocale}`}
+                                ref={iframeRef}
+                                src="/crisp-proxy"
                                 className="h-full w-full"
                                 allow="storage-access *"
                                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-storage-access-by-user-activation"

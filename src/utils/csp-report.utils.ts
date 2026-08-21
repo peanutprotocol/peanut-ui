@@ -188,6 +188,54 @@ export function cspReportGroupKey(report: CspReport): string {
 }
 
 /**
+ * Hard cap on forwards per request. The collector is unauthenticated and a
+ * Reporting-API batch is an array, so without a cap one POST could fan out
+ * arbitrarily many events. That matters more than it looks: Sentry bills CSP
+ * reports against the *error* quota under a per-DSN-key rate limit, so an
+ * uncapped fan-out could exhaust the quota that real application exceptions
+ * depend on. A genuine browser batch is a handful of reports.
+ */
+export const MAX_FORWARDS_PER_REQUEST = 20
+
+/**
+ * Choose which reports of one inbound batch to forward.
+ *
+ * `shouldForward` is injected rather than imported: it carries the collector's
+ * cross-request state (which groups Sentry has already seen) and its own
+ * sampling, so keeping it out leaves this loop pure and its ordering invariant
+ * testable on its own. It is called at most once per distinct group, and only
+ * for groups this function is actually willing to forward.
+ */
+export function selectReportsToForward(
+    reports: CspReport[],
+    shouldForward: (groupKey: string) => boolean
+): CspReport[] {
+    const seenInBatch = new Set<string>()
+    const forwardable: CspReport[] = []
+
+    for (const report of reports) {
+        if (shouldIgnoreCspReport(report)) continue
+
+        const groupKey = cspReportGroupKey(report)
+        // One slot per distinct group: a batch is usually dominated by
+        // repeats of a single violation, and 20 copies of it must not
+        // crowd a genuinely new group out of the per-request cap.
+        if (seenInBatch.has(groupKey)) continue
+        seenInBatch.add(groupKey)
+
+        // Cap BEFORE shouldForward, never after: shouldForward records
+        // each group as seen, so admitting more than we can send would
+        // mark groups seen that were never actually sent — their real
+        // first sighting lost, every later repeat sampled away.
+        if (seenInBatch.size > MAX_FORWARDS_PER_REQUEST) break
+
+        if (shouldForward(groupKey)) forwardable.push(report)
+    }
+
+    return forwardable
+}
+
+/**
  * Sentry's CSP ingest endpoint, derived from the browser DSN
  * (`<protocol>://<publicKey>@<host><path>/<projectId>`). Returns null when the
  * DSN is absent or malformed, in which case reports are simply dropped.

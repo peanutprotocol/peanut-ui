@@ -26,8 +26,9 @@ import { ScaledShareAsset } from '@/components/Card/share-asset/ScaledShareAsset
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { ShareAssetActions } from '@/components/Card/share-asset/ShareAssetActions'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { profileShareUrl } from '@/components/Card/share-asset/share.utils'
 import { getShakeClass } from '@/utils/perk.utils'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { TierLevel } from '@/components/Card/share-asset/shareAsset.types'
@@ -35,7 +36,7 @@ import type { TierLevel } from '@/components/Card/share-asset/shareAsset.types'
 interface Props {
     badgeCode?: string
     username?: string
-    badges: Array<{ code: string; earnedAt?: string }>
+    badges: Array<{ code: string; iconUrl?: string | null; earnedAt?: string }>
     stats?: {
         joinedAt?: string | null
         totalMovedUsd?: number
@@ -62,7 +63,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
     // Gate the Share/Save buttons until the card face's async hand <canvas>
     // mounts — otherwise an early capture snapshots a blank card.
     const [assetReady, setAssetReady] = useState(false)
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const captureRef = useRef<HTMLDivElement | null>(null)
     const hasBadge = !!badgeCode
     // Falls back to the generic skip headline for an unmapped badge, and to the
@@ -188,7 +189,12 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                     value={hideUsername}
                     onChange={(e) => setHideUsername(e.target.checked)}
                 />
-                <ShareAssetActions captureRef={captureRef} source="celebration" ready={assetReady} />
+                <ShareAssetActions
+                    captureRef={captureRef}
+                    source="celebration"
+                    ready={assetReady}
+                    shareUrl={profileShareUrl(username, hideUsername)}
+                />
                 <Button onClick={onContinue} variant="stroke" className="w-full">
                     {t('celebration.continueToCard')}
                 </Button>

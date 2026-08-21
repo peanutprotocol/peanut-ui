@@ -3,6 +3,7 @@
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
@@ -45,13 +46,15 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureException } from '@sentry/nextjs'
 import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
 import { QrKycState } from '@/constants/kyc.consts'
 import ActionModal from '@/components/Global/ActionModal'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { cancelHaptic, notifyHaptic, vibrateHaptic } from '@/utils/haptics'
 import { PeanutThinking } from '@/assets/mascot'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { useAuth } from '@/context/authContext'
@@ -82,12 +85,15 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
     'PAYMENT_DESTINATION_DECODING_ERROR',
     'PIX_MIN_AMOUNT',
     'PIX_RECURRING_NOT_SUPPORTED',
+    // Missing auth header (AJV 400) — retrying sends the same headerless request,
+    // so fail fast rather than waiting out three attempts.
+    "required property 'authorization'",
 ]
 
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
-    const t = useTranslations('qrPay')
+    const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
@@ -285,6 +291,7 @@ export default function QRPayPage() {
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
     const [perkClaimed, setPerkClaimed] = useState(false)
+    const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false)
     const [holdProgress, setHoldProgress] = useState(0)
     const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -602,6 +609,12 @@ export default function QRPayPage() {
             } else if (error.message.includes('PIX_RECURRING_NOT_SUPPORTED')) {
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(pixRecurringErrorMessage)
+            } else if (error.message.includes("required property 'authorization'")) {
+                // Session token wasn't attached to the request (not a provider
+                // outage) — surface an honest, retryable message instead of
+                // blaming the payment rail.
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(t('errors.authError'))
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(
@@ -820,14 +833,10 @@ export default function QRPayPage() {
         setHoldProgress(0)
 
         // 3. Final success haptic feedback - POWERFUL celebratory double pulse!
-        if ('vibrate' in navigator) {
-            navigator.vibrate([300, 100, 300])
-        }
+        notifyHaptic('success')
 
         // 4. Trigger confetti immediately
-        setTimeout(() => {
-            shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
-        }, 100)
+        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
 
         // 5. Surface the reward. The perk was already issued AND claimed
         //    server-side during QR-payment processing, and qrPayment.perk
@@ -873,9 +882,7 @@ export default function QRPayPage() {
                 setShakeIntensity('none')
                 holdStartTimeRef.current = null
 
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(0)
-                }
+                cancelHaptic()
             }, remainingPreviewTime)
 
             holdTimerRef.current = resetTimer
@@ -888,9 +895,7 @@ export default function QRPayPage() {
             setShakeIntensity('none')
             holdStartTimeRef.current = null
 
-            if ('vibrate' in navigator) {
-                navigator.vibrate(0)
-            }
+            cancelHaptic()
         }
     }, [])
 
@@ -921,20 +926,20 @@ export default function QRPayPage() {
             }
 
             // Trigger haptic feedback when intensity changes
-            if (newIntensity !== lastIntensity && 'vibrate' in navigator) {
+            if (newIntensity !== lastIntensity) {
                 // Progressive vibration patterns that match shake intensity - MAX STRENGTH!
                 switch (newIntensity) {
                     case 'weak':
-                        navigator.vibrate(50) // Short but noticeable pulse
+                        vibrateHaptic(50) // Short but noticeable pulse
                         break
                     case 'medium':
-                        navigator.vibrate([100, 40, 100]) // Medium pulse pattern
+                        vibrateHaptic([100, 40, 100]) // Medium pulse pattern
                         break
                     case 'strong':
-                        navigator.vibrate([150, 40, 150, 40, 150]) // Strong pulse pattern
+                        vibrateHaptic([150, 40, 150, 40, 150]) // Strong pulse pattern
                         break
                     case 'intense':
-                        navigator.vibrate([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
+                        vibrateHaptic([200, 40, 200, 40, 200, 40, 200]) // INTENSE pulse pattern
                         break
                 }
                 lastIntensity = newIntensity
@@ -1276,6 +1281,8 @@ export default function QRPayPage() {
                   })
             : ''
 
+        const rewardClaimable = !!qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed
+
         return (
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
@@ -1320,7 +1327,7 @@ export default function QRPayPage() {
                     )}
 
                     {/* Reward Eligibility Card - Show before claiming */}
-                    {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed && (
+                    {rewardClaimable && (
                         <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
                             <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
@@ -1375,7 +1382,7 @@ export default function QRPayPage() {
 
                     <div className="w-full space-y-5">
                         {/* Show Claim Reward button if eligible and not claimed yet */}
-                        {qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed ? (
+                        {rewardClaimable ? (
                             <Button
                                 onPointerDown={startHold}
                                 onPointerUp={cancelHold}
@@ -1491,6 +1498,20 @@ export default function QRPayPage() {
                                 </Button>
                             </>
                         )}
+
+                        {/* Underlined text, not a button, so the stack stays at two filled
+                            CTAs. Not gated on isActivated (the receipt nudge is): on a first
+                            QR pay that flag is still false server-side. Hidden while a reward
+                            is claimable so it cannot compete with the hold-to-claim gesture. */}
+                        {user?.user.username && !rewardClaimable && (
+                            <button
+                                onClick={() => setShowInviteFriendsModal(true)}
+                                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                            >
+                                <Icon name="invite-heart" size={16} className="text-grey-1" />
+                                {t('success.inviteFriendsCta')}
+                            </button>
+                        )}
                     </div>
                 </div>
                 <TransactionDetailsDrawer
@@ -1498,6 +1519,18 @@ export default function QRPayPage() {
                     onClose={closeTransactionDetails}
                     transaction={selectedTransaction}
                 />
+                {/* Mounted only while open: the modal's shown-guard is a ref that lives
+                    for the mount, so a persistent mount would swallow the MODAL_SHOWN /
+                    REFERRAL_CTA_SHOWN pair on every re-open. The modal fires every
+                    referral capture; this page fires none. */}
+                {showInviteFriendsModal && user?.user.username && (
+                    <InviteFriendsModal
+                        visible
+                        onClose={() => setShowInviteFriendsModal(false)}
+                        username={user.user.username}
+                        source={REFERRAL_SOURCES.QR_PAY_SUCCESS}
+                    />
+                )}
             </div>
         )
     }
@@ -1647,7 +1680,7 @@ export default function QRPayPage() {
 }
 
 const QrPayPageLoading = ({ message }: { message: string }) => {
-    const t = useTranslations('qrPay')
+    const t = useAppTranslations('qrPay')
     return (
         <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
             <div className="relative">

@@ -70,6 +70,17 @@ export const DEDICATED_ROUTES = [
     'faq',
     'how-it-works',
 
+    // Marketing hubs that already ship as [locale]/(marketing) pages but whose
+    // bare paths were still recipient-shaped (7 lowercase letters each), so
+    // /pricing, /stories and /content rendered a payment-profile shell on a 200
+    // instead of resolving to the real page. Reserved here + 301'd to /en/… in
+    // redirects.json. NOTE: 'pricing' is also reserved server-side (the username
+    // API rejects it), but 'stories' and 'content' are still claimable as
+    // usernames — see the PR body, backend needs to add them to its reserved list.
+    'pricing',
+    'stories',
+    'content',
+
     // Locale prefixes (current SUPPORTED_LOCALES)
     'en',
     'es-419',
@@ -111,7 +122,7 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
  * Production dev tools require a signed-in Peanut user. Each tool applies its
  * own server-enforced role check after the normal app session gate.
  */
-export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr)/
+export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view)/
 
 /**
  * Regex for dev-only public routes: ALL /dev pages (index + every tool/preview).
@@ -155,6 +166,16 @@ export function isReservedRoute(path: string): boolean {
  */
 const USERNAME_PATTERN = /^[a-z][a-z0-9]{3,11}$/
 
+/** Whether a path segment is shaped like a bare Peanut username — as opposed
+ *  to an address, ENS name, or `user@chain` handle (see couldBeRecipient). */
+export function isPlausibleUsername(segment: string): boolean {
+    try {
+        return USERNAME_PATTERN.test(decodeURIComponent(segment).toLowerCase())
+    } catch {
+        return false
+    }
+}
+
 /**
  * Helper to check if a first segment could plausibly identify a payment recipient:
  * a Peanut username, an EVM address, an ENS name, or a `username@chain` handle.
@@ -195,4 +216,17 @@ export function isPublicRoute(path: string, isDev = false): boolean {
         return true
     }
     return false
+}
+
+/**
+ * Whether `pathName` is the route `href` points at, for nav active states.
+ *
+ * The native build sets `trailingSlash: true` (next.config.native.js), so
+ * `usePathname()` there returns `/home/` while nav hrefs are written `/home`.
+ * A bare `===` silently loses every active state in the app.
+ */
+export function isSameRoute(pathName: string | null | undefined, href: string): boolean {
+    const strip = (path: string) => (path.length > 1 ? path.replace(/\/+$/, '') : path)
+    if (!pathName) return false
+    return strip(pathName) === strip(href)
 }

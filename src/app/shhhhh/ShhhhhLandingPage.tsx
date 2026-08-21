@@ -8,19 +8,22 @@ import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Marquee } from '@/components/LandingPage'
+import { ScarcityCounter } from '@/components/LandingPage/ScarcityCounter'
 import { useAuth } from '@/context/authContext'
 import { PixelatedCardFace } from '@/components/Card/share-asset/PixelatedCardFace'
 import { inflateWaitlistPosition } from '@/components/Card/doorTally.utils'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
-import { invitesApi } from '@/services/invites'
-import { saveToCookie } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-
-// /shhhhh?campaign=skip — the Skip Pass link. Awards the WAITLIST_SKIP badge
-// (same contract as /invite?campaign=skip) so friends-of-Peanut skip the line.
-// A BARE visit grants nothing: the door joins the waitlist, it is not a bypass.
-const SKIP_CAMPAIGN = 'skip'
+import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
+import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
+import { getBadgeIcon } from '@/components/Badges/badge.utils'
+import { captureException } from '@sentry/nextjs'
+import {
+    destinationForShhhhhClaims,
+    queueShhhhhCampaignContinuation,
+    shhhhhCampaignSignupRoute,
+} from './shhhhh-acquisition'
 
 // Inline "you're on the waitlist" confirmation shown in place of the door CTA
 // once the user joins (pre-launch, non-skip path). `dark` = on the black §7.
@@ -56,34 +59,32 @@ function WaitlistJoined({
 const statValues = ['150M+', '1', '1', '0'] as const
 const statLabelKeys = ['statMerchants', 'statBalance', 'statCard', 'statMiddlemen'] as const
 
-const faqKeys = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const
+// q4 ("WHAT'S THE $10?") is deliberately absent: the welcome-reward claim it
+// made is not backed by a seeded perk, so it was removed rather than reworded.
+// The remaining keys keep their names — renumbering four catalogs to close the
+// gap risks mis-pairing a question with someone else's answer for no gain.
+const faqKeys = ['q1', 'q2', 'q3', 'q5', 'q6', 'q7', 'q8'] as const
 
-const badges: Array<{ code: string; name: string; src: string }> = [
-    { code: 'OG_2025_10_12', name: 'Peanut OG', src: '/badges/og_v1.svg' },
-    { code: 'DEVCONNECT_BA_2025', name: 'Devconnect BA', src: '/badges/devconnect_2025.svg' },
-    { code: 'ARBIVERSE_DEVCONNECT_BA_2025', name: 'Arbiverse', src: '/badges/arbiverse_devconnect.svg' },
+// The full skip set: keep the codes in sync with SKIP_BADGE_CODES
+// (peanut-api-ts src/card/waitlist.ts, pinned in waitlist.test.ts). Icons come
+// from the generated badge-asset manifest, names are marketing-shortened.
+const badges: Array<{ code: string; name: string }> = [
+    { code: 'OG_2025_10_12', name: 'Peanut OG' },
+    { code: 'DEVCONNECT_BA_2025', name: 'Devconnect BA' },
+    { code: 'ARBIVERSE_DEVCONNECT_BA_2025', name: 'Arbiverse' },
+    { code: 'SEEDLING_DEVCONNECT_BA_2025', name: 'Seedling' },
+    { code: 'EVENT_ALUMNI', name: 'Event Alumni' },
+    { code: 'CARD_PIONEER', name: 'Founding Pioneer' },
+    { code: 'OFFRAMP_USER', name: 'Offramp User' },
+    { code: 'NAIJA', name: '9JA' },
+    { code: 'TERERE', name: 'Tereré' },
+    { code: 'ACAI_POWERED', name: 'Açaí Powered' },
+    { code: 'NITA', name: 'Nita' },
+    { code: 'WAITLIST_SKIP', name: 'Skip Pass' },
 ]
 
 const ctaButtonClassName =
     '!w-auto bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl'
-
-function ScarcityCounter() {
-    const t = useTranslations('shhhhh.hero')
-    const [count, setCount] = useState(21)
-    useEffect(() => {
-        const timer = setTimeout(() => setCount(20), 2500)
-        return () => clearTimeout(timer)
-    }, [])
-    return (
-        <motion.span
-            className="mx-1 inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1"
-            animate={count === 20 ? { scale: [1, 1.18, 1] } : {}}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-            {t('onlyCount', { count })}
-        </motion.span>
-    )
-}
 
 function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
     const t = useTranslations('shhhhh.hero')
@@ -146,6 +147,7 @@ export default function ShhhhhLandingPage() {
     const [joinedPosition, setJoinedPosition] = useState<number | null | undefined>(undefined)
     const [ctaBusy, setCtaBusy] = useState(false)
     const [joinError, setJoinError] = useState(false)
+    const [showAllBadges, setShowAllBadges] = useState(false)
     const isJoined = joinedPosition !== undefined
 
     const joinWaitlist = useCallback(async () => {
@@ -193,39 +195,48 @@ export default function ShhhhhLandingPage() {
     }, [user])
 
     const handleCTA = async () => {
-        // /shhhhh?campaign=skip → Skip Pass (awards the badge). A bare press is
-        // NOT a bypass — it joins the waitlist (Hugo 2026-06-07). Read the param
-        // at click time (client-only) — avoids useSearchParams (which would bail
-        // /shhhhh out of static prerendering) and any mount-effect race.
-        const isSkipCampaign =
-            new URLSearchParams(window.location.search).get('campaign')?.toLowerCase() === SKIP_CAMPAIGN
+        // Read opaque campaign identities at click time (client-only) to avoid
+        // bailing static prerendering. The backend resolves award semantics;
+        // provenance is audit-only and does not weaken an earned skip badge.
+        const badgeCampaigns = badgeCampaignsFromSearchParams(new URLSearchParams(window.location.search))
 
         posthog.capture(ANALYTICS_EVENTS.DOOR_TRY, {
             signed_in: !!user,
-            campaign: isSkipCampaign ? SKIP_CAMPAIGN : null,
+            campaign_tags: badgeCampaigns,
         })
 
-        // Skip Pass link → award the badge; the user is in. (The bare door never
-        // awards a badge — see below.)
-        if (isSkipCampaign) {
+        if (badgeCampaigns.length > 0) {
+            const queuedBadgeCampaigns = queuePendingBadgeCampaigns(badgeCampaigns, 30)
             if (!user) {
-                // useZeroDev's post-signup `campaignTag` branch awards the badge
-                // (awaited inside registration, before setup redirects) — so
-                // landing on /card afterwards is race-free.
-                saveToCookie('campaignTag', SKIP_CAMPAIGN)
-                router.push(`/setup?step=signup&redirect_uri=${encodeURIComponent('/card')}`)
+                queueShhhhhCampaignContinuation()
+                router.push(shhhhhCampaignSignupRoute())
                 return
             }
+
+            let destination: '/card' | '/home' = '/home'
             try {
-                await invitesApi.awardBadge(SKIP_CAMPAIGN)
-                posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { campaign_tag: SKIP_CAMPAIGN })
-                await fetchUser()
-            } catch (err) {
-                console.error('[shhhhh] awardBadge(skip) failed:', err)
+                const batch = await claimAndSettlePendingBadgeCampaigns(queuedBadgeCampaigns)
+                const confirmed = batch.claims.filter(isConfirmedBadgeCampaignClaim)
+                destination = destinationForShhhhhClaims(batch.claims)
+                if (confirmed.length > 0) {
+                    posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
+                        campaign_tags: confirmed.map((claim) => claim.badgeCampaign),
+                    })
+                    await fetchUser()
+                }
+                if (batch.pending.length > 0) {
+                    captureException(new Error('shhhhh campaign claim retained for retry'), {
+                        tags: { error_type: 'campaign_claim_retryable' },
+                        extra: { pendingCampaigns: batch.pending, claims: batch.claims },
+                    })
+                }
+            } catch (error) {
+                captureException(error, { tags: { error_type: 'campaign_claim_unexpected_failure' } })
             }
-            // Straight into the card flow — the badge award just opened both
-            // gates BE-side; /home would make them hunt for the card CTA.
-            router.push('/card')
+
+            // Only a confirmed Skip Pass continues to the card flow. Unknown,
+            // inactive, expired, malformed, and retryable claims fall back home.
+            router.push(destination)
             return
         }
 
@@ -292,7 +303,9 @@ export default function ShhhhhLandingPage() {
                             {t('hero.tagline')}
                         </p>
                         <p className="font-roboto-flex mt-6 max-w-xl text-xl leading-relaxed md:text-2xl">
-                            {t.rich('hero.body', { counter: () => <ScarcityCounter /> })}
+                            {t.rich('hero.body', {
+                                counter: () => <ScarcityCounter label={(count) => t('hero.onlyCount', { count })} />,
+                            })}
                         </p>
                         {isJoined ? (
                             <div className="mt-8 flex justify-center md:justify-start">
@@ -435,14 +448,14 @@ export default function ShhhhhLandingPage() {
                                 {t('howToGetIn.badgeBody')}
                             </p>
                             <div className="mt-6 grid grid-cols-3 gap-3">
-                                {badges.map((b) => (
+                                {(showAllBadges ? badges : badges.slice(0, 3)).map((b) => (
                                     <div
                                         key={b.code}
                                         className="flex flex-col items-center gap-2 rounded-sm border-2 border-n-1 bg-primary-3 p-3 shadow-[3px_3px_0_#000]"
                                     >
                                         <div className="relative aspect-square w-full">
                                             <Image
-                                                src={b.src}
+                                                src={getBadgeIcon(b.code)}
                                                 alt={b.name}
                                                 fill
                                                 className="object-contain"
@@ -455,12 +468,22 @@ export default function ShhhhhLandingPage() {
                                     </div>
                                 ))}
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowAllBadges((v) => !v)}
+                                aria-expanded={showAllBadges}
+                                className="font-roboto-flex mt-4 text-sm font-bold underline underline-offset-4"
+                            >
+                                {showAllBadges
+                                    ? t('howToGetIn.badgeShowLess')
+                                    : t('howToGetIn.badgeShowMore', { count: badges.length - 3 })}
+                            </button>
                             <p className="font-roboto-flex mt-5 text-base leading-relaxed">
                                 {t('howToGetIn.badgeFooter')}
                             </p>
                         </div>
 
-                        <div className="rounded-sm border-2 border-n-1 bg-white p-8 shadow-[10px_10px_0_#000] md:p-10">
+                        <div className="rounded-sm border-2 border-n-1 bg-white p-8 shadow-[10px_10px_0_#000] md:self-start md:p-10">
                             <div
                                 className="font-roboto-flex-extrabold text-6xl font-extraBlack text-primary-1"
                                 style={{ WebkitTextStroke: '2px #000' }}

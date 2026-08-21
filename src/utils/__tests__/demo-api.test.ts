@@ -5,11 +5,16 @@
 // but stripped by jsdom. demo-api uses only web-standard APIs, so node is faithful.
 import { demoRespond } from '@/utils/demo-api'
 import { DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_USER } from '@/constants/demo-data'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 
 // The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
 // module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
 // Jest worker alive → "force exited" warning. Nothing here needs the clients.
 jest.mock('@/app/actions/clients', () => ({}))
+
+// The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
+// module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
+// Jest worker alive → "force exited" warning. Nothing here needs the clients.
 
 const body = async (path: string, options?: RequestInit) => {
     const res = await demoRespond(path, options)
@@ -17,6 +22,28 @@ const body = async (path: string, options?: RequestInit) => {
 }
 
 describe('demoRespond — routing', () => {
+    it('bounds and forwards the shared FX passthrough', async () => {
+        const originalFetch = global.fetch
+        global.fetch = jest.fn().mockResolvedValue(
+            new Response(JSON.stringify({ rate: '1' }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            })
+        )
+
+        try {
+            const { data } = await body('/fx/rate?from=USD&to=USD')
+
+            expect(data).toEqual({ rate: '1' })
+            expect(global.fetch).toHaveBeenCalledWith(
+                `${PEANUT_API_URL}/fx/rate?from=USD&to=USD`,
+                expect.objectContaining({ signal: expect.any(AbortSignal) })
+            )
+        } finally {
+            global.fetch = originalFetch
+        }
+    })
+
     it('returns the synthetic user for GET /users/me', async () => {
         const { res, data } = await body('/users/me')
         expect(res.status).toBe(200)
@@ -80,6 +107,36 @@ describe('demoRespond — routing', () => {
         // subsequent loads report it stamped → the modal stays dismissed
         const after = await body('/users/me')
         expect(after.data.user.activationCelebratedAt).toBeTruthy()
+    })
+
+    it('persists the celebration stamp across cold starts via localStorage', async () => {
+        // in-memory-only state re-showed the modal on every demo launch; a fresh
+        // module registry per isolateModules block simulates the cold start
+        const store: Record<string, string> = {}
+        ;(globalThis as { window?: unknown }).window = {
+            localStorage: {
+                getItem: (k: string) => store[k] ?? null,
+                setItem: (k: string, v: string) => {
+                    store[k] = v
+                },
+            },
+        }
+        try {
+            await jest.isolateModulesAsync(async () => {
+                const { demoRespond: freshRespond } = await import('@/utils/demo-api')
+                await freshRespond('/update-user', {
+                    method: 'POST',
+                    body: JSON.stringify({ username: 'demo', dismissActivationCelebration: true }),
+                })
+            })
+            await jest.isolateModulesAsync(async () => {
+                const { demoRespond: freshRespond } = await import('@/utils/demo-api')
+                const data = await (await freshRespond('/users/me')).json()
+                expect(data.user.activationCelebratedAt).toBeTruthy()
+            })
+        } finally {
+            delete (globalThis as { window?: unknown }).window
+        }
     })
 })
 

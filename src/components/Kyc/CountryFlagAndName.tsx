@@ -1,7 +1,11 @@
+'use client'
+
 import Image from 'next/image'
+import { useLocale } from 'next-intl'
 import { countryData } from '../AddMoney/consts'
 import IconStack from '../Global/IconStack'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 interface CountryFlagAndNameProps {
     countryCode?: string
@@ -9,12 +13,13 @@ interface CountryFlagAndNameProps {
 }
 
 export const CountryFlagAndName = ({ countryCode, isBridgeRegion }: CountryFlagAndNameProps) => {
+    const locale = useLocale()
     // CR-flagged: incoming `countryCode` from `mantecaGeo` / `bridgeGeo` is
     // ISO3 (e.g. 'USA'), but `getFlagUrl` expects ISO2 (e.g. 'us'). Look up
     // the countryData entry first and pass its iso2; fall back to the raw
     // input so already-ISO2 callers keep working.
     const countryEntry = countryData.find((c) => c.id === countryCode?.toUpperCase())
-    const countryName = countryEntry?.title
+    const countryName = countryEntry && localizedCountryTitle(locale, countryEntry)
     const flagCode = countryEntry?.iso2?.toLowerCase() ?? countryCode
     return (
         <div className="flex items-center gap-2">

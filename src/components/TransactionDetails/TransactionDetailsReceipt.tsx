@@ -26,7 +26,7 @@ import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import Image from 'next/image'
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useRef, useState, useEffect } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
@@ -36,7 +36,7 @@ import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
-import CancelSendLinkModal from '../Global/CancelSendLinkModal'
+import CancelSendLinkDrawer from '../Global/CancelSendLinkDrawer'
 import { twMerge } from 'tailwind-merge'
 import { bankAccountLabelKey, getAccountCopyValue, type BankAccountLabelKey } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -44,7 +44,9 @@ import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import {
+    hasReferralNudge,
     hasUserProfile,
+    hasUserProfileAvatar,
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
@@ -69,8 +71,9 @@ import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 
 type CancelLinkState = 'idle' | 'cancelling' | 'cancelled'
 
@@ -85,6 +88,14 @@ const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> =
     iban: 'IBAN',
     clabe: 'CLABE',
 }
+
+// One wire shape for all three legs of the referral nudge. Module-level so the
+// impression effect can call it without re-running on every render.
+const referralNudgeProps = (variant: 'button' | 'text_link') => ({
+    source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
+    link_type: 'invite_code',
+    variant,
+})
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -115,14 +126,14 @@ export const TransactionDetailsReceipt = ({
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
-    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
+    const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
     const { setIsSupportModalOpen } = useModalsContext()
     const toast = useToast()
     const router = useRouter()
     const { isActivated } = useActivationStatus()
-    const t = useTranslations('transaction')
+    const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
     const formatDate = useReceiptDateFormatter()
     const bankAccountLabel = (type: string) => {
@@ -134,8 +145,8 @@ export const TransactionDetailsReceipt = ({
 
     // Sync modal state to parent if callback is provided
     useEffect(() => {
-        setIsModalOpen?.(showCancelLinkModal)
-    }, [showCancelLinkModal, setIsModalOpen])
+        setIsModalOpen?.(showCancelLinkDrawer)
+    }, [showCancelLinkDrawer, setIsModalOpen])
 
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on JSX + callbacks.
@@ -224,6 +235,48 @@ export const TransactionDetailsReceipt = ({
         return null
     }, [transaction])
 
+    // `shouldShowShareReceipt` alone is TRUE for card spends (the txHash
+    // short-circuit in useReceiptViewModel); `getReceiptUrl` returning undefined
+    // is the real suppressor, so the CTA arithmetic must read the composite.
+    const receiptUrl = transaction ? getReceiptUrl(transaction) : undefined
+    const showShareReceipt = shouldShowShareReceipt && !!receiptUrl
+    const showSplitCta = !isPublic && !!transaction && isSplittable(transaction)
+
+    // `!isPublic`: on a public receipt the *viewer's* username would credit a
+    // bystander for someone else's payment.
+    const inviteUsername = user?.user.username
+    const showReferralNudge =
+        !isPublic &&
+        isActivated &&
+        !!transaction &&
+        transaction.status === 'completed' &&
+        hasReferralNudge(transaction) &&
+        !!inviteUsername
+    const inviteLink = inviteUsername ? generateInviteCodeLink(inviteUsername).inviteLink : ''
+
+    // With Split and Share Receipt both stacked (a QR pay) the nudge demotes to
+    // an underlined text row, so the drawer never shows three equal-weight CTAs.
+    const referralCtaVariant = showSplitCta && showShareReceipt ? 'text_link' : 'button'
+
+    // Outcome, not intent — ShareButton calls onSuccess only after a real share
+    // or copy, so a cancelled share sheet captures nothing.
+    const captureInviteShared = () => {
+        const props = referralNudgeProps(referralCtaVariant)
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, props)
+        posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, props)
+    }
+
+    // Per selected transaction, not per view: re-opening the same transaction
+    // may not remount the drawer.
+    const nudgeTransactionId = transaction?.id
+    const referralImpressionForId = useRef<string | null>(null)
+    useEffect(() => {
+        if (!showReferralNudge || !nudgeTransactionId) return
+        if (referralImpressionForId.current === nudgeTransactionId) return
+        referralImpressionForId.current = nudgeTransactionId
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, referralNudgeProps(referralCtaVariant))
+    }, [showReferralNudge, nudgeTransactionId, referralCtaVariant])
+
     if (!transaction) return null
 
     let usdAmount: number | bigint = 0
@@ -274,10 +327,11 @@ export const TransactionDetailsReceipt = ({
         amountDisplay = t('amountCollected', { amount: formattedTotalAmountCollected })
     }
 
-    // Show profile button only if it's a send/request/receive to a real Peanut
-    // user (not a link or a raw address). Shared with the history row — see
-    // hasUserProfile.
-    const isAvatarClickable = hasUserProfile(transaction)
+    // the counterparty name links whenever the peer has a real profile. the
+    // avatar links only when it visually represents that user; bank flags and
+    // account icons stay inert.
+    const isNameClickable = hasUserProfile(transaction)
+    const isAvatarClickable = hasUserProfileAvatar(transaction)
 
     const closeRequestLink = async () => {
         if (isPendingRequester && setIsLoading && onClose) {
@@ -337,6 +391,7 @@ export const TransactionDetailsReceipt = ({
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
+                isNameClickable={isNameClickable}
                 isAvatarClickable={isAvatarClickable}
                 showProgessBar={transaction.isRequestPotLink}
                 goal={Number(transaction.amount)}
@@ -383,7 +438,14 @@ export const TransactionDetailsReceipt = ({
 
             {/* details card (date, fee, memo) and more */}
             <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
-                <div className="space-y-0">
+                {/* `[&>*:last-child]:border-b-0` — the last row sits directly on the
+                    card's own black border, so its dashed rule reads as a divider to
+                    nothing. `shouldHideBorder` only reaches rows this component renders
+                    itself; the deposit-instruction sub-components below expand into rows
+                    of their own, and rows can also drop out on conditions the visibility
+                    config doesn't model (a token row still awaiting its icon fetch). The
+                    container settles it for whatever actually renders last. */}
+                <div className="space-y-0 [&>*:last-child]:border-b-0">
                     {rowVisibilityConfig.createdAt && (
                         <PaymentInfoRow
                             label={t('rows.created')}
@@ -561,7 +623,7 @@ export const TransactionDetailsReceipt = ({
                             {/* TODO: stop using snake_case!!!!! */}
                             {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
                                 <PaymentInfoRow
-                                    label={t('rows.exchangeRate')}
+                                    label={tCommon('exchangeRate')}
                                     value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate, 4)}`}
                                     hideBottomBorder={shouldHideBorder('exchangeRate')}
                                 />
@@ -706,7 +768,7 @@ export const TransactionDetailsReceipt = ({
                         onClose && (
                             <Button
                                 disabled={isLoading || cancelLinkState === 'cancelled'}
-                                onClick={() => setShowCancelLinkModal(true)}
+                                onClick={() => setShowCancelLinkDrawer(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
@@ -788,7 +850,7 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
-            {!isPublic && isSplittable(transaction) && (
+            {showSplitCta && (
                 <Button
                     onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
                     icon="split"
@@ -798,9 +860,9 @@ export const TransactionDetailsReceipt = ({
                 </Button>
             )}
 
-            {shouldShowShareReceipt && !!getReceiptUrl(transaction) && (
+            {showShareReceipt && (
                 <div className="pr-1">
-                    <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={getReceiptUrl(transaction)!}>
+                    <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={receiptUrl!}>
                         {t('actions.shareReceipt')}
                     </ShareButton>
                 </div>
@@ -814,40 +876,33 @@ export const TransactionDetailsReceipt = ({
                 onClose={onClose}
             />
 
-            {/* Referral nudge for activated users on completed outbound transactions.
-                QR pay is excluded — it already shows Split + Share, and a third button
-                stacks the drawer past the comfortable 2-CTA ceiling. */}
-            {!isPublic &&
-                isActivated &&
-                transaction.status === 'completed' &&
-                ['send', 'withdraw', 'bank_withdraw'].includes(transaction.direction) &&
-                !isPerkReward &&
-                user?.user.username && (
-                    <Button
+            {showReferralNudge &&
+                (referralCtaVariant === 'button' ? (
+                    <ShareButton
+                        url={inviteLink}
+                        title=""
                         variant="primary-soft"
-                        shadowSize="4"
-                        onClick={async () => {
-                            const { inviteLink } = generateInviteCodeLink(user.user.username!)
-                            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, { source: 'transaction_receipt' })
-                            try {
-                                if (navigator.share) {
-                                    await navigator.share({ url: inviteLink })
-                                } else {
-                                    await navigator.clipboard.writeText(inviteLink)
-                                    // Desktop fallback: navigator.share is mobile-only.
-                                    // Without a toast the click is silent and users assume
-                                    // the button is broken.
-                                    toast.info(t('toast.inviteLinkCopied'))
-                                }
-                            } catch {
-                                // user cancelled share sheet — ignore
-                            }
-                        }}
+                        showIcon={false}
+                        onSuccess={captureInviteShared}
                     >
                         <Icon name="invite-heart" size={16} />
                         <span className="text-sm font-medium">{t('actions.inviteFriends')}</span>
-                    </Button>
-                )}
+                    </ShareButton>
+                ) : (
+                    // Plain utilities beat the `.btn*` component classes (Tailwind
+                    // emits components before utilities), so no `!important` needed.
+                    <ShareButton
+                        url={inviteLink}
+                        title=""
+                        variant="transparent"
+                        showIcon={false}
+                        onSuccess={captureInviteShared}
+                        className="h-auto gap-2 p-0 text-sm font-medium text-grey-1 underline shadow-none hover:text-black active:translate-x-0 active:translate-y-0"
+                    >
+                        <Icon name="invite-heart" size={16} className="text-grey-1" />
+                        {t('actions.inviteFriends')}
+                    </ShareButton>
+                ))}
 
             {/* support link section or passkey docs for test transactions */}
             {isTestTransaction(transaction.userName) ? (
@@ -862,12 +917,15 @@ export const TransactionDetailsReceipt = ({
                 </button>
             )}
 
-            {/* Cancel Link Modal  */}
+            {/* Cancel Link Drawer */}
 
             {setIsLoading && onClose && (
-                <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal}
-                    setshowCancelLinkModal={setShowCancelLinkModal}
+                <CancelSendLinkDrawer
+                    // Rendered inside the transaction details drawer whenever that
+                    // drawer owns the close handler — vaul needs a NestedRoot there.
+                    nested={!!setIsModalOpen}
+                    showCancelLinkDrawer={showCancelLinkDrawer}
+                    setShowCancelLinkDrawer={setShowCancelLinkDrawer}
                     amount={amountDisplay}
                     isLoading={isLoading}
                     onClick={async () => {
@@ -908,7 +966,7 @@ export const TransactionDetailsReceipt = ({
                                 await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
                                 setIsLoading(false)
-                                setShowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelLinkState('cancelled')
                                 toast.success(t('toast.linkCancelled'))
 
@@ -924,7 +982,7 @@ export const TransactionDetailsReceipt = ({
 
                                 // Still close drawer even if invalidation fails
                                 setIsLoading(false)
-                                setShowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelLinkState('cancelled')
                                 toast.success(t('toast.linkCancelledRefresh'))
                                 await new Promise((resolve) => setTimeout(resolve, 1500))

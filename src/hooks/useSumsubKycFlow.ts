@@ -272,7 +272,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
                     setError(actionErrorMessage(response))
-                    return
+                    return false
                 }
 
                 // cross-region into a region no first-party bank provider serves (ROW).
@@ -288,7 +288,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (response.data?.actionType === 'unsupported-region') {
                     userInitiatedRef.current = false
                     setError(t('unsupportedRegionError'))
-                    return
+                    return false
                 }
 
                 // sync status from api response, but skip when a token is returned
@@ -313,7 +313,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setIsActionFlow(false)
                     setIsVerificationProgressModalOpen(true)
                     onKycSuccess?.()
-                    return
+                    return false
                 }
 
                 // if already approved (or reverifying) and no token returned, kyc is done.
@@ -323,7 +323,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if ((status === 'APPROVED' || status === 'REVERIFYING') && !response.data?.token) {
                     prevStatusRef.current = status
                     onKycSuccess?.()
-                    return
+                    return false
                 }
 
                 if (response.data?.token) {
@@ -333,15 +333,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setAccessToken(response.data.token)
                     setIsActionFlow(!!response.data.actionType)
                     setShowWrapper(true)
+                    return true
                 } else {
                     userInitiatedRef.current = false
                     setError(t('errorInitiateFailed'))
+                    return false
                 }
             } catch (e: unknown) {
                 userInitiatedRef.current = false
                 if (crossRegion) prevStatusRef.current = savedPrevStatus
                 const message = e instanceof Error ? e.message : t('unexpectedError')
                 setError(message)
+                return false
             } finally {
                 setIsLoading(false)
                 initiatingRef.current = false

@@ -44,7 +44,9 @@ export const FUNNEL_STATES: FunnelState[] = [
         id: 'application-in-flight',
         label: 'Application in flight',
         description: 'Card exists but none ACTIVE — pending / review / RFI.',
-        specStages: ['finish_setup'],
+        specStages: [],
+        noEmailReason:
+            'finish_setup was deleted (0 sends ever — NOT_ACTIVATED is written nowhere). No stage copy is true here, so the machine is silent by design.',
     },
     {
         id: 'card-active-unfunded',
@@ -60,10 +62,10 @@ export const FUNNEL_STATES: FunnelState[] = [
     },
     {
         id: 'spent',
-        label: 'Spent — graduated',
-        description: 'First real spend done. Out of the activation machine.',
-        specStages: [],
-        noEmailReason: 'Graduated — the lifecycle machine never emails again.',
+        label: 'Spent → dormant',
+        description:
+            'First real spend done — silent while active. Going quiet for 6 weeks (any formerly-transacting spender, card or QR) re-enters as win_back.',
+        specStages: ['win_back'],
     },
 ]
 
@@ -77,7 +79,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         cta: { label: 'Unlock now', dest: '/profile/identity-verification' },
         condition: '!isActivated && step=verify (useActivationStatus); hidden while identity is mid-flight',
         sourceFile: 'src/components/Home/ActivationCTAs.tsx',
-        states: ['no-access'],
+        states: ['no-access', 'access-pre-kyc'],
     },
     {
         id: 'step-card-banner',
@@ -85,9 +87,10 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         name: 'Activation step: card → launch banner',
         copy: '"shhhh" — "Tap to find out if you\'re in" + "Maybe later" dismiss (localStorage)',
         cta: { label: 'Try the door →', dest: '/shhhhh' },
-        condition: 'hasCardAccess && !hasCard && !dismissed && !disableCardLaunchCTA — overrides deposit/outbound',
+        condition:
+            'FUNDED (step=outbound/completed) && hasCardAccess && !hasCard && !dismissed && !disableCardLaunchCTA — card comes AFTER deposit, never overrides verify/deposit (2026-08-20)',
         sourceFile: 'src/components/Home/CardLaunchCTA/CardLaunchCTABanner.tsx (via ActivationCTAs.tsx)',
-        states: ['access-pre-kyc', 'kycd-no-card'],
+        states: ['funded-no-spend'],
     },
     {
         id: 'step-deposit',

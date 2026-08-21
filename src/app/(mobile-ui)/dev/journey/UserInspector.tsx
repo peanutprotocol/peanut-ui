@@ -46,6 +46,8 @@ export default function UserInspector() {
         if (!result.due) return 'none due (graduated, not in audience, or up to date)'
         if (result.due.skip === 'holdout') return `${result.due.type} — HELD (holdout control group)`
         if (result.due.skip === 'governor') return `${result.due.type} — HELD (governor: too soon after last email)`
+        if (result.due.skip === 'balance')
+            return `${result.due.type} — HELD (balance gate: live balance contradicts the copy)`
         return `${result.due.type} — due now${result.due.hasPendingRewards ? ' (rewards variant)' : ''}`
     })()
 

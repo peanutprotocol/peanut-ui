@@ -10,11 +10,12 @@ import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
 import { useAuth } from '@/context/authContext'
 import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import '../../styles/globals.css'
 import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
+import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
@@ -178,7 +179,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <div className="flex min-h-[100dvh] w-full bg-background" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="flex min-h-[100dvh] w-full bg-background pt-safe-top">
+            {/* Status-bar safe zone. Paints the inset strip in the app background so
+                the top matches the page even where fixed children would otherwise draw
+                under the status bar. Height is the natively measured inset on Android
+                15+ and env() elsewhere, so still a no-op on web (inset = 0). */}
+            <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-background" />
             {/* Wrapper div for desktop layout */}
             <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}
@@ -209,12 +215,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         id="scrollable-content"
                         className={classNames(
                             twMerge(
-                                'relative flex-1 overflow-y-auto bg-background p-6 pb-[calc(6rem_+_env(safe-area-inset-bottom))] md:pb-6',
-                                !!isSupport && 'p-0 pb-[calc(5rem_+_env(safe-area-inset-bottom))] md:p-6',
+                                'relative flex-1 overflow-y-auto bg-background p-6 pb-[calc(6rem_+_var(--safe-bottom))] md:pb-6',
+                                !!isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))] md:p-6',
                                 !!isHome && 'p-0 md:p-6 md:pr-0',
                                 isUserLoggedIn
-                                    ? 'pb-[calc(6rem_+_env(safe-area-inset-bottom))]'
-                                    : 'pb-[calc(1rem_+_env(safe-area-inset-bottom))]',
+                                    ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
+                                    : 'pb-[calc(1rem_+_var(--safe-bottom))]',
                                 isDev && 'p-0 pb-0',
                                 isHome && isCapacitor() && 'px-0 pt-0'
                             )
@@ -226,8 +232,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                 alignStart && 'items-start',
                                 isSupport && 'h-full',
                                 isUserLoggedIn
-                                    ? 'min-h-[calc(100dvh_-_160px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))]'
-                                    : 'min-h-[calc(100dvh_-_64px_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))]',
+                                    ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
+                                    : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
                                 isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
                             )}
                         >
@@ -237,10 +243,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                     {/* Mobile navigation */}
                     {!isDev && (
-                        <div
-                            className="fixed bottom-0 left-0 right-0 z-10 bg-background md:hidden"
-                            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-                        >
+                        <div className="fixed bottom-0 left-0 right-0 z-10 bg-background pb-safe-bottom md:hidden">
                             <WalletNavigation />
                         </div>
                     )}
@@ -253,6 +256,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <ReConsentModal />
 
             <SupportDrawer />
+
+            {/* Suspense is required: nuqs reads useSearchParams, which triggers
+                a client-side-rendering bailout without a boundary. */}
+            <Suspense fallback={null}>
+                <SupportDeepLink />
+            </Suspense>
 
             <QRScannerOverlay />
 

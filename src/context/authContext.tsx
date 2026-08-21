@@ -23,13 +23,14 @@ import { resetCrispProxySessions } from '@/utils/crisp'
 import { disableDemoMode } from '@/utils/demo'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { captureException, setUser as setSentryUser } from '@sentry/nextjs'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
+import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
+import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -66,7 +67,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const _router = useRouter()
     const dispatch = useAppDispatch()
     const toast = useToast()
     const tErrors = useTranslations('errors')
@@ -142,6 +142,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setSentryUser(null)
         }
     }, [user])
+
+    // Returning-user and app-restart recovery. Invite attribution is handled
+    // elsewhere; this only resumes opaque campaign identities after auth. The
+    // claim service de-dupes concurrent registration/page attempts and retains
+    // only retryable tags.
+    useEffect(() => {
+        const userId = user?.user.userId
+        if (!userId) return
+
+        const badgeCampaigns = getPendingBadgeCampaigns()
+        if (badgeCampaigns.length === 0) return
+
+        let cancelled = false
+        void claimAndSettlePendingBadgeCampaigns(badgeCampaigns).then(async (batch) => {
+            if (cancelled) return
+            if (batch.claims.some(isConfirmedBadgeCampaignClaim)) {
+                try {
+                    await fetchUser()
+                } catch (error) {
+                    captureException(error, { tags: { error_type: 'campaign_profile_refresh_failed' } })
+                }
+            }
+            if (batch.pending.length > 0) {
+                captureException(new Error('authenticated campaign claim retained for retry'), {
+                    tags: { error_type: 'campaign_claim_retryable' },
+                    extra: { userId, pendingCampaigns: batch.pending, claims: batch.claims },
+                })
+            }
+        })
+
+        return () => {
+            cancelled = true
+        }
+    }, [user?.user.userId, fetchUser])
 
     const legacy_fetchUser = useCallback(async () => {
         const { data: fetchedUser } = await fetchUser()
@@ -220,6 +254,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear user preferences (webauthn key in localStorage)
         updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 
+        /*
+         * Cancel queries BEFORE wiping the token: an in-flight /users/me can carry a
+         * sliding-refresh token and would re-persist it into native Preferences right
+         * after the clear, so logout never sticks (Android splash-loop, kuxhagra).
+         */
+        try {
+            await queryClient.cancelQueries()
+            queryClient.clear()
+        } catch (e) {
+            console.warn('failed to clear queries on logout:', e)
+        }
+
         // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
         await clearAuthToken()
@@ -227,17 +273,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear redirect url
         clearRedirectUrl()
 
+        // Pending badge campaigns are bearer acquisition intents. An explicit
+        // logout is an intentional account switch, so never let the next
+        // account on this browser inherit the previous account's award path.
+        // Passive auth expiry does not run this cleanup and retains retries.
+        clearPendingBadgeCampaigns()
+
+        // The invite cookie routes /setup past Landing — the only screen with
+        // Log In. A signed-in native user who tapped a friend's invite App Link
+        // has it set; leaving it through logout would strand them on Signup,
+        // unable to log back in until the process dies (session cookie).
+        removeFromCookie('inviteCode')
+
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.
         clearStepUpToken()
 
-        // cancel + remove all queries to prevent refetches with cleared jwt
-        try {
-            queryClient.cancelQueries()
-            queryClient.clear()
-        } catch (e) {
-            console.warn('failed to clear queries on logout:', e)
-        }
+        // NOTE: main also cancelled/cleared queries here. That already happens
+        // above, deliberately BEFORE the token wipe — an in-flight /users/me can
+        // re-persist a sliding-refresh token into native Preferences otherwise
+        // (Android post-logout splash loop). Don't move it back down.
 
         // reset redux state (user, setup, zerodev)
         dispatch(userActions.setUser(null))
@@ -285,9 +340,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             setIsLoggingOut(true)
             try {
-                // No server-side session to invalidate — the JWT lives client-side
-                // only (the old logout-user route just dropped a cookie). Once we
-                // add a tokenVersion column we can revoke server-side too.
+                /*
+                 * Revoke server-side FIRST (needs the still-valid JWT): POST
+                 * /users/logout bumps the account's tokenVersion so every
+                 * outstanding JWT — this device and any other — stops
+                 * verifying. Best-effort: a dead backend must never trap the
+                 * user in a session, so failures fall through to local logout.
+                 */
+                if (!options?.skipBackendCall) {
+                    try {
+                        await apiFetch('/users/logout', { method: 'POST' })
+                    } catch (e) {
+                        console.warn('server-side session revocation failed, continuing local logout:', e)
+                    }
+                }
+
                 await clearLocalAuthState()
 
                 // fetch user (should return null after logout) - skip for capacitor

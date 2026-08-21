@@ -3,7 +3,7 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useTranslations } from 'next-intl'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 interface CardLaunchCTABannerProps {
     /** Tap-through: routes the user into the /card eligibility flow. */
@@ -24,7 +24,7 @@ interface CardLaunchCTABannerProps {
  */
 export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunchCTABannerProps) {
     const t = useTranslations('home.cardLaunch')
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     const handleTryDoor = () => {
         triggerHaptic()

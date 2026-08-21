@@ -27,8 +27,28 @@ jest.mock('@/constants/general.consts', () => ({
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
-import { MIGRATION_CUTOVER_DATE } from '@/constants/migration.consts'
-import { getMigrationCutoverTime, isPwaSunsetOn, shouldShowSunsetBlock } from '@/utils/migration.utils'
+// wiring-level mock: buildDeferredPayload's own behavior is pinned in
+// deferred-link.test.ts; here we only assert openStore routes it correctly
+const mockBuildPayload = jest.fn()
+const mockCopyIOSHandoff = jest.fn().mockResolvedValue(undefined)
+jest.mock('@/utils/deferred-link', () => ({
+    buildDeferredPayload: (...args: unknown[]) => mockBuildPayload(...args),
+    playStoreUrlWithReferrer: (payload: string) => `play://listing?referrer=${encodeURIComponent(payload)}`,
+    copyIOSHandoff: (...args: unknown[]) => mockCopyIOSHandoff(...args),
+}))
+
+import { MIGRATION_CUTOVER_DATE, MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
+import { openExternalUrl } from '@/utils/capacitor'
+import {
+    getMigrationCutoverTime,
+    isPwaSunsetOn,
+    onStoreAnchorClick,
+    openStore,
+    shouldShowSunsetBlock,
+    storeAnchorHref,
+} from '@/utils/migration.utils'
+
+const mockOpenExternalUrl = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>
 
 const CUTOVER = MIGRATION_CUTOVER_DATE.getTime()
 const AFTER = CUTOVER + 1000
@@ -108,5 +128,76 @@ describe('shouldShowSunsetBlock', () => {
     it('respects the dev cutover override', () => {
         localStorage.setItem('pwa-sunset-cutover', '2020-01-01')
         expect(shouldShowSunsetBlock({ ...base, now: BEFORE })).toBe(true)
+    })
+})
+
+describe('openStore deferred hand-off', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockBuildPayload.mockReturnValue('pnutdl=1&dest=%2Fclaim%2FXYZ')
+    })
+
+    it('android rides the payload on the play install referrer', () => {
+        openStore('android', MIGRATION_SURFACES.GUEST_FLOW)
+        expect(mockOpenExternalUrl).toHaveBeenCalledWith(
+            `play://listing?referrer=${encodeURIComponent('pnutdl=1&dest=%2Fclaim%2FXYZ')}`
+        )
+        expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+    })
+
+    it('ios copies the hand-off then opens the plain store url', () => {
+        openStore('ios', MIGRATION_SURFACES.GUEST_FLOW)
+        expect(mockCopyIOSHandoff).toHaveBeenCalledWith('pnutdl=1&dest=%2Fclaim%2FXYZ')
+        expect(mockOpenExternalUrl).toHaveBeenCalledWith(STORE_URL.ios)
+    })
+
+    it('passes surface-known invite + dest through to the payload builder', () => {
+        openStore('android', MIGRATION_SURFACES.GUEST_FLOW, { invite: 'sender', dest: '/claim/ABC?t=1' })
+        expect(mockBuildPayload).toHaveBeenCalledWith('/claim/ABC?t=1', 'sender')
+    })
+
+    it('a payload failure never blocks the store bounce', () => {
+        mockBuildPayload.mockImplementation(() => {
+            throw new Error('no window')
+        })
+        openStore('android', MIGRATION_SURFACES.GUEST_FLOW)
+        expect(mockOpenExternalUrl).toHaveBeenCalledWith(STORE_URL.android)
+    })
+
+    it('the native app opens the store with no hand-off', () => {
+        mockIsCapacitor = true
+        openStore('ios', MIGRATION_SURFACES.GUEST_FLOW)
+        expect(mockBuildPayload).not.toHaveBeenCalled()
+        expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+        expect(mockOpenExternalUrl).toHaveBeenCalledWith(STORE_URL.ios)
+    })
+})
+
+describe('store anchor helpers (self-navigating CTAs)', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockBuildPayload.mockReturnValue('pnutdl=1')
+    })
+
+    it('android anchor href carries the referrer payload', () => {
+        expect(storeAnchorHref('android')).toBe(`play://listing?referrer=${encodeURIComponent('pnutdl=1')}`)
+    })
+
+    it('ios anchor href stays bare — the clipboard rides on click instead', () => {
+        expect(storeAnchorHref('ios')).toBe(STORE_URL.ios)
+        onStoreAnchorClick('ios', MIGRATION_SURFACES.LANDING_HERO)
+        expect(mockCopyIOSHandoff).toHaveBeenCalledWith('pnutdl=1')
+    })
+
+    it('android click only tracks — the href already carries the payload', () => {
+        onStoreAnchorClick('android', MIGRATION_SURFACES.LANDING_HERO)
+        expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+    })
+
+    it('a payload failure falls back to the bare store url', () => {
+        mockBuildPayload.mockImplementation(() => {
+            throw new Error('no window')
+        })
+        expect(storeAnchorHref('android')).toBe(STORE_URL.android)
     })
 })

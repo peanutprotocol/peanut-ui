@@ -26,7 +26,7 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
                     : TRANSACTION_NAME_KEYS.recipient,
             fullName: entry.recipientAccount?.fullName ?? '',
             showFullName: entry.recipientAccount?.showFullName,
-            isPeerActuallyUser: !!entry.recipientAccount?.isUser || !!entry.senderAccount?.isUser,
+            isPeerActuallyUser: !!entry.recipientAccount?.isUser,
             isLinkTx: false,
         }
     }
