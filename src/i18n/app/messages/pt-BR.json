@@ -713,7 +713,7 @@
     "send": {
         "linkCard": {
             "title": "Envie dinheiro com um link",
-            "description": "Não precisa de conta para receber.",
+            "description": "Não precisa de conta para resgatar em banco ou carteira. Pix e Mercado Pago exigem uma conta Peanut.",
             "cta": "Enviar por link"
         },
         "methods": {
@@ -746,7 +746,8 @@
             "cancelled": "Cancelado",
             "cancelSuccess": "Link cancelado com sucesso!",
             "cancelSuccessRefresh": "Link cancelado! Atualize para ver o saldo atualizado.",
-            "cancelFailed": "Não foi possível cancelar o link. Tente de novo."
+            "cancelFailed": "Não foi possível cancelar o link. Tente de novo.",
+            "minFiatClaimWarning": "Valores abaixo de ${amount} não podem ser resgatados em banco, Pix ou Mercado Pago — o destinatário ainda pode resgatar em uma conta Peanut ou carteira cripto."
         }
     },
     "request": {
