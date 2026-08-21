@@ -53,15 +53,11 @@ const NavHeader = ({
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)
 
     return (
-        // flow mode (hideLabel) keeps flex justify-between at every breakpoint;
-        // md:block is the title-mode desktop layout only
-        <div
-            className={twMerge('relative flex w-full flex-row items-center justify-between', !hideLabel && 'md:block')}
-        >
+        <div className="relative flex w-full flex-row items-center justify-between">
             {hideBackBtn ? (
                 <div />
             ) : !onPrev ? (
-                <Link href={href ?? '/home'} className="md:hidden">
+                <Link href={href ?? '/home'}>
                     <Button
                         variant="stroke"
                         className={navCircleBtn}
@@ -94,7 +90,7 @@ const NavHeader = ({
             {!hideLabel && (
                 <div
                     className={twMerge(
-                        'absolute top-1/2 left-1/2 min-w-max -translate-x-1/2 -translate-y-1/2 transform pb-1 text-2xl font-extrabold md:relative md:top-auto md:left-auto md:hidden md:translate-x-0 md:translate-y-0 md:transform-none md:pb-0 md:text-base md:font-semibold',
+                        'absolute top-1/2 left-1/2 min-w-max -translate-x-1/2 -translate-y-1/2 transform pb-1 text-2xl font-extrabold',
                         titleClassName
                     )}
                 >
@@ -110,7 +106,7 @@ const NavHeader = ({
                     variant="stroke"
                     icon="logout"
                     aria-label={tNav('logout')}
-                    className={twMerge(navCircleBtn, 'md:hidden')}
+                    className={navCircleBtn}
                 />
             )}
         </div>

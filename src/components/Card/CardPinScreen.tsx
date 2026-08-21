@@ -111,8 +111,8 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                 <NavHeader title={t('navTitle')} onPrev={onPrev} />
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-2">
-                        <h1 className="text-xl font-extrabold">{t('noPinTitle')}</h1>
-                        <p className="text-grey-1">{t('noPinBody')}</p>
+                        <h1 className="text-heading-xs">{t('noPinTitle')}</h1>
+                        <p className="text-foreground-secondary">{t('noPinBody')}</p>
                     </div>
                     <Button variant="purple" shadowSize="4" className="w-full" onClick={() => void setMode('set')}>
                         {t('setPin')}
@@ -126,7 +126,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
         <div className="flex min-h-[inherit] flex-col gap-6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
             <div className="flex flex-col gap-6">
-                <p className="text-sm text-grey-1">{t('hiddenNote')}</p>
+                <p className="text-body-s text-foreground-secondary">{t('hiddenNote')}</p>
                 <div className="flex items-center gap-3">
                     {/* Fixed-height slot keeps the row geometry constant across
                      * masked / loading / revealed. text-6xl in this repo's
@@ -140,7 +140,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                      * also covered, which is fine — they're not sensitive. */}
                     <div className="ph-no-capture flex h-[52px] items-center">
                         {loading ? (
-                            <div className="h-[52px] w-32 animate-pulse rounded bg-grey-2" />
+                            <div className="h-[52px] w-32 animate-pulse rounded bg-background-disabled" />
                         ) : (
                             <span className="text-6xl leading-none font-extrabold">{pin ?? '****'}</span>
                         )}
@@ -156,7 +156,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         <Icon name={pin ? 'eye' : 'eye-slash'} size={24} />
                     </button>
                 </div>
-                {error && <p className="text-sm text-red">{error}</p>}
+                {error && <p className="text-body-s text-foreground-error">{error}</p>}
                 <ProfileMenuItem
                     icon="more-horizontal"
                     label={t('changePin')}

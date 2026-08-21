@@ -128,11 +128,11 @@ jest.mock('@/components/0_Bruddle/Divider', () => ({
     default: (_props: any) => <hr data-testid="divider" />,
 }))
 
-jest.mock('@/components/ActionListCard', () => ({
-    ActionListCard: (props: any) => (
+jest.mock('@/components/0_Bruddle/ListItem', () => ({
+    ListItem: (props: any) => (
         <div data-testid={`action-card-${props.title}`} onClick={props.onClick}>
             <span>{typeof props.title === 'string' ? props.title : 'complex-title'}</span>
-            <span>{props.description}</span>
+            <span>{props.body}</span>
         </div>
     ),
 }))

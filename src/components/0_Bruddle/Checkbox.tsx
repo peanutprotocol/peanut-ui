@@ -17,12 +17,18 @@ const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
             onChange={onChange}
             checked={value}
         />
+        {/* no figma checkbox board exists yet (form board 17802:61539 has no
+            checkbox rows) — styled with semantic tokens, flagged for design */}
         <span
-            className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-n-1 transition-colors`}
+            className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-border-default bg-background-default transition-colors duration-instant ${value ? 'bg-action-primary' : ''}`}
         >
-            <Icon name="check" size={16} className={`transition-opacity ${value ? 'opacity-100' : 'opacity-0'}`} />
+            <Icon
+                name="check"
+                size={16}
+                className={`text-foreground-primary transition-opacity duration-instant ${value ? 'opacity-100' : 'opacity-0'}`}
+            />
         </span>
-        {label && <span className="ml-2.5 pt-0.75 text-xs font-bold text-n-1 dark:text-white">{label}</span>}
+        {label && <span className="ml-2.5 pt-0.75 text-body-xs font-bold text-foreground-primary">{label}</span>}
     </label>
 )
 

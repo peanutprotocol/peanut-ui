@@ -73,7 +73,7 @@ const CardFace: FC<Props> = ({
     return (
         <div
             className={twMerge(
-                'relative aspect-[1.586/1] w-full overflow-hidden rounded-xl bg-primary-1 text-n-1',
+                'relative aspect-[1.586/1] w-full overflow-hidden rounded-xl bg-action-primary text-foreground-primary',
                 isLocked && 'grayscale',
                 className
             )}
@@ -119,8 +119,8 @@ const CardFace: FC<Props> = ({
                 <div className="mt-auto flex flex-col">
                     {locked ? (
                         <>
-                            <span className="text-xl font-extrabold tracking-wider">???? ???? ???? ????</span>
-                            <div className="mt-1 flex items-end justify-between gap-6 text-xs">
+                            <span className="text-heading-xs tracking-wider">???? ???? ???? ????</span>
+                            <div className="mt-1 flex items-end justify-between gap-6 text-body-xs">
                                 <div>
                                     <div className="opacity-70">{t('peanutPioneer')}</div>
                                     <div className="font-bold">????</div>
@@ -137,7 +137,7 @@ const CardFace: FC<Props> = ({
                                 {/* ph-no-capture: PAN out of session recordings. Wraps only
                                  * the digits, not the copy button — we still want to see in
                                  * replays whether the user tapped copy. */}
-                                <span className="ph-no-capture text-xl font-extrabold tracking-wider">
+                                <span className="ph-no-capture text-heading-xs tracking-wider">
                                     {formatPan(revealed.pan)}
                                 </span>
                                 {onCopy && (
@@ -154,7 +154,7 @@ const CardFace: FC<Props> = ({
                             {/* Registered cardholder name — PII, kept out of session
                              * recordings like the other revealed fields. */}
                             {revealed.cardholderName && (
-                                <span className="ph-no-capture mt-1 text-sm font-bold tracking-wide uppercase">
+                                <span className="ph-no-capture mt-1 text-body-s font-bold tracking-wide uppercase">
                                     {revealed.cardholderName}
                                 </span>
                             )}
@@ -200,15 +200,15 @@ const CardFace: FC<Props> = ({
                         </>
                     ) : loading ? (
                         <>
-                            <div className="h-7 w-56 animate-pulse rounded bg-white/40" />
-                            <div className="mt-2 flex items-end gap-6 text-xs">
+                            <div className="h-7 w-56 animate-pulse rounded bg-background-default/40" />
+                            <div className="mt-2 flex items-end gap-6 text-body-xs">
                                 <div>
                                     {/* label dropped to match the revealed layout — no height jump on reveal */}
-                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-white/40" />
+                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-background-default/40" />
                                 </div>
                                 <div>
                                     {/* label dropped to match the revealed layout */}
-                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-white/40" />
+                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-background-default/40" />
                                 </div>
                             </div>
                         </>
@@ -217,7 +217,7 @@ const CardFace: FC<Props> = ({
                             {/* Retry eye inline with the message — hand is still present
                              * in the error state, so keep the control in the left zone. */}
                             <div className="flex items-start gap-3">
-                                <span className="text-sm leading-snug font-bold">{error}</span>
+                                <span className="text-body-s leading-snug font-bold">{error}</span>
                                 {onToggleReveal && (
                                     <button
                                         type="button"
@@ -231,7 +231,7 @@ const CardFace: FC<Props> = ({
                             </div>
                             {isVirtual && (
                                 <div className="mt-1">
-                                    <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
+                                    <span className="rounded-full bg-background-default px-4 py-1.5 text-body-s font-semibold">
                                         {t('virtual')}
                                     </span>
                                 </div>
@@ -243,7 +243,7 @@ const CardFace: FC<Props> = ({
                              * is where the hand's arm rests when masked, so the reveal
                              * toggle lives in the hand-free left zone instead. */}
                             <div className="flex items-center gap-3">
-                                <span className="text-2xl font-extrabold tracking-wider">•••• {last4}</span>
+                                <span className="text-heading-s tracking-wider">•••• {last4}</span>
                                 {onToggleReveal && (
                                     <button
                                         type="button"
@@ -257,7 +257,7 @@ const CardFace: FC<Props> = ({
                             </div>
                             {isVirtual && (
                                 <div className="mt-1">
-                                    <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
+                                    <span className="rounded-full bg-background-default px-4 py-1.5 text-body-s font-semibold">
                                         {t('virtual')}
                                     </span>
                                 </div>

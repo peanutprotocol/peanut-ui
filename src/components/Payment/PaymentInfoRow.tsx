@@ -4,6 +4,12 @@ import Loading from '../Global/Loading'
 import CopyToClipboard from '../Global/CopyToClipboard'
 import { Tooltip } from '../Tooltip'
 
+/**
+ * Label/value/copy row for receipts and confirm screens. Rows stack inside a
+ * Card, so this does NOT render ListItem (a bordered Card row) — nesting
+ * would double borders. Styling is token-only; a receipt-row board decision
+ * is flagged for design.
+ */
 export interface PaymentInfoRowProps {
     label: string | React.ReactNode
     value: number | string | React.ReactNode
@@ -28,15 +34,15 @@ export const PaymentInfoRow = ({
     return (
         <div
             className={twMerge(
-                'flex w-full flex-col justify-between gap-1 border-b border-dashed border-black py-3 text-h8',
+                'flex w-full flex-col justify-between gap-1 border-b border-dashed border-border-default py-3',
                 hideBottomBorder && 'border-none',
-                onClick && 'cursor-pointer transition-colors hover:bg-grey-2/30 active:bg-grey-2/50'
+                onClick && 'cursor-pointer transition-colors duration-instant active:bg-background-disabled'
             )}
             onClick={onClick}
             translate="no"
         >
             <div className="relative flex items-center">
-                <label className={twMerge('text-xs font-semibold')}>{label}</label>
+                <label className="text-body-xs font-semibold text-foreground-primary">{label}</label>
                 {moreInfoText && (
                     <div className="relative z-20 flex items-center justify-center px-2">
                         <Tooltip content={moreInfoText} position="right">
@@ -54,7 +60,7 @@ export const PaymentInfoRow = ({
                         the row to the token's full width and escape the layout.
                         break-word only activates when a word can't fit, so
                         normal values render unchanged. */}
-                    <div className={twMerge('flex w-fit min-w-0 justify-end text-sm font-bold break-words')}>
+                    <div className="flex w-fit min-w-0 justify-end text-body-s font-bold break-words">
                         <span className="min-w-0">{value}</span>
                     </div>
                     {allowCopy && typeof value === 'string' && (

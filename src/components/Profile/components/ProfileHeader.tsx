@@ -71,7 +71,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         name={name}
                         username={username}
                         isVerified={isVerified}
-                        className="text-2xl font-bold"
+                        className="text-heading-s text-foreground-primary"
                         iconSize={20}
                         haveSentMoneyToUser={haveSentMoneyToUser}
                         isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
@@ -90,7 +90,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         onSuccess={() => posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)}
                         className="h-10 w-fit rounded-full py-3 pr-4 pl-6"
                     >
-                        <div className="text-sm font-semibold">{profileUrl.replace('https://', '')}</div>
+                        <div className="text-body-s font-semibold">{profileUrl.replace('https://', '')}</div>
                         <div className="-ml-2">
                             <Icon name="share" size={16} fill="black" />
                         </div>

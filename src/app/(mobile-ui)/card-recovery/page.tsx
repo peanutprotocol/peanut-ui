@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 import type { Hex } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -111,22 +112,21 @@ export default function CardRecoveryPage() {
         <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title={t('navTitle')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
-                {error && <ErrorAlert description={error} />}
+                {error && <Notification priority="error">{error}</Notification>}
 
                 {step === 'done' && txHash ? (
                     <Card className="flex flex-col gap-3 p-6">
                         <h2 className="text-h7 font-bold">{t('doneTitle')}</h2>
-                        <p className="text-sm text-grey-1">
+                        <p className="text-body-s text-foreground-secondary">
                             {t('doneBody', { amount: `$${formatCents(recoveredCents ?? preview!.amountCents)}` })}
                         </p>
-                        <a
-                            className="text-black underline"
-                            target="_blank"
-                            rel="noreferrer"
+                        <LinkButton
                             href={`${getExplorerUrl(String(PEANUT_WALLET_CHAIN.id)) ?? ''}/tx/${txHash}`}
+                            external
+                            className="self-start"
                         >
                             {t('viewTransaction')}
-                        </a>
+                        </LinkButton>
                     </Card>
                 ) : (
                     preview && (
@@ -135,7 +135,7 @@ export default function CardRecoveryPage() {
                                 <h2 className="text-h7 font-bold">
                                     {preview.hasRecoverableCard ? t('title') : t('noCardOnFile')}
                                 </h2>
-                                <p className="text-sm text-grey-1">{t('description')}</p>
+                                <p className="text-body-s text-foreground-secondary">{t('description')}</p>
 
                                 <Row label={t('recoverable')} value={`$${formatCents(preview.amountCents)} USDC`} />
                                 <Row label={t('destination')} value={shorten(preview.recipient)} />
@@ -178,8 +178,8 @@ export default function CardRecoveryPage() {
 function Row({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex items-center justify-between">
-            <span className="text-sm text-grey-1">{label}</span>
-            <span className="text-sm font-medium text-n-1">{value}</span>
+            <span className="text-body-s text-foreground-secondary">{label}</span>
+            <span className="text-body-s font-medium text-foreground-primary">{value}</span>
         </div>
     )
 }

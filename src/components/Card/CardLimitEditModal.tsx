@@ -107,24 +107,24 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
             title={t('editTitle')}
             content={
                 <div className="flex w-full flex-col gap-2 text-left">
-                    <label htmlFor="card-limit-input" className="text-sm font-bold">
+                    <label htmlFor="card-limit-input" className="text-body-s font-bold">
                         {label}
                     </label>
-                    <div className="flex items-center gap-2 rounded-sm border border-n-1 bg-white px-3 py-2">
-                        <span className="text-grey-1">$</span>
+                    <div className="flex items-center gap-2 rounded-sm border border-border-default bg-background-default px-3 py-2">
+                        <span className="text-foreground-secondary">$</span>
                         <input
                             id="card-limit-input"
                             type="number"
                             inputMode="decimal"
                             value={value}
                             onChange={(e) => setValue(e.target.value)}
-                            className="w-full bg-transparent text-base focus:outline-none"
+                            className="w-full bg-transparent text-body-m focus:outline-none"
                             min={0}
                             step="0.01"
                             disabled={saving}
                         />
                     </div>
-                    {error && <p className="text-sm text-red">{error}</p>}
+                    {error && <p className="text-body-s text-foreground-error">{error}</p>}
                 </div>
             }
             ctas={[

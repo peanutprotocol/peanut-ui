@@ -447,12 +447,12 @@ export const Claim = ({}) => {
                 <div className="flex flex-col items-center gap-4 px-4">
                     <Loading variant="mascot" />
                     {isSendLinkLoading && failureCount > 0 && (
-                        <p className="text-gray-600 text-center text-sm">
+                        <p className="text-center text-body-s text-foreground-secondary">
                             {failureCount < 3 ? t('loading.loadingYourLink') : t('loading.takingLonger')}
                         </p>
                     )}
                     {isSendLinkLoading && failureCount >= 3 && (
-                        <p className="text-gray-500 text-center text-xs">
+                        <p className="text-center text-body-xs text-foreground-secondary">
                             {t('loading.stillTrying', { attempt: failureCount + 1, total: 5 })}
                         </p>
                     )}

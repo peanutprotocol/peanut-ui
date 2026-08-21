@@ -2,10 +2,10 @@
 
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import StatusPill, { type StatusPillType } from '@/components/Global/StatusPill'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -30,7 +30,7 @@ export default function FeedbackPage() {
         <DocPage>
             <DocHeader
                 title="Feedback"
-                description="Status indicators (StatusBadge, StatusPill), error messaging (ErrorAlert), and empty states (EmptyState, NoDataEmptyState)."
+                description="Status indicators (StatusBadge, StatusPill), inline errors (Notification priority=error), and empty states (EmptyState, NoDataEmptyState)."
                 status="production"
             />
 
@@ -142,48 +142,27 @@ export default function FeedbackPage() {
                 </DocSection.Code>
             </DocSection>
 
-            {/* ErrorAlert */}
-            <DocSection title="ErrorAlert">
+            {/* Inline errors */}
+            <DocSection title="Inline errors">
                 <DocSection.Content>
                     <p className="text-sm text-grey-1">
-                        Inline error message with icon. Red text, left-aligned icon + description.
+                        Inline errors render the Notification primitive with priority=&quot;error&quot; (ErrorAlert was
+                        deleted). See the Notification page under primitives for all variants.
                     </p>
 
                     <div className="space-y-2 rounded-sm border border-n-1 p-3">
-                        <ErrorAlert description="Insufficient balance to complete this transaction." />
+                        <Notification priority="error">Insufficient balance to complete this transaction.</Notification>
                     </div>
-
-                    <PropsTable
-                        rows={[
-                            {
-                                name: 'description',
-                                type: 'string',
-                                default: '-',
-                                required: true,
-                                description: 'Error message text',
-                            },
-                            {
-                                name: 'className',
-                                type: 'string',
-                                default: "''",
-                                description: 'Override container styles',
-                            },
-                            { name: 'iconSize', type: 'number', default: '16' },
-                            {
-                                name: 'iconClassName',
-                                type: 'string',
-                                default: "''",
-                                description: 'Override icon styles',
-                            },
-                        ]}
-                    />
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Import" code={`import ErrorAlert from '@/components/Global/ErrorAlert'`} />
+                    <CodeBlock
+                        label="Import"
+                        code={`import { Notification } from '@/components/0_Bruddle/Notification'`}
+                    />
 
                     <CodeBlock
                         label="Usage"
-                        code={`<ErrorAlert description="Something went wrong. Please try again." />`}
+                        code={`<Notification priority="error">Something went wrong. Please try again.</Notification>`}
                     />
                 </DocSection.Code>
             </DocSection>

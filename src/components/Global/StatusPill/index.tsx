@@ -39,7 +39,8 @@ const StatusPill = ({ status }: StatusPillProps) => {
     return (
         <div
             className={twMerge(
-                'flex items-center justify-center rounded-round p-[3px] text-foreground-primary',
+                // badge board 17479:137743: icon renders in foreground/over-color-secondary
+                'flex items-center justify-center rounded-round p-[3px] text-foreground-over-color-secondary',
                 bgClasses[status]
             )}
         >

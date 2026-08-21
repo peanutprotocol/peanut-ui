@@ -1,5 +1,5 @@
 'use client'
-import { ActionListCard } from '../ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '../Global/Card/card.utils'
 
 /**
@@ -11,12 +11,12 @@ export const CountryListSkeleton = () => {
             {Array.from({ length: 10 }).map((_, index) => {
                 const position = getCardPosition(index, 5)
                 return (
-                    <ActionListCard
+                    <ListItem
                         key={index}
                         title={<div className="bg-gray-200 h-4 w-24 animate-pulse rounded" />}
                         position={position}
-                        onClick={() => {}}
-                        leftIcon={<div className="bg-gray-200 h-8 w-8 animate-pulse rounded-full" />}
+                        chevron
+                        leading={<div className="bg-gray-200 h-8 w-8 animate-pulse rounded-full" />}
                     />
                 )
             })}

@@ -344,9 +344,16 @@ const SupportDrawer = () => {
                         )}
                         {isCrispFailed && (
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background px-8 text-center">
-                                <p className="text-base font-bold text-n-1">{t('supportDrawer.chatLoadFailed')}</p>
-                                <p className="text-sm text-grey-1">{t('supportDrawer.chatLoadFailedDescription')}</p>
-                                <a href={`mailto:${SUPPORT_EMAIL}`} className="text-black underline">
+                                <p className="text-body-m font-bold text-foreground-primary">
+                                    {t('supportDrawer.chatLoadFailed')}
+                                </p>
+                                <p className="text-body-s text-foreground-secondary">
+                                    {t('supportDrawer.chatLoadFailedDescription')}
+                                </p>
+                                <a
+                                    href={`mailto:${SUPPORT_EMAIL}`}
+                                    className="text-body-m text-foreground-primary underline"
+                                >
                                     {SUPPORT_EMAIL}
                                 </a>
                                 <Button variant="stroke" className="w-full" onClick={handleRetry}>

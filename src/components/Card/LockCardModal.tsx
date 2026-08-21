@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import ActionModal from '@/components/Global/ActionModal'
-import SlideToAction from '@/components/Card/SlideToAction'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -128,17 +128,17 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             preventClose={phase === 'loading'}
             hideModalCloseButton={phase === 'loading'}
             icon="lock"
-            iconContainerClassName="bg-yellow-1"
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t(isSuccess ? copyKeys.success : copyKeys.title)}
             description={t(isSuccess ? copyKeys.successBody : copyKeys.body)}
             content={
                 isSuccess ? undefined : (
                     <>
-                        {phase === 'error' && error && <p className="text-sm text-red">{error}</p>}
+                        {phase === 'error' && error && <p className="text-body-s text-foreground-error">{error}</p>}
                         {mode === 'lock' && (
-                            <SlideToAction
+                            <SlideToConfirm
                                 label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
-                                onComplete={run}
+                                onConfirm={run}
                                 disabled={phase === 'loading'}
                             />
                         )}

@@ -39,7 +39,7 @@ export const LanguageView = () => {
                         className="cursor-pointer p-4 active:bg-grey-4"
                     >
                         <div className="flex items-center justify-between py-1">
-                            <span className="text-base font-medium" lang={appLocale}>
+                            <span className="text-body-m text-foreground-primary" lang={appLocale}>
                                 {LOCALE_LABELS[appLocale]}
                             </span>
                             {appLocale === locale && <Icon name="check" size={20} fill="black" />}

@@ -387,9 +387,9 @@ export const CreateRequestLinkView = () => {
                     walletBalance={peanutWalletBalance}
                     disabled={!!requestId}
                     infoContent={
-                        <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-grey-2 p-1.5">
-                            <IconComponent name="info" size={12} className="text-grey-1" />
-                            <p className="text-[10px] font-bold text-grey-1"> {t('leaveEmptyHint')}</p>
+                        <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-background-disabled p-1.5">
+                            <IconComponent name="info" size={12} className="text-foreground-secondary" />
+                            <p className="text-label-m text-foreground-secondary"> {t('leaveEmptyHint')}</p>
                         </div>
                     }
                 />
@@ -429,7 +429,7 @@ export const CreateRequestLinkView = () => {
 
                 {errorState.showError && (
                     <div className="text-start">
-                        <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                        <label className="text-h8 font-normal text-foreground-error">{errorState.errorMessage}</label>
                     </div>
                 )}
             </div>

@@ -235,15 +235,6 @@ jest.mock('@/components/Global/Icons/Icon', () => ({
     Icon: (props: any) => <span data-testid={`icon-${props.name}`} />,
 }))
 
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="error-alert" role="alert">
-            {props.description}
-        </div>
-    ),
-}))
-
 // ---------- context mocks ----------
 
 const mockSetLoadingState = jest.fn()

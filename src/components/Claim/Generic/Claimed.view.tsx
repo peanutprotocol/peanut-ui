@@ -25,11 +25,13 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
                         <Icon name="info" size={16} />
                     </div>
                 </Card.Title>
-                <Card.Description className="mx-auto font-medium text-black">{t('claimed.title')}</Card.Description>
+                <Card.Description className="mx-auto font-medium text-foreground-primary">
+                    {t('claimed.title')}
+                </Card.Description>
             </Card.Header>
 
             <Card.Content className="mx-auto space-y-4 flex flex-col gap-2 pb-8">
-                <p className="text-center text-grey-1">
+                <p className="text-center text-foreground-secondary">
                     {senderUsername
                         ? t.rich('claimed.descriptionWithSender', {
                               amount: String(amount),
@@ -42,7 +44,9 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
                           })}
                 </p>
 
-                {!user && <p className="text-center text-sm text-grey-1">{t('claimed.createWalletHint')}</p>}
+                {!user && (
+                    <p className="text-center text-body-s text-foreground-secondary">{t('claimed.createWalletHint')}</p>
+                )}
 
                 <Button
                     onClick={() => {
@@ -53,7 +57,7 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
                         }
                     }}
                     shadowSize="4"
-                    className="text-sm md:text-base"
+                    className="text-body-s md:text-body-m"
                 >
                     {user ? t('backToHome') : t('claimed.getStarted')}
                 </Button>

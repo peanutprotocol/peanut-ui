@@ -15,9 +15,9 @@ export default function CryptoLimitsSection() {
             <h2 className="font-bold">{t('title')}</h2>
             <Card position="single" className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm">{t('noLimits')}</span>
+                    <span className="text-body-s">{t('noLimits')}</span>
                     <Tooltip content={t('tooltip')} position="top">
-                        <Icon name="info" className="cursor-pointer text-grey-1" size={18} />
+                        <Icon name="info" className="cursor-pointer text-foreground-secondary" size={18} />
                     </Tooltip>
                 </div>
             </Card>

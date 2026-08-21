@@ -40,7 +40,7 @@ import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import ConfirmInviteModal from '../../Global/ConfirmInviteModal'
 import Loading from '../../Global/Loading'
-import { ActionListCard } from '../../ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import SupportCTA from '../../Global/SupportCTA'
 import DEVCONNECT_LOGO from '@/assets/logos/devconnect.svg'
@@ -267,7 +267,7 @@ export default function SendLinkActionList({
             {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
                 <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
-                    <p className="text-center text-sm">{t('actions.invitedBy', { username })}</p>
+                    <p className="text-center text-body-s">{t('actions.invitedBy', { username })}</p>
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
                 </div>
             )}
@@ -361,10 +361,9 @@ const MethodCard = ({
     const t = useTranslations('claim')
     const showSoon = method.soon || soon
     return (
-        <ActionListCard
+        <ListItem
             position="single"
-            description={method.description}
-            descriptionClassName="text-[12px]"
+            body={<div className="text-[12px]">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">
                     {method.title}
@@ -377,8 +376,8 @@ const MethodCard = ({
                 </div>
             }
             onClick={onClick}
-            isDisabled={showSoon || isDisabled}
-            rightContent={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+            disabled={showSoon || isDisabled}
+            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
         />
     )
 }

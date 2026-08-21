@@ -1,9 +1,9 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { Slider } from '@/components/Slider'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
@@ -122,15 +122,15 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
                 </div>
             }
             content={
-                <Slider
-                    onAccepted={() => {
+                <SlideToConfirm
+                    onConfirm={() => {
                         posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
                             modal_type: MODAL_TYPES.BALANCE_WARNING,
                             cta: 'slide_to_continue',
                         })
                         onCloseAction()
                     }}
-                    title={t('balanceWarningModal.slideToContinue')}
+                    label={t('balanceWarningModal.slideToContinue')}
                 />
             }
         />

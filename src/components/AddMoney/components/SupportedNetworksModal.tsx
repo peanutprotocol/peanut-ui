@@ -1,7 +1,7 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import EvmChainChips from './EvmChainChips'
 import { useTranslations } from 'next-intl'
 
@@ -23,7 +23,7 @@ const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProp
                     <div className="flex flex-wrap gap-2">
                         <EvmChainChips />
                     </div>
-                    <InfoCard variant="warning" icon="alert" title={t('warning')} />
+                    <Notification priority="attention">{t('warning')}</Notification>
                 </div>
             }
         />

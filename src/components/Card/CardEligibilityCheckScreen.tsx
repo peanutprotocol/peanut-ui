@@ -56,10 +56,10 @@ const CardEligibilityCheckScreen: FC<Props> = ({ onComplete, onPrev, username })
             <NavHeader title={t('eligibility.navTitle')} onPrev={onPrev} />
 
             <div className="flex flex-col gap-2 text-center">
-                <h1 className="text-2xl font-extrabold text-n-1">
+                <h1 className="text-heading-s text-foreground-primary">
                     {username ? t('eligibility.titleWithUsername', { username }) : t('eligibility.title')}
                 </h1>
-                <p className="text-grey-1">{t('eligibility.description')}</p>
+                <p className="text-foreground-secondary">{t('eligibility.description')}</p>
             </div>
 
             <div className="mx-auto w-full max-w-sm">

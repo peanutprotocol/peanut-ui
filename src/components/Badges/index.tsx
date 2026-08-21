@@ -12,7 +12,7 @@ import { BadgeDetailModal } from './BadgeDetailModal'
 import { useMemo, useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useUserStore } from '@/redux/hooks'
-import { ActionListCard } from '../ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useAuth } from '@/context/authContext'
 import { BadgeImage } from './BadgeImage'
 
@@ -64,18 +64,19 @@ export const Badges = () => {
             <div className="space-y-4">
                 <div>
                     {badges.map((badge, idx) => (
-                        <ActionListCard
+                        <ListItem
                             key={idx}
                             title={badge.title}
-                            rightContent={<div className="hidden" />}
-                            description={badge.description}
-                            descriptionClassName="truncate"
+                            // string body gets the native one-line truncation (was
+                            // descriptionClassName="truncate"); no chevron (the old
+                            // hidden-div hack suppressed it)
+                            body={badge.description}
                             onClick={() => {
                                 setSelectedBadge(badge)
                                 setIsBadgeModalOpen(true)
                             }}
                             position={getCardPosition(idx, badges.length)}
-                            leftIcon={
+                            leading={
                                 <BadgeImage
                                     src={badge.logo}
                                     alt={badge.title}

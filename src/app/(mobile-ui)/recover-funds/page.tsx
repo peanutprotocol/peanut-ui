@@ -1,6 +1,7 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces/interfaces'
@@ -13,7 +14,6 @@ import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName, getTo
 import { type RecipientState } from '@/context/WithdrawFlowContext'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
@@ -181,9 +181,9 @@ export default function RecoverFundsPage() {
         setIsSigning(false)
     }, [selectedBalance, recipient.address, sendTransactions, peanutAddress, t])
 
-    if (!peanutAddress) return null
-
-    if (fetchingBalances) {
+    // wallet address not resolved yet (kernel still initializing) — show the
+    // loader instead of a blank page; balances start fetching once it lands
+    if (!peanutAddress || fetchingBalances) {
         return <Loading variant="mascot" />
     }
 
@@ -214,10 +214,14 @@ export default function RecoverFundsPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
-                                {t('youWillReceiveTo')} <AddressLink address={recipient.address} />
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
+                                {t('youWillReceiveTo')}{' '}
+                                <AddressLink
+                                    address={recipient.address}
+                                    className="text-sm font-normal text-foreground-secondary"
+                                />
                             </h1>
-                            <h2 className="text-2xl font-extrabold">
+                            <h2 className="text-heading-s">
                                 {t('amountInChain', {
                                     amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
                                     symbol: selectedBalance!.symbol,
@@ -265,10 +269,14 @@ export default function RecoverFundsPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
-                                {t('sentTo')} <AddressLink address={recipient.address} />
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
+                                {t('sentTo')}{' '}
+                                <AddressLink
+                                    address={recipient.address}
+                                    className="text-sm font-normal text-foreground-secondary"
+                                />
                             </h1>
-                            <h2 className="text-2xl font-extrabold">
+                            <h2 className="text-heading-s">
                                 {t('amountInChain', {
                                     amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
                                     symbol: selectedBalance!.symbol,
@@ -345,7 +353,7 @@ export default function RecoverFundsPage() {
                         ))
                     ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                            <div className="text-center text-xl font-bold text-grey-1">{t('noTokens')}</div>
+                            <div className="text-center text-heading-xs text-foreground-secondary">{t('noTokens')}</div>
                         </div>
                     )}
                 </ScrollableList>
@@ -376,7 +384,7 @@ export default function RecoverFundsPage() {
                 >
                     {t('review')}
                 </Button>
-                {!!errorMessage && <ErrorAlert description={errorMessage} />}
+                {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
             </div>
         </div>
     )

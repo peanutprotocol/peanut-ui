@@ -16,12 +16,12 @@ export default function FiatLimitsLockedCard() {
             <h2 className="font-bold">{t('title')}</h2>
             <Card position="single" className="p-0">
                 <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-primary-1">
+                    <div className="flex size-10 items-center justify-center rounded-full bg-action-primary">
                         <Icon name="globe-lock" size={20} />
                     </div>
                     <div className="text-center">
                         <div className="font-bold">{t('locked')}</div>
-                        <div className="mt-1 text-sm text-grey-1">{t('description')}</div>
+                        <div className="mt-1 text-body-s text-foreground-secondary">{t('description')}</div>
                     </div>
                     <Button
                         variant="purple"

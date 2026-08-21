@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import ActionModal from '@/components/Global/ActionModal'
-import InfoCard from '@/components/Global/InfoCard'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { PASSKEY_TROUBLESHOOTING_STEPS, PASSKEY_WARNINGS, WebAuthnErrorName } from '@/utils/webauthn.utils'
 import { useTranslations } from 'next-intl'
 
@@ -74,7 +75,7 @@ export const PasskeySetupHelpModal = ({
             onClose={onClose}
             icon="alert"
             iconContainerClassName="bg-yellow-400"
-            iconProps={{ className: 'text-black' }}
+            iconProps={{ className: 'text-foreground-primary' }}
             title={title}
             footer={
                 <Button icon="retry" shadowSize="4" onClick={onRetry}>
@@ -83,27 +84,27 @@ export const PasskeySetupHelpModal = ({
             }
             content={
                 <div className="flex w-full flex-col gap-4">
-                    <h2 className="mr-auto text-sm text-grey-1">{description}</h2>
+                    <h2 className="mr-auto text-body-s text-foreground-secondary">{description}</h2>
 
                     <h3 className="mr-auto font-bold">{t('tryTheseFixes')}</h3>
-                    <InfoCard
-                        variant="info"
-                        itemIcon="check"
-                        itemIconClassName="text-secondary-7"
-                        items={troubleshootingSteps}
-                    />
+                    <Notification priority="info" className="w-full">
+                        <div className="flex flex-col gap-1">
+                            {troubleshootingSteps.map((step, index) => (
+                                <span key={index} className="flex items-center gap-2">
+                                    <Icon name="check" size={16} className="shrink-0" />
+                                    {step}
+                                </span>
+                            ))}
+                        </div>
+                    </Notification>
 
                     {warning && (
-                        <InfoCard
-                            variant="error"
-                            icon="alert"
-                            iconClassName="text-error-5"
-                            title={t('importantNote')}
-                            description={warning}
-                        />
+                        <Notification priority="error" title={t('importantNote')}>
+                            {warning}
+                        </Notification>
                     )}
 
-                    <div className="rounded-lg border border-grey-2 bg-grey-2/5 p-3 text-xs text-grey-1">
+                    <div className="rounded-sm border border-border-disabled bg-background-disabled/5 p-3 text-body-xs text-foreground-secondary">
                         <p className="mb-1 font-bold">{t('stillHavingIssues')}</p>
                         <p>
                             {t.rich('contactSupport', {

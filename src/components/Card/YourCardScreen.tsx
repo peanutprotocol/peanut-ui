@@ -8,7 +8,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import { Icon } from '@/components/Global/Icons/Icon'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
@@ -70,13 +70,15 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
             />
 
             {showAutoRenew && (
-                <div className="flex items-start gap-3 rounded-sm border border-n-1 bg-white p-4">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-yellow-1">
+                <div className="flex items-start gap-3 rounded-sm border border-border-default bg-background-default p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
                         <Icon name="credit-card" size={20} />
                     </div>
                     <div className="flex-1">
-                        <div className="font-bold text-n-1">{t('autoRenewTitle')}</div>
-                        <div className="text-sm text-grey-1">{t('autoRenewBody', { days: daysLeft })}</div>
+                        <div className="font-bold text-foreground-primary">{t('autoRenewTitle')}</div>
+                        <div className="text-body-s text-foreground-secondary">
+                            {t('autoRenewBody', { days: daysLeft })}
+                        </div>
                     </div>
                     <button
                         type="button"
@@ -90,23 +92,20 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
             )}
 
             {balanceDueCents > 0 && (
-                <InfoCard
-                    variant="warning"
-                    icon="credit-card"
+                <Notification
+                    priority="attention"
                     title={t('balanceDueTitle', { amount: `$${(balanceDueCents / 100).toFixed(2)}` })}
-                    description={t('balanceDueBody')}
-                />
+                >
+                    {t('balanceDueBody')}
+                </Notification>
             )}
 
-            <InfoCard
-                variant="info"
-                icon="credit-card"
-                title={t('payAsCreditTitle')}
-                description={t('payAsCreditBody')}
-            />
+            <Notification priority="info" title={t('payAsCreditTitle')}>
+                {t('payAsCreditBody')}
+            </Notification>
 
             <div className="flex flex-col gap-2">
-                <h2 className="text-base font-bold text-n-1">{t('managementTitle')}</h2>
+                <h2 className="text-heading-card text-foreground-primary">{t('managementTitle')}</h2>
                 <div>
                     <ProfileMenuItem icon="more-horizontal" label={t('pin')} href="/card/pin" position="first" />
                     <ProfileMenuItem icon="meter" label={t('spendingLimit')} href="/card/limit" position="middle" />
@@ -123,7 +122,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
             </div>
 
             <div className="flex flex-col gap-2">
-                <h2 className="text-base font-bold text-n-1">{t('redZone')}</h2>
+                <h2 className="text-heading-card text-foreground-primary">{t('redZone')}</h2>
                 <div>
                     <ProfileMenuItem
                         icon="lock"

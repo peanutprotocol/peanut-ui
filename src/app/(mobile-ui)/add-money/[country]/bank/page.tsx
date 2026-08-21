@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -23,7 +23,6 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
-import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
@@ -405,7 +404,7 @@ function BridgeBankOnrampPage() {
             <div className="space-y-8 flex flex-col justify-start">
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
-                    <div className="text-sm font-bold">{t('howMuchToAdd')}</div>
+                    <div className="text-body-s font-bold">{t('howMuchToAdd')}</div>
                     <AmountInput
                         initialAmount={rawTokenAmount}
                         setPrimaryAmount={handleTokenAmountChange}
@@ -436,17 +435,14 @@ function BridgeBankOnrampPage() {
                         })()}
 
                     {!limitsValidation.isBlocking && (
-                        <InfoCard variant="warning" icon="alert" description={t('amountMustMatchBank')} />
+                        <Notification priority="attention">{t('amountMustMatchBank')}</Notification>
                     )}
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {!limitsValidation.isBlocking && isNonEuroSepa && !isUK && (
-                        <InfoCard
-                            variant="info"
-                            icon="info"
-                            title={t('eurAccountsOnlyTitle')}
-                            description={t('eurAccountsOnlyDescription')}
-                        />
+                        <Notification priority="info" title={t('eurAccountsOnlyTitle')}>
+                            {t('eurAccountsOnlyDescription')}
+                        </Notification>
                     )}
                     <Button
                         variant="purple"
@@ -469,9 +465,11 @@ function BridgeBankOnrampPage() {
                     </Button>
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
-                        <ErrorAlert description={error.errorMessage} />
+                        <Notification priority="error">{error.errorMessage}</Notification>
                     )}
-                    {localCurrency !== 'USD' && isRateError && <ErrorAlert description={t('errors.rateUnavailable')} />}
+                    {localCurrency !== 'USD' && isRateError && (
+                        <Notification priority="error">{t('errors.rateUnavailable')}</Notification>
+                    )}
                 </div>
 
                 <OnrampConfirmationModal

@@ -154,8 +154,9 @@ jest.mock('@/components/Global/Loading', () => ({
         ),
 }))
 
-jest.mock('@/components/Slider', () => ({
-    Slider: () => <div data-testid="slider" />,
+jest.mock('@/components/0_Bruddle/SlideToConfirm', () => ({
+    __esModule: true,
+    default: () => <div data-testid="slider" />,
 }))
 
 // ---------- flow hooks ----------

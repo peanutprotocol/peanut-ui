@@ -20,7 +20,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import IconStack from '@/components/Global/IconStack'
 import Loading from '@/components/Global/Loading'
 import ActionModal from '@/components/Global/ActionModal'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
@@ -181,11 +181,10 @@ export function RequestPotActionList({
                     }
 
                     return (
-                        <ActionListCard
+                        <ListItem
                             key={method.id}
                             position="single"
-                            description={method.description}
-                            descriptionClassName="text-[12px]"
+                            body={<div className="text-[12px]">{method.description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
                                     {method.title}
@@ -198,8 +197,8 @@ export function RequestPotActionList({
                                 </div>
                             }
                             onClick={() => handleMethodClick(method)}
-                            isDisabled={method.soon || !isAmountEntered}
-                            rightContent={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+                            disabled={method.soon || !isAmountEntered}
+                            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
                         />
                     )
                 })}

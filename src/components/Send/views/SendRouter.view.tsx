@@ -8,7 +8,7 @@ import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 import Divider from '@/components/0_Bruddle/Divider'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import IconStack from '@/components/Global/IconStack'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import Image from 'next/image'
@@ -264,7 +264,7 @@ export const SendRouterView = () => {
         <div className="space-y-8">
             <NavHeader title={tNav('send')} onPrev={handlePrev} />
             <div className="space-y-4 w-full">
-                <Card position="single" className="p-4 pb-5">
+                <Card position="single" className="p-4 pb-4">
                     <div className="flex flex-col items-center justify-center gap-4">
                         <div className="space-y-2">
                             <div className="mx-auto w-fit rounded-full bg-primary-1 p-2">
@@ -308,15 +308,14 @@ export const SendRouterView = () => {
                         }
 
                         return (
-                            <ActionListCard
+                            <ListItem
                                 key={option.id}
-                                leftIcon={option.identifierIcon}
+                                leading={option.identifierIcon}
                                 position="single"
                                 title={option.title}
-                                description={option.description}
-                                descriptionClassName="text-[12px]"
+                                body={<div className="text-[12px]">{option.description}</div>}
                                 onClick={() => handleMethodClick(option.id)}
-                                rightContent={rightContent}
+                                trailing={rightContent}
                             />
                         )
                     })}

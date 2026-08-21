@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { serverFetch } from '@/utils/api-fetch'
@@ -9,7 +10,6 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 import Loading from '@/components/Global/Loading'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { saveRedirectUrl, generateInviteCodeLink, sanitizeRedirectURL } from '@/utils/general.utils'
 import { getShakeClass } from '@/utils/perk.utils'
@@ -163,13 +163,13 @@ export default function RedirectQrClaimPage() {
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="space-y-4 p-6">
                         <div className="flex items-center justify-center">
-                            <div className="bg-red-100 flex h-16 w-16 items-center justify-center rounded-full">
-                                <Icon name="cancel" size={32} className="text-red-600" />
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-background-badge-error">
+                                <Icon name="cancel" size={32} className="text-foreground-error" />
                             </div>
                         </div>
                         <div className="space-y-2 text-center">
-                            <h1 className="text-2xl font-extrabold">{t('claim.unavailableTitle')}</h1>
-                            <p className="text-base text-grey-1">
+                            <h1 className="text-heading-s">{t('claim.unavailableTitle')}</h1>
+                            <p className="text-body-m text-foreground-secondary">
                                 {redirectQrData?.claimed ? t('claim.alreadyClaimed') : t('claim.notAvailable')}
                             </p>
                         </div>
@@ -194,16 +194,16 @@ export default function RedirectQrClaimPage() {
                         </div>
                     </div>
                     <div className="space-y-2 text-center">
-                        <h1 className="text-2xl font-extrabold">{t('claim.inviteQrTitle')}</h1>
-                        <p className="text-base text-grey-1">{t('claim.inviteQrDescription')}</p>
+                        <h1 className="text-heading-s">{t('claim.inviteQrTitle')}</h1>
+                        <p className="text-body-m text-foreground-secondary">{t('claim.inviteQrDescription')}</p>
                     </div>
                 </Card>
 
                 {/* Important note */}
-                <Card className="border-2 border-secondary-1 bg-secondary-1/10 p-4">
+                <Card className="border-2 border-action-secondary bg-action-secondary/10 p-4">
                     <div className="flex gap-3">
-                        <Icon name="info" size={20} className="flex-shrink-0 text-secondary-1" />
-                        <p className="text-sm font-medium">
+                        <Icon name="info" size={20} className="flex-shrink-0 text-action-secondary" />
+                        <p className="text-body-s font-medium">
                             {t.rich('claim.permanentNote', { strong: (chunks) => <strong>{chunks}</strong> })}
                         </p>
                     </div>
@@ -220,7 +220,7 @@ export default function RedirectQrClaimPage() {
                     {isLoading ? t('claim.claiming') : t('claim.holdToClaim')}
                 </HoldToClaimButton>
 
-                {error && <ErrorAlert description={error} />}
+                {error && <Notification priority="error">{error}</Notification>}
             </div>
         </div>
     )

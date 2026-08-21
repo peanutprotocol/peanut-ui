@@ -18,6 +18,7 @@ import { AppIntlProvider } from '@/i18n/app/AppIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
+import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
 import { useOtaUpdates } from '@/hooks/useOtaUpdates'
@@ -35,6 +36,14 @@ const HarnessBootstrap = HARNESS_ENABLED
           ssr: false,
       })
     : null
+
+// /dev/devices viewport harness: every pane runs this agent so the panes mirror
+// each other's route, scroll, input and clicks. Same build-time gate as the
+// page, so prod folds it to dead code. No-ops outside a pane, so a normal tab
+// is unaffected.
+if (DEV_TOOLS_ENABLED && typeof window !== 'undefined') {
+    import('@/dev/devsync-agent').then((m) => m.initDevsyncAgent())
+}
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)

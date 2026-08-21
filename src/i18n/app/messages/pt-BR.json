@@ -54,7 +54,8 @@
             "custom": "Personalizado",
             "unknown": "Desconhecido"
         },
-        "exchangeRate": "Taxa de câmbio"
+        "exchangeRate": "Taxa de câmbio",
+        "slideToProceed": "Deslize para continuar"
     },
     "navigation": {
         "home": "Início",
@@ -75,7 +76,8 @@
         "receipt": "Recibo",
         "supportUnread": "Nova resposta do suporte",
         "card": "Cartão",
-        "scanQr": "Escanear QR"
+        "scanQr": "Escanear QR",
+        "settings": "Configurações"
     },
     "home": {
         "rewards": "Recompensas",
@@ -2944,12 +2946,6 @@
             "contributed": "{amount} contribuído",
             "remaining": "{amount} restante"
         },
-        "routeExpiryTimer": {
-            "findingBestRate": "Buscando a melhor taxa...",
-            "noQuote": "Nenhuma cotação disponível",
-            "quoteExpired": "A cotação expirou",
-            "priceLocked": "Preço garantido por {time}"
-        },
         "mantecaMaintenance": {
             "title": "Serviço temporariamente indisponível",
             "description": "Estamos com problemas nos {action, select, deposits {depósitos} withdrawals {saques} other {transferências}} por causa de uma falha de um provedor externo. Estamos trabalhando para restabelecer o serviço o quanto antes.",
@@ -3009,10 +3005,8 @@
             "payWhatYouWant": "Pague quanto quiser",
             "sendExactAmount": "Envie o valor exato!"
         },
-        "betaBanner": "O Peanut está em beta! Obrigado por ser um usuário inicial, compartilhe sua opinião aqui",
         "demoBanner": "Modo demo — você está testando o Peanut com uma carteira simulada. Saldos e transações não são reais.",
         "rainCooldownPill": "Resfriamento do cartão",
-        "betaBannerThumbsUpAlt": "Joinha",
         "easterEggImageAlt": "Ilustração de easter egg",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",

@@ -54,7 +54,8 @@
             "custom": "Custom",
             "unknown": "Unknown"
         },
-        "exchangeRate": "Exchange rate"
+        "exchangeRate": "Exchange rate",
+        "slideToProceed": "Slide to Proceed"
     },
     "navigation": {
         "home": "Home",
@@ -75,7 +76,8 @@
         "receipt": "Receipt",
         "supportUnread": "New support reply",
         "card": "Card",
-        "scanQr": "Scan QR"
+        "scanQr": "Scan QR",
+        "settings": "Settings"
     },
     "home": {
         "rewards": "Rewards",
@@ -2944,12 +2946,6 @@
             "contributed": "{amount} contributed",
             "remaining": "{amount} remaining"
         },
-        "routeExpiryTimer": {
-            "findingBestRate": "Finding best rate...",
-            "noQuote": "No quote available",
-            "quoteExpired": "Quote expired",
-            "priceLocked": "Price locked for {time}"
-        },
         "mantecaMaintenance": {
             "title": "Service Temporarily Unavailable",
             "description": "We're experiencing issues with {action, select, deposits {deposits} withdrawals {withdrawals} other {transfers}} due to an external provider outage. We're working to restore service as soon as possible.",
@@ -3009,10 +3005,8 @@
             "payWhatYouWant": "Pay what you want",
             "sendExactAmount": "Send the exact amount!"
         },
-        "betaBanner": "Peanut is in beta! Thank you for being an early user, share your feedback here",
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
         "rainCooldownPill": "Card cool-down",
-        "betaBannerThumbsUpAlt": "Thumbs up",
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",

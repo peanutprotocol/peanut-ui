@@ -1,5 +1,6 @@
 'use client'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useForm, Controller, type ControllerRenderProps, type FieldPath, type RegisterOptions } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -17,7 +18,6 @@ import {
     isValidSortCode,
     isValidUKAccountNumber,
 } from '@/utils/bridge-accounts.utils'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
@@ -362,7 +362,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                             : undefined
                                     }
                                     className={twMerge(
-                                        'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
+                                        'h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-body-s',
                                         errors[name] && touchedFields[name] && 'border-error'
                                     )}
                                     onBlur={async (_e) => {
@@ -378,7 +378,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     }}
                                     rightContent={
                                         showCharCount && maxLength ? (
-                                            <span className="text-xs">
+                                            <span className="text-body-xs">
                                                 {field.value?.length ?? 0}/{maxLength}
                                             </span>
                                         ) : undefined
@@ -389,7 +389,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     </div>
                     <div className="mt-2 w-fit text-start">
                         {errors[name] && touchedFields[name] && (
-                            <ErrorAlert description={errors[name]?.message ?? ''} />
+                            <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
                         )}
                     </div>
                 </div>
@@ -416,14 +416,16 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             onBlur={field.onBlur}
                             error={!!(errors[name] && touchedFields[name])}
                             className={twMerge(
-                                'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
+                                'h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-body-s',
                                 errors[name] && touchedFields[name] && 'border-error'
                             )}
                         />
                     )}
                 />
                 <div className="mt-2 w-fit text-start">
-                    {errors[name] && touchedFields[name] && <ErrorAlert description={errors[name]?.message ?? ''} />}
+                    {errors[name] && touchedFields[name] && (
+                        <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
+                    )}
                 </div>
             </div>
         )
@@ -433,7 +435,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         }, [country])
 
         return (
-            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-5">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"
@@ -449,7 +451,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 />
 
                 <div className="space-y-4">
-                    <h3 className="text-base font-bold">{t('heading')}</h3>
+                    <h3 className="text-heading-card text-foreground-primary">{t('heading')}</h3>
                     <form
                         onSubmit={(e) => {
                             e.preventDefault()
@@ -672,9 +674,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             {tWithdraw('review')}
                         </Button>
                         {submissionError ? (
-                            <ErrorAlert description={submissionError} />
+                            <Notification priority="error">{submissionError}</Notification>
                         ) : (
-                            error && <ErrorAlert description={error} />
+                            error && <Notification priority="error">{error}</Notification>
                         )}
                     </form>
                 </div>

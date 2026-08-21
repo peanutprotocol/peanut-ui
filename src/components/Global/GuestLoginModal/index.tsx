@@ -1,8 +1,8 @@
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal from '@/components/Global/ActionModal'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useTranslations } from 'next-intl'
-import Link from 'next/link'
 import { useModalsContext } from '@/context/ModalsContext'
 
 const GuestLoginModal = () => {
@@ -36,9 +36,9 @@ const GuestLoginModal = () => {
                 },
             ]}
             footer={
-                <Link href={'/setup'} className="text-h8 underline" onClick={closeModal}>
+                <LinkButton href="/setup" onClick={closeModal}>
                     {t('guestLoginModal.noWallet')}
-                </Link>
+                </LinkButton>
             }
         />
     )

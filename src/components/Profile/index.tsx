@@ -124,7 +124,9 @@ export const Profile = () => {
                             <div className="flex items-center justify-between py-1">
                                 <div className="flex items-center gap-2">
                                     <Icon name={'eye'} size={20} fill="black" />
-                                    <span className="text-base font-medium">{t('menu.showMyFullName')}</span>
+                                    <span className="text-body-m text-foreground-primary">
+                                        {t('menu.showMyFullName')}
+                                    </span>
                                 </div>
 
                                 <div className="flex items-center">
@@ -163,7 +165,7 @@ export const Profile = () => {
                             disabled={isLoggingOut}
                             variant="primary-soft"
                             shadowSize="4"
-                            className="flex w-full items-center justify-center gap-2 rounded-sm py-3"
+                            className="w-full"
                             onClick={logout}
                         >
                             <Icon name="logout" size={20} fill="black" />

@@ -22,7 +22,7 @@ export const setupSteps: ISetupStep[] = [
         showSkipButton: false,
         imageClassName: 'w-[50%] md:w-[30%] h-auto',
         titleClassName: 'text-2xl',
-        contentClassName: 'flex flex-col items-center justify-center gap-5',
+        contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
     {
         screenId: 'pwa-install',
@@ -40,7 +40,7 @@ export const setupSteps: ISetupStep[] = [
         component: LandingStep,
         showBackButton: false,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-5',
+        contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
     {
         screenId: 'welcome',
@@ -49,7 +49,7 @@ export const setupSteps: ISetupStep[] = [
         component: JoinWaitlist,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-5',
+        contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
     {
         screenId: 'signup',
@@ -58,7 +58,7 @@ export const setupSteps: ISetupStep[] = [
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
     {
         screenId: 'passkey-permission',
@@ -67,7 +67,7 @@ export const setupSteps: ISetupStep[] = [
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
     {
         screenId: 'sign-test-transaction',
@@ -76,6 +76,6 @@ export const setupSteps: ISetupStep[] = [
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-5',
+        contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
 ]

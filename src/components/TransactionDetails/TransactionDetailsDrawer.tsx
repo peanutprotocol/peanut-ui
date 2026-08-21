@@ -48,7 +48,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             }}
         >
             {/* pb only — the drawer chrome owns the space above (handle 8px top / 24px below, per board) */}
-            <DrawerContent className={`pb-5 ${isModalOpen ? '!z-[10]' : ''}`}>
+            <DrawerContent className={`pb-4 ${isModalOpen ? '!z-[10]' : ''}`}>
                 <DrawerTitle className="sr-only">{t('drawerTitle')}</DrawerTitle>
                 <TransactionDetailsReceipt
                     isLoading={isLoading}
@@ -60,7 +60,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     isModalOpen={isModalOpen}
                     setIsModalOpen={setIsModalOpen}
                     avatarUrl={avatarUrl}
-                    className="px-5"
+                    className="px-4"
                 />
             </DrawerContent>
         </Drawer>

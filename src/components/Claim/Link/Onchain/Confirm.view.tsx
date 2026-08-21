@@ -1,8 +1,8 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -254,7 +254,7 @@ export const ConfirmClaimLinkView = ({
                     {t('receiveNow')}
                 </Button>
 
-                {errorState.showError && <ErrorAlert description={errorState.errorMessage} />}
+                {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
             </div>
         </div>
     )

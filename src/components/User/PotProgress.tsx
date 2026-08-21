@@ -3,15 +3,20 @@ import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import React from 'react'
 import { twMerge } from 'tailwind-merge'
+import ProgressBar, { type ProgressBarMarker } from '@/components/0_Bruddle/ProgressBar'
 import { formatExtendedNumber } from '@/utils/general.utils'
 
-interface ProgressBarProps {
+interface PotProgressProps {
     goal: number
     progress: number
     isClosed: boolean
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) => {
+/**
+ * request-pot goal progress: status text + amount labels + goal/progress markers
+ * over the ProgressBar primitive.
+ */
+const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) => {
     const t = useTranslations('global')
     const isOverGoal = progress > goal && goal > 0
     const isGoalAchieved = progress >= goal && !isOverGoal && goal > 0
@@ -74,15 +79,16 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
         return t('progressBar.belowGoal', { percentage: 100 - percentage })
     }
 
-    const getBackgroundColor = () => {
-        if (!isClosed) return 'bg-grey-2'
+    const getTrackColor = () => {
+        if (isOverGoal) return 'bg-yellow-1'
+        if (!isClosed) return 'bg-background-disabled'
         return isGoalAchieved ? 'bg-success-3' : 'bg-error-4'
     }
 
     const renderStatusText = () => {
         if (!isClosed) return null
         return (
-            <div className="flex items-center gap-1 text-base font-medium">
+            <div className="flex items-center gap-1 text-body-m font-medium">
                 <Image src={COIN_ICON} alt="coin" width={18} height={18} />
                 <p>{getStatusText()}</p>
             </div>
@@ -92,7 +98,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
     const renderLabels = () => {
         if (!isClosed) {
             return (
-                <div className="flex w-full items-center justify-between text-sm">
+                <div className="flex w-full items-center justify-between text-body-s">
                     <p className="text-grey-5">{t('progressBar.contributed', { amount: formatCurrency(progress) })}</p>
                     <p className="text-grey-5">
                         {t('progressBar.remaining', { amount: formatCurrency(Math.max(goal - progress, 0)) })}
@@ -104,10 +110,13 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
         if (isOverGoal) {
             return (
                 <div className="relative flex w-full items-center pb-2">
-                    <p className="absolute -translate-x-1/2 text-sm font-medium" style={{ left: `${goalPercentage}%` }}>
+                    <p
+                        className="absolute -translate-x-1/2 text-body-s font-medium"
+                        style={{ left: `${goalPercentage}%` }}
+                    >
                         100%
                     </p>
-                    <p className="absolute right-0 text-sm font-medium">{formatCurrency(progress)}</p>
+                    <p className="absolute right-0 text-body-s font-medium">{formatCurrency(progress)}</p>
                 </div>
             )
         }
@@ -121,7 +130,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
             <div className="relative flex w-full items-center pb-2">
                 <p
                     className={twMerge(
-                        'absolute text-sm',
+                        'absolute text-body-s',
                         progressPercentage < 10 ? 'left-0' : isTooCloseToGoal ? 'left-0' : '-translate-x-1/2'
                     )}
                     style={progressPercentage < 10 || isTooCloseToGoal ? {} : { left: `${progressPercentage}%` }}
@@ -129,70 +138,34 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
                     {formatCurrency(progress)}
                 </p>
                 <div className="absolute right-0 flex flex-col items-end">
-                    <p className="text-sm">100%</p>
+                    <p className="text-body-s">100%</p>
                 </div>
             </div>
         )
     }
 
-    const renderMarker = (color: string, position: string | number, _isPercentage = true) => {
-        const positionStyle = typeof position === 'string' ? { left: position } : { left: `${position}%` }
-        return (
-            <div
-                className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-all duration-300"
-                style={positionStyle}
-            >
-                <div className={twMerge('h-4 w-[3px] rounded-sm transition-all duration-300', color)} />
-            </div>
-        )
-    }
-
-    const renderGoalMarker = () => {
-        const markerColor = isGoalAchieved ? 'bg-success-3' : 'bg-error-4'
-        const containerClasses = twMerge(
-            'absolute top-1/2 z-10 -translate-y-1/2 transition-all duration-300',
-            isGoalAchieved ? 'right-0' : '-translate-x-1/2'
-        )
-        const containerStyle = isGoalAchieved ? {} : { left: '100%' }
-
-        return (
-            <div className={containerClasses} style={containerStyle}>
-                {isGoalAchieved && <p className="absolute right-0 bottom-full mb-2 text-sm whitespace-nowrap">100%</p>}
-                <div className={twMerge('h-4 w-[3px] rounded-sm transition-all duration-300', markerColor)} />
-            </div>
-        )
-    }
-
-    const renderProgressBar = () => {
-        const barBaseClasses = 'absolute left-0 h-1.5 rounded-full transition-all duration-300 ease-in-out'
+    const getMarkers = (): ProgressBarMarker[] => {
+        if (!isClosed) return []
 
         if (isOverGoal) {
-            return (
-                <>
-                    <div className={twMerge(barBaseClasses, 'w-full bg-yellow-1')} />
-                    <div className={twMerge(barBaseClasses, 'bg-success-3')} style={{ width: `${goalPercentage}%` }} />
-                    {isClosed && (
-                        <>
-                            {renderMarker('bg-success-3', goalPercentage)}
-                            {renderMarker('bg-yellow-1', '100%', false)}
-                        </>
-                    )}
-                </>
-            )
+            return [
+                { position: goalPercentage, className: 'bg-success-3' },
+                { position: 'end', className: 'bg-yellow-1' },
+            ]
         }
 
-        return (
-            <>
-                <div className={twMerge(barBaseClasses, 'w-full', getBackgroundColor())} />
-                <div className={twMerge(barBaseClasses, 'bg-success-3')} style={{ width: `${progressPercentage}%` }} />
-                {isClosed && (
-                    <>
-                        {!isGoalAchieved && renderMarker('bg-success-3', progressPercentage)}
-                        {renderGoalMarker()}
-                    </>
-                )}
-            </>
+        const markers: ProgressBarMarker[] = []
+        if (!isGoalAchieved) markers.push({ position: progressPercentage, className: 'bg-success-3' })
+        markers.push(
+            isGoalAchieved
+                ? {
+                      position: 'end',
+                      className: 'bg-success-3',
+                      label: <p className="absolute right-0 bottom-full mb-2 text-body-s whitespace-nowrap">100%</p>,
+                  }
+                : { position: 100, className: 'bg-error-4' }
         )
+        return markers
     }
 
     return (
@@ -200,9 +173,14 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ goal, progress, isClosed }) =
             {renderStatusText()}
             {renderLabels()}
 
-            <div className="relative flex h-1.5 w-full items-center">{renderProgressBar()}</div>
+            <ProgressBar
+                value={isOverGoal ? goalPercentage : progressPercentage}
+                trackClassName={getTrackColor()}
+                fillClassName="bg-success-3"
+                markers={getMarkers()}
+            />
         </div>
     )
 }
 
-export default ProgressBar
+export default PotProgress

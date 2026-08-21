@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import ActionModal from '@/components/Global/ActionModal'
-import SlideToAction from '@/components/Card/SlideToAction'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -144,22 +144,22 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             preventClose={phase === 'canceling' || phase === 'submitting-feedback'}
             hideModalCloseButton={phase === 'canceling' || phase === 'submitting-feedback'}
             icon={isConfirm ? 'alert' : isFeedback ? 'alert-filled' : undefined}
-            iconContainerClassName="bg-yellow-1"
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t(isConfirm ? 'cancel.title' : isFeedback ? 'cancel.canceledTitle' : 'cancel.thanksTitle')}
             description={t(isConfirm ? 'cancel.body' : isFeedback ? 'cancel.canceledBody' : 'cancel.thanksBody')}
             content={
                 isConfirm ? (
                     <>
-                        {error && <p className="text-sm text-red">{error}</p>}
-                        <SlideToAction
+                        {error && <p className="text-body-s text-foreground-error">{error}</p>}
+                        <SlideToConfirm
                             label={phase === 'canceling' ? t('cancel.canceling') : t('cancel.slideToCancel')}
-                            onComplete={runCancel}
+                            onConfirm={runCancel}
                             disabled={phase === 'canceling'}
                         />
                     </>
                 ) : isFeedback ? (
                     <div className="flex w-full flex-col gap-2 text-left">
-                        <label htmlFor="cancel-feedback" className="text-sm font-bold">
+                        <label htmlFor="cancel-feedback" className="text-body-s font-bold">
                             {t('cancel.feedbackLabel')}
                         </label>
                         <textarea
@@ -169,7 +169,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                             placeholder={t('cancel.feedbackPlaceholder')}
                             rows={4}
                             maxLength={2000}
-                            className="w-full resize-none rounded-sm border border-n-1 bg-white p-3 text-sm focus:outline-none"
+                            className="w-full resize-none rounded-sm border border-border-default bg-background-default p-3 text-body-s focus:outline-none"
                             disabled={phase === 'submitting-feedback'}
                         />
                     </div>

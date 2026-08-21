@@ -1,7 +1,7 @@
 'use client'
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/Global/Drawer'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import EvmChainChips from './EvmChainChips'
 import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
 import { useChainRollout } from '@/hooks/useChainRollout'
@@ -25,19 +25,20 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
         <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DrawerContent className="pt-4">
                 <DrawerHeader className="pt-0 text-center">
-                    <DrawerTitle className="text-lg font-bold">{t('title')}</DrawerTitle>
+                    <DrawerTitle className="font-bold text-foreground-primary">{t('title')}</DrawerTitle>
                     <DrawerDescription>{t('description')}</DrawerDescription>
                 </DrawerHeader>
 
                 <div className="flex flex-col px-4 pb-6">
                     {/* evm - card with expanded networks */}
-                    <div className="overflow-hidden rounded-t-sm border border-black bg-white">
-                        <ActionListCard
+                    <div className="overflow-hidden rounded-t-sm border border-border-default bg-background-default">
+                        <ListItem
                             title="EVM"
-                            description={t('evmDescription', { count: evmChainCount })}
+                            body={t('evmDescription', { count: evmChainCount })}
                             position="single"
                             className="border-0"
-                            leftIcon={
+                            chevron
+                            leading={
                                 <Image
                                     src={CHAIN_LOGOS.ETHEREUM}
                                     alt="EVM"
@@ -49,7 +50,10 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                             onClick={() => onSelect('EVM')}
                         />
                         {/* expanded chain list */}
-                        <div onClick={() => onSelect('EVM')} className="mx-4 border-t border-dashed border-black py-3">
+                        <div
+                            onClick={() => onSelect('EVM')}
+                            className="mx-4 border-t border-dashed border-border-default py-3"
+                        >
                             <div className="flex flex-wrap gap-2">
                                 <EvmChainChips />
                             </div>
@@ -57,11 +61,12 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                     </div>
 
                     {/* solana */}
-                    <ActionListCard
+                    <ListItem
                         title="Solana"
-                        description={t('supportedTokens', { count: getSupportedTokens('SOL').length })}
+                        body={t('supportedTokens', { count: getSupportedTokens('SOL').length })}
                         position="middle"
-                        leftIcon={
+                        chevron
+                        leading={
                             <Image
                                 src={CHAIN_LOGOS.SOLANA}
                                 alt="Solana"
@@ -74,11 +79,12 @@ const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerPro
                     />
 
                     {/* tron */}
-                    <ActionListCard
+                    <ListItem
                         title="Tron"
-                        description={t('supportedTokens', { count: getSupportedTokens('TRON').length })}
+                        body={t('supportedTokens', { count: getSupportedTokens('TRON').length })}
                         position="last"
-                        leftIcon={
+                        chevron
+                        leading={
                             <Image src={CHAIN_LOGOS.TRON} alt="Tron" width={32} height={32} className="rounded-full" />
                         }
                         onClick={() => onSelect('TRON')}

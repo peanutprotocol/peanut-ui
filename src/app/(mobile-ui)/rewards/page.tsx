@@ -147,14 +147,20 @@ const PointsPage = () => {
                                 <div className="flex flex-col items-center gap-1">
                                     {pendingUsd > 0 ? (
                                         <>
-                                            <p className="text-sm text-grey-1">{t('youHave')}</p>
-                                            <h2 className="text-4xl font-black text-black">${pendingUsd.toFixed(2)}</h2>
-                                            <p className="text-center text-sm text-grey-1">{t('pendingCallout')}</p>
+                                            <p className="text-body-s text-foreground-secondary">{t('youHave')}</p>
+                                            <h2 className="text-heading-l text-foreground-primary">
+                                                ${pendingUsd.toFixed(2)}
+                                            </h2>
+                                            <p className="text-center text-body-s text-foreground-secondary">
+                                                {t('pendingCallout')}
+                                            </p>
                                         </>
                                     ) : (
-                                        <p className="text-center text-sm text-grey-1">{t('noPendingRewards')}</p>
+                                        <p className="text-center text-body-s text-foreground-secondary">
+                                            {t('noPendingRewards')}
+                                        </p>
                                     )}
-                                    <p className="mt-2 text-center text-sm text-grey-1">
+                                    <p className="mt-2 text-center text-body-s text-foreground-secondary">
                                         {t('lifetimeRewards', { amount: `$${lifetimeUsd.toFixed(2)}` })}
                                     </p>
                                 </div>
@@ -170,12 +176,12 @@ const PointsPage = () => {
                         {t('inviteNow')}
                     </Button>
 
-                    <div className="border-t border-grey-2" />
+                    <div className="border-t border-border-disabled" />
 
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-center gap-2">
                             <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={16} height={16} />
-                            <p className="text-base font-medium text-grey-1">
+                            <p className="text-body-m text-foreground-secondary">
                                 {(() => {
                                     const { number, suffix } = shortenPoints(animatedTotal)
                                     return (
@@ -197,9 +203,9 @@ const PointsPage = () => {
                                 width={20}
                                 height={20}
                             />
-                            <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-grey-2">
+                            <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-background-disabled">
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-primary-1 to-primary-2 transition-all duration-500"
+                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-hover transition-all duration-500"
                                     style={{
                                         width: `${
                                             tierInfo?.data.currentTier >= 2
@@ -228,7 +234,7 @@ const PointsPage = () => {
                             )}
                         </div>
                         {tierInfo?.data.currentTier < 2 && (
-                            <p className="text-center text-xs text-grey-1">
+                            <p className="text-center text-body-xs text-foreground-secondary">
                                 {t('pointsToNextTier', { count: tierInfo.data.pointsToNextTier })}
                             </p>
                         )}
@@ -251,7 +257,7 @@ const PointsPage = () => {
                                 />
                             </Card>
                         )}
-                        <p className="text-center text-sm">
+                        <p className="text-center text-body-s">
                             {user?.invitedBy && (
                                 <>
                                     <span
@@ -277,8 +283,8 @@ const PointsPage = () => {
                             className="flex cursor-pointer items-center justify-between"
                             onClick={() => router.push('/rewards/invites')}
                         >
-                            <h2 className="font-bold">{t('peopleYouInvited')}</h2>
-                            <NavigationArrow className="text-black" />
+                            <h2 className="text-heading-card text-foreground-primary">{t('peopleYouInvited')}</h2>
+                            <NavigationArrow className="text-foreground-primary" />
                         </div>
 
                         <div ref={inviteesRef}>
@@ -307,7 +313,7 @@ const PointsPage = () => {
                                                     size="small"
                                                 />
                                             </div>
-                                            <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
+                                            <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                                 <VerifiedUserLabel
                                                     name={displayName}
                                                     username={username}
@@ -329,12 +335,14 @@ const PointsPage = () => {
                     <>
                         {/* if user has no invites: show empty state with modal button */}
                         <Card className="!mt-8 flex flex-col items-center justify-center gap-4 py-4">
-                            <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
+                            <div className="flex items-center justify-center rounded-full bg-action-primary p-2">
                                 <Icon name="trophy" />
                             </div>
-                            <h2 className="font-medium">{t('noInvitesYet')}</h2>
+                            <h2 className="text-body-m font-medium text-foreground-primary">{t('noInvitesYet')}</h2>
 
-                            <p className="text-center text-sm text-grey-1">{t('shareInviteLinkPrompt')}</p>
+                            <p className="text-center text-body-s text-foreground-secondary">
+                                {t('shareInviteLinkPrompt')}
+                            </p>
                             <Button
                                 variant="purple"
                                 shadowSize="4"

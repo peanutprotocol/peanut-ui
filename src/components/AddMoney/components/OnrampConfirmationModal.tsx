@@ -1,8 +1,9 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
-import InfoCard from '@/components/Global/InfoCard'
-import { Slider } from '@/components/Slider'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 
 interface OnrampConfirmationModalProps {
@@ -21,46 +22,52 @@ export const OnrampConfirmationModal = ({
     currency,
 }: OnrampConfirmationModalProps) => {
     const t = useTranslations('addMoney.confirmationModal')
+    const tCommon = useTranslations('common')
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
             icon="alert"
             iconContainerClassName="bg-yellow-400"
-            iconProps={{ className: 'text-black' }}
+            iconProps={{ className: 'text-foreground-primary' }}
             title={t('title')}
             footer={
                 <div className="w-full">
-                    <Slider onValueChange={(v) => v && onConfirm()} />
+                    <SlideToConfirm label={tCommon('slideToProceed')} onConfirm={onConfirm} />
                 </div>
             }
             content={
                 <div className="flex w-full flex-col gap-4">
                     <h2 className="mr-auto font-bold">{t('nextStep')}</h2>
-                    <InfoCard variant="default" items={[t('bankDetailsItem'), t('referenceCodeItem')]} />
+                    <Notification priority="helper" className="w-full">
+                        <ul className="list-inside list-disc text-start">
+                            <li>{t('bankDetailsItem')}</li>
+                            <li>{t('referenceCodeItem')}</li>
+                        </ul>
+                    </Notification>
                     <h2 className="mr-auto font-bold">{t('youMust')}</h2>
-                    <InfoCard
-                        variant="info"
-                        itemIcon="check"
-                        itemIconClassName="text-secondary-7"
-                        items={[
-                            t.rich('sendExactly', {
-                                currency,
-                                amount,
-                                b: (chunks) => <b>{chunks}</b>,
-                            }),
-                            t('copyReferenceCode'),
-                            t('pasteReference'),
-                        ]}
-                    />
+                    <Notification priority="info" className="w-full">
+                        <div className="flex flex-col gap-1">
+                            {[
+                                t.rich('sendExactly', {
+                                    currency,
+                                    amount,
+                                    b: (chunks) => <b>{chunks}</b>,
+                                }),
+                                t('copyReferenceCode'),
+                                t('pasteReference'),
+                            ].map((item, index) => (
+                                <span key={index} className="flex items-center gap-2">
+                                    <Icon name="check" size={16} className="shrink-0" />
+                                    {item}
+                                </span>
+                            ))}
+                        </div>
+                    </Notification>
 
-                    <InfoCard
-                        variant="error"
-                        icon="alert"
-                        iconClassName="text-error-5"
-                        title={t('mismatchTitle')}
-                        description={t('mismatchDescription')}
-                    />
+                    <Notification priority="error" title={t('mismatchTitle')}>
+                        {t('mismatchDescription')}
+                    </Notification>
                 </div>
             }
             preventClose={false}

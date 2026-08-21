@@ -54,8 +54,8 @@ export default function RedirectQrSuccessPage() {
             <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 {/* Title */}
                 <div className="space-y-1 text-center">
-                    <h1 className="text-2xl font-extrabold">{t('claimSuccess.title')}</h1>
-                    <p className="text-base text-grey-1">{t('claimSuccess.description')}</p>
+                    <h1 className="text-heading-s">{t('claimSuccess.title')}</h1>
+                    <p className="text-body-m text-foreground-secondary">{t('claimSuccess.description')}</p>
                 </div>
 
                 {/* QR Code Display */}
@@ -64,12 +64,14 @@ export default function RedirectQrSuccessPage() {
                 </div>
 
                 {/* Sticker Info Card */}
-                <Card className="border-2 border-secondary-1 bg-secondary-1/10 p-4">
+                <Card className="border-2 border-action-secondary bg-action-secondary/10 p-4">
                     <div className="flex gap-3">
-                        <Icon name="star" size={20} className="flex-shrink-0 text-secondary-1" />
+                        <Icon name="star" size={20} className="flex-shrink-0 text-action-secondary" />
                         <div className="space-y-1">
-                            <p className="text-sm font-bold">{t('claimSuccess.putItAnywhere')}</p>
-                            <p className="text-xs text-grey-1">{t('claimSuccess.stickerDescription')}</p>
+                            <p className="text-body-s font-bold">{t('claimSuccess.putItAnywhere')}</p>
+                            <p className="text-body-xs text-foreground-secondary">
+                                {t('claimSuccess.stickerDescription')}
+                            </p>
                         </div>
                     </div>
                 </Card>

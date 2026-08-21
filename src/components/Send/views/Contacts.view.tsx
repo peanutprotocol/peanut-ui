@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { sendUrl } from '@/utils/native-routes'
 import NavHeader from '@/components/Global/NavHeader'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useContacts } from '@/hooks/useContacts'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useState, useEffect } from 'react'
@@ -129,7 +129,7 @@ export default function ContactsView() {
                     {/* search input - always show when there are contacts or when searching */}
                     <SearchInput
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={setSearchQuery}
                         onClear={() => setSearchQuery('')}
                         placeholder={t('contacts.searchPlaceholder')}
                     />
@@ -148,7 +148,7 @@ export default function ContactsView() {
                                         ? contact.fullName || contact.username
                                         : contact.username
                                     return (
-                                        <ActionListCard
+                                        <ListItem
                                             position={
                                                 contacts.length === 1
                                                     ? 'single'
@@ -169,8 +169,9 @@ export default function ContactsView() {
                                                     )}
                                                 />
                                             }
-                                            description={`@${contact.username}`}
-                                            leftIcon={<AvatarWithBadge size="extra-small" name={displayName} />}
+                                            body={`@${contact.username}`}
+                                            leading={<AvatarWithBadge size="extra-small" name={displayName} />}
+                                            chevron
                                             onClick={() => handleUserSelect(contact.username)}
                                         />
                                     )

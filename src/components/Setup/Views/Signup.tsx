@@ -1,5 +1,5 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import DocsLink from '@/components/Global/DocsLink'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
@@ -121,8 +121,8 @@ const SignupStep = () => {
 
     return (
         <>
-            <div className="flex h-full flex-col justify-between gap-11 md:pt-5">
-                <div className="space-y-2.5 mb-auto w-full">
+            <div className="flex h-full flex-col justify-between gap-10 md:pt-6">
+                <div className="space-y-2 mb-auto w-full">
                     <div className="flex items-center gap-2">
                         <ValidatedInput
                             placeholder={t('signupStep.usernamePlaceholder')}
@@ -151,12 +151,12 @@ const SignupStep = () => {
                     </div>
                     {error && (
                         <div className="pb-1">
-                            <ErrorAlert description={error} className="gap-2 text-xs" iconSize={14} />
+                            <Notification priority="error">{error}</Notification>
                         </div>
                     )}
                 </div>
                 <div>
-                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
                                 <DocsLink href="/terms" className="underline underline-offset-2">

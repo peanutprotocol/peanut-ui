@@ -1,6 +1,7 @@
 'use client'
 
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
@@ -30,7 +31,6 @@ import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { MANTECA_QR_DEPOSIT_ADDRESS_AR, MANTECA_QR_DEPOSIT_ADDRESS_NON_AR } from '@/constants/manteca.consts'
@@ -1604,7 +1604,9 @@ export default function QRPayPage() {
                     )}
                     {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
                     {balanceErrorMessage && !limitsValidation.isBlocking && (
-                        <ErrorAlert description={balanceErrorMessage} />
+                        <Notification priority="error" data-testid="error-alert">
+                            {balanceErrorMessage}
+                        </Notification>
                     )}
 
                     {/* Limits Warning/Error Card */}
@@ -1680,7 +1682,11 @@ export default function QRPayPage() {
                     </Button>
 
                     {/* Error State */}
-                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                    {errorMessage && (
+                        <Notification priority="error" data-testid="error-alert">
+                            {errorMessage}
+                        </Notification>
+                    )}
                 </div>
             </div>
         </>

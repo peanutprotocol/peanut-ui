@@ -417,15 +417,6 @@ jest.mock('@/components/Global/Icons/Icon', () => ({
     Icon: (props: any) => <span data-testid={`icon-${props.name}`} />,
 }))
 
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="error-alert" role="alert">
-            {props.description}
-        </div>
-    ),
-}))
-
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
     default: (props: any) =>
@@ -437,20 +428,6 @@ jest.mock('@/components/Global/ActionModal', () => ({
                 {props.footer}
             </div>
         ) : null,
-}))
-
-jest.mock('@/components/Global/InfoCard', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="info-card">
-            {props.title && <span>{props.title}</span>}
-            {props.description && <span>{props.description}</span>}
-            {props.items?.map((item: any, i: number) => (
-                <span key={i}>{item}</span>
-            ))}
-            {props.customContent}
-        </div>
-    ),
 }))
 
 jest.mock('@/components/Global/CopyToClipboard', () => {
@@ -535,11 +512,11 @@ jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
         ) : null,
 }))
 
-jest.mock('@/components/ActionListCard', () => ({
-    ActionListCard: (props: any) => (
+jest.mock('@/components/0_Bruddle/ListItem', () => ({
+    ListItem: (props: any) => (
         <div data-testid={`action-card-${props.title?.toLowerCase().replace(/\s+/g, '-')}`} onClick={props.onClick}>
             <span>{props.title}</span>
-            <span>{props.description}</span>
+            <span>{props.body}</span>
         </div>
     ),
 }))
@@ -691,9 +668,10 @@ jest.mock('@/components/User/UserCard', () => ({
     default: (props: any) => <div data-testid="user-card">{props.username}</div>,
 }))
 
-jest.mock('@/components/Slider', () => ({
-    Slider: (props: any) => (
-        <button data-testid="slider" onClick={() => props.onValueChange?.(true)}>
+jest.mock('@/components/0_Bruddle/SlideToConfirm', () => ({
+    __esModule: true,
+    default: (props: any) => (
+        <button data-testid="slider" onClick={() => props.onConfirm?.()}>
             Slide to confirm
         </button>
     ),

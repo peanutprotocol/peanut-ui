@@ -112,8 +112,8 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <h1 className="text-3xl font-extrabold text-n-1">{t('celebration.lookingUpTitle')}</h1>
-                        <p className="text-grey-1">{t('celebration.lookingUpBody')}</p>
+                        <h1 className="text-heading-m text-foreground-primary">{t('celebration.lookingUpTitle')}</h1>
+                        <p className="text-foreground-secondary">{t('celebration.lookingUpBody')}</p>
                     </motion.div>
                 ) : (
                     <motion.div
@@ -123,8 +123,8 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.35, ease: 'easeOut' }}
                     >
-                        <h1 className="text-3xl font-extrabold text-n-1">{headline}</h1>
-                        <p className="text-grey-1">{subline}</p>
+                        <h1 className="text-heading-m text-foreground-primary">{headline}</h1>
+                        <p className="text-foreground-secondary">{subline}</p>
                     </motion.div>
                 )}
             </AnimatePresence>

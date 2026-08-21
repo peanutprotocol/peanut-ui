@@ -91,10 +91,6 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
         </button>
     ),
 }))
-jest.mock('../Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: ({ description }: { description: string }) => <div>{description}</div>,
-}))
 jest.mock('../Global/Loading', () => ({
     __esModule: true,
     default: (props: any) => (props.variant === 'mascot' ? <div>Loading</div> : <div data-testid="loading-spinner" />),

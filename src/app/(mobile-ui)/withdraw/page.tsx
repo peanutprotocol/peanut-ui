@@ -1,8 +1,8 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -415,7 +415,7 @@ export default function WithdrawPage() {
                 />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="space-y-1">
-                        <div className="text-xl font-bold">
+                        <div className="text-heading-xs text-foreground-primary">
                             {isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                         </div>
                     </div>
@@ -456,7 +456,9 @@ export default function WithdrawPage() {
                     </Button>
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
-                        <ErrorAlert description={error.errorMessage} />
+                        <Notification priority="error" data-testid="error-alert">
+                            {error.errorMessage}
+                        </Notification>
                     )}
                 </div>
             </div>

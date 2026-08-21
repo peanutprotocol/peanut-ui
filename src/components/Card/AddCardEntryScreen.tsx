@@ -1,8 +1,8 @@
 'use client'
 import { type FC, useState } from 'react'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -38,11 +38,11 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
             <ScaledPixelatedCardFace last4="????" blurAll />
 
             <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-extrabold text-n-1">{t('entry.title')}</h1>
-                <p className="text-grey-1">{t('entry.description')}</p>
+                <h1 className="text-heading-s text-foreground-primary">{t('entry.title')}</h1>
+                <p className="text-foreground-secondary">{t('entry.description')}</p>
             </div>
 
-            <ul className="flex flex-col gap-2 rounded-sm bg-primary-3 p-4 text-n-1">
+            <ul className="flex flex-col gap-2 rounded-sm bg-primary-3 p-4 text-foreground-primary">
                 {FEATURE_KEYS.map((featureKey) => (
                     <li key={featureKey} className="flex items-center gap-2">
                         <Icon name="check-circle" size={16} />
@@ -57,7 +57,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
              * by it. Other surfaces (Withdraw, Send link) get away with
              * below-CTA because their pages scroll; this one fits the
              * viewport so the FAB collision is unavoidable. */}
-            {applyError && <ErrorAlert description={applyError} />}
+            {applyError && <Notification priority="error">{applyError}</Notification>}
             <Button
                 onClick={handleClick}
                 loading={isApplying}

@@ -32,7 +32,7 @@ import { Icon, type IconName } from '../Icons/Icon'
 import NetworkButton from './Components/NetworkButton'
 import NetworkListView from './Components/NetworkListView'
 import ScrollableList from './Components/ScrollableList'
-import SearchInput from './Components/SearchInput'
+import { SearchInput } from '@/components/SearchInput'
 import TokenListItem from './Components/TokenListItem'
 import {
     RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN,
@@ -59,8 +59,8 @@ interface SectionProps {
 const Section: React.FC<SectionProps> = ({ title, icon, children, className, titleClassName }) => (
     <div className={twMerge('space-y-2', className)}>
         <div className="flex items-center gap-2">
-            {icon && <Icon name={icon} size={16} className="text-grey-1" />}
-            <h2 className={twMerge('text-md font-bold text-black', titleClassName)}>{title}</h2>
+            {icon && <Icon name={icon} size={16} className="text-foreground-secondary" />}
+            <h2 className={`text-body-m ${twMerge('font-bold text-foreground-primary', titleClassName)}`}>{title}</h2>
         </div>
         {children}
     </div>
@@ -411,7 +411,8 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 variant="stroke"
                 onClick={openDrawer}
                 className={twMerge(
-                    'flex min-h-16 w-full items-center justify-between bg-white p-4 hover:bg-white hover:text-black',
+                    // boxy like Card (rounded-sm), not the default button pill
+                    'flex min-h-16 w-full items-center justify-between rounded-sm bg-background-default p-4 hover:bg-background-default hover:text-foreground-primary',
                     classNameButton
                 )}
                 shadowSize="4"
@@ -433,7 +434,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 <Icon name="plus" size={24} />
                             )}
                             {buttonChainLogoURI && buttonLogoURI && (
-                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-grey-2 dark:border-black dark:bg-grey-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black dark:bg-grey-1">
                                     <Image
                                         src={buttonChainLogoURI}
                                         alt={`Chain logo`}
@@ -445,10 +446,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             )}
                         </div>
                         <div className="flex flex-col items-start overflow-hidden">
-                            <span className="truncate text-base font-semibold text-black">
+                            <span className="truncate text-body-m font-semibold text-foreground-primary">
                                 {buttonSymbol || t('tokenSelector.selectAToken')}
                                 {buttonChainName && (
-                                    <span className="ml-1 text-sm font-medium text-grey-1">
+                                    <span className="ml-1 text-body-s font-medium text-foreground-secondary">
                                         {t.rich('tokenSelector.onChain', {
                                             chainName: buttonChainName,
                                             c: (chunks) => <span className="capitalize">{chunks}</span>,
@@ -460,18 +461,18 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             {(viewType === 'withdraw' || viewType === 'claim') &&
                                 selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
                                 selectedChainID === PEANUT_WALLET_CHAIN.id.toString() && (
-                                    <span className="text-xs font-normal text-grey-1">
+                                    <span className="text-body-xs font-normal text-foreground-secondary">
                                         {t('tokenSelector.noFeesWithToken')}
                                     </span>
                                 )}
                         </div>
                     </div>
-                    <Icon name="chevron-up" size={24} className="flex-shrink-0 rotate-90 text-black" />
+                    <Icon name="chevron-up" size={24} className="flex-shrink-0 rotate-90 text-foreground-primary" />
                 </div>
             </Button>
 
             <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
-                <DrawerContent className="p-5">
+                <DrawerContent className="p-4">
                     <DrawerTitle className="sr-only">{t('tokenSelector.drawerTitle')}</DrawerTitle>
                     <div ref={contentRef} className="mx-auto md:max-w-2xl">
                         {showNetworkList ? (
@@ -489,7 +490,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             <div className="relative space-y-4 flex flex-col">
                                 {/* Info banner when cross-chain is disabled */}
                                 {isCrossChainDisabled && (
-                                    <div className="bg-yellow-100 text-yellow-800 flex items-center gap-2 rounded-lg p-3 text-sm">
+                                    <div className="flex items-center gap-2 rounded-sm bg-background-badge-attention p-3 text-body-s text-foreground-primary">
                                         <Icon name="info" size={16} className="flex-shrink-0" />
                                         <span>{t('tokenSelector.crossChainUnavailable')}</span>
                                     </div>
@@ -524,7 +525,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                                 </div>
                                             </div>
                                         </Section>
-                                        <Divider className="p-0" dividerClassname="border-grey-1" />
+                                        <Divider className="p-0" dividerClassname="border-border-subtle" />
                                     </>
                                 )}
 
@@ -538,8 +539,8 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             placeholder={t('tokenSelector.searchTokenPlaceholder')}
                                         />
                                         <div className="flex items-center justify-center gap-2">
-                                            <Icon name="info" size={10} className="text-grey-1" />
-                                            <span className="text-xs font-normal text-grey-1">
+                                            <Icon name="info" size={10} className="text-foreground-secondary" />
+                                            <span className="text-body-xs font-normal text-foreground-secondary">
                                                 {t('tokenSelector.sponsoredHint')}
                                             </span>
                                         </div>
@@ -554,7 +555,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             : popularTokensListTitle
                                     }
                                     icon={searchValue ? 'search' : 'star'}
-                                    titleClassName="text-grey-1 font-medium"
+                                    titleClassName="text-foreground-secondary font-medium"
                                     className="relative space-y-4"
                                 >
                                     {selectedNetworkName && !isCrossChainDisabled && clearChainSelection()}

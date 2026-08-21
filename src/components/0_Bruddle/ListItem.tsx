@@ -1,7 +1,10 @@
+'use client'
+
 import { twMerge } from 'tailwind-merge'
 import Card from '../Global/Card'
 import { type CardPosition } from '../Global/Card/card.utils'
 import { Icon } from '../Global/Icons/Icon'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 interface ListItemProps {
     title: React.ReactNode
@@ -39,58 +42,68 @@ export const ListItem = ({
     className,
     'data-testid': dataTestId,
     'aria-label': ariaLabel,
-}: ListItemProps) => (
-    <Card
-        position={position}
-        onClick={disabled ? undefined : onClick}
-        role={onClick ? 'button' : undefined}
-        tabIndex={onClick && !disabled ? 0 : undefined}
-        onKeyDown={
-            onClick && !disabled
-                ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          onClick()
+}: ListItemProps) => {
+    const { triggerHaptic } = useAppHaptic()
+    // every row click gets haptic feedback (both pointer and keyboard paths)
+    const handleClick = onClick
+        ? () => {
+              triggerHaptic()
+              onClick()
+          }
+        : undefined
+    return (
+        <Card
+            position={position}
+            onClick={disabled ? undefined : handleClick}
+            role={onClick ? 'button' : undefined}
+            tabIndex={onClick && !disabled ? 0 : undefined}
+            onKeyDown={
+                handleClick && !disabled
+                    ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              handleClick()
+                          }
                       }
-                  }
-                : undefined
-        }
-        aria-disabled={disabled || undefined}
-        aria-label={ariaLabel}
-        data-testid={dataTestId}
-        className={twMerge(
-            'flex items-center justify-between gap-3 p-4',
-            onClick &&
-                !disabled &&
-                'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled',
-            disabled && 'opacity-40',
-            className
-        )}
-    >
-        <div className="flex min-w-0 items-center gap-3">
-            {leading}
-            {/* plain strings get the board one-line truncation; custom nodes render
-                in a block wrapper untruncated (a div inside a span is invalid html
-                and truncate only ellipsizes text anyway) */}
-            <div className="flex min-w-0 flex-col gap-0.5">
-                {typeof title === 'string' ? (
-                    <span className="truncate text-body-m-semibold text-foreground-primary">{title}</span>
-                ) : (
-                    <div className="min-w-0 text-body-m-semibold text-foreground-primary">{title}</div>
-                )}
-                {body &&
-                    (typeof body === 'string' ? (
-                        <span className="truncate text-body-s text-foreground-secondary">{body}</span>
+                    : undefined
+            }
+            aria-disabled={disabled || undefined}
+            aria-label={ariaLabel}
+            data-testid={dataTestId}
+            className={twMerge(
+                'flex items-center justify-between gap-3 p-4',
+                onClick &&
+                    !disabled &&
+                    'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled',
+                disabled && 'opacity-40',
+                className
+            )}
+        >
+            <div className="flex min-w-0 items-center gap-3">
+                {leading}
+                {/* plain strings get the board one-line truncation; custom nodes render
+                    in a block wrapper untruncated (a div inside a span is invalid html
+                    and truncate only ellipsizes text anyway) */}
+                <div className="flex min-w-0 flex-col gap-0.5">
+                    {typeof title === 'string' ? (
+                        <span className="truncate text-body-m-semibold text-foreground-primary">{title}</span>
                     ) : (
-                        <div className="min-w-0 text-body-s text-foreground-secondary">{body}</div>
-                    ))}
+                        <div className="min-w-0 text-body-m-semibold text-foreground-primary">{title}</div>
+                    )}
+                    {body &&
+                        (typeof body === 'string' ? (
+                            <span className="truncate text-body-s text-foreground-secondary">{body}</span>
+                        ) : (
+                            <div className="min-w-0 text-body-s text-foreground-secondary">{body}</div>
+                        ))}
+                </div>
             </div>
-        </div>
-        {(trailing || chevron) && (
-            <div className="flex shrink-0 items-center gap-2">
-                {trailing}
-                {chevron && <Icon name="chevron-right" size={20} className="text-foreground-primary" />}
-            </div>
-        )}
-    </Card>
-)
+            {(trailing || chevron) && (
+                <div className="flex shrink-0 items-center gap-2">
+                    {trailing}
+                    {chevron && <Icon name="chevron-right" size={20} className="text-foreground-primary" />}
+                </div>
+            )}
+        </Card>
+    )
+}

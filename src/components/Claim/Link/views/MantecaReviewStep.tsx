@@ -1,5 +1,5 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import { PaymentInfoRow, type PaymentInfoRowProps } from '@/components/Payment/PaymentInfoRow'
 import Loading from '@/components/Global/Loading'
@@ -138,7 +138,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 ))}
             </Card>
 
-            {error && <ErrorAlert description={error} />}
+            {error && <Notification priority="error">{error}</Notification>}
             <Button disabled={isSubmitting} loading={isSubmitting} shadowSize="4" onClick={handleWithdraw}>
                 {tNav('withdraw')}
             </Button>

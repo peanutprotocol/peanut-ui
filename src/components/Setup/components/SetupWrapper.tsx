@@ -86,7 +86,12 @@ const Navigation = memo(function Navigation({
         <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
             <div>
                 {showBackButton && (
-                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label={t('goBack')}>
+                    <Button
+                        variant="stroke"
+                        onClick={onBack}
+                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                        aria-label={t('goBack')}
+                    >
                         <Icon name="chevron-up" fill="black" size={20} className="-rotate-90" />
                     </Button>
                 )}
@@ -102,11 +107,11 @@ const Navigation = memo(function Navigation({
                         onClick={onLogout}
                         loading={isLoggingOut}
                         variant="stroke"
-                        className={twMerge('h-7 w-7 p-0', isLoggingOut && 'pl-3')}
+                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
                         aria-label={t('logout')}
                         disabled={isLoggingOut}
                     >
-                        <Icon name="logout" fill="black" size={24} />
+                        {!isLoggingOut && <Icon name="logout" fill="black" size={20} />}
                     </Button>
                 )}
             </div>

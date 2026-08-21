@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
 import CardLimitEditModal, { CARD_LIMITS_QUERY_KEY } from '@/components/Card/CardLimitEditModal'
 import { rainApi, type RainCardLimit } from '@/services/rain'
@@ -43,29 +44,27 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
         <div className="flex min-h-[inherit] flex-col gap-6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
             <div className="flex flex-col gap-3">
-                <h2 className="text-lg font-bold">{t('subtitle')}</h2>
+                <h2 className="text-heading-card text-foreground-primary">{t('subtitle')}</h2>
                 {isLoading ? (
                     <div className="flex justify-center py-8">
                         <Loading />
                     </div>
                 ) : error ? (
                     <div className="flex flex-col items-center gap-3 py-8 text-center">
-                        <p className="text-sm text-grey-1">{t('loadFailed')}</p>
+                        <p className="text-body-s text-foreground-secondary">{t('loadFailed')}</p>
                         <Button variant="stroke" onClick={() => refetch()}>
                             {tCommon('retry')}
                         </Button>
                     </div>
                 ) : (
-                    <div className="flex items-center justify-between rounded-sm border border-n-1 bg-white px-4 py-3">
+                    <div className="flex items-center justify-between rounded-sm border border-border-default bg-background-default px-4 py-3">
                         <div>
-                            <div className="text-sm text-grey-1">{label}</div>
-                            <div className="text-base font-bold">
+                            <div className="text-body-s text-foreground-secondary">{label}</div>
+                            <div className="text-body-m font-bold">
                                 {amount != null ? formatDollars(amount) : t('noLimitSet')}
                             </div>
                         </div>
-                        <button type="button" onClick={() => setIsEditing(true)} className="text-black underline">
-                            {t('edit')}
-                        </button>
+                        <LinkButton onClick={() => setIsEditing(true)}>{t('edit')}</LinkButton>
                     </div>
                 )}
             </div>

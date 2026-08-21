@@ -163,7 +163,7 @@ export default function NotificationsPage() {
                         grouped.map((group, groupIdx) => {
                             return (
                                 <React.Fragment key={groupIdx}>
-                                    <div className="mt-4 mb-2 px-1 text-sm font-semibold">{group.header}</div>
+                                    <div className="mt-4 mb-2 px-1 text-body-s font-semibold">{group.header}</div>
                                     {group.items.map((notif, idx) => {
                                         let position: CardPosition = 'middle'
                                         if (group.items.length === 1) position = 'single'
@@ -204,7 +204,7 @@ export default function NotificationsPage() {
                                                             </div>
                                                         </div>
                                                         {notif.body ? (
-                                                            <div className="text-gray-600 line-clamp-2 text-sm">
+                                                            <div className="line-clamp-2 text-body-s text-foreground-secondary">
                                                                 {notif.body}
                                                             </div>
                                                         ) : null}
@@ -242,7 +242,7 @@ export default function NotificationsPage() {
                     <div ref={loadingRef} className="w-full py-4">
                         {isLoadingMore && <div className="w-full text-center">{t('loadingMore')}</div>}
                         {hasLoadMoreError && (
-                            <div className="w-full text-center text-sm text-red">
+                            <div className="w-full text-center text-body-s text-foreground-error">
                                 <button onClick={() => void loadNextPage()} className="underline">
                                     {t('loadMoreFailed')}
                                 </button>

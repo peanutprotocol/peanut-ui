@@ -64,7 +64,7 @@ const BridgeLimitsView = () => {
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <Icon name="check" className="text-success-1" size={16} />
-                                        <span className="text-sm">
+                                        <span className="text-body-s">
                                             {t.rich('addMoneyLimit', {
                                                 medium: (chunks) => <span className="font-medium">{chunks}</span>,
                                                 amount: formatAmountWithCurrency(
@@ -76,7 +76,7 @@ const BridgeLimitsView = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Icon name="check" className="text-success-1" size={16} />
-                                        <span className="text-sm">
+                                        <span className="text-body-s">
                                             {t.rich('withdrawLimit', {
                                                 medium: (chunks) => <span className="font-medium">{chunks}</span>,
                                                 amount: formatAmountWithCurrency(

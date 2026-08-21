@@ -63,10 +63,10 @@ export default function FixCardSignaturePage() {
         <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title={t('fixSignature.navTitle')} />
             <div className="my-auto flex flex-col gap-6">
-                <p className="text-sm text-grey-1">{t('fixSignature.intro')}</p>
+                <p className="text-body-s text-foreground-secondary">{t('fixSignature.intro')}</p>
 
                 {(isDiagnosing || (!address && !diagnosis)) && (
-                    <p className="text-sm">{t('fixSignature.checkingWallet')}</p>
+                    <p className="text-body-s">{t('fixSignature.checkingWallet')}</p>
                 )}
 
                 {!isDiagnosing && !diagnosis && error && (
@@ -79,13 +79,13 @@ export default function FixCardSignaturePage() {
                     <Card className="flex flex-col gap-3 p-4">
                         <div className="flex items-center justify-between">
                             <span className="font-bold">{t('fixSignature.step1')}</span>
-                            <span className="text-sm">
+                            <span className="text-body-s">
                                 {needsRepair ? (isRepairing ? '⏳' : `⚠️ ${t('fixSignature.needed')}`) : '✅'}
                             </span>
                         </div>
                         {needsRepair && (
                             <>
-                                <p className="text-sm text-grey-1">
+                                <p className="text-body-s text-foreground-secondary">
                                     {diagnosis.state === 'nonce-bricked'
                                         ? t('fixSignature.nonceBricked')
                                         : t('fixSignature.undeployed')}
@@ -108,13 +108,15 @@ export default function FixCardSignaturePage() {
                     <Card className="flex flex-col gap-3 p-4">
                         <div className="flex items-center justify-between">
                             <span className="font-bold">{t('fixSignature.step2')}</span>
-                            <span className="text-sm">{grantDone ? '✅' : isGranting ? '⏳' : ''}</span>
+                            <span className="text-body-s">{grantDone ? '✅' : isGranting ? '⏳' : ''}</span>
                         </div>
                         {grantDone ? (
-                            <p className="text-sm text-grey-1">{t('fixSignature.allSet')}</p>
+                            <p className="text-body-s text-foreground-secondary">{t('fixSignature.allSet')}</p>
                         ) : (
                             <>
-                                <p className="text-sm text-grey-1">{t('fixSignature.oneMoreConfirmation')}</p>
+                                <p className="text-body-s text-foreground-secondary">
+                                    {t('fixSignature.oneMoreConfirmation')}
+                                </p>
                                 <Button
                                     variant="purple"
                                     shadowSize="4"
@@ -129,17 +131,21 @@ export default function FixCardSignaturePage() {
                                           : t('fixSignature.reEnableFunding')}
                                 </Button>
                                 {!isOverviewLoading && !card && (
-                                    <p className="text-sm text-grey-1">{t('fixSignature.noActiveCard')}</p>
+                                    <p className="text-body-s text-foreground-secondary">
+                                        {t('fixSignature.noActiveCard')}
+                                    </p>
                                 )}
                             </>
                         )}
                     </Card>
                 )}
 
-                {(error || grantErrorMessage) && <p className="text-sm text-error">{error ?? grantErrorMessage}</p>}
+                {(error || grantErrorMessage) && (
+                    <p className="text-body-s text-foreground-error">{error ?? grantErrorMessage}</p>
+                )}
 
                 {diagnosis && diagnosis.state !== 'undeployed' && (
-                    <p className="text-xs text-grey-1">
+                    <p className="text-body-xs text-foreground-secondary">
                         {t('fixSignature.diagnostics', {
                             nonce: diagnosis.currentNonce,
                             floor: diagnosis.validNonceFrom,

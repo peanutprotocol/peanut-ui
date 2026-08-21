@@ -2,7 +2,7 @@
 import { useEffect } from 'react'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import StoreButtons from '@/components/Migration/StoreButtons'
 import SupportDrawer from '@/components/Global/SupportDrawer'
@@ -38,13 +38,9 @@ export default function SunsetScreen() {
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4">
                     <StoreButtons surface={MIGRATION_SURFACES.SUNSET_SCREEN} />
-                    <Button
-                        variant="transparent"
-                        className="h-6 text-sm font-normal text-black underline"
-                        onClick={() => setIsSupportModalOpen(true)}
-                    >
+                    <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">
                         {t('sunset.supportLink')}
-                    </Button>
+                    </LinkButton>
                 </div>
             </section>
             {/* the layout's SupportDrawer never mounts when this screen replaces it */}

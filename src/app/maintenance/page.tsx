@@ -1,11 +1,9 @@
 'use client'
 import { PeanutCrying } from '@/assets/mascot'
-import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 
 const MaintenancePage = () => {
-    const router = useRouter()
     return (
         <div className="flex h-screen flex-col items-center justify-center gap-4 p-6">
             <Image src={PeanutCrying.src} unoptimized alt="Maintenance" width={250} height={250} />
@@ -16,13 +14,7 @@ const MaintenancePage = () => {
             </p>
             <p className="text-center text-gray-1">Thank you for your patience.</p>
 
-            <Button
-                variant="transparent"
-                onClick={() => router.push('/support')}
-                className="h-5 w-fit p-0 underline underline-offset-2"
-            >
-                Contact Support?
-            </Button>
+            <LinkButton href="/support">Contact Support?</LinkButton>
         </div>
     )
 }

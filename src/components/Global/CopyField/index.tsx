@@ -37,15 +37,25 @@ const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: Cop
             <Button
                 disabled={disabled && !onDisabledClick}
                 variant={variant ? variant : 'stroke'}
-                className={twMerge(
-                    'h-10 w-fit',
-                    disabled &&
-                        'bg-gray-200 focus-within:bg-gray-300 active:bg-gray-300 cursor-not-allowed text-black opacity-80 focus-within:text-black active:text-black'
-                )}
+                className="h-10 w-fit"
                 onClick={handleClick}
                 shadowSize={shadowSize}
             >
-                {isCopied ? t('copyField.copied') : t('copyField.copy')}
+                {/* both labels share one grid cell so the button keeps the width of the longer one */}
+                <span className="grid text-center">
+                    <span
+                        className={twMerge('col-start-1 row-start-1', isCopied && 'invisible')}
+                        aria-hidden={isCopied}
+                    >
+                        {t('copyField.copy')}
+                    </span>
+                    <span
+                        className={twMerge('col-start-1 row-start-1', !isCopied && 'invisible')}
+                        aria-hidden={!isCopied}
+                    >
+                        {t('copyField.copied')}
+                    </span>
+                </span>
             </Button>
         </div>
     )

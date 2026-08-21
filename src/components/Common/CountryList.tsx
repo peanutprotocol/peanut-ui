@@ -20,7 +20,7 @@ import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { ActionListCard } from '../ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 
@@ -146,7 +146,7 @@ export const CountryList = ({
                 {inputDescription && <p className="text-xs font-normal">{inputDescription}</p>}
                 <SearchInput
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={setSearchTerm}
                     onClear={() => setSearchTerm('')}
                     placeholder={t('countryList.searchPlaceholder')}
                 />
@@ -157,21 +157,24 @@ export const CountryList = ({
                 <div className="flex-1 overflow-y-auto">
                     {!searchTerm && viewMode === 'add-withdraw' && onCryptoClick && (
                         <div className="mb-2">
-                            <ActionListCard
+                            <ListItem
                                 key="crypto"
                                 title={
                                     flow === 'withdraw'
                                         ? t('countryList.cryptoWithdrawTitle')
                                         : t('countryList.cryptoDepositTitle')
                                 }
-                                description={
-                                    flow === 'add'
-                                        ? t('countryList.cryptoDepositDescription')
-                                        : t('countryList.cryptoWithdrawDescription')
+                                body={
+                                    <div>
+                                        {flow === 'add'
+                                            ? t('countryList.cryptoDepositDescription')
+                                            : t('countryList.cryptoWithdrawDescription')}
+                                    </div>
                                 }
                                 onClick={() => onCryptoClick(flow!)}
                                 position={'single'}
-                                leftIcon={
+                                chevron
+                                leading={
                                     <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
                                 }
                             />
@@ -212,20 +215,21 @@ export const CountryList = ({
                             }
 
                             const customRight = getRightContent ? getRightContent(country, isSupported) : undefined
+                            const trailing =
+                                customRight ??
+                                (showLoadingState && clickedCountryId === country.id ? (
+                                    <Loading />
+                                ) : !isSupported && !EASTER_EGG_COUNTRIES[country.id] ? (
+                                    <StatusBadge status="soon" />
+                                ) : undefined)
 
                             return (
-                                <ActionListCard
+                                <ListItem
                                     key={country.id}
                                     title={displayName}
-                                    rightContent={
-                                        customRight ??
-                                        (showLoadingState && clickedCountryId === country.id ? (
-                                            <Loading />
-                                        ) : !isSupported && !EASTER_EGG_COUNTRIES[country.id] ? (
-                                            <StatusBadge status="soon" />
-                                        ) : undefined)
-                                    }
-                                    description={country.currency}
+                                    trailing={trailing}
+                                    chevron={!trailing}
+                                    body={country.currency}
                                     onClick={() => {
                                         // check for easter egg countries first
                                         if (EASTER_EGG_COUNTRIES[country.id]) {
@@ -237,11 +241,11 @@ export const CountryList = ({
                                         onCountryClick(country)
                                     }}
                                     position={position}
-                                    isDisabled={
+                                    disabled={
                                         (!isSupported && !EASTER_EGG_COUNTRIES[country.id]) ||
                                         clickedCountryId === country.id
                                     }
-                                    leftIcon={
+                                    leading={
                                         <div className="relative h-8 w-8">
                                             <Image
                                                 src={getFlagUrl(twoLetterCountryCode)}

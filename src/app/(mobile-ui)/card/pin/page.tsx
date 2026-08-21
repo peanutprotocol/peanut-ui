@@ -29,7 +29,7 @@ const CardPinPage: FC = () => {
         return (
             <PageContainer>
                 <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4 text-center">
-                    <p className="text-n-1">{t('noActiveCard')}</p>
+                    <p className="text-foreground-primary">{t('noActiveCard')}</p>
                     <Button variant="purple" shadowSize="4" onClick={onBack}>
                         {t('backToCard')}
                     </Button>

@@ -24,7 +24,7 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -465,7 +465,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         return (
             <div className="space-y-2">
-                <h2 className="text-base font-bold">{title}</h2>
+                <h2 className="text-heading-card text-foreground-primary">{title}</h2>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
@@ -475,13 +475,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             method.id === 'pix-add' &&
                             underMaintenanceConfig.pixBrazilOnrampMaintenance
                         return (
-                            <ActionListCard
+                            <ListItem
                                 key={method.id}
-                                isDisabled={method.isSoon}
+                                disabled={method.isSoon}
                                 title={method.title}
-                                description={method.description}
-                                descriptionClassName={'text-xs'}
-                                leftIcon={
+                                body={<div className="text-body-xs">{method.description}</div>}
+                                leading={
                                     typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
@@ -507,7 +506,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         />
                                     )
                                 }
-                                rightContent={
+                                trailing={
                                     method.isSoon ? (
                                         <StatusBadge status="soon" size="small" />
                                     ) : isPixOnrampUnderMaintenance ? (
@@ -518,6 +517,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         />
                                     ) : null
                                 }
+                                chevron={!method.isSoon && !isPixOnrampUnderMaintenance}
                                 onClick={() => {
                                     if (flow === 'withdraw') {
                                         handleWithdrawMethodClick(method)

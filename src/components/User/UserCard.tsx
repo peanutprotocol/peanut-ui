@@ -8,8 +8,7 @@ import Card from '../Global/Card'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import AvatarWithBadge, { type AvatarSize } from '../Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '../UserHeader'
-import { twMerge } from 'tailwind-merge'
-import ProgressBar from '../Global/ProgressBar'
+import PotProgress from './PotProgress'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import type { PotContributor } from '@/features/payments/flows/contribute-pot/ContributePotFlowContext'
 
@@ -62,7 +61,7 @@ const UserCard = ({
         if (type === 'request_pay') title = t('userCard.isRequesting', { name: fullName ?? username })
         if (type === 'request_fulfilment') title = t('userCard.sendingTo', { name: fullName ?? username })
         return (
-            <div className="flex items-center gap-2 text-xs font-normal text-grey-1">
+            <div className="flex items-center gap-2 text-body-xs font-normal text-foreground-secondary">
                 {icon && <Icon name={icon} size={8} />} {title}
             </div>
         )
@@ -99,10 +98,10 @@ const UserCard = ({
                         <>
                             {type === 'request_fulfilment' && (
                                 <div>
-                                    <p className="text-2xl font-extrabold">${amount}</p>
+                                    <p className="text-heading-s text-foreground-primary">${amount}</p>
                                     <div className="flex items-center gap-2">
                                         <Icon name="alert-filled" size={16} className="text-yellow-11" />
-                                        <p className="text-sm text-yellow-11">{t('userCard.sendExactAmount')}</p>
+                                        <p className="text-body-s text-yellow-11">{t('userCard.sendExactAmount')}</p>
                                     </div>
                                 </div>
                             )}
@@ -111,10 +110,15 @@ const UserCard = ({
                                 <AddressLink
                                     // address={amount ? `$${amount}` : username}
                                     address={getAddressLinkTitle()}
-                                    className={twMerge(
-                                        'text-base font-medium',
-                                        type === 'request_pay' && 'text-2xl font-extrabold text-black md:text-3xl'
-                                    )}
+                                    // ds size tokens only on the raw-span branch (isLink=false).
+                                    // the link branch goes through AddressLink's twMerge, which
+                                    // deletes ds text tokens (unconfigured twMerge groups them
+                                    // as colors) — keep stock classes there.
+                                    className={
+                                        type === 'request_pay'
+                                            ? 'text-heading-s font-medium text-foreground-primary md:text-heading-m'
+                                            : 'text-base font-medium'
+                                    }
                                     isLink={type !== 'request_pay'}
                                 />
                             )}
@@ -132,7 +136,7 @@ const UserCard = ({
                 </div>
             </div>
             {amount !== undefined && amountCollected !== undefined && type === 'request_pay' && amount > 0 && (
-                <ProgressBar goal={amount} progress={amountCollected} isClosed={amountCollected >= amount} />
+                <PotProgress goal={amount} progress={amountCollected} isClosed={amountCollected >= amount} />
             )}
 
             {/* request pot contributors drawer */}

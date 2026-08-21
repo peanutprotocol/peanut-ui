@@ -46,7 +46,7 @@ export default function PatternsPage() {
                 />
                 <CatalogCard
                     title="Feedback"
-                    description="StatusBadge, StatusPill, ErrorAlert, EmptyState, NoDataEmptyState"
+                    description="StatusBadge, StatusPill, inline errors, EmptyState, NoDataEmptyState"
                     href="/dev/ds/patterns/feedback"
                     icon="meter"
                     status="production"

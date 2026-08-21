@@ -14,9 +14,9 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import Loading from '@/components/Global/Loading'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -121,7 +121,7 @@ export function SemanticRequestConfirmView() {
             <>
                 <span className="line-through">$ {calculatedGasCost.toFixed(2)}</span>
                 {' - '}
-                <span className="text-gray-500 font-medium">{tCommon('sponsoredByPeanut')}</span>
+                <span className="font-medium text-foreground-secondary">{tCommon('sponsoredByPeanut')}</span>
             </>
         )
     }, [calculatedGasCost, isFeeEstimationError, tCommon])
@@ -186,7 +186,7 @@ export function SemanticRequestConfirmView() {
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={handleBack} title={t('headers.confirmPayment')} />
 
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-5">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-4">
                 {recipient && recipient.recipientType && (
                     <PeanutActionDetailsCard
                         avatarSize="small"
@@ -287,7 +287,7 @@ export function SemanticRequestConfirmView() {
                     )}
                     {errorMessage && (
                         <div className="space-y-2">
-                            <ErrorAlert description={errorMessage} />
+                            <Notification priority="error">{errorMessage}</Notification>
                         </div>
                     )}
                 </div>

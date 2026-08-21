@@ -2,8 +2,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
-import type { IconName } from '@/components/Global/Icons/Icon'
-import InfoCard from '@/components/Global/InfoCard'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -123,22 +123,25 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             content={
                 <div className="flex w-full flex-col items-start gap-2">
                     <p>{t('youCanNow')}</p>
-                    <InfoCard
-                        variant="info"
-                        itemIcon="check"
-                        itemIconSize={12}
-                        itemIconClassName="text-secondary-7"
-                        items={items
-                            .filter((item) => {
-                                if (unlockedChannels === 'all') {
-                                    // Show all items except the duplicate QR bullet
-                                    // (the bank list already mentions QR in AR/BR).
-                                    return !(item.type === 'qr' && item.id === 'qrBrAr')
-                                }
-                                return item.type === unlockedChannels
-                            })
-                            .map((item) => item.title)}
-                    />
+                    <Notification priority="info" className="w-full">
+                        <div className="flex flex-col gap-1">
+                            {items
+                                .filter((item) => {
+                                    if (unlockedChannels === 'all') {
+                                        // Show all items except the duplicate QR bullet
+                                        // (the bank list already mentions QR in AR/BR).
+                                        return !(item.type === 'qr' && item.id === 'qrBrAr')
+                                    }
+                                    return item.type === unlockedChannels
+                                })
+                                .map((item) => (
+                                    <span key={item.id} className="flex items-center gap-2">
+                                        <Icon name="check" size={12} className="shrink-0" />
+                                        {item.title}
+                                    </span>
+                                ))}
+                        </div>
+                    </Notification>
                 </div>
             }
         />

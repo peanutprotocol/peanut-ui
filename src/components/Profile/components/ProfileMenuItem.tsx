@@ -55,7 +55,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                     </div>
                 )}
                 <div className="flex items-center gap-2">
-                    <label className="text-base font-medium">{label}</label>
+                    <label className="text-body-m text-foreground-primary">{label}</label>
                     {highlight && <IndicatorDot className="animate-pulse" aria-label="highlight-indicator" />}
                 </div>
                 {badge && <StatusBadge status="custom" customText={badge} />}
@@ -67,7 +67,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
             </div>
 
             <div className="flex items-center gap-1">
-                {endText && <span className="text-sm text-grey-1">{endText}</span>}
+                {endText && <span className="text-body-s text-foreground-secondary">{endText}</span>}
                 {comingSoon ? (
                     <StatusBadge status="soon" size="medium" />
                 ) : endIcon ? (

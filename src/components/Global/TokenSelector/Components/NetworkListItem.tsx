@@ -39,7 +39,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
             type="button"
             variant="transparent"
             className={twMerge(
-                'w-full transform-none rounded-sm p-0 text-left shadow-sm hover:transform-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-1'
+                'w-full transform-none rounded-sm p-0 text-left shadow-sm hover:transform-none focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary'
             )}
             onClick={isComingSoon ? undefined : onClick}
             disabled={isComingSoon}
@@ -48,9 +48,9 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
             <Card
                 position="single"
                 className={twMerge(
-                    'w-full !overflow-visible border-black p-4',
-                    isSelected && !isComingSoon ? 'bg-primary-3' : 'bg-white',
-                    isComingSoon && 'bg-grey-4'
+                    'w-full !overflow-visible border-border-default p-4',
+                    isSelected && !isComingSoon ? 'bg-primary-3' : 'bg-background-default',
+                    isComingSoon && 'bg-background-disabled'
                 )}
                 border={true}
             >
@@ -71,7 +71,12 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                             )}
                         </div>
                         <div className="flex flex-col">
-                            <span className={twMerge('text-base font-semibold text-black capitalize', titleClassName)}>
+                            <span
+                                className={`text-body-m ${twMerge(
+                                    'font-semibold text-foreground-primary capitalize',
+                                    titleClassName
+                                )}`}
+                            >
                                 {name}
                             </span>
                         </div>
@@ -81,7 +86,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                     ) : rightContent ? (
                         rightContent
                     ) : (
-                        <NavigationArrow size={24} className="text-black" />
+                        <NavigationArrow size={24} className="text-foreground-primary" />
                     )}
                 </div>
             </Card>

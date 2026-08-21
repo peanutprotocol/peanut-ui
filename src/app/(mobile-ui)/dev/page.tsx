@@ -29,6 +29,13 @@ export default function DevToolsPage() {
             icon: 'docs',
         },
         {
+            name: 'Devices',
+            description:
+                'Viewport harness: any page in 6 phone widths at once (320–430), one session. Panes mirror route, scroll, input and clicks. Hover an element to compare its width across widths; press "o" to scan for horizontal overflow.',
+            path: '/dev/devices',
+            icon: 'switch',
+        },
+        {
             name: 'Debug',
             description:
                 'Sandbox-only: one-click full setup, fund USDC, fast-forward KYC, complete pending intents. Pink-banner console logs every action.',

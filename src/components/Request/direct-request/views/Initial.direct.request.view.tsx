@@ -1,6 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
@@ -194,7 +194,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 {!!authUser?.user.userId ? (
                     <NavHeader onPrev={() => resetRequestState()} title={tNav('request')} />
                 ) : (
-                    <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
+                    <div className="text-center text-heading-xs md:hidden">{tNav('request')}</div>
                 )}
 
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
@@ -215,7 +215,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             {!!authUser?.user.userId ? (
                 <NavHeader onPrev={onBack} title={tNav('request')} />
             ) : (
-                <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
+                <div className="text-center text-heading-xs md:hidden">{tNav('request')}</div>
             )}
 
             <div className="my-auto space-y-4 flex h-full flex-col justify-center">
@@ -301,7 +301,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         </Button>
                     )}
 
-                    {errorState.errorMessage && <ErrorAlert description={errorState.errorMessage} />}
+                    {errorState.errorMessage && <Notification priority="error">{errorState.errorMessage}</Notification>}
                 </div>
             </div>
         </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -216,7 +216,7 @@ export default function InitialWithdrawView({
                     the user must see where funds will actually go before any
                     review/warning step (external tester feedback). */}
                 {!!recipient.name && !!recipient.address && isValidRecipient && !inputChanging && (
-                    <p className="text-left text-xs text-grey-1">
+                    <p className="text-left text-body-xs text-foreground-secondary">
                         {recipient.name} {t('resolvesTo')}{' '}
                         <span className="font-mono">{printableAddress(recipient.address)}</span>
                     </p>
@@ -241,7 +241,9 @@ export default function InitialWithdrawView({
                     {t('review')}
                 </Button>
 
-                {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
+                {error.showError && !!error.errorMessage && (
+                    <Notification priority="error">{error.errorMessage}</Notification>
+                )}
             </div>
         </div>
     )
