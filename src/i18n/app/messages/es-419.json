@@ -2420,6 +2420,13 @@
             "ctaUnlockNow": "Desbloquear ahora",
             "ctaWithdrawFunds": "Retirar fondos"
         },
+        "regionRestricted": {
+            "title": "No podemos verificar identificaciones de tu país",
+            "description": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no cambiará el resultado.",
+            "stillAvailable": "Tus fondos están seguros y puedes seguir usando Peanut para enviar y recibir dinero con otras personas.",
+            "homeDescription": "Tus fondos están seguros: puedes seguir enviando y recibiendo dinero con otras personas.",
+            "cta": "Enviar o solicitar dinero"
+        },
         "advisory": {
             "title": "Un paso rápido para continuar",
             "descriptionByDate": "Para seguir usando las transferencias bancarias, completa una breve verificación (obligatoria antes del {deadline}). Solo toma un par de minutos.",
@@ -2785,7 +2792,8 @@
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escríbele a soporte si crees que es un error.",
             "manteca_us_nationality": "Los pagos desde este país no están disponibles para ciudadanos de EE. UU. por el momento.",
             "country_not_supported": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
-            "uk_resident_blocked": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento."
+            "uk_resident_blocked": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
+            "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no cambiará el resultado."
         }
     },
     "recoverFunds": {

@@ -41,8 +41,13 @@ jest.mock('@/hooks/useCapabilities', () => ({
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
 }))
+let mockRegionRestricted = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
-    useIdentityVerification: () => ({ isProcessing: false, needsAction: false }),
+    useIdentityVerification: () => ({
+        isProcessing: false,
+        needsAction: false,
+        isRegionRestricted: mockRegionRestricted,
+    }),
 }))
 let mockResidenceRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
@@ -109,6 +114,7 @@ beforeEach(() => {
     mockUser = { user: { isActivated: false, userId: 'u1' } }
     mockHasCardAccess = false
     mockResidenceRestrictions = { banking: false, card: false }
+    mockRegionRestricted = false
 })
 
 describe('ActivationCTAs — residence restrictions', () => {
@@ -122,6 +128,37 @@ describe('ActivationCTAs — residence restrictions', () => {
         mockResidenceRestrictions = { banking: false, card: true }
         render(<ActivationCTAs activationStep="verify" />)
         expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
+    })
+})
+
+describe('ActivationCTAs — region-restricted outranks every funnel step', () => {
+    it('replaces the verify nag, which this user can never satisfy', () => {
+        mockRegionRestricted = true
+        render(<ActivationCTAs activationStep="verify" />)
+
+        expect(screen.getByText("We can't verify IDs from your country")).toBeInTheDocument()
+        expect(screen.queryByText('Verification issue')).not.toBeInTheDocument()
+    })
+
+    it('outranks the getting-started checklist — every listed step is a closed door', () => {
+        mockRegionRestricted = true
+        mockHasCardAccess = true
+        render(<ActivationCTAs activationStep="card" />)
+
+        expect(screen.getByText("We can't verify IDs from your country")).toBeInTheDocument()
+        expect(screen.queryByText('getting-started-checklist')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Send or request money'))
+        expect(mockPush).toHaveBeenCalledWith('/send')
+        expect(mockPush).not.toHaveBeenCalledWith('/shhhhh')
+    })
+
+    it('never opens support — support cannot lift a jurisdictional block', () => {
+        mockRegionRestricted = true
+        mockRails = [bankRejected]
+        render(<ActivationCTAs activationStep="deposit" />)
+
+        fireEvent.click(screen.getByText('Send or request money'))
+        expect(mockPush).toHaveBeenCalledWith('/send')
     })
 })
 

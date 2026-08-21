@@ -2420,6 +2420,13 @@
             "ctaUnlockNow": "Desbloquear agora",
             "ctaWithdrawFunds": "Sacar fundos"
         },
+        "regionRestricted": {
+            "title": "Não conseguimos verificar documentos do seu país",
+            "description": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
+            "stillAvailable": "Seu dinheiro está seguro e você ainda pode usar o Peanut para enviar e receber dinheiro de outras pessoas.",
+            "homeDescription": "Seu dinheiro está seguro — você ainda pode enviar e receber dinheiro de outras pessoas.",
+            "cta": "Enviar ou pedir dinheiro"
+        },
         "advisory": {
             "title": "Um passo rápido para continuar",
             "descriptionByDate": "Para continuar usando as transferências bancárias, conclua uma verificação rápida (obrigatória até {deadline}). Leva apenas alguns minutos.",
@@ -2785,7 +2792,8 @@
             "card_rejected": "Sua solicitação de cartão não pôde ser aprovada. Fale com o suporte se achar que isso é um engano.",
             "manteca_us_nationality": "Pagamentos deste país não estão disponíveis para cidadãos dos EUA no momento.",
             "country_not_supported": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
-            "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para seus residentes. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento."
+            "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para seus residentes. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
+            "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado."
         }
     },
     "recoverFunds": {

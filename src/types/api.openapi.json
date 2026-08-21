@@ -17878,6 +17878,27 @@
                                                 "actionMessage": {
                                                     "type": "string"
                                                 },
+                                                "reason": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "code": {
+                                                            "type": "string"
+                                                        },
+                                                        "userMessage": {
+                                                            "type": "string"
+                                                        },
+                                                        "details": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "code",
+                                                        "userMessage"
+                                                    ]
+                                                },
+                                                "canRetry": {
+                                                    "type": "boolean"
+                                                },
                                                 "rejectLabels": {
                                                     "type": "array",
                                                     "items": {

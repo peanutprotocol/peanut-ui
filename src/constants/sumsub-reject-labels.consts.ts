@@ -103,6 +103,13 @@ export const TERMINAL_REJECT_LABELS = new Set([
     'PEP',
     'SANCTIONS',
     'DUPLICATE',
+    // Jurisdictional blocks. A retry cannot pass one of these — the document's
+    // country is unacceptable, not the document — so no surface may offer
+    // "try again". These two drive the region-restricted screen (the BE
+    // classifies them into identityVerification.reason); listing them here is
+    // what stops the OTHER surfaces from contradicting it with a retry CTA.
+    'WRONG_USER_REGION',
+    'REGULATIONS_VIOLATIONS',
 ])
 
 /** check if any of the reject labels indicate a terminal (permanent) rejection */
