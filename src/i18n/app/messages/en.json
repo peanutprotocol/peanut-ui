@@ -324,7 +324,10 @@
                 "label": "Residence: {country}",
                 "unknown": "Residence not set",
                 "verified": "Verified",
-                "unverified": "Unverified"
+                "unverified": "Unverified",
+                "change": "Change",
+                "set": "Set",
+                "pendingReverify": "Update to {country} pending re-verification"
             },
             "yourRegion": "Your region",
             "groups": {
@@ -356,7 +359,25 @@
                 "notAvailable": "Not available"
             },
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
-            "cardNotAvailableNote": "The card isn't available for residents of your country."
+            "cardNotAvailableNote": "The card isn't available for residents of your country.",
+            "unlockModal": {
+                "title": "Unlock {method}",
+                "titleGeneric": "Unlock this payment method",
+                "description": "If your ID check already covers it, this switches on right away. Otherwise we'll show you exactly what's needed before anything opens.",
+                "cta": "Unlock",
+                "notNow": "Not now"
+            },
+            "changeModal": {
+                "title": "Change your residence",
+                "description": "Pick the country of your citizenship or residence permit: the one your ID shows.",
+                "countryPlaceholder": "Select your country",
+                "verifiedMismatchNote": "Your current payment methods keep working. To make this your verified residence, you'll verify again with documents from that country.",
+                "fullRestrictionNote": "Heads up: bank transfers and card issuing aren't available for residents of this country.",
+                "cardRestrictionNote": "Heads up: the card isn't available for residents of this country.",
+                "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",
+                "save": "Save",
+                "saveAndReverify": "Save & re-verify now"
+            }
         },
         "backup": {
             "title": "Backup",

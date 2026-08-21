@@ -166,7 +166,10 @@
                 "label": "Residencia: {country}",
                 "unknown": "Residencia sin definir",
                 "verified": "Verificado",
-                "unverified": "Sin verificar"
+                "unverified": "Sin verificar",
+                "change": "Cambiar",
+                "set": "Definir",
+                "pendingReverify": "Cambio a {country} pendiente de nueva verificación"
             },
             "yourRegion": "Tu región",
             "groups": {
@@ -198,7 +201,25 @@
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
-            "cardNotAvailableNote": "La tarjeta no está disponible para residentes de tu país."
+            "cardNotAvailableNote": "La tarjeta no está disponible para residentes de tu país.",
+            "unlockModal": {
+                "title": "Desbloquear {method}",
+                "titleGeneric": "Desbloqueá este método de pago",
+                "description": "Si tu verificación de identidad ya lo cubre, se activa al instante. Si no, te vamos a mostrar exactamente qué se necesita antes de abrir nada.",
+                "cta": "Desbloquear",
+                "notNow": "Ahora no"
+            },
+            "changeModal": {
+                "title": "Cambiar tu residencia",
+                "description": "Elegí el país de tu ciudadanía o permiso de residencia: el que muestra tu documento.",
+                "countryPlaceholder": "Seleccioná tu país",
+                "verifiedMismatchNote": "Tus métodos de pago actuales siguen funcionando. Para que este sea tu país de residencia verificado, vas a tener que verificarte de nuevo con documentos de ese país.",
+                "fullRestrictionNote": "Atención: las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de este país.",
+                "cardRestrictionNote": "Atención: la tarjeta no está disponible para residentes de este país.",
+                "bankingRestrictionNote": "Atención: las transferencias bancarias no están disponibles para residentes de este país.",
+                "save": "Guardar",
+                "saveAndReverify": "Guardar y verificar ahora"
+            }
         },
         "backup": {
             "nonCustodial": {
