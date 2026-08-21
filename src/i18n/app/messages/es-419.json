@@ -2956,12 +2956,6 @@
             "contributed": "{amount} aportado",
             "remaining": "{amount} restante"
         },
-        "routeExpiryTimer": {
-            "findingBestRate": "Buscando la mejor tasa...",
-            "noQuote": "No hay cotización disponible",
-            "quoteExpired": "La cotización venció",
-            "priceLocked": "Precio fijo por {time}"
-        },
         "mantecaMaintenance": {
             "title": "Servicio temporalmente no disponible",
             "description": "Estamos teniendo problemas con {action, select, deposits {los depósitos} withdrawals {los retiros} other {las transferencias}} por una falla de un proveedor externo. Estamos trabajando para restablecer el servicio lo antes posible.",

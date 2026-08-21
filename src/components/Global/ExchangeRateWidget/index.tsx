@@ -199,7 +199,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
     // recipe; a dedicated board can restyle the internals later.
     return (
-        <Card shadowSize="4" className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-7 md:w-[420px]">
+        <Card shadowSize="4" className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]">
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.youSend}</h2>
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">

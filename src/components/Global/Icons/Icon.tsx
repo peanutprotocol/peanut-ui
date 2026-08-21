@@ -175,7 +175,10 @@ export interface IconProps extends SVGProps<SVGSVGElement> {
 // forces black fill on icons inside buttons and collapses open-curve Lucide paths
 // (refresh, logout, chevron) into blobs. Class-level CSS can't win on specificity.
 const FILL_NONE = { fill: 'none' } as const
-const FILL_CURRENT = { fill: 'currentColor' } as const
+// filled glyphs: fill the outer shape with currentColor and knock the inner
+// marks out in the surface color — plain fill:currentColor floods the whole
+// 24px grid into a solid blob because Lucide inner marks are strokes.
+const FILL_CURRENT = { fill: 'currentColor', stroke: 'var(--color-background-default, #fff)' } as const
 
 // Tighter viewBox for icons whose Lucide artwork is small relative to the
 // 24x24 grid (notably arrows: coords 7-17 = ~41% fill). Cropping the empty

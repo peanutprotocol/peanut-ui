@@ -34,7 +34,7 @@ const SettingsPage = () => {
                 disabled={isLoggingOut}
                 variant="primary-soft"
                 shadowSize="4"
-                className="flex w-full items-center justify-center gap-2 rounded-sm py-3"
+                className="w-full"
                 onClick={async () => {
                     await logoutUser()
                     queryClient.invalidateQueries()

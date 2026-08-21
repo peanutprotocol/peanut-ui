@@ -52,7 +52,7 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
     }
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-5 md:pb-0">
+        <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-4 md:pb-0">
             <NavHeader title={t('methods.migrateFromOfframp')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 <div className="flex flex-col gap-2">

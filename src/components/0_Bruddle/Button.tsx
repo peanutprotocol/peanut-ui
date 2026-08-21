@@ -58,9 +58,9 @@ const buttonVariants: Record<ButtonVariant, string> = {
     stroke: 'btn-stroke',
     'transparent-light': 'btn-transparent-light',
     'transparent-dark': 'btn-transparent-dark',
-    'primary-soft': 'bg-white',
+    'primary-soft': 'bg-white active:bg-action-primary',
     transparent:
-        'bg-transparent border-none hover:bg-transparent active:bg-transparent! focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent hover:text-action-ghost-hover hover:fill-action-ghost-hover',
+        'bg-transparent border-none hover:bg-transparent active:bg-transparent! focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent hover:text-action-ghost-hover hover:fill-action-ghost-hover active:text-action-ghost-hover active:fill-action-ghost-hover',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {

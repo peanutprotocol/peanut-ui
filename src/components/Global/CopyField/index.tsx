@@ -4,6 +4,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import { useCallback, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 interface CopyFieldProps {
     text: string
@@ -40,7 +41,21 @@ const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: Cop
                 onClick={handleClick}
                 shadowSize={shadowSize}
             >
-                {isCopied ? t('copyField.copied') : t('copyField.copy')}
+                {/* both labels share one grid cell so the button keeps the width of the longer one */}
+                <span className="grid text-center">
+                    <span
+                        className={twMerge('col-start-1 row-start-1', isCopied && 'invisible')}
+                        aria-hidden={isCopied}
+                    >
+                        {t('copyField.copy')}
+                    </span>
+                    <span
+                        className={twMerge('col-start-1 row-start-1', !isCopied && 'invisible')}
+                        aria-hidden={!isCopied}
+                    >
+                        {t('copyField.copied')}
+                    </span>
+                </span>
             </Button>
         </div>
     )

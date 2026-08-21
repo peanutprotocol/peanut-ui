@@ -50,7 +50,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     drag handle area. content touches need the wrapper's own copy, applied
                     only while collapsed so overflowing content can scroll at full snap. */}
                 <DrawerContent
-                    className={`min-h-[200px] touch-none p-5 ${className || ''}`}
+                    className={`min-h-[200px] touch-none p-4 ${className || ''}`}
                     scrollAreaClassName={activeSnapPoint === snapPoints[0] ? 'touch-none' : undefined}
                 >
                     <DrawerTitle className="space-y-2 mb-8">
@@ -58,7 +58,9 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                             {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
                         </h2>
                     </DrawerTitle>
-                    <div>
+                    {/* pb-1 = the button's 4px offset shadow; without it the drawer's
+                        overflow-auto scroll wrapper clips the shadow at the bottom */}
+                    <div className="pb-1">
                         <QRCodeWrapper url={url} />
                         <div className="text-gray-500 mx-auto mt-4 w-full p-2 text-center text-base">{text}</div>
                         <Divider className="text-gray-500" text={tCommon('or')} />

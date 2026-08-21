@@ -298,13 +298,13 @@ const JoinWaitlistPage = () => {
             <div
                 className={twMerge(
                     'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',
-                    'flex flex-col items-end justify-center gap-5 pt-8'
+                    'flex flex-col items-end justify-center gap-6 pt-8'
                 )}
             >
                 <div className="mx-auto w-full md:max-w-xs">
                     {/* Step 1: Email Collection */}
                     {step === 'email' && (
-                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
+                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-6">
                             <h1 className="text-heading-xs text-foreground-primary">{t('emailTitle')}</h1>
                             <p className="text-body-m">{t('emailDescription')}</p>
 
@@ -345,7 +345,7 @@ const JoinWaitlistPage = () => {
 
                     {/* Step 2: Enable Notifications (skippable) */}
                     {step === 'notifications' && (
-                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
+                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-6">
                             <h1 className="text-heading-xs text-foreground-primary">{t('notificationsTitle')}</h1>
                             <p className="text-body-m">{t('notificationsDescription')}</p>
 
@@ -362,7 +362,7 @@ const JoinWaitlistPage = () => {
                     {/* Step 3: Jail Screen */}
                     {step === 'jail' && isLoadingWaitlistPosition && <Loading variant="mascot" coverFullScreen />}
                     {step === 'jail' && !isLoadingWaitlistPosition && (
-                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
+                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-6">
                             <h1 className="text-heading-xs text-foreground-primary">{t('inviteOnlyTitle')}</h1>
 
                             <h2 className="text-heading-xs text-foreground-primary">

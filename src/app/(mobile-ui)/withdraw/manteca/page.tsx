@@ -32,7 +32,7 @@ import AmountInput from '@/components/Global/AmountInput'
 import { parseUnits } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useModalsContext } from '@/context/ModalsContext'
-import Select from '@/components/Global/Select'
+import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { captureException } from '@sentry/nextjs'
@@ -598,7 +598,7 @@ function MantecaBankWithdrawFlow() {
                         <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
-                    <div className="space-y-5 w-full">
+                    <div className="space-y-4 w-full">
                         <Button
                             onClick={() => {
                                 router.push('/home')
@@ -831,28 +831,30 @@ function MantecaBankWithdrawFlow() {
                                 validate={validateDestinationAddress}
                             />
                             {countryConfig?.needsAccountType && (
-                                <Select
-                                    value={accountType ? { id: accountType, title: accountType } : null}
-                                    onChange={(item) => {
-                                        setAccountType(MantecaAccountType[item.id as keyof typeof MantecaAccountType])
+                                <BaseSelect
+                                    value={accountType ?? undefined}
+                                    onValueChange={(value) => {
+                                        setAccountType(MantecaAccountType[value as keyof typeof MantecaAccountType])
                                     }}
-                                    items={countryConfig.validAccountTypes.map((type) => ({ id: type, title: type }))}
+                                    options={countryConfig.validAccountTypes.map((type) => ({
+                                        label: type,
+                                        value: type,
+                                    }))}
                                     placeholder={t('manteca.selectAccountType')}
-                                    className="w-full"
                                 />
                             )}
                             {countryConfig?.needsBankCode && (
-                                <Select
-                                    value={selectedBank ? { id: selectedBank.code, title: selectedBank.name } : null}
-                                    onChange={(item) => {
-                                        setSelectedBank({ code: item.id, name: item.title })
+                                <BaseSelect
+                                    value={selectedBank?.code}
+                                    onValueChange={(value) => {
+                                        const bank = countryConfig.validBankCodes.find((b) => b.code === value)
+                                        if (bank) setSelectedBank({ code: bank.code, name: bank.name })
                                     }}
-                                    items={countryConfig.validBankCodes.map((bank) => ({
-                                        id: bank.code,
-                                        title: bank.name,
+                                    options={countryConfig.validBankCodes.map((bank) => ({
+                                        label: bank.name,
+                                        value: bank.code,
                                     }))}
                                     placeholder={t('manteca.selectBank')}
-                                    className="w-full"
                                 />
                             )}
 

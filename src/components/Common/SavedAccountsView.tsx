@@ -160,7 +160,7 @@ export function SavedAccountsMapping({
                         title={<div>{title}</div>}
                         position="single"
                         onClick={() => onItemClick(account, path)}
-                        className="p-4 py-2.5"
+                        className="p-4 py-2"
                         chevron
                         leading={
                             // board leading: plain 32px flag / brand bubble, no corner badge

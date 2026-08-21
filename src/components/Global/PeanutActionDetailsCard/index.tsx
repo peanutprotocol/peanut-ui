@@ -8,7 +8,6 @@ import { twMerge } from 'tailwind-merge'
 import Attachment from '../Attachment'
 import Card from '../Card'
 import { Icon, type IconName } from '../Icons/Icon'
-import RouteExpiryTimer from '../RouteExpiryTimer'
 import Image, { type StaticImageData } from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Loading from '../Loading'
@@ -41,14 +40,6 @@ export interface PeanutActionDetailsCardProps {
     avatarSize?: AvatarSize
     countryCodeForFlag?: string
     currencySymbol?: string
-    // Cross-chain timer props
-    showTimer?: boolean
-    timerExpiry?: string
-    isTimerLoading?: boolean
-    onTimerNearExpiry?: () => void
-    onTimerExpired?: () => void
-    disableTimerRefetch?: boolean
-    timerError?: string | null
     isLoading?: boolean
     logo?: StaticImageData
     /**
@@ -74,13 +65,6 @@ export default function PeanutActionDetailsCard({
     className,
     fileUrl,
     avatarSize = 'medium',
-    showTimer = false,
-    timerExpiry,
-    isTimerLoading = false,
-    onTimerNearExpiry,
-    onTimerExpired,
-    disableTimerRefetch = false,
-    timerError = null,
     countryCodeForFlag,
     currencySymbol,
     isLoading = false,
@@ -257,16 +241,6 @@ export default function PeanutActionDetailsCard({
                     )}
 
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
-                    {showTimer && (
-                        <RouteExpiryTimer
-                            expiry={timerExpiry}
-                            isLoading={isTimerLoading}
-                            onNearExpiry={onTimerNearExpiry}
-                            onExpired={onTimerExpired}
-                            disableRefetch={disableTimerRefetch}
-                            error={timerError}
-                        />
-                    )}
                 </div>
             </div>
         </Card>

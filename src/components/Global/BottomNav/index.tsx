@@ -5,10 +5,10 @@ import IndicatorDot from '@/components/Global/IndicatorDot'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
+import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 /**
@@ -16,14 +16,18 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
  * 17317:138477): a pill bar with home / card / support tabs plus the pink QR
  * circle button. Active tab = white pill. Every pressable area is 68x52px
  * (24px/16px padding around a 20px icon) — over the 44px touch-target floor.
+ *
+ * The active pill is a single shared element (framer layoutId) so it slides
+ * from the old tab to the tapped one; it is drawn 1px larger on every side
+ * (-inset-px) so its border overlays the outer pill border instead of
+ * doubling up against it.
  */
 
-// tab pill: px-6 py-4 + 20px icon = the 68x52 pressable annotated on the board
-const tabClass = (active: boolean) =>
-    twMerge(
-        'flex items-center justify-center rounded-round px-6 py-4 text-foreground-primary transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus',
-        active && 'border border-border-default bg-background-default'
-    )
+type TabId = 'home' | 'card' | 'support'
+
+// tab pressable: px-6 py-4 + 20px icon = the 68x52 area annotated on the board
+const tabClass =
+    'relative flex items-center justify-center rounded-round px-6 py-4 text-foreground-primary transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus'
 
 export const BottomNav = () => {
     const t = useTranslations('navigation')
@@ -31,25 +35,38 @@ export const BottomNav = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { triggerHaptic } = useAppHaptic()
     const hasUnreadSupport = useSupportUnread()
+    const reduceMotion = useReducedMotion()
+
+    // one active tab at a time so the shared pill has a single home
+    const activeTab: TabId | null =
+        isSupportModalOpen || pathname === '/support'
+            ? 'support'
+            : (pathname?.startsWith('/card') ?? false)
+              ? 'card'
+              : pathname === '/home' || pathname === '/home/'
+                ? 'home'
+                : null
+
+    const renderPill = (tab: TabId) =>
+        activeTab === tab && (
+            <motion.span
+                aria-hidden
+                layoutId="bottom-nav-pill"
+                className="absolute -inset-px rounded-round border border-border-default bg-background-default"
+                transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 32 }}
+            />
+        )
 
     return (
         <nav className="flex w-full items-center gap-4 bg-background-page px-6 py-2" translate="no">
             <div className="flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page">
-                <Link
-                    href="/home"
-                    aria-label={t('home')}
-                    onClick={() => triggerHaptic()}
-                    className={tabClass(pathname === '/home' || pathname === '/home/')}
-                >
-                    <Icon name="home" size={20} />
+                <Link href="/home" aria-label={t('home')} onClick={() => triggerHaptic()} className={tabClass}>
+                    {renderPill('home')}
+                    <Icon name="home" size={20} className="relative" />
                 </Link>
-                <Link
-                    href="/card"
-                    aria-label={t('card')}
-                    onClick={() => triggerHaptic()}
-                    className={tabClass(pathname?.startsWith('/card') ?? false)}
-                >
-                    <Icon name="credit-card" size={20} />
+                <Link href="/card" aria-label={t('card')} onClick={() => triggerHaptic()} className={tabClass}>
+                    {renderPill('card')}
+                    <Icon name="credit-card" size={20} className="relative" />
                 </Link>
                 <button
                     type="button"
@@ -58,8 +75,9 @@ export const BottomNav = () => {
                         triggerHaptic()
                         setIsSupportModalOpen(true)
                     }}
-                    className={tabClass(isSupportModalOpen || pathname === '/support')}
+                    className={tabClass}
                 >
+                    {renderPill('support')}
                     <span className="relative">
                         <Icon name="peanut-support" size={20} />
                         {/* role="status" so the dot is announced — aria-label alone on

@@ -73,7 +73,11 @@ export const AppShell = ({
             {/* Scrollable content — one centered mobile column on every viewport */}
             <div
                 id="scrollable-content"
-                className={twMerge('relative w-full flex-1 overflow-y-auto bg-background-page p-6', contentClassName)}
+                // spacing board 17291:2772: screen edge inset is L/16 (px-4); vertical keeps the XL/24 section rhythm
+                className={twMerge(
+                    'relative w-full flex-1 overflow-y-auto bg-background-page px-4 py-6',
+                    contentClassName
+                )}
             >
                 <div className={twMerge('mx-auto flex w-full max-w-md items-center justify-center', innerClassName)}>
                     {children}

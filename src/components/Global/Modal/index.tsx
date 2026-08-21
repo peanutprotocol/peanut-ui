@@ -97,7 +97,7 @@ const Modal = ({
                                     <>
                                         <div
                                             className={
-                                                'border-b border-n-1 px-5 py-4 text-start text-h6 dark:border-white'
+                                                'border-b border-n-1 px-4 py-4 text-start text-h6 dark:border-white'
                                             }
                                         >
                                             {title}

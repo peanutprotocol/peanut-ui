@@ -14,9 +14,9 @@ import { isDemoMode } from '@/utils/demo'
  * App-wide announcement surface. The old marquee banners (beta feedback,
  * GenericBanner) are gone — announcements now render as an inline
  * Notification (maintenance example: figma 17994:21117). Precedence:
- * connectivity > maintenance > nothing. The maintenance toggles in
- * underMaintenance.config show it on every page; there is no per-page
- * maintenance flag today.
+ * connectivity > maintenance > nothing. The maintenance banner shows on every
+ * page by default; maintenanceBannerPaths in underMaintenance.config scopes it
+ * to specific path prefixes (full maintenance always shows it everywhere).
  */
 export function Banner() {
     const pathname = usePathname()
@@ -48,7 +48,11 @@ export function Banner() {
         )
     }
 
-    if (maintenanceConfig.enableMaintenanceBanner || maintenanceConfig.enableFullMaintenance) {
+    const onTargetedPath =
+        maintenanceConfig.maintenanceBannerPaths.length === 0 ||
+        maintenanceConfig.maintenanceBannerPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+
+    if (maintenanceConfig.enableFullMaintenance || (maintenanceConfig.enableMaintenanceBanner && onTargetedPath)) {
         return (
             <Notification priority="error" className="mx-4 mt-2">
                 {t('maintenanceBanner')}

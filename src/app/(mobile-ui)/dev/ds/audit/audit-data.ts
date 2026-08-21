@@ -4143,17 +4143,6 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: "Different semantic (attention pulse, not loading) but shares the animate-pulse class \u2014 worth a distinct token/anim so skeleton and attention-pulse don't collide.",
     },
     {
-        name: 'RouteExpiryTimer animate-pulse-strong',
-        cat: 'loading',
-        catLabel: 'Loading / skeleton / empty',
-        layer: 'components',
-        role: 'Uses the custom animate-pulse-strong keyframe (opacity 1->0.3) for an expiring-r',
-        usages: 1,
-        status: 'adhoc',
-        source: 'src/components/Global/RouteExpiryTimer/index.tsx:182',
-        notes: 'Separate attention-pulse animation from the loading pulse. Fine as-is but note it adds another pulse variant to the forest.',
-    },
-    {
         name: 'colorPulse keyframe + animation',
         cat: 'loading',
         catLabel: 'Loading / skeleton / empty',

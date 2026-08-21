@@ -186,7 +186,7 @@ export function SemanticRequestConfirmView() {
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={handleBack} title={t('headers.confirmPayment')} />
 
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-5">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-4">
                 {recipient && recipient.recipientType && (
                     <PeanutActionDetailsCard
                         avatarSize="small"

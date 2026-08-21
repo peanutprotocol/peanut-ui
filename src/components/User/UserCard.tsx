@@ -8,7 +8,7 @@ import Card from '../Global/Card'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import AvatarWithBadge, { type AvatarSize } from '../Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '../UserHeader'
-import ProgressBar from '../Global/ProgressBar'
+import PotProgress from './PotProgress'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import type { PotContributor } from '@/features/payments/flows/contribute-pot/ContributePotFlowContext'
 
@@ -136,7 +136,7 @@ const UserCard = ({
                 </div>
             </div>
             {amount !== undefined && amountCollected !== undefined && type === 'request_pay' && amount > 0 && (
-                <ProgressBar goal={amount} progress={amountCollected} isClosed={amountCollected >= amount} />
+                <PotProgress goal={amount} progress={amountCollected} isClosed={amountCollected >= amount} />
             )}
 
             {/* request pot contributors drawer */}

@@ -276,7 +276,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={t('transferDetails')} onPrev={handleBack} />
 
-            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-5">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
                 <Card className="p-4">
                     <p className="text-body-xs text-foreground-secondary">{t('bankDetails.amountToSend')}</p>
                     <div className="flex items-baseline gap-2">
