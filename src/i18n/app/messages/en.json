@@ -2372,6 +2372,7 @@
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
             "confirmError": "Something went wrong confirming your terms. Please try again.",
+            "notAcceptedYet": "It looks like the terms haven't been accepted yet. Please try again.",
             "acceptTerms": "Accept Terms",
             "notNow": "Not now"
         },

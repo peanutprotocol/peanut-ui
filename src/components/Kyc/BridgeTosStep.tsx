@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
-import IframeWrapper from '@/components/Global/IframeWrapper'
+import IframeWrapper, { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { getBridgeTosLink } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
@@ -76,12 +76,21 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
     }, [t])
 
     const handleIframeClose = useCallback(
-        async (source?: 'manual' | 'completed' | 'tos_accepted') => {
-            if (source === 'tos_accepted') {
+        async (source?: IframeCloseSource) => {
+            if (source === 'tos_accepted' || source === 'returned') {
                 setIsConfirming(true)
                 setShowIframe(false)
                 try {
-                    await confirmBridgeTosAndAwaitRails(fetchUser)
+                    const accepted = await confirmBridgeTosAndAwaitRails(fetchUser, {
+                        observedAcceptance: source === 'tos_accepted',
+                    })
+                    // `returned` only means the system browser closed, so a user
+                    // who backed out lands back on the prompt instead of being
+                    // told the step is done.
+                    if (source === 'returned' && !accepted) {
+                        setError(t('bridgeTos.notAcceptedYet'))
+                        return
+                    }
                     onComplete()
                 } catch {
                     setError(t('bridgeTos.confirmError'))
