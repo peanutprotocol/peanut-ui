@@ -196,7 +196,7 @@ export interface Translations {
     footerTerms: string
     footerPrivacy: string
     footerSecurity: string
-    footerJobs: string
+    footerCareers: string
 
     // MDX component headings
     faqTitle: string
