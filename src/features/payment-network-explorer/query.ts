@@ -1,13 +1,4 @@
-import {
-    EDGE_DIRECTION_FILTERS,
-    P2P_EDGE_TYPES,
-    type EdgeDirectionFilter,
-    type ExplorerFilters,
-    type ExplorerNode,
-    type ExplorerRelationship,
-    type P2PEdge,
-    type P2PEdgeType,
-} from './types'
+import type { ExplorerFilters, ExplorerNode, ExplorerRelationship, P2PEdge } from './types'
 
 /** The backend aggregates p2pEdges over this fixed window. Label only — there is no time filter. */
 export const FIXED_WINDOW_LABEL = 'Last 120 days · completed payments only'
@@ -29,14 +20,6 @@ export function defaultExplorerFilters(): ExplorerFilters {
         topNodes: DEFAULT_TOP_NODES,
         focus: null,
     }
-}
-
-export function isP2PEdgeType(value: string): value is P2PEdgeType {
-    return (P2P_EDGE_TYPES as readonly string[]).includes(value)
-}
-
-export function isEdgeDirectionFilter(value: string): value is EdgeDirectionFilter {
-    return (EDGE_DIRECTION_FILTERS as readonly string[]).includes(value)
 }
 
 export function isPlainUsername(value: string | null | undefined): value is string {

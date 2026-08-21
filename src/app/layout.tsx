@@ -234,7 +234,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </Script>
                 )}
 
-{/* Route-aware bootstrap: sensitive explorer URLs never load or configure GA. */}
+                {/* Route-aware bootstrap: sensitive explorer URLs never load or configure GA. */}
                 {process.env.NODE_ENV !== 'development' &&
                     process.env.NEXT_PUBLIC_GA_KEY &&
                     process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true' &&
