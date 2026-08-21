@@ -123,8 +123,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // catalog rail ids for joins against the rails table.
                 enabledRails: enabledRails.map((rail) => `${rail.rail.provider.code}:${rail.rail.method.code}`),
                 enabledRailIds: enabledRails.map((rail) => rail.rail.id),
-                // Client-only (locale never reaches the BE) — covers the first
-                // session, where the startup locale resolves before identify.
+                // Client-set (the BE mirror lives in users.locale via LocaleSync)
+                // — covers the first session, where the startup locale resolves
+                // before identify.
                 ...(appLocale ? { app_locale: appLocale } : {}),
             })
             // Sentry: every error captured from here on inherits user context

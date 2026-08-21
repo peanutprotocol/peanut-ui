@@ -15,6 +15,7 @@ import { AppLockGate } from '@/components/Global/AppLock'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { AppIntlProvider } from '@/i18n/app/AppIntlProvider'
+import { LocaleSync } from '@/i18n/app/LocaleSync'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
@@ -55,6 +56,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                     <ContextProvider>
                         <FooterVisibilityProvider>
                             <TranslationSafeWrapper>
+                                <LocaleSync />
                                 <ConsoleGreeting />
                                 <ScreenOrientationLocker />
                                 <PeanutDebug />
