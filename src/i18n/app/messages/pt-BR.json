@@ -621,6 +621,12 @@
             "errors": {
                 "invalidEmail": "Digite um e-mail válido"
             },
+            "partial": {
+                "title": "Atenção",
+                "cardDescription": "O cartão Peanut não está disponível no seu país. Todo o resto funciona: transferências bancárias, dólares digitais e envios para qualquer @usuário.",
+                "bankingDescription": "Transferências bancárias não estão disponíveis no seu país. Todo o resto funciona: o cartão Peanut, dólares digitais e envios para qualquer @usuário.",
+                "continue": "Continuar"
+            },
             "restricted": {
                 "title": "Atenção",
                 "description": "Devido a regulamentações, transferências bancárias e emissão de cartão não estão disponíveis para você. Você ainda pode ter dólares digitais, enviar para qualquer @usuário e sacar seu saldo quando quiser.",

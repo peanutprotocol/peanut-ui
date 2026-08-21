@@ -621,6 +621,12 @@
             "errors": {
                 "invalidEmail": "Please enter a valid email address"
             },
+            "partial": {
+                "title": "Heads up",
+                "cardDescription": "The Peanut card isn't available in your country. Everything else works: bank transfers, digital dollars, and sending to any @username.",
+                "bankingDescription": "Bank transfers aren't available in your country. Everything else works: the Peanut card, digital dollars, and sending to any @username.",
+                "continue": "Continue"
+            },
             "restricted": {
                 "title": "Heads up",
                 "description": "Due to regulations, bank transfers and card issuing aren't available for you. You can still hold digital dollars, send to any @username, and withdraw your balance anytime.",
