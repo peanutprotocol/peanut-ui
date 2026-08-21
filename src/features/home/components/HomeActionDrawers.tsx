@@ -22,9 +22,9 @@ interface DrawerOption {
     href: string
 }
 
-// send drawer board 17831:79186; add drawer board 17830:76839. the add drawer
-// carries a withdraw entry per the section arrows (Add -> Withdraw) — this IA
-// restores withdraw access from home through both drawers.
+// send drawer board 17831:79186; add drawer board 17830:76839. withdraw is
+// reachable from home through the SEND drawer only (product ruling 2026-08-21:
+// the add drawer is bank transfer + crypto, per the board's visible items).
 const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
     send: [
         {
@@ -45,13 +45,6 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
     add: [
         { key: 'bank', titleKey: ['methods', 'bankTransfer'], icon: 'bank', href: '/add-money?method=bank' },
         { key: 'crypto', titleKey: ['methods', 'crypto'], icon: 'credit-card', href: '/add-money/crypto' },
-        {
-            key: 'withdraw',
-            titleKey: ['drawers', 'withdrawToOwnAccounts'],
-            bodyKey: 'withdrawToOwnAccountsDescription',
-            icon: 'arrow-down',
-            href: '/withdraw',
-        },
     ],
 }
 

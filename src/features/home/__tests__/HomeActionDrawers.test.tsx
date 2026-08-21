@@ -67,7 +67,7 @@ describe('HomeActionDrawers', () => {
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/withdraw'))
     })
 
-    it('opens the add drawer with bank, crypto and withdraw options', async () => {
+    it('opens the add drawer with bank and crypto options only', async () => {
         mockDrawer = 'add'
         render(<HomeActionDrawers />)
 
@@ -77,6 +77,7 @@ describe('HomeActionDrawers', () => {
         fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto'))
 
-        expect(screen.getByTestId('home-drawer-add-withdraw')).toBeInTheDocument()
+        // withdraw is reachable via the SEND drawer only (product ruling)
+        expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
     })
 })
