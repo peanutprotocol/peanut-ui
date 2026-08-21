@@ -48,6 +48,12 @@ let mockResidenceRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockResidenceRestrictions,
 }))
+// Happy-path funnel steps render the checklist; these suites test the
+// interrupt cards, so the checklist itself is a marker (own suite covers it).
+jest.mock('@/components/Home/GettingStartedChecklist', () => ({
+    __esModule: true,
+    default: () => <div>getting-started-checklist</div>,
+}))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen, openSupportWithMessage: jest.fn() }),
 }))
@@ -112,10 +118,10 @@ describe('ActivationCTAs — residence restrictions', () => {
         expect(container.firstChild).toBeNull()
     })
 
-    it('a partial restriction keeps the verify CTA (one half of the unlock still works)', () => {
+    it('a partial restriction keeps the verify step, rendered as the checklist', () => {
         mockResidenceRestrictions = { banking: false, card: true }
         render(<ActivationCTAs activationStep="verify" />)
-        expect(screen.getByText('Unlock payments')).toBeInTheDocument()
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
     })
 })
 
@@ -124,8 +130,8 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         mockRails = [enabledCardRail, bankRejected]
         render(<ActivationCTAs activationStep="deposit" />)
         expect(screen.queryByText('Complete your setup')).not.toBeInTheDocument()
-        // Falls through to the normal funnel step instead of the rejection card.
-        expect(screen.getByText('Deposit')).toBeInTheDocument()
+        // Falls through to the checklist instead of the rejection card.
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
     })
 
     it('a BE-activated user with a rejected bank rail does NOT see the nag', () => {
@@ -142,7 +148,7 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         expect(screen.getByText('We need a valid proof of address document.')).toBeInTheDocument()
     })
 
-    it('a card-ELIGIBLE user (access, no card) with a rejected bank rail sees the deposit CTA, not the nag', () => {
+    it('a card-ELIGIBLE user (access, no card) with a rejected bank rail sees the checklist, not the nag', () => {
         // The 2026-08-20 deposit-first gate moved this cohort off the card
         // step; without this shield they would trade the card banner for a
         // "Contact support" dead end over a rail the old region-picker detour
@@ -151,7 +157,7 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         mockHasCardAccess = true
         render(<ActivationCTAs activationStep="deposit" />)
         expect(screen.queryByText('Complete your setup')).not.toBeInTheDocument()
-        expect(screen.getByText('Deposit')).toBeInTheDocument()
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
     })
 
     it('fixable rejection: Upload document heals inline (handleSelfHealResubmit), does not navigate away', () => {
@@ -163,67 +169,14 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
     })
 })
 
-/**
- * The outbound step was QR-only ("Make your first payment" → scanner) while
- * card spend counts as activation too. Card-access users now get card-inclusive
- * "Spend with Peanut" copy and a card/QR chooser; users without card access
- * keep the exact old behavior so a gated card is never teased.
- */
-describe('ActivationCTAs — outbound step spend chooser (card + QR)', () => {
-    it('without card access: QR-only copy unchanged, CTA goes straight to the scanner, no chooser', () => {
-        render(<ActivationCTAs activationStep="outbound" />)
-        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
-        expect(screen.getByText('Start paying to Pix and MercadoPago QR codes')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Start Spending'))
-        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
-        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
+describe('ActivationCTAs — happy path renders the checklist', () => {
+    it.each(['verify', 'deposit', 'card', 'outbound'] as const)('%s step renders the checklist', (step) => {
+        render(<ActivationCTAs activationStep={step} />)
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
     })
 
-    it('while card access is still loading (undefined): treated as no access — scanner, no chooser', () => {
-        mockHasCardAccess = undefined
-        render(<ActivationCTAs activationStep="outbound" />)
-        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Start Spending'))
-        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
-        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
-    })
-
-    it('with card access: card-inclusive copy, CTA opens the chooser (not the scanner) and tracks it', () => {
-        mockHasCardAccess = true
-        render(<ActivationCTAs activationStep="outbound" />)
-        expect(screen.getByText('Spend with Peanut')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Start Spending'))
-        expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
-        expect(mockSetIsQRScannerOpen).not.toHaveBeenCalled()
-        expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_shown')
-    })
-
-    it('chooser → card navigates to /card and tracks the choice', () => {
-        mockHasCardAccess = true
-        render(<ActivationCTAs activationStep="outbound" />)
-        fireEvent.click(screen.getByText('Start Spending'))
-        fireEvent.click(screen.getByText('Pay with your card'))
-        expect(mockPush).toHaveBeenCalledWith('/card')
-        expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_selected', { choice: 'card' })
-    })
-
-    it('chooser → QR opens the existing scanner and tracks the choice', () => {
-        mockHasCardAccess = true
-        render(<ActivationCTAs activationStep="outbound" />)
-        fireEvent.click(screen.getByText('Start Spending'))
-        fireEvent.click(screen.getByText('Scan a QR code'))
-        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
-        expect(mockPush).not.toHaveBeenCalled()
-        expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_selected', { choice: 'qr' })
-    })
-
-    it('card access revoked while the chooser is open: chooser closes (no stale card option)', () => {
-        mockHasCardAccess = true
-        const { rerender } = render(<ActivationCTAs activationStep="outbound" />)
-        fireEvent.click(screen.getByText('Start Spending'))
-        expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
-        mockHasCardAccess = false
-        rerender(<ActivationCTAs activationStep="outbound" />)
-        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
+    it('completed without rejection renders nothing', () => {
+        const { container } = render(<ActivationCTAs activationStep="completed" />)
+        expect(container.firstChild).toBeNull()
     })
 })

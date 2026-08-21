@@ -8,12 +8,12 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
-import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -51,7 +51,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const router = useRouter()
-    const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
+    const { openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
     const { user } = useAuth()
     // Card spend counts as activation too — card-access users get a card+QR
@@ -125,13 +125,6 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         : primaryRejectionMessage
 
     const [showProvideEmail, setShowProvideEmail] = useState(false)
-    const [showSpendChooser, setShowSpendChooser] = useState(false)
-
-    // If card access is revoked (or the card-info refetch flips it) while the
-    // chooser is open, close it — a no-access user must never see the card option.
-    useEffect(() => {
-        if (hasCardAccess !== true) setShowSpendChooser(false)
-    }, [hasCardAccess])
 
     const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
         () => ({
@@ -299,23 +292,10 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
 
     if (!step) return null
 
-    // The card step renders the mysterious /shhhhh-tone launch banner (#2295's
-    // CardLaunchCTABanner) instead of the plain funnel card — so non-activated
-    // card-eligible users get the same CTA as the activated launch splash.
-    // Keeps the funnel's /card routing + the "Maybe later" dismissal.
-    if (activationStep === 'card') {
-        return (
-            <CardLaunchCTABanner
-                onTryDoor={() => {
-                    posthog.capture(ANALYTICS_EVENTS.CARD_LAUNCH_CTA_CLICKED)
-                    // /shhhhh (not /card): the landing page explains the feature
-                    // and funnels into the canonical flow — /card alone is confusing.
-                    router.push('/shhhhh')
-                }}
-                onDismiss={() => onDismissCard?.()}
-            />
-        )
-    }
+    // Happy-path funnel steps render as the 3-item getting-started checklist
+    // (one status language with the Unlock payments screen). Interrupts —
+    // provider rejections, email blocks — keep their dedicated card below.
+    if (!hasProviderRejection) return <GettingStartedChecklist />
 
     return (
         <Card position="single" className="p-0">
@@ -347,13 +327,6 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                             )
                         } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
                             void kycFlow.handleSelfHealResubmit(fixableProvider)
-                        } else if (activationStep === 'outbound' && !hasProviderRejection) {
-                            if (hasCardAccess) {
-                                posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
-                                setShowSpendChooser(true)
-                            } else {
-                                setIsQRScannerOpen(true)
-                            }
                         } else {
                             router.push(step.href)
                         }
@@ -371,33 +344,6 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
-            />
-            <ActionModal
-                visible={showSpendChooser && hasCardAccess === true}
-                onClose={() => setShowSpendChooser(false)}
-                icon="credit-card"
-                title={t('spendChooser.title')}
-                description={t('spendChooser.description')}
-                ctas={[
-                    {
-                        text: t('spendChooser.payWithCard'),
-                        shadowSize: '4',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'card' })
-                            setShowSpendChooser(false)
-                            router.push('/card')
-                        },
-                    },
-                    {
-                        text: t('spendChooser.scanQr'),
-                        variant: 'stroke',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'qr' })
-                            setShowSpendChooser(false)
-                            setIsQRScannerOpen(true)
-                        },
-                    },
-                ]}
             />
             <SumsubKycModals flow={kycFlow} />
         </Card>

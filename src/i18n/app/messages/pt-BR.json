@@ -126,6 +126,19 @@
                 "scanQr": "Escaneie um código QR"
             }
         },
+        "gettingStarted": {
+            "title": "Começar",
+            "createAccount": "Crie sua conta",
+            "createAccountDone": "Pronto. Seu dinheiro já tem um usuário",
+            "addMoneyPix": "Adicione dinheiro com PIX",
+            "addMoneySepa": "Adicione dinheiro via SEPA",
+            "addMoneySpei": "Adicione dinheiro via SPEI",
+            "addMoneyBank": "Adicione dinheiro do seu banco",
+            "kycNote": "Depósitos bancários exigem uma verificação de identidade única · cerca de 10 min",
+            "getCard": "Peça seu cartão Peanut",
+            "addMoney": "Adicionar dinheiro",
+            "firstPayment": "Faça seu primeiro pagamento"
+        },
         "autoBalance": {
             "title": "Termine de configurar seu cartão",
             "description": "Um toque com sua passkey para começar a usar seu cartão.",
