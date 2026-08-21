@@ -541,6 +541,10 @@
                 "title": "¿Cómo te llamamos?",
                 "description": "Elige tu nombre de usuario. Será tu ID para enviar y recibir dinero."
             },
+            "residence": {
+                "title": "¿Dónde eres residente?",
+                "description": "El país de tu ciudadanía o permiso de residencia: el que muestra tu documento, no donde estás de viaje ahora. Define qué métodos de pago podemos activar para ti."
+            },
             "passkey-permission": {
                 "title": "Configuremos tu passkey",
                 "description": "Usa tu cara o tu huella para iniciar sesión. Sin contraseñas ni complicaciones. Solo tú."
@@ -609,6 +613,24 @@
                 "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo o contacta a soporte."
             },
             "termsAgreement": "Al crear una cuenta aceptas los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>"
+        },
+        "residenceStep": {
+            "countryPlaceholder": "Selecciona tu país",
+            "secondCountryPlaceholder": "Selecciona tu segundo país",
+            "multiDocLink": "¿Tienes documentos de más de un país?",
+            "errors": {
+                "invalidEmail": "Ingresa un correo electrónico válido"
+            },
+            "restricted": {
+                "title": "Atención",
+                "description": "Debido a regulaciones, las transferencias bancarias y la emisión de tarjetas no están disponibles para ti. Aún puedes tener dólares digitales, enviar a cualquier @usuario y retirar tu saldo cuando quieras.",
+                "continueAnyway": "Continuar de todos modos",
+                "notifyMe": "Avísame cuando esté disponible",
+                "emailPlaceholder": "tu@ejemplo.com",
+                "notifySubmit": "Avisarme",
+                "notifyDone": "Listo. Te enviaremos un correo cuando esté disponible.",
+                "changeCountry": "Elegir otro país"
+            }
         },
         "passkey": {
             "setItUp": "Configurar",

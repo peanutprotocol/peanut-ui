@@ -11,4 +11,8 @@ export interface ISetupState {
     inviteCode: string
     inviteType: EInviteType
     showIosPwaInstallScreen: boolean
+    /** ISO-2 legal-residence country declared on the residence step ('' until chosen). */
+    residenceCountry: string
+    /** ISO-2 second country, revealed by "Have documents from more than one country?". */
+    secondResidenceCountry: string
 }

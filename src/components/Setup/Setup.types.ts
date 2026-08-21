@@ -2,6 +2,7 @@ export type ScreenId =
     | 'landing'
     | 'welcome'
     | 'signup'
+    | 'residence'
     | 'passkey-permission'
     | 'passkey-success'
     | 'notification-permission'
@@ -19,6 +20,7 @@ export type ScreenProps = {
     landing: undefined
     welcome: undefined
     signup: undefined
+    residence: undefined
     'passkey-permission': {
         handle: string
     }

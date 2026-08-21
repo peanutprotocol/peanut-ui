@@ -541,6 +541,10 @@
                 "title": "How should we call you?",
                 "description": "Choose your username. It'll be your ID to send and receive money."
             },
+            "residence": {
+                "title": "Where are you a resident?",
+                "description": "The country of your citizenship or residence permit: the one your ID shows, not where you're travelling right now. It decides which payment methods we can turn on for you."
+            },
             "passkey-permission": {
                 "title": "Let's set up your passkey",
                 "description": "Use your face or fingerprint to log in. No passwords, no hassle. Just you."
@@ -609,6 +613,24 @@
                 "checkFailedSupport": "Failed to check handle availability. Please try again or contact support."
             },
             "termsAgreement": "By creating account you agree with <terms>T&C</terms> and <privacy>Privacy Policy</privacy>"
+        },
+        "residenceStep": {
+            "countryPlaceholder": "Select your country",
+            "secondCountryPlaceholder": "Select your second country",
+            "multiDocLink": "Have documents from more than one country?",
+            "errors": {
+                "invalidEmail": "Please enter a valid email address"
+            },
+            "restricted": {
+                "title": "Heads up",
+                "description": "Due to regulations, bank transfers and card issuing aren't available for you. You can still hold digital dollars, send to any @username, and withdraw your balance anytime.",
+                "continueAnyway": "Continue anyway",
+                "notifyMe": "Notify me when it is available",
+                "emailPlaceholder": "you@example.com",
+                "notifySubmit": "Notify me",
+                "notifyDone": "Got it. We'll email you when it's available.",
+                "changeCountry": "Choose a different country"
+            }
         },
         "passkey": {
             "setItUp": "Set it up",

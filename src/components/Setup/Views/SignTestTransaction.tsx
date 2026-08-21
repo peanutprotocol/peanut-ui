@@ -1,7 +1,8 @@
 import DocsLink from '@/components/Global/DocsLink'
 import { Button } from '@/components/0_Bruddle/Button'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { useAppDispatch } from '@/redux/hooks'
+import { useAppDispatch, useSetupStore } from '@/redux/hooks'
+import { updateUserById } from '@/app/actions/users'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useAuth } from '@/context/authContext'
@@ -24,6 +25,7 @@ const SignTestTransaction = () => {
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser } = useAuth()
+    const { residenceCountry, secondResidenceCountry } = useSetupStore()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
@@ -139,6 +141,26 @@ const SignTestTransaction = () => {
                     acquisition_source: inviteCode ? 'referred' : 'organic',
                     invite_code: inviteCode || undefined,
                 })
+
+                // Persist the residence answer from the residence step, now that
+                // the account exists. Fire-and-forget: prequalification data,
+                // never a reason to fail or delay the redirect.
+                if (residenceCountry) {
+                    posthog.setPersonProperties({
+                        residence_country: residenceCountry,
+                        second_residence_country: secondResidenceCountry || undefined,
+                    })
+                    const userId = user?.user?.userId
+                    if (userId) {
+                        void updateUserById({
+                            userId,
+                            residenceCountry,
+                            ...(secondResidenceCountry ? { secondResidenceCountry } : {}),
+                        }).catch((err: unknown) => {
+                            console.error('[SignTestTransaction] Failed to persist residence:', err)
+                        })
+                    }
+                }
 
                 // keep loading state active until redirect completes
             } else {
