@@ -1,43 +1,78 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import Inspector from '../Inspector'
-import type { ExplorerNode } from '../types'
+import type { ExplorerNode, ExplorerRelationship } from '../types'
 
-const node = (id: string): ExplorerNode => ({
+const node = (id: string, username: string): ExplorerNode => ({
     id,
-    type: 'USER',
-    label: `User · ${id}`,
-    labelVisibility: 'PSEUDONYMOUS',
-    paymentCount: 1,
-    overlayCount: 0,
-    assets: [],
-    revealToken: `reveal-${id}`,
+    username,
+    hasAppAccess: true,
+    directPoints: 5,
+    transitivePoints: 5,
+    totalPoints: 10,
+    createdAt: '2026-06-01T00:00:00.000Z',
+    lastActiveAt: null,
+    kycRegions: ['AR'],
 })
 
-describe('Inspector reveal isolation', () => {
-    it('resets the audited reason and error when the selected node changes', async () => {
-        const first = node('A1')
-        const second = node('B2')
-        const onReveal = jest.fn().mockRejectedValue(new Error('denied'))
-        const props = {
-            nodes: [first, second],
-            relationships: [],
-            canReveal: true,
-            revealing: false,
-            revealed: null,
-            onReveal,
-            onSelectRelationship: jest.fn(),
-            onClear: jest.fn(),
-        }
-        const { rerender } = render(<Inspector {...props} selection={{ type: 'node', node: first }} />)
+const relationship: ExplorerRelationship = {
+    id: 'a:b:SEND_LINK',
+    source: 'a',
+    target: 'b',
+    type: 'SEND_LINK',
+    count: 3,
+    totalUsd: 42,
+    bidirectional: true,
+}
 
-        fireEvent.change(screen.getByLabelText('Reveal reason'), { target: { value: 'FRAUD_REVIEW' } })
-        fireEvent.click(screen.getByRole('button', { name: 'Verify & reveal' }))
-        expect(await screen.findByRole('alert')).toBeInTheDocument()
-        expect(screen.getByLabelText('Reveal reason')).toHaveValue('FRAUD_REVIEW')
+describe('Inspector', () => {
+    const nodes = [node('a', 'alice'), node('b', 'bob')]
 
-        rerender(<Inspector {...props} selection={{ type: 'node', node: second }} />)
+    it('shows the real username and profile facts for a selected node', () => {
+        render(
+            <Inspector
+                selection={{ type: 'node', node: nodes[0] }}
+                nodes={nodes}
+                relationships={[relationship]}
+                onSelectRelationship={jest.fn()}
+                onClear={jest.fn()}
+            />
+        )
+        expect(screen.getByText('alice')).toBeInTheDocument()
+        expect(screen.getByText(/App access/)).toBeInTheDocument()
+        expect(screen.getByText(/KYC AR/)).toBeInTheDocument()
+        expect(screen.getByText('Total points')).toBeInTheDocument()
+    })
 
-        expect(screen.getByLabelText('Reveal reason')).toHaveValue('')
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    it('lists connections with count and USD, and selects one on click', () => {
+        const onSelectRelationship = jest.fn()
+        render(
+            <Inspector
+                selection={{ type: 'node', node: nodes[0] }}
+                nodes={nodes}
+                relationships={[relationship]}
+                onSelectRelationship={onSelectRelationship}
+                onClear={jest.fn()}
+            />
+        )
+        const connection = screen.getByRole('button', { name: /bob/ })
+        expect(connection).toHaveTextContent('$42.00')
+        fireEvent.click(connection)
+        expect(onSelectRelationship).toHaveBeenCalledWith(relationship)
+    })
+
+    it('shows honest directed relationship details', () => {
+        render(
+            <Inspector
+                selection={{ type: 'relationship', relationship }}
+                nodes={nodes}
+                relationships={[relationship]}
+                onSelectRelationship={jest.fn()}
+                onClear={jest.fn()}
+            />
+        )
+        expect(screen.getByText('From')).toBeInTheDocument()
+        expect(screen.getByText('Send link')).toBeInTheDocument()
+        expect(screen.getByText('Both ways')).toBeInTheDocument()
+        expect(screen.getByText('Yes')).toBeInTheDocument()
     })
 })

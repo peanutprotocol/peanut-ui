@@ -1,60 +1,52 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import ExplorerSummary from '../ExplorerSummary'
-import { PAYMENT_NETWORK_CONTRACT, type PaymentNetworkResponse } from '../types'
+import type { ExplorerGraphResponse, ExplorerNode } from '../types'
 
-const data: PaymentNetworkResponse = {
-    contractVersion: PAYMENT_NETWORK_CONTRACT,
-    meta: {
-        from: '2026-07-07T00:00:00.000Z',
-        to: '2026-08-06T00:00:00.000Z',
-        generatedAt: '2026-08-06T00:00:00.000Z',
-        filters: {},
-        sampling: {
-            strategy: 'TOP_N',
-            fullGraphEligible: false,
-            reason: 'Benchmark gate closed.',
-            truncated: true,
-            requestedLimit: 5000,
-            effectiveLimit: 5000,
-            totalNodes: 8000,
-            returnedNodes: 2000,
-            totalRelationships: 12000,
-            returnedRelationships: 3000,
-            matchedSettledEventCount: 400,
-            returnedSettledEventCount: 100,
-        },
-        coverage: {
-            health: 'DEGRADED',
-            settledMovementCount: 100,
-            overlayEventCount: 0,
-            overlayPostedMovementCount: 0,
-            unclassifiedEventCount: 4,
-            missingPrincipal: [
-                { provider: 'A', kind: 'X', method: 'BANK', rail: 'R1', count: 7 },
-                { provider: 'B', kind: 'Y', method: 'BANK', rail: 'R2', count: 3 },
-            ],
-        },
-        focus: null,
-    },
-    facets: { providers: [], methods: [], rails: [], kinds: [], assets: [], chains: [], states: [], directions: [] },
-    nodes: [],
-    relationships: [],
+function node(id: string): ExplorerNode {
+    return {
+        id,
+        username: `user-${id}`,
+        hasAppAccess: true,
+        directPoints: 0,
+        transitivePoints: 0,
+        totalPoints: 0,
+        createdAt: null,
+        lastActiveAt: null,
+        kycRegions: null,
+    }
+}
+
+const data: ExplorerGraphResponse = {
+    nodes: [node('a'), node('b')],
+    edges: [],
+    p2pEdges: [
+        { source: 'a', target: 'b', type: 'SEND_LINK', count: 2, totalUsd: 10, bidirectional: false },
+        { source: 'b', target: 'a', type: 'DIRECT_TRANSFER', count: 1, totalUsd: 4, bidirectional: false },
+    ],
+    stats: { totalNodes: 8000, totalEdges: 5, totalP2PEdges: 2, usersWithAccess: 1500, orphans: 0 },
 }
 
 describe('ExplorerSummary', () => {
-    it('shows settled-event sample coverage and exact health debt in tooltips', async () => {
-        render(<ExplorerSummary data={data} />)
-        expect(screen.getByText('25% shown')).toBeInTheDocument()
+    it('shows response stats, the filtered edge count and the fixed window label', () => {
+        render(<ExplorerSummary data={data} visibleRelationshipCount={1} />)
+        const summary = screen.getByRole('region', { name: 'Data summary' })
+        expect(summary).toHaveTextContent('2 users')
+        expect(summary).toHaveTextContent('1 of 2 payment edges')
+        expect(summary).toHaveTextContent('1.5K with app access')
+        expect(summary).toHaveTextContent('Last 120 days · completed payments only')
+    })
 
-        const health = screen.getByRole('button', { name: 'About data health' })
-        fireEvent.focus(health)
-        expect(await screen.findByRole('tooltip')).toHaveTextContent('10 movements across 2 principal-gap groups')
-        fireEvent.keyDown(health, { key: 'Escape' })
-
+    it('flags server-side sampling when fewer than all users were returned', async () => {
+        render(<ExplorerSummary data={data} visibleRelationshipCount={2} />)
         const sampling = screen.getByRole('button', { name: 'About sampling' })
         fireEvent.focus(sampling)
-        expect(await screen.findByRole('tooltip')).toHaveTextContent('100 of 400 matched settled events returned')
-        expect(screen.getByRole('tooltip')).toHaveTextContent('2,000 of 8,000 nodes')
-        expect(screen.getByRole('tooltip')).toHaveTextContent('3,000 of 12,000 relationships')
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('top users by points')
+    })
+
+    it('does not flag sampling when the full user base was returned', () => {
+        render(
+            <ExplorerSummary data={{ ...data, stats: { ...data.stats, totalNodes: 2 } }} visibleRelationshipCount={2} />
+        )
+        expect(screen.queryByRole('button', { name: 'About sampling' })).not.toBeInTheDocument()
     })
 })

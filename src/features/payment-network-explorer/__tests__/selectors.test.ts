@@ -1,17 +1,26 @@
 import {
     buildGraphProjection,
+    edgeTypeFacets,
+    edgeTypesPresent,
     graphTableRelationshipParity,
-    missingPrincipalMovementCount,
-    movementStatesPresent,
     nodeIndex,
     rankDenseGraphOverview,
-    settledEventCoveragePercent,
     sortRelationships,
 } from '../selectors'
 import type { ExplorerNode, ExplorerRelationship } from '../types'
 
-function node(id: string, label = id, type: ExplorerNode['type'] = 'USER'): ExplorerNode {
-    return { id, type, label, labelVisibility: 'VISIBLE', paymentCount: 1, overlayCount: 0, assets: [] }
+function node(id: string, username = id): ExplorerNode {
+    return {
+        id,
+        username,
+        hasAppAccess: true,
+        directPoints: 0,
+        transitivePoints: 0,
+        totalPoints: 10,
+        createdAt: null,
+        lastActiveAt: null,
+        kycRegions: null,
+    }
 }
 
 function relationship(id: string, source: string, target: string): ExplorerRelationship {
@@ -19,47 +28,21 @@ function relationship(id: string, source: string, target: string): ExplorerRelat
         id,
         source,
         target,
-        provider: 'PEANUT',
-        method: 'P2P',
-        rail: 'PEANUT_DIRECT',
-        kind: 'TRANSFER',
-        direction: 'OUTGOING',
-        state: 'SETTLED',
-        evidence: 'POSTED_PRINCIPAL',
-        timeBasis: 'COMPLETED_AT',
-        asset: { code: 'USDC:42161', displayCode: 'USDC', decimals: 6, chainId: '42161' },
+        type: 'SEND_LINK',
         count: 2,
-        settledPaymentCount: 2,
-        nativeAmount: '1500000',
-        overlayNativeAmount: null,
-        firstAt: '2026-08-01T00:00:00.000Z',
-        lastAt: '2026-08-02T00:00:00.000Z',
+        totalUsd: 15,
         bidirectional: false,
     }
 }
 
 describe('canonical graph projection', () => {
-    it('keeps one direct visual link and the exact canonical relationship object', () => {
+    it('keeps one visual link per relationship and the exact canonical object', () => {
         const nodes = [node('a'), node('b')]
         const canonical = relationship('r1', 'a', 'b')
         const projection = buildGraphProjection(nodes, [canonical])
         expect(projection.links).toHaveLength(1)
         expect(projection.links[0].canonical).toBe(canonical)
         expect(projection.links[0].canonicalRelationshipId).toBe('r1')
-        expect(graphTableRelationshipParity(projection.links, [canonical])).toBe(true)
-    })
-
-    it('splits a hub into visual segments without duplicating the logical relationship', () => {
-        const nodes = [node('a'), node('b'), node('hub', 'Rhino', 'HUB')]
-        const canonical = { ...relationship('r1', 'a', 'b'), infrastructureHubId: 'hub' }
-        const projection = buildGraphProjection(nodes, [canonical])
-        expect(projection.links).toHaveLength(2)
-        expect(projection.links.map((link) => [link.source, link.target])).toEqual([
-            ['a', 'hub'],
-            ['hub', 'b'],
-        ])
-        expect(projection.links.every((link) => link.canonical === canonical)).toBe(true)
-        expect(new Set(projection.links.map((link) => link.canonicalRelationshipId))).toEqual(new Set(['r1']))
         expect(graphTableRelationshipParity(projection.links, [canonical])).toBe(true)
     })
 
@@ -78,6 +61,14 @@ describe('canonical graph projection', () => {
         expect(sorted).toEqual([second, first])
         expect(responseRows).toEqual([first, second])
         expect(sorted[0]).toBe(second)
+    })
+
+    it('sorts by total USD and by endpoint username', () => {
+        const cheap = { ...relationship('cheap', 'a', 'b'), totalUsd: 1 }
+        const dear = { ...relationship('dear', 'b', 'a'), totalUsd: 900 }
+        const nodes = nodeIndex([node('a', 'zoe'), node('b', 'amy')])
+        expect(sortRelationships([cheap, dear], 'totalUsd', 'descending', nodes)[0]).toBe(dear)
+        expect(sortRelationships([cheap, dear], 'source', 'ascending', nodes)[0]).toBe(dear)
     })
 
     it('projects a 5k-node useful graph within the client preparation budget', () => {
@@ -106,41 +97,25 @@ describe('canonical graph projection', () => {
         expect(new Set(ranking.relationshipIds)).toEqual(new Set(['strongest', 'connected', 'weak']))
     })
 
-    it('returns only movement states present in canonical relationships', () => {
+    it('returns only edge types present in canonical relationships', () => {
         expect(
-            movementStatesPresent([
-                relationship('settled', 'a', 'b'),
-                { ...relationship('pending', 'b', 'c'), state: 'PENDING' },
+            edgeTypesPresent([
+                relationship('send', 'a', 'b'),
+                { ...relationship('transfer', 'b', 'c'), type: 'DIRECT_TRANSFER' },
             ])
-        ).toEqual(['SETTLED', 'PENDING'])
+        ).toEqual(['SEND_LINK', 'DIRECT_TRANSFER'])
     })
 
-    it('derives truncated coverage from settled events and handles a zero denominator', () => {
-        const sampling = {
-            strategy: 'TOP_N' as const,
-            fullGraphEligible: false,
-            reason: 'cap',
-            truncated: true,
-            requestedLimit: 5000,
-            effectiveLimit: 5000,
-            totalNodes: 5000,
-            returnedNodes: 1000,
-            totalRelationships: 8000,
-            returnedRelationships: 2000,
-            matchedSettledEventCount: 400,
-            returnedSettledEventCount: 100,
-        }
-        expect(settledEventCoveragePercent(sampling)).toBe(25)
-        expect(
-            settledEventCoveragePercent({
-                ...sampling,
-                matchedSettledEventCount: 0,
-                returnedSettledEventCount: 0,
-            })
-        ).toBe(0)
-    })
-
-    it('sums missing-principal movement counts rather than group count', () => {
-        expect(missingPrincipalMovementCount([{ count: 7 }, { count: 3 }])).toBe(10)
+    it('computes client-side facet counts over the unfiltered response', () => {
+        const facets = edgeTypeFacets([
+            relationship('s1', 'a', 'b'),
+            relationship('s2', 'b', 'c'),
+            { ...relationship('t1', 'c', 'a'), type: 'DIRECT_TRANSFER' },
+        ])
+        expect(facets).toEqual([
+            expect.objectContaining({ value: 'SEND_LINK', label: 'Send link', observedCount: 2 }),
+            expect.objectContaining({ value: 'REQUEST_PAYMENT', observedCount: 0 }),
+            expect.objectContaining({ value: 'DIRECT_TRANSFER', observedCount: 1 }),
+        ])
     })
 })

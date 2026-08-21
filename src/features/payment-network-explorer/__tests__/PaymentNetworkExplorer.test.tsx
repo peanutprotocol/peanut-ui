@@ -1,16 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { defaultExplorerFilters } from '../query'
 import { useDesktopViewport } from '../useDesktopViewport'
 import { useExplorerUrlState } from '../useExplorerUrlState'
 import { usePaymentNetworkExplorer } from '../usePaymentNetworkExplorer'
 import PaymentNetworkExplorer from '../PaymentNetworkExplorer'
 import { suppressPaymentNetworkTelemetry } from '../privacy'
-import {
-    PAYMENT_NETWORK_CONTRACT,
-    type ExplorerNode,
-    type ExplorerRelationship,
-    type PaymentNetworkResponse,
-} from '../types'
+import type { ExplorerGraphResponse, ExplorerNode } from '../types'
 
 let mockGraphProps: Record<string, unknown> | null = null
 let mockInspectorProps: Record<string, unknown> | null = null
@@ -36,86 +31,46 @@ jest.mock(
         }
 )
 
-const relationship: ExplorerRelationship = {
-    id: 'r1',
-    source: 'n1',
-    target: 'n2',
-    provider: 'PEANUT',
-    method: 'P2P',
-    rail: 'PEANUT_DIRECT',
-    kind: 'TRANSFER',
-    direction: 'OUTGOING',
-    state: 'SETTLED',
-    evidence: 'POSTED_PRINCIPAL',
-    timeBasis: 'COMPLETED_AT',
-    asset: null,
-    count: 1,
-    settledPaymentCount: 1,
-    nativeAmount: null,
-    overlayNativeAmount: null,
-    firstAt: '2026-08-01T00:00:00.000Z',
-    lastAt: '2026-08-01T00:00:00.000Z',
-    bidirectional: false,
-}
 const nodes: ExplorerNode[] = [
     {
         id: 'n1',
-        type: 'USER',
-        label: 'alice',
-        labelVisibility: 'VISIBLE',
-        paymentCount: 1,
-        overlayCount: 0,
-        assets: [],
+        username: 'alice',
+        hasAppAccess: true,
+        directPoints: 0,
+        transitivePoints: 0,
+        totalPoints: 10,
+        createdAt: null,
+        lastActiveAt: null,
+        kycRegions: null,
     },
-    { id: 'n2', type: 'USER', label: 'bob', labelVisibility: 'VISIBLE', paymentCount: 1, overlayCount: 0, assets: [] },
+    {
+        id: 'n2',
+        username: 'bob',
+        hasAppAccess: false,
+        directPoints: 0,
+        transitivePoints: 0,
+        totalPoints: 5,
+        createdAt: null,
+        lastActiveAt: null,
+        kycRegions: null,
+    },
 ]
-const data: PaymentNetworkResponse = {
-    contractVersion: PAYMENT_NETWORK_CONTRACT,
-    meta: {
-        from: '2026-07-07T00:00:00.000Z',
-        to: '2026-08-06T00:00:00.000Z',
-        generatedAt: '2026-08-06T00:00:00.000Z',
-        filters: {},
-        sampling: {
-            strategy: 'TOP_N',
-            fullGraphEligible: false,
-            reason: 'hard-cap',
-            truncated: false,
-            requestedLimit: 5000,
-            effectiveLimit: 5000,
-            totalNodes: 2,
-            returnedNodes: 2,
-            totalRelationships: 1,
-            returnedRelationships: 1,
-            matchedSettledEventCount: 1,
-            returnedSettledEventCount: 1,
-        },
-        coverage: {
-            health: 'HEALTHY',
-            settledMovementCount: 1,
-            overlayEventCount: 0,
-            overlayPostedMovementCount: 0,
-            unclassifiedEventCount: 0,
-            missingPrincipal: [],
-        },
-        focus: null,
-    },
-    facets: { providers: [], methods: [], rails: [], kinds: [], assets: [], chains: [], states: [], directions: [] },
-    nodes: [...nodes],
-    relationships: [relationship],
+const data: ExplorerGraphResponse = {
+    nodes,
+    edges: [],
+    p2pEdges: [
+        { source: 'n1', target: 'n2', type: 'SEND_LINK', count: 2, totalUsd: 20, bidirectional: false },
+        { source: 'n2', target: 'n1', type: 'DIRECT_TRANSFER', count: 8, totalUsd: 900, bidirectional: false },
+    ],
+    stats: { totalNodes: 2, totalEdges: 0, totalP2PEdges: 2, usersWithAccess: 1, orphans: 0 },
 }
 
 function explorerState(overrides: Record<string, unknown> = {}) {
     return {
         data,
-        session: { contractVersion: PAYMENT_NETWORK_CONTRACT, expiresAt: 'later', canReveal: false },
         status: 'ready',
         error: null,
-        searching: false,
-        revealing: false,
         reload: jest.fn(),
-        focusUsername: jest.fn(),
-        revealNode: jest.fn(),
         ...overrides,
     }
 }
@@ -125,6 +80,7 @@ describe('PaymentNetworkExplorer surface boundary', () => {
         mockGraphProps = null
         mockInspectorProps = null
         jest.clearAllMocks()
+        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: true })
         jest.mocked(useExplorerUrlState).mockReturnValue({ filters: defaultExplorerFilters(), setFilters: jest.fn() })
         jest.mocked(usePaymentNetworkExplorer).mockReturnValue(
             explorerState() as ReturnType<typeof usePaymentNetworkExplorer>
@@ -135,19 +91,16 @@ describe('PaymentNetworkExplorer surface boundary', () => {
         window.history.replaceState({}, '', '/')
     })
 
-    it('suppresses telemetry before rendering and passes canonical response arrays through unchanged', () => {
-        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: true })
+    it('suppresses telemetry before rendering and derives relationships from p2p edges', () => {
         render(<PaymentNetworkExplorer />)
         const root = screen.getByText('graph-surface').closest('main')
         expect(suppressPaymentNetworkTelemetry).toHaveBeenCalled()
         expect(root).toHaveClass('ph-no-capture')
         expect(root).toHaveAttribute('data-private', 'true')
         expect(root).toHaveAttribute('data-sentry-mask')
-        expect(screen.getByRole('group', { name: 'Explorer view' })).toBeInTheDocument()
         expect(mockGraphProps?.nodes).toBe(data.nodes)
-        expect(mockGraphProps?.relationships).toBe(data.relationships)
-        expect(mockInspectorProps?.nodes).toBe(data.nodes)
-        expect(mockInspectorProps?.relationships).toBe(data.relationships)
+        const relationships = mockGraphProps?.relationships as Array<{ id: string }>
+        expect(relationships.map((item) => item.id)).toEqual(['n1:n2:SEND_LINK', 'n2:n1:DIRECT_TRANSFER'])
     })
 
     it('does not create a live graph request on an unsupported viewport', () => {
@@ -158,120 +111,101 @@ describe('PaymentNetworkExplorer surface boundary', () => {
         expect(mockGraphProps).toBeNull()
     })
 
-    it('preserves a failed username query so the operator can correct it', async () => {
-        const focusUsername = jest.fn().mockRejectedValue(new Error('not found'))
-        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: true })
+    it('requests the graph with the URL topNodes once the legacy scrub ran', async () => {
+        jest.mocked(useExplorerUrlState).mockReturnValue({
+            filters: { ...defaultExplorerFilters(), topNodes: 500 },
+            setFilters: jest.fn(),
+        })
+        render(<PaymentNetworkExplorer />)
+        await waitFor(() => expect(usePaymentNetworkExplorer).toHaveBeenLastCalledWith({ topNodes: 500 }))
+    })
+
+    it('shows a clean team-access state on 403', () => {
         jest.mocked(usePaymentNetworkExplorer).mockReturnValue(
-            explorerState({ focusUsername }) as ReturnType<typeof usePaymentNetworkExplorer>
+            explorerState({ data: null, status: 'forbidden' }) as ReturnType<typeof usePaymentNetworkExplorer>
         )
         render(<PaymentNetworkExplorer />)
+        expect(screen.getByText('Team access required')).toBeInTheDocument()
+        expect(mockGraphProps).toBeNull()
+    })
 
+    it('offers a retry on server failure', () => {
+        const reload = jest.fn()
+        jest.mocked(usePaymentNetworkExplorer).mockReturnValue(
+            explorerState({ data: null, status: 'error', reload }) as ReturnType<typeof usePaymentNetworkExplorer>
+        )
+        render(<PaymentNetworkExplorer />)
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        expect(reload).toHaveBeenCalled()
+    })
+
+    it('scrubs a legacy password from the URL but keeps the plain user deep-link', () => {
+        window.history.replaceState({}, '', '/dev/payment-graph?user=alice&password=marker-secret&top=500')
+        render(<PaymentNetworkExplorer />)
+        expect(window.location.search).toBe('?user=alice&top=500')
+        expect(document.body.textContent).not.toContain('marker-secret')
+    })
+
+    it('resolves the ?user focus client-side and selects the focused node', async () => {
+        jest.mocked(useExplorerUrlState).mockReturnValue({
+            filters: { ...defaultExplorerFilters(), focus: 'alice' },
+            setFilters: jest.fn(),
+        })
+        render(<PaymentNetworkExplorer />)
+        expect(screen.getByText('Focused: alice')).toBeInTheDocument()
+        expect(mockGraphProps?.focusNodeId).toBe('n1')
+        await waitFor(() =>
+            expect((mockInspectorProps?.selection as { node?: ExplorerNode } | null)?.node?.id).toBe('n1')
+        )
+    })
+
+    it('marks a focus username that is not in the loaded graph', () => {
+        jest.mocked(useExplorerUrlState).mockReturnValue({
+            filters: { ...defaultExplorerFilters(), focus: 'carol' },
+            setFilters: jest.fn(),
+        })
+        render(<PaymentNetworkExplorer />)
+        expect(screen.getByText('Focused: carol')).toBeInTheDocument()
+        expect(screen.getByText('not in loaded graph')).toBeInTheDocument()
+        expect(mockGraphProps?.focusNodeId).toBeNull()
+    })
+
+    it('rejects a search for a user missing from the loaded graph and preserves the query', async () => {
+        render(<PaymentNetworkExplorer />)
         const input = screen.getByRole('textbox', { name: 'Search by Peanut username' })
         fireEvent.change(input, { target: { value: 'alicia' } })
         fireEvent.click(screen.getByRole('button', { name: 'Find' }))
-
         await screen.findByRole('alert')
         expect(input).toHaveValue('alicia')
     })
 
-    it('exposes the current relationship row with static-table semantics', async () => {
-        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: true })
+    it('routes a known-user search into the plain focus URL state', async () => {
+        const setFilters = jest.fn().mockResolvedValue(undefined)
+        jest.mocked(useExplorerUrlState).mockReturnValue({ filters: defaultExplorerFilters(), setFilters })
+        render(<PaymentNetworkExplorer />)
+        const input = screen.getByRole('textbox', { name: 'Search by Peanut username' })
+        fireEvent.change(input, { target: { value: 'alice' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Find' }))
+        await waitFor(() => expect(setFilters).toHaveBeenCalledWith({ focus: 'alice' }))
+    })
+
+    it('wires the client-side filters into URL state', () => {
+        const setFilters = jest.fn().mockResolvedValue(undefined)
+        jest.mocked(useExplorerUrlState).mockReturnValue({ filters: defaultExplorerFilters(), setFilters })
+        render(<PaymentNetworkExplorer />)
+        fireEvent.change(screen.getByLabelText('Min transactions'), { target: { value: '4' } })
+        expect(setFilters).toHaveBeenCalledWith({ minCount: 4 })
+        fireEvent.change(screen.getByLabelText('Top users'), { target: { value: '1000' } })
+        expect(setFilters).toHaveBeenCalledWith({ topNodes: 1000 })
+    })
+
+    it('applies client-side filters to the rendered relationships', () => {
         jest.mocked(useExplorerUrlState).mockReturnValue({
-            filters: { ...defaultExplorerFilters(), view: 'table' },
+            filters: { ...defaultExplorerFilters(), minUsd: 100 },
             setFilters: jest.fn(),
         })
         render(<PaymentNetworkExplorer />)
-
-        const row = screen.getByText('PEANUT_DIRECT').closest('tr')
-        expect(row).not.toHaveAttribute('aria-current')
-        fireEvent.click(row!)
-        await waitFor(() => expect(row).toHaveAttribute('aria-current', 'true'))
-        expect(row).not.toHaveAttribute('aria-selected')
-    })
-
-    it('scrubs legacy credentials before any graph read and exchanges username only through focus', async () => {
-        window.history.replaceState({}, '', '/dev/payment-graph?user=marker-alice&password=marker-secret&range=7d')
-        window.localStorage.setItem('marker-existing', 'keep')
-        const focusUsername = jest.fn().mockResolvedValue({
-            contractVersion: PAYMENT_NETWORK_CONTRACT,
-            focusToken: 'opaque-focus-token-that-is-long-enough',
-            expiresAt: 'later',
-        })
-        const setFilters = jest.fn().mockResolvedValue(undefined)
-        const consoleLog = jest.spyOn(console, 'log').mockImplementation(() => undefined)
-        const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => undefined)
-        const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined)
-        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: true })
-        jest.mocked(useExplorerUrlState).mockReturnValue({ filters: defaultExplorerFilters(), setFilters })
-        jest.mocked(usePaymentNetworkExplorer).mockReturnValue(
-            explorerState({ data: null, status: 'idle', focusUsername }) as ReturnType<typeof usePaymentNetworkExplorer>
-        )
-
-        render(<PaymentNetworkExplorer />)
-
-        expect(window.location.search).toBe('?range=7d')
-        expect(usePaymentNetworkExplorer).toHaveBeenCalledWith(null)
-        expect(document.body.textContent).not.toContain('marker-alice')
-        expect(document.body.textContent).not.toContain('marker-secret')
-        await waitFor(() => expect(focusUsername).toHaveBeenCalledWith('marker-alice'))
-        await waitFor(() =>
-            expect(setFilters).toHaveBeenCalledWith({ focus: 'opaque-focus-token-that-is-long-enough' })
-        )
-        expect(window.localStorage.getItem('marker-existing')).toBe('keep')
-        expect(consoleLog).not.toHaveBeenCalled()
-        expect(consoleWarn).not.toHaveBeenCalled()
-        expect(consoleError).not.toHaveBeenCalled()
-        consoleLog.mockRestore()
-        consoleWarn.mockRestore()
-        consoleError.mockRestore()
-    })
-
-    it('clears privileged reveals on background resume and pagehide', async () => {
-        const now = jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-08-06T12:00:00.000Z').getTime())
-        const revealNode = jest.fn().mockResolvedValue({
-            contractVersion: PAYMENT_NETWORK_CONTRACT,
-            nodeId: 'n1',
-            label: 'privileged-alice',
-            expiresAt: '2026-08-06T12:01:00.000Z',
-        })
-        jest.mocked(useDesktopViewport).mockReturnValue({ ready: true, isDesktop: true })
-        jest.mocked(usePaymentNetworkExplorer).mockReturnValue(
-            explorerState({
-                session: { contractVersion: PAYMENT_NETWORK_CONTRACT, expiresAt: 'later', canReveal: true },
-                revealNode,
-            }) as ReturnType<typeof usePaymentNetworkExplorer>
-        )
-        const { unmount } = render(<PaymentNetworkExplorer />)
-        const revealableNode = { ...nodes[0], revealToken: 'opaque-reveal-token' }
-        act(() => {
-            ;(mockGraphProps?.onSelectNode as (node: ExplorerNode) => void)(revealableNode)
-        })
-        await act(async () => {
-            await (mockInspectorProps?.onReveal as (node: ExplorerNode, reason: string) => Promise<void>)(
-                revealableNode,
-                'INVESTIGATION'
-            )
-        })
-        await waitFor(() =>
-            expect((mockInspectorProps?.revealed as { label: string } | null)?.label).toBe('privileged-alice')
-        )
-
-        now.mockReturnValue(new Date('2026-08-06T12:01:01.000Z').getTime())
-        act(() => document.dispatchEvent(new Event('visibilitychange')))
-        expect(mockInspectorProps?.revealed).toBeNull()
-
-        now.mockReturnValue(new Date('2026-08-06T12:00:10.000Z').getTime())
-        await act(async () => {
-            await (mockInspectorProps?.onReveal as (node: ExplorerNode, reason: string) => Promise<void>)(
-                revealableNode,
-                'INVESTIGATION'
-            )
-        })
-        expect(mockInspectorProps?.revealed).not.toBeNull()
-        act(() => window.dispatchEvent(new Event('pagehide')))
-        expect(mockInspectorProps?.revealed).toBeNull()
-
-        unmount()
-        now.mockRestore()
+        const relationships = mockGraphProps?.relationships as Array<{ id: string }>
+        expect(relationships.map((item) => item.id)).toEqual(['n2:n1:DIRECT_TRANSFER'])
     })
 })

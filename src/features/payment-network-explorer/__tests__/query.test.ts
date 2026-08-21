@@ -1,90 +1,135 @@
 import {
-    buildExplorerRequest,
-    buildExplorerSearchParams,
-    consumeLegacyGraphUsername,
+    buildGraphEndpoint,
     defaultExplorerFilters,
-    ExplorerWindowError,
-    isOpaqueFocusToken,
-    resolveExplorerWindow,
+    filterRelationships,
+    findNodeByUsername,
+    isPlainUsername,
+    relationshipId,
+    scrubLegacyGraphPassword,
+    toRelationships,
 } from '../query'
+import type { ExplorerNode, P2PEdge } from '../types'
 
-const NOW = new Date('2026-08-06T12:00:00.000Z')
+function edge(overrides: Partial<P2PEdge> = {}): P2PEdge {
+    return {
+        source: 'a',
+        target: 'b',
+        type: 'SEND_LINK',
+        count: 3,
+        totalUsd: 25,
+        bidirectional: false,
+        ...overrides,
+    }
+}
+
+function node(id: string, username: string): ExplorerNode {
+    return {
+        id,
+        username,
+        hasAppAccess: true,
+        directPoints: 0,
+        transitivePoints: 0,
+        totalPoints: 0,
+        createdAt: null,
+        lastActiveAt: null,
+        kycRegions: null,
+    }
+}
 
 describe('payment explorer query contract', () => {
-    it('defaults to a settled 30-day live window and the safe 5k cap', () => {
-        const request = buildExplorerRequest(defaultExplorerFilters(), NOW)
-        expect(request).toMatchObject({
-            from: '2026-07-07T12:00:00.000Z',
-            to: NOW.toISOString(),
-            states: ['SETTLED'],
-            includeHubs: false,
-            limit: 5000,
+    it('serializes only the supported server params', () => {
+        expect(buildGraphEndpoint(5000)).toBe('/invites/graph?mode=full&topNodes=5000&includeNewDays=30')
+        expect(buildGraphEndpoint(0)).toBe('/invites/graph?mode=full&includeNewDays=30')
+    })
+
+    it('defaults to the safe 5k top-users cap and no client filters', () => {
+        expect(defaultExplorerFilters()).toEqual({
+            view: 'graph',
+            types: [],
+            direction: 'all',
+            minCount: 0,
+            minUsd: 0,
+            topNodes: 5000,
             focus: null,
         })
     })
 
-    it('enforces custom UTC windows from 24 hours through 120 days', () => {
-        expect(() =>
-            resolveExplorerWindow(
-                { range: 'custom', customFrom: '2026-08-06T00:00:00.000Z', customTo: '2026-08-06T12:00:00.000Z' },
-                NOW
-            )
-        ).toThrow('at least 24 hours')
-        expect(() =>
-            resolveExplorerWindow(
-                { range: 'custom', customFrom: '2026-04-07T11:59:59.999Z', customTo: NOW.toISOString() },
-                NOW
-            )
-        ).toThrow(ExplorerWindowError)
+    it('synthesizes a stable relationship id per directed pair and type', () => {
+        expect(relationshipId(edge())).toBe('a:b:SEND_LINK')
+        const [relationship] = toRelationships([edge({ type: 'DIRECT_TRANSFER' })])
+        expect(relationship.id).toBe('a:b:DIRECT_TRANSFER')
+        expect(relationship.count).toBe(3)
+    })
+})
+
+describe('client-side edge filters', () => {
+    const relationships = toRelationships([
+        edge({ type: 'SEND_LINK', count: 1, totalUsd: 5 }),
+        edge({ source: 'b', target: 'c', type: 'REQUEST_PAYMENT', count: 10, totalUsd: 500, bidirectional: true }),
+        edge({ source: 'c', target: 'a', type: 'DIRECT_TRANSFER', count: 4, totalUsd: 40 }),
+    ])
+
+    it('passes everything through with default filters', () => {
+        expect(filterRelationships(relationships, defaultExplorerFilters())).toHaveLength(3)
+    })
+
+    it('filters by edge type set', () => {
+        const result = filterRelationships(relationships, {
+            ...defaultExplorerFilters(),
+            types: ['SEND_LINK', 'DIRECT_TRANSFER'],
+        })
+        expect(result.map((item) => item.type)).toEqual(['SEND_LINK', 'DIRECT_TRANSFER'])
+    })
+
+    it('filters by direction using the honest bidirectional flag', () => {
         expect(
-            resolveExplorerWindow(
-                { range: 'custom', customFrom: '2026-08-05T12:00:00.000Z', customTo: NOW.toISOString() },
-                NOW
+            filterRelationships(relationships, { ...defaultExplorerFilters(), direction: 'bidirectional' }).map(
+                (item) => item.type
             )
-        ).toEqual({ from: '2026-08-05T12:00:00.000Z', to: NOW.toISOString() })
+        ).toEqual(['REQUEST_PAYMENT'])
+        expect(filterRelationships(relationships, { ...defaultExplorerFilters(), direction: 'oneWay' })).toHaveLength(2)
     })
 
-    it('serializes only frozen server fields and never a username or password', () => {
-        const request = buildExplorerRequest(
-            {
-                ...defaultExplorerFilters(),
-                methods: ['QR'],
-                rails: ['PIX_BR', 'BANK_TRANSFER_BR'],
-                providers: ['MANTECA'],
-                states: ['SETTLED', 'REFUNDED'],
-                infrastructure: 'hubs',
-                focus: 'opaque-focus-token-that-is-long-enough',
-            },
-            NOW
+    it('applies minimum transaction count and minimum USD thresholds', () => {
+        expect(filterRelationships(relationships, { ...defaultExplorerFilters(), minCount: 4 })).toHaveLength(2)
+        expect(filterRelationships(relationships, { ...defaultExplorerFilters(), minUsd: 100 })).toHaveLength(1)
+        expect(
+            filterRelationships(relationships, { ...defaultExplorerFilters(), minCount: 4, minUsd: 100 })
+        ).toHaveLength(1)
+    })
+})
+
+describe('focus deep-link resolution', () => {
+    const nodes = [node('n1', 'alice'), node('n2', 'Bob')]
+
+    it('resolves a username case-insensitively after data arrives', () => {
+        expect(findNodeByUsername(nodes, 'ALICE')?.id).toBe('n1')
+        expect(findNodeByUsername(nodes, ' bob ')?.id).toBe('n2')
+        expect(findNodeByUsername(nodes, 'carol')).toBeNull()
+        expect(findNodeByUsername(nodes, '  ')).toBeNull()
+    })
+
+    it('accepts plain usernames and rejects token-shaped values', () => {
+        expect(isPlainUsername('alice')).toBe(true)
+        expect(isPlainUsername('a'.repeat(41))).toBe(false)
+        expect(isPlainUsername('has space')).toBe(false)
+        expect(isPlainUsername(null)).toBe(false)
+    })
+})
+
+describe('legacy link hygiene', () => {
+    it('scrubs a legacy shared password but keeps the plain user deep-link', () => {
+        const history = { replaceState: jest.fn(), state: { marker: true } }
+        scrubLegacyGraphPassword(
+            { href: 'https://peanut.me/dev/payment-graph?user=alice&password=secret&top=500' },
+            history
         )
-        const params = buildExplorerSearchParams(request)
-        expect(params.get('mode')).toBe('payment')
-        expect(params.get('methods')).toBe('QR')
-        expect(params.get('rails')).toBe('BANK_TRANSFER_BR,PIX_BR')
-        expect(params.get('providers')).toBe('MANTECA')
-        expect(params.get('states')).toBe('SETTLED,REFUNDED')
-        expect(params.get('includeHubs')).toBe('true')
-        expect(params.get('focus')).toBe('opaque-focus-token-that-is-long-enough')
-        expect(params.has('user')).toBe(false)
-        expect(params.has('username')).toBe(false)
-        expect(params.has('password')).toBe(false)
+        expect(history.replaceState).toHaveBeenCalledWith({ marker: true }, '', '/dev/payment-graph?user=alice&top=500')
     })
 
-    it('scrubs legacy username and password before returning the in-memory username', () => {
-        const replaceState = jest.fn()
-        const username = consumeLegacyGraphUsername(
-            { href: 'https://peanut.me/dev/payment-graph?user=alice&password=old-secret&range=7d#graph' },
-            { state: { safe: true }, replaceState }
-        )
-        expect(username).toBe('alice')
-        expect(replaceState).toHaveBeenCalledWith({ safe: true }, '', '/dev/payment-graph?range=7d#graph')
-        expect(replaceState.mock.calls[0][2]).not.toContain('alice')
-        expect(replaceState.mock.calls[0][2]).not.toContain('old-secret')
-    })
-
-    it('accepts opaque focus tokens and rejects readable identifiers', () => {
-        expect(isOpaqueFocusToken('opaque-focus-token-that-is-long-enough')).toBe(true)
-        expect(isOpaqueFocusToken('alice')).toBe(false)
-        expect(isOpaqueFocusToken('alice@example.com')).toBe(false)
+    it('does not rewrite history when no password is present', () => {
+        const history = { replaceState: jest.fn(), state: null }
+        scrubLegacyGraphPassword({ href: 'https://peanut.me/dev/payment-graph?user=alice' }, history)
+        expect(history.replaceState).not.toHaveBeenCalled()
     })
 })

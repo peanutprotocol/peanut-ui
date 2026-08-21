@@ -75,14 +75,16 @@ describe('payment explorer reduced motion', () => {
     })
 
     it('applies a signed-focus camera after both the graph ref and layout coordinates are ready', async () => {
-        const focusedNode = {
+        const focusedNode: ExplorerNode = {
             id: 'focus-node',
-            type: 'USER' as const,
-            label: 'Focused user',
-            labelVisibility: 'VISIBLE' as const,
-            paymentCount: 1,
-            overlayCount: 0,
-            assets: [],
+            username: 'focused-user',
+            hasAppAccess: true,
+            directPoints: 0,
+            transitivePoints: 0,
+            totalPoints: 1,
+            createdAt: null,
+            lastActiveAt: null,
+            kycRegions: null,
         }
         const { container } = render(
             <NetworkCanvas
@@ -119,12 +121,14 @@ describe('payment explorer reduced motion', () => {
             { length: 1000 },
             (_, index): ExplorerNode => ({
                 id: `node-${index}`,
-                type: 'USER',
-                label: `Node ${index}`,
-                labelVisibility: 'PSEUDONYMOUS',
-                paymentCount: 1,
-                overlayCount: 0,
-                assets: [],
+                username: `node-${index}`,
+                hasAppAccess: true,
+                directPoints: 0,
+                transitivePoints: 0,
+                totalPoints: 1,
+                createdAt: null,
+                lastActiveAt: null,
+                kycRegions: null,
             })
         )
         const relationships = (prefix: string) =>
@@ -134,21 +138,9 @@ describe('payment explorer reduced motion', () => {
                     id: `${prefix}-${index}`,
                     source: 'node-0',
                     target: 'node-1',
-                    provider: 'PEANUT',
-                    method: 'P2P',
-                    rail: 'PEANUT_DIRECT',
-                    kind: 'TRANSFER',
-                    direction: 'OUTGOING',
-                    state: 'SETTLED',
-                    evidence: 'POSTED_PRINCIPAL',
-                    timeBasis: 'COMPLETED_AT',
-                    asset: null,
+                    type: 'SEND_LINK',
                     count: index + 1,
-                    settledPaymentCount: index + 1,
-                    nativeAmount: null,
-                    overlayNativeAmount: null,
-                    firstAt: '2026-08-01T00:00:00.000Z',
-                    lastAt: '2026-08-02T00:00:00.000Z',
+                    totalUsd: index + 1,
                     bidirectional: false,
                 })
             )
