@@ -90,6 +90,10 @@ export const useSetupStepUrlSync = ({
     }, [enabled, step, steps])
 
     useEffect(() => {
+        // Only listen while mirroring is active — before the entry step renders
+        // (enabled=false) a history pop must not drive setup state.
+        if (!enabled) return
+
         const onPopState = (event: PopStateEvent) => {
             const target =
                 (event.state?.setupScreen as ScreenId | undefined) ??
@@ -120,5 +124,5 @@ export const useSetupStepUrlSync = ({
 
         window.addEventListener('popstate', onPopState)
         return () => window.removeEventListener('popstate', onPopState)
-    }, [])
+    }, [enabled])
 }
