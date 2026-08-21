@@ -341,7 +341,7 @@ const PaymentSuccessView = ({
 
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 
-                <div className="space-y-5 w-full">
+                <div className="space-y-4 w-full">
                     {!!authUser?.user.userId ? (
                         <Button onClick={handleDone} shadowSize="4">
                             {t('success.backToHome')}

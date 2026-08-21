@@ -332,11 +332,11 @@ function InvitePageContent() {
             <div
                 className={twMerge(
                     'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',
-                    'flex flex-col items-end justify-center gap-5 pt-8'
+                    'flex flex-col items-end justify-center gap-6 pt-8'
                 )}
             >
                 <div className="mx-auto w-full md:max-w-xs">
-                    <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-5">
+                    <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-6">
                         <h1 className="text-heading-xs text-foreground-primary">{title}</h1>
                         <p className="text-body-m">{description}</p>
                         <Button onClick={handleClaim} shadowSize="4">

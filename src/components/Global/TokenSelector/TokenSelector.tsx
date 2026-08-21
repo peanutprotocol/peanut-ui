@@ -472,7 +472,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             </Button>
 
             <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
-                <DrawerContent className="p-5">
+                <DrawerContent className="p-4">
                     <DrawerTitle className="sr-only">{t('tokenSelector.drawerTitle')}</DrawerTitle>
                     <div ref={contentRef} className="mx-auto md:max-w-2xl">
                         {showNetworkList ? (

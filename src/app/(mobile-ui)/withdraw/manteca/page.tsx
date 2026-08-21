@@ -598,7 +598,7 @@ function MantecaBankWithdrawFlow() {
                         <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
-                    <div className="space-y-5 w-full">
+                    <div className="space-y-4 w-full">
                         <Button
                             onClick={() => {
                                 router.push('/home')

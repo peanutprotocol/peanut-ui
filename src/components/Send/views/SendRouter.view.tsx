@@ -264,7 +264,7 @@ export const SendRouterView = () => {
         <div className="space-y-8">
             <NavHeader title={tNav('send')} onPrev={handlePrev} />
             <div className="space-y-4 w-full">
-                <Card position="single" className="p-4 pb-5">
+                <Card position="single" className="p-4 pb-4">
                     <div className="flex flex-col items-center justify-center gap-4">
                         <div className="space-y-2">
                             <div className="mx-auto w-fit rounded-full bg-primary-1 p-2">

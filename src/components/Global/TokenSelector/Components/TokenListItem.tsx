@@ -69,7 +69,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
             <Card
                 position={position}
                 className={twMerge(
-                    '!overflow-visible border border-border-default p-4 py-3.5 shadow-4',
+                    '!overflow-visible border border-border-default p-4 shadow-4',
                     isSelected ? 'bg-primary-3' : 'bg-background-default',
                     !isEnabled && 'bg-background-disabled'
                 )}

@@ -38,7 +38,7 @@ export const GuestVerificationModal = ({
                 {
                     text: t('guestVerificationModal.getStartedCta'),
                     shadowSize: '4',
-                    className: 'md:py-2.5',
+                    className: 'md:py-2',
                     onClick: () => {
                         saveRedirectUrl()
                         if (inviterUsername) {

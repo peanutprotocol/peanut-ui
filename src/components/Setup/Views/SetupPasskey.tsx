@@ -196,7 +196,7 @@ const SetupPasskey = () => {
 
     return (
         <div>
-            <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
+            <div className="flex h-full flex-col justify-between gap-10 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
                     {/* Stays enabled even with a preflight warning: handlePasskeySetup
                         re-checks support and surfaces an actionable message, so a tap is

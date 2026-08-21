@@ -50,7 +50,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     drag handle area. content touches need the wrapper's own copy, applied
                     only while collapsed so overflowing content can scroll at full snap. */}
                 <DrawerContent
-                    className={`min-h-[200px] touch-none p-5 ${className || ''}`}
+                    className={`min-h-[200px] touch-none p-4 ${className || ''}`}
                     scrollAreaClassName={activeSnapPoint === snapPoints[0] ? 'touch-none' : undefined}
                 >
                     <DrawerTitle className="space-y-2 mb-8">

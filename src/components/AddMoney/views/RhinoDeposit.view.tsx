@@ -60,7 +60,7 @@ const RhinoDepositView = ({
 
     if (depositAddressStatus === 'failed') {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 pb-5 md:pb-0">
+            <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 pb-4 md:pb-0">
                 <NavHeader title={headerTitle} onPrev={onBack} />
 
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
@@ -87,7 +87,7 @@ const RhinoDepositView = ({
     }
 
     return (
-        <div className="flex w-full flex-col justify-start gap-8 pb-5 md:pb-0">
+        <div className="flex w-full flex-col justify-start gap-8 pb-4 md:pb-0">
             <NavHeader title={headerTitle} onPrev={onBack} />
 
             <div className="my-auto flex w-full flex-grow flex-col items-center justify-center gap-4 md:my-0">

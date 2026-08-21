@@ -85,7 +85,7 @@ const CryptoDepositView = ({
     // failed state
     if (status === 'failed') {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 pb-5 md:pb-0">
+            <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 pb-4 md:pb-0">
                 <NavHeader title={headerTitle} onPrev={onBack} />
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
                     <Card>
@@ -124,7 +124,7 @@ const CryptoDepositView = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-5 md:pb-0">
+        <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-4 md:pb-0">
             <NavHeader title={headerTitle} onPrev={onBack} />
 
             <div className="my-auto flex w-full flex-col gap-4">

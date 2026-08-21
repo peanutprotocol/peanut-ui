@@ -112,7 +112,7 @@ export function SavedAccountsMapping({
                         title={<div>{title}</div>}
                         position={position}
                         onClick={() => onItemClick(account, path)}
-                        className="p-4 py-2.5"
+                        className="p-4 py-2"
                         chevron
                         leading={
                             <div className="relative h-8 w-8">

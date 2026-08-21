@@ -202,7 +202,7 @@ export const ProfileEditView = () => {
                     disabled
                 />
 
-                <div className="space-y-5 pb-10">
+                <div className="space-y-4 pb-10">
                     <Button
                         disabled={isLoading}
                         onClick={handleSave}
