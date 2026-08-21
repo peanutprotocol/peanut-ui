@@ -386,6 +386,15 @@ export const useZeroDev = () => {
             setLoadingState('Idle')
             dispatch(zerodevActions.setIsSendingUserOp(false))
 
+            // A mined-but-REVERTED userOp still carries a successful EntryPoint
+            // bundle receipt — returning it here let downstream flows record a
+            // reverted transfer as a successful payment (same trap the rescue
+            // path above guards; caller-side isTxReverted checks the BUNDLE
+            // status and cannot catch an inner revert).
+            if (!userOpReceipt.success) {
+                throw new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
+            }
+
             return {
                 userOpHash,
                 receipt: userOpReceipt.receipt,
