@@ -8,6 +8,7 @@ import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils/general.utils'
+import { pollForUserOpReceipt } from '@/utils/userop-receipt.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
@@ -353,11 +354,17 @@ export const useZeroDev = () => {
             } catch (error) {
                 console.error('Error waiting for UserOp receipt:', error)
                 captureException(error)
-                // Reset the loading banner too — callers that treat a null
-                // receipt as a failure (migration gate) would otherwise leave
-                // the UI stuck on 'Executing transaction'.
+                // The wait often fails transiently while the tx lands seconds
+                // later. Re-poll briefly before giving up: a null receipt makes
+                // send flows record the userOp hash as a tx hash, which backend
+                // validation can never resolve (TASK-21147).
+                const rescued = await pollForUserOpReceipt(client, userOpHash)
                 setLoadingState('Idle')
                 dispatch(zerodevActions.setIsSendingUserOp(false))
+                if (rescued) {
+                    posthog.capture(ANALYTICS_EVENTS.SEND_RECEIPT_RESCUED, {})
+                    return { userOpHash, receipt: rescued }
+                }
                 return {
                     userOpHash,
                     receipt: null,

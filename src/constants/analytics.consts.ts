@@ -55,6 +55,19 @@ export const ANALYTICS_EVENTS = {
     // Emitted for every direct send that ends in the error toast, whatever the
     // step. Until this existed a failed send left no analytics trace at all.
     SEND_FAILED: 'send_failed',
+    // A payment was recorded with the userOp hash because no receipt (and no
+    // coordinator txHash) was available — the backend cannot validate that
+    // hash, so this rate should be ~0. See resolveSettledTxHash.
+    SEND_TXHASH_FALLBACK: 'send_txhash_fallback',
+    // waitForUserOperationReceipt failed but the bounded re-poll recovered the
+    // receipt — the send proceeded with the real tx hash instead of falling
+    // back. High counts = flaky bundler receipt endpoint, not user impact.
+    SEND_RECEIPT_RESCUED: 'send_receipt_rescued',
+    // Client-side latency split of a successful direct send: charge_create_ms,
+    // send_money_ms (sign + bundler + receipt), record_payment_ms,
+    // tx_hash_source. Measures the client leg that prod DB timing can't see
+    // (TASK-21147: created→POST /payments was p50 7.9s with no attribution).
+    SEND_LATENCY_BREAKDOWN: 'send_latency_breakdown',
 
     // ── Send Link ──
     SEND_LINK_CREATED: 'send_link_created',
