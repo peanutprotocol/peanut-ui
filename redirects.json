@@ -147,6 +147,11 @@
         "permanent": true
     },
     {
+        "source": "/exchange",
+        "destination": "/",
+        "permanent": true
+    },
+    {
         "source": "/sh",
         "destination": "/card",
         "permanent": false
@@ -209,6 +214,16 @@
     {
         "source": "/:locale/deposit/from-spei",
         "destination": "/:locale/deposit/via-spei",
+        "permanent": true
+    },
+    {
+        "source": "/:locale/blog",
+        "destination": "/:locale/content",
+        "permanent": true
+    },
+    {
+        "source": "/:locale/team",
+        "destination": "/:locale/press",
         "permanent": true
     },
     {

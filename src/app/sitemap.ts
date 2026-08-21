@@ -29,13 +29,22 @@ import {
 /** Build date used for non-content pages that don't have their own date. */
 const BUILD_DATE = new Date()
 
+/** Card legal pages — indexable, so they belong in the sitemap alongside /privacy and /terms. */
+const CARD_LEGAL_SLUGS = [
+    'card-esign',
+    'card-privacy',
+    'card-prohibited-activities',
+    'card-terms-international',
+    'card-terms-us',
+] as const
+
 // --- lastmod sources ---
 // Content-backed URLs report the `generated_at` of the exact file that serves them, so a
 // rebuild no longer bumps every lastmod to the deploy timestamp. These read through the same
 // cache the has*Content() guards already populate, so they cost no extra file reads.
 // Each returns undefined when the file is missing or carries no usable date, in which case
-// the caller falls back to BUILD_DATE — that covers the hand-built pages (homepage, /lp/card,
-// /careers, /exchange, legal) and the index pages that aren't backed by a single file.
+// the caller falls back to BUILD_DATE — that covers the hand-built pages (homepage, /shhhhh,
+// /careers) and the index pages that aren't backed by a single file.
 
 const pageDate = (intent: string, slug: string, locale: string): Date | undefined =>
     contentGeneratedAt(readPageContent<ContentFrontmatter>(intent, slug, locale))
@@ -60,7 +69,6 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Public pages
         { path: '/careers', priority: 0.7, changeFrequency: 'monthly' },
-        { path: '/exchange', priority: 0.7, changeFrequency: 'weekly' },
         // The only card landing URL left — /lp/card is a 308 to it, so the
         // target has to be listed.
         { path: '/shhhhh', priority: 0.7, changeFrequency: 'weekly' },
@@ -68,6 +76,17 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // Legal — the bare /privacy and /terms are redirects; list the real URLs.
         { path: '/en/privacy', priority: 0.5, changeFrequency: 'yearly' },
         { path: '/en/terms', priority: 0.5, changeFrequency: 'yearly' },
+
+        // Card legal — same content-existence guard as every other content URL:
+        // only locales that own the prose are listed (today: en).
+        ...SUPPORTED_LOCALES.flatMap((locale) =>
+            CARD_LEGAL_SLUGS.filter((slug) => hasPageContent('legal', slug, locale)).map((slug) => ({
+                path: `/${locale}/${slug}`,
+                priority: 0.5,
+                changeFrequency: 'yearly' as const,
+                lastModified: pageDate('legal', slug, locale),
+            }))
+        ),
     ]
 
     // --- Programmatic SEO pages (all locales with /{locale}/ prefix) ---
@@ -246,14 +265,11 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             })
         }
 
-        // Content hub + blog
+        // Content hub + blog posts. There is no blog index URL any more —
+        // /{locale}/blog is a 308 to /{locale}/content, which already lists the
+        // same posts behind its Blog filter. The posts themselves stay.
         pages.push({
             path: `/${locale}/content`,
-            priority: 0.7 * basePriority,
-            changeFrequency: 'weekly',
-        })
-        pages.push({
-            path: `/${locale}/blog`,
             priority: 0.7 * basePriority,
             changeFrequency: 'weekly',
         })
