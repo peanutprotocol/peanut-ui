@@ -8,7 +8,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ChainChip from '../components/ChainChip'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import { Root, List, Trigger } from '@radix-ui/react-tabs'
+import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
 import Loading from '@/components/Global/Loading'
 import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
 import { useRef } from 'react'
@@ -101,36 +101,17 @@ const RhinoDepositView = ({
                         amount={amount}
                     />
                 )}
-                <Root
+                <SegmentedControl
+                    options={[
+                        { value: 'EVM', label: 'EVM' },
+                        { value: 'SOL', label: 'Solana' },
+                        { value: 'TRON', label: 'Tron' },
+                    ]}
                     value={chainType}
-                    onValueChange={(e) => setChainType(e as RhinoChainType)}
-                    defaultValue="EVM"
-                    className="w-full"
-                >
-                    <List
-                        className="flex w-full items-center rounded-sm bg-background-default p-0"
-                        aria-label={t('selectNetworkType')}
-                    >
-                        <Trigger
-                            value="EVM"
-                            className="flex-1 rounded-sm border border-transparent py-1.5 text-body-s font-medium text-foreground-secondary transition-all duration-fast data-[state=active]:border-action-primary data-[state=active]:bg-action-primary/10 data-[state=active]:text-action-primary"
-                        >
-                            EVM
-                        </Trigger>
-                        <Trigger
-                            value="SOL"
-                            className="flex-1 rounded-sm border border-transparent py-1.5 text-body-s font-medium text-foreground-secondary transition-all duration-fast data-[state=active]:border-action-primary data-[state=active]:bg-action-primary/10 data-[state=active]:text-action-primary"
-                        >
-                            Solana
-                        </Trigger>
-                        <Trigger
-                            value="TRON"
-                            className="flex-1 rounded-sm border border-transparent py-1.5 text-body-s font-medium text-foreground-secondary transition-all duration-fast data-[state=active]:border-action-primary data-[state=active]:bg-action-primary/10 data-[state=active]:text-action-primary"
-                        >
-                            Tron
-                        </Trigger>
-                    </List>
-                </Root>
+                    onChange={(v) => setChainType(v as RhinoChainType)}
+                    fullWidth
+                    aria-label={t('selectNetworkType')}
+                />
 
                 {(isDepositAddressDataLoading || depositAddressStatus === 'loading') && (
                     <div className="flex h-[60vh] items-center justify-center">

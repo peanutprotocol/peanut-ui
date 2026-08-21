@@ -809,13 +809,13 @@
        legacy — shape/type restyle inherited from .btn, colors kept until page
        rebuilds migrate them. */
     .btn-transparent-light {
-        @apply border-transparent fill-white text-white hover:fill-action-ghost-hover hover:text-action-ghost-hover;
+        @apply border-transparent fill-white text-white hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
     }
     .btn-transparent-dark {
-        @apply border-transparent fill-foreground-primary text-foreground-primary hover:fill-action-ghost-hover hover:text-action-ghost-hover;
+        @apply border-transparent fill-foreground-primary text-foreground-primary hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
     }
     .btn-purple {
-        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-purple-2 {
         @apply bg-purple-3 hover:bg-purple-3/90;
@@ -827,7 +827,7 @@
         @apply bg-n-1 fill-white text-white hover:bg-n-1/80;
     }
     .btn-stroke {
-        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-shadow {
         @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];

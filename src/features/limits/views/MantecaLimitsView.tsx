@@ -7,7 +7,7 @@ import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
-import PeriodToggle from '../components/PeriodToggle'
+import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import Image from 'next/image'
 import Loading from '@/components/Global/Loading'
@@ -29,6 +29,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
  */
 const MantecaLimitsView = () => {
     const t = useTranslations('limits.provider')
+    const tPeriod = useTranslations('limits.period')
     const onBack = useSafeBack('/limits')
     const { mantecaLimits, isLoading, error } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
@@ -71,7 +72,15 @@ const MantecaLimitsView = () => {
                                                 {t('totalAllowed', { asset: limit.asset })}
                                             </span>
                                         </div>
-                                        <PeriodToggle value={period} onChange={setPeriod} />
+                                        <SegmentedControl
+                                            options={[
+                                                { value: 'monthly', label: tPeriod('monthly') },
+                                                { value: 'yearly', label: tPeriod('yearly') },
+                                            ]}
+                                            value={period}
+                                            onChange={(v) => setPeriod(v as LimitsPeriod)}
+                                            aria-label={tPeriod('selectAriaLabel')}
+                                        />
                                     </div>
 
                                     <div className="text-heading-s text-foreground-primary">
