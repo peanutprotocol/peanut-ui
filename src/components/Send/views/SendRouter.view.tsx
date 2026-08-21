@@ -67,10 +67,8 @@ export const SendRouterView = () => {
         }
     }
 
-    const handleLinkCtaClick = () => {
-        router.push(`${window.location.pathname}?view=link`)
-        redirectToSendByLink()
-    }
+    // single navigation — the duplicate push was flagged by coderabbit on #2780
+    const handleLinkCtaClick = redirectToSendByLink
 
     // handle click on payment method options
     const handleMethodClick = (methodId: string) => {
