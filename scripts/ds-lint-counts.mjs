@@ -21,8 +21,10 @@ const BASELINE_PATH = join(ROOT, 'scripts', 'ds-lint-baseline.json')
 // allowlist for every metric: image-generation surfaces render standalone html
 // with no tailwind, raw values are the tool there, not debt. the ds showcase
 // pages display the token source itself (colors, spacing, type ramp rendered
-// programmatically from values), so raw values there are the feature.
-const GLOBAL_ALLOW = ['components/og/', 'app/api/og/', 'ImageGeneration/', 'dev/ds/', 'dev/components/']
+// programmatically from values), so raw values there are the feature. the
+// /dev/devices harness sizes its panes from measured pixel values and keeps its
+// chrome deliberately colorless, so the app inside the panes is what you judge.
+const GLOBAL_ALLOW = ['components/og/', 'app/api/og/', 'ImageGeneration/', 'dev/ds/', 'dev/components/', 'dev/devices/']
 
 // extra allowlist for raw-hex only: canvas/D3/mermaid surfaces paint
 // programmatically.
