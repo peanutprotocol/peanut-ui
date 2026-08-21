@@ -1,170 +1,93 @@
 import {
-    MOVEMENT_STATES,
-    RANGE_PRESETS,
+    EDGE_DIRECTION_FILTERS,
+    P2P_EDGE_TYPES,
+    type EdgeDirectionFilter,
     type ExplorerFilters,
-    type ExplorerRequest,
-    type MovementState,
-    type RangePreset,
-    type RelationshipDirection,
+    type ExplorerNode,
+    type ExplorerRelationship,
+    type P2PEdge,
+    type P2PEdgeType,
 } from './types'
 
-const DAY_MS = 24 * 60 * 60 * 1000
-const MIN_WINDOW_MS = DAY_MS
-const MAX_WINDOW_MS = 120 * DAY_MS
-const FILTER_VALUE_PATTERN = /^[A-Za-z0-9_.:-]{1,80}$/
-const FOCUS_TOKEN_PATTERN = /^[A-Za-z0-9._~-]{24,2048}$/
+/** The backend aggregates p2pEdges over this fixed window. Label only — there is no time filter. */
+export const FIXED_WINDOW_LABEL = 'Last 120 days · completed payments only'
 
-const PRESET_DURATION_MS: Record<Exclude<RangePreset, 'custom'>, number> = {
-    '24h': DAY_MS,
-    '7d': 7 * DAY_MS,
-    '30d': 30 * DAY_MS,
-    '90d': 90 * DAY_MS,
-    '120d': MAX_WINDOW_MS,
-}
+export const DEFAULT_TOP_NODES = 5000
+/** 0 = no server limit: the entire user base is serialized. Keep behind an explicit choice. */
+export const TOP_NODES_OPTIONS = [500, 1000, 5000, 0] as const
+const INCLUDE_NEW_DAYS = 30
 
-export class ExplorerWindowError extends Error {
-    constructor(message: string) {
-        super(message)
-        this.name = 'ExplorerWindowError'
-    }
-}
+const USERNAME_PATTERN = /^[A-Za-z0-9_.-]{1,40}$/
 
 export function defaultExplorerFilters(): ExplorerFilters {
     return {
         view: 'graph',
-        range: '30d',
-        customFrom: null,
-        customTo: null,
-        providers: [],
-        methods: [],
-        rails: [],
-        kinds: [],
-        assets: [],
-        chains: [],
-        states: ['SETTLED'],
-        directions: [],
-        infrastructure: 'edges',
+        types: [],
+        direction: 'all',
+        minCount: 0,
+        minUsd: 0,
+        topNodes: DEFAULT_TOP_NODES,
         focus: null,
     }
 }
 
-export function isRangePreset(value: string): value is RangePreset {
-    return (RANGE_PRESETS as readonly string[]).includes(value)
+export function isP2PEdgeType(value: string): value is P2PEdgeType {
+    return (P2P_EDGE_TYPES as readonly string[]).includes(value)
 }
 
-export function isMovementState(value: string): value is MovementState {
-    return (MOVEMENT_STATES as readonly string[]).includes(value)
+export function isEdgeDirectionFilter(value: string): value is EdgeDirectionFilter {
+    return (EDGE_DIRECTION_FILTERS as readonly string[]).includes(value)
 }
 
-export function isOpaqueFocusToken(value: string | null | undefined): value is string {
-    return !!value && FOCUS_TOKEN_PATTERN.test(value)
+export function isPlainUsername(value: string | null | undefined): value is string {
+    return !!value && USERNAME_PATTERN.test(value)
 }
 
-export function sanitizeFilterValues(values: readonly string[]): string[] {
-    return Array.from(new Set(values.filter((value) => FILTER_VALUE_PATTERN.test(value)))).sort()
+/** The only server-side controls are mode, topNodes and includeNewDays. */
+export function buildGraphEndpoint(topNodes: number): string {
+    const params = new URLSearchParams({ mode: 'full' })
+    if (topNodes > 0) params.set('topNodes', String(topNodes))
+    params.set('includeNewDays', String(INCLUDE_NEW_DAYS))
+    return `/invites/graph?${params.toString()}`
 }
 
-function parseUtc(value: string | null, label: string): Date {
-    if (!value) throw new ExplorerWindowError(`${label} is required.`)
-    const parsed = new Date(value)
-    if (!Number.isFinite(parsed.getTime())) throw new ExplorerWindowError(`${label} is invalid.`)
-    return parsed
+export function relationshipId(edge: P2PEdge): string {
+    return `${edge.source}:${edge.target}:${edge.type}`
 }
 
-export function resolveExplorerWindow(
-    filters: Pick<ExplorerFilters, 'range' | 'customFrom' | 'customTo'>,
-    now = new Date()
-): { from: string; to: string } {
-    if (filters.range !== 'custom') {
-        return {
-            from: new Date(now.getTime() - PRESET_DURATION_MS[filters.range]).toISOString(),
-            to: now.toISOString(),
-        }
-    }
-
-    const from = parseUtc(filters.customFrom, 'Start time')
-    const to = parseUtc(filters.customTo, 'End time')
-    if (from >= to) throw new ExplorerWindowError('Start time must be before end time.')
-    if (to.getTime() > now.getTime()) throw new ExplorerWindowError('End time cannot be in the future.')
-    if (to.getTime() - from.getTime() < MIN_WINDOW_MS) {
-        throw new ExplorerWindowError('Custom windows must cover at least 24 hours.')
-    }
-    if (to.getTime() - from.getTime() > MAX_WINDOW_MS) {
-        throw new ExplorerWindowError('Custom windows cannot exceed 120 days.')
-    }
-    if (from.getTime() < now.getTime() - MAX_WINDOW_MS) {
-        throw new ExplorerWindowError('Custom windows cannot look back more than 120 days.')
-    }
-
-    return { from: from.toISOString(), to: to.toISOString() }
+export function toRelationships(edges: readonly P2PEdge[]): ExplorerRelationship[] {
+    return edges.map((edge) => ({ ...edge, id: relationshipId(edge) }))
 }
 
-export function buildExplorerRequest(filters: ExplorerFilters, now = new Date()): ExplorerRequest {
-    const window = resolveExplorerWindow(filters, now)
-    return {
-        ...window,
-        providers: sanitizeFilterValues(filters.providers),
-        methods: sanitizeFilterValues(filters.methods),
-        rails: sanitizeFilterValues(filters.rails),
-        kinds: sanitizeFilterValues(filters.kinds),
-        assets: sanitizeFilterValues(filters.assets),
-        chains: sanitizeFilterValues(filters.chains),
-        states: filters.states.filter(isMovementState),
-        directions: sanitizeFilterValues(filters.directions) as RelationshipDirection[],
-        includeHubs: filters.infrastructure === 'hubs',
-        limit: 5000,
-        focus: isOpaqueFocusToken(filters.focus) ? filters.focus : null,
-    }
-}
-
-export function buildExplorerSearchParams(request: ExplorerRequest): URLSearchParams {
-    const params = new URLSearchParams({
-        mode: 'payment',
-        from: request.from,
-        to: request.to,
-        states: request.states.join(','),
-        includeHubs: String(request.includeHubs),
-        limit: String(request.limit),
+/** All v1 filters run client-side over the pre-aggregated p2p edges. */
+export function filterRelationships(
+    relationships: readonly ExplorerRelationship[],
+    filters: Pick<ExplorerFilters, 'types' | 'direction' | 'minCount' | 'minUsd'>
+): ExplorerRelationship[] {
+    const types = filters.types.length > 0 ? new Set(filters.types) : null
+    return relationships.filter((relationship) => {
+        if (types && !types.has(relationship.type)) return false
+        if (filters.direction === 'oneWay' && relationship.bidirectional) return false
+        if (filters.direction === 'bidirectional' && !relationship.bidirectional) return false
+        if (relationship.count < filters.minCount) return false
+        if (relationship.totalUsd < filters.minUsd) return false
+        return true
     })
-    const listFields = [
-        ['providers', request.providers],
-        ['methods', request.methods],
-        ['rails', request.rails],
-        ['kinds', request.kinds],
-        ['assets', request.assets],
-        ['chains', request.chains],
-        ['directions', request.directions],
-    ] as const
-    for (const [key, values] of listFields) {
-        if (values.length > 0) params.set(key, values.join(','))
-    }
-    if (request.focus) params.set('focus', request.focus)
-    return params
+}
+
+export function findNodeByUsername(nodes: readonly ExplorerNode[], username: string): ExplorerNode | null {
+    const query = username.trim().toLowerCase()
+    if (!query) return null
+    return nodes.find((node) => node.username.toLowerCase() === query) ?? null
 }
 
 type LegacyLocation = Pick<Location, 'href'>
 type LegacyHistory = Pick<History, 'replaceState' | 'state'>
 
-/** Remove legacy secrets before React renders or any feature request starts. */
-export function consumeLegacyGraphUsername(location: LegacyLocation, history: LegacyHistory): string | null {
+/** Legacy graph links carried a shared password in the URL. Scrub it before anything renders. */
+export function scrubLegacyGraphPassword(location: LegacyLocation, history: LegacyHistory): void {
     const url = new URL(location.href)
-    const username = url.searchParams.get('user')?.trim() || null
-    const mustScrub = url.searchParams.has('user') || url.searchParams.has('password')
-    url.searchParams.delete('user')
+    if (!url.searchParams.has('password')) return
     url.searchParams.delete('password')
-    if (mustScrub) history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`)
-    return username
-}
-
-export function toDateTimeLocal(iso: string | null): string {
-    if (!iso) return ''
-    const date = new Date(iso)
-    if (!Number.isFinite(date.getTime())) return ''
-    return date.toISOString().slice(0, 16)
-}
-
-export function fromDateTimeLocal(value: string): string | null {
-    if (!value) return null
-    const date = new Date(`${value}Z`)
-    return Number.isFinite(date.getTime()) ? date.toISOString() : null
+    history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`)
 }

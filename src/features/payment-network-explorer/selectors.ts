@@ -1,7 +1,19 @@
-import { MOVEMENT_STATES, type ExplorerNode, type ExplorerRelationship, type ExplorerSampling } from './types'
+import {
+    P2P_EDGE_TYPES,
+    type ExplorerFacet,
+    type ExplorerNode,
+    type ExplorerRelationship,
+    type P2PEdgeType,
+} from './types'
 
-export type RelationshipSortKey = 'lastAt' | 'source' | 'target' | 'rail' | 'provider' | 'count' | 'state'
+export type RelationshipSortKey = 'source' | 'target' | 'type' | 'count' | 'totalUsd'
 export type SortDirection = 'ascending' | 'descending'
+
+export const EDGE_TYPE_LABELS: Record<P2PEdgeType, string> = {
+    SEND_LINK: 'Send link',
+    REQUEST_PAYMENT: 'Request payment',
+    DIRECT_TRANSFER: 'Direct transfer',
+}
 
 export interface GraphNodeProjection {
     id: string
@@ -16,7 +28,6 @@ export interface GraphLinkProjection {
     target: string
     canonicalRelationshipId: string
     canonical: ExplorerRelationship
-    segment: 'direct' | 'source-to-hub' | 'hub-to-target'
 }
 
 export interface DenseGraphRanking {
@@ -35,37 +46,13 @@ export function buildGraphProjection(
 ): { nodes: GraphNodeProjection[]; links: GraphLinkProjection[] } {
     return {
         nodes: nodes.map((node) => ({ id: node.id, canonical: node })),
-        links: relationships.flatMap<GraphLinkProjection>((relationship) =>
-            relationship.infrastructureHubId
-                ? [
-                      {
-                          id: `${relationship.id}:source-to-hub`,
-                          source: relationship.source,
-                          target: relationship.infrastructureHubId,
-                          canonicalRelationshipId: relationship.id,
-                          canonical: relationship,
-                          segment: 'source-to-hub',
-                      },
-                      {
-                          id: `${relationship.id}:hub-to-target`,
-                          source: relationship.infrastructureHubId,
-                          target: relationship.target,
-                          canonicalRelationshipId: relationship.id,
-                          canonical: relationship,
-                          segment: 'hub-to-target',
-                      },
-                  ]
-                : [
-                      {
-                          id: relationship.id,
-                          source: relationship.source,
-                          target: relationship.target,
-                          canonicalRelationshipId: relationship.id,
-                          canonical: relationship,
-                          segment: 'direct',
-                      },
-                  ]
-        ),
+        links: relationships.map((relationship) => ({
+            id: relationship.id,
+            source: relationship.source,
+            target: relationship.target,
+            canonicalRelationshipId: relationship.id,
+            canonical: relationship,
+        })),
     }
 }
 
@@ -85,10 +72,11 @@ function valueForSort(
     key: RelationshipSortKey,
     nodes: ReadonlyMap<string, ExplorerNode>
 ): string | number {
-    if (key === 'source') return nodes.get(relationship.source)?.label ?? relationship.source
-    if (key === 'target') return nodes.get(relationship.target)?.label ?? relationship.target
+    if (key === 'source') return nodes.get(relationship.source)?.username ?? relationship.source
+    if (key === 'target') return nodes.get(relationship.target)?.username ?? relationship.target
     if (key === 'count') return relationship.count
-    return relationship[key]
+    if (key === 'totalUsd') return relationship.totalUsd
+    return relationship.type
 }
 
 export function sortRelationships(
@@ -140,15 +128,15 @@ export function rankDenseGraphOverview(
             const leftScore = Math.max(1, left.count) * (1 + Math.log2(leftEndpointActivity + 1))
             const rightScore = Math.max(1, right.count) * (1 + Math.log2(rightEndpointActivity + 1))
             if (leftScore !== rightScore) return rightScore - leftScore
-            if (left.lastAt !== right.lastAt) return right.lastAt.localeCompare(left.lastAt)
+            if (left.totalUsd !== right.totalUsd) return right.totalUsd - left.totalUsd
             return left.id.localeCompare(right.id)
         })
         .map((relationship) => relationship.id)
 
     const labelNodeIds = [...nodes]
         .sort((left, right) => {
-            const leftScore = (weightedDegree.get(left.id) ?? 0) + Math.max(0, left.paymentCount)
-            const rightScore = (weightedDegree.get(right.id) ?? 0) + Math.max(0, right.paymentCount)
+            const leftScore = weightedDegree.get(left.id) ?? 0
+            const rightScore = weightedDegree.get(right.id) ?? 0
             if (leftScore !== rightScore) return rightScore - leftScore
             return left.id.localeCompare(right.id)
         })
@@ -158,19 +146,22 @@ export function rankDenseGraphOverview(
     return { relationshipIds, labelNodeIds }
 }
 
-export function movementStatesPresent(relationships: readonly ExplorerRelationship[]) {
-    const present = new Set(relationships.map((relationship) => relationship.state))
-    return MOVEMENT_STATES.filter((state) => present.has(state))
+export function edgeTypesPresent(relationships: readonly ExplorerRelationship[]): P2PEdgeType[] {
+    const present = new Set(relationships.map((relationship) => relationship.type))
+    return P2P_EDGE_TYPES.filter((type) => present.has(type))
 }
 
-export function settledEventCoveragePercent(sampling: ExplorerSampling): number {
-    if (sampling.matchedSettledEventCount <= 0) return 0
-    return Math.min(
-        100,
-        Math.max(0, Math.round((sampling.returnedSettledEventCount / sampling.matchedSettledEventCount) * 100))
-    )
-}
-
-export function missingPrincipalMovementCount(missingPrincipal: readonly { count: number }[]): number {
-    return missingPrincipal.reduce((total, group) => total + Math.max(0, group.count), 0)
+/** Facet counts are computed client-side from the unfiltered response. */
+export function edgeTypeFacets(relationships: readonly ExplorerRelationship[]): ExplorerFacet[] {
+    const counts = new Map<P2PEdgeType, number>()
+    for (const relationship of relationships) {
+        counts.set(relationship.type, (counts.get(relationship.type) ?? 0) + 1)
+    }
+    return P2P_EDGE_TYPES.map((type) => ({
+        value: type,
+        label: EDGE_TYPE_LABELS[type],
+        observedCount: counts.get(type) ?? 0,
+        configured: false,
+        isActive: true,
+    }))
 }

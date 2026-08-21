@@ -1,46 +1,37 @@
 'use client'
 
-import { createParser, parseAsArrayOf, parseAsString, parseAsStringEnum, useQueryStates } from 'nuqs'
+import { createParser, parseAsArrayOf, parseAsInteger, parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useCallback } from 'react'
-import { isOpaqueFocusToken, sanitizeFilterValues } from './query'
+import { DEFAULT_TOP_NODES, isPlainUsername } from './query'
 import {
-    MOVEMENT_STATES,
-    RANGE_PRESETS,
+    EDGE_DIRECTION_FILTERS,
+    P2P_EDGE_TYPES,
+    type EdgeDirectionFilter,
     type ExplorerFilters,
-    type InfrastructureMode,
-    type MovementState,
-    type RangePreset,
-    type RelationshipDirection,
+    type P2PEdgeType,
 } from './types'
 
-const DIRECTION_VALUES: RelationshipDirection[] = ['INCOMING', 'OUTGOING', 'INTERNAL']
-const CODE_PATTERN = /^[A-Za-z0-9_.:-]{1,80}$/
-
-const parseAsCode = createParser({
-    parse: (value) => (CODE_PATTERN.test(value) ? value : null),
+const parseAsUsername = createParser({
+    parse: (value) => (isPlainUsername(value) ? value : null),
     serialize: (value: string) => value,
 })
 
-const parseAsFocus = createParser({
-    parse: (value) => (isOpaqueFocusToken(value) ? value : null),
-    serialize: (value: string) => value,
+const parseAsBoundedCount = createParser({
+    parse: (value) => {
+        const parsed = Number.parseInt(value, 10)
+        return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+    },
+    serialize: (value: number) => String(value),
 })
 
 const parsers = {
     view: parseAsStringEnum<'graph' | 'table'>(['graph', 'table']).withDefault('graph'),
-    range: parseAsStringEnum<RangePreset>([...RANGE_PRESETS]).withDefault('30d'),
-    from: parseAsString,
-    to: parseAsString,
-    providers: parseAsArrayOf(parseAsCode).withDefault([]),
-    methods: parseAsArrayOf(parseAsCode).withDefault([]),
-    rails: parseAsArrayOf(parseAsCode).withDefault([]),
-    kinds: parseAsArrayOf(parseAsCode).withDefault([]),
-    assets: parseAsArrayOf(parseAsCode).withDefault([]),
-    chains: parseAsArrayOf(parseAsCode).withDefault([]),
-    states: parseAsArrayOf(parseAsStringEnum<MovementState>([...MOVEMENT_STATES])).withDefault(['SETTLED']),
-    directions: parseAsArrayOf(parseAsStringEnum<RelationshipDirection>(DIRECTION_VALUES)).withDefault([]),
-    infra: parseAsStringEnum<InfrastructureMode>(['edges', 'hubs']).withDefault('edges'),
-    focus: parseAsFocus,
+    types: parseAsArrayOf(parseAsStringEnum<P2PEdgeType>([...P2P_EDGE_TYPES])).withDefault([]),
+    dir: parseAsStringEnum<EdgeDirectionFilter>([...EDGE_DIRECTION_FILTERS]).withDefault('all'),
+    minCount: parseAsBoundedCount.withDefault(0),
+    minUsd: parseAsBoundedCount.withDefault(0),
+    top: parseAsInteger.withDefault(DEFAULT_TOP_NODES),
+    user: parseAsUsername,
 }
 
 export interface ExplorerUrlState {
@@ -54,19 +45,12 @@ export function useExplorerUrlState(): ExplorerUrlState {
         async (patch: Partial<ExplorerFilters>) => {
             await setUrlState({
                 ...(patch.view !== undefined ? { view: patch.view } : {}),
-                ...(patch.range !== undefined ? { range: patch.range } : {}),
-                ...(patch.customFrom !== undefined ? { from: patch.customFrom } : {}),
-                ...(patch.customTo !== undefined ? { to: patch.customTo } : {}),
-                ...(patch.providers !== undefined ? { providers: patch.providers } : {}),
-                ...(patch.methods !== undefined ? { methods: patch.methods } : {}),
-                ...(patch.rails !== undefined ? { rails: patch.rails } : {}),
-                ...(patch.kinds !== undefined ? { kinds: patch.kinds } : {}),
-                ...(patch.assets !== undefined ? { assets: patch.assets } : {}),
-                ...(patch.chains !== undefined ? { chains: patch.chains } : {}),
-                ...(patch.states !== undefined ? { states: patch.states } : {}),
-                ...(patch.directions !== undefined ? { directions: patch.directions } : {}),
-                ...(patch.infrastructure !== undefined ? { infra: patch.infrastructure } : {}),
-                ...(patch.focus !== undefined ? { focus: patch.focus } : {}),
+                ...(patch.types !== undefined ? { types: patch.types } : {}),
+                ...(patch.direction !== undefined ? { dir: patch.direction } : {}),
+                ...(patch.minCount !== undefined ? { minCount: patch.minCount } : {}),
+                ...(patch.minUsd !== undefined ? { minUsd: patch.minUsd } : {}),
+                ...(patch.topNodes !== undefined ? { top: patch.topNodes } : {}),
+                ...(patch.focus !== undefined ? { user: patch.focus } : {}),
             })
         },
         [setUrlState]
@@ -75,19 +59,12 @@ export function useExplorerUrlState(): ExplorerUrlState {
     return {
         filters: {
             view: state.view,
-            range: state.range,
-            customFrom: state.from,
-            customTo: state.to,
-            providers: sanitizeFilterValues(state.providers),
-            methods: sanitizeFilterValues(state.methods),
-            rails: sanitizeFilterValues(state.rails),
-            kinds: sanitizeFilterValues(state.kinds),
-            assets: sanitizeFilterValues(state.assets),
-            chains: sanitizeFilterValues(state.chains),
-            states: state.states,
-            directions: state.directions,
-            infrastructure: state.infra,
-            focus: state.focus,
+            types: state.types,
+            direction: state.dir,
+            minCount: state.minCount,
+            minUsd: state.minUsd,
+            topNodes: state.top >= 0 ? state.top : DEFAULT_TOP_NODES,
+            focus: state.user,
         },
         setFilters,
     }
