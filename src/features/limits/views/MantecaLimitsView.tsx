@@ -8,7 +8,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import PeriodToggle from '../components/PeriodToggle'
-import LimitsProgressBar from '../components/LimitsProgressBar'
+import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import Image from 'next/image'
 import Loading from '@/components/Global/Loading'
 import {
@@ -78,7 +78,10 @@ const MantecaLimitsView = () => {
                                         {formatAmountWithCurrency(limitData.limit, limit.asset)}
                                     </div>
 
-                                    <LimitsProgressBar total={limitData.limit} remaining={limitData.remaining} />
+                                    <ProgressBar
+                                        value={remainingPercent}
+                                        fillClassName={getLimitColorClass(remainingPercent, 'bg')}
+                                    />
 
                                     <div className="flex items-center justify-between text-body-s">
                                         <span className="text-foreground-secondary">{t('remaining', { period })}</span>

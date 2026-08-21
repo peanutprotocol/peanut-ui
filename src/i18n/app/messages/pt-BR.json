@@ -2946,12 +2946,6 @@
             "contributed": "{amount} contribuído",
             "remaining": "{amount} restante"
         },
-        "routeExpiryTimer": {
-            "findingBestRate": "Buscando a melhor taxa...",
-            "noQuote": "Nenhuma cotação disponível",
-            "quoteExpired": "A cotação expirou",
-            "priceLocked": "Preço garantido por {time}"
-        },
         "mantecaMaintenance": {
             "title": "Serviço temporariamente indisponível",
             "description": "Estamos com problemas nos {action, select, deposits {depósitos} withdrawals {saques} other {transferências}} por causa de uma falha de um provedor externo. Estamos trabalhando para restabelecer o serviço o quanto antes.",
