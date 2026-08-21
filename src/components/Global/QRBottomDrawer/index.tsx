@@ -89,7 +89,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     className={`mt-0 h-screen touch-none p-4 supports-[height:100dvh]:h-[100dvh] ${className || ''}`}
                     style={{ '--qr-drawer-expanded': `${QR_DRAWER_EXPANDED_PX}px` } as CSSProperties}
                     scrollAreaClassName={`max-h-[calc(var(--qr-drawer-expanded)-3.3125rem)] ${activeSnapPoint === snapPoints[0] ? 'touch-none' : ''}`}
->
+                >
                     <DrawerTitle className="space-y-2 mb-8">
                         <h2 className="text-lg font-bold">
                             {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}

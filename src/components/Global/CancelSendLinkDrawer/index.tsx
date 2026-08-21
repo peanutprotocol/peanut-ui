@@ -39,7 +39,7 @@ const CancelSendLinkDrawer = ({
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center gap-4 px-5 pb-6 pt-1 text-center">
+                <div className="flex flex-col items-center gap-4 px-5 pt-1 pb-6 text-center">
                     <div className="flex size-8 items-center justify-center rounded-full bg-purple-1">
                         <Icon name="link-slash" fill="currentColor" className="size-4 text-black" />
                     </div>
