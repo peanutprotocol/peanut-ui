@@ -390,6 +390,18 @@
                 "bankingRestrictionNote": "Atenção: transferências bancárias não estão disponíveis para residentes deste país.",
                 "save": "Salvar",
                 "saveAndReverify": "Salvar e verificar agora"
+            },
+            "degraded": {
+                "title": "A verificação está temporariamente fora do ar",
+                "body": "Você não pode iniciar nem continuar uma verificação de identidade agora.",
+                "notifyMe": "Me avise quando voltar a funcionar"
+            },
+            "review": {
+                "sinceDate": "Verificação em análise desde {submittedDate}",
+                "since": "Verificação em análise",
+                "body": "Você não precisa fazer nada. Avisaremos assim que houver uma decisão.",
+                "escalation": "Está demorando mais que o normal.",
+                "messageUs": "Fale com a gente e vamos atrás"
             }
         },
         "backup": {
@@ -1609,7 +1621,8 @@
             "shareAmount": "Valor: {currency} {amount}",
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
-            "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}"
+            "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
+            "etaInstant": "Os depósitos costumam chegar em minutos."
         },
         "pix": {
             "payWithPix": "Pagar com PIX",
@@ -1661,7 +1674,11 @@
             "shareLine": "{label}: {value}",
             "amountLabel": "Valor",
             "doubleCheckSenderName": "Remetente: use uma conta bancária no seu próprio nome (se o nome não corresponder, a transferência é devolvida)",
-            "doubleCheckRecipientName": "Destinatário: digite o nome exatamente como mostrado acima"
+            "doubleCheckRecipientName": "Destinatário: digite o nome exatamente como mostrado acima",
+            "etaAch": "Costuma chegar em 1 dia útil, às vezes até 3.",
+            "etaSepa": "Costuma chegar em 1 dia útil.",
+            "etaSpei": "Costuma chegar em minutos.",
+            "etaFps": "Costuma chegar em minutos."
         },
         "errors": {
             "invalidNumber": "Digite um número válido.",
@@ -2749,7 +2766,12 @@
         "actionMessageActionRequired": "Precisamos de um pouco mais para verificar sua identidade. Reenvie seus documentos.",
         "actionMessageFailed": "Não conseguimos verificar sua identidade. Fale com o suporte.",
         "successTitle": "Verificação concluída!",
-        "successCloseWindow": "Você já pode fechar esta janela."
+        "successCloseWindow": "Você já pode fechar esta janela.",
+        "degraded": {
+            "title": "A verificação está temporariamente fora do ar",
+            "description": "Nosso parceiro de verificação está com problemas no momento. Sua conta está bem. Avisaremos assim que voltar.",
+            "notifyMe": "Me avise quando voltar"
+        }
     },
     "identity": {
         "unlockTitle": "Desbloquear {region}",

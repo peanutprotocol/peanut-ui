@@ -16,6 +16,7 @@ export const ANALYTICS_EVENTS = {
     RESIDENCE_CHANGED: 'residence_changed',
     HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
     HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
+    KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
