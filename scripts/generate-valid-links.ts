@@ -59,7 +59,7 @@ function main() {
     // Static pages
     lines.push('## Static Pages')
     lines.push('')
-    for (const p of ['/', '/careers', '/exchange', '/privacy', '/terms', '/lp/card']) {
+    for (const p of ['/', '/careers', '/exchange', '/privacy', '/terms', '/shhhhh']) {
         lines.push(`- \`${p}\``)
     }
     lines.push('')

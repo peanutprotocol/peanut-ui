@@ -63,12 +63,11 @@ export const AppShell = ({
 
     return (
         <div className="flex min-h-[100dvh] w-full flex-col bg-background-page pt-safe-top">
-            {/* Status-bar safe zone. On Android 15+ edge-to-edge the webview draws
-                under the status bar, where bg-background-page would otherwise show
-                beige. Fill the inset strip (above the feedback ribbon) with black so
-                the top always reads black. Height is the natively measured inset on
-                Android 15+ and env() elsewhere, so still a no-op on web (inset = 0). */}
-            <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-black" />
+            {/* Status-bar safe zone. Paints the inset strip in the app background so
+                the top matches the page even where fixed children would otherwise draw
+                under the status bar. Height is the natively measured inset on Android
+                15+ and env() elsewhere, so still a no-op on web (inset = 0). */}
+            <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-background-page" />
             {banner}
             {/* Scrollable content — one centered mobile column on every viewport */}
             <div

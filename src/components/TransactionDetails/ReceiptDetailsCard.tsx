@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -53,7 +53,7 @@ export function ReceiptDetailsCard({
      *  "Estimate conversion" row (board 17835:84507). */
     convertedAmount?: string
 }) {
-    const t = useTranslations('transaction')
+    const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
     const router = useRouter()
     const formatDate = useReceiptDateFormatter()
@@ -226,7 +226,7 @@ export function ReceiptDetailsCard({
             {/* Onramp deposit instructions for bridge_onramp transactions */}
             {rowVisibilityConfig.depositInstructions && <BridgeDepositInstructions transaction={transaction} />}
 
-            {rowVisibilityConfig.points && transaction.points && !isReferralRewardsHidden() && (
+            {rowVisibilityConfig.points && transaction.points && (
                 <ReceiptRow
                     label={t('rows.pointsEarned')}
                     value={

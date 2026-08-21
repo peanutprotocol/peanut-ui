@@ -3,13 +3,20 @@
  *
  * The backend (/card → waitlistTotal, admittedTotal) reports the REAL counts.
  * "tried" gets inflated for FOMO — the same fake-scarcity flex the /shhhhh
- * landing already does with its "only 20 a week" ScarcityCounter — while
+ * landing already does with its "only 50 a week" ScarcityCounter — while
  * "got in" is shown verbatim (the real number admitted).
  *
  * The inflation is a pure function of the real count (a constant multiplier
  * with a floor), so it's deterministic per render and never jitters between
  * frames. No randomness on purpose.
  */
+
+/**
+ * Admissions per week in the closed beta (product/card.md). Drives the
+ * ScarcityCounter pill on the homepage door fold and on /shhhhh, so both
+ * surfaces quote the same number.
+ */
+export const ADMISSIONS_PER_WEEK = 50
 
 /**
  * FOMO inflation factor applied to the real waitlist size for "tried". ×5 (not

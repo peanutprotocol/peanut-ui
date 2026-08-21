@@ -1,6 +1,6 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import { ReceiptRow } from '@/components/TransactionDetails/ReceiptRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -20,7 +20,7 @@ export function ReceiptTokenRows({
     transaction: TransactionDetails
     isPeanutWalletToken: boolean
 }) {
-    const t = useTranslations('transaction')
+    const t = useAppTranslations('transaction')
     const { tokenData, isLoading } = useTokenDisplay(transaction)
 
     // keep the row (with its skeleton) while the fallback lookup is in flight;

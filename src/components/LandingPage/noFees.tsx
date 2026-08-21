@@ -175,9 +175,11 @@ export function NoFees({
                     className="mt-6"
                     label={strings.seeMarkupOn}
                     links={[
-                        { label: 'Wise', href: `/${locale}/compare/wise` },
-                        { label: 'PayPal', href: `/${locale}/compare/paypal` },
-                        { label: 'Western Union', href: `/${locale}/compare/western-union` },
+                        // the route is `peanut-vs-<slug>` — generateStaticParams builds
+                        // no bare-slug page, so the short form 404s
+                        { label: 'Wise', href: `/${locale}/compare/peanut-vs-wise` },
+                        { label: 'PayPal', href: `/${locale}/compare/peanut-vs-paypal` },
+                        { label: 'Western Union', href: `/${locale}/compare/peanut-vs-western-union` },
                     ]}
                 />
             </div>

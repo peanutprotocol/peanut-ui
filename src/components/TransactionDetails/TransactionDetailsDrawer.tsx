@@ -47,8 +47,11 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 }
             }}
         >
-            {/* pb only — the drawer chrome owns the space above (handle 8px top / 24px below, per board) */}
-            <DrawerContent className={`pb-4 ${isModalOpen ? '!z-[10]' : ''}`}>
+            {/* pb only — the drawer chrome owns the space above (handle 8px top / 24px below, per board).
+                No z-index shuffle for the cancel confirmation any more: it is a vaul
+                NestedRoot now, so vaul stacks it above this drawer and scales this one
+                back on its own. */}
+            <DrawerContent className="pb-4">
                 <DrawerTitle className="sr-only">{t('drawerTitle')}</DrawerTitle>
                 <TransactionDetailsReceipt
                     isLoading={isLoading}

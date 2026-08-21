@@ -114,12 +114,8 @@ const Footer = ({
                         <Link className={NAV_LINK} href={`/${locale}/help`}>
                             {i18n.footerDocs}
                         </Link>
-                        <Link className={NAV_LINK} href={`/${locale}/terms`}>
-                            {i18n.footerTerms}
-                        </Link>
-                        <Link className={NAV_LINK} href={`/${locale}/privacy`}>
-                            {i18n.footerPrivacy}
-                        </Link>
+                        {/* Terms and Privacy deliberately live in the Legal column of
+                            the site directory below, not here — one home per document. */}
                         <Link className={NAV_LINK} href={`/${locale}/help/security-disclosure`}>
                             {i18n.footerSecurity}
                         </Link>

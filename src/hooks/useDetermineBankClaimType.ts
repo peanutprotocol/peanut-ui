@@ -19,9 +19,18 @@ export enum BankClaimType {
 export function useDetermineBankClaimType(senderUserId: string): {
     claimType: BankClaimType
     setClaimType: (claimType: BankClaimType) => void
+    /**
+     * Tri-state, because "we asked and the answer was no" and "we never got an
+     * answer" are different facts and only the first one may be shown to the
+     * claimer as "the sender isn't verified". null means unknown: no senderUserId
+     * on the link, or the lookup threw. Both used to render as sender-blaming
+     * copy for a failure the sender had nothing to do with.
+     */
+    senderCanReceiveBankOfframp: boolean | null
 } {
     const { user } = useAuth()
     const [claimType, setClaimType] = useState<BankClaimType>(BankClaimType.ReceiverKycNeeded)
+    const [senderCanReceiveBankOfframp, setSenderCanReceiveBankOfframp] = useState<boolean | null>(null)
     const { setSenderDetails } = useClaimBankFlow()
     // MIGRATION-REVIEW: was useKycStatus().isUserKycApproved (any provider approved).
     // The receiver is the CURRENT user, so this reads the capability model directly:
@@ -41,6 +50,8 @@ export function useDetermineBankClaimType(senderUserId: string): {
 
             // condition 2: Receiver is not KYC approved, check sender status
             if (!senderUserId) {
+                // no sender on the link — nothing was established either way
+                setSenderCanReceiveBankOfframp(null)
                 if (user?.user.userId) {
                     setClaimType(BankClaimType.ReceiverKycNeeded)
                 } else {
@@ -54,6 +65,8 @@ export function useDetermineBankClaimType(senderUserId: string): {
                 // BE-computed counterparty capability — true iff the sender has an enabled
                 // Bridge bank rail, which is exactly the gate for routing to GuestBankClaim.
                 const senderKycApproved = senderDetails?.canReceiveBankOfframp ?? false
+                // a null senderDetails is a lookup miss, not a negative answer
+                setSenderCanReceiveBankOfframp(senderDetails ? senderKycApproved : null)
 
                 if (senderKycApproved) {
                     // condition 3: Receiver not KYC approved BUT sender is → GuestBankClaim
@@ -68,6 +81,8 @@ export function useDetermineBankClaimType(senderUserId: string): {
                     }
                 }
             } catch {
+                // the lookup failed — we know nothing about the sender
+                setSenderCanReceiveBankOfframp(null)
                 if (user?.user.userId) {
                     setClaimType(BankClaimType.ReceiverKycNeeded)
                 } else {
@@ -79,5 +94,5 @@ export function useDetermineBankClaimType(senderUserId: string): {
         determineBankClaimType()
     }, [user, senderUserId, setSenderDetails, isKycApproved])
 
-    return { claimType, setClaimType }
+    return { claimType, setClaimType, senderCanReceiveBankOfframp }
 }
