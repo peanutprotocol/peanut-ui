@@ -124,7 +124,7 @@ const LimitsPageView = () => {
                     <h2 className="font-bold">{t('cardLimits.title')}</h2>
                     <ListItem
                         position="single"
-                        leading={<Icon name="credit-card" size={28} />}
+                        leading={<Icon name="credit-card" size={24} />}
                         title={t('cardLimits.manage')}
                         body={<div>{t('cardLimits.description')}</div>}
                         chevron

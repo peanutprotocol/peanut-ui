@@ -411,7 +411,8 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                 variant="stroke"
                 onClick={openDrawer}
                 className={twMerge(
-                    'flex min-h-16 w-full items-center justify-between bg-background-default p-4 hover:bg-background-default hover:text-foreground-primary',
+                    // boxy like Card (rounded-sm), not the default button pill
+                    'flex min-h-16 w-full items-center justify-between rounded-sm bg-background-default p-4 hover:bg-background-default hover:text-foreground-primary',
                     classNameButton
                 )}
                 shadowSize="4"

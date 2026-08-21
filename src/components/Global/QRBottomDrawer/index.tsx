@@ -58,7 +58,9 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                             {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
                         </h2>
                     </DrawerTitle>
-                    <div>
+                    {/* pb-1 = the button's 4px offset shadow; without it the drawer's
+                        overflow-auto scroll wrapper clips the shadow at the bottom */}
+                    <div className="pb-1">
                         <QRCodeWrapper url={url} />
                         <div className="text-gray-500 mx-auto mt-4 w-full p-2 text-center text-base">{text}</div>
                         <Divider className="text-gray-500" text={tCommon('or')} />
