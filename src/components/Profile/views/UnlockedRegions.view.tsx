@@ -11,12 +11,14 @@ import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
 import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
+import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { deriveRegionAccess, getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { useRegionLabel } from '@/hooks/useRegionLabel'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
@@ -75,6 +77,11 @@ const UnlockedRegions = () => {
     // fails toward region KYC (the trunk), never toward /card.
     const { activationStep } = useActivationStatus()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
+    // Terminal-by-jurisdiction is read from the identity read-model, NOT from the
+    // rail status this page otherwise keys on: the rail only says "blocked", which
+    // is where the retry loop below came from. The identity block is the only
+    // place that carries WHY.
+    const { identity, isRegionRestricted, isTerminalFailure } = useIdentityVerification()
     // MIGRATION-REVIEW: unlockedRegions/lockedRegions previously came from
     // `useIdentityVerification` (raw rails + Sumsub flags). Now derived from the
     // capability rails via deriveRegionAccess (same Region shape; faithful unlock
@@ -99,16 +106,22 @@ const UnlockedRegions = () => {
     // staring at a screen where "verify now" appeared to do nothing.
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
 
-    // MIGRATION-REVIEW + CONTRACT GAP: KycFailedModal's terminal-rejection heuristic used
-    // sumsubRejectLabels / sumsubRejectType / a rejected-SUMSUB-verification count, all read
-    // off raw `user.kycVerifications` via useUnifiedKycStatus. The capability model carries
-    // no per-verification Sumsub history (labels, reject type, or attempt count), so these
-    // are dropped (passed null/undefined). isTerminalRejection degrades gracefully — without
-    // a FINAL reject type or terminal labels it defaults to retryable, and the backend still
-    // flips the rail to 'blocked' (→ 'rejected' variant, contact-support CTA) on a final
-    // rejection, so a genuinely terminal user is still routed to support via the rail status.
-    const sumsubRejectLabels: string[] | null = null
-    const sumsubRejectType: 'RETRY' | 'FINAL' | null = null
+    // The terminal-vs-retryable inputs KycFailedModal needs. These were hardcoded
+    // to null/undefined during the capabilities migration, because the capability
+    // model carries no per-verification Sumsub history — which silently made
+    // isTerminalRejection ALWAYS return "retryable". Every terminal rejection
+    // (fraud, sanctions, age, forgery) has been offering "Let's try that again"
+    // on this page ever since, to users no retry can help.
+    //
+    // The history was never the right source. The BACKEND already folds the
+    // decision: Sumsub RETRY becomes ACTION_REQUIRED, FINAL becomes REJECTED, and
+    // the identity read-model now says outright whether a retry is worth offering
+    // (`canRetry`, surfaced here as isTerminalFailure). So read that instead of
+    // reconstructing it from raw labels and attempt counts.
+    const sumsubRejectLabels = identity.rejectLabels ?? null
+    const sumsubRejectType = isTerminalFailure ? ('FINAL' as const) : null
+    // Still unavailable, and no longer needed: rejectType now carries the verdict,
+    // so the attempt-count fallback inside isTerminalRejection never has to fire.
     const sumsubFailureCount: number | undefined = undefined
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
@@ -258,8 +271,13 @@ const UnlockedRegions = () => {
                 rejectLabels={sumsubRejectLabels}
             />
 
+            <KycRegionRestrictedModal
+                visible={modalVariant === 'rejected' && isRegionRestricted}
+                onClose={handleModalClose}
+            />
+
             <KycFailedModal
-                visible={modalVariant === 'rejected'}
+                visible={modalVariant === 'rejected' && !isRegionRestricted}
                 onClose={handleModalClose}
                 onRetry={handleStartKyc}
                 isLoading={flow.isLoading}
