@@ -9,6 +9,8 @@ let mockRegionRestricted = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isRegionRestricted: mockRegionRestricted }),
 }))
+let mockKycDegraded = false
+jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockKycDegraded }))
 
 const push = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -116,6 +118,33 @@ describe('region-restricted drawer state', () => {
 
         expect(onNavigate).toHaveBeenCalledTimes(1)
         expect(push).toHaveBeenCalledWith('/send')
+    })
+})
+
+describe('InitiateKycModal — verification-outage short-circuit', () => {
+    // Outage outranks everything, including the region screen: opening the SDK
+    // during an outage burns an attempt against a wall regardless of state.
+    const variants = ['default', 'blocked', 'provider_rejection', 'restart_identity', 'cross_region'] as const
+
+    afterEach(() => {
+        mockKycDegraded = false
+        mockRegionRestricted = false
+    })
+
+    it.each(variants)('overrides the %s variant with the outage message', (variant) => {
+        mockKycDegraded = true
+        renderWithIntl(<InitiateKycModal visible onClose={jest.fn()} onVerify={jest.fn()} variant={variant} />)
+        expect(screen.getByText('Verification is temporarily down')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /notify me/i })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /unlock/i })).not.toBeInTheDocument()
+    })
+
+    it('outranks even the region-restricted screen', () => {
+        mockKycDegraded = true
+        mockRegionRestricted = true
+        renderWithIntl(<InitiateKycModal visible onClose={jest.fn()} onVerify={jest.fn()} />)
+        expect(screen.getByText('Verification is temporarily down')).toBeInTheDocument()
+        expect(screen.queryByText(/doesn't accept documents issued in your country/i)).not.toBeInTheDocument()
     })
 })
 

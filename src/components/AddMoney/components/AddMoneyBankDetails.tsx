@@ -461,6 +461,19 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                     ]}
                 />
 
+                {/* Arrival expectation per rail: waiting for money with no ETA
+                    is the classic support-ticket generator. Copy is honest about
+                    the ceiling but leads with the typical case. */}
+                <p className="mt-2 text-xs text-grey-1">
+                    {onrampCurrency === 'usd'
+                        ? t('bankDetails.etaAch')
+                        : onrampCurrency === 'mxn'
+                          ? t('bankDetails.etaSpei')
+                          : onrampCurrency === 'gbp'
+                            ? t('bankDetails.etaFps')
+                            : t('bankDetails.etaSepa')}
+                </p>
+
                 <Button onClick={() => router.push('/home')} variant="purple" className="w-full" shadowSize="4">
                     {t('bankDetails.sentTransfer')}
                 </Button>

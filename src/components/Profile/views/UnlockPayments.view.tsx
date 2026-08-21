@@ -19,6 +19,10 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useKycDegraded } from '@/hooks/useKycDegraded'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
@@ -80,6 +84,8 @@ const UnlockPayments = () => {
     const { user, fetchUser } = useAuth()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     const restrictions = useResidenceRestrictions()
+    const { identity, isProcessing: isIdentityInReview } = useIdentityVerification()
+    const isKycDegraded = useKycDegraded()
     const { isEligible, hasCardAccess } = useCardInfo()
     const { overview } = useRainCardOverview()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -215,12 +221,16 @@ const UnlockPayments = () => {
                 return
             }
             if (!row.regionPath) return
+            // During a verification outage the unlock modal renders its degraded
+            // variant (choke point in InitiateKycModal covers the other gates);
+            // here the shared UnlockMethodModal is ours, so gate the tap itself.
+            if (isKycDegraded) return
             setSelectedMethodLabel(t(`rows.${row.labelKey}`))
             // Synthetic Region: the modal machinery only reads path (intent) and
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
         },
-        [router, t]
+        [router, t, isKycDegraded]
     )
 
     const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
@@ -234,6 +244,16 @@ const UnlockPayments = () => {
             : null
     const residenceCountryName = countryDisplayName(residenceIso2)
     const declaredCountryName = countryDisplayName(residence?.declared ?? null)
+
+    // In-review line: submittedAt drives both the date and the 7-day
+    // escalation. reviewedAt/updatedAt deliberately not used — the user cares
+    // when THEY submitted, not when we last touched the row.
+    const reviewSubmittedAtMs = identity.submittedAt ? Date.parse(identity.submittedAt) : NaN
+    const reviewSubmittedDate = Number.isFinite(reviewSubmittedAtMs)
+        ? new Date(reviewSubmittedAtMs).toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+        : null
+    const reviewEscalation =
+        Number.isFinite(reviewSubmittedAtMs) && Date.now() - reviewSubmittedAtMs > 7 * 24 * 60 * 60 * 1000
 
     const showBankRestrictionNote = restrictions.banking
     const showCardRestrictionNote = !restrictions.banking && restrictions.card
@@ -278,6 +298,53 @@ const UnlockPayments = () => {
                     <p className="mt-1 text-xs text-grey-1">
                         {t('residence.pendingReverify', { country: declaredCountryName ?? residence.declared })}
                     </p>
+                )}
+
+                {isKycDegraded && (
+                    <div className="mt-3 flex items-start gap-2 rounded-sm border border-n-1 bg-secondary-4 p-3 text-xs text-n-1 dark:bg-n-1 dark:text-white">
+                        <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
+                        <span>
+                            <span className="block font-bold">{t('degraded.title')}</span>
+                            {t('degraded.body')}{' '}
+                            <button
+                                type="button"
+                                className="font-bold underline underline-offset-2"
+                                onClick={() => {
+                                    posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
+                                    posthog.setPersonProperties({ kyc_down_notify_requested: true })
+                                }}
+                            >
+                                {t('degraded.notifyMe')}
+                            </button>
+                        </span>
+                    </div>
+                )}
+
+                {isIdentityInReview && !isKycDegraded && (
+                    <div className="mt-3 flex items-start gap-2 rounded-sm border border-n-1 bg-white p-3 text-xs dark:bg-n-1">
+                        <Icon name="clock" className="mt-0.5 size-4 shrink-0" />
+                        <span>
+                            <span className="block font-bold">
+                                {reviewSubmittedDate
+                                    ? t('review.sinceDate', { submittedDate: reviewSubmittedDate })
+                                    : t('review.since')}
+                            </span>
+                            {reviewEscalation ? (
+                                <>
+                                    {t('review.escalation')}{' '}
+                                    <button
+                                        type="button"
+                                        className="font-bold underline underline-offset-2"
+                                        onClick={() => setIsSupportModalOpen(true)}
+                                    >
+                                        {t('review.messageUs')}
+                                    </button>
+                                </>
+                            ) : (
+                                t('review.body')
+                            )}
+                        </span>
+                    </div>
                 )}
 
                 {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}

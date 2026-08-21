@@ -232,6 +232,18 @@
                 "bankingRestrictionNote": "Atención: las transferencias bancarias no están disponibles para residentes de este país.",
                 "save": "Guardar",
                 "saveAndReverify": "Guardar y verificar ahora"
+            },
+            "degraded": {
+                "title": "La verificación está temporalmente caída",
+                "body": "No podés iniciar ni continuar una verificación de identidad ahora.",
+                "notifyMe": "Avisame cuando vuelva a funcionar"
+            },
+            "review": {
+                "sinceDate": "Verificación en revisión desde el {submittedDate}",
+                "since": "Verificación en revisión",
+                "body": "No necesitás hacer nada. Te vamos a avisar en cuanto haya una decisión.",
+                "escalation": "Está tardando más de lo normal.",
+                "messageUs": "Escribinos y lo perseguimos"
             }
         },
         "backup": {
@@ -763,7 +775,8 @@
             "error": "No pudimos guardar tu cuenta de Offramp. Intentalo de nuevo."
         },
         "manteca": {
-            "sendOnlyOwnAccountTitle": "Enviá solo desde tu propia cuenta"
+            "sendOnlyOwnAccountTitle": "Enviá solo desde tu propia cuenta",
+            "etaInstant": "Los depósitos suelen llegar en minutos."
         },
         "pix": {
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código PIX."
@@ -777,7 +790,11 @@
             "doubleCheckTitle": "Revisá bien en tu banco antes de enviar:",
             "shareOutro": "Usá estos datos para completar tu transferencia bancaria.",
             "doubleCheckSenderName": "Remitente: usá una cuenta bancaria a tu propio nombre (si el nombre no coincide, la transferencia rebota)",
-            "doubleCheckRecipientName": "Destinatario: escribí el nombre exactamente como se muestra arriba"
+            "doubleCheckRecipientName": "Destinatario: escribí el nombre exactamente como se muestra arriba",
+            "etaAch": "Suele llegar en 1 día hábil, a veces hasta 3.",
+            "etaSepa": "Suele llegar en 1 día hábil.",
+            "etaSpei": "Suele llegar en minutos.",
+            "etaFps": "Suele llegar en minutos."
         },
         "errors": {
             "invalidNumber": "Ingresá un número válido.",
@@ -1148,7 +1165,12 @@
         "errorStartActionFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
         "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Volvé a enviar tus documentos.",
         "actionMessageFailed": "No pudimos verificar tu identidad. Contactá a soporte.",
-        "successCloseWindow": "Ya podés cerrar esta ventana."
+        "successCloseWindow": "Ya podés cerrar esta ventana.",
+        "degraded": {
+            "title": "La verificación está temporalmente caída",
+            "description": "Nuestro socio de verificación tiene problemas en este momento. Tu cuenta está bien. Te vamos a avisar en cuanto vuelva a funcionar.",
+            "notifyMe": "Avisame cuando funcione"
+        }
     },
     "identity": {
         "unlockTitle": "Desbloqueá {region}",

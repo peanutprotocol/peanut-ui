@@ -390,6 +390,18 @@
                 "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",
                 "save": "Save",
                 "saveAndReverify": "Save & re-verify now"
+            },
+            "degraded": {
+                "title": "Verification is temporarily down",
+                "body": "You can't start or continue an ID check right now.",
+                "notifyMe": "Notify me when it works again"
+            },
+            "review": {
+                "sinceDate": "ID check in review since {submittedDate}",
+                "since": "ID check in review",
+                "body": "Nothing is needed from you. We'll notify you the moment there's a decision.",
+                "escalation": "This is taking longer than usual.",
+                "messageUs": "Message us and we'll chase it"
             }
         },
         "backup": {
@@ -1609,7 +1621,8 @@
             "shareAmount": "Amount: {currency} {amount}",
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
-            "minDepositAmount": "Deposit amount must be at least ${amount}"
+            "minDepositAmount": "Deposit amount must be at least ${amount}",
+            "etaInstant": "Deposits usually arrive within minutes."
         },
         "pix": {
             "payWithPix": "Pay with PIX",
@@ -1661,7 +1674,11 @@
             "shareLine": "{label}: {value}",
             "amountLabel": "Amount",
             "doubleCheckSenderName": "Sender: use a bank account in your own name (a name mismatch bounces the transfer)",
-            "doubleCheckRecipientName": "Recipient: enter the name exactly as shown above"
+            "doubleCheckRecipientName": "Recipient: enter the name exactly as shown above",
+            "etaAch": "Usually arrives in 1 business day, sometimes up to 3.",
+            "etaSepa": "Usually arrives within 1 business day.",
+            "etaSpei": "Usually arrives within minutes.",
+            "etaFps": "Usually arrives within minutes."
         },
         "errors": {
             "invalidNumber": "Please enter a valid number.",
@@ -2749,7 +2766,12 @@
         "actionMessageActionRequired": "We need a bit more to verify your identity. Please resubmit your documents.",
         "actionMessageFailed": "We couldn't verify your identity. Please contact support.",
         "successTitle": "Verification successful!",
-        "successCloseWindow": "You can now close this window."
+        "successCloseWindow": "You can now close this window.",
+        "degraded": {
+            "title": "Verification is temporarily down",
+            "description": "Our verification partner is having issues right now. Your account is fine. We'll notify you as soon as it's back.",
+            "notifyMe": "Notify me when it's back"
+        }
     },
     "identity": {
         "unlockTitle": "Unlock {region}",

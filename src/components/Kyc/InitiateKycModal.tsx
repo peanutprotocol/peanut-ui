@@ -3,6 +3,9 @@
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import ActionModal from '@/components/Global/ActionModal'
+import { useKycDegraded } from '@/hooks/useKycDegraded'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
@@ -58,6 +61,7 @@ export const InitiateKycModal = ({
     // component they all share makes the invariant impossible for a future call
     // site to miss.
     const { isRegionRestricted } = useIdentityVerification()
+    const isKycDegraded = useKycDegraded()
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
     const isProviderRejection = variant === 'provider_rejection'
@@ -138,6 +142,38 @@ export const InitiateKycModal = ({
     }
 
     const cta = getCta()
+
+    // Outage outranks everything, including the region screen: whatever the
+    // user's state, opening the SDK during a verification outage burns an
+    // attempt against a wall. Same choke-point rationale as the region check
+    // below — six gates share this modal, so the invariant lives here once.
+    if (isKycDegraded) {
+        return (
+            <ActionModal
+                visible={visible}
+                onClose={onClose}
+                title={t('degraded.title')}
+                description={t('degraded.description')}
+                icon="alert"
+                iconContainerClassName="bg-yellow-1"
+                ctas={[
+                    {
+                        text: t('degraded.notifyMe'),
+                        variant: 'purple',
+                        shadowSize: '4',
+                        onClick: () => {
+                            posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
+                            // cohort tag: ops pushes to exactly these users when
+                            // the flag flips back off
+                            posthog.setPersonProperties({ kyc_down_notify_requested: true })
+                            onClose()
+                        },
+                    },
+                    { text: tCommon('gotIt'), variant: 'stroke', onClick: onClose },
+                ]}
+            />
+        )
+    }
 
     // Render the ONE definition of this screen rather than a second copy of it:
     // a local re-implementation could drift from the drawer/profile surface, and

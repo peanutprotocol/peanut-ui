@@ -31,6 +31,16 @@ let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
+let mockIdentity: { status: string; submittedAt?: string } = { status: 'not_started' }
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({
+        identity: mockIdentity,
+        isProcessing: mockIdentity.status === 'processing',
+    }),
+}))
+let mockKycDegraded = false
+jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockKycDegraded }))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 
 let mockUser: { residence?: { declared: string | null; verified: string | null }; user?: { userId: string } } | null =
     null
@@ -75,6 +85,30 @@ describe('UnlockPayments', () => {
         mockRails = []
         mockRestrictions = { banking: false, card: false }
         mockUser = null
+        mockIdentity = { status: 'not_started' }
+        mockKycDegraded = false
+    })
+
+    it('shows the in-review line with the submitted date while identity is processing', () => {
+        mockIdentity = { status: 'processing', submittedAt: new Date(Date.now() - 2 * 86400000).toISOString() }
+        render()
+        expect(screen.getByText(/ID check in review since/)).toBeInTheDocument()
+        expect(screen.queryByText("Message us and we'll chase it")).not.toBeInTheDocument()
+    })
+
+    it('escalates the in-review line after 7 days', () => {
+        mockIdentity = { status: 'processing', submittedAt: new Date(Date.now() - 8 * 86400000).toISOString() }
+        render()
+        expect(screen.getByText('This is taking longer than usual.')).toBeInTheDocument()
+        expect(screen.getByText("Message us and we'll chase it")).toBeInTheDocument()
+    })
+
+    it('degraded mode shows the outage banner and blocks bank-method taps', () => {
+        mockKycDegraded = true
+        render()
+        expect(screen.getByText('Verification is temporarily down')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('SEPA transfers'))
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
     it('leads with the Everywhere group and its always-on row', () => {
