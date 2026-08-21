@@ -13,6 +13,9 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
 
+// brand name, not translatable copy (copy-props-from-catalog wants no literal props)
+const MERCADO_PAGO_BRAND = 'Mercado Pago'
+
 interface SavedAccountListProps {
     pageTitle: string
     onPrev: () => void
@@ -87,7 +90,7 @@ export default function SavedAccountsView({
                                     className="size-8 min-w-8"
                                 />
                             }
-                            title="Mercado Pago"
+                            title={MERCADO_PAGO_BRAND}
                             body={tWithdraw('mercadoPagoDescription')}
                             trailing={plusTrailing}
                             onClick={onMercadoPagoClick}
