@@ -1319,6 +1319,8 @@
             "navTitle": "Seu cartão",
             "addToGoogleWallet": "Adicionar à Google Wallet",
             "addToAppleWallet": "Adicionar à Apple Wallet",
+            "walletAddSuccess": "Cartão adicionado à sua carteira",
+            "walletAddFailed": "Não foi possível adicionar o cartão à sua carteira. Tente novamente.",
             "cardNumberCopied": "Número do cartão copiado",
             "cvvCopied": "CVV copiado",
             "autoRenewTitle": "Seu cartão renova em breve",

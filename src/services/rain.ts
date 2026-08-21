@@ -194,6 +194,27 @@ export interface RainCardDetailsResponse {
     cardholderName?: string
 }
 
+/**
+ * MeaWallet push-provisioning credentials + wallet-sheet display data. The
+ * cardId/cardSecret pair redeems for real card data at MeaWallet — treat as
+ * PAN-equivalent: hold in memory only, hand straight to the native plugin.
+ */
+export interface RainProvisioningDataResponse {
+    cardId: string
+    cardSecret: string
+    last4: string
+    network: string
+    cardholderName?: string
+    billingAddress: {
+        line1: string
+        line2?: string
+        city: string
+        region: string
+        postalCode: string
+        countryCode: string
+    }
+}
+
 export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30DayPeriod' | 'perAllTime'
 
 export interface RainCardLimit {
@@ -707,6 +728,22 @@ export const rainApi = {
         return rainRequest<RainCardDetailsResponse>({
             method: 'GET',
             path: `/rain/cards/${cardId}/details`,
+            stepUp: true,
+            rateLimitSensitive: true,
+            noStore: true,
+        })
+    },
+
+    /**
+     * MeaWallet credentials for native Apple/Google Pay push provisioning.
+     * 409 CARD_PROVISIONING_BILLING_MISSING when the card can't be tokenized
+     * yet (no billing address). Throws RainCardRateLimitError on 429.
+     */
+    getProvisioningData: async (cardId: string, wallet: 'apple' | 'google'): Promise<RainProvisioningDataResponse> => {
+        return rainRequest<RainProvisioningDataResponse>({
+            method: 'POST',
+            path: `/rain/cards/${cardId}/provisioning-data`,
+            body: { wallet },
             stepUp: true,
             rateLimitSensitive: true,
             noStore: true,

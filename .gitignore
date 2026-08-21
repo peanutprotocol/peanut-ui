@@ -100,6 +100,11 @@ e2e/.auth/
 keystore.properties
 .env.production.local
 
+# meawallet mpp sdk — credential-gated artifacts + encrypted config, never committed
+ios/App/CapApp-SPM/Frameworks/
+ios/App/App/mea_config
+android/app/src/main/res/raw/mea_config
+
 # capgo ota signing keys — private key is a CI secret; public key lives in capacitor.config.ts
 .capgo_key_v2
 .capgo_key_v2.pub

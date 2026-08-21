@@ -263,6 +263,12 @@ export const ANALYTICS_EVENTS = {
     CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
     CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
     CARD_ADD_TO_WALLET_VIEWED: 'card_add_to_wallet_viewed',
+    // Native push provisioning (MeaWallet MPP). Server-side card_tokenized /
+    // card_tokenization_declined (Rain webhooks) close this funnel.
+    CARD_ADD_TO_WALLET_TAPPED: 'card_add_to_wallet_tapped',
+    CARD_ADD_TO_WALLET_SUCCEEDED: 'card_add_to_wallet_succeeded',
+    CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
+    CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
     // Root-validator migration userOp fired ahead of a mixed spend (pre-2025-09-18
     // accounts still on the unpatched validator) — see kernelMigration.utils.ts.

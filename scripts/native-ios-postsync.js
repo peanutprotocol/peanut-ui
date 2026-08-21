@@ -156,3 +156,89 @@ if (pkg.includes('IdensicMobileSDK')) {
     fs.writeFileSync(pkgSwiftPath, pkg)
     console.log('[postsync] patched Package.swift with IdensicMobileSDK binary target')
 }
+
+/*
+ * 3. MeaWallet MPP SDK (Apple Pay push provisioning) — optional vendoring.
+ *
+ * The xcframework is proprietary, credential-gated (MeaWallet Nexus) and never
+ * committed. When MEAWALLET_NEXUS_USER/PASSWORD are present (CI secret, or a
+ * dev who fetched the 1Password credentials) it is downloaded and wired into
+ * CapApp-SPM as a binaryTarget; without credentials this section is skipped
+ * and PushProvisioningPlugin.swift compiles to its canImport-fenced stub, so
+ * every build stays green.
+ */
+;(function vendorMeaWallet() {
+    const MPP_VERSION = '2.0.0'
+    const mppFrameworksDir = path.join(repoRoot, 'ios/App/CapApp-SPM/Frameworks')
+    const mppXcframework = path.join(mppFrameworksDir, 'MeaPushProvisioning.xcframework')
+    const capPkgPath = path.join(repoRoot, 'ios/App/CapApp-SPM/Package.swift')
+
+    const user = process.env.MEAWALLET_NEXUS_USER
+    const pass = process.env.MEAWALLET_NEXUS_PASSWORD
+
+    if (!fs.existsSync(mppXcframework)) {
+        if (!user || !pass) {
+            console.log('[postsync] MeaWallet Nexus credentials not set — skipping MPP SDK (push provisioning stubbed)')
+            return
+        }
+        fs.mkdirSync(mppFrameworksDir, { recursive: true })
+        const zipUrl = `https://nexus.ext.meawallet.com/repository/mpp-ios-group/ios/mpp-prod/${MPP_VERSION}/mpp-prod-${MPP_VERSION}.zip`
+        const zipPath = path.join(mppFrameworksDir, 'mpp.zip')
+        console.log(`[postsync] downloading MeaPushProvisioning ${MPP_VERSION}…`)
+        // Credentials via env in the curl config, never on the command line (ps-visible).
+        execSync(`curl -fsSL --config - -o "${zipPath}" "${zipUrl}"`, {
+            stdio: ['pipe', 'inherit', 'inherit'],
+            input: `user = "${user}:${pass}"\n`,
+        })
+        execSync(`unzip -oq "${zipPath}" -d "${mppFrameworksDir}"`, { stdio: 'inherit' })
+        fs.rmSync(zipPath, { force: true })
+        if (!fs.existsSync(mppXcframework)) {
+            // The zip may nest the framework one level down — find and move it.
+            const found = execSync(
+                `find "${mppFrameworksDir}" -maxdepth 3 -name MeaPushProvisioning.xcframework -type d | head -1`
+            )
+                .toString()
+                .trim()
+            if (!found) {
+                console.error('[postsync] ERROR: MeaPushProvisioning.xcframework not found after extraction')
+                process.exit(1)
+            }
+            fs.renameSync(found, mppXcframework)
+        }
+        console.log('[postsync] vendored MeaPushProvisioning.xcframework')
+    }
+
+    // Patch the generated CapApp-SPM Package.swift (cap sync rewrites it, so
+    // this runs after every sync — same lifecycle as the SumSub patch above).
+    let capPkg = fs.readFileSync(capPkgPath, 'utf8')
+    if (capPkg.includes('MeaPushProvisioning')) {
+        console.log('[postsync] CapApp-SPM Package.swift already patched for MPP')
+        return
+    }
+    // Each anchor is validated on its own — a half-applied patch would leave
+    // the binary target undeclared (or unused), and the Swift plugin would
+    // silently compile its canImport stub instead of failing the build.
+    const afterTarget = capPkg.replace(
+        'targets: [\n',
+        'targets: [\n' +
+            '        .binaryTarget(\n' +
+            '            name: "MeaPushProvisioning",\n' +
+            '            path: "Frameworks/MeaPushProvisioning.xcframework"\n' +
+            '        ),\n'
+    )
+    if (afterTarget === capPkg) {
+        console.error('[postsync] ERROR: CapApp-SPM Package.swift `targets: [` anchor not found — MPP patch stale')
+        process.exit(1)
+    }
+    capPkg = afterTarget.replace(
+        '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin")\n',
+        '.product(name: "SumsubCordovaIdensicMobileSdkPlugin", package: "SumsubCordovaIdensicMobileSdkPlugin"),\n' +
+            '                "MeaPushProvisioning"\n'
+    )
+    if (capPkg === afterTarget) {
+        console.error('[postsync] ERROR: CapApp-SPM Package.swift dependencies anchor not found — MPP patch stale')
+        process.exit(1)
+    }
+    fs.writeFileSync(capPkgPath, capPkg)
+    console.log('[postsync] patched CapApp-SPM Package.swift with MeaPushProvisioning binary target')
+})()
