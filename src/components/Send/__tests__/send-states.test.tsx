@@ -137,16 +137,6 @@ jest.mock('@/components/0_Bruddle/ListItem', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/IconStack', () => ({
-    __esModule: true,
-    default: () => <div data-testid="icon-stack" />,
-}))
-
-jest.mock('@/components/Global/Badges/StatusBadge', () => ({
-    __esModule: true,
-    default: (props: any) => <span data-testid="status-badge">{props.customText}</span>,
-}))
-
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({
     __esModule: true,
     default: (props: any) => <div data-testid="avatar">{props.name}</div>,

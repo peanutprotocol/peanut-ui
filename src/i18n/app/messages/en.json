@@ -231,7 +231,13 @@
         },
         "openProfile": "Open your profile",
         "showBalance": "Show balance",
-        "hideBalance": "Hide balance"
+        "hideBalance": "Hide balance",
+        "drawers": {
+            "sendToFriends": "Send to friends",
+            "sendToFriendsDescription": "Link, Contacts, Bank, Crypto",
+            "withdrawToOwnAccounts": "Withdraw to own accounts",
+            "withdrawToOwnAccountsDescription": "Bank, Mercado, Crypto"
+        }
     },
     "profile": {
         "language": "Language",
@@ -730,8 +736,7 @@
             "bankDescription": "EUR, USD, MXN, ARS & more",
             "instantTransfers": "Instant transfers",
             "exchangeOrWalletTitle": "Exchange or Wallet",
-            "exchangeOrWalletDescription": "Binance, Metamask and more",
-            "yourAccountsOnly": "YOUR ACCOUNTS ONLY"
+            "exchangeOrWalletDescription": "Binance, Metamask and more"
         },
         "contacts": {
             "searchPlaceholder": "Search contacts...",
@@ -1366,14 +1371,15 @@
             "migrateFromOfframpDescription": "Move your Offramp balance to Peanut",
             "crypto": "Crypto",
             "cryptoDescription": "Deposit from a wallet or exchange",
-            "bankTransfer": "Bank Transfer",
+            "bankTransfer": "Bank transfer",
             "kycRequired": "KYC required"
         },
         "networkDrawer": {
             "title": "Choose Network",
             "description": "Select Network you want to make deposit from:",
             "evmDescription": "{count} Networks - 1 Address",
-            "supportedTokens": "{count, plural, one {# Supported token} other {# Supported tokens}}"
+            "supportedTokens": "{count, plural, one {# Supported token} other {# Supported tokens}}",
+            "evmTokensOnNetworks": "{tokens, plural, one {# supported token} other {# supported tokens}} on {networks} networks"
         },
         "supportedNetworksModal": {
             "title": "Supported Networks",
@@ -1528,7 +1534,8 @@
             "bankAccountFailed": "Failed to process bank account. Please try again or contact support.",
             "bankAccountSettingUp": "Your bank account is still being set up. Please try again in a moment."
         },
-        "pixMaintenanceBadge": "Maintenance"
+        "pixMaintenanceBadge": "Maintenance",
+        "addCryptoTitle": "Add crypto"
     },
     "withdraw": {
         "amountToWithdraw": "Amount to withdraw",
@@ -1677,7 +1684,9 @@
             "completeAccountSetup": "Please complete your account setup. Go to Settings to update your profile.",
             "minWithdrawAmount": "Withdraw amount must be at least ${amount}"
         },
-        "resolvesTo": "resolves to"
+        "resolvesTo": "resolves to",
+        "addNewAccount": "Add new account",
+        "mercadoPagoDescription": "Your accounts only - instant transfer"
     },
     "transaction": {
         "drawerTitle": "Transaction Details",

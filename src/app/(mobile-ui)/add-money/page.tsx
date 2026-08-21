@@ -106,7 +106,8 @@ export default function AddMoneyPage() {
 
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title={t('title')} onPrev={handleBack} />
+            {/* board Page/Add/Bank (17830:77534): country list titles "Bank transfer" */}
+            <NavHeader title={method === 'bank' ? t('methods.bankTransfer') : t('title')} onPrev={handleBack} />
 
             {method === 'bank' ? (
                 <CountryList

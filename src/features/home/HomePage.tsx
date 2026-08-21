@@ -8,6 +8,7 @@ import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
+import { HomeActionDrawers } from './components/HomeActionDrawers'
 import { HomeModals } from './components/HomeModals'
 import { useHomeFlow } from './useHomeFlow'
 import { BalanceSection } from './views/BalanceSection'
@@ -70,6 +71,7 @@ export function HomePage() {
                 </div>
             </div>
             <HomeModals />
+            <HomeActionDrawers />
         </PageContainer>
     )
 }
