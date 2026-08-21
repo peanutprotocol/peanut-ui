@@ -44,6 +44,10 @@ jest.mock('@/context/authContext', () => ({
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isProcessing: false, needsAction: false }),
 }))
+let mockResidenceRestrictions = { banking: false, card: false }
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => mockResidenceRestrictions,
+}))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen, openSupportWithMessage: jest.fn() }),
 }))
@@ -98,6 +102,21 @@ beforeEach(() => {
     mockRails = []
     mockUser = { user: { isActivated: false, userId: 'u1' } }
     mockHasCardAccess = false
+    mockResidenceRestrictions = { banking: false, card: false }
+})
+
+describe('ActivationCTAs — residence restrictions', () => {
+    it('a fully restricted residence hides the verify CTA entirely', () => {
+        mockResidenceRestrictions = { banking: true, card: true }
+        const { container } = render(<ActivationCTAs activationStep="verify" />)
+        expect(container.firstChild).toBeNull()
+    })
+
+    it('a partial restriction keeps the verify CTA (one half of the unlock still works)', () => {
+        mockResidenceRestrictions = { banking: false, card: true }
+        render(<ActivationCTAs activationStep="verify" />)
+        expect(screen.getByText('Unlock payments')).toBeInTheDocument()
+    })
 })
 
 describe('ActivationCTAs — rejection override respects existing transacting ability', () => {

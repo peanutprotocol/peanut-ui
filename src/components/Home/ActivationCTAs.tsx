@@ -14,6 +14,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import ActionModal from '@/components/Global/ActionModal'
@@ -63,6 +64,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // action; the identity-verification page surfaces the in-progress modal,
     // and bouncing them through here again would imply they need to re-act.
     const { isProcessing: isIdentityProcessing, needsAction: isIdentityActionRequired } = useIdentityVerification()
+    const residenceRestrictions = useResidenceRestrictions()
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op
@@ -225,6 +227,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         // action_required is the exception: that means we DO need them back.
         if (activationStep === 'verify' && isIdentityProcessing && !isIdentityActionRequired) return null
 
+        // A fully restricted residence (no bank rails AND no card) has nothing
+        // behind "Unlock payments" — the ID check could only end on a terminal
+        // rejection, so the offer itself is dishonest. Partial restrictions
+        // keep the CTA: one half of the unlock still works.
+        if (activationStep === 'verify' && residenceRestrictions.banking && residenceRestrictions.card) return null
+
         if (hasProviderRejection) {
             // Email-blocked (status=blocked) outranks a fixable RFI (status=requires-info)
             // — the canonical `deriveGate` order, and the order this card's onClick
@@ -285,6 +293,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         localizedRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,
+        residenceRestrictions,
         hasCardAccess,
     ])
 
