@@ -12,7 +12,7 @@ import { ProseStars } from './ProseStars'
 import { Tabs, TabPanel } from './Tabs'
 import { PROSE_WIDTH } from './constants'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { localizeContentHref } from '@/i18n/config'
+import { resolveContentHref } from '@/lib/content'
 
 /**
  * Component map for MDX content rendering.
@@ -44,7 +44,7 @@ export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxCompone
         // `/help/x`), so a Spanish page would otherwise link back to English.
         a: ({ href = '', ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
             <Link
-                href={localizeContentHref(href, locale)}
+                href={resolveContentHref(href, locale)}
                 className="text-n-1 underline decoration-n-1/30 underline-offset-2 hover:decoration-n-1"
                 {...props}
             />

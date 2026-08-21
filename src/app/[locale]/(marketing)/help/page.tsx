@@ -3,7 +3,7 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, isValidLocale, getAlternates } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
-import { readPageContentLocalized, listContentSlugs } from '@/lib/content'
+import { readPageContentLocalized, listContentSlugs, resolveContentHref } from '@/lib/content'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
@@ -95,12 +95,13 @@ export default async function HelpPage({ params }: PageProps) {
             if (!content || content.frontmatter.published === false) return null
             return {
                 slug,
+                href: resolveContentHref(`/en/help/${encodeURIComponent(slug)}`, locale),
                 title: content.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, ''),
                 description: content.frontmatter.description,
                 category: content.frontmatter.category ?? 'General',
             }
         })
-        .filter(Boolean) as Array<{ slug: string; title: string; description: string; category: string }>
+        .filter(Boolean) as Array<{ slug: string; href: string; title: string; description: string; category: string }>
 
     // Translate category names
     const translatedArticles = articles.map((a) => ({
@@ -122,7 +123,6 @@ export default async function HelpPage({ params }: PageProps) {
                 <HelpLanding
                     articles={translatedArticles}
                     categories={categories}
-                    locale={locale}
                     strings={{
                         searchPlaceholder: i18n.searchHelpArticles,
                         cantFind: i18n.cantFindAnswer,

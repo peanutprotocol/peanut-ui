@@ -18,6 +18,7 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
 import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
+import { EN_LANDING_CONTENT_HREFS, type LandingContentHrefs } from './landingContentHrefs'
 
 type FAQQuestion = {
     id: string
@@ -37,6 +38,7 @@ type LandingPageClientProps = {
     marqueeMessages: string[]
     locale: Locale
     strings: LandingStrings
+    contentHrefs?: LandingContentHrefs
     // Server-rendered slots
     problemSlot: ReactNode
     mantecaSlot: ReactNode
@@ -53,6 +55,7 @@ export function LandingPageClient({
     marqueeMessages,
     locale,
     strings,
+    contentHrefs = EN_LANDING_CONTENT_HREFS,
     problemSlot,
     mantecaSlot,
     regulatedRailsSlot,
@@ -107,12 +110,12 @@ export function LandingPageClient({
         // the first has no single article behind it, the second already links
         // the help centre in its own answer.
         const learnMore: Record<string, string> = {
-            '1': `/${locale}/help/what-are-digital-dollars`,
-            '2': `/${locale}/help/verification`,
-            '3': `/${locale}/help/passkeys`,
-            '4': `/${locale}/help/security-custody`,
-            '5': `/${locale}/help/fees-pricing`,
-            [SUPPORTED_RAILS_FAQ_ID]: `/${locale}/help/supported-geographies`,
+            '1': contentHrefs.whatAreDigitalDollars,
+            '2': contentHrefs.verification,
+            '3': contentHrefs.passkeys,
+            '4': contentHrefs.securityCustody,
+            '5': contentHrefs.feesPricing,
+            [SUPPORTED_RAILS_FAQ_ID]: contentHrefs.supportedGeographies,
         }
         return faqData.questions.map((q) => ({
             ...q,
@@ -121,7 +124,7 @@ export function LandingPageClient({
                 : {}),
             ...(learnMore[q.id] ? { learnMoreHref: learnMore[q.id] } : {}),
         }))
-    }, [faqData.questions, locale, strings.supportedRails])
+    }, [contentHrefs, faqData.questions, strings.supportedRails])
 
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
@@ -259,21 +262,21 @@ export function LandingPageClient({
     // edit there just drops out of this map and renders unlinked.
     const marqueeProps = useMemo(() => {
         const hrefs: Record<string, string> = {
-            'No transfer fees': `/${locale}/pricing`,
-            USD: `/${locale}/help/what-are-digital-dollars`,
-            EUR: `/${locale}/help/send-euros-argentina`,
-            'USDT/USDC': `/${locale}/blog/stablecoin-balance-visa-merchants`,
-            GLOBAL: `/${locale}/help/supported-geographies`,
-            'SELF-CUSTODIAL': `/${locale}/help/security-custody`,
+            'No transfer fees': contentHrefs.pricing,
+            USD: contentHrefs.whatAreDigitalDollars,
+            EUR: contentHrefs.sendEurosArgentina,
+            'USDT/USDC': contentHrefs.stablecoinBalanceVisaMerchants,
+            GLOBAL: contentHrefs.supportedGeographies,
+            'SELF-CUSTODIAL': contentHrefs.securityCustody,
             // /support is only a permanent redirect to /en/help, so linking it
             // would drop es/pt readers into English while its neighbours stay localized
-            '24/7': `/${locale}/help`,
+            '24/7': contentHrefs.help,
         }
         return {
             visible: true,
             message: marqueeMessages.map((word) => (hrefs[word] ? { label: word, href: hrefs[word] } : word)),
         }
-    }, [marqueeMessages, locale])
+    }, [contentHrefs, marqueeMessages])
 
     // Memoized for the same reason as faqQuestions above — this component
     // re-renders per scroll frame while the send button grows.
@@ -326,7 +329,7 @@ export function LandingPageClient({
                Without this boundary, the entire LandingPageClient suspends during SSR,
                sending an empty HTML shell to crawlers and killing SEO. */}
             <Suspense>
-                <NoFees locale={locale} strings={strings} />
+                <NoFees locale={locale} strings={strings} contentHrefs={contentHrefs} />
             </Suspense>
             <Marquee {...marqueeProps} />
             {yourMoneySlot}

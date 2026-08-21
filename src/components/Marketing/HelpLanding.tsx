@@ -7,6 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 
 interface HelpArticle {
     slug: string
+    href: string
     title: string
     description: string
     category: string
@@ -21,13 +22,12 @@ interface HelpLandingStrings {
 interface HelpLandingProps {
     articles: HelpArticle[]
     categories: string[]
-    locale: string
     strings?: HelpLandingStrings
 }
 
 const PROSE_WIDTH = 'max-w-[640px]'
 
-export default function HelpLanding({ articles, categories, locale, strings }: HelpLandingProps) {
+export default function HelpLanding({ articles, categories, strings }: HelpLandingProps) {
     const [searchTerm, setSearchTerm] = useState('')
     const searchParams = useSearchParams()
 
@@ -94,7 +94,7 @@ export default function HelpLanding({ articles, categories, locale, strings }: H
                                         .map((article) => (
                                             <Link
                                                 key={article.slug}
-                                                href={`/${locale}/help/${article.slug}`}
+                                                href={article.href}
                                                 className="group flex items-center justify-between border-b border-n-1/10 bg-white px-5 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
                                             >
                                                 <div className="flex flex-col gap-0.5">

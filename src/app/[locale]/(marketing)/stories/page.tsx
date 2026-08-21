@@ -5,7 +5,12 @@ import { getTranslations } from '@/i18n'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
-import { readPageContentLocalized, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
+import {
+    readPageContentLocalized,
+    listPublishedSlugs,
+    resolveContentHref,
+    type ContentFrontmatter,
+} from '@/lib/content'
 import Link from 'next/link'
 
 interface PageProps {
@@ -72,7 +77,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                         {stories.map((story) => (
                             <Link
                                 key={story.slug}
-                                href={`/${locale}/stories/${encodeURIComponent(story.slug)}`}
+                                href={resolveContentHref(`/en/stories/${encodeURIComponent(story.slug)}`, locale)}
                                 className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-50"
                             >
                                 <span className="text-sm font-medium text-n-1">{story.title}</span>
