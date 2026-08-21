@@ -62,7 +62,6 @@ const CHIP_CLASSES: Record<UnlockChip, string> = {
     alwaysOn: 'bg-green-1',
     unlock: 'bg-primary-4',
     processing: 'bg-grey-2',
-    oneMoreStep: 'bg-secondary-1',
     attention: 'bg-secondary-1',
     notAvailable: 'bg-white text-grey-1',
 }
@@ -104,10 +103,10 @@ const UnlockPayments = () => {
                         (r) => r.status === 'pending' || r.status === 'requires-info' || r.status === 'blocked'
                     ) ?? railsForProvider(provider)[0]
                 if (rail?.status === 'pending') return 'processing'
-                if (rail?.status === 'requires-info') {
-                    const hasSumsubAction = nextActionsForRail(rail.id).some((action) => action.kind === 'sumsub')
-                    return hasSumsubAction ? 'oneMoreStep' : 'unlock'
-                }
+                // requires-info still reads Unlock: the chip is an invitation,
+                // and whatever the provider is waiting on surfaces after the tap
+                // (the action-required modal), not as a scarier chip.
+                if (rail?.status === 'requires-info') return 'unlock'
                 if (rail?.status === 'blocked') return 'attention'
             }
             return 'unlock'

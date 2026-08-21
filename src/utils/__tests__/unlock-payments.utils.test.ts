@@ -54,13 +54,22 @@ describe('buildUnlockGroups', () => {
 
     it('active rows carry no tap target; offer rows route into the region intent', () => {
         const groups = buildUnlockGroups(
-            base({ regionChips: { europe: 'active', 'north-america': 'oneMoreStep', latam: 'unlock' } })
+            base({ regionChips: { europe: 'active', 'north-america': 'unlock', latam: 'unlock' } })
         )
         expect(group(groups, 'europe').rows[0].regionPath).toBeUndefined()
         expect(group(groups, 'unitedStates').rows[0]).toEqual(
-            expect.objectContaining({ chip: 'oneMoreStep', regionPath: 'north-america' })
+            expect.objectContaining({ chip: 'unlock', regionPath: 'north-america' })
         )
         expect(group(groups, 'brazil').rows[0].regionPath).toBe('latam')
+    })
+
+    it('a pending verification keeps its own Processing status, never collapsed into Unlock', () => {
+        const groups = buildUnlockGroups(
+            base({ regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'processing' } })
+        )
+        expect(group(groups, 'brazil').rows[0]).toEqual(
+            expect.objectContaining({ chip: 'processing', regionPath: 'latam' })
+        )
     })
 
     it('a banking restriction turns every bank row into Not available and untappable', () => {

@@ -9,7 +9,7 @@
  * passes them in, so this stays unit-testable with plain values.
  */
 
-export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'oneMoreStep' | 'attention' | 'notAvailable'
+export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'attention' | 'notAvailable'
 
 /** Chip for a bank region before residence restrictions are applied. */
 export type BankRegionChip = Exclude<UnlockChip, 'alwaysOn' | 'notAvailable'>
