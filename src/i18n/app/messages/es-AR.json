@@ -1306,6 +1306,9 @@
             },
             "q3": {
                 "answer": "Es tuya. Sin custodia: tus stablecoins se quedan en tu billetera hasta el momento en que usás la tarjeta. No tenemos la custodia. No la prestamos."
+            },
+            "q6": {
+                "answer": "Es una tarjeta Visa: se acepta donde acepten Visa, en tiendas, en línea y en cajeros. Iniciá sesión y probá la puerta para ver qué sigue en tu cuenta."
             }
         },
         "ready": {
