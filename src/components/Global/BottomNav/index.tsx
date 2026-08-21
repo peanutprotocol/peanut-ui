@@ -3,6 +3,7 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { isSameRoute } from '@/constants/routes'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -59,11 +60,11 @@ export const BottomNav = () => {
 
     // one active tab at a time so the shared pill has a single home
     const activeTab: TabId | null =
-        isSupportModalOpen || pathname === '/support'
+        isSupportModalOpen || isSameRoute(pathname, '/support')
             ? 'support'
             : (pathname?.startsWith('/card') ?? false)
               ? 'card'
-              : pathname === '/home' || pathname === '/home/'
+              : isSameRoute(pathname, '/home')
                 ? 'home'
                 : null
 

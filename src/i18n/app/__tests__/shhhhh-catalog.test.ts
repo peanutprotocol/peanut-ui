@@ -8,7 +8,7 @@ describe('/shhhhh catalog', () => {
     it.each(APP_LOCALES)('%s keeps the <counter> tag the hero interpolates', async (locale) => {
         const messages = await loadMessages(locale)
         // t.rich renders <ScarcityCounter/> into this tag; drop it in a translation
-        // and the "only 20 a week" scarcity beat silently disappears.
+        // and the "only 50 a week" scarcity beat silently disappears.
         expect(messages.shhhhh.hero.body).toContain('<counter></counter>')
     })
 

@@ -4,7 +4,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
@@ -18,7 +18,7 @@ interface HomeTopNavProps {
  * rewards link top-right. The link keeps a 44px hit area via after: inset.
  */
 export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
-    const t = useTranslations('home')
+    const t = useAppTranslations('home')
     const { triggerHaptic } = useAppHaptic()
 
     return (

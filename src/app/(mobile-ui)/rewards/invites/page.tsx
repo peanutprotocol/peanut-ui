@@ -20,14 +20,14 @@ import { type PointsInvite } from '@/services/services.types'
 import { formatPoints } from '@/utils/format.utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
-import { useEffect, useRef } from 'react'
-import { useTranslations } from 'next-intl'
+import { useRef } from 'react'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { isIOSNative } from '@/utils/capacitor'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 const InvitesPage = () => {
-    const t = useTranslations('rewards')
+    const t = useAppTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/rewards')
     const { user } = useAuth()
@@ -56,14 +56,6 @@ const InvitesPage = () => {
         enabled: !isLoading && !isError,
     })
 
-    // Guideline 3.1.5(ii) — see /rewards; the deep link has to close too.
-    const hideReferralRewards = isReferralRewardsHidden()
-    useEffect(() => {
-        if (hideReferralRewards) router.replace('/home')
-    }, [hideReferralRewards, router])
-
-    if (hideReferralRewards) return null
-
     if (isLoading) {
         return <Loading variant="mascot" />
     }
@@ -79,7 +71,7 @@ const InvitesPage = () => {
 
     return (
         <PageContainer className="flex flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} />
+            <NavHeader title={t('invitesTitle')} onPrev={onBack} />
 
             <section className="mx-auto space-y-4 mt-10 mb-auto w-full">
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">
@@ -92,6 +84,9 @@ const InvitesPage = () => {
                             <span className="text-heading-m text-foreground-primary">
                                 ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
                             </span>
+                            {isIOSNative() && (
+                                <span className="text-body-s text-foreground-secondary">{t('lifetimeCaption')}</span>
+                            )}
                             <span className="flex items-center gap-1 text-body-s text-foreground-secondary">
                                 <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={14} height={14} />
                                 {formatPoints(totalPointsEarned)} {t('pointsLabel', { count: totalPointsEarned })}

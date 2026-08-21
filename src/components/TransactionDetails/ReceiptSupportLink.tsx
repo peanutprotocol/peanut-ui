@@ -3,12 +3,12 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 
 /** "Report an issue" footer link shared by every receipt variant. */
 export const ReceiptSupportLink = () => {
     const { setIsSupportModalOpen } = useModalsContext()
-    const t = useTranslations('transaction')
+    const t = useAppTranslations('transaction')
 
     return (
         // board Link Button (17980:18031) with the peanut-support trailing icon

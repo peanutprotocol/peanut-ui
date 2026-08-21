@@ -123,6 +123,18 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         expect(screen.getByText('We need a valid proof of address document.')).toBeInTheDocument()
     })
 
+    it('a card-ELIGIBLE user (access, no card) with a rejected bank rail sees the deposit CTA, not the nag', () => {
+        // The 2026-08-20 deposit-first gate moved this cohort off the card
+        // step; without this shield they would trade the card banner for a
+        // "Contact support" dead end over a rail the old region-picker detour
+        // auto-enrolled. Crypto deposit → card is their working path.
+        mockRails = [bankRejected]
+        mockHasCardAccess = true
+        render(<ActivationCTAs activationStep="deposit" />)
+        expect(screen.queryByText('Complete your setup')).not.toBeInTheDocument()
+        expect(screen.getByText('Deposit')).toBeInTheDocument()
+    })
+
     it('fixable rejection: Upload document heals inline (handleSelfHealResubmit), does not navigate away', () => {
         mockRails = [bankRejected]
         render(<ActivationCTAs activationStep="deposit" />)

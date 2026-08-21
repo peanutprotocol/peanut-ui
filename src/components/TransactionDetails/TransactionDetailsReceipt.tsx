@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react'
 import { twMerge } from 'tailwind-merge'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -51,7 +51,7 @@ export const TransactionDetailsReceipt = ({
     avatarUrl?: string
     isPublic?: boolean
 }) => {
-    const t = useTranslations('transaction')
+    const t = useAppTranslations('transaction')
 
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on composition.

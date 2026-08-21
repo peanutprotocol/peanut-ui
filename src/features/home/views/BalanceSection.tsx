@@ -7,6 +7,7 @@ import { formatExtendedNumber } from '@/utils/general.utils'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { twMerge } from 'tailwind-merge'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
 
@@ -35,7 +36,7 @@ const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; icon: IconName; 
  * submenu states per component 17533:117867 (default / pressed).
  */
 export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggleVisibility }: BalanceSectionProps) {
-    const t = useTranslations('home')
+    const t = useAppTranslations('home')
     const tNav = useTranslations('navigation')
     const { triggerHaptic } = useAppHaptic()
     const [openDrawer, setOpenDrawer] = useHomeDrawer()

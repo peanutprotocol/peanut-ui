@@ -176,7 +176,14 @@
             "rewardClaimed": "Recompensa resgatada!",
             "shareAndEarn": "Compartilhe e ganhe",
             "inviteFriendsToEarnMore": "Convide amigos para ganhar mais",
-            "holdToUnwrap": "Segure para abrir sua recompensa"
+            "holdToUnwrap": "Segure para abrir sua recompensa",
+            "iosCopy": {
+                "surpriseDescriptionFirst": "Confira seu cashback e como ganhar mais.",
+                "surpriseDescriptionNext": "Confira seu cashback e como ganhar mais.",
+                "usedPeanut": "<name>{inviteeName}</name> pagou com o Peanut",
+                "rewardClaimed": "Cashback resgatado!",
+                "holdToUnwrap": "Segure para abrir seu cashback"
+            }
         },
         "carousel": {
             "rewardReady": "Recompensa de <b>+${amount}</b> pronta!",
@@ -184,7 +191,7 @@
             "tapToClaim": "Toque para resgatar sua recompensa.",
             "card": {
                 "title": "Peça seu <b>Peanut Card</b>",
-                "description": "Beta fechado. <b>Emblemas furam a fila.</b> Desbloqueie $10 no seu primeiro gasto de $100."
+                "description": "Beta fechado. <b>Emblemas furam a fila.</b>"
             },
             "invite": {
                 "title": "Convide amigos. Ganhe recompensas",
@@ -223,11 +230,30 @@
             "closeTitled": "Fechar {title}",
             "closeVerificationPrompt": "Fechar aviso de verificação",
             "closeNotificationPrompt": "Fechar aviso de notificações",
-            "claimablePerk": "Recompensa disponível"
+            "claimablePerk": "Recompensa disponível",
+            "iosCopy": {
+                "rewardReady": "Cashback de <b>+${amount}</b> pronto!",
+                "usedPeanutTapToClaim": "<name>{inviteeName}</name> pagou com o Peanut. Toque para resgatar.",
+                "tapToClaim": "Toque para resgatar seu cashback.",
+                "invite": {
+                    "title": "Convide amigos. Ganhe cashback",
+                    "description": "Ganhe cashback sempre que seus amigos pagarem com o Peanut."
+                },
+                "latamInvite": {
+                    "title": "Ganhe <b>cashback</b> em pagamentos QR",
+                    "description": "Convide amigos para <b>ganhar mais cashback</b>. Quanto mais eles pagam, mais você ganha!"
+                },
+                "qrPay": {
+                    "description": "Tenha a melhor taxa de câmbio, pague como um <b>local</b> e ganhe <b>cashback</b>."
+                }
+            }
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}",
             "dismiss": "Dispensar {task}"
+        },
+        "iosCopy": {
+            "rewards": "Cashback"
         },
         "openProfile": "Abrir seu perfil",
         "showBalance": "Mostrar saldo",
@@ -397,6 +423,11 @@
             "begForInvite": "Implorar por um convite",
             "activityPrivateNote": "A atividade é visível só para você, não é pública.",
             "noInviteTitle": "Sem convite, sem Peanut"
+        },
+        "iosCopy": {
+            "menu": {
+                "points": "Cashback"
+            }
         }
     },
     "settings": {
@@ -917,7 +948,8 @@
         },
         "guestVerification": {
             "otherMethod": "Resgatar com outro método",
-            "description": "Quem enviou não está verificado para este método. Você vai precisar criar uma conta, verificar sua identidade e então seus fundos serão depositados no seu banco."
+            "senderUnverifiedDescription": "Quem enviou ainda não pode enviar para um banco. Você pode resgatar com outro método, ou criar uma conta e verificar sua identidade para receber no seu banco.",
+            "accountRequiredDescription": "Você precisa de uma conta Peanut para resgatar com este método. Crie uma e verifique sua identidade, e seus fundos serão depositados no seu banco."
         },
         "actions": {
             "claimOn": "Resgatar no",
@@ -1071,6 +1103,22 @@
             "linkCopied": "Link copiado",
             "shareTitle": "Meu código QR do Peanut",
             "shareText": "Escaneie meu código QR para se conectar comigo no Peanut!"
+        },
+        "iosCopy": {
+            "success": {
+                "earnedRewardTitle": "Você ganhou cashback!",
+                "earnedHoldToClaim": "Você ganhou ${amount}! Segure para abrir seu cashback.",
+                "holdToClaim": "Você ganhou cashback! Segure para abrir.",
+                "earnedInviteFriends": "Você ganhou ${amount}! Convide amigos para ganhar ainda mais cashback.",
+                "inviteFriends": "Convide amigos para ganhar ainda mais cashback.",
+                "claimReward": "Abrir cashback"
+            },
+            "claim": {
+                "inviteQrDescription": "Compartilhe onde quiser. Quem escanear pode entrar no Peanut com você."
+            },
+            "claimSuccess": {
+                "stickerDescription": "Cole no seu notebook, na garrafa de água ou onde quiser que as pessoas te encontrem. Quem escanear vai poder entrar no Peanut com o seu convite."
+            }
         }
     },
     "card": {
@@ -1288,6 +1336,8 @@
             "autoRenewTitle": "Seu cartão renova em breve",
             "autoRenewBody": "Seu cartão vai renovar automaticamente em {days, plural, one {# dia} other {# dias}}, a data de validade vai mudar.",
             "dismiss": "Dispensar",
+            "balanceDueTitle": "{amount} serão debitados no seu próximo depósito",
+            "balanceDueBody": "Um pagamento recente com o cartão ficou maior que o valor reservado no momento da compra. Isso acontece com gorjetas ou totais atualizados. A gente cobre a diferença automaticamente.",
             "payAsCreditTitle": "Pague como crédito",
             "payAsCreditBody": "Quando a maquininha perguntar débito ou crédito, escolha crédito — seu cartão Peanut roda na rede de crédito.",
             "managementTitle": "Gerenciar cartão",
@@ -1297,9 +1347,7 @@
             "redZone": "Zona vermelha",
             "lockCard": "Bloquear cartão",
             "unlockCard": "Desbloquear cartão",
-            "cancelCard": "Cancelar cartão",
-            "balanceDueTitle": "{amount} serão debitados no seu próximo depósito",
-            "balanceDueBody": "Um pagamento recente com o cartão ficou maior que o valor reservado no momento da compra. Isso acontece com gorjetas ou totais atualizados. A gente cobre a diferença automaticamente."
+            "cancelCard": "Cancelar cartão"
         },
         "page": {
             "loadFailed": "Não foi possível carregar as informações do cartão. Tente de novo.",
@@ -1781,7 +1829,6 @@
             "tokenOnChain": "{token} na {chain}",
             "txId": "ID da TX",
             "fee": "Taxa",
-            "estimateConversion": "Conversão estimada",
             "transferId": "ID da transferência",
             "pointsEarned": "Pontos ganhos",
             "networkFee": "Taxa de rede",
@@ -1789,7 +1836,8 @@
             "download": "Baixar",
             "reason": "Motivo",
             "accountNumber": "Número da conta",
-            "address": "Endereço"
+            "address": "Endereço",
+            "estimateConversion": "Conversão estimada"
         },
         "perkBanner": {
             "title": "Você ganhou uma recompensa!",
@@ -1889,7 +1937,25 @@
         },
         "enjoyPeanut": "Aproveite o Peanut!",
         "memoTestDeposit": "Sua carteira peanut está pronta para usar!",
-        "adjustedSuffix": "· Ajustado"
+        "adjustedSuffix": "· Ajustado",
+        "iosCopy": {
+            "type": {
+                "reward": "Cashback"
+            },
+            "perkBanner": {
+                "title": "Você ganhou cashback!",
+                "capped": "Cashback de ${amount} — limite da campanha atingido!",
+                "received": "Você recebeu ${amount} de cashback!",
+                "generic": "Você recebeu cashback da Peanut!"
+            },
+            "perk": {
+                "title": "Cashback Peanut",
+                "subtitle": "Ganhe cashback sempre que seus amigos pagarem com o Peanut."
+            },
+            "actions": {
+                "inviteFriends": "Convide amigos e ganhe mais cashback"
+            }
+        }
     },
     "history": {
         "title": "Atividade",
@@ -1922,7 +1988,29 @@
         "loadInvitesFailed": "Erro ao carregar os convites!",
         "contactSupport": "Por favor, fale com o Suporte.",
         "friendsEarnedYou": "Seus amigos fizeram você ganhar",
-        "starAlt": "estrela"
+        "starAlt": "estrela",
+        "invitesTitle": "Recompensas",
+        "lifetimeCaption": "em recompensas até agora",
+        "howItWorks": {
+            "title": "Como funcionam as recompensas",
+            "step1": "Convide amigos para o Peanut.",
+            "step2": "Eles pagam com o Peanut normalmente.",
+            "step3": "Suas recompensas vão se acumulando no saldo.",
+            "step4": "Faça qualquer pagamento para resgatar."
+        },
+        "iosCopy": {
+            "title": "Cashback",
+            "invitesTitle": "Sua rede",
+            "noPendingRewards": "Nenhum cashback pendente por enquanto.",
+            "lifetimeRewards": "Cashback total: {amount}",
+            "earnWhenFriendsUse": "Você ganha cashback sempre que seus amigos pagam com o Peanut!",
+            "shareInviteLinkPrompt": "Envie seu link de convite para começar a ganhar mais cashback",
+            "howItWorks": {
+                "title": "Como funciona o cashback",
+                "step3": "Seu cashback vai se acumulando no saldo."
+            },
+            "lifetimeCaption": "em cashback até agora"
+        }
     },
     "invites": {
         "illustrationAlt": "Ilustração da seção",
@@ -2690,11 +2778,11 @@
                 "iosSafari2": "Passo 2: toque em “Ajustes do site”",
                 "iosSafari3": "Passo 3: defina a câmera como “Permitir”"
             },
+            "useCopiedCode": "Usar código copiado",
             "paymentMethods": {
                 "evmName": "ETH e EVMs",
                 "evmAlt": "Ethereum e EVMs"
-            },
-            "useCopiedCode": "Usar código copiado"
+            }
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "Estamos trabalhando em uma integração.",
@@ -3022,7 +3110,12 @@
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
             "title": "Uma pequena atualização dos nossos termos"
         },
-        "maintenanceBanner": "Modo manutenção: algumas funções ficarão indisponíveis. Seu dinheiro está seguro."
+        "maintenanceBanner": "Modo manutenção: algumas funções ficarão indisponíveis. Seu dinheiro está seguro.",
+        "iosCopy": {
+            "inviteFriendsModal": {
+                "description": "Compartilhe seu link. Toda vez que um amigo que você trouxe fizer um pagamento, você ganha cashback."
+            }
+        }
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
@@ -3057,6 +3150,7 @@
         "sendLinkAlreadyClaimed": "O link de envio já foi resgatado.",
         "lowLiquidity": "Baixa liquidez. Tente um valor menor ou uma rota diferente.",
         "networkBusyTimeout": "A rede está congestionada e sua solicitação expirou. Tente novamente em instantes.",
+        "sessionExpired": "Sua sessão expirou. Faça login novamente.",
         "connectionTimeout": "O Peanut está demorando para responder. Verifique sua conexão e tente novamente.",
         "genericSupport": "Ocorreu um problema com sua solicitação. Entre em contato com o suporte.",
         "rainCooldownRetry": "Um saque anterior com o cartão ainda está ativo. Tente novamente em cerca de {minutes, plural, one {# minuto} other {# minutos}}.",
@@ -3068,8 +3162,7 @@
         "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
         "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
-        "loginIncomplete": "O login não foi concluído. Tente novamente.",
-        "sessionExpired": "Sua sessão expirou. Faça login novamente."
+        "loginIncomplete": "O login não foi concluído. Tente novamente."
     },
     "appLock": {
         "title": "Olá de novo!",
@@ -3121,6 +3214,7 @@
             "onlyCount": "só {count}",
             "tryTheDoor": "TESTE A PORTA",
             "orJoinWaitlist": "ou entre na lista de espera →",
+            "disclaimer": "Verificação obrigatória para todos os titulares do cartão. Sem tarifas mensais ou anuais. Tarifas e limites padrão se aplicam conforme os termos do titular. Programa beta.",
             "joinError": "Não conseguimos te colocar na lista de espera. Teste a porta de novo."
         },
         "waitlist": {
@@ -3154,11 +3248,11 @@
             "badgeTitle": "Tem um selo.",
             "badgeBody": "Você fura a fila. Estamos liberando quem tiver:",
             "badgeFooter": "Entre, conferimos os selos da sua conta e você vai direto para a verificação. Ainda não tem conta no peanut? Crie uma primeiro — leva um minuto.",
-            "noBadgeTitle": "Sem selo.",
-            "noBadgeBody": "Entre na lista de espera. Liberamos 20 pessoas por semana.",
-            "noBadgeFooter": "Coloque seu nome na lista e a gente avisa quando chegar sua vez.",
             "badgeShowMore": "+{count} mais →",
-            "badgeShowLess": "mostrar menos"
+            "badgeShowLess": "mostrar menos",
+            "noBadgeTitle": "Sem selo.",
+            "noBadgeBody": "Entre na lista de espera. Liberamos 50 pessoas por semana.",
+            "noBadgeFooter": "Coloque seu nome na lista e a gente avisa quando chegar sua vez."
         },
         "notForYou": {
             "title": "Provavelmente não é para você.",
@@ -3179,13 +3273,9 @@
                 "question": "MEU DINHEIRO ESTÁ SEGURO?",
                 "answer": "É seu. Sem custódia — suas stablecoins ficam na sua carteira até a hora em que você usa o cartão. Não temos a custódia. Não emprestamos seu dinheiro."
             },
-            "q4": {
-                "question": "E OS $10?",
-                "answer": "Uma recompensa de boas-vindas. Complete a verificação + $100 de gasto no cartão → $10 liberados no seu saldo. Vale igual se você se cadastrou sozinho ou veio por indicação. Se você indicar alguém, também pode receber $10 quando essa pessoa ativar o cartão. Sujeito a elegibilidade e aos termos do programa."
-            },
             "q5": {
                 "question": "QUANTO TEMPO DEMORA A LISTA DE ESPERA?",
-                "answer": "Durante o beta fechado, liberamos cerca de 20 pessoas por semana. A ordem importa. Os selos furam a fila por completo."
+                "answer": "Durante o beta fechado, liberamos cerca de 50 pessoas por semana. A ordem importa. Os selos furam a fila por completo."
             },
             "q6": {
                 "question": "ONDE POSSO CONSEGUIR O CARTÃO?",

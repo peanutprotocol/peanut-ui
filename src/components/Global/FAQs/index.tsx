@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 
 export type FAQsProps = {
     heading: string
+    /** Translated label for the per-question "learn more" link. */
+    learnMoreLabel?: string
     questions: Array<{
         id: string
         question: string
@@ -13,8 +15,14 @@ export type FAQsProps = {
         redirectUrl?: string
         redirectText?: string
         calModal?: boolean
+        /** Article that answers this question in full. Renders a "learn more" link under the answer. */
+        learnMoreHref?: string
     }>
 }
+
+// Matches the landing page's other "learn more" affordances: right-aligned,
+// underlined at rest, arrow trailing.
+const learnMoreClass = 'font-roboto-flex text-base text-n-1 underline hover:no-underline md:text-lg'
 
 function linkifyText(text: string) {
     const markdownLinkRegex = /\[([^\]]+)\]\(([^\s)]+)\)/g
@@ -41,7 +49,7 @@ function linkifyText(text: string) {
     return parts
 }
 
-export function FAQsPanel({ heading, questions }: FAQsProps) {
+export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }: FAQsProps) {
     return (
         <section className="relative overflow-hidden bg-[#F9F4F0] px-4 py-24 text-n-1 md:py-32">
             <div className="mx-auto max-w-3xl">
@@ -77,6 +85,13 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
                                     >
                                         {faq.redirectText}
                                     </a>
+                                )}
+                                {faq.learnMoreHref && (
+                                    <p className="mt-4 text-right">
+                                        <a href={faq.learnMoreHref} className={learnMoreClass}>
+                                            {learnMoreLabel} →
+                                        </a>
+                                    </p>
                                 )}
                             </div>
                         </details>

@@ -13,7 +13,6 @@ import { HomeModals } from './components/HomeModals'
 import { useHomeFlow } from './useHomeFlow'
 import { BalanceSection } from './views/BalanceSection'
 import { HomeTopNav } from './views/HomeTopNav'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 /**
  * home page (figma board 17830:75689): top nav (avatar / rewards), balance
@@ -46,7 +45,7 @@ export function HomePage() {
     return (
         <PageContainer>
             <div className="flex h-full w-full flex-col gap-6 p-4">
-                <HomeTopNav avatarName={avatarName} showRewards={isActivated && !isReferralRewardsHidden()} />
+                <HomeTopNav avatarName={avatarName} showRewards={isActivated} />
                 <BalanceSection
                     balance={spendableBalance}
                     isFetching={isFetchingSpendableBalance}

@@ -201,11 +201,20 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
 
     // provider rejection overrides the step copy when user is past the verify step
     // (sumsub approved but provider rejected — deposit/outbound CTAs are useless),
-    // UNLESS they can already transact via card / another rail (see above).
+    // UNLESS they can already transact via card / another rail (see above), or
+    // they have a card PATH: a card-eligible user without a card doesn't need
+    // the rejected bank rail to progress (crypto deposit → card), so nagging
+    // them with "Contact support" over a rail the old region-picker detour
+    // auto-enrolled would replace their useful deposit CTA with a dead end.
+    // (This preserves the shielding the pre-2026-08-20 card-first step gave
+    // this exact cohort; a fixable RFI still surfaces in the /add-money bank
+    // flow, in context.)
+    const hasCardPath = hasCardAccess === true
     const hasProviderRejection =
         activationStep !== 'verify' &&
         activationStep !== 'card' &&
         !canAlreadyTransact &&
+        !hasCardPath &&
         (hasFixableRejection || hasBlockedRejection)
 
     const step: StepConfig | null = useMemo(() => {

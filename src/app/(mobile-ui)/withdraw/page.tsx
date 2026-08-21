@@ -22,7 +22,20 @@ import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
+import { readReturnTo } from '@/utils/return-to.utils'
 import { useTranslations } from 'next-intl'
+
+// Module scope on purpose. React.lazy() mints a fresh, unresolved lazy on every
+// call, so creating these inside the render body made the subtree suspend again
+// on EVERY re-render: React hid the rendered view and swapped in the Suspense
+// fallback (null) until the import re-resolved a microtask later. On the native
+// ?country=…&view=bank route that showed up as the withdraw screen blanking and
+// loading a second time — once on arrival, then again on the next re-render,
+// which the success view triggers itself when it invalidates the transactions
+// query. Hoisted, the lazy resolves once and later renders pass straight
+// through.
+const WithdrawBankPage = React.lazy(() => import('./_withdraw-bank'))
+const AddWithdrawCountriesList = React.lazy(() => import('@/components/AddWithdraw/AddWithdrawCountriesList'))
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -374,14 +387,12 @@ export default function WithdrawPage() {
         // native app: render country-specific views.
         // stub exists for web build; real component is injected by native build script.
         if (viewFromQuery === 'bank') {
-            const WithdrawBankPage = React.lazy(() => import('./_withdraw-bank'))
             return (
                 <React.Suspense fallback={null}>
                     <WithdrawBankPage />
                 </React.Suspense>
             )
         }
-        const AddWithdrawCountriesList = React.lazy(() => import('@/components/AddWithdraw/AddWithdrawCountriesList'))
         return (
             <React.Suspense fallback={null}>
                 <AddWithdrawCountriesList flow="withdraw" />
@@ -475,9 +486,12 @@ export default function WithdrawPage() {
                     // if bank from send flow, go back to send page
                     if (isBankFromSend) {
                         router.push('/send')
-                    } else {
-                        router.push('/home')
+                        return
                     }
+                    // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA)
+                    // wins over the /home reset, which only fits tab-bar entries
+                    const returnTo = readReturnTo(searchParams, '/withdraw')
+                    router.push(returnTo ?? '/home')
                 }}
             />
         )
