@@ -317,6 +317,48 @@
                 "notAvailableTitle": "Not available yet"
             }
         },
+        "unlockPayments": {
+            "title": "Unlock payments",
+            "description": "What works for you right now, and what one tap can switch on.",
+            "residence": {
+                "label": "Residence: {country}",
+                "unknown": "Residence not set",
+                "verified": "Verified",
+                "unverified": "Unverified"
+            },
+            "yourRegion": "Your region",
+            "groups": {
+                "everywhere": "Everywhere",
+                "brazil": "Brazil",
+                "argentina": "Argentina",
+                "unitedStates": "United States",
+                "mexico": "Mexico",
+                "europe": "Europe"
+            },
+            "rows": {
+                "p2p": "Peanut-to-Peanut payments",
+                "card": "Peanut card",
+                "pixBank": "PIX & bank transfers",
+                "pixQr": "PIX QR payments",
+                "arQrBank": "QR payments & transfers",
+                "arQr": "QR payments",
+                "bank": "Bank transfers",
+                "achWire": "ACH & Wire",
+                "spei": "SPEI transfers",
+                "sepa": "SEPA transfers"
+            },
+            "chips": {
+                "active": "Active",
+                "alwaysOn": "Always on",
+                "unlock": "Unlock",
+                "processing": "Processing",
+                "oneMoreStep": "1 more step",
+                "attention": "Attention",
+                "notAvailable": "Not available"
+            },
+            "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
+            "cardNotAvailableNote": "The card isn't available for residents of your country."
+        },
         "backup": {
             "title": "Backup",
             "nonCustodial": {

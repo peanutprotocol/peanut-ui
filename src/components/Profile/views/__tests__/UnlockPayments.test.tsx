@@ -1,0 +1,113 @@
+/** @jest-environment jsdom */
+/**
+ * Unlock payments — the Unlocked Regions rework.
+ *
+ * Pins the contracts that motivated the rework: a bank-method tap can never
+ * route to /card (the old Europe→card hijack), Everywhere leads the list,
+ * the residence anchor renders, and restricted residences read Not available.
+ */
+import React from 'react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { IntlWrapper } from '@/test-utils/intl'
+import UnlockPayments from '@/components/Profile/views/UnlockPayments.view'
+
+const render = () => rtlRender(<UnlockPayments />, { wrapper: IntlWrapper })
+
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }) }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+
+let mockRails: unknown[] = []
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({
+        rails: mockRails,
+        isKycApproved: false,
+        railsForProvider: () => [],
+        nextActionsForRail: () => [],
+    }),
+}))
+
+let mockRestrictions = { banking: false, card: false }
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => mockRestrictions,
+}))
+
+let mockUser: { residence?: { declared: string | null; verified: string | null } } | null = null
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
+
+jest.mock('@/hooks/useCardInfo', () => ({
+    useCardInfo: () => ({ isEligible: true, hasCardAccess: true }),
+}))
+jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: null }) }))
+jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
+
+const mockInitiateKyc = jest.fn()
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => ({
+        handleInitiateKyc: mockInitiateKyc,
+        handleSelfHealResubmit: jest.fn(),
+        handleRestartIdentity: jest.fn(),
+        isLoading: false,
+        error: null,
+    }),
+}))
+
+// Heavy children are irrelevant to the list contract under test.
+jest.mock('@/components/Home/PendingVerificationTasks', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({ KycProcessingModal: () => null }))
+jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
+jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({ KycFailedModal: () => null }))
+jest.mock('@/components/IdentityVerification/UnlockRegionModal', () => ({
+    __esModule: true,
+    default: ({ visible }: { visible: boolean }) => (visible ? <div>unlock-modal-open</div> : null),
+}))
+
+describe('UnlockPayments', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockRails = []
+        mockRestrictions = { banking: false, card: false }
+        mockUser = null
+    })
+
+    it('leads with the Everywhere group and its always-on row', () => {
+        render()
+        const headers = screen.getAllByText(/Everywhere|Brazil|Argentina|United States|Mexico|Europe/)
+        expect(headers[0]).toHaveTextContent('Everywhere')
+        expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
+        expect(screen.getByText('Always on')).toBeInTheDocument()
+    })
+
+    it('a bank-method tap opens the unlock modal and NEVER routes to /card', () => {
+        render()
+        fireEvent.click(screen.getByText('SEPA transfers'))
+        expect(screen.getByText('unlock-modal-open')).toBeInTheDocument()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('the card row routes to /card and only the card row does', () => {
+        render()
+        fireEvent.click(screen.getByText('Peanut card'))
+        expect(mockPush).toHaveBeenCalledWith('/card')
+    })
+
+    it('shows the verified residence anchor and floats that region up', () => {
+        mockUser = { residence: { declared: 'BR', verified: 'BR' } }
+        render()
+        expect(screen.getByText('Residence: Brazil')).toBeInTheDocument()
+        expect(screen.getByText('Verified')).toBeInTheDocument()
+        expect(screen.getByText('Your region')).toBeInTheDocument()
+        const headers = screen.getAllByText(/^(Everywhere|Brazil|Argentina|United States|Mexico|Europe)$/)
+        expect(headers[1]).toHaveTextContent('Brazil')
+    })
+
+    it('a fully restricted residence reads Not available on bank rows but keeps the always-on row', () => {
+        mockRestrictions = { banking: true, card: true }
+        render()
+        expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(6)
+        expect(screen.getByText('Always on')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('SEPA transfers'))
+        expect(screen.queryByText('unlock-modal-open')).not.toBeInTheDocument()
+    })
+})
