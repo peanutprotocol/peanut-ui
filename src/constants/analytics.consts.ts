@@ -10,6 +10,7 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_STEP_VIEWED: 'signup_step_viewed',
     SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
     SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',
+    SIGNUP_RESIDENCE_PARTIAL_SHOWN: 'signup_residence_partial_shown',
     SIGNUP_RESIDENCE_RESTRICTED_CONTINUED: 'signup_residence_restricted_continued',
     SIGNUP_RESIDENCE_NOTIFY_SUBMITTED: 'signup_residence_notify_submitted',
     SIGNUP_CLICKED: 'signup_signup_clicked',

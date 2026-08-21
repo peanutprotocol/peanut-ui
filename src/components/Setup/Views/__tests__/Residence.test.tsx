@@ -82,18 +82,66 @@ describe('ResidenceStep', () => {
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
     })
 
-    it.each(['CN', 'IR', 'RU', 'BY', 'GB'])('shows the generic heads-up for %s before advancing', (iso2) => {
+    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'HK'])(
+        'shows the generic heads-up for %s before advancing',
+        (iso2) => {
+            mockSetupState.residenceCountry = iso2
+            render(<ResidenceStep />)
+            fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+            expect(mockHandleNext).not.toHaveBeenCalled()
+            expect(screen.getByText('Heads up')).toBeInTheDocument()
+            // the screen itself never names a country
+            expect(screen.queryByText(/United Kingdom|China|Iran|Russia|Belarus/)).not.toBeInTheDocument()
+            expect(mockedCapture).toHaveBeenCalledWith(
+                ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN,
+                expect.objectContaining({ residence_country: iso2 })
+            )
+        }
+    )
+
+    it.each([
+        ['IN', 'card'],
+        ['TR', 'card'],
+        ['UA', 'card'],
+        ['VE', 'card'],
+        ['VN', 'card'],
+        ['IL', 'card'],
+        ['IQ', 'card'],
+        ['MM', 'card'],
+        ['NP', 'card'],
+        ['NI', 'card'],
+        ['DZ', 'banking'],
+        ['BI', 'banking'],
+        ['JP', 'banking'],
+        ['TN', 'banking'],
+    ])('shows the partial heads-up for %s (%s restriction) and continues on demand', (iso2, kind) => {
         mockSetupState.residenceCountry = iso2
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
         expect(mockHandleNext).not.toHaveBeenCalled()
-        expect(screen.getByText('Heads up')).toBeInTheDocument()
-        // the screen itself never names a country
-        expect(screen.queryByText(/United Kingdom|China|Iran|Russia|Belarus/)).not.toBeInTheDocument()
+        expect(
+            screen.getByText(
+                kind === 'card'
+                    ? /The Peanut card isn't available in your country/
+                    : /Bank transfers aren't available in your country/
+            )
+        ).toBeInTheDocument()
         expect(mockedCapture).toHaveBeenCalledWith(
-            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN,
-            expect.objectContaining({ residence_country: iso2 })
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
+            expect.objectContaining({ residence_country: iso2, restriction_type: kind })
         )
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockHandleNext).toHaveBeenCalled()
+    })
+
+    it('lists sanctioned countries in the selector so residents can answer truthfully', () => {
+        // countryData omits them (it is the add-money destination list); the
+        // supplemental options must fill the gap or the heads-up never fires.
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('combobox'))
+        for (const name of ['Russia', 'Iran', 'North Korea', 'Syria', 'Cuba', 'Myanmar']) {
+            expect(screen.getByText(name)).toBeInTheDocument()
+        }
     })
 
     it('lets a restricted resident continue anyway', () => {

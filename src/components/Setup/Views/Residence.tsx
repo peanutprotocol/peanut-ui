@@ -3,7 +3,12 @@ import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
 import { countryData } from '@/components/AddMoney/consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { RESTRICTED_RESIDENCE_ISO2 } from '@/constants/residence.consts'
+import {
+    BANKING_RESTRICTED_RESIDENCE_ISO2,
+    CARD_RESTRICTED_RESIDENCE_ISO2,
+    RESTRICTED_RESIDENCE_ISO2,
+    SUPPLEMENTAL_RESIDENCE_OPTIONS,
+} from '@/constants/residence.consts'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
@@ -13,7 +18,8 @@ import posthog from 'posthog-js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
-type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done'
+type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial'
+type PartialRestriction = 'card' | 'banking'
 
 const ResidenceStep = () => {
     const t = useTranslations('setup')
@@ -23,20 +29,23 @@ const ResidenceStep = () => {
     const { countryCode: geoCountryCode } = useGeoLocation()
 
     const [view, setView] = useState<ResidenceView>('select')
+    const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>('card')
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
     const [email, setEmail] = useState('')
     const [emailError, setEmailError] = useState('')
     // whether the current selection came from the geo suggestion, untouched
     const wasPrefilledRef = useRef(false)
 
-    const countryOptions = useMemo(
-        () =>
-            countryData
-                .filter((c) => c.type === 'country' && !!c.iso2)
-                .map((c) => ({ label: c.title, value: c.iso2!.toUpperCase() }))
-                .sort((a, b) => a.label.localeCompare(b.label)),
-        []
-    )
+    const countryOptions = useMemo(() => {
+        const options = countryData
+            .filter((c) => c.type === 'country' && !!c.iso2)
+            .map((c) => ({ label: c.title, value: c.iso2!.toUpperCase() }))
+        const present = new Set(options.map((o) => o.value))
+        for (const extra of SUPPLEMENTAL_RESIDENCE_OPTIONS) {
+            if (!present.has(extra.iso2)) options.push({ label: extra.title, value: extra.iso2 })
+        }
+        return options.sort((a, b) => a.label.localeCompare(b.label))
+    }, [])
 
     // Geo is a suggestion only: preselect the dropdown when nothing is chosen
     // yet, never auto-advance, and never trigger the restricted screen from it.
@@ -69,6 +78,20 @@ const ResidenceStep = () => {
             setView('restricted')
             return
         }
+        const partial: PartialRestriction | null = CARD_RESTRICTED_RESIDENCE_ISO2.has(residenceCountry)
+            ? 'card'
+            : BANKING_RESTRICTED_RESIDENCE_ISO2.has(residenceCountry)
+              ? 'banking'
+              : null
+        if (partial) {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN, {
+                residence_country: residenceCountry,
+                restriction_type: partial,
+            })
+            setPartialRestriction(partial)
+            setView('partial')
+            return
+        }
         void handleNext()
     }
 
@@ -95,6 +118,33 @@ const ResidenceStep = () => {
             residence_notify_country: residenceCountry,
         })
         setView('notify-done')
+    }
+
+    if (view === 'partial') {
+        return (
+            <div className="flex h-full w-full flex-col justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-xl font-extrabold">{t('residenceStep.partial.title')}</h2>
+                    <p className="text-sm text-grey-1">
+                        {partialRestriction === 'card'
+                            ? t('residenceStep.partial.cardDescription')
+                            : t('residenceStep.partial.bankingDescription')}
+                    </p>
+                </div>
+                <div className="flex w-full flex-col gap-2">
+                    <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
+                        {t('residenceStep.partial.continue')}
+                    </Button>
+                    <button
+                        type="button"
+                        className="mt-1 text-center text-sm underline underline-offset-2"
+                        onClick={() => setView('select')}
+                    >
+                        {t('residenceStep.restricted.changeCountry')}
+                    </button>
+                </div>
+            </div>
+        )
     }
 
     if (view === 'restricted' || view === 'notify' || view === 'notify-done') {
