@@ -96,6 +96,11 @@ jest.mock('@/components/Global/ErrorAlert', () => ({
     default: ({ description }: { description: string }) => <div data-testid="error-alert">{description}</div>,
 }))
 
+jest.mock('@/components/Global/InfoCard', () => ({
+    __esModule: true,
+    default: ({ description }: { description: React.ReactNode }) => <div data-testid="info-card">{description}</div>,
+}))
+
 import LinkSendInitialView from '../Initial.link.send.view'
 
 // ---------- helpers ----------
@@ -211,5 +216,31 @@ describe('LinkSendInitialView error ownership', () => {
         mockUseWallet.mockReturnValue(walletState(100))
         rerenderView(utils, '20')
         await waitFor(() => expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument())
+    })
+})
+
+// TASK-21724: a $3 link leaves the recipient with no bank / Pix / Mercado Pago
+// claim route (all three minimums are $5) and nothing told the sender. The
+// warning is informational — small links stay sendable.
+describe('LinkSendInitialView sub-minimum fiat-claim warning', () => {
+    test('amount below the fiat minimum shows the warning without blocking Create link', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView('3')
+        await waitFor(() =>
+            expect(screen.getByTestId('info-card')).toHaveTextContent(
+                "Amounts under $5 can't be claimed to a bank, Pix or Mercado Pago"
+            )
+        )
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        expect(screen.getByText('Create link')).toBeEnabled()
+    })
+
+    test('amount at the fiat minimum shows no warning', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView('5')
+        await waitFor(() => expect(screen.getByText('Create link')).toBeEnabled())
+        expect(screen.queryByTestId('info-card')).not.toBeInTheDocument()
     })
 })

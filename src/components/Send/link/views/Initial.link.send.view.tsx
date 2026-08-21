@@ -2,7 +2,9 @@
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import InfoCard from '@/components/Global/InfoCard'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
+import { MIN_BANK_TRANSFER_AMOUNT, MIN_MERCADOPAGO_AMOUNT, MIN_PIX_AMOUNT } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -22,6 +24,12 @@ import AmountInput from '../../../Global/AmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+
+// Below the smallest fiat minimum the recipient loses every fiat claim rail
+// (bank / Pix / Mercado Pago all reject at claim time) and is left with only
+// Peanut-account or wallet claims. Warn the sender here — the claim screen is
+// too late, the money is already locked in the link.
+const MIN_FIAT_CLAIM_AMOUNT = Math.min(MIN_BANK_TRANSFER_AMOUNT, MIN_MERCADOPAGO_AMOUNT, MIN_PIX_AMOUNT)
 
 const LinkSendInitialView = () => {
     const t = useTranslations('send')
@@ -53,6 +61,13 @@ const LinkSendInitialView = () => {
     const peanutWalletBalance = useMemo(() => {
         return balance === undefined ? '' : formattedSpendableBalance
     }, [balance, formattedSpendableBalance])
+
+    // Informational only — small links are legitimate (Peanut-account / wallet
+    // claims have no minimum), so this never blocks Create link.
+    const isBelowFiatClaimMinimum = useMemo(() => {
+        const amount = parseFloat(tokenValue ?? '')
+        return amount > 0 && amount < MIN_FIAT_CLAIM_AMOUNT
+    }, [tokenValue])
 
     const handleOnNext = useCallback(async () => {
         try {
@@ -227,6 +242,14 @@ const LinkSendInitialView = () => {
                 attachmentOptions={attachmentOptions}
                 setAttachmentOptions={setAttachmentOptions}
             />
+
+            {isBelowFiatClaimMinimum && (
+                <InfoCard
+                    variant="warning"
+                    icon="info"
+                    description={t('link.minFiatClaimWarning', { amount: MIN_FIAT_CLAIM_AMOUNT })}
+                />
+            )}
 
             <div className="flex flex-col gap-4">
                 {errorState?.showError ? (
