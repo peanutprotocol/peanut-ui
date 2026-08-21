@@ -71,10 +71,10 @@ function PeanutMascot() {
             // Animated webp — the optimizer passes animated images through
             // untouched, so `unoptimized` skips a pointless /_next/image hop.
             unoptimized
-            // This is the mobile LCP element. Without `priority` Next emits
+            // This is the mobile LCP element. Without `preload` Next emits
             // loading="lazy" and the browser discovers it ~7s late on a
             // throttled connection (Lighthouse: 19.5s LCP, 36% load delay).
-            priority
+            preload
             alt="Peanut Guy"
             className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain md:max-h-[min(40vh,calc(100svh-28rem))]"
         />
@@ -179,7 +179,7 @@ export function Hero({
                 {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports */}
                 <Image
                     src={GlobalCashLocalFeel}
-                    priority
+                    preload
                     sizes="(min-width: 768px) 50vw, 100vw"
                     className="z-0 mx-auto h-auto max-h-[calc(100svh-23rem)] w-full max-w-[1000px] object-contain md:w-[50%]"
                     alt="Global Cash Local Feel"
