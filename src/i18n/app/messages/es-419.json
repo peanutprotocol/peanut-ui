@@ -336,7 +336,7 @@
             "residence": {
                 "label": "Residencia: {country}",
                 "unknown": "Residencia sin definir",
-                "verified": "Verificado",
+                "verified": "Verificada",
                 "unverified": "Sin verificar",
                 "change": "Cambiar",
                 "set": "Definir",

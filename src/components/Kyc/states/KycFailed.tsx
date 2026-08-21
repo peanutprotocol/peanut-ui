@@ -18,6 +18,25 @@ import { useFormatter, useTranslations } from 'next-intl'
 // reads the provider-agnostic identity fields + normalized reject labels. The
 // backend's actionMessage is a pure function of status, so its presence gates the
 // reason row while the copy itself comes from the catalog. No provider names.
+type KycFailedProps = {
+    actionMessage?: string
+    rejectLabels?: string[] | null
+    reviewedAt?: string
+    onRetry: () => void
+    isLoading?: boolean
+} & (
+    | {
+          // A terminal render drops the retry button, so "Contact support" is the
+          // only action left — the type forces the container to wire it up.
+          isTerminal: true
+          onContactSupport: () => void
+      }
+    | {
+          isTerminal?: false
+          onContactSupport?: () => void
+      }
+)
+
 export const KycFailed = ({
     actionMessage,
     rejectLabels,
@@ -26,16 +45,7 @@ export const KycFailed = ({
     isLoading,
     isTerminal = false,
     onContactSupport,
-}: {
-    actionMessage?: string
-    rejectLabels?: string[] | null
-    reviewedAt?: string
-    onRetry: () => void
-    isLoading?: boolean
-    isTerminal?: boolean
-    /** Required in practice when `isTerminal` — the container owns support. */
-    onContactSupport?: () => void
-}) => {
+}: KycFailedProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const format = useFormatter()

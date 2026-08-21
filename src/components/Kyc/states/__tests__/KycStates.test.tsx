@@ -117,7 +117,14 @@ describe('KycFailed — terminal vs retryable', () => {
     it('a terminal rejection never names the cause', () => {
         // Naming fraud or sanctions carries compliance exposure and tips off the
         // people it describes — KycFailedContent shows the generic card instead.
-        render(<KycFailed onRetry={jest.fn()} isTerminal rejectLabels={['FORGERY', 'SANCTIONS']} />)
+        render(
+            <KycFailed
+                onRetry={jest.fn()}
+                isTerminal
+                rejectLabels={['FORGERY', 'SANCTIONS']}
+                onContactSupport={mockSetIsSupportModalOpen}
+            />
+        )
 
         expect(screen.queryByTestId('reject-labels-list')).not.toBeInTheDocument()
         expect(document.body.textContent).not.toMatch(/forgery|sanctions/i)

@@ -156,9 +156,17 @@ const SignTestTransaction = () => {
                             userId,
                             residenceCountry,
                             ...(secondResidenceCountry ? { secondResidenceCountry } : {}),
-                        }).catch((err: unknown) => {
-                            console.error('[SignTestTransaction] Failed to persist residence:', err)
                         })
+                            .then((result) => {
+                                // updateUserById maps API failures to { error },
+                                // it doesn't throw them — inspect the result.
+                                if (result?.error) {
+                                    console.error('[SignTestTransaction] Failed to persist residence:', result.error)
+                                }
+                            })
+                            .catch((err: unknown) => {
+                                console.error('[SignTestTransaction] Failed to persist residence:', err)
+                            })
                     }
                 }
 

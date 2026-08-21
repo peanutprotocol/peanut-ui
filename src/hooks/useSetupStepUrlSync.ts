@@ -1,7 +1,7 @@
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 
 // Not `step`: at /setup entry, ?step=signup is an existing contract that skips
 // the invite gate (see determineInitialStep), so the mirror needs its own key.
@@ -40,9 +40,14 @@ export const useSetupStepUrlSync = ({
     const lastScreenRef = useRef<ScreenId | null>(null)
     const isPopNavigationRef = useRef(false)
     const stepsRef = useRef(steps)
-    stepsRef.current = steps
     const goToScreenRef = useRef(goToScreen)
-    goToScreenRef.current = goToScreen
+    // Synced in a layout effect, not during render: React can discard or
+    // replay a render, and the persistent popstate listener must never read
+    // values from a render that was thrown away.
+    useLayoutEffect(() => {
+        stepsRef.current = steps
+        goToScreenRef.current = goToScreen
+    }, [steps, goToScreen])
 
     useEffect(() => {
         if (!enabled || !step) return

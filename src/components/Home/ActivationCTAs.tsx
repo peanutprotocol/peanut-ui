@@ -173,7 +173,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
     // re-upload directly, instead of routing to /profile/identity-verification (which
     // only showed the regions list, forcing the user to hunt for the Upload-document
-    // CTA again). Mirrors the add-money bank flow + UnlockedRegions view.
+    // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)

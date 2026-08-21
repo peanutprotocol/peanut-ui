@@ -208,7 +208,17 @@ const ResidenceStep = () => {
                     type="button"
                     className="self-start text-left text-sm underline underline-offset-2"
                     aria-expanded={showSecondCountry}
-                    onClick={() => setShowSecondCountry((current) => !current)}
+                    onClick={() =>
+                        setShowSecondCountry((current) => {
+                            // Collapsing must also clear the stored pick — an
+                            // invisible second residence would still be sent to
+                            // analytics and persisted after signup.
+                            if (current && secondResidenceCountry) {
+                                dispatch(setupActions.setSecondResidenceCountry(''))
+                            }
+                            return !current
+                        })
+                    }
                 >
                     {t('residenceStep.multiDocLink')}
                 </button>

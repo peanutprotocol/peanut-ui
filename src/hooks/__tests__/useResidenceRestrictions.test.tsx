@@ -12,6 +12,16 @@ jest.mock('@/redux/hooks', () => ({
     useSetupStore: () => mockSetupState,
 }))
 
+// Hermetic: the real sets hook fetches the server tier lists on first mount;
+// return the bundled mirror so renderHook never triggers a network request.
+jest.mock('@/hooks/useResidenceRestrictionSets', () => {
+    const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
+    return {
+        ...actual,
+        useResidenceRestrictionSets: () => actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+    }
+})
+
 describe('deriveResidenceRestrictions', () => {
     it.each([
         ['RU', { banking: true, card: true }],

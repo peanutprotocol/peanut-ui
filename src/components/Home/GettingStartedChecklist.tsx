@@ -54,9 +54,10 @@ const GettingStartedChecklist = () => {
     const isFunded = milestone === 'funded' || milestone === 'activated'
     const residenceIso2 = user?.residence?.verified ?? user?.residence?.declared ?? null
     const hasActiveCard = !!findActiveCard(overview)
-    // isEligible undefined = still loading; only an explicit false (or the
-    // residence tier) hides the card slot, so the list doesn't flicker.
-    const cardAvailable = !restrictions.card && isEligible !== false
+    // While eligibility is loading (undefined) the slot shows the first-payment
+    // step — always a valid action — and upgrades to the card once the server
+    // confirms. Never show a card step the user might not be allowed to take.
+    const cardAvailable = !restrictions.card && isEligible === true
 
     const addMoneyLabel = useMemo(() => {
         if (residenceIso2 === 'BR') return t('addMoneyPix')
