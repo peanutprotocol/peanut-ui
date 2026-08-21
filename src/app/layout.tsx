@@ -109,20 +109,25 @@ const sniglet = Sniglet({
     variable: '--font-sniglet',
 })
 
+// The .woff2 files are latin + latin-ext subsets of the .ttf sources (built
+// with fonttools; roboto-flex additionally instanced down to just the wght
+// axis the CSS uses — the full 13-axis variable TTF was 1.6 MB, this is 53 KB).
+// The OG image routes still read the .ttf files at runtime (satori needs TTF),
+// so don't delete those.
 const knerdOutline = localFont({
-    src: '../assets/fonts/knerd-outline.ttf',
+    src: '../assets/fonts/knerd-outline.woff2',
     variable: '--font-knerd-outline',
     display: 'swap',
 })
 
 const knerdFilled = localFont({
-    src: '../assets/fonts/knerd-filled.ttf',
+    src: '../assets/fonts/knerd-filled.woff2',
     variable: '--font-knerd-filled',
     display: 'swap',
 })
 
 const robotoFlexBold = localFont({
-    src: '../assets/fonts/roboto-flex-bold.ttf',
+    src: '../assets/fonts/roboto-flex-bold.woff2',
     variable: '--font-roboto-flex-bold',
     display: 'swap',
 })
