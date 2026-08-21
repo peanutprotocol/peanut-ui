@@ -4,6 +4,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId, type ISetupStep } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useSetupStepUrlSync } from '@/hooks/useSetupStepUrlSync'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { Suspense, useEffect, useState } from 'react'
@@ -26,7 +27,7 @@ import { useTranslations } from 'next-intl'
 function SetupPageContent() {
     const t = useTranslations('setup')
     const { steps, inviteCode } = useSetupStore()
-    const { step, handleNext, handleBack } = useSetupFlow()
+    const { step, handleNext, handleBack, setScreenId } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
     const router = useRouter()
     const [direction, setDirection] = useState(0)
@@ -42,6 +43,21 @@ function SetupPageContent() {
     const searchParams = useSearchParams()
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
+
+    useSetupStepUrlSync({
+        // only mirror steps that actually render: not while the entry step is
+        // being determined, and not behind the existing-session interstitial
+        // or the unsupported-device/browser modals
+        enabled:
+            !isLoading &&
+            sessionChecked &&
+            !existingSessionUsername &&
+            !showDeviceNotSupportedModal &&
+            !showBrowserNotSupportedModal,
+        step,
+        steps,
+        goToScreen: setScreenId,
+    })
 
     /*
      * A device can arrive at /setup already authenticated: a half-completed

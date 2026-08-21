@@ -7,6 +7,7 @@ export const ANALYTICS_EVENTS = {
     LOGIN: 'login',
 
     // ── Signup funnel ──
+    SIGNUP_STEP_VIEWED: 'signup_step_viewed',
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
