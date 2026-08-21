@@ -122,7 +122,7 @@ const Footer = ({
                         {/* /careers, not the Notion board: the page lists the open roles
                             and keeps Notion as the application destination only. */}
                         <Link className={NAV_LINK} href="/careers">
-                            {i18n.footerJobs}
+                            {i18n.footerCareers}
                         </Link>
                     </div>
                     <div className="hidden items-center gap-6 md:flex">
