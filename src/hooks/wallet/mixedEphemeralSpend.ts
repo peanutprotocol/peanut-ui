@@ -6,6 +6,7 @@ import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import type { PrepareRainWithdrawalResponse } from '@/services/rain'
 import { createEphemeralSpendSession, type EphemeralCall } from '@/utils/ephemeralSpendKey'
+import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 
 /*
  * One-tap variant of the mixed spend (SESSION_KEY_SPEND flag): the single
@@ -135,8 +136,17 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
                 return { ok: false, reason: 'ephemeral userOp reverted on-chain' }
             }
             receipt = userOpReceipt.receipt
-        } catch {
-            // Mirror handleSendUserOpEncoded: a receipt timeout is not a failure.
+        } catch (error) {
+            // Shared rescue (see rescueUserOpReceipt): a transport blip must
+            // not leave useSpendBundle stamping the withdrawal with the userOp
+            // hash — unresolvable by webhook reconciliation (TASK-21147). A
+            // rescued REVERTED op takes the same ok:false exit as the check
+            // above so the passkey fallback still runs.
+            const rescued = await rescueUserOpReceipt(session.client, userOpHash, error, 'mixed-ephemeral-spend')
+            if (rescued && !rescued.success) {
+                return { ok: false, reason: 'ephemeral userOp reverted on-chain' }
+            }
+            receipt = rescued?.receipt ?? null
         }
         return { ok: true, userOpHash, receipt }
     } catch (e) {
