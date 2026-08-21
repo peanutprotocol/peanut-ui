@@ -80,10 +80,14 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                             <span
                                 className={twMerge(
                                     'flex size-12 items-center justify-center rounded-round border border-border-default transition-colors duration-instant',
-                                    // pressed state per submenu board 17533:117867
+                                    // pressed = action-primary per button board 17308:13973
+                                    // ("buttons turn primary when pressed"); the submenu
+                                    // board's ghost-hover binding resolves to the same pink
+                                    // in figma, but the code token is the dark ghost-text
+                                    // tint — see PR body token note
                                     action.drawer && openDrawer === action.drawer
-                                        ? 'border-border-button bg-action-ghost-hover'
-                                        : 'active:border-border-button active:bg-action-ghost-hover'
+                                        ? 'border-border-button bg-action-primary'
+                                        : 'active:border-border-button active:bg-action-primary'
                                 )}
                             >
                                 <Icon name={action.icon} size={24} className="text-foreground-primary" />
