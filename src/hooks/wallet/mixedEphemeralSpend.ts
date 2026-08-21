@@ -6,6 +6,7 @@ import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import type { PrepareRainWithdrawalResponse } from '@/services/rain'
 import { createEphemeralSpendSession, type EphemeralCall } from '@/utils/ephemeralSpendKey'
+import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 
 /*
  * One-tap variant of the mixed spend (SESSION_KEY_SPEND flag): the single
@@ -136,21 +137,16 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
             }
             receipt = userOpReceipt.receipt
         } catch (error) {
-            // Mirror handleSendUserOpEncoded, rescue included: viem's wait
-            // rejects on the first transport blip, and a null receipt here
-            // makes useSpendBundle stamp the withdrawal with the userOp hash —
-            // unresolvable by webhook reconciliation (TASK-21147). A rescued
-            // REVERTED op takes the same ok:false exit as the check above so
-            // the passkey fallback still runs.
-            if ((error as Error)?.name !== 'WaitForUserOperationReceiptTimeoutError') {
-                const rescued = await session.client
-                    .waitForUserOperationReceipt({ hash: userOpHash, timeout: 15_000 })
-                    .catch(() => null)
-                if (rescued && !rescued.success) {
-                    return { ok: false, reason: 'ephemeral userOp reverted on-chain' }
-                }
-                receipt = rescued?.receipt ?? null
+            // Shared rescue (see rescueUserOpReceipt): a transport blip must
+            // not leave useSpendBundle stamping the withdrawal with the userOp
+            // hash — unresolvable by webhook reconciliation (TASK-21147). A
+            // rescued REVERTED op takes the same ok:false exit as the check
+            // above so the passkey fallback still runs.
+            const rescued = await rescueUserOpReceipt(session.client, userOpHash, error, 'mixed-ephemeral-spend')
+            if (rescued && !rescued.success) {
+                return { ok: false, reason: 'ephemeral userOp reverted on-chain' }
             }
+            receipt = rescued?.receipt ?? null
         }
         return { ok: true, userOpHash, receipt }
     } catch (e) {

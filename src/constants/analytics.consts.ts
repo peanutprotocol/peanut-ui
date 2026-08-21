@@ -60,9 +60,10 @@ export const ANALYTICS_EVENTS = {
     // hash, so this rate should be ~0. See resolveSettledTxHash.
     SEND_TXHASH_FALLBACK: 'send_txhash_fallback',
     // waitForUserOperationReceipt failed but a capped retry of the wait
-    // recovered the receipt — the send proceeded with the real tx hash.
-    // Carries elapsed_ms; deliberately NOT flow-attributed (fires below the
-    // flow layer, in useZeroDev). High counts = flaky bundler RPC.
+    // recovered the receipt. Carries elapsed_ms, context ('zerodev-send' |
+    // 'mixed-ephemeral-spend') and reverted (a rescued REVERTED op is failed
+    // by the caller, never recorded as success). Fires below the flow layer;
+    // high counts = flaky bundler RPC. Not captured in demo mode.
     SEND_RECEIPT_RESCUED: 'send_receipt_rescued',
     // Client-side latency split of a successful direct send: charge_create_ms,
     // send_money_ms (sign + bundler + receipt — INCLUDES human passkey-prompt
