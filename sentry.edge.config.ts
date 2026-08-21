@@ -5,7 +5,7 @@
 
 import * as Sentry from '@sentry/nextjs'
 
-import { beforeSendHandler } from './sentry.utils'
+import { beforeSendRouteAwareHandler, beforeSendRouteAwareTransaction } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 
 if (process.env.NODE_ENV !== 'development') {
@@ -16,7 +16,8 @@ if (process.env.NODE_ENV !== 'development') {
         tracesSampleRate: 1,
         debug: false,
 
-        beforeSend: beforeSendHandler,
+        beforeSend: beforeSendRouteAwareHandler,
+        beforeSendTransaction: beforeSendRouteAwareTransaction,
 
         integrations: [
             Sentry.captureConsoleIntegration({
