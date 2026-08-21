@@ -30,6 +30,15 @@ describe('buildUnlockGroups', () => {
         const groups = buildUnlockGroups(base({ residenceIso2: 'BR' }))
         expect(groups[1].id).toBe('brazil')
         expect(groups[1].isYourRegion).toBe(true)
+        // stable sort contract: everything else keeps catalog order
+        expect(groups.map((g) => g.id)).toEqual([
+            'everywhere',
+            'brazil',
+            'argentina',
+            'unitedStates',
+            'mexico',
+            'europe',
+        ])
     })
 
     it('marks Europe as your region for a European residence', () => {

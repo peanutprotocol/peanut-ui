@@ -7,8 +7,8 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => mockUser(),
 }))
 
-const withIdentity = (identityVerification?: IdentityVerification) => {
-    mockUser.mockReturnValue({ user: identityVerification ? { identityVerification } : {}, isFetchingUser: false })
+const withIdentity = (identityVerification?: IdentityVerification, isFetchingUser = false) => {
+    mockUser.mockReturnValue({ user: identityVerification ? { identityVerification } : {}, isFetchingUser })
     return renderHook(() => useIdentityVerification()).result.current
 }
 
@@ -45,7 +45,8 @@ describe('useIdentityVerification — isRegionRestricted', () => {
     )
 
     it('is false while the user is still loading', () => {
-        const r = withIdentity(undefined)
+        const r = withIdentity(undefined, true)
+        expect(r.isLoading).toBe(true)
         expect(r.status).toBe('not_started')
         expect(r.isRegionRestricted).toBe(false)
     })

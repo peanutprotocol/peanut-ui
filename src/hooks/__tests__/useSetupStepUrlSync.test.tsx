@@ -124,6 +124,10 @@ describe('useSetupStepUrlSync', () => {
         const { goToScreen } = render({ enabled: true, step: stepById('landing') })
 
         act(() => {
+            // A history entry from before the flow carries neither state nor
+            // ?screen= — clear the mirrored param so the URL fallback yields
+            // null and the !target guard is the branch under test.
+            window.history.replaceState(null, '', '/setup')
             window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
         })
 

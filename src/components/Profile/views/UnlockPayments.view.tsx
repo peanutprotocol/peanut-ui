@@ -39,14 +39,14 @@ import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
 import { twMerge } from 'tailwind-merge'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
 
-/** Same derivation as UnlockedRegions.view — the modal machinery is shared. */
+/** Same derivation the retired UnlockedRegions view used — modal machinery carried over. */
 function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: boolean): ModalVariant {
     if (!rail) return 'start'
     switch (rail.status) {
@@ -149,12 +149,10 @@ const UnlockPayments = () => {
         [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, hasCardAccess, residenceIso2]
     )
 
-    // ── modal machinery (shared shape with UnlockedRegions.view) ───────────
+    // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
     const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
-    const displayRegionRef = useRef<Region | null>(null)
-    if (selectedRegion) displayRegionRef.current = selectedRegion
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
 
@@ -210,7 +208,7 @@ const UnlockPayments = () => {
         setErrorAcknowledged(false)
         setSelectedRegion(null)
         // Always cross-region: a locked method has no functional rail behind it,
-        // and the flag is a no-op for first-time KYC (see UnlockedRegions.view).
+        // and the flag is a no-op for first-time KYC (retired UnlockedRegions view).
         await flow.handleInitiateKyc(intent, undefined, true)
     }, [flow.handleInitiateKyc, selectedRegion])
 
@@ -249,8 +247,11 @@ const UnlockPayments = () => {
     // escalation. reviewedAt/updatedAt deliberately not used — the user cares
     // when THEY submitted, not when we last touched the row.
     const reviewSubmittedAtMs = identity.submittedAt ? Date.parse(identity.submittedAt) : NaN
+    // Explicit UTC: this client component also renders on the server, and a
+    // timezone-dependent date can differ by a day between the two renders
+    // (hydration mismatch).
     const reviewSubmittedDate = Number.isFinite(reviewSubmittedAtMs)
-        ? new Date(reviewSubmittedAtMs).toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+        ? new Date(reviewSubmittedAtMs).toLocaleDateString(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' })
         : null
     const reviewEscalation =
         Number.isFinite(reviewSubmittedAtMs) && Date.now() - reviewSubmittedAtMs > 7 * 24 * 60 * 60 * 1000
@@ -363,7 +364,12 @@ const UnlockPayments = () => {
 
                 <div className="mt-4 space-y-3">
                     {groups.map((group) => (
-                        <UnlockGroupCard key={group.id} group={group} onRowClick={handleRowClick} />
+                        <UnlockGroupCard
+                            key={group.id}
+                            group={group}
+                            onRowClick={handleRowClick}
+                            isKycDegraded={isKycDegraded}
+                        />
                     ))}
                 </div>
 
@@ -518,7 +524,15 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
     return 'brazil'
 }
 
-const UnlockGroupCard = ({ group, onRowClick }: { group: UnlockGroup; onRowClick: (row: UnlockRow) => void }) => {
+const UnlockGroupCard = ({
+    group,
+    onRowClick,
+    isKycDegraded,
+}: {
+    group: UnlockGroup
+    onRowClick: (row: UnlockRow) => void
+    isKycDegraded: boolean
+}) => {
     const t = useTranslations('profile.unlockPayments')
     return (
         <div className="overflow-hidden rounded-sm border border-n-1 bg-white dark:border-white dark:bg-n-1">
@@ -531,7 +545,10 @@ const UnlockGroupCard = ({ group, onRowClick }: { group: UnlockGroup; onRowClick
                 )}
             </div>
             {group.rows.map((row) => {
-                const tappable = !!row.regionPath || !!row.href
+                // During a verification outage the unlock path is closed (the tap
+                // guard would no-op), so render those rows disabled instead of
+                // letting them look actionable under the degraded banner.
+                const tappable = !!row.href || (!!row.regionPath && !isKycDegraded)
                 return (
                     <button
                         key={row.id}

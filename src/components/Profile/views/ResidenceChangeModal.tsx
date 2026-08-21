@@ -9,8 +9,9 @@ import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestriction
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
-import { useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 interface ResidenceChangeModalProps {
     visible: boolean
@@ -47,20 +48,38 @@ const ResidenceChangeModal = ({
     const t = useTranslations('profile.unlockPayments.changeModal')
     const tCommon = useTranslations('common')
     const restrictionSets = useResidenceRestrictionSets()
+    const locale = useLocale()
     const [selected, setSelected] = useState<string>(declared ?? verified ?? '')
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    // The parent keeps this modal mounted and toggles `visible`, so the
+    // useState initializer only ever ran on first mount — re-seed the pick
+    // each time the modal opens (the user may have loaded late, or saved).
+    useEffect(() => {
+        if (!visible) return
+        setSelected(declared ?? verified ?? '')
+        setError(null)
+    }, [visible, declared, verified])
+
     const countryOptions = useMemo(() => {
         const options = countryData
             .filter((c) => c.type === 'country' && !!c.iso2)
-            .map((c) => ({ label: c.title, value: c.iso2!.toUpperCase() }))
+            .map((c) => ({
+                label: localizedCountryTitle(locale, { iso2: c.iso2!.toUpperCase(), title: c.title }),
+                value: c.iso2!.toUpperCase(),
+            }))
         const present = new Set(options.map((o) => o.value))
         for (const extra of SUPPLEMENTAL_RESIDENCE_OPTIONS) {
-            if (!present.has(extra.iso2)) options.push({ label: extra.title, value: extra.iso2 })
+            if (!present.has(extra.iso2)) {
+                options.push({
+                    label: localizedCountryTitle(locale, { iso2: extra.iso2, title: extra.title }),
+                    value: extra.iso2,
+                })
+            }
         }
-        return options.sort((a, b) => a.label.localeCompare(b.label))
-    }, [])
+        return options.sort((a, b) => a.label.localeCompare(b.label, locale))
+    }, [locale])
 
     const selectedRestrictions = deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
     const differsFromVerified = !!verified && !!selected && selected !== verified
@@ -80,7 +99,13 @@ const ResidenceChangeModal = ({
                 differed_from_verified: differsFromVerified,
                 reverify_started: reverifyAfter,
             })
-            await onSaved()
+            // The write already succeeded — a failed user refetch must not trap
+            // the user in the modal or surface as an unhandled rejection.
+            try {
+                await onSaved()
+            } catch (e) {
+                console.error('failed to refetch user after residence change:', e)
+            }
             onClose()
             if (reverifyAfter) onReverify()
             return true

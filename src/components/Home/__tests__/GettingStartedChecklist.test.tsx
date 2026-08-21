@@ -108,6 +108,15 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Make your first payment')).toBeInTheDocument()
     })
 
+    it('unknown eligibility (still loading) never shows the card step', () => {
+        // The first-payment step is always a valid action; a card step the
+        // server may yet deny is not. Undefined must not read as eligible.
+        mockIsEligible = undefined
+        render()
+        expect(screen.queryByText('Get your Peanut card')).not.toBeInTheDocument()
+        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
+    })
+
     it('renders nothing once every item is done', () => {
         mockUser = { user: { activationMilestone: 'funded' }, residence: { declared: 'BR', verified: 'BR' } }
         mockOverview = { cards: [{}] } // findActiveCard mock: truthy overview = active card

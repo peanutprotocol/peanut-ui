@@ -37,6 +37,17 @@ jest.mock('@/hooks/useGeoLocation', () => ({
 jest.mock('posthog-js', () => ({ capture: jest.fn(), setPersonProperties: jest.fn() }))
 const mockedCapture = posthog.capture as jest.Mock
 
+// Hermetic: the real hook fires a fetch for the server tier lists on first
+// mount; return the bundled mirror so no request leaves the test and no
+// async state update lands outside act().
+jest.mock('@/hooks/useResidenceRestrictionSets', () => {
+    const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
+    return {
+        ...actual,
+        useResidenceRestrictionSets: () => actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+    }
+})
+
 describe('ResidenceStep', () => {
     beforeEach(() => {
         jest.clearAllMocks()
