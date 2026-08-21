@@ -1,97 +1,20 @@
 'use client'
 
-/* eslint-disable react/jsx-no-literals -- internal team tool copy is intentionally not localized */
-
-import { useMemo, useState } from 'react'
-import { formatBaseUnitAmount } from './format'
+import { useMemo } from 'react'
+import { formatUsd, formatUtc } from './format'
 import { nodeIndex, relationshipsForNode } from './selectors'
 import RelationshipDetails from './RelationshipDetails'
-import type { ExplorerNode, ExplorerRelationship, ExplorerSelection, RevealReason, RevealResponse } from './types'
+import type { ExplorerNode, ExplorerRelationship, ExplorerSelection } from './types'
 
 interface InspectorProps {
     selection: ExplorerSelection
     nodes: readonly ExplorerNode[]
     relationships: readonly ExplorerRelationship[]
-    canReveal: boolean
-    revealing: boolean
-    revealed: RevealResponse | null
-    onReveal: (node: ExplorerNode, reason: RevealReason) => Promise<void>
     onSelectRelationship: (relationship: ExplorerRelationship) => void
     onClear: () => void
 }
 
-const REVEAL_REASONS: Array<{ value: RevealReason; label: string }> = [
-    { value: 'INVESTIGATION', label: 'Investigation' },
-    { value: 'SUPPORT_CASE', label: 'Support case' },
-    { value: 'FRAUD_REVIEW', label: 'Fraud review' },
-    { value: 'OTHER', label: 'Other' },
-]
-
-interface RevealFormProps {
-    node: ExplorerNode
-    revealing: boolean
-    onReveal: (node: ExplorerNode, reason: RevealReason) => Promise<void>
-}
-
-function RevealForm({ node, revealing, onReveal }: RevealFormProps) {
-    const [reason, setReason] = useState<RevealReason | ''>('')
-    const [revealError, setRevealError] = useState<string | null>(null)
-
-    return (
-        <form
-            className="mt-4 rounded-sm border border-n-1 bg-yellow-1 p-3"
-            onSubmit={(event) => {
-                event.preventDefault()
-                if (!reason || !node.revealToken) return
-                setRevealError(null)
-                void onReveal(node, reason).catch(() =>
-                    setRevealError('Identity could not be revealed. Try again or check your access.')
-                )
-            }}
-        >
-            <label className="block text-xs font-bold">
-                Reveal reason
-                <select
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value as RevealReason | '')}
-                    className="mt-1 h-8 w-full rounded-sm border border-n-1 bg-white px-2 text-xs"
-                >
-                    <option value="">Select a reason</option>
-                    {REVEAL_REASONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-            </label>
-            <button
-                type="submit"
-                disabled={!reason || revealing}
-                className="mt-2 w-full rounded-sm border border-n-1 bg-white px-2 py-1.5 text-xs font-bold shadow-[2px_2px_0_#000] disabled:opacity-40"
-            >
-                {revealing ? 'Verifying…' : 'Verify & reveal'}
-            </button>
-            <p className="mt-2 text-[11px] text-grey-1">Passkey required · reveal is audited · expires in 5m</p>
-            {revealError && (
-                <p role="alert" className="mt-2 text-xs font-semibold text-red">
-                    {revealError}
-                </p>
-            )}
-        </form>
-    )
-}
-
-export default function Inspector({
-    selection,
-    nodes,
-    relationships,
-    canReveal,
-    revealing,
-    revealed,
-    onReveal,
-    onSelectRelationship,
-    onClear,
-}: InspectorProps) {
+export default function Inspector({ selection, nodes, relationships, onSelectRelationship, onClear }: InspectorProps) {
     const nodesById = useMemo(() => nodeIndex(nodes), [nodes])
 
     if (!selection) {
@@ -117,65 +40,38 @@ export default function Inspector({
             {selection.type === 'node' ? (
                 <>
                     <div className="rounded-sm border border-n-1 bg-[#fcfaf7] p-3">
-                        <p className="break-words text-base font-bold">
-                            {revealed?.nodeId === selection.node.id ? revealed.label : selection.node.label}
-                        </p>
+                        <p className="break-words text-base font-bold">{selection.node.username}</p>
                         <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-grey-1">
-                            {selection.node.type} · {selection.node.labelVisibility.toLowerCase()}
+                            {selection.node.hasAppAccess ? 'App access' : 'No app access'}
+                            {selection.node.kycRegions?.length ? ` · KYC ${selection.node.kycRegions.join(', ')}` : ''}
                         </p>
                         <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
                             <div>
-                                <dt className="text-grey-1">Payments</dt>
+                                <dt className="text-grey-1">Total points</dt>
                                 <dd className="font-bold tabular-nums">
-                                    {selection.node.paymentCount.toLocaleString()}
+                                    {selection.node.totalPoints.toLocaleString()}
                                 </dd>
                             </div>
                             <div>
-                                <dt className="text-grey-1">Overlays</dt>
+                                <dt className="text-grey-1">Direct points</dt>
                                 <dd className="font-bold tabular-nums">
-                                    {selection.node.overlayCount.toLocaleString()}
+                                    {selection.node.directPoints.toLocaleString()}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-grey-1">Signed up</dt>
+                                <dd className="font-bold">
+                                    {selection.node.createdAt ? formatUtc(selection.node.createdAt) : '—'}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-grey-1">Last active</dt>
+                                <dd className="font-bold">
+                                    {selection.node.lastActiveAt ? formatUtc(selection.node.lastActiveAt) : '—'}
                                 </dd>
                             </div>
                         </dl>
                     </div>
-
-                    {selection.node.assets.length > 0 && (
-                        <section className="mt-4" aria-labelledby="native-buckets-heading">
-                            <h3
-                                id="native-buckets-heading"
-                                className="text-xs font-bold uppercase tracking-wide text-grey-1"
-                            >
-                                Native asset buckets
-                            </h3>
-                            <ul className="mt-2 space-y-2">
-                                {selection.node.assets.map((asset) => (
-                                    <li
-                                        key={`${asset.code}:${asset.chainId ?? ''}`}
-                                        className="rounded-sm bg-[#f3efe9] p-2 text-xs"
-                                    >
-                                        <span className="font-mono font-bold">
-                                            {formatBaseUnitAmount(asset.nativeAmount, asset)}
-                                        </span>
-                                        <span className="ml-2 text-grey-1">
-                                            {asset.paymentCount.toLocaleString()} settled
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-                    )}
-
-                    {canReveal &&
-                        selection.node.labelVisibility === 'PSEUDONYMOUS' &&
-                        selection.node.revealToken &&
-                        revealed?.nodeId !== selection.node.id && (
-                            <RevealForm
-                                key={selection.node.id}
-                                node={selection.node}
-                                revealing={revealing}
-                                onReveal={onReveal}
-                            />
-                        )}
 
                     <section className="mt-4" aria-labelledby="connections-heading">
                         <h3 id="connections-heading" className="text-xs font-bold uppercase tracking-wide text-grey-1">
@@ -197,10 +93,11 @@ export default function Inspector({
                                                 className="flex w-full items-center justify-between gap-2 rounded-sm border border-n-1/20 px-2 py-1.5 text-left text-xs hover:bg-primary-3/20"
                                             >
                                                 <span className="min-w-0 truncate font-semibold">
-                                                    {nodesById.get(otherId)?.label ?? otherId}
+                                                    {nodesById.get(otherId)?.username ?? otherId}
                                                 </span>
                                                 <span className="shrink-0 text-grey-1">
-                                                    {relationship.count.toLocaleString()}
+                                                    {relationship.count.toLocaleString()} ·{' '}
+                                                    {formatUsd(relationship.totalUsd)}
                                                 </span>
                                             </button>
                                         </li>

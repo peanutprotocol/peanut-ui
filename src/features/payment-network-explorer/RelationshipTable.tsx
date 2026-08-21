@@ -1,10 +1,14 @@
 'use client'
 
-/* eslint-disable react/jsx-no-literals -- internal team tool copy is intentionally not localized */
-
 import { useEffect, useMemo, useState } from 'react'
-import { formatRelationshipAmount, formatUtc } from './format'
-import { nodeIndex, sortRelationships, type RelationshipSortKey, type SortDirection } from './selectors'
+import { formatUsd } from './format'
+import {
+    EDGE_TYPE_LABELS,
+    nodeIndex,
+    sortRelationships,
+    type RelationshipSortKey,
+    type SortDirection,
+} from './selectors'
 import type { ExplorerNode, ExplorerRelationship } from './types'
 
 const PAGE_SIZE = 100
@@ -17,7 +21,7 @@ interface RelationshipTableProps {
 }
 
 export default function RelationshipTable({ nodes, relationships, selectedId, onSelect }: RelationshipTableProps) {
-    const [sortKey, setSortKey] = useState<RelationshipSortKey>('lastAt')
+    const [sortKey, setSortKey] = useState<RelationshipSortKey>('totalUsd')
     const [sortDirection, setSortDirection] = useState<SortDirection>('descending')
     const [page, setPage] = useState(0)
     const nodesById = useMemo(() => nodeIndex(nodes), [nodes])
@@ -39,14 +43,14 @@ export default function RelationshipTable({ nodes, relationships, selectedId, on
             return
         }
         setSortKey(next)
-        setSortDirection(next === 'lastAt' || next === 'count' ? 'descending' : 'ascending')
+        setSortDirection(next === 'count' || next === 'totalUsd' ? 'descending' : 'ascending')
     }
 
-    const header = (label: string, key: RelationshipSortKey) => (
+    const header = (label: string, key: RelationshipSortKey, align: 'left' | 'right' = 'left') => (
         <th
             scope="col"
             aria-sort={sortKey === key ? sortDirection : 'none'}
-            className="sticky top-0 z-10 border-b border-n-1 bg-[#fcfaf7] px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-grey-1"
+            className={`sticky top-0 z-10 border-b border-n-1 bg-[#fcfaf7] px-3 py-2 ${align === 'right' ? 'text-right' : 'text-left'} text-[11px] font-bold uppercase tracking-wide text-grey-1`}
         >
             <button
                 type="button"
@@ -63,34 +67,20 @@ export default function RelationshipTable({ nodes, relationships, selectedId, on
         <section className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_44px] bg-white" aria-label="Relationships">
             <div className="min-h-0 overflow-auto">
                 <table className="w-full border-collapse text-xs">
-                    <caption className="sr-only">Canonical payment relationships matching the selected filters</caption>
+                    <caption className="sr-only">Payment relationships matching the selected filters</caption>
                     <thead>
                         <tr>
-                            {header('Last activity', 'lastAt')}
                             {header('From', 'source')}
                             {header('To', 'target')}
-                            {header('Rail', 'rail')}
-                            {header('Provider', 'provider')}
+                            {header('Type', 'type')}
                             <th
                                 scope="col"
                                 className="sticky top-0 z-10 border-b border-n-1 bg-[#fcfaf7] px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-grey-1"
                             >
-                                Method
+                                Direction
                             </th>
-                            {header('State', 'state')}
-                            {header('Count', 'count')}
-                            <th
-                                scope="col"
-                                className="sticky top-0 z-10 border-b border-n-1 bg-[#fcfaf7] px-3 py-2 text-right text-[11px] font-bold uppercase tracking-wide text-grey-1"
-                            >
-                                Settled
-                            </th>
-                            <th
-                                scope="col"
-                                className="sticky top-0 z-10 border-b border-n-1 bg-[#fcfaf7] px-3 py-2 text-right text-[11px] font-bold uppercase tracking-wide text-grey-1"
-                            >
-                                Native amount
-                            </th>
+                            {header('Count', 'count', 'right')}
+                            {header('Total USD', 'totalUsd', 'right')}
                         </tr>
                     </thead>
                     <tbody>
@@ -112,37 +102,29 @@ export default function RelationshipTable({ nodes, relationships, selectedId, on
                                         selected ? 'bg-primary-3/35' : ''
                                     }`}
                                 >
-                                    <td className="whitespace-nowrap px-3 py-2 text-grey-1">
-                                        {formatUtc(relationship.lastAt)}
+                                    <td className="max-w-40 truncate px-3 py-2 font-semibold">
+                                        {nodesById.get(relationship.source)?.username ?? relationship.source}
                                     </td>
                                     <td className="max-w-40 truncate px-3 py-2 font-semibold">
-                                        {nodesById.get(relationship.source)?.label ?? relationship.source}
+                                        {nodesById.get(relationship.target)?.username ?? relationship.target}
                                     </td>
-                                    <td className="max-w-40 truncate px-3 py-2 font-semibold">
-                                        {nodesById.get(relationship.target)?.label ?? relationship.target}
+                                    <td className="whitespace-nowrap px-3 py-2">
+                                        {EDGE_TYPE_LABELS[relationship.type]}
                                     </td>
-                                    <td className="whitespace-nowrap px-3 py-2 font-mono text-[11px]">
-                                        {relationship.rail}
-                                    </td>
-                                    <td className="whitespace-nowrap px-3 py-2">{relationship.provider}</td>
-                                    <td className="whitespace-nowrap px-3 py-2">{relationship.method}</td>
-                                    <td className="px-3 py-2">
-                                        <span
-                                            className={`rounded-full border border-n-1 px-1.5 py-0.5 text-[10px] font-bold ${
-                                                relationship.state === 'SETTLED' ? 'bg-green-1' : 'bg-yellow-1'
-                                            }`}
-                                        >
-                                            {relationship.state}
-                                        </span>
+                                    <td className="whitespace-nowrap px-3 py-2">
+                                        {relationship.bidirectional ? (
+                                            <span className="rounded-full border border-n-1 bg-green-1 px-1.5 py-0.5 text-[10px] font-bold">
+                                                ⇄ both ways
+                                            </span>
+                                        ) : (
+                                            <span aria-label="one way">→</span>
+                                        )}
                                     </td>
                                     <td className="px-3 py-2 text-right tabular-nums">
                                         {relationship.count.toLocaleString()}
                                     </td>
                                     <td className="px-3 py-2 text-right tabular-nums">
-                                        {relationship.settledPaymentCount.toLocaleString()}
-                                    </td>
-                                    <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-[11px]">
-                                        {formatRelationshipAmount(relationship)}
+                                        {formatUsd(relationship.totalUsd)}
                                     </td>
                                 </tr>
                             )

@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-no-literals -- internal team tool copy is intentionally not localized */
 import SearchBox from './SearchBox'
 import InfoTooltip from './InfoTooltip'
 import type { ExplorerView } from './types'

@@ -1,19 +1,18 @@
 'use client'
 
-/* eslint-disable react/jsx-no-literals -- internal team tool copy is intentionally not localized */
-
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type Ref } from 'react'
 import type { ForceGraphMethods, ForceGraphProps } from 'react-force-graph-2d'
 import InfoTooltip from './InfoTooltip'
 import {
     buildGraphProjection,
-    movementStatesPresent,
+    edgeTypesPresent,
+    EDGE_TYPE_LABELS,
     rankDenseGraphOverview,
     type GraphLinkProjection,
     type GraphNodeProjection,
 } from './selectors'
-import type { ExplorerNode, ExplorerRelationship, MovementState } from './types'
+import type { ExplorerNode, ExplorerRelationship, P2PEdgeType } from './types'
 import { useReducedMotion } from './useReducedMotion'
 
 type PaymentForceGraphProps = ForceGraphProps<GraphNodeProjection, GraphLinkProjection> & {
@@ -24,19 +23,14 @@ const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
     ssr: false,
 }) as unknown as ComponentType<PaymentForceGraphProps>
 
-const STATE_COLOR: Record<MovementState, string> = {
-    SETTLED: '#1f6f50',
-    PENDING: '#c17a00',
-    FAILED: '#c74242',
-    REFUNDED: '#7c57c2',
-    REVERSED: '#7b5b3f',
+const TYPE_COLOR: Record<P2PEdgeType, string> = {
+    SEND_LINK: '#1f6f50',
+    REQUEST_PAYMENT: '#7c57c2',
+    DIRECT_TRANSFER: '#c17a00',
 }
 
-const NODE_COLOR: Record<ExplorerNode['type'], string> = {
-    USER: '#ffde59',
-    EXTERNAL: '#c7b5ff',
-    HUB: '#b7e4c7',
-}
+const NODE_COLOR = '#ffde59'
+const NODE_COLOR_NO_ACCESS = '#e5ddd0'
 
 const DENSE_LINK_LIMITS = [320, 1600, Number.POSITIVE_INFINITY] as const
 
@@ -82,7 +76,7 @@ export default function NetworkCanvas({
         () => (denseGraph ? rankDenseGraphOverview(nodes, relationships) : null),
         [denseGraph, nodes, relationships]
     )
-    const selectedNodeId = selected && 'type' in selected ? selected.id : null
+    const selectedNodeId = selected && 'username' in selected ? selected.id : null
     const selectedRelationshipId = selected && 'source' in selected ? selected.id : null
     const visibleRelationshipIds = useMemo(() => {
         if (!denseRanking) return null
@@ -102,7 +96,7 @@ export default function NetworkCanvas({
         return visible
     }, [denseDetailLevel, denseRanking, focusNodeId, relationships, selectedNodeId, selectedRelationshipId])
     const overviewLabelNodeIds = useMemo(() => new Set(denseRanking?.labelNodeIds ?? []), [denseRanking])
-    const presentStates = useMemo(() => movementStatesPresent(relationships), [relationships])
+    const presentTypes = useMemo(() => edgeTypesPresent(relationships), [relationships])
 
     const handleZoom = useCallback(
         ({ k }: { k: number }) => {
@@ -151,14 +145,14 @@ export default function NetworkCanvas({
     }, [applyFocusedCamera])
 
     const paintNode = (node: GraphNodeProjection, ctx: CanvasRenderingContext2D, scale: number) => {
-        const paymentCount = Math.max(0, node.canonical.paymentCount)
+        const points = Math.max(0, node.canonical.totalPoints)
         const radius = denseGraph
-            ? Math.min(3.2, 1.1 + Math.log2(paymentCount + 1) * 0.22)
-            : Math.min(13, 3.5 + Math.log2(paymentCount + 1) * 0.85)
+            ? Math.min(3.2, 1.1 + Math.log2(points + 1) * 0.12)
+            : Math.min(13, 3.5 + Math.log2(points + 1) * 0.45)
         const isSelected = node.id === selectedNodeId || node.id === focusNodeId
         ctx.beginPath()
         ctx.arc(node.x ?? 0, node.y ?? 0, radius, 0, Math.PI * 2)
-        ctx.fillStyle = NODE_COLOR[node.canonical.type]
+        ctx.fillStyle = node.canonical.hasAppAccess ? NODE_COLOR : NODE_COLOR_NO_ACCESS
         ctx.fill()
         ctx.lineWidth = isSelected ? 2.5 / scale : 1 / scale
         ctx.strokeStyle = '#171717'
@@ -170,7 +164,7 @@ export default function NetworkCanvas({
             ctx.font = `700 ${fontSize}px Inter, system-ui, sans-serif`
             ctx.textAlign = 'center'
             ctx.textBaseline = 'top'
-            const labelWidth = ctx.measureText(node.canonical.label).width
+            const labelWidth = ctx.measureText(node.canonical.username).width
             const labelY = (node.y ?? 0) + radius + 3 / scale
             ctx.fillStyle = 'rgba(247, 244, 239, 0.9)'
             ctx.fillRect(
@@ -180,14 +174,14 @@ export default function NetworkCanvas({
                 fontSize + 3 / scale
             )
             ctx.fillStyle = '#171717'
-            ctx.fillText(node.canonical.label, node.x ?? 0, labelY)
+            ctx.fillText(node.canonical.username, node.x ?? 0, labelY)
         }
     }
 
     const paintPointerArea = (node: GraphNodeProjection, color: string, ctx: CanvasRenderingContext2D) => {
         const radius = denseGraph
             ? 4
-            : Math.min(15, 5.5 + Math.log2(Math.max(0, node.canonical.paymentCount) + 1) * 0.85)
+            : Math.min(15, 5.5 + Math.log2(Math.max(0, node.canonical.totalPoints) + 1) * 0.45)
         ctx.beginPath()
         ctx.arc(node.x ?? 0, node.y ?? 0, radius, 0, Math.PI * 2)
         ctx.fillStyle = color
@@ -205,17 +199,17 @@ export default function NetworkCanvas({
         >
             <p className="sr-only">Use the relationship table for keyboard navigation and exact connection details.</p>
             <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2 text-[10px] font-semibold">
-                {presentStates.map((state) => (
+                {presentTypes.map((type) => (
                     <span
-                        key={state}
+                        key={type}
                         className="inline-flex items-center gap-1 rounded-full border border-n-1 bg-white px-2 py-1"
                     >
                         <span
                             className="size-2 rounded-full"
-                            style={{ backgroundColor: STATE_COLOR[state] }}
+                            style={{ backgroundColor: TYPE_COLOR[type] }}
                             aria-hidden="true"
                         />
-                        {state.toLowerCase()}
+                        {EDGE_TYPE_LABELS[type]}
                     </span>
                 ))}
             </div>
@@ -248,10 +242,10 @@ export default function NetworkCanvas({
                     link.canonical.target === selectedNodeId ||
                     link.canonical.source === focusNodeId ||
                     link.canonical.target === focusNodeId
-                        ? STATE_COLOR[link.canonical.state]
+                        ? TYPE_COLOR[link.canonical.type]
                         : denseGraph
-                          ? `${STATE_COLOR[link.canonical.state]}70`
-                          : STATE_COLOR[link.canonical.state]
+                          ? `${TYPE_COLOR[link.canonical.type]}70`
+                          : TYPE_COLOR[link.canonical.type]
                 }
                 linkWidth={(link: GraphLinkProjection) =>
                     link.canonicalRelationshipId === selectedRelationshipId

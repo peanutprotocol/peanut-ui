@@ -1,64 +1,46 @@
-/* eslint-disable react/jsx-no-literals -- internal team tool copy is intentionally not localized */
 import InfoTooltip from './InfoTooltip'
-import { formatCompactCount, formatUtc } from './format'
-import { missingPrincipalMovementCount, settledEventCoveragePercent } from './selectors'
-import type { PaymentNetworkResponse } from './types'
+import { formatCompactCount } from './format'
+import { FIXED_WINDOW_LABEL } from './query'
+import type { ExplorerGraphResponse } from './types'
 
 interface ExplorerSummaryProps {
-    data: PaymentNetworkResponse
+    data: ExplorerGraphResponse
+    visibleRelationshipCount: number
 }
 
-export default function ExplorerSummary({ data }: ExplorerSummaryProps) {
-    const { sampling, coverage } = data.meta
-    const missingPrincipalMovements = missingPrincipalMovementCount(coverage.missingPrincipal)
-    const coveragePercent = settledEventCoveragePercent(sampling)
+export default function ExplorerSummary({ data, visibleRelationshipCount }: ExplorerSummaryProps) {
+    const { stats } = data
     return (
         <section
             className="flex min-h-12 items-center gap-5 border-b border-n-1 bg-[#fcfaf7] px-4 text-xs"
             aria-label="Data summary"
         >
             <span>
-                <b>{formatCompactCount(sampling.returnedNodes)}</b> nodes
+                <b>{formatCompactCount(data.nodes.length)}</b> users
             </span>
             <span>
-                <b>{formatCompactCount(sampling.returnedRelationships)}</b> relationships
+                <b>{formatCompactCount(visibleRelationshipCount)}</b> of{' '}
+                <b>{formatCompactCount(data.p2pEdges.length)}</b> payment edges
             </span>
             <span>
-                <b>{formatCompactCount(coverage.settledMovementCount)}</b> settled
+                <b>{formatCompactCount(stats.usersWithAccess)}</b> with app access
             </span>
-            {coverage.overlayEventCount > 0 && (
-                <span className="rounded-full border border-n-1 bg-yellow-1 px-2 py-0.5 font-bold">
-                    {formatCompactCount(coverage.overlayEventCount)} overlays
-                </span>
-            )}
-            <span className="ml-auto inline-flex items-center gap-1.5">
-                <span
-                    className={`size-2 rounded-full ${coverage.health === 'HEALTHY' ? 'bg-[#2a9d55]' : 'bg-[#d97706]'}`}
-                    aria-hidden="true"
-                />
-                {coverage.health === 'HEALTHY' ? 'Healthy' : 'Review data'}
-                <InfoTooltip label="data health">
-                    {coverage.unclassifiedEventCount} unclassified events. {missingPrincipalMovements} movements across{' '}
-                    {coverage.missingPrincipal.length} principal-gap groups.
-                </InfoTooltip>
-            </span>
-            {sampling.truncated && (
+            {data.nodes.length < stats.totalNodes && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-n-1 bg-primary-3 px-2 py-0.5 font-bold">
-                    {coveragePercent}% shown
+                    top {formatCompactCount(data.nodes.length)} of {formatCompactCount(stats.totalNodes)}
                     <InfoTooltip label="sampling">
-                        {sampling.matchedSettledEventCount === 0
-                            ? 'No settled events matched; coverage is shown as 0%.'
-                            : `${sampling.returnedSettledEventCount.toLocaleString('en-US')} of ${sampling.matchedSettledEventCount.toLocaleString('en-US')} matched settled events returned.`}{' '}
-                        {sampling.returnedNodes.toLocaleString('en-US')} of{' '}
-                        {sampling.totalNodes.toLocaleString('en-US')} nodes and{' '}
-                        {sampling.returnedRelationships.toLocaleString('en-US')} of{' '}
-                        {sampling.totalRelationships.toLocaleString('en-US')} relationships. {sampling.reason}
+                        The server returned the top users by points plus recent signups. Raise the top-users filter to
+                        widen the graph.
                     </InfoTooltip>
                 </span>
             )}
-            <time className="text-grey-1" dateTime={data.meta.generatedAt}>
-                {formatUtc(data.meta.generatedAt)}
-            </time>
+            <span className="ml-auto inline-flex items-center gap-1.5 text-grey-1">
+                {FIXED_WINDOW_LABEL}
+                <InfoTooltip label="data window">
+                    Payment edges are aggregated by the backend over a fixed 120-day window and include completed
+                    payments only. There is no time filter.
+                </InfoTooltip>
+            </span>
         </section>
     )
 }

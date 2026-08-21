@@ -1,7 +1,5 @@
 'use client'
 
-/* eslint-disable react/jsx-no-literals -- internal team tool copy is intentionally not localized */
-
 import { useState, type FormEvent } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
 

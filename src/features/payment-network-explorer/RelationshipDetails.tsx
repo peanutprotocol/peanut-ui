@@ -1,4 +1,5 @@
-import { formatRelationshipAmount, formatUtc } from './format'
+import { formatUsd } from './format'
+import { EDGE_TYPE_LABELS } from './selectors'
 import type { ExplorerNode, ExplorerRelationship } from './types'
 
 interface RelationshipDetailsProps {
@@ -8,25 +9,12 @@ interface RelationshipDetailsProps {
 
 export default function RelationshipDetails({ relationship, nodes }: RelationshipDetailsProps) {
     const rows: Array<[string, React.ReactNode]> = [
-        ['From', nodes.get(relationship.source)?.label ?? relationship.source],
-        ['To', nodes.get(relationship.target)?.label ?? relationship.target],
-        ['State', relationship.state],
-        ['Rail', relationship.rail],
-        ['Method', relationship.method],
-        ['Provider', relationship.provider],
-        ['Kind', relationship.kind],
-        ['Direction', relationship.direction],
-        ['Events', relationship.count.toLocaleString()],
-        ['Settled payments', relationship.settledPaymentCount.toLocaleString()],
-        [
-            relationship.state === 'SETTLED' ? 'Settled native amount' : 'Overlay native amount',
-            formatRelationshipAmount(relationship),
-        ],
-        ['Evidence', relationship.evidence],
-        ['Time basis', relationship.timeBasis],
-        ['First', formatUtc(relationship.firstAt)],
-        ['Last', formatUtc(relationship.lastAt)],
-        ['Bidirectional', relationship.bidirectional ? 'Yes' : 'No'],
+        ['From', nodes.get(relationship.source)?.username ?? relationship.source],
+        ['To', nodes.get(relationship.target)?.username ?? relationship.target],
+        ['Type', EDGE_TYPE_LABELS[relationship.type]],
+        ['Transactions', relationship.count.toLocaleString()],
+        ['Total USD', formatUsd(relationship.totalUsd)],
+        ['Both ways', relationship.bidirectional ? 'Yes' : 'No'],
     ]
 
     return (

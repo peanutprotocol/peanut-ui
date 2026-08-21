@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-no-literals -- internal team tool copy is intentionally not localized */
 export default function DesktopGuard() {
     return (
         <section
