@@ -15,6 +15,8 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { deriveRegionAccess, isBridgeSupportedCountry, pendingBankRailRegionPaths } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useQueryClient } from '@tanstack/react-query'
+import { LIMITS } from '@/constants/query.consts'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
@@ -83,9 +85,7 @@ function limitSummariesForGroup(
     mantecaLimits: MantecaLimit[] | null,
     bridgeLimits: BridgeLimits | null
 ): RowLimitSummary[] {
-    const refs = new Set(
-        group.rows.filter((row) => row.chip === 'active' && row.limitRef).map((row) => row.limitRef as string)
-    )
+    const refs = new Set(group.rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
     const summaries: RowLimitSummary[] = []
     for (const ref of refs) {
         if (ref === 'bridge') {
@@ -136,7 +136,8 @@ const UnlockPayments = () => {
     const restrictions = useResidenceRestrictions()
     const { identity, isProcessing: isIdentityInReview } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
-    const { isEligible, hasCardAccess } = useCardInfo()
+    const { isEligible } = useCardInfo()
+    const queryClient = useQueryClient()
     const { overview } = useRainCardOverview()
     const { mantecaLimits, bridgeLimits } = useLimits()
     const { setIsSupportModalOpen } = useModalsContext()
@@ -193,7 +194,9 @@ const UnlockPayments = () => {
                     argentina: unlockedRegions.some((region) => region.path === 'argentina'),
                 },
                 restrictions,
-                card: hasActiveCard ? 'active' : isEligible === false || !hasCardAccess ? 'notAvailable' : 'get',
+                // Eligibility (residence-driven) decides availability here; the
+                // waitlist grant only gates activation and is handled on /card.
+                card: hasActiveCard ? 'active' : isEligible === false ? 'notAvailable' : 'get',
                 residenceIso2,
                 isEuropeResidence:
                     !!residenceIso2 &&
@@ -201,7 +204,7 @@ const UnlockPayments = () => {
                     residenceIso2 !== 'MX' &&
                     isBridgeSupportedCountry(residenceIso2),
             }),
-        [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, hasCardAccess, residenceIso2]
+        [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, residenceIso2]
     )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
@@ -458,7 +461,16 @@ const UnlockPayments = () => {
                 userId={user?.user?.userId}
                 declared={residence?.declared ?? null}
                 verified={residence?.verified ?? null}
-                onSaved={() => fetchUser()}
+                onSaved={async () => {
+                    // A residence change shifts everything derived from it:
+                    // card eligibility (server recomputes from the declared
+                    // country) and limits, alongside the user record itself.
+                    await Promise.all([
+                        fetchUser(),
+                        queryClient.invalidateQueries({ queryKey: ['card-info'] }),
+                        queryClient.invalidateQueries({ queryKey: [LIMITS] }),
+                    ])
+                }}
                 onReverify={() => flow.handleRestartIdentity()}
             />
 
@@ -646,6 +658,14 @@ const UnlockGroupCard = ({
                     </button>
                 )
             })}
+            {/* P2P has no cap at all (no fiat provider behind it), so the
+                Everywhere group always states that — it is the one limit that
+                exists before any unlock. */}
+            {group.id === 'everywhere' && (
+                <div className="border-t border-n-1 px-3 py-2 dark:border-white">
+                    <p className="text-[11px] text-grey-1">{t('limits.p2pNoLimit')}</p>
+                </div>
+            )}
             {limitSummariesForGroup(group, mantecaLimits, bridgeLimits).map((summary) => (
                 <div
                     key={summary.kind === 'manteca' ? summary.asset : 'bridge'}

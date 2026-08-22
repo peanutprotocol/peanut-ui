@@ -354,14 +354,14 @@
             "rows": {
                 "p2p": "Pagamentos de Peanut para Peanut",
                 "card": "Cartão Peanut",
+                "saBank": "PIX, QR e transferências bancárias (Brasil e Argentina)",
                 "pixBank": "PIX e transferências bancárias (Brasil)",
                 "pixQr": "Pagamentos QR com PIX (Brasil)",
                 "brBank": "Transferências bancárias (Brasil)",
                 "arQrBank": "Pagamentos QR e transferências (Argentina)",
                 "arQr": "Pagamentos QR (Argentina)",
                 "arBank": "Transferências bancárias (Argentina)",
-                "achWire": "ACH e Wire (EUA)",
-                "spei": "Transferências SPEI (México)",
+                "naBank": "ACH, Wire (EUA) e SPEI (México)",
                 "sepa": "Transferências SEPA"
             },
             "chips": {
@@ -408,7 +408,8 @@
                 "viewAll": "Limites de pagamento",
                 "details": "Ver",
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
-                "perTransfer": "Até {amount} por transferência"
+                "perTransfer": "Até {amount} por transferência",
+                "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite"
             }
         },
         "backup": {

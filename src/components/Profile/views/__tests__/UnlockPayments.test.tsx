@@ -8,10 +8,19 @@
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import UnlockPayments from '@/components/Profile/views/UnlockPayments.view'
 
-const render = () => rtlRender(<UnlockPayments />, { wrapper: IntlWrapper })
+// The view reaches for the query client (residence-change invalidation), so
+// the render needs a provider even though every data hook is mocked.
+const render = () =>
+    rtlRender(
+        <QueryClientProvider client={new QueryClient()}>
+            <UnlockPayments />
+        </QueryClientProvider>,
+        { wrapper: IntlWrapper }
+    )
 
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }) }))
@@ -152,7 +161,7 @@ describe('UnlockPayments', () => {
     it('a fully restricted residence reads Not available on bank rows but keeps the always-on row', () => {
         mockRestrictions = { banking: true, card: true }
         render()
-        expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(6)
+        expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(4)
         expect(screen.getByText('Always on')).toBeInTheDocument()
         fireEvent.click(screen.getByText('SEPA transfers'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
@@ -192,6 +201,11 @@ describe('UnlockPayments', () => {
     it('the all-limits link points at /limits', () => {
         render()
         expect(screen.getByText('Payment limits').closest('a')).toHaveAttribute('href', '/limits')
+    })
+
+    it('states the P2P no-limit fact even before anything is unlocked', () => {
+        render()
+        expect(screen.getByText('No limits on Peanut-to-Peanut payments')).toBeInTheDocument()
     })
 
     it('a declared change pending re-verification is surfaced on the row', () => {
