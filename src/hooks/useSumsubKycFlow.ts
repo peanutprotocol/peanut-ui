@@ -520,6 +520,20 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [t, actionErrorMessage]
     )
 
+    // Launch the fix for a `fixable` provider rejection. Manteca RFIs (PEP/FEP,
+    // source of funds) are their own Sumsub levels, keyed by the verdict's
+    // `sumsub:*` action — the legacy resubmit route only mints the generic
+    // ID-reupload action, which Sumsub opens on its "already verified" screen and
+    // the user loops back to the same modal. Bridge stays on resubmit: that route
+    // resolves the level itself and stamps the externalActionId its webhook keys on.
+    const handleFixableRejection = useCallback(
+        (rejection: { provider: 'BRIDGE' | 'MANTECA'; actionKey?: string | null }) =>
+            rejection.provider === 'MANTECA' && rejection.actionKey
+                ? handleStartAction(rejection.actionKey)
+                : handleSelfHealResubmit(rejection.provider),
+        [handleStartAction, handleSelfHealResubmit]
+    )
+
     return {
         isLoading,
         error,
@@ -531,6 +545,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         handleRestartIdentity,
         handleSelfHealResubmit,
         handleStartAction,
+        handleFixableRejection,
         handleSdkComplete,
         handleClose,
         refreshToken,
