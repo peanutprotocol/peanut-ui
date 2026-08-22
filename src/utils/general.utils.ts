@@ -2,7 +2,7 @@ import { nativeCurrencyAddresses, supportedPeanutChains, peanutTokenDetails } fr
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import { isCapacitor } from '@/utils/capacitor'
-import * as Sentry from '@/utils/sentry-lazy'
+import * as Sentry from '@sentry/nextjs'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'

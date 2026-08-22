@@ -17,11 +17,6 @@ jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
 }))
 
-// sentry.utils reports through the lazy wrapper, which dynamically imports the
-// SDK. Its surface matches the mock above, so aliasing it keeps the calls
-// synchronous and the assertions below unchanged.
-jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
-
 jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
 }))
