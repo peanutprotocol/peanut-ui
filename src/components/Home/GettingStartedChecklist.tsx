@@ -82,6 +82,7 @@ const GettingStartedChecklist = () => {
             : {
                   id: 'first-payment',
                   label: t('firstPayment'),
+                  sub: t('firstPaymentNote'),
                   done: milestone === 'activated',
                   onTap: tap('first-payment', () => setIsQRScannerOpen(true)),
               }

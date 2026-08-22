@@ -27,18 +27,21 @@ describe('buildUnlockGroups', () => {
     })
 
     it('floats the residence group to the top of the regions', () => {
-        const groups = buildUnlockGroups(base({ residenceIso2: 'BR' }))
-        expect(groups[1].id).toBe('brazil')
+        const groups = buildUnlockGroups(base({ residenceIso2: 'US' }))
+        expect(groups[1].id).toBe('northAmerica')
         expect(groups[1].isYourRegion).toBe(true)
         // stable sort contract: everything else keeps catalog order
-        expect(groups.map((g) => g.id)).toEqual([
-            'everywhere',
-            'brazil',
-            'argentina',
-            'unitedStates',
-            'mexico',
-            'europe',
-        ])
+        expect(groups.map((g) => g.id)).toEqual(['everywhere', 'northAmerica', 'southAmerica', 'europe'])
+    })
+
+    it('a Brazilian or Argentine residence floats the shared South America group', () => {
+        for (const iso2 of ['BR', 'AR']) {
+            const groups = buildUnlockGroups(base({ residenceIso2: iso2 }))
+            expect(groups[1].id).toBe('southAmerica')
+            expect(groups[1].isYourRegion).toBe(true)
+        }
+        // Mexico floats North America — it shares the Bridge unlock with the US
+        expect(buildUnlockGroups(base({ residenceIso2: 'MX' }))[1].id).toBe('northAmerica')
     })
 
     it('marks Europe as your region for a European residence', () => {
@@ -46,18 +49,30 @@ describe('buildUnlockGroups', () => {
         expect(groups[1].id).toBe('europe')
     })
 
-    it('an active latam merges PIX and bank into one Brazil row', () => {
+    it('an active latam merges the Brazil and Argentina rows inside South America', () => {
         const groups = buildUnlockGroups(
             base({ regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'active' } })
         )
-        expect(group(groups, 'brazil').rows).toEqual([expect.objectContaining({ id: 'pix-bank', chip: 'active' })])
+        expect(group(groups, 'southAmerica').rows.map((r) => [r.id, r.chip, r.limitRef])).toEqual([
+            ['pix-bank', 'active', 'BRL'],
+            ['ar-qr-bank', 'active', 'ARS'],
+        ])
     })
 
     it('a QR-only Brazil splits the merged row: QR active, bank still an offer', () => {
         const groups = buildUnlockGroups(base({ qrOnly: { brazil: true, argentina: false } }))
-        expect(group(groups, 'brazil').rows.map((r) => [r.id, r.chip])).toEqual([
+        expect(group(groups, 'southAmerica').rows.map((r) => [r.id, r.chip])).toEqual([
             ['pix-qr', 'active'],
             ['br-bank', 'unlock'],
+            ['ar-qr-bank', 'unlock'],
+        ])
+    })
+
+    it('North America holds both US and Mexico rows behind the one Bridge unlock', () => {
+        const groups = buildUnlockGroups(base())
+        expect(group(groups, 'northAmerica').rows.map((r) => [r.id, r.limitRef])).toEqual([
+            ['ach-wire', 'bridge'],
+            ['spei', 'bridge'],
         ])
     })
 
@@ -66,24 +81,24 @@ describe('buildUnlockGroups', () => {
             base({ regionChips: { europe: 'active', 'north-america': 'unlock', latam: 'unlock' } })
         )
         expect(group(groups, 'europe').rows[0].regionPath).toBeUndefined()
-        expect(group(groups, 'unitedStates').rows[0]).toEqual(
+        expect(group(groups, 'northAmerica').rows[0]).toEqual(
             expect.objectContaining({ chip: 'unlock', regionPath: 'north-america' })
         )
-        expect(group(groups, 'brazil').rows[0].regionPath).toBe('latam')
+        expect(group(groups, 'southAmerica').rows[0].regionPath).toBe('latam')
     })
 
     it('a pending verification keeps its own Processing status, never collapsed into Unlock', () => {
         const groups = buildUnlockGroups(
             base({ regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'processing' } })
         )
-        expect(group(groups, 'brazil').rows[0]).toEqual(
+        expect(group(groups, 'southAmerica').rows[0]).toEqual(
             expect.objectContaining({ chip: 'processing', regionPath: 'latam' })
         )
     })
 
     it('a banking restriction turns every bank row into Not available and untappable', () => {
         const groups = buildUnlockGroups(base({ restrictions: { banking: true, card: true } }))
-        for (const id of ['brazil', 'argentina', 'unitedStates', 'mexico', 'europe']) {
+        for (const id of ['southAmerica', 'northAmerica', 'europe']) {
             for (const row of group(groups, id).rows) {
                 expect(row.chip).toBe('notAvailable')
                 expect(row.regionPath).toBeUndefined()
