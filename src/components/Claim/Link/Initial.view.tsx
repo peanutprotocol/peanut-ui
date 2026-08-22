@@ -108,6 +108,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         flowStep: claimBankFlowStep,
         showVerificationModal,
         setShowVerificationModal,
+        verificationPromptReason,
+        setVerificationPromptReason,
         setClaimToExternalWallet,
         resetFlow: resetClaimBankFlow,
         claimToMercadoPago,
@@ -933,9 +935,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     useEffect(() => {
         if (claimToMercadoPago && !user) {
+            // regional claim without an account: the sender's verification is
+            // irrelevant here, so don't render copy that blames them
+            setVerificationPromptReason('account-required')
             setShowVerificationModal(true)
         }
-    }, [claimToMercadoPago, user, setShowVerificationModal])
+    }, [claimToMercadoPago, user, setShowVerificationModal, setVerificationPromptReason])
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
@@ -1127,7 +1132,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     removeParamStep()
                     setShowVerificationModal(false)
                 }}
-                description={t('guestVerification.description')}
+                description={
+                    verificationPromptReason === 'sender-unverified'
+                        ? t('guestVerification.senderUnverifiedDescription')
+                        : t('guestVerification.accountRequiredDescription')
+                }
                 inviterUsername={claimLinkData?.sender?.username}
             />
         </div>

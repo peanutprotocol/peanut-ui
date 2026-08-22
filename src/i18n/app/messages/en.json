@@ -905,7 +905,8 @@
         },
         "guestVerification": {
             "otherMethod": "Claim with other method",
-            "description": "The sender isn't verified for this method. You'll have to create an account, verify your identity, and then your funds will be deposited to your bank."
+            "senderUnverifiedDescription": "The sender isn't set up to send to a bank yet. You can claim with another method, or create an account and verify your identity to receive it in your bank.",
+            "accountRequiredDescription": "You'll need a Peanut account to claim with this method. Create one and verify your identity, and your funds will be deposited to your bank."
         },
         "actions": {
             "claimOn": "Claim on",

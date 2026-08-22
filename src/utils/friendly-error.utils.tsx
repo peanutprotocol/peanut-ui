@@ -127,6 +127,11 @@ const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
     [API_ERROR_CODES.CARD_SECRETS_RATE_LIMITED]: 'cardRateLimited',
     [API_ERROR_CODES.WITHDRAWAL_SIGNATURE_EXPIRED]: 'nonceExpired',
     [API_ERROR_CODES.WITHDRAWAL_SUBMISSION_FAILED]: 'sendTransactionError',
+    // Paymaster/bundler outage. The API rolls the claim back before sending
+    // this, so the operation provably did not happen and a retry is the right
+    // advice — the sanitized 500 prose says "contact support" instead, which is
+    // what six users were told during the 2026-08-19 ZeroDev incident.
+    [API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE]: 'networkBusyTimeout',
 }
 
 /** Both cooldown codes render the same copy — the distinction between a
