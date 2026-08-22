@@ -5,12 +5,15 @@ import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useLayoutEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
+
+// useLayoutEffect fires before paint but does not exist on the server.
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
@@ -39,6 +42,19 @@ function PeanutMascot() {
 
         img.style.top = `${peanutTop}px`
     }, [])
+
+    /*
+     * Position before the first paint. The <Image> carries explicit width and
+     * height, so the element is already laid out at its final size before the
+     * bytes arrive — there is no need to wait for the load event, and waiting
+     * moves a 320px element after paint, which is a layout shift.
+     *
+     * This used to be invisible because hydration was slower than the image
+     * download, so `img.complete` was already true by the time the effect below
+     * ran. Once the page got faster than the image, the mascot started being
+     * placed after paint and cost ~0.039 CLS on mobile.
+     */
+    useIsomorphicLayoutEffect(position, [position])
 
     useEffect(() => {
         const img = imgRef.current
