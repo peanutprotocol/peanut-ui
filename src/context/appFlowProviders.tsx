@@ -1,5 +1,7 @@
 'use client'
 
+import { ToastProvider } from '@/components/0_Bruddle/Toast'
+import { AuthProvider } from './authContext'
 import { OnrampFlowContextProvider } from './OnrampFlowContext'
 import { KernelClientProvider } from './kernelClient.context'
 import { LoadingStateContextProvider } from './loadingStates.context'
@@ -32,24 +34,28 @@ import { RainCooldownProvider } from './RainCooldownContext'
  */
 export const AppFlowProviders = ({ children }: { children: React.ReactNode }) => {
     return (
-        <KernelClientProvider>
-            <TokenContextProvider>
-                <LoadingStateContextProvider>
-                    <ClaimBankFlowContextProvider>
-                        <RequestFulfilmentFlowContextProvider>
-                            <WithdrawFlowContextProvider>
-                                <OnrampFlowContextProvider>
-                                    <PasskeySupportProvider>
-                                        <ModalsProvider>
-                                            <RainCooldownProvider>{children}</RainCooldownProvider>
-                                        </ModalsProvider>
-                                    </PasskeySupportProvider>
-                                </OnrampFlowContextProvider>
-                            </WithdrawFlowContextProvider>
-                        </RequestFulfilmentFlowContextProvider>
-                    </ClaimBankFlowContextProvider>
-                </LoadingStateContextProvider>
-            </TokenContextProvider>
-        </KernelClientProvider>
+        <ToastProvider>
+            <AuthProvider>
+                <KernelClientProvider>
+                    <TokenContextProvider>
+                        <LoadingStateContextProvider>
+                            <ClaimBankFlowContextProvider>
+                                <RequestFulfilmentFlowContextProvider>
+                                    <WithdrawFlowContextProvider>
+                                        <OnrampFlowContextProvider>
+                                            <PasskeySupportProvider>
+                                                <ModalsProvider>
+                                                    <RainCooldownProvider>{children}</RainCooldownProvider>
+                                                </ModalsProvider>
+                                            </PasskeySupportProvider>
+                                        </OnrampFlowContextProvider>
+                                    </WithdrawFlowContextProvider>
+                                </RequestFulfilmentFlowContextProvider>
+                            </ClaimBankFlowContextProvider>
+                        </LoadingStateContextProvider>
+                    </TokenContextProvider>
+                </KernelClientProvider>
+            </AuthProvider>
+        </ToastProvider>
     )
 }

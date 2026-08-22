@@ -2,9 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
-import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { isMarketingRoute } from '@/utils/marketing-routes'
-import { AuthProvider } from './authContext'
 
 // note: push notifications are now handled by onesignal via useNotifications hook.
 // the legacy PushProvider (web-push based) has been removed.
@@ -18,9 +16,8 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
     // gets the full tree.
     const marketing = isMarketingRoute(usePathname())
 
-    return (
-        <ToastProvider>
-            <AuthProvider>{marketing ? children : <AppFlowProviders>{children}</AppFlowProviders>}</AuthProvider>
-        </ToastProvider>
-    )
+    // Auth, toast, redux and react-query all live in AppFlowProviders now: the
+    // marketing site has no signed-in state to read, and AuthProvider was the
+    // only thing pulling that stack onto it.
+    return marketing ? <>{children}</> : <AppFlowProviders>{children}</AppFlowProviders>
 }

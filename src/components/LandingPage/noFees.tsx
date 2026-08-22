@@ -5,11 +5,6 @@ import Star from '@/assets/illustrations/star.svg'
 import Image from 'next/image'
 import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
-import { printableUsdc } from '@/utils/balance.utils'
-import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
-import { AccountType } from '@/interfaces/interfaces'
-import type { Address } from 'viem'
-import { useAuth } from '@/context/authContext'
 import { twMerge } from 'tailwind-merge'
 import { ContextualLinks } from './ContextualLinks'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
@@ -27,33 +22,20 @@ export function NoFees({
     strings: LandingStrings
 }) {
     const router = useRouter()
-    const { user } = useAuth()
-    const walletAddress = user?.accounts.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier
-
     /*
-     * The balance is only consulted for a signed-in user, and only to decide
-     * add-money vs withdraw. Reading it at click time keeps `useBalance` — and
-     * through it viem's chain registry — out of the landing page's bundle.
+     * Session is read from the cookie rather than AuthProvider: that context is
+     * the only thing that kept react-query and the redux store mounted on the
+     * marketing site. Native keeps its token outside cookies, but the landing
+     * page there is a bootstrap shell that redirects away before this matters.
      */
     const handleCtaAction = async (sourceCurrency: string, destinationCurrency: string) => {
-        if (!user) {
+        const signedIn = typeof document !== 'undefined' && /(^|;\s*)jwt-token=/.test(document.cookie)
+        if (!signedIn) {
             router.push('/setup')
             return
         }
-
-        let formattedBalance = 0
-        if (walletAddress) {
-            try {
-                const { smartUsdcBalanceQueryOptions } = await import('@/hooks/wallet/useBalance')
-                const balance = await smartUsdcBalanceQueryOptions(walletAddress as Address).queryFn()
-                formattedBalance = parseFloat(printableUsdc(balance))
-            } catch {
-                // Treat an unreadable balance as zero — routes to add-money,
-                // which is the safe destination either way.
-            }
-        }
-
-        router.push(getExchangeRateWidgetRedirectRoute(sourceCurrency, destinationCurrency, formattedBalance))
+        const { resolveExchangeCtaRoute } = await import('./exchangeCtaRoute')
+        router.push(await resolveExchangeCtaRoute(sourceCurrency, destinationCurrency))
     }
 
     return (
