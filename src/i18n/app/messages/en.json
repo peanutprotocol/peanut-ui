@@ -54,7 +54,8 @@
             "custom": "Custom",
             "unknown": "Unknown"
         },
-        "exchangeRate": "Exchange rate"
+        "exchangeRate": "Exchange rate",
+        "userAvatarAlt": "Avatar for {username}"
     },
     "navigation": {
         "home": "Home",
@@ -125,6 +126,20 @@
                 "payWithCard": "Pay with your card",
                 "scanQr": "Scan a QR code"
             }
+        },
+        "gettingStarted": {
+            "title": "Get started",
+            "createAccount": "Create your account",
+            "createAccountDone": "Done. Your money has a username now",
+            "addMoneyPix": "Add money with PIX",
+            "addMoneySepa": "Add money via SEPA",
+            "addMoneySpei": "Add money via SPEI",
+            "addMoneyBank": "Add money from your bank",
+            "kycNote": "Bank deposits need a one-time ID check · about 10 min",
+            "getCard": "Get your Peanut card",
+            "addMoney": "Add money",
+            "firstPayment": "Make your first payment",
+            "firstPaymentNote": "Send a few dollars to any @username. It lands in seconds."
         },
         "autoBalance": {
             "title": "Finish setting up your card",
@@ -262,7 +277,7 @@
             "yourBadges": "Your Badges",
             "points": "Points",
             "personalDetails": "Personal details",
-            "unlockedRegions": "Unlocked regions",
+            "unlockedRegions": "Unlock payments",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
@@ -317,11 +332,89 @@
                 "notAvailableTitle": "Not available yet"
             }
         },
+        "unlockPayments": {
+            "title": "Unlock payments",
+            "description": "Everything you can use today, and what opens after ID verification.",
+            "residence": {
+                "label": "Residence: {country}",
+                "unknown": "Residence not set",
+                "verified": "Verified",
+                "unverified": "Not confirmed",
+                "change": "Change",
+                "set": "Set",
+                "pendingReverify": "Update to {country} pending re-verification"
+            },
+            "yourRegion": "Your region",
+            "groups": {
+                "everywhere": "Everywhere",
+                "southAmerica": "South America",
+                "northAmerica": "North America",
+                "europe": "Europe"
+            },
+            "rows": {
+                "p2p": "Peanut-to-Peanut payments",
+                "card": "Peanut card",
+                "saBank": "PIX, QR & bank transfers (Brazil & Argentina)",
+                "pixBank": "PIX & bank transfers (Brazil)",
+                "pixQr": "PIX QR payments (Brazil)",
+                "brBank": "Bank transfers (Brazil)",
+                "arQrBank": "QR payments & transfers (Argentina)",
+                "arQr": "QR payments (Argentina)",
+                "arBank": "Bank transfers (Argentina)",
+                "naBank": "ACH, Wire (US) & SPEI (Mexico)",
+                "sepa": "SEPA transfers"
+            },
+            "chips": {
+                "active": "Active",
+                "alwaysOn": "Always on",
+                "unlock": "Unlock",
+                "processing": "Processing",
+                "attention": "Attention",
+                "notAvailable": "Not available"
+            },
+            "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
+            "cardNotAvailableNote": "The card isn't available for residents of your country.",
+            "unlockModal": {
+                "title": "Unlock {method}",
+                "titleGeneric": "Unlock this payment method",
+                "notNow": "Not now"
+            },
+            "changeModal": {
+                "title": "Change your residence",
+                "description": "Pick the country of your citizenship or residence permit: the one your ID shows.",
+                "countryPlaceholder": "Select your country",
+                "verifiedMismatchNote": "Your current payment methods keep working. To make this your verified residence, you'll verify again with documents from that country.",
+                "fullRestrictionNote": "Heads up: bank transfers and card issuing aren't available for residents of this country.",
+                "cardRestrictionNote": "Heads up: the card isn't available for residents of this country.",
+                "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",
+                "save": "Save",
+                "saveAndReverify": "Save & re-verify now"
+            },
+            "degraded": {
+                "title": "Verification is temporarily down",
+                "body": "You can't start or continue an ID check right now.",
+                "notifyMe": "Notify me when it works again"
+            },
+            "review": {
+                "sinceDate": "ID check in review since {submittedDate}",
+                "since": "ID check in review",
+                "body": "Nothing is needed from you. We'll notify you the moment there's a decision.",
+                "escalation": "This is taking longer than usual.",
+                "messageUs": "Message us and we'll chase it"
+            },
+            "limits": {
+                "viewAll": "Payment limits",
+                "details": "View",
+                "monthlyLeft": "{remaining} of {limit} left this month",
+                "perTransfer": "Up to {amount} per transfer",
+                "p2pNoLimit": "No limits on Peanut-to-Peanut payments"
+            }
+        },
         "backup": {
             "title": "Backup",
             "nonCustodial": {
-                "title": "Non-custodial wallet",
-                "description": "Only you control this wallet. We can't recover it if you lose access. Your backup is your responsibility."
+                "title": "Non-custodial account",
+                "description": "Your account lives on your device, not our servers. Lose the device without backup and the money can't be recovered. Enable backup below and it follows you to any new phone."
             },
             "enableNow": "Enable backup now",
             "steps": {
@@ -332,7 +425,7 @@
                     },
                     "step2": {
                         "title": "Find Password Manager",
-                        "description": "Autofill → Google Password Manager → Turn ON sync"
+                        "description": "Autofill → Google Password Manager. Make sure it stores your passkeys"
                     },
                     "step3": {
                         "title": "Verify in Chrome",
@@ -350,7 +443,7 @@
                     },
                     "step3": {
                         "title": "Verify it worked",
-                        "description": "Settings → Passwords → Search \"Peanut\""
+                        "description": "Open the Passwords app (iOS 18+) or Settings → Passwords. Search \"Peanut\""
                     }
                 }
             },
@@ -393,7 +486,8 @@
                 "tradeoffTitle": "The tradeoff",
                 "tradeoffDescription": "You get better security, but passkeys are locked to your device ecosystem (Apple or Google). That's why cloud backup is critical.",
                 "futureNote": "We're exploring advanced export options for power users in future updates."
-            }
+            },
+            "thirdPartyNote": "Using 1Password, Samsung Pass, or another password manager? Your passkey may be saved there instead. Check that manager's own backup."
         },
         "publicProfile": {
             "peanutMascotAlt": "Peanut mascot",
@@ -531,7 +625,7 @@
             },
             "landing": {
                 "title": "Peanut makes dollars easy.",
-                "description": "Create your wallet in seconds to save, send, or cash out dollars fast."
+                "description": "Create your account in seconds to save, send, or cash out dollars fast, wherever you are in the world."
             },
             "welcome": {
                 "title": "Peanut is invite-only",
@@ -539,7 +633,11 @@
             },
             "signup": {
                 "title": "How should we call you?",
-                "description": "Choose your username. It'll be your ID to send and receive money."
+                "description": "Your @username is how friends send you money. Think of it as an account number you can say out loud."
+            },
+            "residence": {
+                "title": "Where are you a resident?",
+                "description": "The country of your citizenship or residence permit: the one your ID shows, not where you're travelling right now. It decides which payment methods we can turn on for you."
             },
             "passkey-permission": {
                 "title": "Let's set up your passkey",
@@ -586,7 +684,7 @@
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
             "signUp": "Sign up",
-            "recoverWallet": "Need to recover your Peanut wallet?"
+            "recoverWallet": "Need to recover your Peanut account?"
         },
         "waitlist": {
             "inviterUsernamePlaceholder": "Their username",
@@ -609,6 +707,30 @@
                 "checkFailedSupport": "Failed to check handle availability. Please try again or contact support."
             },
             "termsAgreement": "By creating account you agree with <terms>T&C</terms> and <privacy>Privacy Policy</privacy>"
+        },
+        "residenceStep": {
+            "countryPlaceholder": "Select your country",
+            "secondCountryPlaceholder": "Select your second country",
+            "multiDocLink": "Have documents from more than one country?",
+            "errors": {
+                "invalidEmail": "Please enter a valid email address"
+            },
+            "partial": {
+                "title": "Heads up",
+                "cardDescription": "The Peanut card isn't available in your country. Everything else works: bank transfers, digital dollars, and sending to any @username.",
+                "bankingDescription": "Bank transfers aren't available in your country. Everything else works: the Peanut card, digital dollars, and sending to any @username.",
+                "continue": "Continue"
+            },
+            "restricted": {
+                "title": "Heads up",
+                "description": "Due to regulations, bank transfers and card issuing aren't available for you. You can still hold digital dollars, send to any @username, and withdraw your balance anytime.",
+                "continueAnyway": "Continue anyway",
+                "notifyMe": "Notify me when it is available",
+                "emailPlaceholder": "you@example.com",
+                "notifySubmit": "Notify me",
+                "notifyDone": "Got it. We'll email you when it's available.",
+                "changeCountry": "Choose a different country"
+            }
         },
         "passkey": {
             "setItUp": "Set it up",
@@ -655,6 +777,13 @@
                 "warnings": {
                     "lowEndAndroid": "Lower end Android devices may require recent security updates for passkeys to work properly."
                 }
+            },
+            "info": {
+                "title": "What's a passkey?",
+                "what": "A passkey is a digital key your device creates for this app. You approve it with the fingerprint, face, or screen lock you already use. There's no password to remember, and nothing to type.",
+                "backup": "Your password manager (iCloud Keychain, Google Password Manager, or similar) backs it up and syncs it, so it comes with you on a new phone.",
+                "privacy": "Peanut never sees your fingerprint or face. Your device only tells us that you approved.",
+                "fullGuide": "Read the full guide"
             }
         },
         "testTransaction": {
@@ -671,6 +800,13 @@
         "finish": {
             "title": "Sign a test transaction",
             "description": "Let's make sure your passkey is working and you have everything set up correctly."
+        },
+        "accountReady": {
+            "worksNowTitle": "Works right now",
+            "worksNowBody": "Receive dollars, send to any @username, and hold your balance. No ID needed for any of that.",
+            "laterTitle": "When you want bank payments or the card",
+            "laterBody": "One ID check, about 10 minutes for most people. If a reviewer has to look, 1 to 3 business days. We will show you exactly what you need before you start.",
+            "cta": "Go to my account"
         }
     },
     "loadingStates": {
@@ -1506,7 +1642,8 @@
             "shareAmount": "Amount: {currency} {amount}",
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
-            "minDepositAmount": "Deposit amount must be at least ${amount}"
+            "minDepositAmount": "Deposit amount must be at least ${amount}",
+            "etaInstant": "Deposits usually arrive within minutes."
         },
         "pix": {
             "payWithPix": "Pay with PIX",
@@ -1558,7 +1695,11 @@
             "shareLine": "{label}: {value}",
             "amountLabel": "Amount",
             "doubleCheckSenderName": "Sender: use a bank account in your own name (a name mismatch bounces the transfer)",
-            "doubleCheckRecipientName": "Recipient: enter the name exactly as shown above"
+            "doubleCheckRecipientName": "Recipient: enter the name exactly as shown above",
+            "etaAch": "Usually arrives in 1 business day, sometimes up to 3.",
+            "etaSepa": "Usually arrives within 1 business day.",
+            "etaSpei": "Usually arrives within minutes.",
+            "etaFps": "Usually arrives within minutes."
         },
         "errors": {
             "invalidNumber": "Please enter a valid number.",
@@ -2317,15 +2458,23 @@
             "ctaUnlockNow": "Unlock now",
             "ctaWithdrawFunds": "Withdraw funds"
         },
+        "regionRestricted": {
+            "title": "We can't verify IDs from your country",
+            "description": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
+            "stillAvailable": "Your funds are safe, and you can still use Peanut to send and receive money with other people.",
+            "homeDescription": "Your funds are safe — you can still send and receive money with other people.",
+            "cta": "Send or request money"
+        },
         "advisory": {
-            "title": "One quick step to continue",
-            "descriptionByDate": "To continue using bank transfers, please complete a short verification (required by {deadline}). It only takes a couple of minutes.",
-            "description": "To continue using bank transfers, please complete a short verification. It only takes a couple of minutes.",
-            "completeNow": "Complete now"
+            "title": "This one takes a bit longer",
+            "descriptionByDate": "Your account needs one more document by {deadline} to keep bank transfers running. It only takes a couple of minutes.",
+            "description": "Your account needs one more document to keep bank transfers running. It only takes a couple of minutes.",
+            "completeNow": "Complete now",
+            "doLater": "Do this later"
         },
         "progress": {
-            "verifyingTitle": "Almost there",
-            "verifyingDescription": "We're confirming your ID — usually less than a minute. You can wait here, or head home and we'll let you know when it's done.",
+            "verifyingTitle": "Checking your ID",
+            "verifyingDescription": "Checks usually come back fast. If a reviewer has to look at it, 1 to 3 business days. You can wait here, or close this and we will send you a notification.",
             "preparingTimedOutTitle": "Taking longer than expected",
             "preparingTimedOutDescription": "You can continue and we'll notify you when it's ready.",
             "preparingTitle": "Setting up your account",
@@ -2337,7 +2486,9 @@
             "bridgeTosDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
             "acceptTerms": "Accept Terms",
             "completeTitle": "All set",
-            "completeDescription": "Your account is ready to go."
+            "completeDescription": "Your account is ready to go.",
+            "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
+            "closeAndNotify": "Close and notify me"
         },
         "wrapper": {
             "troubleTitle": "Need a hand?",
@@ -2639,7 +2790,43 @@
         "actionMessageActionRequired": "We need a bit more to verify your identity. Please resubmit your documents.",
         "actionMessageFailed": "We couldn't verify your identity. Please contact support.",
         "successTitle": "Verification successful!",
-        "successCloseWindow": "You can now close this window."
+        "successCloseWindow": "You can now close this window.",
+        "degraded": {
+            "title": "Verification is temporarily down",
+            "description": "Our verification partner is having issues right now. Your account is fine. We'll notify you as soon as it's back.",
+            "notifyMe": "Notify me when it's back"
+        },
+        "prep": {
+            "intro": {
+                "standard": "Get these ready now, so you are not hunting for them halfway through.",
+                "extended": "This check has more steps than most. Set aside a few extra minutes."
+            },
+            "items": {
+                "id": {
+                    "title": "A government ID that has not expired",
+                    "body": "Passport, national ID, residence permit, or most driver's licenses. Take live photos with your camera; screenshots and scans are not accepted."
+                },
+                "selfie": {
+                    "title": "Your face",
+                    "body": "A short selfie in the app. Good light helps."
+                },
+                "taxId": {
+                    "title": "Your tax ID",
+                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed to send and receive on local bank rails."
+                },
+                "questions": {
+                    "title": "A few short questions",
+                    "body": "Regulatory declarations we are required to ask for."
+                }
+            },
+            "howLongLabel": "How long",
+            "howLong": {
+                "standard": "Under 2 minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
+                "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days."
+            },
+            "extraDocNote": "Some people are asked for one more document, like a proof of address. If that is you, we will say so before the camera opens.",
+            "startCta": "I have these, start"
+        }
     },
     "identity": {
         "unlockTitle": "Unlock {region}",
@@ -2682,7 +2869,8 @@
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
             "country_not_supported": "This rail needs a document from a supported country. You can verify with a different ID.",
-            "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime."
+            "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
+            "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
         }
     },
     "recoverFunds": {

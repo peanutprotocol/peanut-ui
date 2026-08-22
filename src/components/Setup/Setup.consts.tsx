@@ -1,6 +1,20 @@
-import { PEANUTMAN_MOBILE, PeanutPointing, PeanutThinking, PeanutTooCool, PeanutWhistling } from '@/assets/mascot'
+import {
+    PEANUTMAN_MOBILE,
+    PeanutPointing,
+    PeanutThinking,
+    PeanutTooCool,
+    PeanutWavingHello,
+    PeanutWhistling,
+} from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
+import {
+    InstallPWA,
+    SetupPasskey,
+    SignupStep,
+    LandingStep,
+    ResidenceStep,
+    SignTestTransaction,
+} from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
 
 export const setupSteps: ISetupStep[] = [
@@ -61,6 +75,18 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
     },
     {
+        screenId: 'residence',
+        layoutType: 'signup',
+        image: PeanutWavingHello.src,
+        component: ResidenceStep,
+        showBackButton: true,
+        showSkipButton: false,
+        // The heads-up sub-views replace the intro copy; the select view
+        // renders the description itself.
+        descriptionInView: true,
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+    },
+    {
         screenId: 'passkey-permission',
         layoutType: 'signup',
         image: PeanutTooCool.src,
@@ -76,6 +102,9 @@ export const setupSteps: ISetupStep[] = [
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,
+        // The view renders the description itself: the confirm prompt before
+        // signing, the account-ready celebration after.
+        descriptionInView: true,
         contentClassName: 'flex flex-col items-center justify-center gap-5',
     },
 ]

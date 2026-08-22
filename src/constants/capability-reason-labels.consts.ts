@@ -46,6 +46,9 @@ export const REASON_CODE_KEYS = {
     region_block: 'reasons.region_block',
     compliance_block: 'reasons.compliance_block',
     card_rejected: 'reasons.card_rejected',
+    // identity (Sumsub) terminal causes — sibling of the rail codes above, but
+    // sourced from `user.identityVerification.reason` rather than a rail.
+    identity_region_restricted: 'reasons.identity_region_restricted',
     // restrictions
     manteca_us_nationality: 'reasons.manteca_us_nationality',
     country_not_supported: 'reasons.country_not_supported',

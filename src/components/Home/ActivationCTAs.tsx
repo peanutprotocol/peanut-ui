@@ -8,15 +8,16 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
-import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import ActionModal from '@/components/Global/ActionModal'
+import { REGION_RESTRICTED_CTA_HREF } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useAuth } from '@/context/authContext'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
@@ -49,8 +50,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const t = useTranslations('home.activation')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
+    const tRegion = useTranslations('kyc.regionRestricted')
     const router = useRouter()
-    const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
+    const { openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
     const { user } = useAuth()
     // Card spend counts as activation too — card-access users get a card+QR
@@ -62,7 +64,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,
     // and bouncing them through here again would imply they need to re-act.
-    const { isProcessing: isIdentityProcessing, needsAction: isIdentityActionRequired } = useIdentityVerification()
+    const {
+        isProcessing: isIdentityProcessing,
+        needsAction: isIdentityActionRequired,
+        isRegionRestricted,
+    } = useIdentityVerification()
+    const residenceRestrictions = useResidenceRestrictions()
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op
@@ -123,13 +130,6 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         : primaryRejectionMessage
 
     const [showProvideEmail, setShowProvideEmail] = useState(false)
-    const [showSpendChooser, setShowSpendChooser] = useState(false)
-
-    // If card access is revoked (or the card-info refetch flips it) while the
-    // chooser is open, close it — a no-access user must never see the card option.
-    useEffect(() => {
-        if (hasCardAccess !== true) setShowSpendChooser(false)
-    }, [hasCardAccess])
 
     const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
         () => ({
@@ -173,7 +173,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
     // re-upload directly, instead of routing to /profile/identity-verification (which
     // only showed the regions list, forcing the user to hunt for the Upload-document
-    // CTA again). Mirrors the add-money bank flow + UnlockedRegions view.
+    // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
 
     const lastTrackedStep = useRef<ActivationStep | null>(null)
@@ -218,12 +218,35 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         (hasFixableRejection || hasBlockedRejection)
 
     const step: StepConfig | null = useMemo(() => {
+        // Highest precedence, ahead of every funnel step AND every provider
+        // rejection: a region-restricted user can never finish the funnel, so
+        // "Unlock payments" is a CTA that leads nowhere. They stay on 'verify'
+        // forever (the milestone never advances past `registered`), which is
+        // exactly the state that would nag them indefinitely. Replace the card
+        // with the explanation and point them at what still works.
+        if (isRegionRestricted) {
+            return {
+                icon: 'globe-lock',
+                iconBg: 'bg-primary-1',
+                title: tRegion('title'),
+                description: tRegion('homeDescription'),
+                ctaLabel: tRegion('cta'),
+                href: REGION_RESTRICTED_CTA_HREF,
+            }
+        }
+
         if (activationStep === 'completed' && !hasProviderRejection) return null
 
         // Hide the verify CTA while identity is processing — user already
         // submitted, the BE is reviewing, no further action from them.
         // action_required is the exception: that means we DO need them back.
         if (activationStep === 'verify' && isIdentityProcessing && !isIdentityActionRequired) return null
+
+        // A fully restricted residence (no bank rails AND no card) has nothing
+        // behind "Unlock payments" — the ID check could only end on a terminal
+        // rejection, so the offer itself is dishonest. Partial restrictions
+        // keep the CTA: one half of the unlock still works.
+        if (activationStep === 'verify' && residenceRestrictions.banking && residenceRestrictions.card) return null
 
         if (hasProviderRejection) {
             // Email-blocked (status=blocked) outranks a fixable RFI (status=requires-info)
@@ -285,28 +308,21 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         localizedRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,
+        residenceRestrictions,
         hasCardAccess,
+        isRegionRestricted,
+        tRegion,
     ])
 
     if (!step) return null
 
-    // The card step renders the mysterious /shhhhh-tone launch banner (#2295's
-    // CardLaunchCTABanner) instead of the plain funnel card — so non-activated
-    // card-eligible users get the same CTA as the activated launch splash.
-    // Keeps the funnel's /card routing + the "Maybe later" dismissal.
-    if (activationStep === 'card') {
-        return (
-            <CardLaunchCTABanner
-                onTryDoor={() => {
-                    posthog.capture(ANALYTICS_EVENTS.CARD_LAUNCH_CTA_CLICKED)
-                    // /shhhhh (not /card): the landing page explains the feature
-                    // and funnels into the canonical flow — /card alone is confusing.
-                    router.push('/shhhhh')
-                }}
-                onDismiss={() => onDismissCard?.()}
-            />
-        )
-    }
+    // Happy-path funnel steps render as the 3-item getting-started checklist
+    // (one status language with the Unlock payments screen). Interrupts keep
+    // their dedicated card below — provider rejections, email blocks, and the
+    // region-restricted terminal explanation, which outranks the checklist:
+    // every step on the list (bank money in, the card) is a door this user
+    // cannot open, so offering the list would be dishonest.
+    if (!hasProviderRejection && !isRegionRestricted) return <GettingStartedChecklist />
 
     return (
         <Card position="single" className="p-0">
@@ -323,7 +339,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     shadowSize="4"
                     className="mt-2 w-full"
                     onClick={() => {
-                        if (isEmailBlocked) {
+                        // Mirror the step-precedence above: whatever else is true
+                        // of this user's rails, the region card's CTA must just
+                        // navigate — never open support, never start a Sumsub flow.
+                        if (isRegionRestricted) {
+                            router.push(REGION_RESTRICTED_CTA_HREF)
+                        } else if (isEmailBlocked) {
                             setShowProvideEmail(true)
                         } else if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
                             // REQUIRES_SUPPORT class (or any blocked rail) — pre-fill Crisp
@@ -338,13 +359,6 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                             )
                         } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
                             void kycFlow.handleSelfHealResubmit(fixableProvider)
-                        } else if (activationStep === 'outbound' && !hasProviderRejection) {
-                            if (hasCardAccess) {
-                                posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
-                                setShowSpendChooser(true)
-                            } else {
-                                setIsQRScannerOpen(true)
-                            }
                         } else {
                             router.push(step.href)
                         }
@@ -362,33 +376,6 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
-            />
-            <ActionModal
-                visible={showSpendChooser && hasCardAccess === true}
-                onClose={() => setShowSpendChooser(false)}
-                icon="credit-card"
-                title={t('spendChooser.title')}
-                description={t('spendChooser.description')}
-                ctas={[
-                    {
-                        text: t('spendChooser.payWithCard'),
-                        shadowSize: '4',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'card' })
-                            setShowSpendChooser(false)
-                            router.push('/card')
-                        },
-                    },
-                    {
-                        text: t('spendChooser.scanQr'),
-                        variant: 'stroke',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'qr' })
-                            setShowSpendChooser(false)
-                            setIsQRScannerOpen(true)
-                        },
-                    },
-                ]}
             />
             <SumsubKycModals flow={kycFlow} />
         </Card>

@@ -4,6 +4,7 @@ import PeanutLoading from '@/components/Global/PeanutLoading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId, type ISetupStep } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useSetupStepUrlSync } from '@/hooks/useSetupStepUrlSync'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { Suspense, useEffect, useState } from 'react'
@@ -26,7 +27,7 @@ import { useTranslations } from 'next-intl'
 function SetupPageContent() {
     const t = useTranslations('setup')
     const { steps, inviteCode } = useSetupStore()
-    const { step, handleNext, handleBack } = useSetupFlow()
+    const { step, handleNext, handleBack, setScreenId } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
     const router = useRouter()
     const [direction, setDirection] = useState(0)
@@ -40,8 +41,29 @@ function SetupPageContent() {
     const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
     const { deviceType: detectedDeviceType } = useDeviceType()
     const searchParams = useSearchParams()
+    // The init effect must key on the VALUES it reads, not the searchParams
+    // object: the step-URL mirror rewrites ?screen= on every step, and a dep
+    // on the object identity would re-run determineInitialStep mid-flow and
+    // bounce the user back to the entry step.
+    const inviteCodeParam = searchParams.get('code')
+    const legacyStepParam = searchParams.get('step')
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
+
+    useSetupStepUrlSync({
+        // only mirror steps that actually render: not while the entry step is
+        // being determined, and not behind the existing-session interstitial
+        // or the unsupported-device/browser modals
+        enabled:
+            !isLoading &&
+            sessionChecked &&
+            !existingSessionUsername &&
+            !showDeviceNotSupportedModal &&
+            !showBrowserNotSupportedModal,
+        step,
+        steps,
+        goToScreen: setScreenId,
+    })
 
     /*
      * A device can arrive at /setup already authenticated: a half-completed
@@ -120,7 +142,7 @@ function SetupPageContent() {
              * deferred-install hand-off write, so it survives the multi-step
              * signup and reaches registration.
              */
-            const codeFromUrl = searchParams.get('code')
+            const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {
                 saveToCookie('inviteCode', toInviteCode(codeFromUrl))
             }
@@ -131,7 +153,7 @@ function SetupPageContent() {
             // past the landing gate — otherwise claim/invite links deep-link
             // straight into the signup form. Native app keeps the fast path.
             const webSignupClosed = isPwaSunsetOn() && !isCapacitor()
-            const skipInviteGate = (!!userInviteCode || searchParams.get('step') === 'signup') && !webSignupClosed
+            const skipInviteGate = (!!userInviteCode || legacyStepParam === 'signup') && !webSignupClosed
 
             const localDeviceType = detectedDeviceType
 
@@ -263,7 +285,7 @@ function SetupPageContent() {
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
-    }, [dispatch, steps, searchParams])
+    }, [dispatch, steps, inviteCodeParam, legacyStepParam])
 
     useEffect(() => {
         if (step) {
@@ -335,7 +357,7 @@ function SetupPageContent() {
             screenId={step.screenId}
             image={step.image}
             title={t(titleKey)}
-            description={t.has(descriptionKey) ? t(descriptionKey) : undefined}
+            description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
             showLogoutButton={step.screenId === 'sign-test-transaction'}

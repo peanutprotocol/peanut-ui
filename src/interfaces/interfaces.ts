@@ -293,6 +293,13 @@ export interface IUserProfile {
     // `capabilities` on /get-user. Read via useIdentityVerification(). The status
     // surfaces render this; no provider names. Optional during the migration.
     identityVerification?: IdentityVerification
+    // Residence-based availability derived server-side from the residence the
+    // user declared at signup. Read via useResidenceRestrictions(). Advisory
+    // offer-shaping only: hides bank/card surfaces the user could never use.
+    residenceRestrictions?: { banking: boolean; card: boolean }
+    // Residence, both flavors: declared at signup (advisory) and verified by
+    // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
+    residence?: { declared: string | null; verified: string | null }
 }
 
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue }

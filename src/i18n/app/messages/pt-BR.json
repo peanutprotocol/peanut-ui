@@ -54,7 +54,8 @@
             "custom": "Personalizado",
             "unknown": "Desconhecido"
         },
-        "exchangeRate": "Taxa de câmbio"
+        "exchangeRate": "Taxa de câmbio",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "navigation": {
         "home": "Início",
@@ -125,6 +126,20 @@
                 "payWithCard": "Pague com seu cartão",
                 "scanQr": "Escaneie um código QR"
             }
+        },
+        "gettingStarted": {
+            "title": "Começar",
+            "createAccount": "Crie sua conta",
+            "createAccountDone": "Pronto. Seu dinheiro já tem um usuário",
+            "addMoneyPix": "Adicione dinheiro com PIX",
+            "addMoneySepa": "Adicione dinheiro via SEPA",
+            "addMoneySpei": "Adicione dinheiro via SPEI",
+            "addMoneyBank": "Adicione dinheiro do seu banco",
+            "kycNote": "Depósitos bancários exigem uma verificação de identidade única · cerca de 10 min",
+            "getCard": "Peça seu cartão Peanut",
+            "addMoney": "Adicionar dinheiro",
+            "firstPayment": "Faça seu primeiro pagamento",
+            "firstPaymentNote": "Envie alguns dólares para qualquer @usuário. Chega em segundos."
         },
         "autoBalance": {
             "title": "Termine de configurar seu cartão",
@@ -262,7 +277,7 @@
             "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Dados pessoais",
-            "unlockedRegions": "Regiões desbloqueadas",
+            "unlockedRegions": "Desbloqueie pagamentos",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
@@ -317,11 +332,89 @@
                 "notAvailableTitle": "Ainda não disponível"
             }
         },
+        "unlockPayments": {
+            "title": "Desbloqueie pagamentos",
+            "description": "Tudo o que você pode usar hoje, e o que se abre depois de verificar sua identidade.",
+            "residence": {
+                "label": "Residência: {country}",
+                "unknown": "Residência não definida",
+                "verified": "Verificado",
+                "unverified": "Não confirmada",
+                "change": "Alterar",
+                "set": "Definir",
+                "pendingReverify": "Mudança para {country} pendente de nova verificação"
+            },
+            "yourRegion": "Sua região",
+            "groups": {
+                "everywhere": "Em todo lugar",
+                "southAmerica": "América do Sul",
+                "northAmerica": "América do Norte",
+                "europe": "Europa"
+            },
+            "rows": {
+                "p2p": "Pagamentos de Peanut para Peanut",
+                "card": "Cartão Peanut",
+                "saBank": "PIX, QR e transferências bancárias (Brasil e Argentina)",
+                "pixBank": "PIX e transferências bancárias (Brasil)",
+                "pixQr": "Pagamentos QR com PIX (Brasil)",
+                "brBank": "Transferências bancárias (Brasil)",
+                "arQrBank": "Pagamentos QR e transferências (Argentina)",
+                "arQr": "Pagamentos QR (Argentina)",
+                "arBank": "Transferências bancárias (Argentina)",
+                "naBank": "ACH, Wire (EUA) e SPEI (México)",
+                "sepa": "Transferências SEPA"
+            },
+            "chips": {
+                "active": "Ativo",
+                "alwaysOn": "Sempre ativo",
+                "unlock": "Desbloquear",
+                "processing": "Processando",
+                "attention": "Atenção",
+                "notAvailable": "Não disponível"
+            },
+            "bankNotAvailableNote": "Transferências bancárias e emissão de cartão não estão disponíveis para residentes do seu país.",
+            "cardNotAvailableNote": "O cartão não está disponível para residentes do seu país.",
+            "unlockModal": {
+                "title": "Desbloquear {method}",
+                "titleGeneric": "Desbloqueie este método de pagamento",
+                "notNow": "Agora não"
+            },
+            "changeModal": {
+                "title": "Alterar sua residência",
+                "description": "Escolha o país da sua cidadania ou autorização de residência: o que aparece no seu documento.",
+                "countryPlaceholder": "Selecione seu país",
+                "verifiedMismatchNote": "Seus métodos de pagamento atuais continuam funcionando. Para que este seja seu país de residência verificado, você precisará verificar novamente com documentos desse país.",
+                "fullRestrictionNote": "Atenção: transferências bancárias e emissão de cartão não estão disponíveis para residentes deste país.",
+                "cardRestrictionNote": "Atenção: o cartão não está disponível para residentes deste país.",
+                "bankingRestrictionNote": "Atenção: transferências bancárias não estão disponíveis para residentes deste país.",
+                "save": "Salvar",
+                "saveAndReverify": "Salvar e verificar agora"
+            },
+            "degraded": {
+                "title": "A verificação está temporariamente fora do ar",
+                "body": "Você não pode iniciar nem continuar uma verificação de identidade agora.",
+                "notifyMe": "Me avise quando voltar a funcionar"
+            },
+            "review": {
+                "sinceDate": "Verificação em análise desde {submittedDate}",
+                "since": "Verificação em análise",
+                "body": "Você não precisa fazer nada. Avisaremos assim que houver uma decisão.",
+                "escalation": "Está demorando mais que o normal.",
+                "messageUs": "Fale com a gente e vamos atrás"
+            },
+            "limits": {
+                "viewAll": "Limites de pagamento",
+                "details": "Ver",
+                "monthlyLeft": "Restam {remaining} de {limit} neste mês",
+                "perTransfer": "Até {amount} por transferência",
+                "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite"
+            }
+        },
         "backup": {
             "title": "Backup",
             "nonCustodial": {
-                "title": "Carteira sem custódia",
-                "description": "Só você controla esta carteira. Não podemos recuperá-la se você perder o acesso. O backup é sua responsabilidade."
+                "title": "Conta sem custódia",
+                "description": "Sua conta vive no seu aparelho, não nos nossos servidores. Se perder o aparelho sem backup, o dinheiro não pode ser recuperado. Ative o backup abaixo e ele acompanha você em qualquer celular novo."
             },
             "enableNow": "Ative o backup agora",
             "steps": {
@@ -332,7 +425,7 @@
                     },
                     "step2": {
                         "title": "Encontre o Gerenciador de senhas",
-                        "description": "Preenchimento automático → Gerenciador de senhas do Google → Ative a sincronização"
+                        "description": "Preenchimento automático → Gerenciador de senhas do Google. Confira se ele guarda suas passkeys"
                     },
                     "step3": {
                         "title": "Confira no Chrome",
@@ -350,7 +443,7 @@
                     },
                     "step3": {
                         "title": "Confira se funcionou",
-                        "description": "Ajustes → Senhas → Busque \"Peanut\""
+                        "description": "Abra o app Senhas (iOS 18+) ou Ajustes → Senhas. Busque \"Peanut\""
                     }
                 }
             },
@@ -393,7 +486,8 @@
                 "tradeoffTitle": "O outro lado",
                 "tradeoffDescription": "Você ganha mais segurança, mas as passkeys ficam presas ao ecossistema do seu aparelho (Apple ou Google). Por isso o backup na nuvem é essencial.",
                 "futureNote": "Estamos explorando opções avançadas de exportação para usuários avançados em atualizações futuras."
-            }
+            },
+            "thirdPartyNote": "Usa 1Password, Samsung Pass ou outro gerenciador de senhas? Sua passkey pode estar salva lá. Confira o backup desse gerenciador."
         },
         "publicProfile": {
             "peanutMascotAlt": "Mascote do Peanut",
@@ -531,7 +625,7 @@
             },
             "landing": {
                 "title": "Com o Peanut, dólares ficam fáceis.",
-                "description": "Crie sua carteira em segundos para guardar, enviar ou sacar dólares rápido."
+                "description": "Crie sua conta em segundos para guardar, enviar ou sacar dólares rápido, onde quer que você esteja no mundo."
             },
             "welcome": {
                 "title": "O Peanut é só por convite",
@@ -539,7 +633,11 @@
             },
             "signup": {
                 "title": "Como devemos te chamar?",
-                "description": "Escolha seu nome de usuário. Ele será seu ID para enviar e receber dinheiro."
+                "description": "Seu @usuário é como os amigos enviam dinheiro para você. Pense nele como um número de conta que dá para falar em voz alta."
+            },
+            "residence": {
+                "title": "Onde você é residente?",
+                "description": "O país da sua cidadania ou autorização de residência: o que aparece no seu documento, não onde você está viajando agora. Ele define quais métodos de pagamento podemos ativar para você."
             },
             "passkey-permission": {
                 "title": "Vamos configurar sua passkey",
@@ -586,7 +684,7 @@
         "loginFailed": "Não conseguimos fazer seu login. Tente de novo.",
         "landing": {
             "signUp": "Criar conta",
-            "recoverWallet": "Precisa recuperar sua carteira do Peanut?"
+            "recoverWallet": "Precisa recuperar sua conta Peanut?"
         },
         "waitlist": {
             "inviterUsernamePlaceholder": "Nome de usuário da pessoa",
@@ -609,6 +707,30 @@
                 "checkFailedSupport": "Não conseguimos verificar a disponibilidade do usuário. Tente de novo ou fale com o suporte."
             },
             "termsAgreement": "Ao criar uma conta você aceita os <terms>Termos e Condições</terms> e a <privacy>Política de Privacidade</privacy>"
+        },
+        "residenceStep": {
+            "countryPlaceholder": "Selecione seu país",
+            "secondCountryPlaceholder": "Selecione seu segundo país",
+            "multiDocLink": "Tem documentos de mais de um país?",
+            "errors": {
+                "invalidEmail": "Digite um e-mail válido"
+            },
+            "partial": {
+                "title": "Atenção",
+                "cardDescription": "O cartão Peanut não está disponível no seu país. Todo o resto funciona: transferências bancárias, dólares digitais e envios para qualquer @usuário.",
+                "bankingDescription": "Transferências bancárias não estão disponíveis no seu país. Todo o resto funciona: o cartão Peanut, dólares digitais e envios para qualquer @usuário.",
+                "continue": "Continuar"
+            },
+            "restricted": {
+                "title": "Atenção",
+                "description": "Devido a regulamentações, transferências bancárias e emissão de cartão não estão disponíveis para você. Você ainda pode ter dólares digitais, enviar para qualquer @usuário e sacar seu saldo quando quiser.",
+                "continueAnyway": "Continuar mesmo assim",
+                "notifyMe": "Me avise quando estiver disponível",
+                "emailPlaceholder": "voce@exemplo.com",
+                "notifySubmit": "Me avisar",
+                "notifyDone": "Pronto. Enviaremos um e-mail quando estiver disponível.",
+                "changeCountry": "Escolher outro país"
+            }
         },
         "passkey": {
             "setItUp": "Configurar",
@@ -655,6 +777,13 @@
                 "warnings": {
                     "lowEndAndroid": "Aparelhos Android mais simples podem precisar de atualizações de segurança recentes para as passkeys funcionarem direito."
                 }
+            },
+            "info": {
+                "title": "O que é uma passkey?",
+                "what": "Uma passkey é uma chave digital que seu aparelho cria para este app. Você a aprova com a digital, o rosto ou o bloqueio de tela que já usa. Sem senha para lembrar e nada para digitar.",
+                "backup": "Seu gerenciador de senhas (iCloud Keychain, Gerenciador de Senhas do Google ou similar) faz o backup e a sincroniza, então ela vai com você para um celular novo.",
+                "privacy": "O Peanut nunca vê sua digital nem seu rosto. Seu aparelho só nos diz que você aprovou.",
+                "fullGuide": "Ler o guia completo"
             }
         },
         "testTransaction": {
@@ -671,6 +800,13 @@
         "finish": {
             "title": "Assine uma transação de teste",
             "description": "Vamos garantir que sua passkey está funcionando e que está tudo configurado direitinho."
+        },
+        "accountReady": {
+            "worksNowTitle": "Funciona agora mesmo",
+            "worksNowBody": "Receba dólares, envie para qualquer @usuário e guarde seu saldo. Nada disso precisa de identificação.",
+            "laterTitle": "Quando você quiser pagamentos bancários ou o cartão",
+            "laterBody": "Uma única verificação de identidade, cerca de 10 minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis. Vamos mostrar exatamente o que você precisa antes de começar.",
+            "cta": "Ir para minha conta"
         }
     },
     "loadingStates": {
@@ -1506,7 +1642,8 @@
             "shareAmount": "Valor: {currency} {amount}",
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
-            "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}"
+            "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
+            "etaInstant": "Os depósitos costumam chegar em minutos."
         },
         "pix": {
             "payWithPix": "Pagar com PIX",
@@ -1558,7 +1695,11 @@
             "shareLine": "{label}: {value}",
             "amountLabel": "Valor",
             "doubleCheckSenderName": "Remetente: use uma conta bancária no seu próprio nome (se o nome não corresponder, a transferência é devolvida)",
-            "doubleCheckRecipientName": "Destinatário: digite o nome exatamente como mostrado acima"
+            "doubleCheckRecipientName": "Destinatário: digite o nome exatamente como mostrado acima",
+            "etaAch": "Costuma chegar em 1 dia útil, às vezes até 3.",
+            "etaSepa": "Costuma chegar em 1 dia útil.",
+            "etaSpei": "Costuma chegar em minutos.",
+            "etaFps": "Costuma chegar em minutos."
         },
         "errors": {
             "invalidNumber": "Digite um número válido.",
@@ -2311,21 +2452,29 @@
             "descriptionProviderRejection": "Envie uma foto mais nítida do seu documento para continuar.",
             "descriptionCrossRegion": "Sua identidade já está verificada. Para ativar os pagamentos em {region}, só precisamos confirmar mais alguns dados — cerca de um minuto.",
             "descriptionCrossRegionGeneric": "Sua identidade já está verificada. Para ativar os pagamentos aqui, só precisamos confirmar mais alguns dados — cerca de um minuto.",
-            "descriptionRegionUnavailable": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para seus residentes. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
+            "descriptionRegionUnavailable": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "descriptionDefault": "Confirme seu documento para desbloquear os pagamentos. Leva cerca de um minuto.",
             "ctaUploadDocument": "Enviar documento",
             "ctaUnlockNow": "Desbloquear agora",
             "ctaWithdrawFunds": "Sacar fundos"
         },
+        "regionRestricted": {
+            "title": "Não conseguimos verificar documentos do seu país",
+            "description": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
+            "stillAvailable": "Seu dinheiro está seguro e você ainda pode usar o Peanut para enviar e receber dinheiro de outras pessoas.",
+            "homeDescription": "Seu dinheiro está seguro — você ainda pode enviar e receber dinheiro de outras pessoas.",
+            "cta": "Enviar ou pedir dinheiro"
+        },
         "advisory": {
-            "title": "Um passo rápido para continuar",
-            "descriptionByDate": "Para continuar usando as transferências bancárias, conclua uma verificação rápida (obrigatória até {deadline}). Leva apenas alguns minutos.",
-            "description": "Para continuar usando as transferências bancárias, conclua uma verificação rápida. Leva apenas alguns minutos.",
-            "completeNow": "Concluir agora"
+            "title": "Este leva um pouco mais de tempo",
+            "descriptionByDate": "Sua conta precisa de mais um documento até {deadline} para que as transferências bancárias continuem funcionando. Leva só alguns minutos.",
+            "description": "Sua conta precisa de mais um documento para que as transferências bancárias continuem funcionando. Leva só alguns minutos.",
+            "completeNow": "Completar agora",
+            "doLater": "Fazer depois"
         },
         "progress": {
-            "verifyingTitle": "Quase lá",
-            "verifyingDescription": "Estamos confirmando seu documento — normalmente leva menos de um minuto. Você pode esperar aqui ou voltar para o início, e avisaremos quando estiver pronto.",
+            "verifyingTitle": "Verificando sua identificação",
+            "verifyingDescription": "As verificações costumam ser rápidas. Se um revisor precisar analisar, de 1 a 3 dias úteis. Você pode esperar aqui ou fechar isto e enviaremos uma notificação.",
             "preparingTimedOutTitle": "Está demorando mais do que o esperado",
             "preparingTimedOutDescription": "Você pode continuar e avisaremos quando estiver tudo pronto.",
             "preparingTitle": "Configurando sua conta",
@@ -2337,7 +2486,9 @@
             "bridgeTosDescription": "Último passo: aceite os termos de serviço para desbloquear as transferências bancárias nos Estados Unidos, na Europa e no México.",
             "acceptTerms": "Aceitar termos",
             "completeTitle": "Tudo pronto",
-            "completeDescription": "Sua conta está pronta para uso."
+            "completeDescription": "Sua conta está pronta para uso.",
+            "verifyingStillGoing": "Ainda em andamento. A maioria termina rápido, então esta provavelmente está recebendo uma análise mais detalhada. Você pode fechar isto e avisaremos quando houver uma decisão.",
+            "closeAndNotify": "Fechar e me avisar"
         },
         "wrapper": {
             "troubleTitle": "Precisa de ajuda?",
@@ -2639,7 +2790,43 @@
         "actionMessageActionRequired": "Precisamos de um pouco mais para verificar sua identidade. Reenvie seus documentos.",
         "actionMessageFailed": "Não conseguimos verificar sua identidade. Fale com o suporte.",
         "successTitle": "Verificação concluída!",
-        "successCloseWindow": "Você já pode fechar esta janela."
+        "successCloseWindow": "Você já pode fechar esta janela.",
+        "degraded": {
+            "title": "A verificação está temporariamente fora do ar",
+            "description": "Nosso parceiro de verificação está com problemas no momento. Sua conta está bem. Avisaremos assim que voltar.",
+            "notifyMe": "Me avise quando voltar"
+        },
+        "prep": {
+            "intro": {
+                "standard": "Deixe tudo pronto agora, para não precisar procurar no meio do processo.",
+                "extended": "Esta verificação tem mais etapas que a maioria. Reserve alguns minutos a mais."
+            },
+            "items": {
+                "id": {
+                    "title": "Um documento de identidade válido",
+                    "body": "Passaporte, documento nacional, autorização de residência ou a maioria das carteiras de motorista. Tire fotos ao vivo com a câmera; capturas de tela e digitalizações não são aceitas."
+                },
+                "selfie": {
+                    "title": "Seu rosto",
+                    "body": "Uma selfie rápida no app. Boa iluminação ajuda."
+                },
+                "taxId": {
+                    "title": "Seu documento fiscal",
+                    "body": "CPF no Brasil, CUIT ou CUIL na Argentina. Necessário para enviar e receber pelos trilhos bancários locais."
+                },
+                "questions": {
+                    "title": "Algumas perguntas rápidas",
+                    "body": "Declarações regulatórias que somos obrigados a pedir."
+                }
+            },
+            "howLongLabel": "Quanto tempo leva",
+            "howLong": {
+                "standard": "Menos de 2 minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
+                "extended": "Mais do que a verificação comum. Se um revisor precisar analisar, de 1 a 3 dias úteis."
+            },
+            "extraDocNote": "Algumas pessoas precisam enviar mais um documento, como um comprovante de residência. Se for o seu caso, avisaremos antes de abrir a câmera.",
+            "startCta": "Tenho tudo, começar"
+        }
     },
     "identity": {
         "unlockTitle": "Desbloquear {region}",
@@ -2682,7 +2869,8 @@
             "card_rejected": "Sua solicitação de cartão não pôde ser aprovada. Fale com o suporte se achar que isso é um engano.",
             "manteca_us_nationality": "Pagamentos deste país não estão disponíveis para cidadãos dos EUA no momento.",
             "country_not_supported": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
-            "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para seus residentes. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento."
+            "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
+            "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado."
         }
     },
     "recoverFunds": {
