@@ -6,7 +6,8 @@ import { focusManager } from '@tanstack/react-query'
 import { captureMessage } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { deepLinkToNativePath } from '@/utils/native-routes'
-import { sanitizeRedirectURL, saveToCookie, toInviteCode } from '@/utils/general.utils'
+import { sanitizeRedirectURL, saveToCookie } from '@/utils/cookie-url.utils'
+import { toInviteCode } from '@/utils/invite-code.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
 
 /*

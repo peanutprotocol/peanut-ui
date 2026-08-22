@@ -1,6 +1,6 @@
 import type { AppLocale } from './config'
-import type { AppMessages, DeepPartial } from './messages'
-import { deepMerge } from './messages'
+import type { AppMessages } from './messages'
+import { deepMerge, type DeepPartial } from './deep-merge'
 import en from './messages/en.marketing.json'
 
 /*

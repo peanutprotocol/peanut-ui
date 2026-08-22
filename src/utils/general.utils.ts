@@ -1,4 +1,7 @@
-import { nativeCurrencyAddresses, supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
+import { nativeCurrencyAddresses } from '@/constants/general.consts'
+import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
+import { toInviteCode } from '@/utils/invite-code.utils'
+import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import { isCapacitor } from '@/utils/capacitor'
@@ -106,27 +109,7 @@ export const validateEnsName = (ensName: string = ''): boolean => {
     return ENS_NAME_REGEX.test(ensName)
 }
 
-export function jsonStringify(data: unknown): string {
-    return JSON.stringify(data, (_key, value) => {
-        if ('bigint' === typeof value) {
-            return {
-                '@type': 'BigInt',
-                value: value.toString(),
-            }
-        }
-        return value
-    })
-}
-
 // Default matches JSON.parse's own return type so legacy untyped call sites keep compiling.
-export function jsonParse<T = ReturnType<typeof JSON.parse>>(data: string): T {
-    return JSON.parse(data, (_key, value) => {
-        if (value && typeof value === 'object' && value['@type'] === 'BigInt') {
-            return BigInt(value.value)
-        }
-        return value
-    })
-}
 
 export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: number) => {
     if (typeof localStorage === 'undefined') return
@@ -167,60 +150,6 @@ export const getFromLocalStorage = (key: string) => {
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
-    }
-}
-
-export const saveToCookie = (key: string, data: unknown, expiryDays?: number) => {
-    if (typeof document === 'undefined') return
-    try {
-        // Convert the data to a string before storing it in cookies
-        const serializedData = jsonStringify(data)
-
-        let cookieString = `${key}=${encodeURIComponent(serializedData)}`
-
-        if (expiryDays) {
-            const expiryDate = new Date(new Date().getTime() + expiryDays * 24 * 60 * 60 * 1000)
-            cookieString += `; expires=${expiryDate.toUTCString()}`
-        }
-
-        // Add default cookie attributes for security
-        // Only add Secure flag in HTTPS contexts to avoid breaking local development
-        const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:'
-        cookieString += `; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`
-
-        document.cookie = cookieString
-        console.log(`Saved ${key} to cookie:`, data)
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error saving to cookie:', error)
-    }
-}
-
-export const getFromCookie = (key: string) => {
-    if (typeof document === 'undefined') return
-    try {
-        const cookies = document.cookie.split(';')
-        const targetCookie = cookies.find((cookie) => {
-            const [cookieKey] = cookie.trim().split('=')
-            return cookieKey === key
-        })
-
-        if (!targetCookie) {
-            console.log(`No data found in cookie for ${key}`)
-            return null
-        }
-
-        const [, ...cookieValueParts] = targetCookie.split('=')
-        const cookieValue = cookieValueParts.join('=') // Handle cases where value contains '='
-        const decodedValue = decodeURIComponent(cookieValue)
-
-        const parsedData = jsonParse(decodedValue)
-        console.log(`Retrieved ${key} from cookie:`, parsedData)
-        return parsedData
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error getting data from cookie:', error)
-        return null
     }
 }
 
@@ -826,29 +755,6 @@ export const clearRedirectUrl = () => {
     }
 }
 
-export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
-    try {
-        const u = new URL(redirectUrl, window.location.origin)
-        // Only allow same-origin URLs
-        if (u.origin === window.location.origin) {
-            return u.pathname + u.search + u.hash
-        }
-        console.log('Rejecting off-origin URL:', redirectUrl)
-        // Reject off-origin URLs
-        return null
-    } catch {
-        // For strings that can't be parsed as URLs, only allow relative paths
-        if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
-            // Additional check: ensure it doesn't contain a protocol
-            if (!redirectUrl.includes('://')) {
-                return redirectUrl
-            }
-        }
-        // Reject anything else (including protocol-relative URLs like //evil.com)
-        return null
-    }
-}
-
 export const getInitialsFromName = (name: string): string => {
     const nameParts = name.trim().split(/\s+/)
     if (nameParts.length === 1) {
@@ -893,7 +799,8 @@ export function slugify(text: string): string {
  * Also tolerates hand-typed input ("Who invited you?" asks for a username, so
  * people paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
  */
-export const toInviteCode = (username: string): string => username.trim().replace(/^@/, '').toLowerCase()
+export { toInviteCode }
+export { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 
 /**
  * invite-flow url for a guest CTA. web routes to the /invite landing page; in
