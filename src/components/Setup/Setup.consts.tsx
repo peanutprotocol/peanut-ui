@@ -102,6 +102,9 @@ export const setupSteps: ISetupStep[] = [
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,
+        // The view renders the description itself: the confirm prompt before
+        // signing, the account-ready celebration after.
+        descriptionInView: true,
         contentClassName: 'flex flex-col items-center justify-center gap-5',
     },
 ]

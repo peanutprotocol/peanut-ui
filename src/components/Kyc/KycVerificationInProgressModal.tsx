@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
@@ -35,12 +36,27 @@ export const KycVerificationInProgressModal = ({
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
 
+    // At 90 seconds the waiting copy admits the check is probably getting a
+    // closer look, instead of holding "usually fast" forever.
+    const [stillGoing, setStillGoing] = useState(false)
+    useEffect(() => {
+        if (!(isOpen && phase === 'verifying')) {
+            setStillGoing(false)
+            return
+        }
+        const timer = setTimeout(() => setStillGoing(true), 90_000)
+        return () => clearTimeout(timer)
+    }, [isOpen, phase])
+
     const handleGoHome = () => {
         onClose()
         router.push('/home')
     }
 
     if (phase === 'verifying') {
+        // Dismissible on purpose (no preventClose): waiting is optional. The
+        // decision arrives as a notification either way, so closing costs
+        // nothing — the CTA says exactly that.
         return (
             <ActionModal
                 visible={isOpen}
@@ -48,18 +64,18 @@ export const KycVerificationInProgressModal = ({
                 icon={'clock' as IconName}
                 iconContainerClassName="bg-yellow-1 text-black"
                 title={t('progress.verifyingTitle')}
-                description={<p>{t('progress.verifyingDescription')}</p>}
+                description={
+                    <p>{stillGoing ? t('progress.verifyingStillGoing') : t('progress.verifyingDescription')}</p>
+                }
                 ctas={[
                     {
-                        text: tCommon('goToHome'),
+                        text: t('progress.closeAndNotify'),
                         onClick: handleGoHome,
                         variant: 'purple',
                         className: 'w-full',
                         shadowSize: '4',
                     },
                 ]}
-                preventClose
-                hideModalCloseButton
                 footer={<PeanutDoesntStoreAnyPersonalInformation />}
             />
         )

@@ -360,13 +360,13 @@
                 "description": "¡Instalá Peanut en tu teléfono para una mejor experiencia!"
             },
             "landing": {
-                "description": "Creá tu billetera en segundos para ahorrar, enviar o retirar dólares rápido."
+                "description": "Creá tu cuenta en segundos para guardar, enviar o retirar dólares rápido, estés donde estés en el mundo."
             },
             "welcome": {
                 "description": "¿Quién te invitó? Ingresá su nombre de usuario para continuar, o unite a la lista de espera y te avisaremos cuando puedas entrar."
             },
             "signup": {
-                "description": "Elegí tu nombre de usuario. Será tu ID para enviar y recibir dinero."
+                "description": "Tu @usuario es la forma en que tus amigos te envían dinero. Pensalo como un número de cuenta que podés decir en voz alta."
             },
             "residence": {
                 "title": "¿Dónde sos residente?",
@@ -394,7 +394,7 @@
         "loginFailed": "No pudimos iniciar tu sesión. Intentalo de nuevo.",
         "landing": {
             "signUp": "Registrate",
-            "recoverWallet": "¿Necesitás recuperar tu billetera de Peanut?"
+            "recoverWallet": "¿Necesitás recuperar tu cuenta de Peanut?"
         },
         "waitlist": {
             "inviterNotFound": "No hay ningún miembro de Peanut con ese nombre de usuario. Verificá el usuario exacto de quien te invitó.",
@@ -485,6 +485,13 @@
         },
         "finish": {
             "title": "Firmá una transacción de prueba"
+        },
+        "accountReady": {
+            "worksNowTitle": "Funciona desde ya",
+            "worksNowBody": "Recibí dólares, enviá a cualquier @usuario y guardá tu saldo. Nada de eso necesita identificación.",
+            "laterTitle": "Cuando quieras pagos bancarios o la tarjeta",
+            "laterBody": "Una sola verificación de identidad, unos 10 minutos para la mayoría. Si un revisor debe verla, de 1 a 3 días hábiles. Te mostraremos exactamente qué necesitás antes de empezar.",
+            "cta": "Ir a mi cuenta"
         }
     },
     "loadingStates": {
@@ -997,14 +1004,20 @@
             "cta": "Enviar o pedir dinero"
         },
         "advisory": {
-            "descriptionByDate": "Para seguir usando las transferencias bancarias, completá una breve verificación (obligatoria antes del {deadline}). Solo toma un par de minutos.",
-            "description": "Para seguir usando las transferencias bancarias, completá una breve verificación. Solo toma un par de minutos."
+            "descriptionByDate": "Tu cuenta necesita un documento más antes del {deadline} para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
+            "description": "Tu cuenta necesita un documento más para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
+            "title": "Esto toma un poco más",
+            "completeNow": "Completar ahora",
+            "doLater": "Hacerlo después"
         },
         "progress": {
-            "verifyingDescription": "Estamos confirmando tu identidad — normalmente toma menos de un minuto. Podés esperar aquí o volver al inicio y te avisamos cuando esté listo.",
+            "verifyingDescription": "Las verificaciones suelen resolverse rápido. Si un revisor debe verla, de 1 a 3 días hábiles. Podés esperar acá o cerrar esto y te enviaremos una notificación.",
             "preparingTimedOutDescription": "Podés continuar y te avisaremos cuando esté listo.",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Esperá un momento.",
-            "bridgeTosDescription": "Último paso: aceptá los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México."
+            "bridgeTosDescription": "Último paso: aceptá los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México.",
+            "verifyingTitle": "Revisando tu identificación",
+            "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Podés cerrar esto y te avisaremos cuando haya una decisión.",
+            "closeAndNotify": "Cerrar y avisarme"
         },
         "wrapper": {
             "troubleTitle": "¿Necesitás ayuda?",

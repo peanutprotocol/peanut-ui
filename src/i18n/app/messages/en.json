@@ -625,7 +625,7 @@
             },
             "landing": {
                 "title": "Peanut makes dollars easy.",
-                "description": "Create your wallet in seconds to save, send, or cash out dollars fast."
+                "description": "Create your account in seconds to save, send, or cash out dollars fast, wherever you are in the world."
             },
             "welcome": {
                 "title": "Peanut is invite-only",
@@ -633,7 +633,7 @@
             },
             "signup": {
                 "title": "How should we call you?",
-                "description": "Choose your username. It'll be your ID to send and receive money."
+                "description": "Your @username is how friends send you money. Think of it as an account number you can say out loud."
             },
             "residence": {
                 "title": "Where are you a resident?",
@@ -684,7 +684,7 @@
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
             "signUp": "Sign up",
-            "recoverWallet": "Need to recover your Peanut wallet?"
+            "recoverWallet": "Need to recover your Peanut account?"
         },
         "waitlist": {
             "inviterUsernamePlaceholder": "Their username",
@@ -800,6 +800,13 @@
         "finish": {
             "title": "Sign a test transaction",
             "description": "Let's make sure your passkey is working and you have everything set up correctly."
+        },
+        "accountReady": {
+            "worksNowTitle": "Works right now",
+            "worksNowBody": "Receive dollars, send to any @username, and hold your balance. No ID needed for any of that.",
+            "laterTitle": "When you want bank payments or the card",
+            "laterBody": "One ID check, about 10 minutes for most people. If a reviewer has to look, 1 to 3 business days. We will show you exactly what you need before you start.",
+            "cta": "Go to my account"
         }
     },
     "loadingStates": {
@@ -2459,14 +2466,15 @@
             "cta": "Send or request money"
         },
         "advisory": {
-            "title": "One quick step to continue",
-            "descriptionByDate": "To continue using bank transfers, please complete a short verification (required by {deadline}). It only takes a couple of minutes.",
-            "description": "To continue using bank transfers, please complete a short verification. It only takes a couple of minutes.",
-            "completeNow": "Complete now"
+            "title": "This one takes a bit longer",
+            "descriptionByDate": "Your account needs one more document by {deadline} to keep bank transfers running. It only takes a couple of minutes.",
+            "description": "Your account needs one more document to keep bank transfers running. It only takes a couple of minutes.",
+            "completeNow": "Complete now",
+            "doLater": "Do this later"
         },
         "progress": {
-            "verifyingTitle": "Almost there",
-            "verifyingDescription": "We're confirming your ID — usually less than a minute. You can wait here, or head home and we'll let you know when it's done.",
+            "verifyingTitle": "Checking your ID",
+            "verifyingDescription": "Checks usually come back fast. If a reviewer has to look at it, 1 to 3 business days. You can wait here, or close this and we will send you a notification.",
             "preparingTimedOutTitle": "Taking longer than expected",
             "preparingTimedOutDescription": "You can continue and we'll notify you when it's ready.",
             "preparingTitle": "Setting up your account",
@@ -2478,7 +2486,9 @@
             "bridgeTosDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
             "acceptTerms": "Accept Terms",
             "completeTitle": "All set",
-            "completeDescription": "Your account is ready to go."
+            "completeDescription": "Your account is ready to go.",
+            "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
+            "closeAndNotify": "Close and notify me"
         },
         "wrapper": {
             "troubleTitle": "Need a hand?",
