@@ -1,5 +1,3 @@
-'use client'
-
 import ChainChip from '@/components/AddMoney/components/ChainChip'
 import { CHAIN_LOGOS, OTHER_SUPPORTED_CHAINS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
 import { FIAT_RAILS } from '@/constants/faq.consts'

@@ -5,13 +5,10 @@ import { Suspense, useEffect, useMemo, useState, useRef, useCallback, type React
 // Imported directly, not through the barrel: `export *` pulls every sibling
 // into this chunk, including dropLink's nine repeat: Infinity animations,
 // which the landing page never renders.
-import { FAQs } from '@/components/LandingPage/faq'
 import { Hero } from '@/components/LandingPage/hero'
 import { Marquee } from '@/components/LandingPage/marquee'
 import { NoFees } from '@/components/LandingPage/noFees'
 import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
-import { SupportedRailsFaqAnswer } from '@/components/LandingPage/SupportedRailsFaqAnswer'
-import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import dynamic from 'next/dynamic'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -31,20 +28,9 @@ import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
 // off the critical path.
 const TweetCarousel = dynamic(() => import('@/components/LandingPage/TweetCarousel'))
 
-type FAQQuestion = {
-    id: string
-    question: string
-    answer: string
-}
-
 type LandingPageClientProps = {
     heroConfig: {
         primaryCta: CTAButton
-    }
-    faqData: {
-        heading: string
-        questions: FAQQuestion[]
-        marquee: { visible: boolean; message: string }
     }
     locale: Locale
     strings: LandingStrings
@@ -58,11 +44,12 @@ type LandingPageClientProps = {
     footerSlot: ReactNode
     /** The word strip, built on the server and rendered at every band break. */
     marqueeSlot: ReactNode
+    /** The FAQ block — static copy, so it is built on the server. */
+    faqSlot: ReactNode
 }
 
 export function LandingPageClient({
     heroConfig,
-    faqData,
     locale,
     strings,
     problemSlot,
@@ -73,6 +60,7 @@ export function LandingPageClient({
     sendInSecondsSlot,
     footerSlot,
     marqueeSlot,
+    faqSlot,
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
@@ -113,29 +101,6 @@ export function LandingPageClient({
 
     // Memoized: this component re-renders per scroll frame during the button
     // animation — don't rebuild the FAQ array + rich answer element each time.
-    const faqQuestions = useMemo(() => {
-        // The questions come from the content system, which must not carry code
-        // concerns, so the article each one continues into is mapped here by id.
-        // "Why Peanut?" and "My question is not here" are left out on purpose:
-        // the first has no single article behind it, the second already links
-        // the help centre in its own answer.
-        const learnMore: Record<string, string> = {
-            '1': `/${locale}/help/what-are-digital-dollars`,
-            '2': `/${locale}/help/verification`,
-            '3': `/${locale}/help/passkeys`,
-            '4': `/${locale}/help/security-custody`,
-            '5': `/${locale}/help/fees-pricing`,
-            [SUPPORTED_RAILS_FAQ_ID]: `/${locale}/help/supported-geographies`,
-        }
-        return faqData.questions.map((q) => ({
-            ...q,
-            ...(q.id === SUPPORTED_RAILS_FAQ_ID
-                ? { answerContent: <SupportedRailsFaqAnswer strings={strings.supportedRails} /> }
-                : {}),
-            ...(learnMore[q.id] ? { learnMoreHref: learnMore[q.id] } : {}),
-        }))
-    }, [faqData.questions, locale, strings.supportedRails])
-
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
     const [buttonScale, setButtonScale] = useState(1)
@@ -333,12 +298,7 @@ export function LandingPageClient({
             {marqueeSlot}
             <div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>
             {marqueeSlot}
-            <FAQs
-                heading={faqData.heading}
-                questions={faqQuestions}
-                learnMoreLabel={strings.learnMore}
-                marquee={faqData.marquee}
-            />
+            {faqSlot}
             {marqueeSlot}
             {footerSlot}
             <StickyMobileCTA strings={strings} />
