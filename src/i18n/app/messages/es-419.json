@@ -625,7 +625,7 @@
             },
             "landing": {
                 "title": "Peanut hace que los dólares sean fáciles.",
-                "description": "Crea tu billetera en segundos para ahorrar, enviar o retirar dólares rápido."
+                "description": "Crea tu cuenta en segundos para guardar, enviar o retirar dólares rápido, estés donde estés en el mundo."
             },
             "welcome": {
                 "title": "Peanut es solo con invitación",
@@ -633,7 +633,7 @@
             },
             "signup": {
                 "title": "¿Cómo te llamamos?",
-                "description": "Elige tu nombre de usuario. Será tu ID para enviar y recibir dinero."
+                "description": "Tu @usuario es la forma en que tus amigos te envían dinero. Piensa en él como un número de cuenta que puedes decir en voz alta."
             },
             "residence": {
                 "title": "¿Dónde eres residente?",
@@ -684,7 +684,7 @@
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {
             "signUp": "Regístrate",
-            "recoverWallet": "¿Necesitas recuperar tu billetera de Peanut?"
+            "recoverWallet": "¿Necesitas recuperar tu cuenta de Peanut?"
         },
         "waitlist": {
             "inviterUsernamePlaceholder": "Su nombre de usuario",
@@ -800,6 +800,13 @@
         "finish": {
             "title": "Firma una transacción de prueba",
             "description": "Asegurémonos de que tu passkey funciona y de que todo está configurado correctamente."
+        },
+        "accountReady": {
+            "worksNowTitle": "Funciona desde ya",
+            "worksNowBody": "Recibe dólares, envía a cualquier @usuario y guarda tu saldo. Nada de eso necesita identificación.",
+            "laterTitle": "Cuando quieras pagos bancarios o la tarjeta",
+            "laterBody": "Una sola verificación de identidad, unos 10 minutos para la mayoría. Si un revisor debe verla, de 1 a 3 días hábiles. Te mostraremos exactamente qué necesitas antes de empezar.",
+            "cta": "Ir a mi cuenta"
         }
     },
     "loadingStates": {
@@ -2459,14 +2466,15 @@
             "cta": "Enviar o solicitar dinero"
         },
         "advisory": {
-            "title": "Un paso rápido para continuar",
-            "descriptionByDate": "Para seguir usando las transferencias bancarias, completa una breve verificación (obligatoria antes del {deadline}). Solo toma un par de minutos.",
-            "description": "Para seguir usando las transferencias bancarias, completa una breve verificación. Solo toma un par de minutos.",
-            "completeNow": "Completar ahora"
+            "title": "Esto toma un poco más",
+            "descriptionByDate": "Tu cuenta necesita un documento más antes del {deadline} para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
+            "description": "Tu cuenta necesita un documento más para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
+            "completeNow": "Completar ahora",
+            "doLater": "Hacerlo después"
         },
         "progress": {
-            "verifyingTitle": "Ya casi",
-            "verifyingDescription": "Estamos confirmando tu identidad — normalmente toma menos de un minuto. Puedes esperar aquí o volver al inicio y te avisamos cuando esté listo.",
+            "verifyingTitle": "Revisando tu identificación",
+            "verifyingDescription": "Las verificaciones suelen resolverse rápido. Si un revisor debe verla, de 1 a 3 días hábiles. Puedes esperar aquí o cerrar esto y te enviaremos una notificación.",
             "preparingTimedOutTitle": "Está tomando más de lo esperado",
             "preparingTimedOutDescription": "Puedes continuar y te avisaremos cuando esté listo.",
             "preparingTitle": "Configurando tu cuenta",
@@ -2478,7 +2486,9 @@
             "bridgeTosDescription": "Último paso: acepta los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México.",
             "acceptTerms": "Aceptar términos",
             "completeTitle": "Listo",
-            "completeDescription": "Tu cuenta está lista para usarse."
+            "completeDescription": "Tu cuenta está lista para usarse.",
+            "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Puedes cerrar esto y te avisaremos cuando haya una decisión.",
+            "closeAndNotify": "Cerrar y avisarme"
         },
         "wrapper": {
             "troubleTitle": "¿Necesitas ayuda?",
