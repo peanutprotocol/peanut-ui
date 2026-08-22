@@ -55,9 +55,12 @@ jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
         transactionDetails: { userName: 'bob', amount: '12.5', status: 'completed', initials: 'B' },
     }),
 }))
-jest.mock('@/components/TransactionDetails/TransactionCard', () => (props: { hideTxnAmount?: boolean }) => {
-    mockTransactionCard(props)
-    return <div data-testid="txn-card">{props.hideTxnAmount ? '****' : 'amount'}</div>
+jest.mock('@/components/TransactionDetails/TransactionCard', () => {
+    function MockTransactionCard(props: { hideTxnAmount?: boolean }) {
+        mockTransactionCard(props)
+        return <div data-testid="txn-card">{props.hideTxnAmount ? '****' : 'amount'}</div>
+    }
+    return MockTransactionCard
 })
 
 import HistoryPage from '../page'
