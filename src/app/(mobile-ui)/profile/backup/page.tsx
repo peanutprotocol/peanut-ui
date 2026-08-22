@@ -48,6 +48,13 @@ export default function BackupPage() {
                     icon="upload-cloud"
                 />
 
+                <InfoCard
+                    variant="warning"
+                    title={t('noBackupWarning.title')}
+                    description={t('noBackupWarning.description')}
+                    icon="alert"
+                />
+
                 <div className="space-y-2">
                     <h1 className="font-bold text-black">{t('enableNow')}</h1>
                     <Card>
@@ -60,12 +67,6 @@ export default function BackupPage() {
                             ))}
                         </ol>
                     </Card>
-                    <InfoCard
-                        variant="warning"
-                        title={t('noBackupWarning.title')}
-                        description={t('noBackupWarning.description')}
-                        icon="alert"
-                    />
                     {/* Passkeys saved to a third-party manager back up through
                         that manager, not the platform steps above. */}
                     <p className="text-xs text-grey-1">{t('thirdPartyNote')}</p>

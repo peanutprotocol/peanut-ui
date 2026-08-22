@@ -132,13 +132,12 @@ const DotFaceAvatar = ({ username, size, className }: { username: string; size?:
 
     return (
         <span
-            className={twMerge('inline-block text-n-1 dark:text-white', className)}
+            className={twMerge('inline-flex shrink-0 items-center justify-center text-n-1 dark:text-white', className)}
             style={size ? { width: size, height: size } : undefined}
             data-testid="dot-face-avatar"
         >
             <svg
-                width="100%"
-                height="100%"
+                className="block h-full w-full"
                 viewBox="0 0 100 100"
                 role="img"
                 aria-label={t('userAvatarAlt', { username })}
