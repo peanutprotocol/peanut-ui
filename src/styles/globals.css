@@ -902,6 +902,42 @@ input::placeholder {
     }
 }
 
+/* ── Landing page: CSS marquee (replaces react-fast-marquee on this page) ── */
+/*
+ * Two identical tracks scrolling as one. Each is at least viewport-wide, so the
+ * second slides in exactly as the first leaves and the loop is seamless —
+ * react-fast-marquee's `autoFill` did the same thing by measuring in JS, which
+ * made every strip a client component. The landing page renders eleven of them.
+ *
+ * --marquee-duration is set per instance from the word count so the apparent
+ * speed stays roughly constant across strips of different lengths.
+ */
+.marquee-viewport {
+    display: flex;
+    overflow: hidden;
+    user-select: none;
+}
+
+.marquee-track {
+    display: flex;
+    flex: none;
+    align-items: center;
+    min-width: 100%;
+    animation: marquee-scroll var(--marquee-duration, 30s) linear infinite;
+}
+
+@keyframes marquee-scroll {
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+        animation: none;
+    }
+}
+
 /* ── Marketing content pages ── */
 
 /*

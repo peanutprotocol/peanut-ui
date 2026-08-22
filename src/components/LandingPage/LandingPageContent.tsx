@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { LandingPageClient } from './LandingPageClient'
+import { Marquee } from './marquee'
 import Manteca from './Manteca'
 import { RegulatedRails } from './RegulatedRails'
 import { YourMoney } from './yourMoney'
@@ -25,6 +26,30 @@ const MANTECA_BG_COLOR = '#90A8ED'
 export function LandingPageContent({ locale }: { locale: Locale }) {
     const { heroConfig, faqData, marqueeMessages } = getLandingContent(locale)
     const strings = landingStrings(getTranslations(locale))
+
+    /*
+     * Built here rather than in the client component: the same strip renders
+     * eleven times down the page, and as a server slot none of them hydrate or
+     * re-render with the scroll-driven parent.
+     *
+     * Only the words with a real article behind them become links; the rest stay
+     * plain text. Words come from the content system's marquee list, so an edit
+     * there just drops out of this map and renders unlinked.
+     */
+    const marqueeHrefs: Record<string, string> = {
+        'No transfer fees': `/${locale}/pricing`,
+        USD: `/${locale}/help/what-are-digital-dollars`,
+        EUR: `/${locale}/help/send-euros-argentina`,
+        'USDT/USDC': `/${locale}/blog/stablecoin-balance-visa-merchants`,
+        GLOBAL: `/${locale}/help/supported-geographies`,
+        'SELF-CUSTODIAL': `/${locale}/help/security-custody`,
+        // /support is only a permanent redirect to /en/help, so linking it would
+        // drop es/pt readers into English while its neighbours stay localized
+        '24/7': `/${locale}/help`,
+    }
+    const marqueeItems = marqueeMessages.map((word) =>
+        marqueeHrefs[word] ? { label: word, href: marqueeHrefs[word] } : word
+    )
     // inLanguage reflects the language the FAQ prose actually resolved to —
     // until mono ships landing translations, that's English on every locale.
     const faqJsonLd = faqSchema(
@@ -42,7 +67,6 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                 <LandingPageClient
                     heroConfig={heroConfig}
                     faqData={faqData}
-                    marqueeMessages={marqueeMessages}
                     locale={locale}
                     strings={strings}
                     problemSlot={<ProblemFold strings={strings} />}
@@ -52,6 +76,7 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     securitySlot={<SecurityBuiltIn locale={locale} />}
                     sendInSecondsSlot={<SendInSeconds locale={locale} />}
                     footerSlot={<Footer locale={locale} />}
+                    marqueeSlot={<Marquee message={marqueeItems} />}
                 />
             </Suspense>
         </div>
