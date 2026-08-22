@@ -78,7 +78,7 @@ const Footer = ({
                             app at /home, and the logo must keep them on the marketing site
                             (see src/app/lp/page.tsx). Localized landings aren't in the
                             proxy matcher, so /{locale} is already auth-proof. */}
-                        <Link href={locale === DEFAULT_LOCALE ? '/lp' : `/${locale}`} className="flex">
+                        <Link prefetch={false} href={locale === DEFAULT_LOCALE ? '/lp' : `/${locale}`} className="flex">
                             <Image src={PEANUT_LOGO} alt="Peanut Logo" width={110} height={40} />
                         </Link>
                         <p className="text-xs text-white">
@@ -105,23 +105,23 @@ const Footer = ({
 
                 <nav className="mt-8 flex flex-wrap items-center justify-between gap-6">
                     <div className="flex flex-wrap items-center gap-6">
-                        <Link className={NAV_LINK} href="/support">
+                        <Link prefetch={false} className={NAV_LINK} href="/support">
                             {i18n.footerSupport}
                         </Link>
-                        <Link className={NAV_LINK} href={`/${locale}/content`}>
+                        <Link prefetch={false} className={NAV_LINK} href={`/${locale}/content`}>
                             {i18n.content}
                         </Link>
-                        <Link className={NAV_LINK} href={`/${locale}/help`}>
+                        <Link prefetch={false} className={NAV_LINK} href={`/${locale}/help`}>
                             {i18n.footerDocs}
                         </Link>
                         {/* Terms and Privacy deliberately live in the Legal column of
                             the site directory below, not here — one home per document. */}
-                        <Link className={NAV_LINK} href={`/${locale}/help/security-disclosure`}>
+                        <Link prefetch={false} className={NAV_LINK} href={`/${locale}/help/security-disclosure`}>
                             {i18n.footerSecurity}
                         </Link>
                         {/* /careers, not the Notion board: the page lists the open roles
                             and keeps Notion as the application destination only. */}
-                        <Link className={NAV_LINK} href="/careers">
+                        <Link prefetch={false} className={NAV_LINK} href="/careers">
                             {i18n.footerCareers}
                         </Link>
                     </div>

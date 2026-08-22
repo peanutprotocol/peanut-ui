@@ -80,7 +80,12 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
     }
     return (
         <li>
-            <Link href={href} className="text-xs text-white underline hover:text-white/70">
+            {/* prefetch={false}: Next prefetches every Link in the viewport, and this
+            footer maps over dozens of country/route pages. Prefetching an app
+            route also pulls its client chunks, which is how the wallet bundle and
+            the Sentry SDK were arriving on the landing page after being removed
+            from its own graph. Navigation fetches on click instead. */}
+            <Link prefetch={false} href={href} className="text-xs text-white underline hover:text-white/70">
                 {children}
             </Link>
         </li>

@@ -34,6 +34,14 @@ jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN: '0x1234567890123456789012345678901234567890',
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
 }))
+// The token constants moved to their own module so consumers don't pull viem's
+// chain registry; useBalance reads them from there now.
+jest.mock('@/constants/wallet-token.consts', () => ({
+    PEANUT_WALLET_TOKEN: '0x1234567890123456789012345678901234567890',
+    PEANUT_WALLET_TOKEN_DECIMALS: 6,
+    PEANUT_WALLET_TOKEN_SYMBOL: 'USDC',
+    USE_SEPOLIA: false,
+}))
 jest.mock('@/constants/rain.consts', () => ({
     rainCoordinatorAbi: [],
     rainWithdrawEip712Types: {},

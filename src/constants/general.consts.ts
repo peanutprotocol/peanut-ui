@@ -1,10 +1,5 @@
 import type { IPeanutChainDetails, IPeanutTokenDetail } from '@/interfaces/interfaces'
-import chainDetailsJson from '@/constants/chain-details.json'
-import tokenDetailsJson from '@/constants/token-details.json'
 import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
-
-const CHAIN_DETAILS = chainDetailsJson as unknown as Record<string, IPeanutChainDetails>
-const TOKEN_DETAILS = tokenDetailsJson as unknown as IPeanutTokenDetail[]
 
 // Verified 2026-05-13 with curl from staging.peanut.me origin.
 // Commented entries are kept inline for visibility — re-enable when fixed.
@@ -218,12 +213,6 @@ export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
         chainId: '534352',
     },
 ]
-
-export const supportedPeanutChains: IPeanutChainDetails[] = Object.keys(CHAIN_DETAILS).map(
-    (key) => CHAIN_DETAILS[key as keyof typeof CHAIN_DETAILS]
-)
-
-export const peanutTokenDetails: IPeanutTokenDetail[] = TOKEN_DETAILS
 
 export const nativeCurrencyAddresses: string[] = [
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',

@@ -22,7 +22,7 @@
 // appVersion; extras carry durationMs and the rejection error. swControlled is
 // set globally in instrumentation-client.ts, so it lands on these events too.
 
-import * as Sentry from '@sentry/nextjs'
+import * as Sentry from '@/utils/sentry-lazy'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { authReady, getAuthToken } from './auth-token'
 import { isCapacitor } from './capacitor'
