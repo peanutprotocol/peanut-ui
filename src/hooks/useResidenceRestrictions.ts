@@ -54,7 +54,7 @@ export const useResidenceRestrictions = (): ResidenceRestrictions => {
 
     return useMemo(() => {
         if (user?.residenceRestrictions) return user.residenceRestrictions
-        const declared = user?.residence?.declared || residenceCountry || readDeclaredResidence()
+        const declared = user?.residence?.declared || residenceCountry || readDeclaredResidence(user?.user?.userId)
         return deriveResidenceRestrictionsFrom(sets, declared)
-    }, [user?.residenceRestrictions, user?.residence?.declared, residenceCountry, sets])
+    }, [user?.residenceRestrictions, user?.residence?.declared, user?.user?.userId, residenceCountry, sets])
 }

@@ -175,7 +175,7 @@ const UnlockPayments = () => {
     // Server copy first; the localStorage mirror of the signup answer covers
     // reloads before /users/me returns it (or an API without the fields yet).
     const residence = user?.residence ?? null
-    const localDeclared = readDeclaredResidence()
+    const localDeclared = readDeclaredResidence(user?.user?.userId)
     const declaredIso2 = residence?.declared ?? localDeclared
     const residenceIso2 = residence?.verified ?? declaredIso2 ?? null
     const hasActiveCard = !!findActiveCard(overview)
