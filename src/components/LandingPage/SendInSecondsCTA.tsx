@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { LandingStrings } from './landingStrings'
@@ -8,20 +7,9 @@ import type { LandingStrings } from './landingStrings'
 export function SendInSecondsCTA({ strings }: { strings: LandingStrings }) {
     return (
         <div className="relative mt-12 inline-block md:mt-24">
-            <motion.div
-                className="relative"
-                initial={{ opacity: 0, translateY: 4, translateX: 0, rotate: 0.75 }}
-                animate={{
-                    opacity: 1,
-                    translateY: 0,
-                    translateX: 0,
-                    rotate: 0,
-                    scale: 1,
-                    pointerEvents: 'auto' as const,
-                }}
-                whileHover={{ translateY: 6, translateX: 0, rotate: 0.75 }}
-                transition={{ type: 'spring', damping: 15 }}
-            >
+            {/* `.cta-motion` / `.cta-enter` in globals.css — same entrance and
+                hover as the framer-motion pair this replaces, on the compositor. */}
+            <div className="cta-motion cta-enter relative">
                 <Link href="/send">
                     <Button
                         shadowSize="4"
@@ -30,7 +18,7 @@ export function SendInSecondsCTA({ strings }: { strings: LandingStrings }) {
                         {strings.sendNow}
                     </Button>
                 </Link>
-            </motion.div>
+            </div>
         </div>
     )
 }

@@ -8,6 +8,8 @@ import { AppLockGate } from '@/components/Global/AppLock'
 import { PeanutDebug } from '@/context/PeanutDebug'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { whenIdle } from '@/utils/defer-analytics'
+import { initSentry } from '@/utils/sentry-init'
 
 /**
  * App-only global surfaces. Split out of `ClientProviders` because these depend
@@ -16,6 +18,11 @@ import { useEffect } from 'react'
  */
 export function AppGlobals({ children }: { children: React.ReactNode }) {
     const router = useRouter()
+
+    // App routes want Sentry; the marketing site does not pay for it. Doing it
+    // here rather than in sentry.client.config means a client-side navigation
+    // off the landing page still initialises the SDK.
+    useEffect(() => whenIdle(initSentry), [])
 
     // Warms the route the app's camera button lands on. Lives here rather than
     // as a <link rel="prefetch"> in the root layout, which spent the bandwidth

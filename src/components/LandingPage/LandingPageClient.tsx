@@ -2,7 +2,13 @@
 
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { Suspense, useEffect, useMemo, useState, useRef, useCallback, type ReactNode } from 'react'
-import { FAQs, Hero, Marquee, NoFees } from '@/components/LandingPage'
+// Imported directly, not through the barrel: `export *` pulls every sibling
+// into this chunk, including dropLink's nine repeat: Infinity animations,
+// which the landing page never renders.
+import { FAQs } from '@/components/LandingPage/faq'
+import { Hero } from '@/components/LandingPage/hero'
+import { Marquee } from '@/components/LandingPage/marquee'
+import { NoFees } from '@/components/LandingPage/noFees'
 import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
 import { SupportedRailsFaqAnswer } from '@/components/LandingPage/SupportedRailsFaqAnswer'
 import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
