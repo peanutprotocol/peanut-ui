@@ -293,7 +293,7 @@ const UnlockedRegions = () => {
                               text: t('providerRejection.uploadDocument'),
                               onClick: () => {
                                   handleModalClose()
-                                  flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
+                                  flow.handleFixableRejection(providerRejectionForRegion)
                               },
                               variant: 'purple' as const,
                               shadowSize: '4' as const,
