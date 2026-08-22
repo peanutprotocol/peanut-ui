@@ -983,7 +983,7 @@
             }
         },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
-        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Volvé a enviar tus documentos.",
+        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Tocá abajo para continuar.",
         "actionMessageFailed": "No pudimos verificar tu identidad. Contactá a soporte.",
         "successCloseWindow": "Ya podés cerrar esta ventana."
     },
