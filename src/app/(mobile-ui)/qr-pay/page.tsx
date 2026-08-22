@@ -195,15 +195,16 @@ export default function QRPayPage() {
         }
     }, [user, isLoadingCapabilities, fetchUser])
 
-    const { kycGateState, qrKycUserMessage } = useMemo(() => {
+    const { kycGateState, qrKycUserMessage, qrKycActionKey } = useMemo(() => {
+        const noAction = null as string | null
         // Keep the gate in LOADING until either the user is hydrated OR the fallback
         // fetch has resolved. Otherwise we briefly map an empty capability shape onto
         // REQUIRES_IDENTITY_VERIFICATION for users whose auth state hasn't settled yet.
         if (isLoadingCapabilities || (!user && !userFetchSettled)) {
-            return { kycGateState: QrKycState.LOADING, qrKycUserMessage: null as string | null }
+            return { kycGateState: QrKycState.LOADING, qrKycUserMessage: noAction, qrKycActionKey: noAction }
         }
         if (canDo('pay', { provider: 'manteca' })) {
-            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: null as string | null }
+            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
         }
         // Verdict-first via the shared railVerdict collapse (rail.resolved,
         // BE-derived; legacy fallback for older/cached responses). The
@@ -236,27 +237,36 @@ export default function QRPayPage() {
                 return {
                     kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
                     qrKycUserMessage: railUserMessage(blocked.rail),
+                    qrKycActionKey: noAction,
                 }
             }
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
                 qrKycUserMessage: railUserMessage(blocked.rail),
+                qrKycActionKey: noAction,
             }
         }
         const fixable = candidates.find((candidate) => candidate.verdict.status === 'fixable')
         if (fixable) {
+            const action = fixable.verdict.nextAction
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_FIXABLE,
                 qrKycUserMessage: railUserMessage(fixable.rail),
+                qrKycActionKey: action?.kind === 'sumsub' ? action.key : noAction,
             }
         }
         if (candidates.some(({ verdict }) => verdict.status === 'pending')) {
             return {
                 kycGateState: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
-                qrKycUserMessage: null as string | null,
+                qrKycUserMessage: noAction,
+                qrKycActionKey: noAction,
             }
         }
-        return { kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION, qrKycUserMessage: null as string | null }
+        return {
+            kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION,
+            qrKycUserMessage: noAction,
+            qrKycActionKey: noAction,
+        }
     }, [isLoadingCapabilities, canDo, railsForProvider, nextActions, user, userFetchSettled])
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
@@ -1079,7 +1089,11 @@ export default function QRPayPage() {
                         isFixable
                             ? {
                                   text: t('kyc.uploadDocument'),
-                                  onClick: () => sumsubFlow.handleSelfHealResubmit('MANTECA'),
+                                  onClick: () =>
+                                      sumsubFlow.handleFixableRejection({
+                                          provider: 'MANTECA',
+                                          actionKey: qrKycActionKey,
+                                      }),
                                   variant: 'purple' as const,
                                   shadowSize: '4' as const,
                                   icon: 'upload',

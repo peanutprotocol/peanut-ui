@@ -46,6 +46,9 @@ export interface ProviderRejectionInfo {
     /** Stable `CapabilityReason.code` behind `userMessage` — lets render sites
      *  swap in localized copy (identity.reasons.*) and keep the prose fallback. */
     reasonCode: string | null
+    /** Key of the verdict's `sumsub` nextAction (`sumsub:<requirement>`) when the
+     *  fix is a specific Sumsub level rather than the generic ID re-upload. */
+    actionKey: string | null
 }
 
 const PROVIDER_CODE: Record<'BRIDGE' | 'MANTECA', 'bridge' | 'manteca'> = {
@@ -96,10 +99,12 @@ export function deriveProviderRejection(
             ? 'blocked'
             : 'happy'
     const surfaced = fixable ?? blocked
+    const action = surfaced?.verdict.nextAction
     return {
         provider,
         state,
         userMessage: surfaced ? railUserMessage(surfaced.rail) || surfaced.verdict.blocking?.userMessage || null : null,
         reasonCode: surfaced ? (surfaced.rail.reason?.code ?? surfaced.verdict.blocking?.code ?? null) : null,
+        actionKey: action?.kind === 'sumsub' ? action.key : null,
     }
 }

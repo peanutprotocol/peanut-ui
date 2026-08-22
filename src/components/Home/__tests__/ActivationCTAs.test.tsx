@@ -23,6 +23,11 @@ let mockRails: Array<{
     channel: string
     status: string
     reason?: { userMessage: string }
+    resolved?: {
+        status: 'fixable'
+        blocking: { code: string; userMessage: string; selfHealable: true; selfHealKind: 'document-resubmit' }
+        nextAction: { key: string; kind: 'sumsub'; purpose: string; levelKey: string }
+    }
 }> = []
 let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
 let mockHasCardAccess: boolean | undefined = false
@@ -75,7 +80,7 @@ jest.mock('@/components/Home/CardLaunchCTA/CardLaunchCTABanner', () => ({
 }))
 
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({ handleSelfHealResubmit: mockHeal }),
+    useMultiPhaseKycFlow: () => ({ handleFixableRejection: mockHeal }),
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
     SumsubKycModals: () => null,
@@ -135,12 +140,42 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         expect(screen.getByText('Deposit')).toBeInTheDocument()
     })
 
-    it('fixable rejection: Upload document heals inline (handleSelfHealResubmit), does not navigate away', () => {
+    it('fixable rejection: Upload document heals inline (handleFixableRejection), does not navigate away', () => {
         mockRails = [bankRejected]
         render(<ActivationCTAs activationStep="deposit" />)
         fireEvent.click(screen.getByText('Upload document'))
-        expect(mockHeal).toHaveBeenCalledWith('BRIDGE')
+        expect(mockHeal).toHaveBeenCalledWith({ provider: 'BRIDGE', actionKey: null })
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('Manteca RFI (sumsub nextAction on the verdict) hands the action key to the heal, not the generic resubmit', () => {
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                channel: 'bank',
+                status: 'requires-info',
+                reason: { userMessage: 'We need information about your source of funds.' },
+                resolved: {
+                    status: 'fixable',
+                    blocking: {
+                        code: 'source_of_funds',
+                        userMessage: 'We need information about your source of funds.',
+                        selfHealable: true,
+                        selfHealKind: 'document-resubmit',
+                    },
+                    nextAction: {
+                        key: 'sumsub:source_of_funds',
+                        kind: 'sumsub',
+                        purpose: 'unlock-manteca',
+                        levelKey: 'source_of_funds',
+                    },
+                },
+            },
+        ]
+        render(<ActivationCTAs activationStep="deposit" />)
+        fireEvent.click(screen.getByText('Upload document'))
+        expect(mockHeal).toHaveBeenCalledWith({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
     })
 })
 

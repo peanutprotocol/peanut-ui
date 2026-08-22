@@ -142,9 +142,9 @@ function MantecaBankWithdrawFlow() {
     const queryClient = useQueryClient()
     // The pool→full upgrade gate reads identityVerification (Sumsub-cleared
     // the human), not rail-approval. Same fix-pattern as Profile/ProfileEdit.
-    const { rails } = useCapabilities()
+    const { rails, nextActions } = useCapabilities()
     const { isVerified: isUserIdentityVerified } = useIdentityVerification()
-    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
     const { hasPendingTransactions } = usePendingTransactions()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -658,7 +658,7 @@ function MantecaBankWithdrawFlow() {
                     if (mantecaRejection.state === 'restart-identity') {
                         await sumsubFlow.handleRestartIdentity()
                     } else if (mantecaRejection.state === 'fixable') {
-                        await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                        await sumsubFlow.handleFixableRejection(mantecaRejection)
                     } else {
                         await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                     }
