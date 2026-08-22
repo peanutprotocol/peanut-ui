@@ -8,6 +8,14 @@ export interface SumsubSdkProps {
     accessToken: string | null
     onClose: () => void
     onComplete: () => void
+    /**
+     * Fired when a level is submitted but the SDK stays open (multi-level
+     * Level-1 submit). Single-level submits fire `onComplete` instead — without
+     * this hook a multi-level session emits no submit signal at all, because
+     * the APPROVED close never runs `onComplete`. Web SDK only: the native SDK
+     * dismisses after the LAST level, so its one `onComplete` already covers it.
+     */
+    onSubmitted?: () => void
     onError?: (error: unknown) => void
     onRefreshToken: () => Promise<string>
     /** multi-level workflow (e.g. LATAM) — don't close SDK on Level 1 submission */

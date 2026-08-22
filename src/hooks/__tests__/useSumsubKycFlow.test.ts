@@ -251,9 +251,10 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
     // `regionIntent` prop so mounting the page does not create a backend record).
     // Deriving multi-level from the prop alone made the flag false for all of
     // them — the EEA questionnaire never got shown.
-    // NA shares the `bridge-requirements` workflow with EU but is NOT multi-level:
-    // only EEA applicants branch to the uplift questionnaire. Marking NA
-    // multi-level would park every US applicant in an open SDK until approval.
+    // NA shares the `bridge-requirements` workflow with EU but is deliberately
+    // NOT multi-level: its second levels are rare organic branches
+    // (source-of-funds, proof-of-address), and marking NA multi-level would park
+    // every US applicant in an open SDK until approval to serve them.
     it.each([
         ['EU', true],
         ['LATAM', true],
@@ -375,6 +376,28 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
 
         expect(result.current.showWrapper).toBe(false)
         expect(result.current.isVerificationProgressModalOpen).toBe(false)
+    })
+
+    // …EXCEPT when the close is a submission. An in-session resubmit after a RED
+    // decline runs handleSdkComplete, which opens the progress modal — replaying
+    // the held (now stale) transition would close it in the same breath and dump
+    // the user on an ACTION_REQUIRED drawer for documents they just resubmitted.
+    // handleSdkComplete consumes the deferred status instead.
+    it('a submission close consumes the deferred transition — the progress modal stays open', async () => {
+        const { result } = await openSdkOverProgressModal('EU')
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+
+        // in-session resubmit: onApplicantResubmitted → handleSdkComplete
+        act(() => {
+            result.current.handleSdkComplete()
+        })
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
     })
 
     // Boundary: the suppression is scoped to an OPEN SDK. Once the user is out of
