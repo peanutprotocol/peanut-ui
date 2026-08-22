@@ -41,6 +41,12 @@ function SetupPageContent() {
     const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
     const { deviceType: detectedDeviceType } = useDeviceType()
     const searchParams = useSearchParams()
+    // The init effect must key on the VALUES it reads, not the searchParams
+    // object: the step-URL mirror rewrites ?screen= on every step, and a dep
+    // on the object identity would re-run determineInitialStep mid-flow and
+    // bounce the user back to the entry step.
+    const inviteCodeParam = searchParams.get('code')
+    const legacyStepParam = searchParams.get('step')
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
 
@@ -136,7 +142,7 @@ function SetupPageContent() {
              * deferred-install hand-off write, so it survives the multi-step
              * signup and reaches registration.
              */
-            const codeFromUrl = searchParams.get('code')
+            const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {
                 saveToCookie('inviteCode', toInviteCode(codeFromUrl))
             }
@@ -147,7 +153,7 @@ function SetupPageContent() {
             // past the landing gate — otherwise claim/invite links deep-link
             // straight into the signup form. Native app keeps the fast path.
             const webSignupClosed = isPwaSunsetOn() && !isCapacitor()
-            const skipInviteGate = (!!userInviteCode || searchParams.get('step') === 'signup') && !webSignupClosed
+            const skipInviteGate = (!!userInviteCode || legacyStepParam === 'signup') && !webSignupClosed
 
             const localDeviceType = detectedDeviceType
 
@@ -279,7 +285,7 @@ function SetupPageContent() {
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
-    }, [dispatch, steps, searchParams])
+    }, [dispatch, steps, inviteCodeParam, legacyStepParam])
 
     useEffect(() => {
         if (step) {

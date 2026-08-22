@@ -95,7 +95,7 @@ const ResidenceChangeModal = ({
                 setError(result.error)
                 return false
             }
-            storeDeclaredResidence(selected)
+            storeDeclaredResidence(userId, selected)
             posthog.capture(ANALYTICS_EVENTS.RESIDENCE_CHANGED, {
                 residence_country: selected,
                 differed_from_verified: differsFromVerified,

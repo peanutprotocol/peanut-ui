@@ -149,13 +149,13 @@ const SignTestTransaction = () => {
                 // the account exists. Fire-and-forget: prequalification data,
                 // never a reason to fail or delay the redirect.
                 if (residenceCountry) {
-                    storeDeclaredResidence(residenceCountry)
                     posthog.setPersonProperties({
                         residence_country: residenceCountry,
                         second_residence_country: secondResidenceCountry || undefined,
                     })
                     const userId = user?.user?.userId
                     if (userId) {
+                        storeDeclaredResidence(userId, residenceCountry)
                         void updateUserById({
                             userId,
                             residenceCountry,

@@ -54,7 +54,8 @@
             "custom": "Personalizado",
             "unknown": "Desconocido"
         },
-        "exchangeRate": "Tipo de cambio"
+        "exchangeRate": "Tipo de cambio",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "navigation": {
         "home": "Inicio",
