@@ -57,13 +57,24 @@ export const Profile = () => {
             <div className="space-y-8">
                 <ProfileHeader name={displayName} username={username} isVerified={isUserSumsubKycApproved} />
                 <div className="space-y-4">
-                    <ProfileMenuItem
-                        icon="smile"
-                        label={t('menu.inviteFriends')}
-                        onClick={() => setIsInviteFriendsModalOpen(true)}
-                        href="/dummy" // Dummy link, wont be called
-                        position="single"
-                    />
+                    <div>
+                        <ProfileMenuItem
+                            icon="smile"
+                            label={t('menu.inviteFriends')}
+                            onClick={() => setIsInviteFriendsModalOpen(true)}
+                            href="/dummy" // Dummy link, wont be called
+                            position="first"
+                        />
+                        {/* Unlock payments sits next to the invite CTA: the two
+                            highest-leverage actions lead the menu. */}
+                        <ProfileMenuItem
+                            icon="bank"
+                            label={t('menu.unlockedRegions')}
+                            href="/profile/identity-verification"
+                            position="last"
+                            highlight={!isUserSumsubKycApproved}
+                        />
+                    </div>
                     {/* Menu Items - First Group */}
                     <div>
                         {/* Card row shows for everyone. Holders go straight to /card;
@@ -101,14 +112,6 @@ export const Profile = () => {
                             label={t('menu.personalDetails')}
                             href="/profile/edit"
                             position="first"
-                        />
-
-                        <ProfileMenuItem
-                            icon="globe-lock"
-                            label={t('menu.unlockedRegions')}
-                            href="/profile/identity-verification"
-                            position="middle"
-                            highlight={!isUserSumsubKycApproved}
                         />
 
                         {/* Payment limits merged into Unlock payments (inline
