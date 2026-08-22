@@ -2,15 +2,20 @@ import { nativeCurrencyAddresses, supportedPeanutChains, peanutTokenDetails } fr
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import { isCapacitor } from '@/utils/capacitor'
-import * as Sentry from '@sentry/nextjs'
+import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import { getPublicClient, type ChainId } from '@/app/actions/clients'
+/*
+ * Type-only, so this module does not pull `actions/clients` — and through it
+ * viem's ~700-chain registry (596 KB) — into every bundle that imports these
+ * utils. `fetchTokenSymbol` below imports the client at call time instead.
+ */
+import { type ChainId } from '@/app/actions/clients'
 import { type ChargeEntry } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
-import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
+import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
 import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 
 export const shortenAddress = (address?: string, chars?: number) => {
@@ -648,6 +653,7 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
     let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
     if (!tokenSymbol) {
         try {
+            const { getPublicClient } = await import('@/app/actions/clients')
             const client = getPublicClient(Number(chainId) as ChainId)
             tokenSymbol = (await client.readContract({
                 address: tokenAddress as Address,
