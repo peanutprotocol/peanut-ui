@@ -145,8 +145,8 @@ describe('UnlockPayments', () => {
         expect(screen.getByText('Residence: Brazil')).toBeInTheDocument()
         expect(screen.getByText('Verified')).toBeInTheDocument()
         expect(screen.getByText('Your region')).toBeInTheDocument()
-        const headers = screen.getAllByText(/^(Everywhere|Brazil|Argentina|United States|Mexico|Europe)$/)
-        expect(headers[1]).toHaveTextContent('Brazil')
+        const headers = screen.getAllByText(/^(Everywhere|South America|North America|Europe)$/)
+        expect(headers[1]).toHaveTextContent('South America')
     })
 
     it('a fully restricted residence reads Not available on bank rows but keeps the always-on row', () => {

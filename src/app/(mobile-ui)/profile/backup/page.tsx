@@ -66,6 +66,9 @@ export default function BackupPage() {
                         description={t('noBackupWarning.description')}
                         icon="alert"
                     />
+                    {/* Passkeys saved to a third-party manager back up through
+                        that manager, not the platform steps above. */}
+                    <p className="text-xs text-grey-1">{t('thirdPartyNote')}</p>
                 </div>
 
                 <div>

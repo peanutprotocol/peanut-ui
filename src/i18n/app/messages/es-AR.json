@@ -53,7 +53,8 @@
             "kycNote": "Los depósitos bancarios requieren una verificación de identidad única · unos 10 min",
             "getCard": "Conseguí tu tarjeta Peanut",
             "addMoney": "Agregar dinero",
-            "firstPayment": "Hacé tu primer pago"
+            "firstPayment": "Hacé tu primer pago",
+            "firstPaymentNote": "Mandá unos dólares a cualquier @usuario. Llegan en segundos."
         },
         "autoBalance": {
             "title": "Terminá de configurar tu tarjeta",
@@ -175,7 +176,7 @@
         },
         "unlockPayments": {
             "title": "Desbloqueá pagos",
-            "description": "Lo que ya funciona para vos y lo que podés activar con un toque.",
+            "description": "Todo lo que podés usar hoy, y lo que se abre después de verificar tu identidad.",
             "residence": {
                 "label": "Residencia: {country}",
                 "unknown": "Residencia sin definir",
@@ -188,22 +189,21 @@
             "yourRegion": "Tu región",
             "groups": {
                 "everywhere": "En todas partes",
-                "brazil": "Brasil",
-                "argentina": "Argentina",
-                "unitedStates": "Estados Unidos",
-                "mexico": "México",
+                "southAmerica": "América del Sur",
+                "northAmerica": "América del Norte",
                 "europe": "Europa"
             },
             "rows": {
                 "p2p": "Pagos de Peanut a Peanut",
                 "card": "Tarjeta Peanut",
-                "pixBank": "PIX y transferencias bancarias",
-                "pixQr": "Pagos QR con PIX",
-                "arQrBank": "Pagos QR y transferencias",
-                "arQr": "Pagos QR",
-                "bank": "Transferencias bancarias",
-                "achWire": "ACH y Wire",
-                "spei": "Transferencias SPEI",
+                "pixBank": "PIX y transferencias bancarias (Brasil)",
+                "pixQr": "Pagos QR con PIX (Brasil)",
+                "brBank": "Transferencias bancarias (Brasil)",
+                "arQrBank": "Pagos QR y transferencias (Argentina)",
+                "arQr": "Pagos QR (Argentina)",
+                "arBank": "Transferencias bancarias (Argentina)",
+                "achWire": "ACH y Wire (EE. UU.)",
+                "spei": "Transferencias SPEI (México)",
                 "sepa": "Transferencias SEPA"
             },
             "chips": {
@@ -255,7 +255,8 @@
         },
         "backup": {
             "nonCustodial": {
-                "description": "Solo vos controlás esta billetera. No podemos recuperarla si perdés el acceso. El respaldo es tu responsabilidad."
+                "description": "Tu cuenta vive en tu dispositivo, no en nuestros servidores. Si perdés el dispositivo sin respaldo, el dinero no se puede recuperar. Activá el respaldo abajo y te acompañará en cualquier teléfono nuevo.",
+                "title": "Cuenta sin custodia"
             },
             "enableNow": "Activá el respaldo ahora",
             "steps": {
@@ -265,7 +266,7 @@
                     },
                     "step2": {
                         "title": "Buscá el Administrador de contraseñas",
-                        "description": "Autocompletar → Administrador de contraseñas de Google → Activá la sincronización"
+                        "description": "Autocompletar → Administrador de contraseñas de Google. Asegurate de que guarda tus passkeys"
                     },
                     "step3": {
                         "title": "Verificá en Chrome",
@@ -282,7 +283,7 @@
                     },
                     "step3": {
                         "title": "Verificá que funcionó",
-                        "description": "Configuración → Contraseñas → Buscá \"Peanut\""
+                        "description": "Abrí la app Contraseñas (iOS 18+) o Configuración → Contraseñas. Buscá \"Peanut\""
                     }
                 }
             },
@@ -301,7 +302,8 @@
             },
             "exportKeysModal": {
                 "tradeoffDescription": "Obtenés mejor seguridad, pero las passkeys quedan ligadas al ecosistema de tu dispositivo (Apple o Google). Por eso el respaldo en la nube es clave."
-            }
+            },
+            "thirdPartyNote": "¿Usás 1Password, Samsung Pass u otro gestor de contraseñas? Tu passkey puede estar guardada ahí. Revisá el respaldo de ese gestor."
         },
         "publicProfile": {
             "joinPeanutAlt": "Unite a Peanut",

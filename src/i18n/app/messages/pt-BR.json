@@ -137,7 +137,8 @@
             "kycNote": "Depósitos bancários exigem uma verificação de identidade única · cerca de 10 min",
             "getCard": "Peça seu cartão Peanut",
             "addMoney": "Adicionar dinheiro",
-            "firstPayment": "Faça seu primeiro pagamento"
+            "firstPayment": "Faça seu primeiro pagamento",
+            "firstPaymentNote": "Envie alguns dólares para qualquer @usuário. Chega em segundos."
         },
         "autoBalance": {
             "title": "Termine de configurar seu cartão",
@@ -332,7 +333,7 @@
         },
         "unlockPayments": {
             "title": "Desbloqueie pagamentos",
-            "description": "O que já funciona para você e o que um toque pode ativar.",
+            "description": "Tudo o que você pode usar hoje, e o que se abre depois de verificar sua identidade.",
             "residence": {
                 "label": "Residência: {country}",
                 "unknown": "Residência não definida",
@@ -345,22 +346,21 @@
             "yourRegion": "Sua região",
             "groups": {
                 "everywhere": "Em todo lugar",
-                "brazil": "Brasil",
-                "argentina": "Argentina",
-                "unitedStates": "Estados Unidos",
-                "mexico": "México",
+                "southAmerica": "América do Sul",
+                "northAmerica": "América do Norte",
                 "europe": "Europa"
             },
             "rows": {
                 "p2p": "Pagamentos de Peanut para Peanut",
                 "card": "Cartão Peanut",
-                "pixBank": "PIX e transferências bancárias",
-                "pixQr": "Pagamentos QR com PIX",
-                "arQrBank": "Pagamentos QR e transferências",
-                "arQr": "Pagamentos QR",
-                "bank": "Transferências bancárias",
-                "achWire": "ACH e Wire",
-                "spei": "Transferências SPEI",
+                "pixBank": "PIX e transferências bancárias (Brasil)",
+                "pixQr": "Pagamentos QR com PIX (Brasil)",
+                "brBank": "Transferências bancárias (Brasil)",
+                "arQrBank": "Pagamentos QR e transferências (Argentina)",
+                "arQr": "Pagamentos QR (Argentina)",
+                "arBank": "Transferências bancárias (Argentina)",
+                "achWire": "ACH e Wire (EUA)",
+                "spei": "Transferências SPEI (México)",
                 "sepa": "Transferências SEPA"
             },
             "chips": {
@@ -413,8 +413,8 @@
         "backup": {
             "title": "Backup",
             "nonCustodial": {
-                "title": "Carteira sem custódia",
-                "description": "Só você controla esta carteira. Não podemos recuperá-la se você perder o acesso. O backup é sua responsabilidade."
+                "title": "Conta sem custódia",
+                "description": "Sua conta vive no seu aparelho, não nos nossos servidores. Se perder o aparelho sem backup, o dinheiro não pode ser recuperado. Ative o backup abaixo e ele acompanha você em qualquer celular novo."
             },
             "enableNow": "Ative o backup agora",
             "steps": {
@@ -425,7 +425,7 @@
                     },
                     "step2": {
                         "title": "Encontre o Gerenciador de senhas",
-                        "description": "Preenchimento automático → Gerenciador de senhas do Google → Ative a sincronização"
+                        "description": "Preenchimento automático → Gerenciador de senhas do Google. Confira se ele guarda suas passkeys"
                     },
                     "step3": {
                         "title": "Confira no Chrome",
@@ -443,7 +443,7 @@
                     },
                     "step3": {
                         "title": "Confira se funcionou",
-                        "description": "Ajustes → Senhas → Busque \"Peanut\""
+                        "description": "Abra o app Senhas (iOS 18+) ou Ajustes → Senhas. Busque \"Peanut\""
                     }
                 }
             },
@@ -486,7 +486,8 @@
                 "tradeoffTitle": "O outro lado",
                 "tradeoffDescription": "Você ganha mais segurança, mas as passkeys ficam presas ao ecossistema do seu aparelho (Apple ou Google). Por isso o backup na nuvem é essencial.",
                 "futureNote": "Estamos explorando opções avançadas de exportação para usuários avançados em atualizações futuras."
-            }
+            },
+            "thirdPartyNote": "Usa 1Password, Samsung Pass ou outro gerenciador de senhas? Sua passkey pode estar salva lá. Confira o backup desse gerenciador."
         },
         "publicProfile": {
             "peanutMascotAlt": "Mascote do Peanut",

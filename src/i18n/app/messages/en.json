@@ -137,7 +137,8 @@
             "kycNote": "Bank deposits need a one-time ID check · about 10 min",
             "getCard": "Get your Peanut card",
             "addMoney": "Add money",
-            "firstPayment": "Make your first payment"
+            "firstPayment": "Make your first payment",
+            "firstPaymentNote": "Send a few dollars to any @username. It lands in seconds."
         },
         "autoBalance": {
             "title": "Finish setting up your card",
@@ -332,7 +333,7 @@
         },
         "unlockPayments": {
             "title": "Unlock payments",
-            "description": "What works for you right now, and what one tap can switch on.",
+            "description": "Everything you can use today, and what opens after ID verification.",
             "residence": {
                 "label": "Residence: {country}",
                 "unknown": "Residence not set",
@@ -345,22 +346,21 @@
             "yourRegion": "Your region",
             "groups": {
                 "everywhere": "Everywhere",
-                "brazil": "Brazil",
-                "argentina": "Argentina",
-                "unitedStates": "United States",
-                "mexico": "Mexico",
+                "southAmerica": "South America",
+                "northAmerica": "North America",
                 "europe": "Europe"
             },
             "rows": {
                 "p2p": "Peanut-to-Peanut payments",
                 "card": "Peanut card",
-                "pixBank": "PIX & bank transfers",
-                "pixQr": "PIX QR payments",
-                "arQrBank": "QR payments & transfers",
-                "arQr": "QR payments",
-                "bank": "Bank transfers",
-                "achWire": "ACH & Wire",
-                "spei": "SPEI transfers",
+                "pixBank": "PIX & bank transfers (Brazil)",
+                "pixQr": "PIX QR payments (Brazil)",
+                "brBank": "Bank transfers (Brazil)",
+                "arQrBank": "QR payments & transfers (Argentina)",
+                "arQr": "QR payments (Argentina)",
+                "arBank": "Bank transfers (Argentina)",
+                "achWire": "ACH & Wire (US)",
+                "spei": "SPEI transfers (Mexico)",
                 "sepa": "SEPA transfers"
             },
             "chips": {
@@ -413,8 +413,8 @@
         "backup": {
             "title": "Backup",
             "nonCustodial": {
-                "title": "Non-custodial wallet",
-                "description": "Only you control this wallet. We can't recover it if you lose access. Your backup is your responsibility."
+                "title": "Non-custodial account",
+                "description": "Your account lives on your device, not our servers. Lose the device without backup and the money can't be recovered. Enable backup below and it follows you to any new phone."
             },
             "enableNow": "Enable backup now",
             "steps": {
@@ -425,7 +425,7 @@
                     },
                     "step2": {
                         "title": "Find Password Manager",
-                        "description": "Autofill → Google Password Manager → Turn ON sync"
+                        "description": "Autofill → Google Password Manager. Make sure it stores your passkeys"
                     },
                     "step3": {
                         "title": "Verify in Chrome",
@@ -443,7 +443,7 @@
                     },
                     "step3": {
                         "title": "Verify it worked",
-                        "description": "Settings → Passwords → Search \"Peanut\""
+                        "description": "Open the Passwords app (iOS 18+) or Settings → Passwords. Search \"Peanut\""
                     }
                 }
             },
@@ -486,7 +486,8 @@
                 "tradeoffTitle": "The tradeoff",
                 "tradeoffDescription": "You get better security, but passkeys are locked to your device ecosystem (Apple or Google). That's why cloud backup is critical.",
                 "futureNote": "We're exploring advanced export options for power users in future updates."
-            }
+            },
+            "thirdPartyNote": "Using 1Password, Samsung Pass, or another password manager? Your passkey may be saved there instead. Check that manager's own backup."
         },
         "publicProfile": {
             "peanutMascotAlt": "Peanut mascot",

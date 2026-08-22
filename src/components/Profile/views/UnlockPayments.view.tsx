@@ -78,28 +78,38 @@ type RowLimitSummary =
     | { kind: 'manteca'; asset: string; monthlyLimit: number; monthlyRemaining: number }
     | { kind: 'bridge'; perTransaction: string }
 
-const GROUP_LIMIT_ASSET: Record<string, string> = { brazil: 'BRL', argentina: 'ARS' }
-
-function limitSummaryForGroup(
-    groupId: string,
-    chipActive: boolean,
+function limitSummariesForGroup(
+    group: UnlockGroup,
     mantecaLimits: MantecaLimit[] | null,
     bridgeLimits: BridgeLimits | null
-): RowLimitSummary | null {
-    if (!chipActive) return null
-    const asset = GROUP_LIMIT_ASSET[groupId]
-    if (asset) {
-        const limit = mantecaLimits?.find((l) => l.asset === asset)
-        if (!limit) return null
-        const monthly = getLimitData(limit, 'monthly')
-        return { kind: 'manteca', asset, monthlyLimit: monthly.limit, monthlyRemaining: monthly.remaining }
+): RowLimitSummary[] {
+    const refs = new Set(
+        group.rows.filter((row) => row.chip === 'active' && row.limitRef).map((row) => row.limitRef as string)
+    )
+    const summaries: RowLimitSummary[] = []
+    for (const ref of refs) {
+        if (ref === 'bridge') {
+            const cap = Number(bridgeLimits?.onRampPerTransaction)
+            if (bridgeLimits && Number.isFinite(cap) && cap > 0) {
+                summaries.push({
+                    kind: 'bridge',
+                    perTransaction: formatAmountWithCurrency(cap, bridgeLimits.asset || 'USD'),
+                })
+            }
+            continue
+        }
+        const limit = mantecaLimits?.find((l) => l.asset === ref)
+        if (limit) {
+            const monthly = getLimitData(limit, 'monthly')
+            summaries.push({
+                kind: 'manteca',
+                asset: ref,
+                monthlyLimit: monthly.limit,
+                monthlyRemaining: monthly.remaining,
+            })
+        }
     }
-    if ((groupId === 'unitedStates' || groupId === 'mexico' || groupId === 'europe') && bridgeLimits) {
-        const cap = Number(bridgeLimits.onRampPerTransaction)
-        if (!Number.isFinite(cap) || cap <= 0) return null
-        return { kind: 'bridge', perTransaction: formatAmountWithCurrency(cap, bridgeLimits.asset || 'USD') }
-    }
-    return null
+    return summaries
 }
 
 const CHIP_CLASSES: Record<UnlockChip, string> = {
@@ -575,10 +585,10 @@ const UnlockPayments = () => {
 export default UnlockPayments
 
 /** Group label key for a synthetic region name shown in the unlock modal. */
-function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 'unitedStates' | 'brazil' {
+function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 'northAmerica' | 'southAmerica' {
     if (path === 'europe') return 'europe'
-    if (path === 'north-america') return 'unitedStates'
-    return 'brazil'
+    if (path === 'north-america') return 'northAmerica'
+    return 'southAmerica'
 }
 
 const UnlockGroupCard = ({
@@ -636,30 +646,28 @@ const UnlockGroupCard = ({
                     </button>
                 )
             })}
-            {(() => {
-                const active = group.rows.some((row) => row.chip === 'active')
-                const summary = limitSummaryForGroup(group.id, active, mantecaLimits, bridgeLimits)
-                if (!summary) return null
-                return (
-                    <div className="border-t border-n-1 px-3 py-2 dark:border-white">
-                        {summary.kind === 'manteca' ? (
-                            <>
-                                <p className="mb-1 text-[11px] text-grey-1">
-                                    {t('limits.monthlyLeft', {
-                                        remaining: formatAmountWithCurrency(summary.monthlyRemaining, summary.asset),
-                                        limit: formatAmountWithCurrency(summary.monthlyLimit, summary.asset),
-                                    })}
-                                </p>
-                                <LimitsProgressBar total={summary.monthlyLimit} remaining={summary.monthlyRemaining} />
-                            </>
-                        ) : (
-                            <p className="text-[11px] text-grey-1">
-                                {t('limits.perTransfer', { amount: summary.perTransaction })}
+            {limitSummariesForGroup(group, mantecaLimits, bridgeLimits).map((summary) => (
+                <div
+                    key={summary.kind === 'manteca' ? summary.asset : 'bridge'}
+                    className="border-t border-n-1 px-3 py-2 dark:border-white"
+                >
+                    {summary.kind === 'manteca' ? (
+                        <>
+                            <p className="mb-1 text-[11px] text-grey-1">
+                                {t('limits.monthlyLeft', {
+                                    remaining: formatAmountWithCurrency(summary.monthlyRemaining, summary.asset),
+                                    limit: formatAmountWithCurrency(summary.monthlyLimit, summary.asset),
+                                })}
                             </p>
-                        )}
-                    </div>
-                )
-            })()}
+                            <LimitsProgressBar total={summary.monthlyLimit} remaining={summary.monthlyRemaining} />
+                        </>
+                    ) : (
+                        <p className="text-[11px] text-grey-1">
+                            {t('limits.perTransfer', { amount: summary.perTransaction })}
+                        </p>
+                    )}
+                </div>
+            ))}
         </div>
     )
 }
