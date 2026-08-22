@@ -95,15 +95,11 @@ const roboto = Roboto_Flex({
     axes: ['wdth'],
 })
 
-// preload: false on the decorative faces — next/font preloads every declared
-// family at High priority, and these three render below the fold (2-3 call
-// sites each) while competing with the hero image for bandwidth.
 const sniglet = Sniglet({
     weight: ['400', '800'],
     subsets: ['latin'],
     display: 'swap',
     variable: '--font-sniglet',
-    preload: false,
 })
 
 // The .woff2 files are latin + latin-ext subsets of the .ttf sources (built
@@ -115,14 +111,12 @@ const knerdOutline = localFont({
     src: '../assets/fonts/knerd-outline.woff2',
     variable: '--font-knerd-outline',
     display: 'swap',
-    preload: false,
 })
 
 const knerdFilled = localFont({
     src: '../assets/fonts/knerd-filled.woff2',
     variable: '--font-knerd-filled',
     display: 'swap',
-    preload: false,
 })
 
 const robotoFlexBold = localFont({
