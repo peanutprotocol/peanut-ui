@@ -351,7 +351,7 @@ function SetupPageContent() {
             screenId={step.screenId}
             image={step.image}
             title={t(titleKey)}
-            description={t.has(descriptionKey) ? t(descriptionKey) : undefined}
+            description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
             showLogoutButton={step.screenId === 'sign-test-transaction'}

@@ -9,6 +9,7 @@ import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestriction
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
+import { storeDeclaredResidence } from '@/utils/declared-residence.storage'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
@@ -94,6 +95,7 @@ const ResidenceChangeModal = ({
                 setError(result.error)
                 return false
             }
+            storeDeclaredResidence(selected)
             posthog.capture(ANALYTICS_EVENTS.RESIDENCE_CHANGED, {
                 residence_country: selected,
                 differed_from_verified: differsFromVerified,

@@ -14,6 +14,7 @@ import { useAppLocale } from '@/i18n/app/AppIntlProvider'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardInfo } from '@/hooks/useCardInfo'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import Card from '../Global/Card'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import ShowNameToggle from './components/ShowNameToggle'
@@ -31,7 +32,14 @@ export const Profile = () => {
     // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
-    const { hasCardAccess } = useCardInfo()
+    const { hasCardAccess, isEligible } = useCardInfo()
+    const residenceRestrictions = useResidenceRestrictions()
+    // Card holders always see their card row; for everyone else the promo row
+    // only makes sense when the card is actually attainable — a restricted
+    // residence or a server "not eligible" hides it instead of advertising a
+    // closed door. Unknown (still loading) keeps the row: the /shhhhh
+    // explainer is a safe landing either way.
+    const showCardMenuItem = hasCardAccess || (!residenceRestrictions.card && isEligible !== false)
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
 
@@ -65,18 +73,20 @@ export const Profile = () => {
                             it notFound()s users without card access. `hasCardAccess` is
                             undefined while useCardInfo loads, falling to the /shhhhh path —
                             the safe default (never 404s; the gated /card route would). */}
-                        <ProfileMenuItem
-                            icon="credit-card"
-                            label={hasCardAccess ? t('menu.yourCard') : t('menu.peanutCard')}
-                            href={hasCardAccess ? '/card' : '/shhhhh'}
-                            badge={hasCardAccess ? undefined : t('menu.newBadge')}
-                            position="first"
-                        />
+                        {showCardMenuItem && (
+                            <ProfileMenuItem
+                                icon="credit-card"
+                                label={hasCardAccess ? t('menu.yourCard') : t('menu.peanutCard')}
+                                href={hasCardAccess ? '/card' : '/shhhhh'}
+                                badge={hasCardAccess ? undefined : t('menu.newBadge')}
+                                position="first"
+                            />
+                        )}
                         <ProfileMenuItem
                             icon="achievements"
                             label={t('menu.yourBadges')}
                             href="/badges"
-                            position="middle"
+                            position={showCardMenuItem ? 'middle' : 'first'}
                         />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}
@@ -101,12 +111,9 @@ export const Profile = () => {
                             highlight={!isUserSumsubKycApproved}
                         />
 
-                        <ProfileMenuItem
-                            icon="meter"
-                            label={t('menu.paymentLimits')}
-                            href="/limits"
-                            position="middle"
-                        />
+                        {/* Payment limits merged into Unlock payments (inline
+                            usage + the all-limits link there); /limits stays
+                            routable for deep links. */}
 
                         <ProfileMenuItem
                             icon="globe"

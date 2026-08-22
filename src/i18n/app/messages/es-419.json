@@ -275,7 +275,7 @@
             "yourBadges": "Tus insignias",
             "points": "Puntos",
             "personalDetails": "Datos personales",
-            "unlockedRegions": "Regiones desbloqueadas",
+            "unlockedRegions": "Desbloquea pagos",
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar mi nombre completo",
             "backup": "Respaldo",
@@ -337,7 +337,7 @@
                 "label": "Residencia: {country}",
                 "unknown": "Residencia sin definir",
                 "verified": "Verificada",
-                "unverified": "Sin verificar",
+                "unverified": "Sin confirmar",
                 "change": "Cambiar",
                 "set": "Definir",
                 "pendingReverify": "Cambio a {country} pendiente de nueva verificación"
@@ -402,6 +402,12 @@
                 "body": "No necesitas hacer nada. Te avisaremos en cuanto haya una decisión.",
                 "escalation": "Está tardando más de lo normal.",
                 "messageUs": "Escríbenos y lo perseguimos"
+            },
+            "limits": {
+                "viewAll": "Límites de pago",
+                "details": "Ver",
+                "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
+                "perTransfer": "Hasta {amount} por transferencia"
             }
         },
         "backup": {
@@ -770,6 +776,13 @@
                 "warnings": {
                     "lowEndAndroid": "Los dispositivos Android de gama baja pueden necesitar actualizaciones de seguridad recientes para que las passkeys funcionen bien."
                 }
+            },
+            "info": {
+                "title": "¿Qué es una passkey?",
+                "what": "Una passkey es una llave digital que tu dispositivo crea para esta app. La apruebas con la huella, el rostro o el bloqueo de pantalla que ya usas. No hay contraseña que recordar ni nada que escribir.",
+                "backup": "Tu gestor de contraseñas (iCloud Keychain, Administrador de contraseñas de Google o similar) la respalda y la sincroniza, así te acompaña en un teléfono nuevo.",
+                "privacy": "Peanut nunca ve tu huella ni tu rostro. Tu dispositivo solo nos dice que aprobaste.",
+                "fullGuide": "Leer la guía completa"
             }
         },
         "testTransaction": {

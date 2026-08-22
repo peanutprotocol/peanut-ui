@@ -275,7 +275,7 @@
             "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Dados pessoais",
-            "unlockedRegions": "Regiões desbloqueadas",
+            "unlockedRegions": "Desbloqueie pagamentos",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
@@ -337,7 +337,7 @@
                 "label": "Residência: {country}",
                 "unknown": "Residência não definida",
                 "verified": "Verificado",
-                "unverified": "Não verificada",
+                "unverified": "Não confirmada",
                 "change": "Alterar",
                 "set": "Definir",
                 "pendingReverify": "Mudança para {country} pendente de nova verificação"
@@ -402,6 +402,12 @@
                 "body": "Você não precisa fazer nada. Avisaremos assim que houver uma decisão.",
                 "escalation": "Está demorando mais que o normal.",
                 "messageUs": "Fale com a gente e vamos atrás"
+            },
+            "limits": {
+                "viewAll": "Limites de pagamento",
+                "details": "Ver",
+                "monthlyLeft": "Restam {remaining} de {limit} neste mês",
+                "perTransfer": "Até {amount} por transferência"
             }
         },
         "backup": {
@@ -770,6 +776,13 @@
                 "warnings": {
                     "lowEndAndroid": "Aparelhos Android mais simples podem precisar de atualizações de segurança recentes para as passkeys funcionarem direito."
                 }
+            },
+            "info": {
+                "title": "O que é uma passkey?",
+                "what": "Uma passkey é uma chave digital que seu aparelho cria para este app. Você a aprova com a digital, o rosto ou o bloqueio de tela que já usa. Sem senha para lembrar e nada para digitar.",
+                "backup": "Seu gerenciador de senhas (iCloud Keychain, Gerenciador de Senhas do Google ou similar) faz o backup e a sincroniza, então ela vai com você para um celular novo.",
+                "privacy": "O Peanut nunca vê sua digital nem seu rosto. Seu aparelho só nos diz que você aprovou.",
+                "fullGuide": "Ler o guia completo"
             }
         },
         "testTransaction": {

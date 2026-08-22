@@ -5,6 +5,7 @@ import {
     type ResidenceRestrictionSets,
 } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupStore } from '@/redux/hooks'
+import { readDeclaredResidence } from '@/utils/declared-residence.storage'
 import { useMemo } from 'react'
 
 export interface ResidenceRestrictions {
@@ -38,9 +39,11 @@ export const deriveResidenceRestrictions = (iso2: string | null | undefined): Re
  * Residence-based availability for the current user.
  *
  * The server value on /get-user (`residenceRestrictions`, derived from the
- * residence declared at signup) is authoritative; the redux setup value only
- * fills the pre-account window before the first /get-user response carries it,
- * derived over the server-fetched tier lists (bundled mirror until they load).
+ * residence declared at signup) is authoritative; the redux setup value fills
+ * the pre-account window, and the localStorage mirror of the signup answer
+ * covers reloads before the server copy is readable (or on an API that
+ * predates the residence fields) — all derived over the server-fetched tier
+ * lists (bundled mirror until they load).
  * Advisory offer-shaping, not a compliance gate: it hides bank/card surfaces
  * the user could never use, and can only ever remove offers.
  */
@@ -51,6 +54,7 @@ export const useResidenceRestrictions = (): ResidenceRestrictions => {
 
     return useMemo(() => {
         if (user?.residenceRestrictions) return user.residenceRestrictions
-        return deriveResidenceRestrictionsFrom(sets, residenceCountry)
-    }, [user?.residenceRestrictions, residenceCountry, sets])
+        const declared = user?.residence?.declared || residenceCountry || readDeclaredResidence()
+        return deriveResidenceRestrictionsFrom(sets, declared)
+    }, [user?.residenceRestrictions, user?.residence?.declared, residenceCountry, sets])
 }

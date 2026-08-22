@@ -1,4 +1,5 @@
 import DocsLink from '@/components/Global/DocsLink'
+import PasskeyInfoModal from '@/components/Setup/components/PasskeyInfoModal'
 import { Button } from '@/components/0_Bruddle/Button'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
@@ -13,6 +14,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
+import { storeDeclaredResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from 'tailwind-merge'
@@ -29,6 +31,7 @@ const SignTestTransaction = () => {
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
+    const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
 
     // ensure user is fetched when component mounts (important for new signups)
     useEffect(() => {
@@ -146,6 +149,7 @@ const SignTestTransaction = () => {
                 // the account exists. Fire-and-forget: prequalification data,
                 // never a reason to fail or delay the redirect.
                 if (residenceCountry) {
+                    storeDeclaredResidence(residenceCountry)
                     posthog.setPersonProperties({
                         residence_country: residenceCountry,
                         second_residence_country: secondResidenceCountry || undefined,
@@ -227,13 +231,20 @@ const SignTestTransaction = () => {
                     {displayError && <p className="text-sm font-bold text-error">{displayError}</p>}
                 </div>
                 <div>
+                    {/* In-app explainer instead of a browser redirect — leaving
+                        the app mid-signup loses users (full guide inside). */}
                     <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
-                        <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
+                        <button
+                            type="button"
+                            className="underline underline-offset-2"
+                            onClick={() => setIsPasskeyInfoOpen(true)}
+                        >
                             {t('passkey.learnMore')}
-                        </DocsLink>{' '}
+                        </button>
                     </p>
                 </div>
             </div>
+            <PasskeyInfoModal visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
         </div>
     )
 }

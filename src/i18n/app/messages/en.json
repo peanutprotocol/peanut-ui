@@ -275,7 +275,7 @@
             "yourBadges": "Your Badges",
             "points": "Points",
             "personalDetails": "Personal details",
-            "unlockedRegions": "Unlocked regions",
+            "unlockedRegions": "Unlock payments",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
@@ -337,7 +337,7 @@
                 "label": "Residence: {country}",
                 "unknown": "Residence not set",
                 "verified": "Verified",
-                "unverified": "Unverified",
+                "unverified": "Not confirmed",
                 "change": "Change",
                 "set": "Set",
                 "pendingReverify": "Update to {country} pending re-verification"
@@ -402,6 +402,12 @@
                 "body": "Nothing is needed from you. We'll notify you the moment there's a decision.",
                 "escalation": "This is taking longer than usual.",
                 "messageUs": "Message us and we'll chase it"
+            },
+            "limits": {
+                "viewAll": "Payment limits",
+                "details": "View",
+                "monthlyLeft": "{remaining} of {limit} left this month",
+                "perTransfer": "Up to {amount} per transfer"
             }
         },
         "backup": {
@@ -770,6 +776,13 @@
                 "warnings": {
                     "lowEndAndroid": "Lower end Android devices may require recent security updates for passkeys to work properly."
                 }
+            },
+            "info": {
+                "title": "What's a passkey?",
+                "what": "A passkey is a digital key your device creates for this app. You approve it with the fingerprint, face, or screen lock you already use. There's no password to remember, and nothing to type.",
+                "backup": "Your password manager (iCloud Keychain, Google Password Manager, or similar) backs it up and syncs it, so it comes with you on a new phone.",
+                "privacy": "Peanut never sees your fingerprint or face. Your device only tells us that you approved.",
+                "fullGuide": "Read the full guide"
             }
         },
         "testTransaction": {
