@@ -9,7 +9,7 @@
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
-import { AppIntlProvider } from '@/i18n/app/AppIntlProvider'
+import { MarketingIntlProvider } from '@/i18n/app/MarketingIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
@@ -33,6 +33,8 @@ const HarnessBootstrap = HARNESS_ENABLED
     : null
 
 const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
+// The full message catalog is 129 KB; app routes load it as their own chunk.
+const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
@@ -47,6 +49,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // globals that depend on it are not mounted there either. `isMarketingRoute`
     // fails safe: an unrecognised path gets the full app tree.
     const marketing = isMarketingRoute(usePathname())
+    const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
 
     return (
         <NuqsAdapter>
@@ -54,7 +57,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                 {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
                     → useSendMoney calls useTranslations, so the intl context has to
                     exist by the time ContextProvider renders. */}
-                <AppIntlProvider>
+                <IntlProvider>
                     <ContextProvider>
                         <FooterVisibilityProvider>
                             <TranslationSafeWrapper>
@@ -69,7 +72,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                             </TranslationSafeWrapper>
                         </FooterVisibilityProvider>
                     </ContextProvider>
-                </AppIntlProvider>
+                </IntlProvider>
             </PeanutProvider>
         </NuqsAdapter>
     )

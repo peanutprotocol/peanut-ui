@@ -47,7 +47,8 @@
         "native:release": "bash scripts/native-release.sh",
         "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel development --path ./out",
         "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel staging --path ./out",
-        "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit"
+        "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit",
+        "generate:marketing-messages": "node scripts/generate-marketing-messages.js"
     },
     "dependencies": {
         "@capacitor/android": "8.2.0",
