@@ -1,5 +1,5 @@
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
-import { MarqueeCss } from './MarqueeCss'
+import { MarqueeComp } from '../Global/MarqueeWrapper'
 import type { MarqueeItem } from '../Global/MarqueeWrapper/marquee.types'
 
 type MarqueeProps = {
@@ -20,7 +20,7 @@ export function Marquee({
 
     return (
         <div className="relative z-1">
-            <MarqueeCss message={message} imageSrc={imageSrc} backgroundColor={backgroundColor} />
+            <MarqueeComp message={message} imageSrc={imageSrc} backgroundColor={backgroundColor} />
         </div>
     )
 }

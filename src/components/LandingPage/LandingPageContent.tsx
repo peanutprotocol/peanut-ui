@@ -1,6 +1,5 @@
 import { Suspense } from 'react'
 import { LandingPageClient } from './LandingPageClient'
-import { Marquee } from './marquee'
 import { FAQs } from './faq'
 import { SupportedRailsFaqAnswer } from './SupportedRailsFaqAnswer'
 import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
@@ -29,30 +28,6 @@ const MANTECA_BG_COLOR = '#90A8ED'
 export function LandingPageContent({ locale }: { locale: Locale }) {
     const { heroConfig, faqData, marqueeMessages } = getLandingContent(locale)
     const strings = landingStrings(getTranslations(locale))
-
-    /*
-     * Built here rather than in the client component: the same strip renders
-     * eleven times down the page, and as a server slot none of them hydrate or
-     * re-render with the scroll-driven parent.
-     *
-     * Only the words with a real article behind them become links; the rest stay
-     * plain text. Words come from the content system's marquee list, so an edit
-     * there just drops out of this map and renders unlinked.
-     */
-    const marqueeHrefs: Record<string, string> = {
-        'No transfer fees': `/${locale}/pricing`,
-        USD: `/${locale}/help/what-are-digital-dollars`,
-        EUR: `/${locale}/help/send-euros-argentina`,
-        'USDT/USDC': `/${locale}/blog/stablecoin-balance-visa-merchants`,
-        GLOBAL: `/${locale}/help/supported-geographies`,
-        'SELF-CUSTODIAL': `/${locale}/help/security-custody`,
-        // /support is only a permanent redirect to /en/help, so linking it would
-        // drop es/pt readers into English while its neighbours stay localized
-        '24/7': `/${locale}/help`,
-    }
-    const marqueeItems = marqueeMessages.map((word) =>
-        marqueeHrefs[word] ? { label: word, href: marqueeHrefs[word] } : word
-    )
 
     /*
      * The FAQ is static copy, so it is assembled here and passed in as a slot
@@ -93,6 +68,7 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
             <Suspense>
                 <LandingPageClient
                     heroConfig={heroConfig}
+                    marqueeMessages={marqueeMessages}
                     locale={locale}
                     strings={strings}
                     problemSlot={<ProblemFold strings={strings} />}
@@ -102,7 +78,6 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     securitySlot={<SecurityBuiltIn locale={locale} />}
                     sendInSecondsSlot={<SendInSeconds locale={locale} />}
                     footerSlot={<Footer locale={locale} />}
-                    marqueeSlot={<Marquee message={marqueeItems} />}
                     faqSlot={
                         <FAQs
                             heading={faqData.heading}
