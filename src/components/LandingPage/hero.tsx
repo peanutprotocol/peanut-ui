@@ -201,15 +201,15 @@ export function Hero({
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    <Link href={`/${locale}/argentina`} className="hover:underline">
+                    <Link prefetch={false} href={`/${locale}/argentina`} className="hover:underline">
                         Buenos Aires
                     </Link>
                     .{' '}
-                    <Link href={`/${locale}/brazil`} className="hover:underline">
+                    <Link prefetch={false} href={`/${locale}/brazil`} className="hover:underline">
                         São Paulo
                     </Link>
                     .{' '}
-                    <Link href={`/${locale}/brazil`} className="hover:underline">
+                    <Link prefetch={false} href={`/${locale}/brazil`} className="hover:underline">
                         Floripa
                     </Link>
                     .

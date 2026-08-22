@@ -107,7 +107,12 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                             />
                         )
                         return logo.path ? (
-                            <Link key={logo.alt} href={`/${locale}/${logo.path}`} className={linkedTileClass}>
+                            <Link
+                                prefetch={false}
+                                key={logo.alt}
+                                href={`/${locale}/${logo.path}`}
+                                className={linkedTileClass}
+                            >
                                 {mark}
                             </Link>
                         ) : (

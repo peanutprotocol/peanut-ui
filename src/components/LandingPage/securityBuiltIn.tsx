@@ -107,7 +107,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                 )}
                                 {feature.id === 3 && (
                                     <div className="mt-6">
-                                        <Link href="/support">
+                                        <Link prefetch={false} href="/support">
                                             <Button
                                                 shadowSize="4"
                                                 className="bg-white px-6 py-3 text-base font-extrabold text-n-1 hover:bg-white/90"
