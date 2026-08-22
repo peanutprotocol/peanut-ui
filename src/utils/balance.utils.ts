@@ -19,6 +19,17 @@ export const parseUsdAmountToUnits = (amountUsd: string | number): bigint | null
     }
 }
 
+/**
+ * Balance at or above which self-service account deletion is refused (see
+ * `DeleteAccountButton`). Deletion is irreversible — login is blocked forever
+ * and there is no reactivation path — so anything left behind is unreachable.
+ * Sub-cent dust is exempt: it is neither displayable nor withdrawable, and
+ * trapping a user in an account they asked to delete over rounding beats losing
+ * it. Mirrors `DELETION_BALANCE_DUST_UNITS` in peanut-api-ts, which is the
+ * authoritative gate.
+ */
+export const DELETION_BALANCE_DUST_UNITS = parseUnits('0.01', PEANUT_WALLET_TOKEN_DECIMALS)
+
 export const printableUsdc = (balance: bigint): string => {
     // For 6 decimals, we want 2 decimal places in output
     // So we divide by 10^4 to keep only 2 decimal places, then format
