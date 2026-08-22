@@ -23,6 +23,10 @@ jest.mock('@/config/peanut.config', () => ({
         return children
     },
 }))
+// The component is invoked as a plain function rather than rendered, so the
+// router hook it now calls has no context. An app route is what keeps the full
+// provider tree in the chain being asserted.
+jest.mock('next/navigation', () => ({ usePathname: () => '/home' }))
 jest.mock('nuqs/adapters/next/app', () => ({
     NuqsAdapter: function NuqsAdapter({ children }: { children: React.ReactNode }) {
         return children

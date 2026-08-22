@@ -1,7 +1,9 @@
 'use client'
-import { ContextProvider } from '@/config/wagmi.config'
-import countries from 'i18n-iso-countries'
-import enLocale from 'i18n-iso-countries/langs/en.json'
+import { QueryClientProvider } from '@tanstack/react-query'
+import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
+import { queryClient } from '@/config/queryClient'
+import { isMarketingRoute } from '@/utils/marketing-routes'
 import { useEffect } from 'react'
 import { Provider as ReduxProvider } from 'react-redux'
 
@@ -14,10 +16,16 @@ import { scheduleDirectFetchCanary } from '@/utils/native-canary'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
 
+const WagmiRoot = dynamic(() => import('@/config/wagmi.config').then((m) => m.WagmiRoot))
+
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (process.env.NODE_ENV !== 'development') {
-            countries.registerLocale(enLocale)
+            // Loaded on demand: the country list plus its English locale table is
+            // dead weight on the marketing site, which never renders one.
+            void Promise.all([import('i18n-iso-countries'), import('i18n-iso-countries/langs/en.json')]).then(
+                ([countries, enLocale]) => countries.default.registerLocale(enLocale.default)
+            )
         }
 
         // in capacitor, install the passkey shim so navigator.credentials.create/get
@@ -83,9 +91,15 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         }
     }, [])
 
+    // The query client is needed everywhere (auth, user profile); wagmi is not —
+    // keep it off the marketing site. `isMarketingRoute` fails safe to the app tree.
+    const marketing = isMarketingRoute(usePathname())
+
     return (
         <ReduxProvider store={store}>
-            <ContextProvider cookies={null}>{children}</ContextProvider>
+            <QueryClientProvider client={queryClient}>
+                {marketing ? children : <WagmiRoot cookies={null}>{children}</WagmiRoot>}
+            </QueryClientProvider>
         </ReduxProvider>
     )
 }

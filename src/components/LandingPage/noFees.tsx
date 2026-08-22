@@ -10,7 +10,9 @@ import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
 import { printableUsdc } from '@/utils/balance.utils'
 import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
-import { useWallet } from '@/hooks/wallet/useWallet'
+import { useBalance } from '@/hooks/wallet/useBalance'
+import { AccountType } from '@/interfaces/interfaces'
+import type { Address } from 'viem'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from 'tailwind-merge'
 import { ContextualLinks } from './ContextualLinks'
@@ -28,8 +30,16 @@ export function NoFees({
 }) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const router = useRouter()
-    const { fetchBalance, balance } = useWallet()
     const { user } = useAuth()
+    /*
+     * Read the balance straight from the user's wallet account rather than via
+     * `useWallet`, which reaches `useZeroDev` → `useKernelClient` and would pull
+     * the ZeroDev SDK into the landing-page bundle. The CTA only needs to know
+     * whether the balance is positive, and the marketing routes deliberately
+     * render without the wallet providers (see utils/marketing-routes.ts).
+     */
+    const walletAddress = user?.accounts.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier
+    const { data: balance } = useBalance(walletAddress as Address | undefined)
 
     const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
         if (!user) {
@@ -51,12 +61,6 @@ export function NoFees({
         window.addEventListener('resize', handleResize)
         return () => window.removeEventListener('resize', handleResize)
     }, [])
-
-    useEffect(() => {
-        if (user) {
-            fetchBalance()
-        }
-    }, [user])
 
     const createCloudAnimation = (side: 'left' | 'right', top: string, width: number, speed: number) => {
         const vpWidth = screenWidth || 1080

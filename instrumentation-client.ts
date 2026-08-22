@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/nextjs'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
+import { whenIdle } from '@/utils/defer-analytics'
 
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
 const PERF_BARE = process.env.NEXT_PUBLIC_PERF_BARE === 'true'
@@ -29,6 +30,13 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
          * Session recording is ON everywhere, native included, as a deliberate
          * trial from 1.0.48.
          *
+         * It starts at `whenIdle` rather than at init: rrweb's recorder is a
+         * separate ~183 KB script whose load and first full-DOM snapshot landed
+         * in the middle of page load, and on the landing page that is the single
+         * largest blocking cost after the framework itself. Recording still
+         * covers every session — it begins a beat later, so the opening moment
+         * of a replay is not captured.
+         *
          * It was disabled on native in 1.0.45 on the theory that rrweb's
          * per-mutation DOM serialization was the jank users reported. That was
          * never isolated: 1.0.45 also made pull-to-refresh listeners passive
@@ -44,8 +52,10 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
          * (default 5 minutes of full-DOM re-serialization) is the first knob to
          * reach for, before switching recording off again.
          */
-        disable_session_recording: false,
+        disable_session_recording: true,
     })
+
+    whenIdle(() => posthog.startSessionRecording())
 
     // expose the instance like the official snippet does — console access for
     // QA (feature-flag overrides, e.g. pwa-sunset preview testing) and support
