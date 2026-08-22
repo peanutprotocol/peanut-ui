@@ -377,8 +377,6 @@
             "unlockModal": {
                 "title": "Unlock {method}",
                 "titleGeneric": "Unlock this payment method",
-                "description": "If your ID check already covers it, this switches on right away. Otherwise we'll show you exactly what's needed before anything opens.",
-                "cta": "Unlock",
                 "notNow": "Not now"
             },
             "changeModal": {
@@ -2787,6 +2785,37 @@
             "title": "Verification is temporarily down",
             "description": "Our verification partner is having issues right now. Your account is fine. We'll notify you as soon as it's back.",
             "notifyMe": "Notify me when it's back"
+        },
+        "prep": {
+            "intro": {
+                "standard": "Get these ready now, so you are not hunting for them halfway through.",
+                "extended": "This check has more steps than most. Set aside a few extra minutes."
+            },
+            "items": {
+                "id": {
+                    "title": "A government ID that has not expired",
+                    "body": "Passport, national ID, residence permit, or most driver's licenses. Take live photos with your camera; screenshots and scans are not accepted."
+                },
+                "selfie": {
+                    "title": "Your face",
+                    "body": "A short selfie in the app. Good light helps."
+                },
+                "taxId": {
+                    "title": "Your tax ID",
+                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed to send and receive on local bank rails."
+                },
+                "questions": {
+                    "title": "A few short questions",
+                    "body": "Regulatory declarations we are required to ask for."
+                }
+            },
+            "howLongLabel": "How long",
+            "howLong": {
+                "standard": "Under 2 minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
+                "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days."
+            },
+            "extraDocNote": "Some people are asked for one more document, like a proof of address. If that is you, we will say so before the camera opens.",
+            "startCta": "I have these, start"
         }
     },
     "identity": {

@@ -9,6 +9,7 @@ import posthog from 'posthog-js'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
+import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 
@@ -187,7 +188,20 @@ export const InitiateKycModal = ({
             visible={visible}
             onClose={onClose}
             title={getTitle()}
-            description={getDescription()}
+            description={
+                // The plain unlock offer is the moment before the SDK opens, so
+                // it carries the prep checklist (standard path: this gate does
+                // not know the provider region up front). Every other variant
+                // is an error/action state where the list would be noise.
+                variant === 'default' && !error ? (
+                    <div className="flex flex-col gap-3">
+                        <p>{getDescription()}</p>
+                        <KycPrepChecklist path="standard" />
+                    </div>
+                ) : (
+                    getDescription()
+                )
+            }
             preventClose
             icon={(error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName}
             iconContainerClassName={isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-yellow-1' : ''}

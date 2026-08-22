@@ -377,8 +377,6 @@
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloquea este método de pago",
-                "description": "Si tu verificación de identidad ya lo cubre, se activa de inmediato. Si no, te mostraremos exactamente qué se necesita antes de abrir nada.",
-                "cta": "Desbloquear",
                 "notNow": "Ahora no"
             },
             "changeModal": {
@@ -2787,6 +2785,37 @@
             "title": "La verificación está temporalmente caída",
             "description": "Nuestro socio de verificación tiene problemas en este momento. Tu cuenta está bien. Te avisaremos en cuanto vuelva a funcionar.",
             "notifyMe": "Avísame cuando funcione"
+        },
+        "prep": {
+            "intro": {
+                "standard": "Ten esto a la mano desde ahora, así no lo buscas a mitad del proceso.",
+                "extended": "Esta verificación tiene más pasos que la mayoría. Reserva unos minutos extra."
+            },
+            "items": {
+                "id": {
+                    "title": "Un documento de identidad vigente",
+                    "body": "Pasaporte, documento nacional, permiso de residencia o la mayoría de las licencias de conducir. Toma fotos en vivo con tu cámara; no se aceptan capturas de pantalla ni escaneos."
+                },
+                "selfie": {
+                    "title": "Tu rostro",
+                    "body": "Una selfie corta en la app. Con buena luz es más fácil."
+                },
+                "taxId": {
+                    "title": "Tu identificación fiscal",
+                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales."
+                },
+                "questions": {
+                    "title": "Unas preguntas breves",
+                    "body": "Declaraciones regulatorias que estamos obligados a pedir."
+                }
+            },
+            "howLongLabel": "Cuánto tarda",
+            "howLong": {
+                "standard": "Menos de 2 minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
+                "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles."
+            },
+            "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
+            "startCta": "Los tengo, empezar"
         }
     },
     "identity": {

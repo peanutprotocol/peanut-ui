@@ -377,8 +377,6 @@
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloqueie este método de pagamento",
-                "description": "Se a sua verificação de identidade já cobre isso, ativa na hora. Caso contrário, mostraremos exatamente o que é necessário antes de abrir qualquer coisa.",
-                "cta": "Desbloquear",
                 "notNow": "Agora não"
             },
             "changeModal": {
@@ -2787,6 +2785,37 @@
             "title": "A verificação está temporariamente fora do ar",
             "description": "Nosso parceiro de verificação está com problemas no momento. Sua conta está bem. Avisaremos assim que voltar.",
             "notifyMe": "Me avise quando voltar"
+        },
+        "prep": {
+            "intro": {
+                "standard": "Deixe tudo pronto agora, para não precisar procurar no meio do processo.",
+                "extended": "Esta verificação tem mais etapas que a maioria. Reserve alguns minutos a mais."
+            },
+            "items": {
+                "id": {
+                    "title": "Um documento de identidade válido",
+                    "body": "Passaporte, documento nacional, autorização de residência ou a maioria das carteiras de motorista. Tire fotos ao vivo com a câmera; capturas de tela e digitalizações não são aceitas."
+                },
+                "selfie": {
+                    "title": "Seu rosto",
+                    "body": "Uma selfie rápida no app. Boa iluminação ajuda."
+                },
+                "taxId": {
+                    "title": "Seu documento fiscal",
+                    "body": "CPF no Brasil, CUIT ou CUIL na Argentina. Necessário para enviar e receber pelos trilhos bancários locais."
+                },
+                "questions": {
+                    "title": "Algumas perguntas rápidas",
+                    "body": "Declarações regulatórias que somos obrigados a pedir."
+                }
+            },
+            "howLongLabel": "Quanto tempo leva",
+            "howLong": {
+                "standard": "Menos de 2 minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
+                "extended": "Mais do que a verificação comum. Se um revisor precisar analisar, de 1 a 3 dias úteis."
+            },
+            "extraDocNote": "Algumas pessoas precisam enviar mais um documento, como um comprovante de residência. Se for o seu caso, avisaremos antes de abrir a câmera.",
+            "startCta": "Tenho tudo, começar"
         }
     },
     "identity": {
