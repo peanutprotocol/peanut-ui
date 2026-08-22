@@ -126,7 +126,7 @@ export const Profile = () => {
                             position="middle"
                         />
 
-                        <Card className="p-4" position="middle">
+                        <Card className="px-4 py-3" position="middle">
                             <div className="flex items-center justify-between py-1">
                                 <div className="flex items-center gap-2">
                                     <Icon name={'eye'} size={20} fill="black" />
