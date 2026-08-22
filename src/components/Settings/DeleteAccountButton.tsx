@@ -16,6 +16,14 @@ import { DELETION_BALANCE_DUST_UNITS } from '@/utils/balance.utils'
 
 type ModalState = 'closed' | 'blocked' | 'confirm' | 'done'
 
+type Step = {
+    mascot: string
+    mascotAlt: string
+    title: string
+    description: string
+    ctas: ActionModalButtonProps[]
+}
+
 // A big animated mascot at the top of the modal instead of the tiny alert icon.
 // `unoptimized` keeps the animated WebP playing (Next's optimizer flattens it).
 const Mascot: FC<{ src: string; alt: string }> = ({ src, alt }) => (
@@ -92,63 +100,47 @@ const DeleteAccountButton: FC = () => {
     // the user must complete the flow through the CTA.
     const lockModal = isSubmitting || modalState === 'done'
 
-    const blockedCtas: ActionModalButtonProps[] = [
-        {
-            text: t('blockedCta'),
-            variant: 'purple',
-            shadowSize: '4',
-            onClick: moveMoney,
+    // One descriptor per step, so the mascot, copy and CTAs of a step are read
+    // and edited together instead of as four parallel branches. `closed` keeps
+    // the confirm content: the modal is hidden, but it still renders.
+    const steps: Record<Exclude<ModalState, 'closed'>, Step> = {
+        blocked: {
+            mascot: PeanutPointing.src,
+            mascotAlt: t('pointingPeanutAlt'),
+            title: t('blockedTitle'),
+            description: t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance }),
+            ctas: [
+                { text: t('blockedCta'), variant: 'purple', shadowSize: '4', onClick: moveMoney },
+                { text: t('blockedCancelCta'), variant: 'stroke', shadowSize: '4', onClick: close },
+            ],
         },
-        {
-            text: t('blockedCancelCta'),
-            variant: 'stroke',
-            shadowSize: '4',
-            onClick: close,
+        confirm: {
+            mascot: PeanutSad.src,
+            mascotAlt: t('sadPeanutAlt'),
+            title: t('confirmTitle'),
+            description: t('confirmDescription'),
+            ctas: [
+                {
+                    text: t('confirmCta'),
+                    variant: 'purple',
+                    shadowSize: '4',
+                    loading: isSubmitting,
+                    disabled: isSubmitting,
+                    onClick: confirmDelete,
+                },
+                { text: t('cancelCta'), variant: 'stroke', shadowSize: '4', disabled: isSubmitting, onClick: close },
+            ],
         },
-    ]
-
-    const confirmCtas: ActionModalButtonProps[] = [
-        {
-            text: t('confirmCta'),
-            variant: 'purple',
-            shadowSize: '4',
-            loading: isSubmitting,
-            disabled: isSubmitting,
-            onClick: confirmDelete,
+        done: {
+            mascot: PeanutCrying.src,
+            mascotAlt: t('cryingPeanutAlt'),
+            title: t('doneTitle'),
+            description: t('doneDescription'),
+            ctas: [{ text: t('doneCta'), variant: 'purple', shadowSize: '4', onClick: finish }],
         },
-        {
-            text: t('cancelCta'),
-            variant: 'stroke',
-            shadowSize: '4',
-            disabled: isSubmitting,
-            onClick: close,
-        },
-    ]
+    }
 
-    const doneCtas: ActionModalButtonProps[] = [
-        {
-            text: t('doneCta'),
-            variant: 'purple',
-            shadowSize: '4',
-            onClick: finish,
-        },
-    ]
-
-    const isBlocked = modalState === 'blocked'
-    const isDone = modalState === 'done'
-
-    const mascot = isBlocked
-        ? { src: PeanutPointing.src, alt: t('pointingPeanutAlt') }
-        : isDone
-          ? { src: PeanutCrying.src, alt: t('cryingPeanutAlt') }
-          : { src: PeanutSad.src, alt: t('sadPeanutAlt') }
-
-    const title = isBlocked ? t('blockedTitle') : isDone ? t('doneTitle') : t('confirmTitle')
-    const description = isBlocked
-        ? t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance })
-        : isDone
-          ? t('doneDescription')
-          : t('confirmDescription')
+    const step = steps[modalState === 'closed' ? 'confirm' : modalState]
 
     return (
         <>
@@ -165,11 +157,11 @@ const DeleteAccountButton: FC = () => {
                 onClose={close}
                 preventClose={lockModal}
                 hideModalCloseButton={lockModal}
-                icon={<Mascot src={mascot.src} alt={mascot.alt} />}
+                icon={<Mascot src={step.mascot} alt={step.mascotAlt} />}
                 iconContainerClassName="size-32 rounded-none bg-transparent"
-                title={title}
-                description={description}
-                ctas={isBlocked ? blockedCtas : isDone ? doneCtas : confirmCtas}
+                title={step.title}
+                description={step.description}
+                ctas={step.ctas}
             />
         </>
     )
