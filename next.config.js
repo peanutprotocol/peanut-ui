@@ -456,27 +456,6 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
         // Automatically tree-shake Sentry logger statements to reduce bundle size
         disableLogger: true,
 
-        /*
-         * The client SDK chunk is ~443 KB and the single most expensive script on
-         * the landing page (~2s of CPU, most of it eval). These flags drop code
-         * the app provably never runs:
-         *
-         * - Session Replay is not enabled anywhere (no replayIntegration, no
-         *   rrweb in the bundle) — PostHog does the recording — so its shadow-DOM,
-         *   iframe and worker helpers are dead weight.
-         * - Debug statements go with `debug: false`, already set in
-         *   sentry.client.config.ts.
-         *
-         * `excludeTracing` is deliberately NOT set: tracesSampleRate is 0.1 and
-         * those traces are wanted.
-         */
-        bundleSizeOptimizations: {
-            excludeDebugStatements: true,
-            excludeReplayShadowDom: true,
-            excludeReplayIframe: true,
-            excludeReplayWorker: true,
-        },
-
         // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
         // See the following for more information:
         // https://docs.sentry.io/product/crons/
