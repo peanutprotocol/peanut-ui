@@ -452,6 +452,7 @@ const UnlockPayments = () => {
                 onClose={handleModalClose}
                 onUnlock={handleStartKyc}
                 methodLabel={selectedMethodLabel}
+                path={selectedRegion?.path === 'latam' ? 'extended' : 'standard'}
                 isLoading={flow.isLoading}
             />
 
