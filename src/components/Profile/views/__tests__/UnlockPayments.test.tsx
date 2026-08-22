@@ -50,6 +50,11 @@ jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ isEligible: true, hasCardAccess: true }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: null }) }))
+let mockMantecaLimits: unknown = null
+let mockBridgeLimits: unknown = null
+jest.mock('@/hooks/useLimits', () => ({
+    useLimits: () => ({ mantecaLimits: mockMantecaLimits, bridgeLimits: mockBridgeLimits }),
+}))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
 
 const mockInitiateKyc = jest.fn()
@@ -81,6 +86,8 @@ jest.mock('@/components/Profile/views/ResidenceChangeModal', () => ({
 
 describe('UnlockPayments', () => {
     beforeEach(() => {
+        mockMantecaLimits = null
+        mockBridgeLimits = null
         jest.clearAllMocks()
         mockRails = []
         mockRestrictions = { banking: false, card: false }
@@ -156,6 +163,35 @@ describe('UnlockPayments', () => {
         render()
         fireEvent.click(screen.getByText('Change'))
         expect(screen.getByText('change-modal-open')).toBeInTheDocument()
+    })
+
+    it('an active LATAM rail shows the inline monthly limit bar on Brazil', () => {
+        mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', status: 'enabled' }]
+        mockMantecaLimits = [
+            {
+                exchangeCountry: 'BRA',
+                type: 'EXCHANGE',
+                asset: 'BRL',
+                yearlyLimit: '120000',
+                availableYearlyLimit: '100000',
+                monthlyLimit: '10000',
+                availableMonthlyLimit: '2500',
+            },
+        ]
+        render()
+        expect(screen.getByText(/left this month/)).toBeInTheDocument()
+    })
+
+    it('an active Bridge rail shows the per-transfer cap line', () => {
+        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+        mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '25000', asset: 'USD' }
+        render()
+        expect(screen.getAllByText(/per transfer/).length).toBeGreaterThan(0)
+    })
+
+    it('the all-limits link points at /limits', () => {
+        render()
+        expect(screen.getByText('Payment limits').closest('a')).toHaveAttribute('href', '/limits')
     })
 
     it('a declared change pending re-verification is surfaced on the row', () => {

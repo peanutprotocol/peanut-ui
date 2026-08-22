@@ -143,7 +143,8 @@
     },
     "profile": {
         "menu": {
-            "inviteFriends": "Invitá amigos a Peanut"
+            "inviteFriends": "Invitá amigos a Peanut",
+            "unlockedRegions": "Desbloqueá pagos"
         },
         "edit": {
             "placeholders": {
@@ -179,7 +180,7 @@
                 "label": "Residencia: {country}",
                 "unknown": "Residencia sin definir",
                 "verified": "Verificada",
-                "unverified": "Sin verificar",
+                "unverified": "Sin confirmar",
                 "change": "Cambiar",
                 "set": "Definir",
                 "pendingReverify": "Cambio a {country} pendiente de nueva verificación"
@@ -244,6 +245,12 @@
                 "body": "No necesitás hacer nada. Te vamos a avisar en cuanto haya una decisión.",
                 "escalation": "Está tardando más de lo normal.",
                 "messageUs": "Escribinos y lo perseguimos"
+            },
+            "limits": {
+                "viewAll": "Límites de pago",
+                "details": "Ver",
+                "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
+                "perTransfer": "Hasta {amount} por transferencia"
             }
         },
         "backup": {
@@ -456,6 +463,13 @@
                     "checkSecuritySettings": "Revisá los ajustes de seguridad de tu dispositivo",
                     "updateBrowserOs": "Actualizá tu navegador y tu sistema operativo"
                 }
+            },
+            "info": {
+                "title": "¿Qué es una passkey?",
+                "what": "Una passkey es una llave digital que tu dispositivo crea para esta app. La aprobás con la huella, el rostro o el bloqueo de pantalla que ya usás. No hay contraseña que recordar ni nada que escribir.",
+                "backup": "Tu gestor de contraseñas (iCloud Keychain, Administrador de contraseñas de Google o similar) la respalda y la sincroniza, así te acompaña en un teléfono nuevo.",
+                "privacy": "Peanut nunca ve tu huella ni tu rostro. Tu dispositivo solo nos dice que aprobaste.",
+                "fullGuide": "Leer la guía completa"
             }
         },
         "testTransaction": {

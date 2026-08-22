@@ -480,7 +480,7 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
         <Button
             variant={variant}
             className={twMerge(
-                'flex w-auto cursor-pointer items-center justify-center rounded-full',
+                'flex w-full cursor-pointer items-center justify-center rounded-full',
                 size === 'large'
                     ? 'h-12 gap-x-2 px-6 md:h-14 md:px-7' // Send/Request size
                     : 'h-10 gap-x-1 px-5 md:h-12 md:px-6' // Add/Withdraw size
@@ -504,5 +504,8 @@ function ActionButton({ label, action, variant = 'primary-soft', size = 'small' 
 }
 
 function ActionButtonGroup({ children }: { children: React.ReactNode }) {
-    return <div className="flex items-center justify-normal gap-4">{children}</div>
+    // Both rows share the same two-column grid against the same max width, so
+    // Add/Withdraw/Send/Request all render one width regardless of label
+    // length (or locale).
+    return <div className="grid w-full max-w-[22rem] grid-cols-2 items-center gap-4">{children}</div>
 }

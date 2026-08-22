@@ -198,6 +198,9 @@ const ResidenceStep = () => {
     return (
         <div className="flex h-full w-full flex-col justify-between gap-4">
             <div className="flex w-full flex-col gap-2">
+                {/* Rendered here, not by the step chrome, so the heads-up
+                    sub-views don't repeat it (descriptionInView on the step). */}
+                <p className="mb-1 text-sm text-grey-1">{t('steps.residence.description')}</p>
                 <BaseSelect
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}

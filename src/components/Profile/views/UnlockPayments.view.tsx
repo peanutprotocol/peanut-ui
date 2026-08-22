@@ -17,6 +17,10 @@ import { deriveRegionAccess, isBridgeSupportedCountry, pendingBankRailRegionPath
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useLimits } from '@/hooks/useLimits'
+import LimitsProgressBar from '@/features/limits/components/LimitsProgressBar'
+import { formatAmountWithCurrency, getLimitData } from '@/features/limits/utils'
+import Link from 'next/link'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -26,6 +30,7 @@ import posthog from 'posthog-js'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
+import type { MantecaLimit, BridgeLimits } from '@/interfaces/interfaces'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useAuth } from '@/context/authContext'
 import {
@@ -36,6 +41,7 @@ import {
     type UnlockRow,
 } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { readDeclaredResidence } from '@/utils/declared-residence.storage'
 import { countryData } from '@/components/AddMoney/consts'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -60,6 +66,40 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
         default:
             return 'start'
     }
+}
+
+/**
+ * Inline limit summary for an ACTIVE bank row — the limits merge: usage lives
+ * on the method it belongs to instead of a separate Limits screen. Manteca
+ * (BR/AR) exposes monthly allowances → a usage bar; Bridge (US/MX/EU) only
+ * caps per transaction → a plain line.
+ */
+type RowLimitSummary =
+    | { kind: 'manteca'; asset: string; monthlyLimit: number; monthlyRemaining: number }
+    | { kind: 'bridge'; perTransaction: string }
+
+const GROUP_LIMIT_ASSET: Record<string, string> = { brazil: 'BRL', argentina: 'ARS' }
+
+function limitSummaryForGroup(
+    groupId: string,
+    chipActive: boolean,
+    mantecaLimits: MantecaLimit[] | null,
+    bridgeLimits: BridgeLimits | null
+): RowLimitSummary | null {
+    if (!chipActive) return null
+    const asset = GROUP_LIMIT_ASSET[groupId]
+    if (asset) {
+        const limit = mantecaLimits?.find((l) => l.asset === asset)
+        if (!limit) return null
+        const monthly = getLimitData(limit, 'monthly')
+        return { kind: 'manteca', asset, monthlyLimit: monthly.limit, monthlyRemaining: monthly.remaining }
+    }
+    if ((groupId === 'unitedStates' || groupId === 'mexico' || groupId === 'europe') && bridgeLimits) {
+        const cap = Number(bridgeLimits.onRampPerTransaction)
+        if (!Number.isFinite(cap) || cap <= 0) return null
+        return { kind: 'bridge', perTransaction: formatAmountWithCurrency(cap, bridgeLimits.asset || 'USD') }
+    }
+    return null
 }
 
 const CHIP_CLASSES: Record<UnlockChip, string> = {
@@ -88,6 +128,7 @@ const UnlockPayments = () => {
     const isKycDegraded = useKycDegraded()
     const { isEligible, hasCardAccess } = useCardInfo()
     const { overview } = useRainCardOverview()
+    const { mantecaLimits, bridgeLimits } = useLimits()
     const { setIsSupportModalOpen } = useModalsContext()
 
     const { unlockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
@@ -121,8 +162,12 @@ const UnlockPayments = () => {
         [unlockedPaths, pendingPaths, railsForProvider, nextActionsForRail]
     )
 
+    // Server copy first; the localStorage mirror of the signup answer covers
+    // reloads before /users/me returns it (or an API without the fields yet).
     const residence = user?.residence ?? null
-    const residenceIso2 = residence?.verified ?? residence?.declared ?? null
+    const localDeclared = readDeclaredResidence()
+    const declaredIso2 = residence?.declared ?? localDeclared
+    const residenceIso2 = residence?.verified ?? declaredIso2 ?? null
     const hasActiveCard = !!findActiveCard(overview)
 
     const groups = useMemo(
@@ -263,8 +308,7 @@ const UnlockPayments = () => {
         <div className="flex min-h-[inherit] flex-col space-y-8">
             <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
             <div className="my-auto">
-                <h1 className="font-bold">{t('title')}</h1>
-                <p className="mt-2 text-sm">{t('description')}</p>
+                <p className="text-sm">{t('description')}</p>
 
                 {/* Residence anchor: explains WHY the list looks the way it does. */}
                 <div className="mt-4 flex items-center gap-2 rounded-sm border border-n-1 bg-white p-3 text-sm dark:border-white dark:bg-n-1">
@@ -369,9 +413,22 @@ const UnlockPayments = () => {
                             group={group}
                             onRowClick={handleRowClick}
                             isKycDegraded={isKycDegraded}
+                            mantecaLimits={mantecaLimits}
+                            bridgeLimits={bridgeLimits}
                         />
                     ))}
                 </div>
+
+                <Link
+                    href="/limits"
+                    className="mt-3 flex items-center justify-between rounded-sm border border-n-1 bg-white px-3 py-2.5 text-sm dark:border-white dark:bg-n-1"
+                >
+                    <span className="flex items-center gap-2">
+                        <Icon name="meter" className="size-4 shrink-0" />
+                        {t('limits.viewAll')}
+                    </span>
+                    <span className="text-xs underline underline-offset-2">{t('limits.details')}</span>
+                </Link>
 
                 {showBankRestrictionNote && <p className="mt-3 text-xs text-grey-1">{t('bankNotAvailableNote')}</p>}
                 {showCardRestrictionNote && <p className="mt-3 text-xs text-grey-1">{t('cardNotAvailableNote')}</p>}
@@ -528,10 +585,14 @@ const UnlockGroupCard = ({
     group,
     onRowClick,
     isKycDegraded,
+    mantecaLimits,
+    bridgeLimits,
 }: {
     group: UnlockGroup
     onRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
+    mantecaLimits: MantecaLimit[] | null
+    bridgeLimits: BridgeLimits | null
 }) => {
     const t = useTranslations('profile.unlockPayments')
     return (
@@ -575,6 +636,30 @@ const UnlockGroupCard = ({
                     </button>
                 )
             })}
+            {(() => {
+                const active = group.rows.some((row) => row.chip === 'active')
+                const summary = limitSummaryForGroup(group.id, active, mantecaLimits, bridgeLimits)
+                if (!summary) return null
+                return (
+                    <div className="border-t border-n-1 px-3 py-2 dark:border-white">
+                        {summary.kind === 'manteca' ? (
+                            <>
+                                <p className="mb-1 text-[11px] text-grey-1">
+                                    {t('limits.monthlyLeft', {
+                                        remaining: formatAmountWithCurrency(summary.monthlyRemaining, summary.asset),
+                                        limit: formatAmountWithCurrency(summary.monthlyLimit, summary.asset),
+                                    })}
+                                </p>
+                                <LimitsProgressBar total={summary.monthlyLimit} remaining={summary.monthlyRemaining} />
+                            </>
+                        ) : (
+                            <p className="text-[11px] text-grey-1">
+                                {t('limits.perTransfer', { amount: summary.perTransaction })}
+                            </p>
+                        )}
+                    </div>
+                )
+            })()}
         </div>
     )
 }
