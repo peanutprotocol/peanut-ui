@@ -427,11 +427,16 @@
             "confirmDescription": "Eliminar tu cuenta es permanente. La desactivaremos de inmediato y borraremos tus datos en un plazo de 30 días. Este amiguito preferiría que te quedaras.",
             "confirmCta": "Sí, eliminarla",
             "cancelCta": "Mejor no, me quedo",
+            "blockedTitle": "Primero mueve tu dinero",
+            "blockedDescription": "Todavía tienes ${amount} en tu cuenta. Eliminarla es permanente: después no podrás volver a entrar y ese dinero quedaría fuera de tu alcance. Envíaselo a alguien o retíralo primero.",
+            "blockedCta": "Mover mi dinero",
+            "blockedCancelCta": "Mejor no",
             "doneTitle": "Te vamos a extrañar",
             "doneDescription": "Tu cuenta está desactivada y tus datos desaparecerán en un plazo de 30 días. Gracias por abrir Peanut con nosotros — ¡cuídate mucho!",
             "doneCta": "Adiós",
             "error": "No pudimos eliminar tu cuenta. Intenta de nuevo.",
             "sadPeanutAlt": "Peanut triste",
+            "pointingPeanutAlt": "Peanut señalando",
             "cryingPeanutAlt": "Peanut llorando"
         }
     },

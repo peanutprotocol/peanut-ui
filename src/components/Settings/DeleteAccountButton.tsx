@@ -3,15 +3,18 @@
 import { type FC, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PeanutSad, PeanutCrying } from '@/assets/mascot'
+import { PeanutSad, PeanutCrying, PeanutPointing } from '@/assets/mascot'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
-import { usersApi } from '@/services/users'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { AccountHasBalanceError, usersApi } from '@/services/users'
+import { DELETION_BALANCE_DUST_UNITS } from '@/utils/balance.utils'
 
-type ModalState = 'closed' | 'confirm' | 'done'
+type ModalState = 'closed' | 'blocked' | 'confirm' | 'done'
 
 // A big animated mascot at the top of the modal instead of the tiny alert icon.
 // `unoptimized` keeps the animated WebP playing (Next's optimizer flattens it).
@@ -22,18 +25,43 @@ const Mascot: FC<{ src: string; alt: string }> = ({ src, alt }) => (
 const DeleteAccountButton: FC = () => {
     const t = useTranslations('settings.deleteAccount')
     const { logoutUser } = useAuth()
+    const { spendableBalance, formattedSpendableBalance } = useWallet()
+    const router = useRouter()
     const toast = useToast()
     const [modalState, setModalState] = useState<ModalState>('closed')
     const [isSubmitting, setIsSubmitting] = useState(false)
+    // Amount to show on the blocked step. Null means "use the live wallet
+    // figure" — it is only set when the server refused a request the client had
+    // waved through (stale/unreadable local balance), and then the server's
+    // number is the one that actually blocked the deletion.
+    const [blockedAmount, setBlockedAmount] = useState<string | null>(null)
+
+    // Deletion is irreversible — login is blocked forever and there is no
+    // reactivation path — so funds left behind can never be reached again.
+    const hasFundsToMove = spendableBalance !== undefined && spendableBalance >= DELETION_BALANCE_DUST_UNITS
+
+    const block = (amount: string | null) => {
+        setBlockedAmount(amount)
+        setModalState('blocked')
+        posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
+    }
 
     const open = () => {
-        setModalState('confirm')
         posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_INITIATED)
+        // A balance that hasn't loaded yet falls through to the confirm step —
+        // the server runs the same gate and refuses on a live read.
+        if (hasFundsToMove) block(null)
+        else setModalState('confirm')
     }
 
     const close = () => {
         if (isSubmitting) return
         setModalState('closed')
+    }
+
+    const moveMoney = () => {
+        setModalState('closed')
+        router.push('/withdraw')
     }
 
     const confirmDelete = async () => {
@@ -42,9 +70,13 @@ const DeleteAccountButton: FC = () => {
         try {
             await usersApi.requestDeletion()
             setModalState('done')
-        } catch {
-            posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
-            toast.error(t('error'))
+        } catch (error) {
+            if (error instanceof AccountHasBalanceError) {
+                block(error.balanceUsd)
+            } else {
+                posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
+                toast.error(t('error'))
+            }
         } finally {
             setIsSubmitting(false)
         }
@@ -59,6 +91,21 @@ const DeleteAccountButton: FC = () => {
     // Once submitting (or on the final notice) the modal can't be dismissed —
     // the user must complete the flow through the CTA.
     const lockModal = isSubmitting || modalState === 'done'
+
+    const blockedCtas: ActionModalButtonProps[] = [
+        {
+            text: t('blockedCta'),
+            variant: 'purple',
+            shadowSize: '4',
+            onClick: moveMoney,
+        },
+        {
+            text: t('blockedCancelCta'),
+            variant: 'stroke',
+            shadowSize: '4',
+            onClick: close,
+        },
+    ]
 
     const confirmCtas: ActionModalButtonProps[] = [
         {
@@ -87,7 +134,21 @@ const DeleteAccountButton: FC = () => {
         },
     ]
 
+    const isBlocked = modalState === 'blocked'
     const isDone = modalState === 'done'
+
+    const mascot = isBlocked
+        ? { src: PeanutPointing.src, alt: t('pointingPeanutAlt') }
+        : isDone
+          ? { src: PeanutCrying.src, alt: t('cryingPeanutAlt') }
+          : { src: PeanutSad.src, alt: t('sadPeanutAlt') }
+
+    const title = isBlocked ? t('blockedTitle') : isDone ? t('doneTitle') : t('confirmTitle')
+    const description = isBlocked
+        ? t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance })
+        : isDone
+          ? t('doneDescription')
+          : t('confirmDescription')
 
     return (
         <>
@@ -104,17 +165,11 @@ const DeleteAccountButton: FC = () => {
                 onClose={close}
                 preventClose={lockModal}
                 hideModalCloseButton={lockModal}
-                icon={
-                    isDone ? (
-                        <Mascot src={PeanutCrying.src} alt={t('cryingPeanutAlt')} />
-                    ) : (
-                        <Mascot src={PeanutSad.src} alt={t('sadPeanutAlt')} />
-                    )
-                }
+                icon={<Mascot src={mascot.src} alt={mascot.alt} />}
                 iconContainerClassName="size-32 rounded-none bg-transparent"
-                title={isDone ? t('doneTitle') : t('confirmTitle')}
-                description={isDone ? t('doneDescription') : t('confirmDescription')}
-                ctas={isDone ? doneCtas : confirmCtas}
+                title={title}
+                description={description}
+                ctas={isBlocked ? blockedCtas : isDone ? doneCtas : confirmCtas}
             />
         </>
     )
