@@ -18,14 +18,14 @@ export type BankRegionChip = Exclude<UnlockChip, 'alwaysOn' | 'notAvailable'>
 export type UnlockRowLabelKey =
     | 'p2p'
     | 'card'
+    | 'saBank'
     | 'pixBank'
     | 'pixQr'
     | 'arQrBank'
     | 'arQr'
     | 'brBank'
     | 'arBank'
-    | 'achWire'
-    | 'spei'
+    | 'naBank'
     | 'sepa'
 export type UnlockGroupLabelKey = 'everywhere' | 'southAmerica' | 'northAmerica' | 'europe'
 
@@ -40,10 +40,11 @@ export interface UnlockRow {
     /** card row only: navigate instead of opening a region modal */
     href?: string
     /**
-     * Which limits apply once the row is active: a Manteca per-currency
-     * allowance (BRL/ARS) or the shared Bridge per-transaction cap.
+     * Which limits apply once the row is active: Manteca per-currency
+     * allowances (BRL/ARS) and/or the shared Bridge per-transaction cap.
+     * A merged row (one unlock covering two countries) carries several.
      */
-    limitRef?: 'BRL' | 'ARS' | 'bridge'
+    limitRefs?: readonly ('BRL' | 'ARS' | 'bridge')[]
 }
 
 export interface UnlockGroup {
@@ -78,7 +79,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         labelKey: UnlockRowLabelKey,
         icon: UnlockRow['icon'],
         regionPath: NonNullable<UnlockRow['regionPath']>,
-        limitRef: NonNullable<UnlockRow['limitRef']>
+        limitRefs: NonNullable<UnlockRow['limitRefs']>
     ): UnlockRow => {
         const chip = bankChip(regionChips[regionPath])
         return {
@@ -86,7 +87,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             labelKey,
             icon,
             chip,
-            limitRef,
+            limitRefs,
             // active and unavailable rows are facts, not actions
             ...(chip === 'active' || chip === 'notAvailable' ? {} : { regionPath }),
         }
@@ -108,55 +109,60 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             rows: [{ id: 'p2p', labelKey: 'p2p', icon: 'wallet', chip: 'alwaysOn' }, cardRow],
         },
         // Brazil + Argentina share one Manteca verification (one unlock opens
-        // both), so they present as a single South America group; Mexico is
-        // NOT here — it rides Bridge with the US (LATAM would wrongly claim it).
+        // both), so they present as a single South America group with ONE
+        // merged row — separate country rows would imply two unlocks where
+        // there is only one. Mexico is NOT here — it rides Bridge with the US
+        // (LATAM would wrongly claim it). The row only splits per country for
+        // the QR-only overlay, where the two countries genuinely differ
+        // (Bridge-verified users hold AR/BR QR without the Manteca bank rails).
         {
             id: 'southAmerica',
             labelKey: 'southAmerica',
             isYourRegion: residenceIso2 === 'BR' || residenceIso2 === 'AR',
-            rows: [
-                ...(qrOnly.brazil && regionChips.latam !== 'active'
-                    ? [
-                          {
-                              id: 'pix-qr',
-                              labelKey: 'pixQr',
-                              icon: 'qr-code',
-                              chip: bankChip('active'),
-                              limitRef: 'BRL',
-                          } as UnlockRow,
-                          bankRow('br-bank', 'brBank', 'bank', 'latam', 'BRL'),
-                      ]
-                    : [bankRow('pix-bank', 'pixBank', 'qr-code', 'latam', 'BRL')]),
-                ...(qrOnly.argentina && regionChips.latam !== 'active'
-                    ? [
-                          {
-                              id: 'ar-qr',
-                              labelKey: 'arQr',
-                              icon: 'qr-code',
-                              chip: bankChip('active'),
-                              limitRef: 'ARS',
-                          } as UnlockRow,
-                          bankRow('ar-bank', 'arBank', 'bank', 'latam', 'ARS'),
-                      ]
-                    : [bankRow('ar-qr-bank', 'arQrBank', 'qr-code', 'latam', 'ARS')]),
-            ],
+            rows:
+                (!qrOnly.brazil && !qrOnly.argentina) || regionChips.latam === 'active'
+                    ? [bankRow('sa-bank', 'saBank', 'qr-code', 'latam', ['BRL', 'ARS'])]
+                    : [
+                          ...(qrOnly.brazil
+                              ? [
+                                    {
+                                        id: 'pix-qr',
+                                        labelKey: 'pixQr',
+                                        icon: 'qr-code',
+                                        chip: bankChip('active'),
+                                        limitRefs: ['BRL'],
+                                    } as UnlockRow,
+                                    bankRow('br-bank', 'brBank', 'bank', 'latam', ['BRL']),
+                                ]
+                              : [bankRow('pix-bank', 'pixBank', 'qr-code', 'latam', ['BRL'])]),
+                          ...(qrOnly.argentina
+                              ? [
+                                    {
+                                        id: 'ar-qr',
+                                        labelKey: 'arQr',
+                                        icon: 'qr-code',
+                                        chip: bankChip('active'),
+                                        limitRefs: ['ARS'],
+                                    } as UnlockRow,
+                                    bankRow('ar-bank', 'arBank', 'bank', 'latam', ['ARS']),
+                                ]
+                              : [bankRow('ar-qr-bank', 'arQrBank', 'qr-code', 'latam', ['ARS'])]),
+                      ],
         },
         // US + Mexico share one Bridge verification (ACH/Wire and SPEI unlock
-        // together), so they present as one North America group.
+        // together), so they present as one North America group with one
+        // merged row — a single unlock action for a single flow.
         {
             id: 'northAmerica',
             labelKey: 'northAmerica',
             isYourRegion: residenceIso2 === 'US' || residenceIso2 === 'MX',
-            rows: [
-                bankRow('ach-wire', 'achWire', 'bank', 'north-america', 'bridge'),
-                bankRow('spei', 'spei', 'bank', 'north-america', 'bridge'),
-            ],
+            rows: [bankRow('na-bank', 'naBank', 'bank', 'north-america', ['bridge'])],
         },
         {
             id: 'europe',
             labelKey: 'europe',
             isYourRegion: isEuropeResidence,
-            rows: [bankRow('sepa', 'sepa', 'bank', 'europe', 'bridge')],
+            rows: [bankRow('sepa', 'sepa', 'bank', 'europe', ['bridge'])],
         },
     ]
 

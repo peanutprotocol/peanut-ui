@@ -354,14 +354,14 @@
             "rows": {
                 "p2p": "Peanut-to-Peanut payments",
                 "card": "Peanut card",
+                "saBank": "PIX, QR & bank transfers (Brazil & Argentina)",
                 "pixBank": "PIX & bank transfers (Brazil)",
                 "pixQr": "PIX QR payments (Brazil)",
                 "brBank": "Bank transfers (Brazil)",
                 "arQrBank": "QR payments & transfers (Argentina)",
                 "arQr": "QR payments (Argentina)",
                 "arBank": "Bank transfers (Argentina)",
-                "achWire": "ACH & Wire (US)",
-                "spei": "SPEI transfers (Mexico)",
+                "naBank": "ACH, Wire (US) & SPEI (Mexico)",
                 "sepa": "SEPA transfers"
             },
             "chips": {
@@ -408,7 +408,8 @@
                 "viewAll": "Payment limits",
                 "details": "View",
                 "monthlyLeft": "{remaining} of {limit} left this month",
-                "perTransfer": "Up to {amount} per transfer"
+                "perTransfer": "Up to {amount} per transfer",
+                "p2pNoLimit": "No limits on Peanut-to-Peanut payments"
             }
         },
         "backup": {

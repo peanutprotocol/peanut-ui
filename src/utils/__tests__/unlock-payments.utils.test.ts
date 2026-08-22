@@ -49,13 +49,12 @@ describe('buildUnlockGroups', () => {
         expect(groups[1].id).toBe('europe')
     })
 
-    it('an active latam merges the Brazil and Argentina rows inside South America', () => {
+    it('South America is one merged row carrying both country allowances', () => {
         const groups = buildUnlockGroups(
             base({ regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'active' } })
         )
-        expect(group(groups, 'southAmerica').rows.map((r) => [r.id, r.chip, r.limitRef])).toEqual([
-            ['pix-bank', 'active', 'BRL'],
-            ['ar-qr-bank', 'active', 'ARS'],
+        expect(group(groups, 'southAmerica').rows.map((r) => [r.id, r.chip, r.limitRefs])).toEqual([
+            ['sa-bank', 'active', ['BRL', 'ARS']],
         ])
     })
 
@@ -68,12 +67,9 @@ describe('buildUnlockGroups', () => {
         ])
     })
 
-    it('North America holds both US and Mexico rows behind the one Bridge unlock', () => {
+    it('North America is one merged US + Mexico row behind the one Bridge unlock', () => {
         const groups = buildUnlockGroups(base())
-        expect(group(groups, 'northAmerica').rows.map((r) => [r.id, r.limitRef])).toEqual([
-            ['ach-wire', 'bridge'],
-            ['spei', 'bridge'],
-        ])
+        expect(group(groups, 'northAmerica').rows.map((r) => [r.id, r.limitRefs])).toEqual([['na-bank', ['bridge']]])
     })
 
     it('active rows carry no tap target; offer rows route into the region intent', () => {
