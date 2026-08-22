@@ -1,5 +1,4 @@
 import posthog from 'posthog-js'
-import * as Sentry from '@sentry/nextjs'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
@@ -67,44 +66,52 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
     // export runs neither withSentryConfig nor a server for that tunnel, so
     // without this it reports nothing — init here and post straight to the DSN.
     if (isNativeBuild && process.env.NEXT_PUBLIC_SENTRY_DSN) {
-        Sentry.init({
-            dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-            environment: inferSentryEnvironment(),
-            release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH,
-            // Errors captured at 100%; tracing fully off on native — BrowserTracing
-            // wraps fetch/XHR, patches history and runs PerformanceObservers in every
-            // session regardless of tracesSampleRate (sampling only gates sending),
-            // and that instrumentation overhead is visible jank in the WebView.
-            sampleRate: 1.0,
-            tracesSampleRate: 0,
-            beforeSend: beforeSendHandler,
-            // A WebView that can't reach the bundler can't reach ingest either,
-            // so the report of the failure died with the session. The offline
-            // transport parks undeliverable envelopes in IndexedDB and flushes
-            // them on a later launch — the failures worth reading are exactly
-            // the ones that happen while the network is misbehaving.
-            transport: Sentry.makeBrowserOfflineTransport(Sentry.makeFetchTransport),
-            integrations: (defaults) => [
-                ...withoutBrowserTracing(defaults),
-                Sentry.captureConsoleIntegration({ levels: ['error'] }),
-            ],
-        })
-
         /*
-         * `release` above is the JS bundle's commit — with OTA updates it can differ
-         * from the installed binary, which made PEANUT-UI-R5F look like it came from
-         * a build it didn't. Tag the binary identity on every event so the skew is
-         * always visible; swControlled flags a stale pre-2026-04 service worker
-         * still intercepting requests inside the WebView.
+         * Imported here rather than at module scope: this file is loaded on every
+         * page, and a static import put the ~440 KB SDK in the web bundle too —
+         * where it was parsed and evaluated (~1.7s of CPU on the landing page)
+         * for a branch that only ever runs in the Capacitor build.
          */
-        Sentry.setTag('swControlled', String(!!navigator.serviceWorker?.controller))
-        import('@capacitor/app')
-            .then(({ App }) => App.getInfo())
-            .then((info) => {
-                Sentry.setTag('binaryVersion', info.version)
-                Sentry.setTag('binaryBuild', info.build)
+        void import('@sentry/nextjs').then((Sentry) => {
+            Sentry.init({
+                dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+                environment: inferSentryEnvironment(),
+                release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH,
+                // Errors captured at 100%; tracing fully off on native — BrowserTracing
+                // wraps fetch/XHR, patches history and runs PerformanceObservers in every
+                // session regardless of tracesSampleRate (sampling only gates sending),
+                // and that instrumentation overhead is visible jank in the WebView.
+                sampleRate: 1.0,
+                tracesSampleRate: 0,
+                beforeSend: beforeSendHandler,
+                // A WebView that can't reach the bundler can't reach ingest either,
+                // so the report of the failure died with the session. The offline
+                // transport parks undeliverable envelopes in IndexedDB and flushes
+                // them on a later launch — the failures worth reading are exactly
+                // the ones that happen while the network is misbehaving.
+                transport: Sentry.makeBrowserOfflineTransport(Sentry.makeFetchTransport),
+                integrations: (defaults) => [
+                    ...withoutBrowserTracing(defaults),
+                    Sentry.captureConsoleIntegration({ levels: ['error'] }),
+                ],
             })
-            .catch(() => {})
+
+            /*
+             * `release` above is the JS bundle's commit — with OTA updates it can differ
+             * from the installed binary, which made PEANUT-UI-R5F look like it came from
+             * a build it didn't. Tag the binary identity on every event so the skew is
+             * always visible; swControlled flags a stale pre-2026-04 service worker
+             * still intercepting requests inside the WebView.
+             */
+            Sentry.setTag('swControlled', String(!!navigator.serviceWorker?.controller))
+            import('@capacitor/app')
+                .then(({ App }) => App.getInfo())
+                .then((info) => {
+                    Sentry.setTag('binaryVersion', info.version)
+                    Sentry.setTag('binaryBuild', info.build)
+                })
+                .catch(() => {})
+        })
     }
 
     // Brave identifies as Chrome in User-Agent — detect it and set a person property
