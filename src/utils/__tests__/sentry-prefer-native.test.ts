@@ -36,8 +36,8 @@ const fakeResponse = (status: number) =>
         clone: () => ({ json: async () => ({ error: 'x' }), text: async () => 'x' }),
     }) as unknown as Response
 
-const engagedNotices = () =>
-    (Sentry.captureMessage as jest.Mock).mock.calls.filter((c) => c[0] === 'legacy-cookie native transport engaged')
+const transportNotices = () =>
+    (Sentry.captureMessage as jest.Mock).mock.calls.filter((c) => String(c[0]).includes('transport engaged'))
 
 describe('fetchWithSentry preferNativeTransport', () => {
     beforeEach(() => {
@@ -64,10 +64,9 @@ describe('fetchWithSentry preferNativeTransport', () => {
         )
         expect(reportNetworkError).not.toHaveBeenCalled()
 
-        // engaged notice fires once per session, not per request
-        expect(engagedNotices()).toHaveLength(1)
+        // which transport carried the request is not a Sentry event
         await fetchWithSentry('https://api.test.com/users/me', { method: 'GET', preferNativeTransport: true })
-        expect(engagedNotices()).toHaveLength(1)
+        expect(transportNotices()).toHaveLength(0)
     })
 
     it('still reports non-ok statuses from the preferred transport', async () => {

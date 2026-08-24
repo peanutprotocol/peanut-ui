@@ -10,7 +10,6 @@ import 'react-tooltip/dist/react-tooltip.css'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { authReady } from '@/utils/auth-token'
 import { installNativeAuthCapture } from '@/utils/native-auth-capture'
-import { scheduleDirectFetchCanary } from '@/utils/native-canary'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
 
@@ -35,7 +34,6 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         if (isCapacitor()) {
             void authReady() // start Preferences hydration before any API call needs it
             installNativeAuthCapture()
-            scheduleDirectFetchCanary()
             import('@capgo/capacitor-passkey').then(({ CapacitorPasskey }) => {
                 const nativeRpId = getNativeRpId()
 
