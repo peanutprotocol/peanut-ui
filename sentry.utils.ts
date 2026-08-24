@@ -48,7 +48,12 @@ const IGNORED_ERRORS = {
     // internal fetchWithSentry wrapper names, not generic strings that could
     // appear in an unrelated third-party error message. ConnectionTimeoutError
     // is the timeout-path wrapper; ServiceUnavailableError the generic one.
-    alreadyReported: ['ServiceUnavailableError', 'ConnectionTimeoutError'],
+    // PasskeyError is the same shape one layer up: useZeroDev classifies the raw
+    // WebAuthn failure, captures it with full context (or deliberately doesn't,
+    // for a plain user cancel), then throws a curated user-facing wrapper. Call
+    // sites that re-report that wrapper add a second, context-free event and
+    // undo the deliberate silence around LOGIN_CANCELED.
+    alreadyReported: ['ServiceUnavailableError', 'ConnectionTimeoutError', 'PasskeyError'],
 
     // Third-party SDK internal errors (not actionable)
     thirdPartySdkErrors: [
@@ -64,6 +69,28 @@ const IGNORED_ERRORS = {
         // and nothing user-visible depends on it.
         '[WM] No SW registration for postMessage',
     ],
+}
+
+/**
+ * Capgo's background updater logs every transient CDN/network hiccup at error
+ * level, and captureConsoleIntegration promotes each one into a Sentry event
+ * (~95/day on native). The user never sees them: the updater just retries on
+ * the next launch. Suppress those, but keep the failures that mean OTA is
+ * genuinely broken rather than merely flaky — a bundle that semver-sorts below
+ * the installed binary, or one that arrived corrupt.
+ */
+const CAPGO_LOG_PREFIXES = ['[CapgoUpdater]', 'CapgoUpdater :', '[capgo]']
+const CAPGO_ACTIONABLE = ['disable_auto_update_under_native', 'Checksum mismatch']
+
+const isFromCapgo = (searchTexts: string[]): boolean =>
+    searchTexts.some((text) => CAPGO_LOG_PREFIXES.some((prefix) => text.includes(prefix)))
+
+function isActionableCapgoError(searchTexts: string[]): boolean {
+    return isFromCapgo(searchTexts) && searchTexts.some((text) => CAPGO_ACTIONABLE.some((p) => text.includes(p)))
+}
+
+function isTransientCapgoNoise(searchTexts: string[]): boolean {
+    return isFromCapgo(searchTexts) && !isActionableCapgoError(searchTexts)
 }
 
 /**
@@ -96,12 +123,34 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
     const message = event.message || ''
     const exceptionValue = event.exception?.values?.[0]?.value || ''
-    const exceptionType = event.exception?.values?.[0]?.type || ''
     const culprit = (event as any).culprit || ''
+    /*
+     * Class names from every link in the chain. Sentry orders `exception.values`
+     * root-cause-first, so a wrapper carrying a `cause` lands at the END — exactly
+     * where fetchWithSentry's ServiceUnavailableError and useZeroDev's PasskeyError
+     * always sit. Reading only values[0] left `alreadyReported` inert for a month:
+     * PEANUT-UI-SNP kept double-counting PEANUT-UI-QEY.
+     *
+     * Deliberately types only, not messages. Class names are exact, so matching them
+     * chain-wide can only catch our own wrappers. Widening the fuzzy message patterns
+     * the same way would suppress MORE — the failure 5343f1d0 just fixed, where viem's
+     * "Details: Failed to fetch" ate real payment errors via `networkIssues`.
+     */
+    const exceptionTypes = (event.exception?.values ?? []).map((v) => v.type || '')
 
     // Match each field independently — concatenating them would let a pattern
     // match across unrelated fields and suppress a legitimate event.
-    const searchTexts = [message, exceptionValue, exceptionType, culprit]
+    const searchTexts = [message, exceptionValue, culprit, ...exceptionTypes]
+
+    /*
+     * Rescue actionable OTA failures BEFORE the generic patterns run. The Capgo
+     * carve-out below can only ever ADD suppression — once the loop returns true
+     * nothing downstream can take it back — so a corrupt bundle whose text happens
+     * to contain a fuzzy pattern ('… Checksum mismatch: Network Error' hitting
+     * `networkIssues`) would be dropped and the carve-out silently inert for that
+     * whole class. Exactly how `alreadyReported` went unnoticed for a month.
+     */
+    if (isActionableCapgoError(searchTexts)) return false
 
     // Check all ignore patterns
     for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {
@@ -115,8 +164,12 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
 
     if (isCriticalFlow) return false
 
+    if (isTransientCapgoNoise(searchTexts)) {
+        return true
+    }
+
     // Ignore errors from browser extensions (client-side only, but safe to check everywhere)
-    const frames = event.exception?.values?.[0]?.stacktrace?.frames || []
+    const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
     for (const frame of frames) {
         const filename = frame.filename || ''
         if (
