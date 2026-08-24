@@ -51,6 +51,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -333,7 +334,7 @@ export default function WithdrawBankPage() {
             // (collateral-only path) BEFORE the userOp hash. confirmOfframp expects a real
             // 32-byte tx hash — userOpHash is an account-abstraction bundler hash, not a
             // chain tx hash, and the BE rejects it.
-            const txIdentifier = receipt?.transactionHash ?? txHash ?? userOpHash
+            const txIdentifier = resolveSettledTxHash({ receipt, txHash, userOpHash }, 'withdraw-bank').hash
             if (!txIdentifier) throw new Error('No transaction identifier returned from sendMoney')
 
             // Mark the on-chain leg done BEFORE confirmOfframp. From this point on
