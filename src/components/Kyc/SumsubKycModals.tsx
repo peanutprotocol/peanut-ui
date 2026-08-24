@@ -22,6 +22,7 @@ export const SumsubKycModals = ({ flow }: SumsubKycModalsProps) => {
                 accessToken={flow.accessToken}
                 onClose={flow.handleSdkClose}
                 onComplete={flow.handleSdkComplete}
+                onSubmitted={flow.handleSdkSubmitted}
                 onRefreshToken={flow.refreshToken}
                 isMultiLevel={flow.isMultiLevel}
             />

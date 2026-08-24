@@ -312,7 +312,11 @@ const CryptoDepositView = ({
                                     {depositAddressData.maxDepositLimitUsd.toLocaleString()} USD
                                 </p>
                             </div>
-                            {!isOfframp && <p className="pt-1 text-sm text-grey-1">{t('bridgingFeeNote')}</p>}
+                            {!isOfframp && (
+                                <p className="pt-1 text-sm text-grey-1">
+                                    {isEvm ? t('bridgingVarianceNoteEvm') : t('bridgingVarianceNote')}
+                                </p>
+                            )}
                             {isOfframp && <p className="pt-1 text-sm text-grey-1">{t('multipleTransfersNote')}</p>}
                         </div>
 

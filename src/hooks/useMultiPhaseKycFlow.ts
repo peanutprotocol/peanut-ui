@@ -238,6 +238,7 @@ export const useMultiPhaseKycFlow = ({
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
         isActionFlow,
+        isMultiLevel,
     } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
 
     // keep ref in sync
@@ -248,6 +249,15 @@ export const useMultiPhaseKycFlow = ({
     // refresh user store when kyc status transitions to a non-success state
     // so the drawer/status item reads the updated verification record
     useEffect(() => {
+        // Same defer guard as the transition effect in useSumsubKycFlow: while a
+        // multi-level SDK session is open, ACTION_REQUIRED is the routine "the
+        // follow-up questionnaire is showing" status (the backend maps the
+        // follow-up level's `init` state to it ~3 min after the documents are
+        // submitted). Acting on it here would log a bogus KYC_REJECTED for every
+        // succeeding EEA applicant and flip the user store to action_required
+        // under the open SDK. The effect re-runs when the SDK closes, so an
+        // abandoned session still gets the capture and the store refresh.
+        if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
         if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
             posthog.capture(ANALYTICS_EVENTS.KYC_REJECTED, {
                 region_intent: lastIntentRef.current ?? regionIntent,
@@ -255,7 +265,15 @@ export const useMultiPhaseKycFlow = ({
             })
             fetchUser()
         }
-    }, [liveKycStatus, fetchUser, regionIntent])
+    }, [liveKycStatus, fetchUser, regionIntent, showWrapper, isMultiLevel])
+
+    // A multi-level session never reaches handleSdkComplete on the happy path:
+    // the SDK stays open through the follow-up level and the APPROVED transition
+    // closes it without onComplete. The wrapper reports the Level-1 submit
+    // through onSubmitted instead, so the funnel still gets its KYC_SUBMITTED.
+    const handleSdkSubmitted = useCallback(() => {
+        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
+    }, [regionIntent])
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
@@ -443,10 +461,6 @@ export const useMultiPhaseKycFlow = ({
 
     const isModalOpen = isVerificationProgressModalOpen || forceShowModal
 
-    // multi-level only for first-time LATAM (workflow with conditional questionnaire).
-    // cross-region LATAM uses an applicant action (single level, not multi-level).
-    const isMultiLevel = regionIntent === 'LATAM' && !isActionFlow
-
     // Derive preparing stage from elapsed time for progressive copy
     const preparingStage = useMemo<'initial' | 'configuring' | 'slow'>(() => {
         if (preparingElapsed < 3) return 'initial'
@@ -470,6 +484,7 @@ export const useMultiPhaseKycFlow = ({
         accessToken,
         handleSdkClose: handleClose,
         handleSdkComplete,
+        handleSdkSubmitted,
         refreshToken,
         isMultiLevel,
 

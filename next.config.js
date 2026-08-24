@@ -4,6 +4,7 @@ const withBundleAnalyzer =
     process.env.ANALYZE === 'true' ? require('@next/bundle-analyzer')({ enabled: true }) : (config) => config
 
 const redirectsConfig = require('./redirects.json')
+const { buildNoindexHeaderRules } = require('./src/constants/seo-route-policy')
 const { googleAdsRemarketingHosts } = require('./csp-google-domains')
 
 /**
@@ -364,6 +365,10 @@ let nextConfig = {
     },
     async headers() {
         return [
+            // App/auth/transaction surfaces must never inherit the root
+            // marketing metadata's index directive. HTTP directives work for
+            // client layouts and preserve social-card crawling.
+            ...buildNoindexHeaderRules(),
             {
                 source: '/.well-known/apple-app-site-association',
                 headers: [

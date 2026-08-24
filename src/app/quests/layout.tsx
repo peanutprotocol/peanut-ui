@@ -1,8 +1,8 @@
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 
-// Without this the page inherits the root layout's `canonical: '/'`. The route
-// is robots-disallowed (app surface) — noindex backs that up for URL-only hits.
+// Keep the app route self-canonical and noindex. It is also robots-disallowed;
+// metadata backs that up for URL-only hits.
 export const metadata: Metadata = {
     ...metadataHelper({
         title: 'Quests | Peanut',

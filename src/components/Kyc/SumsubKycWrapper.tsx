@@ -47,6 +47,7 @@ const SumsubWebSdkModal = ({
     accessToken,
     onClose,
     onComplete,
+    onSubmitted,
     onError,
     onRefreshToken,
     isMultiLevel,
@@ -71,6 +72,7 @@ const SumsubWebSdkModal = ({
 
     // callback refs to avoid stale closures in sdk init effect
     const onCompleteRef = useRef(onComplete)
+    const onSubmittedRef = useRef(onSubmitted)
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
     const isMultiLevelRef = useRef(isMultiLevel)
@@ -83,10 +85,11 @@ const SumsubWebSdkModal = ({
 
     useEffect(() => {
         onCompleteRef.current = onComplete
+        onSubmittedRef.current = onSubmitted
         onErrorRef.current = onError
         onRefreshTokenRef.current = onRefreshToken
         isMultiLevelRef.current = isMultiLevel
-    }, [onComplete, onError, onRefreshToken, isMultiLevel])
+    }, [onComplete, onSubmitted, onError, onRefreshToken, isMultiLevel])
 
     useEffect(() => {
         sumsubLocaleRef.current = toSumsubLocale(locale)
@@ -94,6 +97,7 @@ const SumsubWebSdkModal = ({
 
     // stable wrappers that read from refs
     const stableOnComplete = useCallback(() => onCompleteRef.current(), [])
+    const stableOnSubmitted = useCallback(() => onSubmittedRef.current?.(), [])
     const stableOnError = useCallback((error: unknown) => onErrorRef.current?.(error), [])
     const stableOnRefreshToken = useCallback(() => onRefreshTokenRef.current(), [])
 
@@ -159,10 +163,17 @@ const SumsubWebSdkModal = ({
 
             const handleSubmitted = () => {
                 console.log('[sumsub] onApplicantSubmitted fired')
+                const isFirstSubmit = !hasSubmittedRef.current
                 hasSubmittedRef.current = true
-                // for multi-level workflows (LATAM), the SDK transitions to Level 2
-                // internally. don't close the modal on Level 1 submission.
-                if (isMultiLevelRef.current) return
+                // for multi-level workflows (LATAM/EU), the SDK transitions to
+                // Level 2 internally. don't close the modal on Level 1 submission —
+                // but do report it, or the session never emits a submit signal
+                // (onComplete only fires when a close is wanted, and the APPROVED
+                // close skips it).
+                if (isMultiLevelRef.current) {
+                    if (isFirstSubmit) stableOnSubmitted()
+                    return
+                }
                 stableOnComplete()
             }
             // resubmission = user retried after rejection (ACTION_REQUIRED).
@@ -178,8 +189,12 @@ const SumsubWebSdkModal = ({
             // abandonment after a successful action submission.
             const handleActionSubmitted = () => {
                 console.log('[sumsub] action submitted fired')
+                const isFirstSubmit = !hasSubmittedRef.current
                 hasSubmittedRef.current = true
-                if (isMultiLevelRef.current) return
+                if (isMultiLevelRef.current) {
+                    if (isFirstSubmit) stableOnSubmitted()
+                    return
+                }
                 stableOnComplete()
             }
             // RED stays open so the user can resubmit; the resubmission path
@@ -271,7 +286,16 @@ const SumsubWebSdkModal = ({
                 sdkInstanceRef.current = null
             }
         }
-    }, [visible, accessToken, sdkLoaded, sdkContainer, stableOnComplete, stableOnError, stableOnRefreshToken])
+    }, [
+        visible,
+        accessToken,
+        sdkLoaded,
+        sdkContainer,
+        stableOnComplete,
+        stableOnSubmitted,
+        stableOnError,
+        stableOnRefreshToken,
+    ])
 
     // reset state when modal closes (the init effect's cleanup already
     // destroys the SDK instance — visible is one of its deps)

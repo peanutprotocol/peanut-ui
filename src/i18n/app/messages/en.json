@@ -1422,7 +1422,8 @@
             "maxDepositForLabel": "Max deposit for {network}",
             "minPerTransfer": "Min per transfer:",
             "maxPerTransfer": "Max per transfer:",
-            "bridgingFeeNote": "A small bridging fee (~0.1%) applies — you'll receive slightly less than you send.",
+            "bridgingVarianceNote": "Deposits are bridged to Arbitrum and can vary slightly (±0.1%).",
+            "bridgingVarianceNoteEvm": "USDC on Arbitrum arrives exactly. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).",
             "multipleTransfersNote": "Moving more than the max? Send it in multiple transfers.",
             "addressErrorTitle": "We couldn't prepare your deposit address",
             "addressErrorDescription": "Nothing was sent. Please try again — if this keeps happening, contact support.",
@@ -2548,7 +2549,7 @@
         },
         "errorStartActionFailed": "Could not start verification. Please try again.",
         "errorInvalidResponse": "Invalid response from server",
-        "actionMessageActionRequired": "We need a bit more to verify your identity. Please resubmit your documents.",
+        "actionMessageActionRequired": "We need a bit more to verify your identity. Tap below to continue.",
         "actionMessageFailed": "We couldn't verify your identity. Please contact support.",
         "successTitle": "Verification successful!",
         "successCloseWindow": "You can now close this window."

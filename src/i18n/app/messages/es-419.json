@@ -1422,7 +1422,8 @@
             "maxDepositForLabel": "Depósito máximo para {network}",
             "minPerTransfer": "Mínimo por transferencia:",
             "maxPerTransfer": "Máximo por transferencia:",
-            "bridgingFeeNote": "Se aplica una pequeña comisión de puenteo (~0.1%): recibirás un poco menos de lo que envías.",
+            "bridgingVarianceNote": "Los depósitos se puentean a Arbitrum y pueden variar un poco (±0.1%).",
+            "bridgingVarianceNoteEvm": "USDC en Arbitrum llega exacto. Los depósitos desde otras redes o tokens se puentean y pueden variar un poco (±0.1%).",
             "multipleTransfersNote": "¿Vas a mover más del máximo? Envíalo en varias transferencias.",
             "addressErrorTitle": "No pudimos preparar tu dirección de depósito",
             "addressErrorDescription": "No se envió nada. Inténtalo de nuevo: si el problema sigue, contacta a soporte.",
@@ -2548,7 +2549,7 @@
         },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
         "errorInvalidResponse": "Respuesta inválida del servidor",
-        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Vuelve a enviar tus documentos.",
+        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Toca abajo para continuar.",
         "actionMessageFailed": "No pudimos verificar tu identidad. Contacta a soporte.",
         "successTitle": "¡Verificación exitosa!",
         "successCloseWindow": "Ya puedes cerrar esta ventana."
