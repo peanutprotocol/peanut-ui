@@ -436,9 +436,9 @@ jobs:
     # as claude[bot] are exactly what this blocks. Content-publish PRs pass:
     # update-content.yml authors and signs its commit as a human account.
     #
-    # No allowlist to maintain: the collaborator list IS the team roster, and
-    # GitHub org/repo access management keeps it current. Listing collaborators
-    # needs only the metadata read that GITHUB_TOKEN always carries.
+    # No allowlist to maintain: "has write access to this repo" IS the team
+    # roster, and GitHub org/repo access management keeps it current. The
+    # per-user permission endpoint works with the default GITHUB_TOKEN.
     human-authors:
         name: human-authors
         if: github.event_name == 'pull_request'
@@ -452,16 +452,22 @@ jobs:
               uses: actions/github-script@v7
               with:
                   script: |
-                      const collaborators = await github.paginate(github.rest.repos.listCollaborators, {
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        affiliation: 'all',
-                        per_page: 100,
-                      });
-                      const ALLOWED = new Set(collaborators.map((c) => c.login));
-                      if (ALLOWED.size === 0) {
-                        core.setFailed('Collaborator list came back empty — cannot verify authorship');
-                        return;
+                      const memberCache = new Map();
+                      async function hasWriteAccess(login) {
+                        if (memberCache.has(login)) return memberCache.get(login);
+                        let ok = false;
+                        try {
+                          const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            username: login,
+                          });
+                          ok = ['admin', 'maintain', 'write'].includes(data.permission);
+                        } catch (e) {
+                          ok = false;
+                        }
+                        memberCache.set(login, ok);
+                        return ok;
                       }
                       const commits = await github.paginate(github.rest.pulls.listCommits, {
                         owner: context.repo.owner,
@@ -478,8 +484,8 @@ jobs:
                           bad.push(`${sha}: author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`);
                         } else if (login.endsWith('[bot]')) {
                           bad.push(`${sha}: authored by ${login} — bot-authored commits are not allowed; commit as yourself`);
-                        } else if (!ALLOWED.has(login)) {
-                          bad.push(`${sha}: authored by ${login}, who is not a collaborator on this repo`);
+                        } else if (!(await hasWriteAccess(login))) {
+                          bad.push(`${sha}: authored by ${login}, who has no write access to this repo`);
                         }
                       }
                       if (bad.length) {
