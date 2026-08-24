@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
@@ -61,7 +61,7 @@ export const BottomNav = () => {
     const didDragRef = useRef(false)
 
     // one active tab at a time so the shared pill has a single home
-    const activeTab: TabId | null =
+    const routeTab: TabId | null =
         isSupportModalOpen || isSameRoute(pathname, '/support')
             ? 'support'
             : (pathname?.startsWith('/card') ?? false)
@@ -69,6 +69,32 @@ export const BottomNav = () => {
               : isSameRoute(pathname, '/home')
                 ? 'home'
                 : null
+
+    // Start the slide AFTER the route commit, not during it.
+    //
+    // Measured on a prod build, sampling the pill every frame: tapping a tab
+    // blocked the main thread for 45.6ms while React committed the new route.
+    // The spring's first step therefore integrated ~46ms of elapsed time at
+    // once and the pill teleported 21px before settling into a normal 8ms
+    // cadence — the "beginning teleports" report. Spring parameters cannot fix
+    // that; the frame budget was simply gone.
+    //
+    // Two rAFs after the commit the main thread is free again, so the spring
+    // starts from rest on a clean frame and every step is even. The cost is
+    // ~16-32ms before the pill starts moving, which is below the threshold
+    // where a delay reads as lag.
+    const [activeTab, setActiveTab] = useState<TabId | null>(routeTab)
+    useEffect(() => {
+        if (routeTab === activeTab) return
+        let inner = 0
+        const outer = requestAnimationFrame(() => {
+            inner = requestAnimationFrame(() => setActiveTab(routeTab))
+        })
+        return () => {
+            cancelAnimationFrame(outer)
+            cancelAnimationFrame(inner)
+        }
+    }, [routeTab, activeTab])
 
     const activateTab = (tab: TabId) => {
         if (tab === 'support') setIsSupportModalOpen(true)
@@ -117,7 +143,11 @@ export const BottomNav = () => {
                 }}
                 onDragEnd={(event) => handleDragEnd(event)}
                 className="absolute -inset-x-px -inset-y-0.5 z-0 touch-none rounded-round border border-border-default bg-background-default"
-                transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 32 }}
+                // duration + bounce over stiffness/damping: the old
+                // 400/32 is damping ratio 0.8, which overshot the target by
+                // 1.5px and then took ~830ms to crawl back. bounce 0.12 keeps
+                // the slide lively and settles inside the 300ms token.
+                transition={reduceMotion ? { duration: 0 } : { type: 'spring', duration: 0.3, bounce: 0.12 }}
             />
         )
 

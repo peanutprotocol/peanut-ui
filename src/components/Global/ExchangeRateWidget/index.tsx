@@ -223,7 +223,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent outline-none"
+                            className="w-full bg-transparent text-body-m font-bold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -284,7 +284,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent outline-none"
+                            className="w-full bg-transparent text-body-m font-bold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect

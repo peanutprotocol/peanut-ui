@@ -752,10 +752,14 @@
         -webkit-tap-highlight-color: transparent;
     }
 
-    /* v3-preflight parity: placeholders were #9ca3af (v4 uses currentColor/50) */
+    /* v3-preflight parity: placeholders were #9ca3af (v4 uses currentColor/50).
+       #9ca3af is 2.54:1 on white — below the 4.5:1 floor — and it is what any
+       input outside `.input` falls back to (the exchange-rate amounts, for one).
+       foreground-secondary is the DS answer at 5.95:1 on white, 5.46:1 on the
+       cream page. `.input` already sets it; this makes the floor match. */
     input::placeholder,
     textarea::placeholder {
-        color: #9ca3af;
+        color: var(--color-foreground-secondary);
     }
 
     /* v3-preflight parity: buttons keep the pointer cursor (v4 uses default) */
