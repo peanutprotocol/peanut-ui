@@ -463,4 +463,49 @@ describe('useSumsubKycFlow — handleFixableRejection routing', () => {
         expect(result.current.error).toBe('Action not allowed for this user')
         expect(result.current.showWrapper).toBe(false)
     })
+
+    // The WebSDK refreshes mid-upload once the token TTL lapses. POST /users/identity
+    // ignores levelName and no-ops for an already-approved user — exactly who an RFI
+    // targets — so falling through to it killed the SDK mid-RFI.
+    it('refreshToken re-mints an RFI token through start-action, not POST /users/identity', async () => {
+        mockStartAction
+            .mockResolvedValueOnce({ data: { token: 'tok-sof', levelName: 'provider-rfi-source-of-funds' } })
+            .mockResolvedValueOnce({ data: { token: 'tok-sof-refreshed', levelName: 'provider-rfi-source-of-funds' } })
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
+        })
+
+        let refreshed: string | undefined
+        await act(async () => {
+            refreshed = await result.current.refreshToken()
+        })
+
+        expect(refreshed).toBe('tok-sof-refreshed')
+        expect(mockStartAction).toHaveBeenLastCalledWith('sumsub:source_of_funds')
+        expect(mockStartAction).toHaveBeenCalledTimes(2)
+        expect(mockInitiate).not.toHaveBeenCalled()
+        expect(mockResubmit).not.toHaveBeenCalled()
+    })
+
+    it('a self-heal resubmit after an RFI refreshes through resubmit, not the stale action key', async () => {
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-sof', levelName: 'provider-rfi-source-of-funds' } })
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
+        })
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'BRIDGE', actionKey: null })
+        })
+
+        await act(async () => {
+            await result.current.refreshToken()
+        })
+
+        expect(mockResubmit).toHaveBeenLastCalledWith('BRIDGE')
+        expect(mockStartAction).toHaveBeenCalledTimes(1)
+    })
 })
