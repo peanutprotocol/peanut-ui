@@ -429,14 +429,16 @@ jobs:
                       }
 
     # Human-only authorship gate. Every commit on the PR must be authored by a
-    # team member's own GitHub account — no `*[bot]` authors (claude[bot],
+    # repo collaborator's own GitHub account — no `*[bot]` authors (claude[bot],
     # github-actions[bot], …) and no emails that GitHub cannot map to an
     # account. Policy set 2026-08-24: AI is a tool, not an owner; every commit
     # has a human who is accountable for it. Cloud coding sessions that commit
     # as claude[bot] are exactly what this blocks. Content-publish PRs pass:
     # update-content.yml authors and signs its commit as a human account.
     #
-    # To add a teammate: add their GitHub login to ALLOWED below (one line).
+    # No allowlist to maintain: the collaborator list IS the team roster, and
+    # GitHub org/repo access management keeps it current. Listing collaborators
+    # needs only the metadata read that GITHUB_TOKEN always carries.
     human-authors:
         name: human-authors
         if: github.event_name == 'pull_request'
@@ -450,14 +452,17 @@ jobs:
               uses: actions/github-script@v7
               with:
                   script: |
-                      const ALLOWED = new Set([
-                        'Hugo0',
-                        '0xkkonrad',
-                        'abalinda',
-                        'innolope-dev',
-                        'jjramirezn',
-                        'kushagrasarathe',
-                      ]);
+                      const collaborators = await github.paginate(github.rest.repos.listCollaborators, {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        affiliation: 'all',
+                        per_page: 100,
+                      });
+                      const ALLOWED = new Set(collaborators.map((c) => c.login));
+                      if (ALLOWED.size === 0) {
+                        core.setFailed('Collaborator list came back empty — cannot verify authorship');
+                        return;
+                      }
                       const commits = await github.paginate(github.rest.pulls.listCommits, {
                         owner: context.repo.owner,
                         repo: context.repo.repo,
@@ -474,7 +479,7 @@ jobs:
                         } else if (login.endsWith('[bot]')) {
                           bad.push(`${sha}: authored by ${login} — bot-authored commits are not allowed; commit as yourself`);
                         } else if (!ALLOWED.has(login)) {
-                          bad.push(`${sha}: authored by ${login}, who is not in the team allowlist in .github/workflows/tests.yml`);
+                          bad.push(`${sha}: authored by ${login}, who is not a collaborator on this repo`);
                         }
                       }
                       if (bad.length) {
