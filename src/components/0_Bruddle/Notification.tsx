@@ -95,10 +95,10 @@ export const Notification = ({
                     {title ? (
                         <span className="text-body-m-semibold">{title}</span>
                     ) : (
-                        <div className="min-w-0 flex-1 text-body-m">{children}</div>
+                        <div className="min-w-0 flex-1 text-body-m">{body}</div>
                     )}
                 </div>
-                {title && <div className="pl-7 text-body-m">{children}</div>}
+                {title && <div className="pl-7 text-body-m">{body}</div>}
                 {!!ctas?.length && (
                     <div className="flex flex-wrap gap-2 pl-7">
                         {ctas.slice(0, 2).map((cta, i) => (
