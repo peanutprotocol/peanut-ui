@@ -90,6 +90,7 @@ export function singletonLocaleFor(intent: string, lang: string): string {
 }
 
 const CONTENT_ROUTE_LOCALES = new Set([...SUPPORTED_LOCALES, 'es-es'])
+const PEANUT_PRODUCTION_ORIGIN = 'https://peanut.me'
 const LEGAL_CONTENT_SLUGS = new Set([
     'terms',
     'privacy',
@@ -157,20 +158,41 @@ function contentOwnerForPath(segments: string[], locale: Locale): string | null 
     }
 }
 
+function contentPathSegments(pathname: string): string[] {
+    const segments = pathname.split('/').filter(Boolean)
+    if (segments[0] && CONTENT_ROUTE_LOCALES.has(segments[0].toLowerCase())) segments.shift()
+    return segments
+}
+
 /**
  * Localize an internal content href, then point it at the locale that owns its
  * prose. Locale-native hubs and paths without content files keep the requested
- * locale. External links and anchors pass through unchanged.
+ * locale. Exact https://peanut.me content URLs retain their absolute form;
+ * true external links, same-origin non-content URLs and anchors pass through.
  */
 export function resolveContentHref(href: string, locale: Locale): string {
-    if (!href.startsWith('/') || href.startsWith('//')) return href
+    if (!href.startsWith('/')) {
+        let absoluteHref: URL
+        try {
+            absoluteHref = new URL(href)
+        } catch {
+            return href
+        }
+        if (absoluteHref.origin !== PEANUT_PRODUCTION_ORIGIN) return href
+
+        const segments = contentPathSegments(absoluteHref.pathname)
+        const owner = contentOwnerForPath(segments, locale)
+        if (!owner) return href
+
+        const ownedPath = `/${[owner, ...segments].join('/')}`
+        return `${PEANUT_PRODUCTION_ORIGIN}${ownedPath}${absoluteHref.search}${absoluteHref.hash}`
+    }
+    if (href.startsWith('//')) return href
 
     const suffixIndex = href.search(/[?#]/)
     const pathname = suffixIndex === -1 ? href : href.slice(0, suffixIndex)
     const suffix = suffixIndex === -1 ? '' : href.slice(suffixIndex)
-    const segments = pathname.split('/').filter(Boolean)
-
-    if (segments[0] && CONTENT_ROUTE_LOCALES.has(segments[0].toLowerCase())) segments.shift()
+    const segments = contentPathSegments(pathname)
 
     const owner = contentOwnerForPath(segments, locale)
     const targetLocale = owner ?? locale

@@ -99,12 +99,46 @@ describe('resolveContentHref', () => {
         )
     })
 
-    it.each(['https://peanut.me/en/help/passkeys', '//cdn.example.com/asset', 'mailto:hi@peanut.me', '#payments'])(
+    it('resolves exact production-origin content URLs while preserving their absolute form and suffix', () => {
+        const fallbackUrl = 'https://peanut.me/es-419/card-terms-international?from=fees#terms'
+        const ownerUrl = 'https://peanut.me/en/card-terms-international?from=fees#terms'
+
+        expect(resolveContentHref(fallbackUrl, 'es-419')).toBe(ownerUrl)
+        expect(resolveContentHref(ownerUrl, 'es-419')).toBe(ownerUrl)
+        expect(resolveContentHref('https://peanut.me/en/help/passkeys', 'es-ar')).toBe(
+            'https://peanut.me/es-419/help/passkeys'
+        )
+    })
+
+    it.each([
+        'https://peanut.me/shhhhh?from=content#card',
+        'https://peanut.me/es-ar/help',
+        'https://peanut.me.evil.com/es-419/terms',
+        'https://peanut.me@evil.com/es-419/terms',
+        'http://peanut.me/es-419/terms',
+    ])('leaves non-content or non-exact production origins unchanged: %s', (href) => {
+        expect(resolveContentHref(href, 'es-419')).toBe(href)
+    })
+
+    it.each(['//cdn.example.com/asset', 'mailto:hi@peanut.me', '#payments', 'https://example.com/en/help/passkeys'])(
         'leaves external links and anchors unchanged: %s',
         (href) => {
             expect(resolveContentHref(href, 'es-ar')).toBe(href)
         }
     )
+
+    it.each([
+        ['es-419', ['https://peanut.me/es-419/card-terms-international', 'https://peanut.me/es-419/terms']],
+        ['pt-br', ['https://peanut.me/pt-br/card-terms-international', 'https://peanut.me/pt-br/terms']],
+    ] as const)('repairs the fallback-only absolute legal links authored in fees-pricing/%s.md', (locale, urls) => {
+        const content = readPageContent('help', 'fees-pricing', locale)
+        expect(content).not.toBeNull()
+        for (const url of urls) expect(content?.body).toContain(url)
+        expect(urls.map((url) => resolveContentHref(url, locale))).toEqual([
+            'https://peanut.me/en/card-terms-international',
+            'https://peanut.me/en/terms',
+        ])
+    })
 })
 
 describe('contentGeneratedAt', () => {
