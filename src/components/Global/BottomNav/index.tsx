@@ -29,11 +29,16 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * Why a measured transform and not framer's `layoutId`:
  * the pill used to be re-mounted inside whichever tab was active, and framer
  * animated the gap with a shared-layout projection. A projection reads the
- * target box AFTER the new tree paints, so the spring began against the box
- * framer had at mount time and framer re-targeted mid-flight when the real
- * box arrived. Visible result, with the tabs read as positions 1 / 10 / 20:
- * 1 -> 10 landed near 9 and then crept to 10, and 10 -> 1 overshot to about 2
- * and crept back to 1. One motion, two targets.
+ * target box AFTER the new tree paints, so the spring can begin against the
+ * box framer had at mount time and get re-pointed mid-flight when the real
+ * box arrives — one motion, two targets. That matches the report we got
+ * (reading the tabs as positions 1 / 10 / 20: 1 -> 10 lands near 9 and then
+ * creeps to 10, 10 -> 1 overshoots to about 2 and creeps back).
+ *
+ * Caveat worth keeping honest: that report never reproduced in the harness,
+ * on the old code either, even under 6x CPU throttling. So this is not a
+ * measured before/after — it removes the mechanism that can produce the
+ * described behavior, rather than a defect anyone captured.
  *
  * Now every tab's left/width is measured up front (and again on resize), so
  * the destination x is a number known BEFORE the spring starts. Nothing is
