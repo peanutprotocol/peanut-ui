@@ -99,6 +99,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const userInitiatedRef = useRef(false)
     // tracks self-heal provider for token refresh — null when in regular KYC flow
     const selfHealProviderRef = useRef<'BRIDGE' | 'MANTECA' | null>(null)
+    // The capability nextAction key behind an in-flight start-action flow.
+    // Mutually exclusive with selfHealProviderRef, and needed by refreshToken:
+    // POST /users/identity ignores levelName and no-ops for an already-approved
+    // user, so an RFI token can only be re-minted through start-action.
+    const actionKeyRef = useRef<string | null>(null)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -245,6 +250,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             userInitiatedRef.current = true
             initiatingRef.current = true
             selfHealProviderRef.current = null
+            actionKeyRef.current = null
             setIsLoading(true)
             setError(null)
 
@@ -357,6 +363,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleSdkComplete = useCallback(() => {
         userInitiatedRef.current = true
         selfHealProviderRef.current = null
+        actionKeyRef.current = null
         setShowWrapper(false)
         setIsActionFlow(false)
         setIsVerificationProgressModalOpen(true)
@@ -370,8 +377,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [onManualClose])
 
     // token refresh function passed to the sdk for when the token expires.
-    // uses self-heal provider ref when in self-heal mode, otherwise regular KYC endpoint.
+    // routes by how the flow started: start-action key, self-heal provider, or
+    // the regular KYC endpoint.
     const refreshToken = useCallback(async (): Promise<string> => {
+        if (actionKeyRef.current) {
+            const response = await startKycAction(actionKeyRef.current)
+            if (response.error || !response.data?.token) {
+                throw new Error(response.error || 'Failed to refresh action token')
+            }
+            setAccessToken(response.data.token)
+            return response.data.token
+        }
+
         if (selfHealProviderRef.current) {
             const response = await initiateSelfHealResubmission(selfHealProviderRef.current)
             if (response.error || !response.data?.token) {
@@ -421,6 +438,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         // (CodeRabbit caught: stale selfHealProviderRef would route the next
         // refresh through initiateSelfHealResubmission instead of the regular path).
         selfHealProviderRef.current = null
+        actionKeyRef.current = null
 
         try {
             const response = await restartIdentityVerification()
@@ -455,6 +473,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setError(null)
             userInitiatedRef.current = true
             selfHealProviderRef.current = provider
+            actionKeyRef.current = null
 
             try {
                 const response = await initiateSelfHealResubmission(provider, requirementKey)
@@ -462,6 +481,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (response.error) {
                     userInitiatedRef.current = false
                     selfHealProviderRef.current = null
+                    actionKeyRef.current = null
                     setError(actionErrorMessage(response))
                     return
                 }
@@ -472,11 +492,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 } else {
                     userInitiatedRef.current = false
                     selfHealProviderRef.current = null
+                    actionKeyRef.current = null
                     setError(t('errorResubmitFailed'))
                 }
             } catch (e: unknown) {
                 userInitiatedRef.current = false
                 selfHealProviderRef.current = null
+                actionKeyRef.current = null
                 const message = e instanceof Error ? e.message : t('unexpectedError')
                 setError(message)
             } finally {
@@ -497,6 +519,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setError(null)
             userInitiatedRef.current = true
             selfHealProviderRef.current = null
+            actionKeyRef.current = null
 
             try {
                 const response = await startKycAction(key)
@@ -506,6 +529,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return
                 }
                 levelNameRef.current = response.data.levelName
+                actionKeyRef.current = key
                 setAccessToken(response.data.token)
                 setIsActionFlow(true)
                 setShowWrapper(true)
