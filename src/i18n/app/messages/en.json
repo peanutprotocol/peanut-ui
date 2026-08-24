@@ -2549,7 +2549,7 @@
         },
         "errorStartActionFailed": "Could not start verification. Please try again.",
         "errorInvalidResponse": "Invalid response from server",
-        "actionMessageActionRequired": "We need a bit more to verify your identity. Please resubmit your documents.",
+        "actionMessageActionRequired": "We need a bit more to verify your identity. Tap below to continue.",
         "actionMessageFailed": "We couldn't verify your identity. Please contact support.",
         "successTitle": "Verification successful!",
         "successCloseWindow": "You can now close this window."

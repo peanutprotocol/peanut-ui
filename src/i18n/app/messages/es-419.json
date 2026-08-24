@@ -2549,7 +2549,7 @@
         },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
         "errorInvalidResponse": "Respuesta inválida del servidor",
-        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Vuelve a enviar tus documentos.",
+        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Toca abajo para continuar.",
         "actionMessageFailed": "No pudimos verificar tu identidad. Contacta a soporte.",
         "successTitle": "¡Verificación exitosa!",
         "successCloseWindow": "Ya puedes cerrar esta ventana."
