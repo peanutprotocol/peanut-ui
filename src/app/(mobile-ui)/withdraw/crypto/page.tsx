@@ -41,6 +41,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { toError } from '@/utils/to-error'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -496,7 +497,7 @@ export default function WithdrawCryptoPage() {
                 method_type: 'crypto',
             })
         } catch (err) {
-            console.error('Withdrawal execution failed:', err)
+            console.error('Withdrawal execution failed:', toError(err))
             const errMsg = toFriendlyError(err)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'crypto',

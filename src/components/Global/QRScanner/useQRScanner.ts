@@ -6,6 +6,7 @@ import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 import { reportQrScanError } from './utils'
+import { toError } from '@/utils/to-error'
 
 // ============================================================================
 // Configuration
@@ -325,7 +326,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             } catch (err) {
                 clearTimeout(startTimeoutId)
                 cleanup()
-                console.error('Error accessing camera:', err)
+                console.error('Error accessing camera:', toError(err))
 
                 const errName = err instanceof Error ? err.name : ''
                 const shouldRetry =
@@ -372,7 +373,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             setFacingMode(newFacingMode)
             if (isScanningRef.current) setIsCameraReady(true)
         } catch (err) {
-            console.error('Error switching camera:', err)
+            console.error('Error switching camera:', toError(err))
             setError(t('qrScanner.cameraSwitchFailed'))
         } finally {
             isSwitchingCameraRef.current = false

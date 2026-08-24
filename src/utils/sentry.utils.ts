@@ -396,15 +396,31 @@ const sanitizeHeaders = (headers: RequestInit['headers']): Record<string, unknow
 }
 
 // Sanitize URL for fingerprinting by replacing IDs with placeholders
-const sanitizeUrl = (url: string) => {
+export const sanitizeUrl = (url: string) => {
     return (
         url
             // Replace numeric IDs in path
             .replace(/\/\d+(?=\/|$)/g, '/{id}')
             // Replace UUIDs in path
             .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi, '/{uuid}')
-            // Replace numeric IDs in query params
-            .replace(/([?&][^=&]*=)\d+/g, '$1{id}')
+            // Replace numeric IDs in query params. Anchored to the end of the
+            // value: unanchored, this ate the leading 0 of an 0x-prefixed
+            // address and left `{id}xaf88d065`, so every wallet still got its
+            // own fingerprint AND the value was unreadable.
+            .replace(/([?&][^=&]*=)\d+(?=&|$)/g, '$1{id}')
+            /*
+             * Then every remaining query value. Normalizing only the numeric ones
+             * left each enum value of a param as its own Sentry issue: one 429 on
+             * /bridge/exchange-rate was three issues (accountType=iban / clabe / gb,
+             * PEANUT-UI-SGN / SQ4 / SSA) for a single upstream fault. The param
+             * names still separate genuinely different calls, and the raw URL stays
+             * on the event as `extra.url`.
+             *
+             * The lookahead skips values the numeric pass already replaced, so
+             * fingerprints that were correct before this change keep grouping into
+             * their existing issue instead of forking a new one.
+             */
+            .replace(/([?&][^=&]*=)(?!\{id\})[^&]*/g, '$1{value}')
     )
 }
 
