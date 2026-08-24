@@ -45,6 +45,21 @@ export function initSentry(): void {
             tracesSampleRate: 0.1,
             debug: false,
 
+            /*
+             * captureConsoleIntegration only calls captureException when one of the
+             * console args is an Error instance; otherwise it calls captureMessage,
+             * which carries no stack at all. That is how ~3.4% of our exception
+             * volume arrived unattributable — a message, no frames, no way to tell
+             * which of several call sites produced it. This synthesizes a stack at
+             * the capture point for every message event, including the deliberate
+             * captureMessage calls in fetchWithSentry and native-auth-capture.
+             *
+             * Note it lands on `threads`, not `exception.values`, so PostHog's
+             * mirror still reports these as an empty exception list; only passing a
+             * real Error at the call site clears that.
+             */
+            attachStacktrace: true,
+
             beforeSend: beforeSendHandler,
 
             integrations: [
