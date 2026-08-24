@@ -40,7 +40,6 @@ const NOINDEX_ROUTE_PREFIXES = Object.freeze([
     '/card-recovery',
     '/recover-wallet',
     '/fix-card-signature',
-    '/lp',
 ])
 
 // Personalized images can include usernames and payment amounts. Keep only

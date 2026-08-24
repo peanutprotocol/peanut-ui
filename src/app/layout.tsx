@@ -17,11 +17,13 @@ export const metadata: Metadata = {
         'Peanut is a money app for people who cross borders — send and receive money globally, spend with the Peanut Card, cash in and out through local rails.',
     metadataBase: new URL(baseUrl),
     icons: { icon: '/favicon.ico' },
-    alternates: { canonical: '/' },
     keywords:
         'peer-to-peer payments, send money instantly, request money, fast global transfers, remittances, digital dollar transfers, Latin America, Argentina, Brazil, P2P payments, crypto payments, stablecoin, digital dollars',
-    // Block staging/preview deploys from indexing (belt-and-suspenders with robots.ts)
-    robots: IS_PRODUCTION_DOMAIN ? { index: true, follow: true } : { index: false, follow: false },
+    // Canonicals belong to leaf pages: a root canonical here would be inherited
+    // by app routes and falsely cluster them with the homepage. Index/follow is
+    // also the production default, so emit robots metadata only as a staging /
+    // preview belt-and-suspenders guard.
+    ...(IS_PRODUCTION_DOMAIN ? {} : { robots: { index: false, follow: false } }),
     openGraph: {
         type: 'website',
         title: 'Peanut - Send, Spend & Cash Out Digital Dollars',

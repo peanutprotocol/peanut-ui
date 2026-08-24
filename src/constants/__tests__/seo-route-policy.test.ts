@@ -24,10 +24,9 @@ const criticalAppRoutes = [
     '/recover-funds',
     '/card-recovery',
     '/fix-card-signature',
-    '/lp',
 ]
 
-const crawlablePublicRoutes = ['/api/og/marketing', '/m/stain', '/m/badigitalnomads']
+const crawlablePublicRoutes = ['/lp', '/api/og/marketing', '/m/stain', '/m/badigitalnomads']
 
 function receivesNoindexHeader(path: string): boolean {
     return (
@@ -82,7 +81,7 @@ describe('SEO route policy', () => {
         }
     )
 
-    it.each(['/api/og/marketing?title=Peanut', '/m/stain', '/en/pay-with/pix'])(
+    it.each(['/lp', '/api/og/marketing?title=Peanut', '/m/stain', '/en/pay-with/pix'])(
         'does not render a noindex header for %s through Next route matching',
         async (route) => {
             await expect(renderedRobotsHeader(route)).resolves.toBeNull()

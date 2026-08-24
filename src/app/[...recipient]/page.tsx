@@ -21,7 +21,7 @@ type PageProps = {
 // a "<handle> on Peanut" title. Google indexed thousands of those. Every metadata
 // branch is noindex: profiles, addresses, ENS and request/receipt links are app
 // surface, not search landing pages — no carve-outs.
-// canonical: null suppresses the root layout's inherited `canonical: '/'` —
+// canonical: null is defense in depth against a future parent canonical:
 // noindex must not ship on pages that canonicalize to the homepage, or the
 // noindex can be attributed to the canonical cluster head (the homepage itself).
 const NOINDEX = { index: false, follow: false } as const
