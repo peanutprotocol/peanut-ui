@@ -7,6 +7,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import NavHeader from '@/components/Global/NavHeader'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { Marquee } from '@/components/LandingPage'
 import { ScarcityCounter } from '@/components/LandingPage/ScarcityCounter'
 import { useAuth } from '@/context/authContext'
@@ -141,6 +143,7 @@ export default function ShhhhhLandingPage() {
     const t = useTranslations('shhhhh')
     const { user, fetchUser } = useAuth()
     const router = useRouter()
+    const onBack = useSafeBack('/profile')
 
     // undefined = not joined; number|null = joined (null = joined but BE
     // returned no position). Drives the inline confirmation.
@@ -265,6 +268,13 @@ export default function ShhhhhLandingPage() {
 
     return (
         <>
+            {/* the page is reachable from /profile ("Peanut card" for
+                non-holders), and every other route out of it goes forward —
+                without this the only way back was the browser button */}
+            <div className="px-4 pt-4">
+                <NavHeader onPrev={onBack} />
+            </div>
+
             {/* §1 — Hero (pink) */}
             <section className="relative overflow-hidden bg-primary-1 px-4 py-20 text-n-1 md:py-24">
                 <motion.img

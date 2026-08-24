@@ -20,9 +20,11 @@ import { useRef } from 'react'
  * (24px/16px padding around a 20px icon) — over the 44px touch-target floor.
  *
  * The active pill is a single shared element (framer layoutId) so it slides
- * from the old tab to the tapped one; it is drawn 1px larger on every side
- * (-inset-px) so its border overlays the outer pill border instead of
- * doubling up against it.
+ * from the old tab to the tapped one. It is drawn 1px wider and 2px taller
+ * than its tab, so its border sits ON TOP of the bar's border and reads as a
+ * complete outline (board 17802:61534). At the old -inset-px the two 1px
+ * borders landed on exactly the same row in the same color, which read as the
+ * pill's border being clipped by the bar edge.
  *
  * The pill is also draggable (drag="x", constrained to the bar): hold and
  * drag it along the bar, release, and it snaps to the nearest tab and
@@ -114,7 +116,7 @@ export const BottomNav = () => {
                     didDragRef.current = true
                 }}
                 onDragEnd={(event) => handleDragEnd(event)}
-                className="absolute -inset-px touch-none rounded-round border border-border-default bg-background-default"
+                className="absolute -inset-x-px -inset-y-0.5 z-0 touch-none rounded-round border border-border-default bg-background-default"
                 transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 32 }}
             />
         )
