@@ -78,7 +78,7 @@ export default async function PressBrandPage({ params }: PageProps) {
                                 src="/press/assets/raster/Peanut_Full_Logotype-1200.png"
                                 alt="Peanut logotype"
                                 width={1200}
-                                height={292}
+                                height={293}
                                 className="h-auto w-full max-w-sm"
                             />
                         </Card>

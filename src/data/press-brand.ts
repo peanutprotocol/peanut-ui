@@ -75,7 +75,7 @@ export const BRAND_FILE_GROUPS: BrandFileGroup[] = [
             { name: 'SVG', href: '/press/assets/Peanut_Full_Logotype.svg', meta: 'vector' },
             { name: 'EPS', href: '/press/assets/Peanut_Full_Logotype.eps', meta: 'vector' },
             { name: 'AI', href: '/press/assets/Peanut_Full_Logotype.ai', meta: 'vector' },
-            { name: 'PNG', href: '/press/assets/raster/Peanut_Full_Logotype-1200.png', meta: '1200×292' },
+            { name: 'PNG', href: '/press/assets/raster/Peanut_Full_Logotype-1200.png', meta: '1200×293' },
         ],
     },
     {
@@ -120,9 +120,7 @@ export const BRAND_FILE_GROUPS: BrandFileGroup[] = [
     {
         label: 'Guidelines',
         description: 'The full brand book. Read this before designing anything.',
-        files: [
-            { name: 'Brand Guidelines', href: '/press/assets/Peanut_Brand_Guidelines.pdf', meta: 'PDF · v1.2' },
-        ],
+        files: [{ name: 'Brand Guidelines', href: '/press/assets/Peanut_Brand_Guidelines.pdf', meta: 'PDF · v1.2' }],
     },
 ]
 
