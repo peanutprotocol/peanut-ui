@@ -350,7 +350,9 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             const smartPasteKind = smartPasteKindFor(name)
             return (
                 <div className="flex w-full flex-col gap-2">
-                    <label className="text-label-l text-foreground-primary">{label}</label>
+                    <label htmlFor={`bank-${name}`} className="text-label-l text-foreground-primary">
+                        {label}
+                    </label>
                     <div className="relative">
                         <Controller
                             name={name}
@@ -359,6 +361,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             render={({ field }) => (
                                 <BaseInput
                                     {...field}
+                                    id={`bank-${name}`}
                                     type={type}
                                     onPaste={
                                         smartPasteKind
@@ -391,11 +394,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             )}
                         />
                     </div>
-                    <div className="mt-2 w-fit text-start">
-                        {errors[name] && touchedFields[name] && (
+                    {errors[name] && touchedFields[name] && (
+                        <div className="w-fit text-start">
                             <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             )
         }
@@ -408,6 +411,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             rules: RegisterOptions<IBankAccountDetails>
         ) => (
             <div className="flex w-full flex-col gap-2">
+                {/* the trigger is a button, so htmlFor cannot name it — aria-label does */}
                 <label className="text-label-l text-foreground-primary">{label}</label>
                 <Controller
                     name={name}
@@ -416,6 +420,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     render={({ field }) => (
                         <BaseSelect
                             options={options}
+                            aria-label={label}
                             placeholder={placeholder}
                             value={field.value}
                             onValueChange={field.onChange}
@@ -428,11 +433,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         />
                     )}
                 />
-                <div className="mt-2 w-fit text-start">
-                    {errors[name] && touchedFields[name] && (
+                {errors[name] && touchedFields[name] && (
+                    <div className="w-fit text-start">
                         <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         )
 
@@ -636,7 +641,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             <div className="flex flex-col gap-4 pt-2">
                                 {renderInput(
                                     'street',
-                                    t('street'),
+                                    t('streetLabel'),
                                     {
                                         required: t('streetRequired'),
                                         maxLength: {
@@ -652,7 +657,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     STREET_ADDRESS_MAX_LENGTH
                                 )}
 
-                                {renderInput('city', t('city'), { required: t('cityRequired') })}
+                                {renderInput('city', t('cityLabel'), { required: t('cityRequired') })}
 
                                 {renderSelect(
                                     'state',
@@ -667,7 +672,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     }
                                 )}
 
-                                {renderInput('postalCode', t('postalCode'), {
+                                {renderInput('postalCode', t('postalCodeLabel'), {
                                     required: t('postalCodeRequired'),
                                 })}
                             </div>

@@ -55,6 +55,16 @@ describe('Notification', () => {
         expect(screen.queryByText('ignored')).not.toBeInTheDocument()
     })
 
+    test('an empty items list renders nothing, not a bare icon box', () => {
+        const { container } = render(<Notification priority="info" items={[]} />)
+        expect(container).toBeEmptyDOMElement()
+    })
+
+    test('a title alone still renders', () => {
+        render(<Notification priority="info" title="Heads up" items={[]} />)
+        expect(screen.getByText('Heads up')).toBeInTheDocument()
+    })
+
     test('renders at most two CTAs and wires their clicks', () => {
         const first = jest.fn()
         // the tuple type caps ctas at two at compile time; the cast proves the

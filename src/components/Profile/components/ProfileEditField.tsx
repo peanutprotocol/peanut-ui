@@ -1,6 +1,6 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import React from 'react'
+import React, { useId } from 'react'
 
 interface ProfileEditFieldProps {
     label: string
@@ -31,13 +31,19 @@ const ProfileEditField: React.FC<ProfileEditFieldProps> = ({
     badge,
     disabled = false,
 }) => {
+    // dropping the placeholder removed the only accessible name these inputs
+    // had, so the label has to be wired to the field properly now
+    const id = useId()
     return (
         <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-                <label className={disabled ? 'text-label-l text-foreground-secondary' : 'text-label-l'}>{label}</label>
+                <label htmlFor={id} className={disabled ? 'text-label-l text-foreground-secondary' : 'text-label-l'}>
+                    {label}
+                </label>
                 {badge && <StatusBadge status="soon" size="small" customText={badge} />}
             </div>
             <BaseInput
+                id={id}
                 variant="sm"
                 type={type}
                 value={value}

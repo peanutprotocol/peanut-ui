@@ -72,6 +72,10 @@ export const Notification = ({
     ) : (
         children
     )
+    // an empty `items` array used to fall through to `children` (undefined at
+    // every migrated call site) and paint a bare icon-only box — WelcomeUnlockModal
+    // hits that when the user unlocked no channel at all
+    if (body == null && !title && !ctas?.length) return null
     return (
         <div
             role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}

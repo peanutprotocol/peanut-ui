@@ -143,7 +143,11 @@ export default function ShhhhhLandingPage() {
     const t = useTranslations('shhhhh')
     const { user, fetchUser } = useAuth()
     const router = useRouter()
-    const onBack = useSafeBack('/profile')
+    // '/' not '/profile': this is a public, indexed marketing page. In-app
+    // visitors have history so they get router.back(); someone arriving cold
+    // from a shared link would otherwise be pushed into an authed route and
+    // bounced to setup.
+    const onBack = useSafeBack('/')
 
     // undefined = not joined; number|null = joined (null = joined but BE
     // returned no position). Drives the inline confirmation.
