@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
@@ -19,18 +19,33 @@ import { useEffect, useRef, useState } from 'react'
  * circle button. Active tab = white pill. Every pressable area is 68x52px
  * (24px/16px padding around a 20px icon) — over the 44px touch-target floor.
  *
- * The active pill is a single shared element (framer layoutId) so it slides
- * from the old tab to the tapped one. It is drawn 1px wider and 2px taller
- * than its tab, so its border sits ON TOP of the bar's border and reads as a
- * complete outline (board 17802:61534). At the old -inset-px the two 1px
- * borders landed on exactly the same row in the same color, which read as the
- * pill's border being clipped by the bar edge.
+ * The active pill is ONE element that lives in the bar for the whole session
+ * and moves by transform. It is drawn 1px wider and 2px taller than its tab,
+ * so its border sits ON TOP of the bar's border and reads as a complete
+ * outline (board 17802:61534). At the old -inset-px the two 1px borders
+ * landed on exactly the same row in the same color, which read as the pill's
+ * border being clipped by the bar edge.
  *
- * The pill is also draggable (drag="x", constrained to the bar): hold and
- * drag it along the bar, release, and it snaps to the nearest tab and
- * navigates there. Taps keep working — a click right after a drag is
+ * Why a measured transform and not framer's `layoutId`:
+ * the pill used to be re-mounted inside whichever tab was active, and framer
+ * animated the gap with a shared-layout projection. A projection reads the
+ * target box AFTER the new tree paints, so the spring began against the box
+ * framer had at mount time and framer re-targeted mid-flight when the real
+ * box arrived. Visible result, with the tabs read as positions 1 / 10 / 20:
+ * 1 -> 10 landed near 9 and then crept to 10, and 10 -> 1 overshot to about 2
+ * and crept back to 1. One motion, two targets.
+ *
+ * Now every tab's left/width is measured up front (and again on resize), so
+ * the destination x is a number known BEFORE the spring starts. Nothing is
+ * re-measured mid-flight, so the pill travels once and stops on the target.
+ * The spring is near-critically damped (bounce 0.05 over the 300ms moderate
+ * token) — no overshoot to walk back from.
+ *
+ * The pill is also draggable (drag="x", clamped to the measured tab range):
+ * hold and drag it along the bar, release, and it snaps to the nearest tab
+ * and navigates there. Taps keep working — a click right after a drag is
  * swallowed by the bar's capture handler. Under prefers-reduced-motion the
- * drag is disabled (taps only) and the pill snap is instant.
+ * drag is disabled (taps only) and the pill move is instant.
  */
 
 type TabId = 'home' | 'card' | 'support'
@@ -44,6 +59,17 @@ const tabClass =
 // icons sit above the pill (z) and let pointer events fall through to the
 // tab / draggable pill underneath
 const iconClass = 'pointer-events-none relative z-10'
+
+// near-critically damped: the pill lands on the measured target without an
+// overshoot to walk back from. 0.3s = the `duration-moderate` motion token.
+const PILL_SPRING = { type: 'spring', duration: 0.3, bounce: 0.05 } as const
+
+/** A tab's box inside the bar, in the bar's own coordinates. */
+type TabBox = { left: number; width: number }
+
+// the pill is 1px wider on each side than its tab (see the block comment), so
+// its resting x is the tab's left minus that 1px
+const restingX = (box: TabBox) => box.left - 1
 
 export const BottomNav = () => {
     const t = useTranslations('navigation')
@@ -59,6 +85,36 @@ export const BottomNav = () => {
     // set while a pill drag is in flight so the click the browser fires on
     // release doesn't ALSO trigger the tab underneath
     const didDragRef = useRef(false)
+
+    // Every tab's box, measured once and again on any bar resize. This is the
+    // whole fix: the destination is a number before the spring starts.
+    const [boxes, setBoxes] = useState<Partial<Record<TabId, TabBox>>>({})
+
+    useLayoutEffect(() => {
+        const measure = () => {
+            setBoxes((prev) => {
+                const next: Partial<Record<TabId, TabBox>> = {}
+                for (const id of TAB_ORDER) {
+                    const el = tabRefs.current[id]
+                    // offsetLeft is relative to the bar (the nearest positioned
+                    // ancestor), which is the coordinate space the pill uses
+                    if (el) next[id] = { left: el.offsetLeft, width: el.offsetWidth }
+                }
+                // bail on an identical result so the ResizeObserver cannot
+                // drive a render loop through this state
+                const same = TAB_ORDER.every(
+                    (id) => prev[id]?.left === next[id]?.left && prev[id]?.width === next[id]?.width
+                )
+                return same ? prev : next
+            })
+        }
+        measure()
+        const bar = barRef.current
+        if (!bar || typeof ResizeObserver === 'undefined') return
+        const observer = new ResizeObserver(measure)
+        observer.observe(bar)
+        return () => observer.disconnect()
+    }, [])
 
     // one active tab at a time so the shared pill has a single home
     const routeTab: TabId | null =
@@ -124,32 +180,24 @@ export const BottomNav = () => {
         // same tab: dragSnapToOrigin springs the pill back on its own
         if (nearest && nearest !== activeTab) {
             triggerHaptic()
+            // Retarget the pill in the same tick as the release, ahead of the
+            // route. The two-rAF deferral below is there for TAPS, where the
+            // route commit eats the frame budget; applying it to a drag would
+            // let dragSnapToOrigin pull the pill back to the tab it came from
+            // for ~80ms before it turned around.
+            setActiveTab(nearest)
             activateTab(nearest)
         }
     }
 
-    const renderPill = (tab: TabId) =>
-        activeTab === tab && (
-            <motion.span
-                aria-hidden
-                layoutId="bottom-nav-pill"
-                drag={reduceMotion ? false : 'x'}
-                dragConstraints={barRef}
-                dragElastic={0.05}
-                dragMomentum={false}
-                dragSnapToOrigin
-                onDragStart={() => {
-                    didDragRef.current = true
-                }}
-                onDragEnd={(event) => handleDragEnd(event)}
-                className="absolute -inset-x-px -inset-y-0.5 z-0 touch-none rounded-round border border-border-default bg-background-default"
-                // duration + bounce over stiffness/damping: the old
-                // 400/32 is damping ratio 0.8, which overshot the target by
-                // 1.5px and then took ~830ms to crawl back. bounce 0.12 keeps
-                // the slide lively and settles inside the 300ms token.
-                transition={reduceMotion ? { duration: 0 } : { type: 'spring', duration: 0.3, bounce: 0.12 }}
-            />
-        )
+    const activeBox = activeTab ? boxes[activeTab] : undefined
+    // the drag range is the first and last tab's resting x. Numeric bounds
+    // rather than `dragConstraints={barRef}`: the pill is 1px wider than a tab
+    // on each side, so a bar-sized box clamps it 1px short at both ends.
+    const dragBounds = {
+        left: boxes[TAB_ORDER[0]] ? restingX(boxes[TAB_ORDER[0]]!) : 0,
+        right: boxes[TAB_ORDER[TAB_ORDER.length - 1]] ? restingX(boxes[TAB_ORDER[TAB_ORDER.length - 1]]!) : 0,
+    }
 
     return (
         <nav className="flex w-full items-center gap-4 bg-background-page px-6 py-2" translate="no">
@@ -161,7 +209,7 @@ export const BottomNav = () => {
                         e.stopPropagation()
                     }
                 }}
-                className="flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page"
+                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page"
             >
                 <Link
                     href="/home"
@@ -172,7 +220,6 @@ export const BottomNav = () => {
                         tabRefs.current.home = el
                     }}
                 >
-                    {renderPill('home')}
                     <Icon name="home" size={20} className={iconClass} />
                 </Link>
                 <Link
@@ -184,7 +231,6 @@ export const BottomNav = () => {
                         tabRefs.current.card = el
                     }}
                 >
-                    {renderPill('card')}
                     <Icon name="credit-card" size={20} className={iconClass} />
                 </Link>
                 <button
@@ -199,7 +245,6 @@ export const BottomNav = () => {
                         tabRefs.current.support = el
                     }}
                 >
-                    {renderPill('support')}
                     <span className={iconClass}>
                         <Icon name="peanut-support" size={20} />
                         {/* role="status" so the dot is announced — aria-label alone on
@@ -213,6 +258,35 @@ export const BottomNav = () => {
                         )}
                     </span>
                 </button>
+                {/* Last in the bar so it paints over the tab boxes, but under
+                    the icons (z-10, and the tabs make no stacking context of
+                    their own). Icons are pointer-events-none, so a press over
+                    the active tab reaches the pill and can start a drag.
+                    Width is set, not animated: all three tabs are px-6 around
+                    a 20px icon, so it never changes — animating it would cost
+                    a layout pass per frame for nothing. */}
+                {activeBox && (
+                    <motion.span
+                        aria-hidden
+                        data-testid="bottom-nav-pill"
+                        drag={reduceMotion ? false : 'x'}
+                        dragConstraints={dragBounds}
+                        dragElastic={0.05}
+                        dragMomentum={false}
+                        dragSnapToOrigin
+                        onDragStart={() => {
+                            didDragRef.current = true
+                        }}
+                        onDragEnd={(event) => handleDragEnd(event)}
+                        // initial={false} adopts the target on mount, so the
+                        // pill appears already on its tab instead of sliding
+                        // in from the left on the first paint.
+                        initial={false}
+                        animate={{ x: restingX(activeBox), width: activeBox.width + 2 }}
+                        transition={reduceMotion ? { duration: 0 } : PILL_SPRING}
+                        className="absolute -top-0.5 -bottom-0.5 left-0 z-0 touch-none rounded-round border border-border-default bg-background-default"
+                    />
+                )}
             </div>
             {/* 52px pink QR circle (board NavigationButton state=Primary) */}
             <button
