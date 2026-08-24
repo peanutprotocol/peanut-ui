@@ -172,7 +172,14 @@
             "rewardClaimed": "Reward claimed!",
             "shareAndEarn": "Share & earn",
             "inviteFriendsToEarnMore": "Invite friends to earn more",
-            "holdToUnwrap": "Hold to unwrap your reward"
+            "holdToUnwrap": "Hold to unwrap your reward",
+            "iosCopy": {
+                "surpriseDescriptionFirst": "Check out your cashback and how to earn more.",
+                "surpriseDescriptionNext": "Check out your cashback and how to earn more.",
+                "usedPeanut": "<name>{inviteeName}</name> paid with Peanut",
+                "rewardClaimed": "Cashback claimed!",
+                "holdToUnwrap": "Hold to unwrap your cashback"
+            }
         },
         "carousel": {
             "rewardReady": "<b>+${amount}</b> reward ready!",
@@ -219,11 +226,30 @@
             "closeTitled": "Close {title}",
             "closeVerificationPrompt": "Close verification prompt",
             "closeNotificationPrompt": "Close notification prompt",
-            "claimablePerk": "Claimable perk"
+            "claimablePerk": "Claimable perk",
+            "iosCopy": {
+                "rewardReady": "<b>+${amount}</b> cashback ready!",
+                "usedPeanutTapToClaim": "<name>{inviteeName}</name> paid with Peanut. Tap to claim.",
+                "tapToClaim": "Tap to claim your cashback.",
+                "invite": {
+                    "title": "Invite friends. Earn cashback",
+                    "description": "Earn cashback every time your friends pay with Peanut."
+                },
+                "latamInvite": {
+                    "title": "Earn <b>cashback</b> on QR payments",
+                    "description": "Invite friends to <b>earn more cashback</b>. The more they pay, the more you earn!"
+                },
+                "qrPay": {
+                    "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>cashback</b>."
+                }
+            }
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}",
             "dismiss": "Dismiss {task}"
+        },
+        "iosCopy": {
+            "rewards": "Cashback"
         }
     },
     "profile": {
@@ -384,6 +410,11 @@
             "begForInvite": "Beg for an invite",
             "activityPrivateNote": "Activity is only visible for you, it is not public.",
             "noInviteTitle": "No invite, no Peanut"
+        },
+        "iosCopy": {
+            "menu": {
+                "points": "Cashback"
+            }
         }
     },
     "settings": {
@@ -905,7 +936,8 @@
         },
         "guestVerification": {
             "otherMethod": "Claim with other method",
-            "description": "The sender isn't verified for this method. You'll have to create an account, verify your identity, and then your funds will be deposited to your bank."
+            "senderUnverifiedDescription": "The sender isn't set up to send to a bank yet. You can claim with another method, or create an account and verify your identity to receive it in your bank.",
+            "accountRequiredDescription": "You'll need a Peanut account to claim with this method. Create one and verify your identity, and your funds will be deposited to your bank."
         },
         "actions": {
             "claimOn": "Claim on",
@@ -1059,6 +1091,22 @@
             "linkCopied": "Link copied",
             "shareTitle": "My Peanut QR Code",
             "shareText": "Scan my QR code to connect with me on Peanut!"
+        },
+        "iosCopy": {
+            "success": {
+                "earnedRewardTitle": "You earned cashback!",
+                "earnedHoldToClaim": "You earned ${amount}! Hold to unwrap your cashback.",
+                "holdToClaim": "You earned cashback! Hold to unwrap.",
+                "earnedInviteFriends": "You earned ${amount}! Invite friends to earn even more cashback.",
+                "inviteFriends": "Invite friends to earn even more cashback.",
+                "claimReward": "Unwrap Cashback"
+            },
+            "claim": {
+                "inviteQrDescription": "Share anywhere. Anyone who scans can join you on Peanut."
+            },
+            "claimSuccess": {
+                "stickerDescription": "Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone who scans will be able to join Peanut with your invite."
+            }
         }
     },
     "card": {
@@ -1872,7 +1920,25 @@
         },
         "enjoyPeanut": "Enjoy Peanut!",
         "memoTestDeposit": "Your peanut wallet is ready to use!",
-        "adjustedSuffix": "· Adjusted"
+        "adjustedSuffix": "· Adjusted",
+        "iosCopy": {
+            "type": {
+                "reward": "Cashback"
+            },
+            "perkBanner": {
+                "title": "You earned cashback!",
+                "capped": "${amount} cashback — campaign limit reached!",
+                "received": "You received ${amount} cashback!",
+                "generic": "You received Peanut cashback!"
+            },
+            "perk": {
+                "title": "Peanut Cashback",
+                "subtitle": "Earn cashback every time your friends pay with Peanut."
+            },
+            "actions": {
+                "inviteFriends": "Invite friends to earn more cashback"
+            }
+        }
     },
     "history": {
         "title": "Activity",
@@ -1905,7 +1971,29 @@
         "loadInvitesFailed": "Error loading invites!",
         "contactSupport": "Please contact Support.",
         "friendsEarnedYou": "Your friends earned you",
-        "starAlt": "star"
+        "starAlt": "star",
+        "invitesTitle": "Rewards",
+        "lifetimeCaption": "in rewards so far",
+        "howItWorks": {
+            "title": "How rewards work",
+            "step1": "Invite friends to Peanut.",
+            "step2": "They pay with Peanut like normal.",
+            "step3": "Rewards build up in your balance.",
+            "step4": "Make any payment to claim it."
+        },
+        "iosCopy": {
+            "title": "Cashback",
+            "invitesTitle": "Your Network",
+            "noPendingRewards": "No cashback waiting right now.",
+            "lifetimeRewards": "Lifetime cashback: {amount}",
+            "earnWhenFriendsUse": "You earn cashback whenever your friends pay with Peanut!",
+            "shareInviteLinkPrompt": "Send your invite link to start earning more cashback",
+            "howItWorks": {
+                "title": "How cashback works",
+                "step3": "Cashback builds up in your balance."
+            },
+            "lifetimeCaption": "in cashback so far"
+        }
     },
     "invites": {
         "illustrationAlt": "Section illustration",
@@ -2284,6 +2372,7 @@
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
             "confirmError": "Something went wrong confirming your terms. Please try again.",
+            "notAcceptedYet": "It looks like the terms haven't been accepted yet. Please try again.",
             "acceptTerms": "Accept Terms",
             "notNow": "Not now"
         },
@@ -3013,7 +3102,12 @@
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
             "title": "A small update to our terms"
         },
-        "maintenanceBanner": "Maintenance mode, some functionalities won't be available. Funds safe"
+        "maintenanceBanner": "Maintenance mode, some functionalities won't be available. Funds safe",
+        "iosCopy": {
+            "inviteFriendsModal": {
+                "description": "Share your link. Every time a friend you brought makes a payment, you earn cashback."
+            }
+        }
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",

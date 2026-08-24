@@ -513,9 +513,32 @@ describe('GROUP 1: Initial Form States', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 
-    test('QR code is blurred before request is created', () => {
+    test('QR code is blurred before an amount is entered', () => {
         renderCreateRequest()
 
+        expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'true')
+    })
+
+    test('QR code unblurs as soon as a positive amount is entered', () => {
+        renderCreateRequest()
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '10' } })
+
+        expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'false')
+    })
+
+    test('QR code stays blurred for a zero amount and re-blurs when the amount is cleared', () => {
+        renderCreateRequest()
+
+        const field = screen.getByTestId('amount-field')
+
+        fireEvent.change(field, { target: { value: '0' } })
+        expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'true')
+
+        fireEvent.change(field, { target: { value: '10' } })
+        expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'false')
+
+        fireEvent.change(field, { target: { value: '' } })
         expect(screen.getByTestId('qr-code-wrapper')).toHaveAttribute('data-blurred', 'true')
     })
 

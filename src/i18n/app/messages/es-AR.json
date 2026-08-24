@@ -65,7 +65,12 @@
             "surpriseDescriptionNext": "Mirá tus recompensas y cómo ganar más.",
             "shareAndEarn": "Compartí y ganá",
             "inviteFriendsToEarnMore": "Invitá amigos para ganar más",
-            "holdToUnwrap": "Mantené presionado para abrir tu recompensa"
+            "holdToUnwrap": "Mantené presionado para abrir tu recompensa",
+            "iosCopy": {
+                "surpriseDescriptionFirst": "Mirá tu cashback y cómo ganar más.",
+                "surpriseDescriptionNext": "Mirá tu cashback y cómo ganar más.",
+                "holdToUnwrap": "Mantené presionado para abrir tu cashback"
+            }
         },
         "carousel": {
             "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
@@ -105,6 +110,21 @@
             "kyc": {
                 "title": "Desbloqueá <b>pagos con QR</b>",
                 "description": "Confirmá tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>PIX</b>"
+            },
+            "iosCopy": {
+                "usedPeanutTapToClaim": "<name>{inviteeName}</name> pagó con Peanut. Tocá para reclamar.",
+                "tapToClaim": "Tocá para reclamar tu cashback.",
+                "invite": {
+                    "title": "Invitá amigos. Ganá cashback",
+                    "description": "Ganá cashback cada vez que tus amigos pagan con Peanut."
+                },
+                "latamInvite": {
+                    "title": "Ganá <b>cashback</b> en pagos QR",
+                    "description": "Invitá amigos para <b>ganar más cashback</b>. ¡Cuanto más pagan, más ganás!"
+                },
+                "qrPay": {
+                    "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>cashback</b>."
+                }
             }
         }
     },
@@ -412,6 +432,10 @@
             "line1": "Reclamá solo a una dirección que admita la red y el token seleccionados.",
             "claimToPeanut": "¿No estás seguro? Reclamá en Peanut"
         },
+        "guestVerification": {
+            "senderUnverifiedDescription": "Quien envió todavía no puede enviar a un banco. Podés reclamar con otro método, o crear una cuenta y verificar tu identidad para recibirlo en tu banco.",
+            "accountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Creá una y verificá tu identidad, y tus fondos se depositarán en tu banco."
+        },
         "actions": {
             "invitedBy": "¡{username} te invitó, tenés acceso anticipado!"
         },
@@ -474,6 +498,20 @@
             "putItAnywhere": "¡Pegalo donde quieras!",
             "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación y sumar a tus puntos para siempre.",
             "shareText": "¡Escaneá mi código QR para conectar conmigo en Peanut!"
+        },
+        "iosCopy": {
+            "success": {
+                "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para abrir tu cashback.",
+                "holdToClaim": "¡Ganaste cashback! Mantené presionado para abrirlo.",
+                "earnedInviteFriends": "¡Ganaste ${amount}! Invitá amigos para ganar aún más cashback.",
+                "inviteFriends": "Invitá amigos para ganar aún más cashback."
+            },
+            "claim": {
+                "inviteQrDescription": "Compartilo donde sea. Cualquiera que lo escanee puede unirse a Peanut con vos."
+            },
+            "claimSuccess": {
+                "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación."
+            }
         }
     },
     "card": {
@@ -727,6 +765,14 @@
         "enjoyPeanut": "¡Disfrutá Peanut!",
         "cardRows": {
             "settlementAdjustedNotice": "El monto final fue {amount} mayor que la retención inicial. Es común con propinas y totales actualizados. ¿No lo reconocés? Contactá al comercio."
+        },
+        "iosCopy": {
+            "perk": {
+                "subtitle": "Ganá cashback cada vez que tus amigos pagan con Peanut."
+            },
+            "actions": {
+                "inviteFriends": "Invitá amigos y ganá más cashback"
+            }
         }
     },
     "history": {
@@ -740,7 +786,17 @@
         "lifetimeRewards": "Recompensas totales: {amount}. Para ganar más, invitá a tus amigos.",
         "earnWhenFriendsUse": "¡Ganás recompensas cada vez que tus amigos usan Peanut!",
         "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más recompensas",
-        "contactSupport": "Por favor contactá a Soporte."
+        "contactSupport": "Por favor contactá a Soporte.",
+        "howItWorks": {
+            "step1": "Invitá a tus amigos a Peanut.",
+            "step4": "Hacé cualquier pago para reclamarlo."
+        },
+        "iosCopy": {
+            "noPendingRewards": "No tenés cashback pendiente por ahora.",
+            "earnWhenFriendsUse": "¡Ganás cashback cada vez que tus amigos pagan con Peanut!",
+            "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más cashback",
+            "howItWorks": {}
+        }
     },
     "invites": {
         "invalidCodeMessage": "El código de invitación que intentás usar no es válido. Revisá la URL e intentalo de nuevo.",
@@ -824,7 +880,8 @@
             "sepaDescription": "Para habilitar las transferencias bancarias en EUR (SEPA) y GBP (Faster Payments), debés aceptar los términos de servicio actualizados de nuestro socio de pagos.",
             "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Podés aceptar los términos más tarde desde tu historial de actividad.",
-            "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo."
+            "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo.",
+            "notAcceptedYet": "Parece que todavía no aceptaste los términos. Intentalo de nuevo."
         },
         "reverificationPending": {
             "description": "Tu verificación está en revisión — normalmente toma unos minutos. Te avisaremos apenas puedas continuar. Podés esperar aquí o volver al inicio."
@@ -1154,7 +1211,12 @@
             "payWhatYouWant": "Pagá lo que quieras",
             "sendExactAmount": "¡Enviá el monto exacto!"
         },
-        "betaBanner": "¡Peanut está en beta! Gracias por ser un usuario temprano, compartí tu opinión aquí"
+        "betaBanner": "¡Peanut está en beta! Gracias por ser un usuario temprano, compartí tu opinión aquí",
+        "iosCopy": {
+            "inviteFriendsModal": {
+                "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás cashback."
+            }
+        }
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",

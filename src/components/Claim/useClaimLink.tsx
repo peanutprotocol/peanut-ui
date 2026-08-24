@@ -39,14 +39,31 @@ async function postJson<T>(url: string, body: Record<string, unknown>): Promise<
 
     if (!response.ok) {
         const errorMessage = typeof data === 'string' ? data : data.error || data.message || response.statusText
-        throw new Error(errorMessage)
+        throw withWireCode(new Error(errorMessage), data)
     }
 
     if (data.error) {
-        throw new Error(data.error)
+        throw withWireCode(new Error(data.error), data)
     }
 
     return data
+}
+
+/**
+ * Carry the API's `code` onto the thrown error so `friendlyError` can branch on
+ * it. Without this the discriminant was dropped at the boundary and every
+ * failure — including a rolled-back, retryable paymaster outage — reached the
+ * user as the sanitized "contact support" prose (PEANUT-UI-SJ5).
+ *
+ * Deliberately a plain Error rather than ApiError: that would also opt this
+ * endpoint into the blanket "any 5xx is retryable" rule, and a claim can fail
+ * 5xx for reasons no amount of retrying fixes (an unsupported vault, say). Only
+ * codes the API states explicitly should change the advice.
+ */
+function withWireCode(error: Error, body: unknown): Error {
+    const code = (body as { code?: unknown } | null)?.code
+    if (typeof code === 'string' && code) Object.assign(error, { code })
+    return error
 }
 
 /**

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useQueryClient } from '@tanstack/react-query'
 import { perksApi, type PendingPerk } from '@/services/perks'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -20,7 +21,6 @@ import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils
 import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 type ClaimPhase = 'idle' | 'holding' | 'opening' | 'revealed' | 'exiting'
 
@@ -176,7 +176,7 @@ interface SuccessModalProps {
  * Uses icon/title/description props for standard vertical centered layout.
  */
 function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProps) {
-    const t = useTranslations('home.perk')
+    const t = useAppTranslations('home.perk')
     const tCommon = useTranslations('common')
     const inviteeName = perk.inviteeName ?? extractInviteeName(perk.reason)
     const { triggerHaptic } = useAppHaptic()
@@ -185,7 +185,6 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
     const [canDismiss, setCanDismiss] = useState(false)
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const isExiting = claimPhase === 'exiting'
-    const hideReferralRewards = isReferralRewardsHidden()
 
     // Surprise moment claim count: read synchronously so first render has correct copy.
     // 0=first surprise, 1=second, 2+=normal referral claim.
@@ -206,9 +205,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
         return () => clearTimeout(dismissTimer)
     }, []) // eslint-disable-line react-hooks/exhaustive-deps -- triggerHaptic is stable
 
-    // The surprise-moment treatment is pure reward messaging ("You just earned
-    // $X", "share & earn"), so iOS falls through to the plain claimed state.
-    const isSurpriseMoment = claimCount < 2 && !hideReferralRewards
+    const isSurpriseMoment = claimCount < 2
 
     return (
         <>
@@ -277,17 +274,15 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onDismiss}>
                                             {tCommon('done')}
                                         </Button>
-                                        {!hideReferralRewards && (
-                                            <p
-                                                className="cursor-pointer text-center text-sm text-grey-1 underline"
-                                                onClick={() => {
-                                                    onDismiss()
-                                                    router.push('/rewards')
-                                                }}
-                                            >
-                                                {t('inviteFriendsToEarnMore')}
-                                            </p>
-                                        )}
+                                        <p
+                                            className="cursor-pointer text-center text-sm text-grey-1 underline"
+                                            onClick={() => {
+                                                onDismiss()
+                                                router.push('/rewards')
+                                            }}
+                                        >
+                                            {t('inviteFriendsToEarnMore')}
+                                        </p>
                                     </>
                                 )}
                             </div>
@@ -317,7 +312,7 @@ interface GiftBoxContentProps {
  * Gift box with hold-to-claim interaction
  */
 function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProps) {
-    const t = useTranslations('home.perk')
+    const t = useAppTranslations('home.perk')
     const { holdProgress, isShaking, shakeIntensity, buttonProps } = useHoldToClaim({
         onComplete: onHoldComplete,
         disabled: claimPhase !== 'idle',

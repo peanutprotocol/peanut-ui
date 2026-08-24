@@ -6,6 +6,7 @@ import StaleDeploymentReload from '@/components/Global/StaleDeploymentReload'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
 import { AppLockGate } from '@/components/Global/AppLock'
 import { PeanutDebug } from '@/context/PeanutDebug'
+import { LocaleSync } from '@/i18n/app/LocaleSync'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { whenIdle } from '@/utils/defer-analytics'
@@ -34,6 +35,9 @@ export function AppGlobals({ children }: { children: React.ReactNode }) {
 
     return (
         <>
+            {/* Reads useAuth and useAppLocale, so it can only mount where both
+                exist — the marketing routes have neither. */}
+            <LocaleSync />
             <PeanutDebug />
             {/* Mounted here (not in a route-group layout) so the cooldown
                 explainer also covers public pay/send/request pages —

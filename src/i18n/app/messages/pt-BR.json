@@ -172,7 +172,14 @@
             "rewardClaimed": "Recompensa resgatada!",
             "shareAndEarn": "Compartilhe e ganhe",
             "inviteFriendsToEarnMore": "Convide amigos para ganhar mais",
-            "holdToUnwrap": "Segure para abrir sua recompensa"
+            "holdToUnwrap": "Segure para abrir sua recompensa",
+            "iosCopy": {
+                "surpriseDescriptionFirst": "Confira seu cashback e como ganhar mais.",
+                "surpriseDescriptionNext": "Confira seu cashback e como ganhar mais.",
+                "usedPeanut": "<name>{inviteeName}</name> pagou com o Peanut",
+                "rewardClaimed": "Cashback resgatado!",
+                "holdToUnwrap": "Segure para abrir seu cashback"
+            }
         },
         "carousel": {
             "rewardReady": "Recompensa de <b>+${amount}</b> pronta!",
@@ -219,11 +226,30 @@
             "closeTitled": "Fechar {title}",
             "closeVerificationPrompt": "Fechar aviso de verificação",
             "closeNotificationPrompt": "Fechar aviso de notificações",
-            "claimablePerk": "Recompensa disponível"
+            "claimablePerk": "Recompensa disponível",
+            "iosCopy": {
+                "rewardReady": "Cashback de <b>+${amount}</b> pronto!",
+                "usedPeanutTapToClaim": "<name>{inviteeName}</name> pagou com o Peanut. Toque para resgatar.",
+                "tapToClaim": "Toque para resgatar seu cashback.",
+                "invite": {
+                    "title": "Convide amigos. Ganhe cashback",
+                    "description": "Ganhe cashback sempre que seus amigos pagarem com o Peanut."
+                },
+                "latamInvite": {
+                    "title": "Ganhe <b>cashback</b> em pagamentos QR",
+                    "description": "Convide amigos para <b>ganhar mais cashback</b>. Quanto mais eles pagam, mais você ganha!"
+                },
+                "qrPay": {
+                    "description": "Tenha a melhor taxa de câmbio, pague como um <b>local</b> e ganhe <b>cashback</b>."
+                }
+            }
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}",
             "dismiss": "Dispensar {task}"
+        },
+        "iosCopy": {
+            "rewards": "Cashback"
         }
     },
     "profile": {
@@ -384,6 +410,11 @@
             "begForInvite": "Implorar por um convite",
             "activityPrivateNote": "A atividade é visível só para você, não é pública.",
             "noInviteTitle": "Sem convite, sem Peanut"
+        },
+        "iosCopy": {
+            "menu": {
+                "points": "Cashback"
+            }
         }
     },
     "settings": {
@@ -905,7 +936,8 @@
         },
         "guestVerification": {
             "otherMethod": "Resgatar com outro método",
-            "description": "Quem enviou não está verificado para este método. Você vai precisar criar uma conta, verificar sua identidade e então seus fundos serão depositados no seu banco."
+            "senderUnverifiedDescription": "Quem enviou ainda não pode enviar para um banco. Você pode resgatar com outro método, ou criar uma conta e verificar sua identidade para receber no seu banco.",
+            "accountRequiredDescription": "Você precisa de uma conta Peanut para resgatar com este método. Crie uma e verifique sua identidade, e seus fundos serão depositados no seu banco."
         },
         "actions": {
             "claimOn": "Resgatar no",
@@ -1059,6 +1091,22 @@
             "linkCopied": "Link copiado",
             "shareTitle": "Meu código QR do Peanut",
             "shareText": "Escaneie meu código QR para se conectar comigo no Peanut!"
+        },
+        "iosCopy": {
+            "success": {
+                "earnedRewardTitle": "Você ganhou cashback!",
+                "earnedHoldToClaim": "Você ganhou ${amount}! Segure para abrir seu cashback.",
+                "holdToClaim": "Você ganhou cashback! Segure para abrir.",
+                "earnedInviteFriends": "Você ganhou ${amount}! Convide amigos para ganhar ainda mais cashback.",
+                "inviteFriends": "Convide amigos para ganhar ainda mais cashback.",
+                "claimReward": "Abrir cashback"
+            },
+            "claim": {
+                "inviteQrDescription": "Compartilhe onde quiser. Quem escanear pode entrar no Peanut com você."
+            },
+            "claimSuccess": {
+                "stickerDescription": "Cole no seu notebook, na garrafa de água ou onde quiser que as pessoas te encontrem. Quem escanear vai poder entrar no Peanut com o seu convite."
+            }
         }
     },
     "card": {
@@ -1872,7 +1920,25 @@
         },
         "enjoyPeanut": "Aproveite o Peanut!",
         "memoTestDeposit": "Sua carteira peanut está pronta para usar!",
-        "adjustedSuffix": "· Ajustado"
+        "adjustedSuffix": "· Ajustado",
+        "iosCopy": {
+            "type": {
+                "reward": "Cashback"
+            },
+            "perkBanner": {
+                "title": "Você ganhou cashback!",
+                "capped": "Cashback de ${amount} — limite da campanha atingido!",
+                "received": "Você recebeu ${amount} de cashback!",
+                "generic": "Você recebeu cashback da Peanut!"
+            },
+            "perk": {
+                "title": "Cashback Peanut",
+                "subtitle": "Ganhe cashback sempre que seus amigos pagarem com o Peanut."
+            },
+            "actions": {
+                "inviteFriends": "Convide amigos e ganhe mais cashback"
+            }
+        }
     },
     "history": {
         "title": "Atividade",
@@ -1905,7 +1971,29 @@
         "loadInvitesFailed": "Erro ao carregar os convites!",
         "contactSupport": "Por favor, fale com o Suporte.",
         "friendsEarnedYou": "Seus amigos fizeram você ganhar",
-        "starAlt": "estrela"
+        "starAlt": "estrela",
+        "invitesTitle": "Recompensas",
+        "lifetimeCaption": "em recompensas até agora",
+        "howItWorks": {
+            "title": "Como funcionam as recompensas",
+            "step1": "Convide amigos para o Peanut.",
+            "step2": "Eles pagam com o Peanut normalmente.",
+            "step3": "Suas recompensas vão se acumulando no saldo.",
+            "step4": "Faça qualquer pagamento para resgatar."
+        },
+        "iosCopy": {
+            "title": "Cashback",
+            "invitesTitle": "Sua rede",
+            "noPendingRewards": "Nenhum cashback pendente por enquanto.",
+            "lifetimeRewards": "Cashback total: {amount}",
+            "earnWhenFriendsUse": "Você ganha cashback sempre que seus amigos pagam com o Peanut!",
+            "shareInviteLinkPrompt": "Envie seu link de convite para começar a ganhar mais cashback",
+            "howItWorks": {
+                "title": "Como funciona o cashback",
+                "step3": "Seu cashback vai se acumulando no saldo."
+            },
+            "lifetimeCaption": "em cashback até agora"
+        }
     },
     "invites": {
         "illustrationAlt": "Ilustração da seção",
@@ -2284,6 +2372,7 @@
             "loadFailed": "Não foi possível carregar os termos. Você pode aceitá-los depois pelo seu feed de atividades.",
             "genericError": "Algo deu errado. Você pode aceitar os termos depois pelo seu feed de atividades.",
             "confirmError": "Algo deu errado ao confirmar seus termos. Tente novamente.",
+            "notAcceptedYet": "Parece que os termos ainda não foram aceitos. Tente novamente.",
             "acceptTerms": "Aceitar termos",
             "notNow": "Agora não"
         },
@@ -3013,7 +3102,12 @@
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
             "title": "Uma pequena atualização dos nossos termos"
         },
-        "maintenanceBanner": "Modo manutenção: algumas funções ficarão indisponíveis. Seu dinheiro está seguro."
+        "maintenanceBanner": "Modo manutenção: algumas funções ficarão indisponíveis. Seu dinheiro está seguro.",
+        "iosCopy": {
+            "inviteFriendsModal": {
+                "description": "Compartilhe seu link. Toda vez que um amigo que você trouxe fizer um pagamento, você ganha cashback."
+            }
+        }
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
