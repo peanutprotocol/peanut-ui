@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import ActionModal from '@/components/Global/ActionModal'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PASSKEY_TROUBLESHOOTING_STEPS, PASSKEY_WARNINGS, WebAuthnErrorName } from '@/utils/webauthn.utils'
 import { useTranslations } from 'next-intl'

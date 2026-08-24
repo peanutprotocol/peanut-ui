@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
-import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'

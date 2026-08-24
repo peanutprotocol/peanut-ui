@@ -2,7 +2,6 @@
 
 import ActionModal from '@/components/Global/ActionModal'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 
