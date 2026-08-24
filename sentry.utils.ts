@@ -82,10 +82,15 @@ const IGNORED_ERRORS = {
 const CAPGO_LOG_PREFIXES = ['[CapgoUpdater]', 'CapgoUpdater :', '[capgo]']
 const CAPGO_ACTIONABLE = ['disable_auto_update_under_native', 'Checksum mismatch']
 
+const isFromCapgo = (searchTexts: string[]): boolean =>
+    searchTexts.some((text) => CAPGO_LOG_PREFIXES.some((prefix) => text.includes(prefix)))
+
+function isActionableCapgoError(searchTexts: string[]): boolean {
+    return isFromCapgo(searchTexts) && searchTexts.some((text) => CAPGO_ACTIONABLE.some((p) => text.includes(p)))
+}
+
 function isTransientCapgoNoise(searchTexts: string[]): boolean {
-    const fromCapgo = searchTexts.some((text) => CAPGO_LOG_PREFIXES.some((prefix) => text.includes(prefix)))
-    if (!fromCapgo) return false
-    return !searchTexts.some((text) => CAPGO_ACTIONABLE.some((pattern) => text.includes(pattern)))
+    return isFromCapgo(searchTexts) && !isActionableCapgoError(searchTexts)
 }
 
 /**
@@ -136,6 +141,16 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     // Match each field independently — concatenating them would let a pattern
     // match across unrelated fields and suppress a legitimate event.
     const searchTexts = [message, exceptionValue, culprit, ...exceptionTypes]
+
+    /*
+     * Rescue actionable OTA failures BEFORE the generic patterns run. The Capgo
+     * carve-out below can only ever ADD suppression — once the loop returns true
+     * nothing downstream can take it back — so a corrupt bundle whose text happens
+     * to contain a fuzzy pattern ('… Checksum mismatch: Network Error' hitting
+     * `networkIssues`) would be dropped and the carve-out silently inert for that
+     * whole class. Exactly how `alreadyReported` went unnoticed for a month.
+     */
+    if (isActionableCapgoError(searchTexts)) return false
 
     // Check all ignore patterns
     for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {

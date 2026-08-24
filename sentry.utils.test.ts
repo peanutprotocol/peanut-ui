@@ -105,6 +105,33 @@ describe('shouldIgnoreError — Capgo updater noise', () => {
         expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Checksum mismatch' }))).toBe(false)
     })
 
+    /*
+     * The generic IGNORED_ERRORS loop runs first and returns early, so an
+     * actionable failure whose text also trips a fuzzy pattern would be dropped
+     * before the Capgo carve-out ever ran. Real Capgo reports `network_error`
+     * (snake_case) today, which misses `networkIssues` by luck rather than design
+     * — these pin the ordering so a future message shape cannot re-open it.
+     */
+    it('keeps a corrupt bundle even when the message also trips networkIssues', () => {
+        expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Checksum mismatch: Network Error' }))).toBe(
+            false
+        )
+    })
+
+    it('keeps an under-native rejection even when the message also trips networkIssues', () => {
+        expect(
+            shouldIgnoreError(
+                eventWith({ message: '[capgo] update check failed: disable_auto_update_under_native, Failed to fetch' })
+            )
+        ).toBe(false)
+    })
+
+    it('still suppresses a transient Capgo failure that trips networkIssues', () => {
+        expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Download error: Failed to fetch' }))).toBe(
+            true
+        )
+    })
+
     it('does not touch non-Capgo errors that mention a download', () => {
         expect(shouldIgnoreError(eventWith({ type: 'Error', value: 'Download error: statement failed' }))).toBe(false)
     })
