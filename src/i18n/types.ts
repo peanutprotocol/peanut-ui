@@ -61,12 +61,16 @@ export interface Translations {
     receiveMoneyFromDesc: string // "Get money sent to you from {country}. Fast and secure."
 
     // Team
-    teamTitle: string // "Our Team"
-    teamSubtitle: string // "The people behind Peanut."
 
     // Press
     pressTitle: string // "Press & Brand Kit"
     pressSubtitle: string // "Everything you need to write or design about Peanut."
+    pressCompanyDescription: string // "Company description"
+    pressTaglineHeadlines: string // "Tagline & headlines"
+    pressBrandAssets: string // "Brand assets"
+    pressTeam: string // "Team"
+    pressCompany: string // "Company"
+    pressMediaContact: string // "Media contact"
 
     // Help center
     help: string // "Help"
@@ -192,7 +196,7 @@ export interface Translations {
     footerTerms: string
     footerPrivacy: string
     footerSecurity: string
-    footerJobs: string
+    footerCareers: string
 
     // MDX component headings
     faqTitle: string
