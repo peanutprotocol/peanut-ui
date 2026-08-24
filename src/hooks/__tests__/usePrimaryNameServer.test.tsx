@@ -1,15 +1,15 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { usePrimaryName } from '@justaname.id/react'
 import { usePrimaryNameServer } from '../usePrimaryNameServer'
 import { serverFetch } from '@/utils/api-fetch'
+import { lookupPrimaryNameOnChain } from '@/utils/ens-onchain.utils'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
+jest.mock('@/utils/ens-onchain.utils', () => ({ lookupPrimaryNameOnChain: jest.fn() }))
 
 const mockServerFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
-// resolves to the shared manual mock via jest moduleNameMapper
-const mockUsePrimaryName = usePrimaryName as jest.Mock
+const mockOnChainLookup = lookupPrimaryNameOnChain as jest.MockedFunction<typeof lookupPrimaryNameOnChain>
 
 const wrapper = ({ children }: { children: ReactNode }) => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -23,7 +23,7 @@ const jsonResponse = (body: unknown, ok = true) => ({ ok, json: async () => body
 beforeEach(() => {
     jest.clearAllMocks()
     window.localStorage.clear()
-    mockUsePrimaryName.mockReturnValue({ primaryName: undefined, isLoading: false, error: null })
+    mockOnChainLookup.mockRejectedValue(new Error('no on-chain lookup configured in test'))
 })
 
 describe('usePrimaryNameServer', () => {
@@ -33,34 +33,30 @@ describe('usePrimaryNameServer', () => {
         await waitFor(() => expect(result.current.primaryName).toBe('alice.eth'))
         expect(mockServerFetch).toHaveBeenCalledWith(`/ens/reverse/${ADDRESS}`, { method: 'GET' })
         // client fallback stays a no-op while the server path works
-        expect(mockUsePrimaryName).toHaveBeenLastCalledWith(expect.objectContaining({ address: undefined }))
+        expect(mockOnChainLookup).not.toHaveBeenCalled()
     })
 
     it('returns undefined when the backend reports no name', async () => {
-        const json = jest.fn(async () => ({ name: null }))
-        mockServerFetch.mockResolvedValue({ ok: true, json } as unknown as Response)
+        mockServerFetch.mockResolvedValue(jsonResponse({ name: null }))
         const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
-        // wait for the resolved-null query to re-render the hook, not just for the fetch call
-        await waitFor(() => expect(mockUsePrimaryName.mock.calls.length).toBeGreaterThan(1))
+        await waitFor(() => expect(mockServerFetch).toHaveBeenCalled())
         expect(result.current.primaryName).toBeUndefined()
         // a live endpoint answering "no name" is authoritative — client fallback stays disabled
-        expect(mockUsePrimaryName).toHaveBeenLastCalledWith(expect.objectContaining({ address: undefined }))
+        expect(mockOnChainLookup).not.toHaveBeenCalled()
     })
 
     it('falls back to the client-side lookup on a non-OK response (e.g. route not deployed)', async () => {
         mockServerFetch.mockResolvedValue(jsonResponse({}, false))
-        mockUsePrimaryName.mockReturnValue({ primaryName: 'alice.eth', isLoading: false, error: null })
+        mockOnChainLookup.mockResolvedValue('alice.eth')
         const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
         await waitFor(() => expect(result.current.primaryName).toBe('alice.eth'))
-        expect(mockUsePrimaryName).toHaveBeenLastCalledWith(expect.objectContaining({ address: ADDRESS }))
+        expect(mockOnChainLookup).toHaveBeenCalledWith(ADDRESS)
     })
 
     it('fails safe to undefined when both server and client lookups fail', async () => {
         mockServerFetch.mockResolvedValue(jsonResponse({}, false))
         const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
-        await waitFor(() =>
-            expect(mockUsePrimaryName).toHaveBeenLastCalledWith(expect.objectContaining({ address: ADDRESS }))
-        )
+        await waitFor(() => expect(mockOnChainLookup).toHaveBeenCalledWith(ADDRESS))
         expect(result.current.primaryName).toBeUndefined()
     })
 
@@ -95,8 +91,8 @@ describe('usePrimaryNameServer', () => {
             JSON.stringify({ [ADDRESS.toLowerCase()]: { name: 'stale.eth', ts: Date.now() } })
         )
         mockServerFetch.mockResolvedValue(jsonResponse({}, false))
-        // justaname settles "not found" as '' (undefined would mean still loading)
-        mockUsePrimaryName.mockReturnValue({ primaryName: '', isLoading: false, error: null })
+        // the on-chain lookup settles "not found" as '' (a rejection would mean "couldn't check")
+        mockOnChainLookup.mockResolvedValue('')
         const { result } = renderHook(() => usePrimaryNameServer(ADDRESS), { wrapper })
         await waitFor(() => expect(window.localStorage.getItem('ens-primary-name-cache')).not.toContain('stale.eth'))
         expect(result.current.primaryName).toBeUndefined()

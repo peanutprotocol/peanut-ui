@@ -1,4 +1,5 @@
-import * as Sentry from '@sentry/nextjs'
+import type { SeverityLevel } from '@sentry/nextjs'
+import * as Sentry from '@/utils/sentry-lazy'
 
 import { type JSONValue } from '../interfaces/interfaces'
 import { reportNetworkError } from './connectivity'
@@ -361,7 +362,7 @@ export const resolveDefaultTimeoutMs = (
 
 const DEFAULT_TIMEOUT_MS = resolveDefaultTimeoutMs(typeof window === 'undefined')
 
-const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
+const getErrorLevelFromStatus = (status: number): SeverityLevel => {
     if (status >= 500) return 'error'
     if (status >= 400) return 'warning'
     return 'info'
