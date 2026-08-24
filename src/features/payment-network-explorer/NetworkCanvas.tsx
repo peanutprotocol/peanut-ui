@@ -37,6 +37,9 @@ const DENSE_LINK_LIMITS = [320, 1600, Number.POSITIVE_INFINITY] as const
 
 interface NetworkCanvasProps {
     nodes: readonly ExplorerNode[]
+    /** Everything the response carried — the simulation's fixed input. */
+    allRelationships: readonly ExplorerRelationship[]
+    /** What the current filters keep — drives visibility, legend and ranking. */
     relationships: readonly ExplorerRelationship[]
     selected: ExplorerNode | ExplorerRelationship | null
     focusNodeId: string | null
@@ -46,6 +49,7 @@ interface NetworkCanvasProps {
 
 export default function NetworkCanvas({
     nodes,
+    allRelationships,
     relationships,
     selected,
     focusNodeId,
@@ -67,9 +71,16 @@ export default function NetworkCanvas({
     // Node wrappers are keyed on the node set alone: rebuilding them on a filter
     // change would drop the x/y d3 stores on them and restart the whole layout.
     const nodeProjections = useMemo(() => buildGraphNodeProjections(nodes), [nodes])
+    // graphData is keyed on the response, never on the filters: force-graph re-runs
+    // its synchronous warmup on every graphData identity change (40 ticks over 5k
+    // nodes is ~1s of blocked main thread). Filters hide links via linkVisibility.
     const projection = useMemo(
-        () => ({ nodes: nodeProjections, links: buildGraphLinkProjections(relationships) }),
-        [nodeProjections, relationships]
+        () => ({ nodes: nodeProjections, links: buildGraphLinkProjections(allRelationships) }),
+        [nodeProjections, allRelationships]
+    )
+    const filteredRelationshipIds = useMemo(
+        () => new Set(relationships.map((relationship) => relationship.id)),
+        [relationships]
     )
     const [denseView, setDenseView] = useState<{ projection: typeof projection; level: 0 | 1 | 2 }>(() => ({
         projection,
@@ -166,12 +177,13 @@ export default function NetworkCanvas({
         ctx.stroke()
 
         const showOverviewLabel = denseGraph && denseDetailLevel === 0 && overviewLabelNodeIds.has(node.id)
-        if ((isSelected && scale > 0.7) || showOverviewLabel) {
+        const label = node.canonical.username
+        if (label && ((isSelected && scale > 0.7) || showOverviewLabel)) {
             const fontSize = 11 / scale
             ctx.font = `700 ${fontSize}px Inter, system-ui, sans-serif`
             ctx.textAlign = 'center'
             ctx.textBaseline = 'top'
-            const labelWidth = ctx.measureText(node.canonical.username).width
+            const labelWidth = ctx.measureText(label).width
             const labelY = (node.y ?? 0) + radius + 3 / scale
             ctx.fillStyle = 'rgba(247, 244, 239, 0.9)'
             ctx.fillRect(
@@ -181,7 +193,7 @@ export default function NetworkCanvas({
                 fontSize + 3 / scale
             )
             ctx.fillStyle = '#171717'
-            ctx.fillText(node.canonical.username, node.x ?? 0, labelY)
+            ctx.fillText(label, node.x ?? 0, labelY)
         }
     }
 
@@ -241,7 +253,8 @@ export default function NetworkCanvas({
                 nodeCanvasObject={paintNode}
                 nodePointerAreaPaint={paintPointerArea}
                 linkVisibility={(link: GraphLinkProjection) =>
-                    visibleRelationshipIds?.has(link.canonicalRelationshipId) ?? true
+                    filteredRelationshipIds.has(link.canonicalRelationshipId) &&
+                    (visibleRelationshipIds?.has(link.canonicalRelationshipId) ?? true)
                 }
                 linkColor={(link: GraphLinkProjection) =>
                     link.canonicalRelationshipId === selectedRelationshipId ||

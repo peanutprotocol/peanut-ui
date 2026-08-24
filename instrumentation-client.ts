@@ -8,7 +8,16 @@ import {
     isPaymentNetworkExplorerPath,
 } from '@/features/payment-network-explorer/privacy-route'
 
-installPaymentNetworkGoogleAnalyticsGuard()
+// Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
+// there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
+if (
+    process.env.NODE_ENV !== 'development' &&
+    process.env.NEXT_PUBLIC_GA_KEY &&
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true' &&
+    process.env.NEXT_PUBLIC_PERF_BARE !== 'true'
+) {
+    installPaymentNetworkGoogleAnalyticsGuard()
+}
 
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
 const PERF_BARE = process.env.NEXT_PUBLIC_PERF_BARE === 'true'

@@ -84,7 +84,8 @@ export default function PaymentNetworkExplorer() {
     const resetFilters = () => {
         setSearchError(null)
         setSelection(null)
-        void setFilters(defaultExplorerFilters())
+        // Reset clears filters, not the graph/table choice the user is reading in.
+        void setFilters({ ...defaultExplorerFilters(), view: filters.view })
     }
 
     const search = async (username: string): Promise<boolean> => {
@@ -185,6 +186,7 @@ export default function PaymentNetworkExplorer() {
                             ) : filters.view === 'graph' ? (
                                 <NetworkCanvas
                                     nodes={data.nodes}
+                                    allRelationships={allRelationships}
                                     relationships={relationships}
                                     selected={selectedCanonical}
                                     focusNodeId={focusedNode?.id ?? null}

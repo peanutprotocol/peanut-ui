@@ -2,7 +2,6 @@ import {
     buildGraphProjection,
     edgeTypeFacets,
     edgeTypesPresent,
-    graphTableRelationshipParity,
     nodeIndex,
     rankDenseGraphOverview,
     sortRelationships,
@@ -43,14 +42,6 @@ describe('canonical graph projection', () => {
         expect(projection.links).toHaveLength(1)
         expect(projection.links[0].canonical).toBe(canonical)
         expect(projection.links[0].canonicalRelationshipId).toBe('r1')
-        expect(graphTableRelationshipParity(projection.links, [canonical])).toBe(true)
-    })
-
-    it('detects missing or extra logical relationships across graph and table', () => {
-        const first = relationship('r1', 'a', 'b')
-        const second = relationship('r2', 'b', 'c')
-        const projection = buildGraphProjection([node('a'), node('b'), node('c')], [first])
-        expect(graphTableRelationshipParity(projection.links, [first, second])).toBe(false)
     })
 
     it('sorts canonical rows without mutating the response array', () => {

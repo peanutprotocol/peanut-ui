@@ -9,7 +9,8 @@ export type ExplorerView = 'graph' | 'table'
 /** GET /invites/graph?mode=full — deployed contract (peanut-api-ts src/routes/invite.ts). */
 export interface ExplorerNode {
     id: string
-    username: string
+    /** Nullable in the DB (users.username String?) and serialized verbatim. */
+    username: string | null
     hasAppAccess: boolean
     directPoints: number
     transitivePoints: number

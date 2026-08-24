@@ -58,6 +58,7 @@ describe('payment explorer reduced motion', () => {
         render(
             <NetworkCanvas
                 nodes={[]}
+                allRelationships={[]}
                 relationships={[]}
                 selected={null}
                 focusNodeId={null}
@@ -89,6 +90,7 @@ describe('payment explorer reduced motion', () => {
         const { container } = render(
             <NetworkCanvas
                 nodes={[focusedNode]}
+                allRelationships={[]}
                 relationships={[]}
                 selected={null}
                 focusNodeId={focusedNode.id}
@@ -148,6 +150,7 @@ describe('payment explorer reduced motion', () => {
         const { rerender } = render(
             <NetworkCanvas
                 nodes={nodes}
+                allRelationships={first}
                 relationships={first}
                 selected={null}
                 focusNodeId={null}
@@ -167,6 +170,7 @@ describe('payment explorer reduced motion', () => {
         rerender(
             <NetworkCanvas
                 nodes={nodes}
+                allRelationships={second}
                 relationships={second}
                 selected={null}
                 focusNodeId={null}
@@ -175,5 +179,58 @@ describe('payment explorer reduced motion', () => {
             />
         )
         expect(visible()({ canonicalRelationshipId: 'second-0' })).toBe(false)
+    })
+})
+
+describe('payment explorer graph stability', () => {
+    beforeEach(() => {
+        mockForceGraphProps = null
+        mockMatchMedia(false)
+    })
+
+    it('keeps graphData and zoom detail across a filter-only change', () => {
+        const nodes: ExplorerNode[] = Array.from({ length: 1000 }, (_, index) => ({
+            id: `node-${index}`,
+            username: `user${index}`,
+            hasAppAccess: true,
+            directPoints: 0,
+            transitivePoints: 0,
+            totalPoints: index,
+            createdAt: null,
+            lastActiveAt: null,
+            kycRegions: null,
+        }))
+        const all: ExplorerRelationship[] = Array.from({ length: 400 }, (_, index) => ({
+            id: `edge-${index}`,
+            source: 'node-0',
+            target: 'node-1',
+            type: 'SEND_LINK',
+            count: index + 1,
+            totalUsd: index + 1,
+            bidirectional: false,
+        }))
+        const props = {
+            nodes,
+            allRelationships: all,
+            selected: null,
+            focusNodeId: null,
+            onSelectNode: jest.fn(),
+            onSelectRelationship: jest.fn(),
+        }
+        const { rerender } = render(<NetworkCanvas {...props} relationships={all} />)
+        const graphData = mockForceGraphProps?.graphData
+        const visible = () =>
+            mockForceGraphProps?.linkVisibility as (link: { canonicalRelationshipId: string }) => boolean
+        act(() => {
+            ;(mockForceGraphProps?.onZoom as (zoom: { k: number }) => void)({ k: 5 })
+        })
+        expect(visible()({ canonicalRelationshipId: 'edge-0' })).toBe(true)
+
+        // Narrowing the filter must not rebuild graphData: force-graph re-runs its
+        // synchronous warmup on every graphData identity change.
+        rerender(<NetworkCanvas {...props} relationships={all.slice(0, 200)} />)
+        expect(mockForceGraphProps?.graphData).toBe(graphData)
+        expect(visible()({ canonicalRelationshipId: 'edge-0' })).toBe(true)
+        expect(visible()({ canonicalRelationshipId: 'edge-300' })).toBe(false)
     })
 })

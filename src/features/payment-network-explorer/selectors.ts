@@ -71,10 +71,6 @@ export function relationshipsForNode(
     return relationships.filter((relationship) => relationship.source === nodeId || relationship.target === nodeId)
 }
 
-export function relationshipIds(relationships: readonly ExplorerRelationship[]): string[] {
-    return relationships.map((relationship) => relationship.id)
-}
-
 function valueForSort(
     relationship: ExplorerRelationship,
     key: RelationshipSortKey,
@@ -100,15 +96,6 @@ export function sortRelationships(
         if (typeof a === 'number' && typeof b === 'number') return (a - b) * multiplier
         return String(a).localeCompare(String(b)) * multiplier
     })
-}
-
-export function graphTableRelationshipParity(
-    links: readonly GraphLinkProjection[],
-    tableRelationships: readonly ExplorerRelationship[]
-): boolean {
-    const graphIds = Array.from(new Set(links.map((link) => link.canonicalRelationshipId))).sort()
-    const tableIds = relationshipIds(tableRelationships).sort()
-    return graphIds.length === tableIds.length && graphIds.every((id, index) => id === tableIds[index])
 }
 
 /**

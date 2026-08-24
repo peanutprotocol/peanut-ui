@@ -225,7 +225,8 @@ export const pointsApi = {
             params.set('includeNewDays', options.includeNewDays.toString())
         }
         const endpoint = `/invites/graph${params.toString() ? `?${params}` : ''}`
-        // Payment mode uses password auth (no API key needed), full mode requires API key + JWT
+        // Full mode: JWT + the backend's team whitelist (its api-key check is a no-op).
+        // Payment mode still needs the server's password, which no client passes any more.
         const headers: Record<string, string> = isPaymentMode ? {} : { 'api-key': apiKey }
         return fetchInvitesGraph(endpoint, headers, (status) => {
             if (status === 403) {
