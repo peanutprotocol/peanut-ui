@@ -47,6 +47,11 @@ const CTA_VARIANTS = ['purple', 'stroke'] as const
  * `items` is the checklist body the deleted InfoCard used to own. Four modals
  * hand-rolled the same check-row markup on top of `children` and each got the
  * icon alignment wrong, so the rows live here now — one place to be right.
+ *
+ * A checklist has no leading priority icon. All four InfoCard call-sites that
+ * passed `items` also passed no `icon` — the check marks already carry the
+ * tone, and a second (i) in front of the block reads as a stray glyph. The
+ * rule lives here rather than as an opt-out prop at each call site.
  */
 export const Notification = ({
     priority = 'info',
@@ -63,17 +68,27 @@ export const Notification = ({
     // not "fall back to children"
     const body = items
         ? items.length > 0 && (
-              <div className="flex flex-col gap-1">
+              // text-body-xs (12px/16px) is the density the deleted InfoCard
+              // shipped — 12px on mobile. At text-body-m a row like "Europe
+              // SEPA transfers (+30 countries)" wraps to two lines at 390px;
+              // a checklist is dense list content, so it keeps the smaller
+              // step. The 16px check matches the 16px line box, so the mark
+              // sits on the first line with no nudge.
+              <div className="flex flex-col gap-1 text-body-xs">
                   {items.map((item, index) => (
                       <div key={index} className="flex items-start gap-2">
-                          {/* mt-0.5 centres the 16px check on the 20px first line */}
-                          <Icon name="check" size={16} className="mt-0.5 shrink-0" />
+                          <Icon name="check" size={16} className="shrink-0" />
                           <div className="min-w-0 flex-1">{item}</div>
                       </div>
                   ))}
               </div>
           )
         : children
+    // a checklist carries its own check marks — no leading priority icon
+    const showIcon = !items
+    // the title body and the ctas line up under the title, which the leading
+    // icon pushes in by 28px. Without the icon there is nothing to clear.
+    const indent = showIcon ? 'pl-7' : ''
     // an empty `items` array used to fall through to `children` (undefined at
     // every migrated call site) and paint a bare icon-only box — WelcomeUnlockModal
     // hits that when the user unlocked no channel at all
@@ -97,16 +112,16 @@ export const Notification = ({
                     one-line banner is unchanged — but a list or a wrapping
                     body no longer centres the icon against the whole block. */}
                 <div className="flex items-start gap-2">
-                    <Icon name={icon} size={20} className="shrink-0" />
+                    {showIcon && <Icon name={icon} size={20} className="shrink-0" />}
                     {title ? (
                         <span className="text-body-m-semibold">{title}</span>
                     ) : (
                         <div className="min-w-0 flex-1 text-body-m">{body}</div>
                     )}
                 </div>
-                {title && <div className="pl-7 text-body-m">{body}</div>}
+                {title && <div className={twMerge('text-body-m', indent)}>{body}</div>}
                 {!!ctas?.length && (
-                    <div className="flex flex-wrap gap-2 pl-7">
+                    <div className={twMerge('flex flex-wrap gap-2', indent)}>
                         {ctas.slice(0, 2).map((cta, i) => (
                             <Button
                                 key={i}

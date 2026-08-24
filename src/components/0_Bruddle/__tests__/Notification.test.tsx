@@ -55,6 +55,18 @@ describe('Notification', () => {
         expect(screen.queryByText('ignored')).not.toBeInTheDocument()
     })
 
+    // the unlock modals shipped the (i) in front of the checklist for one round.
+    // Every InfoCard call-site that passed items passed no icon, so the rule is
+    // "a checklist has no leading icon" — asserted by svg count: one check mark
+    // per row and nothing else.
+    test('a checklist renders no leading priority icon, only the check marks', () => {
+        const { container: withItems } = render(<Notification priority="info" items={['One', 'Two']} />)
+        expect(withItems.querySelectorAll('svg')).toHaveLength(2)
+
+        const { container: withBody } = render(<Notification priority="info">Plain body</Notification>)
+        expect(withBody.querySelectorAll('svg')).toHaveLength(1)
+    })
+
     test('an empty items list renders nothing, not a bare icon box', () => {
         const { container } = render(<Notification priority="info" items={[]} />)
         expect(container).toBeEmptyDOMElement()
