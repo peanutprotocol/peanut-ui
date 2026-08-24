@@ -13,14 +13,14 @@ import { APP_LOCALES, LOCALE_LABELS, type AppLocale } from '@/i18n/app/config'
 import { useAppLocale } from '@/i18n/app/AppIntlProvider'
 
 /**
- * ISO-2 country per locale, for the row flag. `es-419` is UN region 419
- * (Latin American Spanish) and has no country of its own — a Spain flag would
- * name the wrong variant, and the `xx` fallback renders as a grey question
- * mark that reads like a broken image. Those rows get the globe icon instead.
+ * ISO-2 country per locale, for the row flag. `es-419` is UN region 419 (Latin
+ * American Spanish) and has no country of its own; it flies the Spain flag
+ * because a flag row next to a globe row reads as a broken image, and Spain is
+ * the flag people already associate with "Spanish".
  */
-const LOCALE_FLAG_CODES: Record<AppLocale, string | null> = {
+const LOCALE_FLAG_CODES: Record<AppLocale, string> = {
     en: 'us',
-    'es-419': null,
+    'es-419': 'es',
     'es-AR': 'ar',
     'pt-BR': 'br',
 }
@@ -51,17 +51,13 @@ export const LanguageView = () => {
                         position={getCardPosition(index, APP_LOCALES.length)}
                         onClick={() => select(appLocale)}
                         leading={
-                            LOCALE_FLAG_CODES[appLocale] ? (
-                                <Image
-                                    src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
-                                    alt=""
-                                    width={80}
-                                    height={80}
-                                    className="size-6 rounded-full object-cover"
-                                />
-                            ) : (
-                                <Icon name="globe" size={24} className="text-foreground-primary" />
-                            )
+                            <Image
+                                src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
+                                alt=""
+                                width={80}
+                                height={80}
+                                className="size-6 rounded-full object-cover"
+                            />
                         }
                         title={
                             <span className="text-body-m text-foreground-primary" lang={appLocale}>
