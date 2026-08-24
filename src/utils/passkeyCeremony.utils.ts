@@ -80,12 +80,17 @@ export const waitForPasskeyShim = async (timeoutMs: number = SHIM_WAIT_TIMEOUT_M
     }
 }
 
-// Ceremony-in-flight tracking. native-auth-capture only persists a
-// /passkeys/*/verify token while a ceremony is active, so a verify response
-// landing AFTER a timeout already told the user "failed" cannot leave a
-// half-authenticated session behind.
-let activeCeremonies = 0
-export const isPasskeyCeremonyActive = (): boolean => activeCeremonies > 0
+// Ceremony-in-flight tracking. native-auth-capture binds each
+// /passkeys/*/verify request to the ceremony that was active when the
+// request was ISSUED, and persists its token only if that same ceremony is
+// still active when the response lands. A verify response arriving after
+// its ceremony timed out is dropped — even when the user has already
+// started a NEW ceremony (a bare "any ceremony active" check would re-open
+// the window and store the stale token).
+let ceremonySeq = 0
+let activeCeremonyId: number | null = null
+export const currentCeremonyId = (): number | null => activeCeremonyId
+export const isCeremonyStillActive = (id: number | null): boolean => id !== null && id === activeCeremonyId
 
 /**
  * Races `promise` against a `CeremonyTimeoutError`. On timeout the original
@@ -111,10 +116,12 @@ export const raceCeremonyTimeout = <T>(promise: Promise<T>, ms: number = CEREMON
 export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): Promise<T> => {
     const native = isCapacitor()
     if (native) await waitForPasskeyShim()
-    activeCeremonies++
+    const ceremonyId = ++ceremonySeq
+    activeCeremonyId = ceremonyId
     try {
         return native ? await raceCeremonyTimeout(startCeremony()) : await startCeremony()
     } finally {
-        activeCeremonies = Math.max(0, activeCeremonies - 1)
+        // only clear our own registration — a newer ceremony may have taken over
+        if (activeCeremonyId === ceremonyId) activeCeremonyId = null
     }
 }

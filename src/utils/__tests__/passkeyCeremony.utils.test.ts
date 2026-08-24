@@ -2,9 +2,10 @@ import {
     CeremonyTimeoutError,
     PasskeyShimFailedError,
     PasskeyShimNotReadyError,
+    currentCeremonyId,
     guardPasskeyCeremony,
     isCeremonyGuardError,
-    isPasskeyCeremonyActive,
+    isCeremonyStillActive,
     isPasskeyShimInstalled,
     markPasskeyShimFailed,
     raceCeremonyTimeout,
@@ -120,8 +121,8 @@ describe('guardPasskeyCeremony', () => {
         await expect(guardPasskeyCeremony(() => Promise.resolve('key'))).resolves.toBe('key')
     })
 
-    it('marks the ceremony active only while in flight (token-capture window)', async () => {
-        expect(isPasskeyCeremonyActive()).toBe(false)
+    it('registers a ceremony id only while in flight (token-capture window)', async () => {
+        expect(currentCeremonyId()).toBeNull()
         let resolveCeremony!: (v: string) => void
         const pending = guardPasskeyCeremony(
             () =>
@@ -131,21 +132,56 @@ describe('guardPasskeyCeremony', () => {
         )
         // ceremony started (web path: no shim wait, so the window is open synchronously-ish)
         await Promise.resolve()
-        expect(isPasskeyCeremonyActive()).toBe(true)
+        const id = currentCeremonyId()
+        expect(id).not.toBeNull()
+        expect(isCeremonyStillActive(id)).toBe(true)
         resolveCeremony('done')
         await pending
-        expect(isPasskeyCeremonyActive()).toBe(false)
+        expect(currentCeremonyId()).toBeNull()
+        expect(isCeremonyStillActive(id)).toBe(false)
     })
 
-    it('closes the active window when the ceremony times out (late token must not be captured)', async () => {
+    it('closes the window when the ceremony times out (late token must not be captured)', async () => {
         mockIsCapacitor.mockReturnValue(true)
         setGlobal(SHIM_INSTALLED, true)
         jest.useFakeTimers()
         const pending = guardPasskeyCeremony(() => new Promise<never>(() => {}))
         const assertion = expect(pending).rejects.toBeInstanceOf(CeremonyTimeoutError)
+        await Promise.resolve()
+        const idA = currentCeremonyId()
         await jest.advanceTimersByTimeAsync(60_000)
         await assertion
-        expect(isPasskeyCeremonyActive()).toBe(false)
+        expect(isCeremonyStillActive(idA)).toBe(false)
+        expect(currentCeremonyId()).toBeNull()
+    })
+
+    it('A times out, retry B starts, A’s late verify must still be rejected while B is active', async () => {
+        mockIsCapacitor.mockReturnValue(true)
+        setGlobal(SHIM_INSTALLED, true)
+        jest.useFakeTimers()
+        // ceremony A: hangs, times out at 60s
+        const pendingA = guardPasskeyCeremony(() => new Promise<never>(() => {}))
+        const assertionA = expect(pendingA).rejects.toBeInstanceOf(CeremonyTimeoutError)
+        await Promise.resolve()
+        const idA = currentCeremonyId() // what A's verify request was issued under
+        await jest.advanceTimersByTimeAsync(60_000)
+        await assertionA
+        // ceremony B (the retry) starts and is in flight
+        let resolveB!: (v: string) => void
+        const pendingB = guardPasskeyCeremony(
+            () =>
+                new Promise<string>((resolve) => {
+                    resolveB = resolve
+                })
+        )
+        await Promise.resolve()
+        const idB = currentCeremonyId()
+        // A's late verify response lands now: bound to idA, NOT accepted just
+        // because B holds the window open
+        expect(isCeremonyStillActive(idA)).toBe(false)
+        expect(isCeremonyStillActive(idB)).toBe(true)
+        resolveB('done')
+        await pendingB
     })
 })
 

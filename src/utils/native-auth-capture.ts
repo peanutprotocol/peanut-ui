@@ -8,7 +8,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { isCapacitor } from './capacitor'
 import { setAuthToken } from './auth-token'
-import { isPasskeyCeremonyActive } from './passkeyCeremony.utils'
+import { currentCeremonyId, isCeremonyStillActive } from './passkeyCeremony.utils'
 
 const VERIFY_URL_PATTERN = /\/passkeys\/(login|register)\/verify/
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
@@ -59,6 +59,10 @@ export function installNativeAuthCapture(): void {
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
         const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
         const passkeyPath = PASSKEY_URL_PATTERN.exec(url)?.[0] ?? null
+        // Bind a verify request to the ceremony that issued it (TASK-21782):
+        // its token is only persisted if that SAME ceremony is still active
+        // when the response lands — see passkeyCeremony.utils.
+        const issuingCeremonyId = VERIFY_URL_PATTERN.test(url) ? currentCeremonyId() : null
 
         let response: Response
         try {
@@ -80,11 +84,12 @@ export function installNativeAuthCapture(): void {
                     .catch(() => '')
                 reportPasskeyHttpFailure(passkeyPath, response.status, body)
             }
-            // Only persist a verify token while a ceremony is actually in
-            // flight: a verify response landing after the 60s ceremony timeout
-            // already told the user "failed" must not leave a half-authenticated
-            // session behind (TASK-21782).
-            if (response.ok && VERIFY_URL_PATTERN.test(url) && isPasskeyCeremonyActive()) {
+            // Only persist a verify token when the ceremony that issued the
+            // request is STILL the active one: a response landing after its
+            // ceremony timed out already told the user "failed" and must not
+            // leave a half-authenticated session — even if a retry ceremony
+            // is running by then (TASK-21782).
+            if (response.ok && VERIFY_URL_PATTERN.test(url) && isCeremonyStillActive(issuingCeremonyId)) {
                 const body = await response.clone().json()
                 if (body && typeof body.token === 'string' && body.token) {
                     setAuthToken(body.token)
