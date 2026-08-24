@@ -54,7 +54,7 @@ export default function DevToolsPage() {
             description:
                 'Per funnel state: every in-app surface (verbatim copy + source file) and every lifecycle email/push, fetched live from the sandbox API journey-spec.',
             path: '/dev/journey',
-            icon: 'split',
+            icon: 'users',
         },
         {
             name: 'Peanut Welcome Club',

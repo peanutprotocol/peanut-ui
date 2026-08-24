@@ -123,25 +123,20 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             content={
                 <div className="flex w-full flex-col items-start gap-2">
                     <p>{t('youCanNow')}</p>
-                    <Notification priority="info" className="w-full">
-                        <div className="flex flex-col gap-1">
-                            {items
-                                .filter((item) => {
-                                    if (unlockedChannels === 'all') {
-                                        // Show all items except the duplicate QR bullet
-                                        // (the bank list already mentions QR in AR/BR).
-                                        return !(item.type === 'qr' && item.id === 'qrBrAr')
-                                    }
-                                    return item.type === unlockedChannels
-                                })
-                                .map((item) => (
-                                    <span key={item.id} className="flex items-center gap-2">
-                                        <Icon name="check" size={12} className="shrink-0" />
-                                        {item.title}
-                                    </span>
-                                ))}
-                        </div>
-                    </Notification>
+                    <Notification
+                        priority="info"
+                        className="w-full"
+                        items={items
+                            .filter((item) => {
+                                if (unlockedChannels === 'all') {
+                                    // Show all items except the duplicate QR bullet
+                                    // (the bank list already mentions QR in AR/BR).
+                                    return !(item.type === 'qr' && item.id === 'qrBrAr')
+                                }
+                                return item.type === unlockedChannels
+                            })
+                            .map((item) => item.title)}
+                    />
                 </div>
             }
         />

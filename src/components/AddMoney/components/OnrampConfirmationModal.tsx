@@ -46,24 +46,19 @@ export const OnrampConfirmationModal = ({
                         </ul>
                     </Notification>
                     <h2 className="mr-auto font-bold">{t('youMust')}</h2>
-                    <Notification priority="info" className="w-full">
-                        <div className="flex flex-col gap-1">
-                            {[
-                                t.rich('sendExactly', {
-                                    currency,
-                                    amount,
-                                    b: (chunks) => <b>{chunks}</b>,
-                                }),
-                                t('copyReferenceCode'),
-                                t('pasteReference'),
-                            ].map((item, index) => (
-                                <span key={index} className="flex items-center gap-2">
-                                    <Icon name="check" size={16} className="shrink-0" />
-                                    {item}
-                                </span>
-                            ))}
-                        </div>
-                    </Notification>
+                    <Notification
+                        priority="info"
+                        className="w-full"
+                        items={[
+                            t.rich('sendExactly', {
+                                currency,
+                                amount,
+                                b: (chunks) => <b>{chunks}</b>,
+                            }),
+                            t('copyReferenceCode'),
+                            t('pasteReference'),
+                        ]}
+                    />
 
                     <Notification priority="error" title={t('mismatchTitle')}>
                         {t('mismatchDescription')}

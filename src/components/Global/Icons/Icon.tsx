@@ -153,7 +153,7 @@ export type IconName =
     | 'trophy'
     | 'invite-heart'
     | 'lock'
-    | 'split'
+    | 'users'
     | 'globe-lock'
     | 'globe'
     | 'bulb'
@@ -195,6 +195,19 @@ const VIEWBOX_BOOST: Record<string, string> = {
     'qr-code': '2 2 20 20',
 }
 
+// Lucide draws every icon with stroke-width 2 on a 24-unit grid. stroke-width is
+// in user units, so cropping the viewBox above scaled the stroke up with the
+// artwork — a boosted arrow rendered a 2.4px stroke next to the 2px `plus` on
+// the same home row. Scale the stroke back by the crop factor so the glyph keeps
+// the boost and the weight stays uniform across the set.
+const BASE_VIEWBOX = 24
+const BASE_STROKE = 2
+
+const boostedStrokeWidth = (viewBox: string): number => {
+    const span = Number(viewBox.split(' ')[2])
+    return (BASE_STROKE * span) / BASE_VIEWBOX
+}
+
 const LucideWrapper: FC<
     {
         Icon: LucideIcon
@@ -202,7 +215,7 @@ const LucideWrapper: FC<
         filled?: boolean
         boostKey?: keyof typeof VIEWBOX_BOOST
     } & SVGProps<SVGSVGElement>
-> = ({ Icon, transformClassName, filled, fill, className, width, height, style, boostKey, ...rest }) => {
+> = ({ Icon, transformClassName, filled, fill, className, width, height, style, boostKey, strokeWidth, ...rest }) => {
     // 'custom-size' opts every Lucide icon out of the global `.btn svg:not(.custom-size) { @apply icon-18 }`
     // rule in tailwind.config.js. That rule forced legacy MUI icons to 18px when nested in a .btn — Lucide
     // already carries width/height attributes, so the global rule fights its own size and collapses the SVG
@@ -213,6 +226,7 @@ const LucideWrapper: FC<
     const baseStyle = filled ? FILL_CURRENT : FILL_NONE
     const mergedStyle = style ? { ...baseStyle, ...style } : baseStyle
     const viewBox = boostKey ? VIEWBOX_BOOST[boostKey] : undefined
+    const mergedStrokeWidth = strokeWidth ?? (viewBox ? boostedStrokeWidth(viewBox) : undefined)
 
     // CR-flagged: collapsing `width ?? height` into a single Lucide `size`
     // prop drops non-square sizing. Lucide accepts `width` + `height`
@@ -226,6 +240,7 @@ const LucideWrapper: FC<
             className={mergedClassName}
             style={mergedStyle}
             {...(viewBox ? { viewBox } : {})}
+            {...(mergedStrokeWidth !== undefined ? { strokeWidth: mergedStrokeWidth } : {})}
         />
     )
 }
@@ -297,7 +312,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     shield: (props) => <LucideWrapper Icon={Shield} {...props} />,
     trophy: (props) => <LucideWrapper Icon={Trophy} {...props} />,
     lock: (props) => <LucideWrapper Icon={Lock} {...props} />,
-    split: (props) => <LucideWrapper Icon={Users} {...props} />,
+    users: (props) => <LucideWrapper Icon={Users} {...props} />,
     'globe-lock': (props) => <LucideWrapper Icon={Globe} {...props} />,
     globe: (props) => <LucideWrapper Icon={Globe} {...props} />,
     'plus-circle': (props) => <LucideWrapper Icon={CirclePlus} {...props} />,

@@ -7,7 +7,7 @@ import { useAuth } from '@/context/authContext'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -54,18 +54,23 @@ export const ProfileEditView = () => {
     // fields are locked and never sent. one source of truth for that invariant.
     const canEditName = !isKycApproved
 
-    // populate name and surname from fullName
-    useEffect(() => {
-        if (user?.user.fullName) {
-            const { name, surname } = splitName(user.user.fullName)
-            setFormData((prev) => ({
-                ...prev,
-                name,
-                surname,
-                email: user.user.email || '',
-            }))
-        }
+    // the saved values, and the only fields the user can actually change.
+    // doubles as the baseline for the dirty check that gates Save.
+    const initial = useMemo(() => {
+        const { name, surname } = splitName(user?.user.fullName || '')
+        return { name, surname, email: user?.user.email || '' }
     }, [user?.user.fullName, user?.user.email, splitName])
+
+    useEffect(() => {
+        setFormData((prev) => ({ ...prev, ...initial }))
+    }, [initial])
+
+    // Save stays disabled until something the user may edit actually changed.
+    // bio / phone / website are "Soon!" placeholders — always disabled, never
+    // sent, so they can never make the form dirty.
+    const isDirty =
+        (canEditName && (formData.name !== initial.name || formData.surname !== initial.surname)) ||
+        (!isEmailSet && formData.email !== initial.email)
 
     // handle input field changes
     const handleChange = useCallback((field: string, value: string) => {
@@ -142,79 +147,84 @@ export const ProfileEditView = () => {
     const username = user?.user.username || ''
 
     return (
-        <div className="space-y-8">
-            <NavHeader title={t('title')} onPrev={onBack} />
+        // pinned-footer recipe: Save stays at the bottom edge instead of
+        // scrolling off under six fields.
+        <div className="flex flex-col justify-between gap-8">
+            <div className="flex flex-col gap-8">
+                <NavHeader title={t('title')} onPrev={onBack} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
+                <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
 
-            <div className="space-y-4">
-                <ProfileEditField
-                    label={t('fields.name')}
-                    value={formData.name}
-                    onChange={(value) => handleChange('name', value)}
-                    placeholder={t('placeholders.name')}
-                    disabled={!canEditName}
-                />
+                {/* two groups — who you are, then how we reach you. gap-6 (XL,
+                    the section step) against gap-4 (L) inside a group, so the
+                    rhythm reads 8 (label → field) < 16 (field → field) < 24. */}
+                <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-4">
+                        <ProfileEditField
+                            label={t('fields.name')}
+                            value={formData.name}
+                            onChange={(value) => handleChange('name', value)}
+                            disabled={!canEditName}
+                        />
 
-                <ProfileEditField
-                    label={t('fields.surname')}
-                    value={formData.surname}
-                    onChange={(value) => handleChange('surname', value)}
-                    placeholder={t('placeholders.surname')}
-                    disabled={!canEditName}
-                />
+                        <ProfileEditField
+                            label={t('fields.surname')}
+                            value={formData.surname}
+                            onChange={(value) => handleChange('surname', value)}
+                            disabled={!canEditName}
+                        />
 
-                <ProfileEditField
-                    label={t('fields.bio')}
-                    value={formData.bio}
-                    onChange={(value) => handleChange('bio', value)}
-                    placeholder={t('placeholders.bio')}
-                    badge={t('soonBadge')}
-                    disabled
-                />
+                        <ProfileEditField
+                            label={t('fields.bio')}
+                            value={formData.bio}
+                            onChange={(value) => handleChange('bio', value)}
+                            badge={t('soonBadge')}
+                            disabled
+                        />
+                    </div>
 
-                <ProfileEditField
-                    label={t('fields.email')}
-                    value={formData.email}
-                    onChange={(value) => handleChange('email', value)}
-                    placeholder={t('placeholders.email')}
-                    type="email"
-                    disabled={isEmailSet}
-                />
+                    <div className="flex flex-col gap-4">
+                        <ProfileEditField
+                            label={t('fields.email')}
+                            value={formData.email}
+                            onChange={(value) => handleChange('email', value)}
+                            type="email"
+                            disabled={isEmailSet}
+                        />
 
-                <ProfileEditField
-                    label={t('fields.phoneNumber')}
-                    value={formData.phone}
-                    onChange={(value) => handleChange('phone', value)}
-                    placeholder={t('placeholders.phone')}
-                    type="tel"
-                    badge={t('soonBadge')}
-                    disabled
-                />
+                        <ProfileEditField
+                            label={t('fields.phoneNumber')}
+                            value={formData.phone}
+                            onChange={(value) => handleChange('phone', value)}
+                            type="tel"
+                            badge={t('soonBadge')}
+                            disabled
+                        />
 
-                <ProfileEditField
-                    label={t('fields.website')}
-                    value={formData.website}
-                    onChange={(value) => handleChange('website', value)}
-                    placeholder={t('placeholders.website')}
-                    type="url"
-                    badge={t('soonBadge')}
-                    disabled
-                />
-
-                <div className="space-y-4 pb-10">
-                    <Button
-                        disabled={isLoading}
-                        onClick={handleSave}
-                        className="w-full"
-                        shadowSize="4"
-                        loading={isLoading}
-                    >
-                        {t('saveChanges')}
-                    </Button>
-
-                    {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                        <ProfileEditField
+                            label={t('fields.website')}
+                            value={formData.website}
+                            onChange={(value) => handleChange('website', value)}
+                            type="url"
+                            badge={t('soonBadge')}
+                            disabled
+                        />
+                    </div>
                 </div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+                {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+
+                <Button
+                    disabled={isLoading || !isDirty}
+                    onClick={handleSave}
+                    className="w-full"
+                    shadowSize="4"
+                    loading={isLoading}
+                >
+                    {t('saveChanges')}
+                </Button>
             </div>
         </div>
     )

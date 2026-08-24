@@ -87,16 +87,7 @@ export const PasskeySetupHelpModal = ({
                     <h2 className="mr-auto text-body-s text-foreground-secondary">{description}</h2>
 
                     <h3 className="mr-auto font-bold">{t('tryTheseFixes')}</h3>
-                    <Notification priority="info" className="w-full">
-                        <div className="flex flex-col gap-1">
-                            {troubleshootingSteps.map((step, index) => (
-                                <span key={index} className="flex items-center gap-2">
-                                    <Icon name="check" size={16} className="shrink-0" />
-                                    {step}
-                                </span>
-                            ))}
-                        </div>
-                    </Notification>
+                    <Notification priority="info" className="w-full" items={troubleshootingSteps} />
 
                     {warning && (
                         <Notification priority="error" title={t('importantNote')}>

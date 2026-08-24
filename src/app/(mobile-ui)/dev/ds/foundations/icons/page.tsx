@@ -69,7 +69,7 @@ const ALL_ICONS: IconName[] = [
     'share',
     'shield',
     'smile',
-    'split',
+    'users',
     'star',
     'success',
     'switch',

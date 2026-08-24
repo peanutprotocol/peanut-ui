@@ -293,14 +293,6 @@
                 "phoneNumber": "Número de teléfono",
                 "website": "Sitio web"
             },
-            "placeholders": {
-                "name": "Agrega tu nombre",
-                "surname": "Agrega tu apellido",
-                "bio": "Agrega una bio",
-                "email": "Agrega tu email",
-                "phone": "Agrega tu número",
-                "website": "Agrega tu sitio web"
-            },
             "soonBadge": "¡Pronto!",
             "saveChanges": "Guardar cambios",
             "errors": {

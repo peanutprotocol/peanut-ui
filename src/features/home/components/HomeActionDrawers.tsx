@@ -31,14 +31,16 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
             key: 'send-friends',
             titleKey: ['drawers', 'sendToFriends'],
             bodyKey: 'sendToFriendsDescription',
-            icon: 'arrow-up-right',
+            // person iconography, not arrows: the home CTAs that open this
+            // drawer are already arrows, so repeating them here said nothing.
+            icon: 'user',
             href: '/send',
         },
         {
             key: 'withdraw',
             titleKey: ['drawers', 'withdrawToOwnAccounts'],
             bodyKey: 'withdrawToOwnAccountsDescription',
-            icon: 'arrow-down',
+            icon: 'users',
             href: '/withdraw',
         },
     ],

@@ -1487,7 +1487,7 @@ export default function QRPayPage() {
                                             })
                                             router.push(`/request?${params.toString()}`)
                                         }}
-                                        icon="split"
+                                        icon="users"
                                         shadowSize="4"
                                     >
                                         {t('success.splitThisBill')}
