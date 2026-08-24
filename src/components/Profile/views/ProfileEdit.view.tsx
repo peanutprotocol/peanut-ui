@@ -215,13 +215,11 @@ export const ProfileEditView = () => {
                 </div>
             </div>
 
-            {/* Save follows the scroll instead of dropping off the end of six
-                fields. `bottom-20` (80px) clears the bottom nav: AppShell
-                renders it `fixed`, so it overlays the scroll container rather
-                than reserving space, and a footer without the offset sits 18px
-                underneath it (measured). The general fix belongs in AppShell —
-                see the PR notes. */}
-            <div className="sticky bottom-20 flex flex-col gap-4 bg-background-page pt-4">
+            {/* Save renders inline at the end of the form and scrolls with it.
+                A sticky footer here covered the Website field, which is the
+                last row — the field was unreachable behind the button. Save
+                stays gated on `isDirty`, so an untouched form cannot submit. */}
+            <div className="flex flex-col gap-4">
                 {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
 
                 <Button
