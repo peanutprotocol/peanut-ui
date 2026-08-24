@@ -27,11 +27,13 @@ export enum WebAuthnErrorName {
     NotSupported = 'NotSupportedError',
 }
 
-export type PasskeyErrorClassification = { code: string; message: string }
+export type PasskeyErrorClassification = { code: PasskeyErrorCode; message: string }
 
 // Curated copy keyed by code. Never surface raw error.message / server bodies to
 // the user (those go to Sentry only); these strings are the only thing shown.
-const PASSKEY_LOGIN_MESSAGES: Record<string, string> = {
+// Keys are the closed set of classification codes — `PasskeyErrorCode` below —
+// so a new code can't silently fall into the wrong handler branch downstream.
+const PASSKEY_LOGIN_MESSAGES = {
     LOGIN_CANCELED: 'Login was cancelled, or no passkey was found on this device. Try again, or create a wallet.',
     PASSKEY_INTERRUPTED: 'Something interrupted the passkey prompt. Please try again.',
     PASSKEY_UNSUPPORTED:
@@ -39,10 +41,13 @@ const PASSKEY_LOGIN_MESSAGES: Record<string, string> = {
     PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
     PASSKEY_ORIGIN: 'This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.',
     NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
-    CEREMONY_TIMEOUT: 'Login is taking longer than it should. Please try again.',
+    // flow-neutral wording — classifyPasskeyError also serves the signup ceremony
+    CEREMONY_TIMEOUT: 'This is taking longer than it should. Please try again.',
     PASSKEY_NOT_READY: 'The app is still getting ready for passkeys. Wait a moment and try again.',
     LOGIN_ERROR: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
-}
+} as const satisfies Record<string, string>
+
+export type PasskeyErrorCode = keyof typeof PASSKEY_LOGIN_MESSAGES
 
 function isNetworkError(error: Error): boolean {
     if (error.name === 'TypeError' && /fetch|network/i.test(error.message)) return true
@@ -57,7 +62,7 @@ function isNetworkError(error: Error): boolean {
  */
 export function classifyPasskeyError(error: unknown): PasskeyErrorClassification {
     const err = error instanceof Error ? error : new Error(String(error))
-    let code = 'LOGIN_ERROR'
+    let code: PasskeyErrorCode = 'LOGIN_ERROR'
     // iOS surfaces ceremony failures as a bare Error whose message carries the
     // ASAuthorizationError code, not a DOMException name: 1001 = user canceled,
     // 1004 = failed (typically no usable passkey on this device). Both mean
@@ -87,6 +92,11 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
             break
         case 'PasskeyShimNotReadyError':
             code = 'PASSKEY_NOT_READY'
+            break
+        // install known-dead — only an app restart re-runs it, so send the
+        // restart copy instead of the transient "wait a moment" one
+        case 'PasskeyShimFailedError':
+            code = 'PASSKEY_STATE'
             break
         default:
             if (isNetworkError(err)) code = 'NETWORK'

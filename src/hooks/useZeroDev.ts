@@ -11,7 +11,7 @@ import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } fro
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
-import { isPasskeyShimInstalled, raceCeremonyTimeout, waitForPasskeyShim } from '@/utils/passkeyCeremony.utils'
+import { guardPasskeyCeremony, isCeremonyGuardError, isPasskeyShimInstalled } from '@/utils/passkeyCeremony.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -82,16 +82,20 @@ export const useZeroDev = () => {
 
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
-            const webAuthnKey = await toWebAuthnKey({
-                passkeyName: _getPasskeyName(username),
-                passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                mode: WebAuthnMode.Register,
-                // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
-                // register/verify request body, so the terms+privacy versions the
-                // signup screen displayed ride in a header the backend ledgers.
-                passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
-                rpID: rpId,
-            })
+            // Same TASK-21782 guard as login: native shim gate + 60s bound —
+            // signup is the tightest shim race (first tap after a fresh install).
+            const webAuthnKey = await guardPasskeyCeremony(() =>
+                toWebAuthnKey({
+                    passkeyName: _getPasskeyName(username),
+                    passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                    mode: WebAuthnMode.Register,
+                    // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
+                    // register/verify request body, so the terms+privacy versions the
+                    // signup screen displayed ride in a header the backend ledgers.
+                    passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
+                    rpID: rpId,
+                })
+            )
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
 
@@ -241,9 +245,21 @@ export const useZeroDev = () => {
             }
             const err = e as Error
             console.error('[useZeroDev] registration failed:', err.name, err.message, err, {
-                shimInstalled: (globalThis as typeof globalThis & { __capgoPasskeyShimInstalled?: boolean })
-                    .__capgoPasskeyShimInstalled,
+                shimInstalled: isPasskeyShimInstalled(),
             })
+            // Same discriminating telemetry as the login guard — the register
+            // path previously produced zero signal for a hung ceremony.
+            if (isCeremonyGuardError(err)) {
+                captureException(err, {
+                    tags: {
+                        error_type:
+                            err.name === 'CeremonyTimeoutError'
+                                ? 'register_ceremony_timeout'
+                                : 'register_shim_not_ready',
+                    },
+                    extra: { shimInstalled: isPasskeyShimInstalled(), isCapacitor: isCapacitor() },
+                })
+            }
             dispatch(zerodevActions.setIsRegistering(false))
             throw e
         }
@@ -262,17 +278,13 @@ export const useZeroDev = () => {
 
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
 
-            // A tap that races the async autoShimWebAuthn install would run the
-            // webview's raw WebAuthn, which silently hangs in Capacitor — the
-            // TASK-21782 wedge. Fail fast with a retryable error instead.
-            if (isCapacitor()) await waitForPasskeyShim()
-
-            // zerodev's toWebAuthnKey has no timeout of its own; without this
-            // race a never-settling ceremony leaves isLoggingIn true forever
-            // and the user cannot retry without killing the app (TASK-21782).
-            // On timeout the late result is discarded, so a ceremony that
-            // completes after we gave up can never log the user in.
-            const webAuthnKey = await raceCeremonyTimeout(
+            // TASK-21782: on native, gate on the shim being installed (a tap
+            // racing autoShimWebAuthn runs the webview's raw WebAuthn, which
+            // silently hangs in Capacitor) and bound the ceremony to 60s so a
+            // never-settling toWebAuthnKey can't leave isLoggingIn true until
+            // app kill. A late result is discarded and its verify token is not
+            // captured (ceremony window closed) — see passkeyCeremony.utils.
+            const webAuthnKey = await guardPasskeyCeremony(() =>
                 toWebAuthnKey({
                     passkeyName: '[]',
                     passkeyServerUrl: PASSKEY_SERVER_URL as string,
@@ -299,10 +311,11 @@ export const useZeroDev = () => {
             // Ceremony guards: nothing was authenticated, so keep any existing
             // state (no clearAuthState) and report with a discriminating tag —
             // this is the telemetry that tells us WHERE native logins hang.
-            if (code === 'CEREMONY_TIMEOUT' || code === 'PASSKEY_NOT_READY') {
+            if (isCeremonyGuardError(err)) {
                 captureException(err, {
                     tags: {
-                        error_type: code === 'CEREMONY_TIMEOUT' ? 'login_ceremony_timeout' : 'login_shim_not_ready',
+                        error_type:
+                            err.name === 'CeremonyTimeoutError' ? 'login_ceremony_timeout' : 'login_shim_not_ready',
                     },
                     extra: {
                         shimInstalled: isPasskeyShimInstalled(),

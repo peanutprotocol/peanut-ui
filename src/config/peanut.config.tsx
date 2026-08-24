@@ -11,6 +11,7 @@ import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { authReady } from '@/utils/auth-token'
 import { installNativeAuthCapture } from '@/utils/native-auth-capture'
 import { scheduleDirectFetchCanary } from '@/utils/native-canary'
+import { markPasskeyShimFailed } from '@/utils/passkeyCeremony.utils'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
 
@@ -30,56 +31,67 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
             void authReady() // start Preferences hydration before any API call needs it
             installNativeAuthCapture()
             scheduleDirectFetchCanary()
-            import('@capgo/capacitor-passkey').then(({ CapacitorPasskey }) => {
-                const nativeRpId = getNativeRpId()
+            import('@capgo/capacitor-passkey')
+                .then(({ CapacitorPasskey }) => {
+                    const nativeRpId = getNativeRpId()
 
-                // check native passkey support first
-                CapacitorPasskey.isSupported()
-                    .then((support) => {
-                        console.log('[PeanutProvider] passkey support:', JSON.stringify(support))
-                    })
-                    .catch((err: unknown) => {
-                        console.warn('[PeanutProvider] passkey isSupported check failed:', err)
-                    })
+                    // check native passkey support first
+                    CapacitorPasskey.isSupported()
+                        .then((support) => {
+                            console.log('[PeanutProvider] passkey support:', JSON.stringify(support))
+                        })
+                        .catch((err: unknown) => {
+                            console.warn('[PeanutProvider] passkey isSupported check failed:', err)
+                        })
 
-                CapacitorPasskey.autoShimWebAuthn({ origin: `https://${nativeRpId}` })
-                    .then(() => {
-                        // verify the shim actually installed by checking if credentials was patched
-                        const shimInstalled =
-                            (globalThis as { __capgoPasskeyShimInstalled?: unknown }).__capgoPasskeyShimInstalled ===
-                            true
-                        console.log('[PeanutProvider] passkey shim installed:', shimInstalled)
+                    CapacitorPasskey.autoShimWebAuthn({ origin: `https://${nativeRpId}` })
+                        .then(() => {
+                            // verify the shim actually installed by checking if credentials was patched
+                            const shimInstalled =
+                                (globalThis as { __capgoPasskeyShimInstalled?: unknown })
+                                    .__capgoPasskeyShimInstalled === true
+                            console.log('[PeanutProvider] passkey shim installed:', shimInstalled)
 
-                        // the shim's credentialFromJSON replaces its credential's prototype with
-                        // PublicKeyCredential.prototype. WKWebView's native getClientExtensionResults
-                        // brand-checks `this` and throws on shim credentials ("Can only call ... on
-                        // instances of PublicKeyCredential"), breaking both registration and login.
-                        // Wrap it unconditionally: native credentials keep the real behavior, shim
-                        // credentials fall back to their JSON payload.
-                        const PKC = globalThis.PublicKeyCredential
-                        if (PKC) {
-                            const nativeGetter = PKC.prototype.getClientExtensionResults
-                            PKC.prototype.getClientExtensionResults = function () {
-                                try {
-                                    return nativeGetter ? nativeGetter.call(this) : {}
-                                } catch {
-                                    return (
-                                        (
-                                            this as PublicKeyCredential & {
-                                                json?: {
-                                                    clientExtensionResults?: AuthenticationExtensionsClientOutputs
+                            // the shim's credentialFromJSON replaces its credential's prototype with
+                            // PublicKeyCredential.prototype. WKWebView's native getClientExtensionResults
+                            // brand-checks `this` and throws on shim credentials ("Can only call ... on
+                            // instances of PublicKeyCredential"), breaking both registration and login.
+                            // Wrap it unconditionally: native credentials keep the real behavior, shim
+                            // credentials fall back to their JSON payload.
+                            const PKC = globalThis.PublicKeyCredential
+                            if (PKC) {
+                                const nativeGetter = PKC.prototype.getClientExtensionResults
+                                PKC.prototype.getClientExtensionResults = function () {
+                                    try {
+                                        return nativeGetter ? nativeGetter.call(this) : {}
+                                    } catch {
+                                        return (
+                                            (
+                                                this as PublicKeyCredential & {
+                                                    json?: {
+                                                        clientExtensionResults?: AuthenticationExtensionsClientOutputs
+                                                    }
                                                 }
-                                            }
-                                        ).json?.clientExtensionResults ?? {}
-                                    )
+                                            ).json?.clientExtensionResults ?? {}
+                                        )
+                                    }
                                 }
                             }
-                        }
-                    })
-                    .catch((err: unknown) => {
-                        console.warn('[PeanutProvider] passkey shim init failed:', err)
-                    })
-            })
+                        })
+                        .catch((err: unknown) => {
+                            // known-dead install: waitForPasskeyShim fails a login tap
+                            // immediately with restart copy instead of polling out 3s
+                            // on a shim that will never arrive (TASK-21782)
+                            markPasskeyShimFailed()
+                            console.warn('[PeanutProvider] passkey shim init failed:', err)
+                        })
+                })
+                .catch((err: unknown) => {
+                    // chunk import / plugin resolution failed — previously an
+                    // unhandled rejection, leaving the shim flag unset forever
+                    markPasskeyShimFailed()
+                    console.warn('[PeanutProvider] passkey plugin import failed:', err)
+                })
         }
     }, [])
 

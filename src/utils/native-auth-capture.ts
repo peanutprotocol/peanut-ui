@@ -8,6 +8,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { isCapacitor } from './capacitor'
 import { setAuthToken } from './auth-token'
+import { isPasskeyCeremonyActive } from './passkeyCeremony.utils'
 
 const VERIFY_URL_PATTERN = /\/passkeys\/(login|register)\/verify/
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
@@ -79,7 +80,11 @@ export function installNativeAuthCapture(): void {
                     .catch(() => '')
                 reportPasskeyHttpFailure(passkeyPath, response.status, body)
             }
-            if (response.ok && VERIFY_URL_PATTERN.test(url)) {
+            // Only persist a verify token while a ceremony is actually in
+            // flight: a verify response landing after the 60s ceremony timeout
+            // already told the user "failed" must not leave a half-authenticated
+            // session behind (TASK-21782).
+            if (response.ok && VERIFY_URL_PATTERN.test(url) && isPasskeyCeremonyActive()) {
                 const body = await response.clone().json()
                 if (body && typeof body.token === 'string' && body.token) {
                     setAuthToken(body.token)

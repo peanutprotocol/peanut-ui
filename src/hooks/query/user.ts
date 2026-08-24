@@ -10,7 +10,7 @@ import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
-import { isCapacitor } from '@/utils/capacitor'
+import { isNativeBridge } from '@/utils/capacitor'
 import { DEMO_USER } from '@/constants/demo-data'
 
 // custom error class for backend errors (5xx) that should trigger retry
@@ -58,9 +58,12 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             if (payload) {
                 // Was: hitUserMetric(userData.user.userId, 'login', ...) → POST /users/:id/metrics/login.
                 // DB `user_metrics` table deprecated 2026-04-24; analytics is PostHog's job.
-                // usePWAStatus matches display-mode standalone inside the Capacitor
-                // webview too — the native app is not a PWA (TASK-21782 telemetry fix)
-                posthog.capture(ANALYTICS_EVENTS.LOGIN, { isPwa: isCapacitor() ? false : isPwa, deviceType })
+                // usePWAStatus deliberately returns true for the Capacitor shell
+                // (it means "standalone app-like shell", which layouts rely on) —
+                // but for analytics the native app is not a PWA. isNativeBridge()
+                // not isCapacitor(): capacitor-flavored WEB builds must keep real
+                // PWA semantics (TASK-21782 telemetry fix).
+                posthog.capture(ANALYTICS_EVENTS.LOGIN, { isPwa: isNativeBridge() ? false : isPwa, deviceType })
                 dispatch(userActions.setUser(payload))
             }
             return payload
