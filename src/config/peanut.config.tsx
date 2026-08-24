@@ -1,24 +1,28 @@
 'use client'
-import { ContextProvider } from '@/config/wagmi.config'
-import countries from 'i18n-iso-countries'
-import enLocale from 'i18n-iso-countries/langs/en.json'
+import { QueryClientProvider } from '@tanstack/react-query'
+import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
+import { queryClient } from '@/config/queryClient'
+import { isMarketingRoute } from '@/utils/marketing-routes'
 import { useEffect } from 'react'
-import { Provider as ReduxProvider } from 'react-redux'
 
-import store from '@/redux/store'
 import 'react-tooltip/dist/react-tooltip.css'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { authReady } from '@/utils/auth-token'
 import { installNativeAuthCapture } from '@/utils/native-auth-capture'
-import { scheduleDirectFetchCanary } from '@/utils/native-canary'
-import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
+
+const AppStateProviders = dynamic(() => import('@/config/AppStateProviders').then((m) => m.AppStateProviders))
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (process.env.NODE_ENV !== 'development') {
-            countries.registerLocale(enLocale)
+            // Loaded on demand: the country list plus its English locale table is
+            // dead weight on the marketing site, which never renders one.
+            void Promise.all([import('i18n-iso-countries'), import('i18n-iso-countries/langs/en.json')]).then(
+                ([countries, enLocale]) => countries.default.registerLocale(enLocale.default)
+            )
         }
 
         // in capacitor, install the passkey shim so navigator.credentials.create/get
@@ -30,7 +34,6 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         if (isCapacitor()) {
             void authReady() // start Preferences hydration before any API call needs it
             installNativeAuthCapture()
-            scheduleDirectFetchCanary()
             import('@capgo/capacitor-passkey').then(({ CapacitorPasskey }) => {
                 const nativeRpId = getNativeRpId()
 
@@ -81,19 +84,22 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
                         console.warn('[PeanutProvider] passkey shim init failed:', err)
                     })
             })
-
-            // initialize native crisp chat sdk
-            import('@capgo/capacitor-crisp').then(({ CapacitorCrisp }) => {
-                CapacitorCrisp.configure({ websiteID: CRISP_WEBSITE_ID }).catch((err: unknown) => {
-                    console.warn('[PeanutProvider] crisp init failed:', err)
-                })
-            })
         }
     }, [])
 
+    // The query client is needed everywhere (auth, user profile); wagmi is not —
+    // keep it off the marketing site. `isMarketingRoute` fails safe to the app tree.
+    const marketing = isMarketingRoute(usePathname())
+
+    /*
+     * The query client is needed everywhere — the landing page's exchange-rate
+     * widget is a react-query hook — but the redux store and wagmi are not:
+     * nothing the marketing site renders reads either, and AuthProvider, which
+     * did, now lives in AppFlowProviders.
+     */
     return (
-        <ReduxProvider store={store}>
-            <ContextProvider cookies={null}>{children}</ContextProvider>
-        </ReduxProvider>
+        <QueryClientProvider client={queryClient}>
+            {marketing ? children : <AppStateProviders>{children}</AppStateProviders>}
+        </QueryClientProvider>
     )
 }

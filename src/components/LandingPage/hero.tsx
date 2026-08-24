@@ -2,12 +2,12 @@
 
 import { PeanutWhistling } from '@/assets/mascot'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
-import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, type CSSProperties } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from './CloudsCss'
+import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
@@ -68,9 +68,15 @@ function PeanutMascot() {
         <Image
             ref={imgRef}
             src={PeanutWhistling}
+            // Animated webp — the optimizer passes animated images through
+            // untouched, so `unoptimized` skips a pointless /_next/image hop.
             unoptimized
+            // This is the mobile LCP element. Without `preload` Next emits
+            // loading="lazy" and the browser discovers it ~7s late on a
+            // throttled connection (Lighthouse: 19.5s LCP, 36% load delay).
+            preload
             alt="Peanut Guy"
-            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
+            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain md:max-h-[min(40vh,calc(100svh-28rem))]"
         />
     )
 }
@@ -86,32 +92,24 @@ type HeroProps = {
     customCta?: React.ReactNode
 }
 
-const getInitialAnimation = (variant: 'primary' | 'secondary') => ({
-    opacity: 0,
-    translateY: 4,
-    translateX: variant === 'primary' ? 0 : 4,
-    rotate: 0.75,
-})
-
-const getAnimateAnimation = (variant: 'primary' | 'secondary', buttonVisible?: boolean, buttonScale?: number) => ({
-    opacity: buttonVisible ? 1 : 0,
-    translateY: buttonVisible ? 0 : 20,
-    translateX: buttonVisible ? 0 : 20,
-    rotate: buttonVisible ? 0 : 1,
-    scale: buttonScale || 1,
-    pointerEvents: buttonVisible ? ('auto' as const) : ('none' as const),
-})
-
-const getHoverAnimation = (variant: 'primary' | 'secondary') => ({
-    translateY: 6,
-    translateX: variant === 'primary' ? 0 : 3,
-    rotate: 0.75,
-})
-
-const transitionConfig = { type: 'spring', damping: 15 } as const
+/*
+ * CSS custom properties consumed by `.cta-motion` in globals.css, replacing the
+ * framer-motion animate/whileHover pair. Same values, but the transform runs on
+ * the compositor instead of a main-thread rAF loop.
+ */
+const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean, buttonScale?: number): CSSProperties =>
+    ({
+        '--cta-x': buttonVisible ? '0px' : '20px',
+        '--cta-y': buttonVisible ? '0px' : '20px',
+        '--cta-r': buttonVisible ? '0deg' : '1deg',
+        '--cta-scale': buttonScale || 1,
+        '--cta-hover-x': variant === 'primary' ? '0px' : '3px',
+        opacity: buttonVisible ? 1 : 0,
+        pointerEvents: buttonVisible ? 'auto' : 'none',
+    }) as CSSProperties
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
+    `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
 export function Hero({
     primaryCta,
@@ -124,12 +122,9 @@ export function Hero({
 }: HeroProps) {
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
-            <motion.div
-                className={getButtonContainerClasses(variant)}
-                initial={getInitialAnimation(variant)}
-                animate={getAnimateAnimation(variant, buttonVisible, buttonScale)}
-                whileHover={getHoverAnimation(variant)}
-                transition={transitionConfig}
+            <div
+                className={`${getButtonContainerClasses(variant)} cta-motion`}
+                style={getCtaStyle(variant, buttonVisible, buttonScale)}
             >
                 <a
                     href={cta.href}
@@ -148,19 +143,17 @@ export function Hero({
                 {cta.subtext && (
                     <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">{cta.subtext}</span>
                 )}
-            </motion.div>
+            </div>
         )
     }
 
     const renderCustomCta = () => (
-        <motion.div
-            className={getButtonContainerClasses('primary')}
-            initial={getInitialAnimation('primary')}
-            animate={getAnimateAnimation('primary', buttonVisible, buttonScale)}
-            transition={transitionConfig}
+        <div
+            className={`${getButtonContainerClasses('primary')} cta-motion`}
+            style={getCtaStyle('primary', buttonVisible, buttonScale)}
         >
             {customCta}
-        </motion.div>
+        </div>
     )
 
     return (
@@ -170,50 +163,53 @@ export function Hero({
         >
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
+                {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports */}
                 <Image
                     src={GlobalCashLocalFeel}
-                    priority
+                    preload
                     sizes="(min-width: 768px) 50vw, 100vw"
-                    className="z-0 mx-auto h-auto w-full max-w-[1000px] object-contain md:w-[50%]"
+                    className="z-0 mx-auto h-auto max-h-[calc(100svh-23rem)] w-full max-w-[1000px] object-contain md:w-[50%]"
                     alt="Global Cash Local Feel"
                 />
 
-                <motion.img
-                    initial={{ opacity: 0, translateY: 20, translateX: 5 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 5 }}
-                    src={Star.src}
-                    alt=""
+                <AnimateOnView
                     className="absolute bottom-[-4%] left-[1%] w-8 sm:bottom-[11%] sm:left-[12%] md:bottom-[18%] md:left-[5%] md:w-12"
-                />
-                <motion.img
-                    initial={{ opacity: 0, translateY: 28, translateX: -5 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 5 }}
-                    src={Star.src}
-                    alt=""
+                    y="20px"
+                    x="5px"
+                >
+                    <Image src={Star} alt="" />
+                </AnimateOnView>
+                <AnimateOnView
                     className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
-                />
+                    y="28px"
+                    x="-5px"
+                >
+                    <Image src={Star} alt="" />
+                </AnimateOnView>
             </div>
             <PeanutMascot />
 
             <div className="relative z-20 flex w-full flex-col items-center justify-center">
-                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
+                {/* Short phone viewports only: the pt-BR headline wraps to 3 lines (and to 4 below
+                    360px) where en/es take 2, which pushes the CTA under the fold. Buy the 38-76px
+                    back from this gap rather than from the artwork, so every locale keeps the same
+                    hero on normal screens. Width-scoped too, or it would fire on 1366x657 laptops. */}
+                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
                     {strings.heroTapScan}
                 </h2>
                 <span
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    <Link href={`/${locale}/argentina`} className="hover:underline">
+                    <Link prefetch={false} href={`/${locale}/argentina`} className="hover:underline">
                         Buenos Aires
                     </Link>
                     .{' '}
-                    <Link href={`/${locale}/brazil`} className="hover:underline">
+                    <Link prefetch={false} href={`/${locale}/brazil`} className="hover:underline">
                         São Paulo
                     </Link>
                     .{' '}
-                    <Link href={`/${locale}/brazil`} className="hover:underline">
+                    <Link prefetch={false} href={`/${locale}/brazil`} className="hover:underline">
                         Floripa
                     </Link>
                     .
@@ -223,22 +219,20 @@ export function Hero({
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
-                <motion.img
-                    initial={{ opacity: 0, translateY: 20, translateX: 5 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 5 }}
-                    src={Star.src}
-                    alt=""
+                <AnimateOnView
                     className="absolute bottom-[-4%] left-[1%] w-8 sm:bottom-[11%] sm:left-[12%] md:bottom-[18%] md:left-[5%] md:w-12"
-                />
-                <motion.img
-                    initial={{ opacity: 0, translateY: 28, translateX: -5 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 5 }}
-                    src={Star.src}
-                    alt=""
+                    y="20px"
+                    x="5px"
+                >
+                    <Image src={Star} alt="" />
+                </AnimateOnView>
+                <AnimateOnView
                     className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
-                />
+                    y="28px"
+                    x="-5px"
+                >
+                    <Image src={Star} alt="" />
+                </AnimateOnView>
             </div>
         </section>
     )

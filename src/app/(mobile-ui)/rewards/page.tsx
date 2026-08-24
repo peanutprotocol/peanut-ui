@@ -34,11 +34,12 @@ import { profileUrl } from '@/utils/native-routes'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { isIOSNative } from '@/utils/capacitor'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 
 const PointsPage = () => {
-    const t = useTranslations('rewards')
+    const t = useAppTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/home')
     const { user, fetchUser } = useAuth()
@@ -223,6 +224,24 @@ const PointsPage = () => {
                         )}
                     </div>
                 </Card>
+
+                {/* iOS presents the programme as cashback (see useAppTranslations);
+                    the explainer is part of that framing, so web and Android skip it */}
+                {isIOSNative() && (
+                    <Card className="flex flex-col gap-3 p-6">
+                        <h2 className="text-base font-black">{t('howItWorks.title')}</h2>
+                        <ol className="flex flex-col gap-2">
+                            {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
+                                <li key={step} className="flex items-start gap-3 text-sm">
+                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-secondary-1 text-xs font-black">
+                                        {i + 1}
+                                    </span>
+                                    <span>{t(`howItWorks.${step}`)}</span>
+                                </li>
+                            ))}
+                        </ol>
+                    </Card>
+                )}
 
                 {/* invite graph with consolidated explanation */}
                 {myGraphResult?.data && (

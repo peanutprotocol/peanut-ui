@@ -8,9 +8,9 @@ import ProfileHeader from './components/ProfileHeader'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { LOCALE_LABELS } from '@/i18n/app/config'
-import { useAppLocale } from '@/i18n/app/AppIntlProvider'
+import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardInfo } from '@/hooks/useCardInfo'
@@ -32,7 +32,7 @@ export const Profile = () => {
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
     const { hasCardAccess } = useCardInfo()
-    const t = useTranslations('profile')
+    const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
 
     const logout = async () => {

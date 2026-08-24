@@ -7,6 +7,7 @@ import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
+import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
@@ -15,6 +16,7 @@ import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
 import { isAndroidNative } from '@/utils/capacitor'
 import { printableAddress } from '@/utils/general.utils'
+import { reportQrScanError } from './utils'
 
 // ============================================================================
 // Configuration
@@ -79,7 +81,8 @@ function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name
 function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onToggleCamera: () => void }) {
     const t = useTranslations('global')
     return (
-        <div className="fixed left-0 top-8 z-50 grid w-full grid-flow-col items-center py-2 text-center text-white">
+        // portalled overlay escapes the layout's safe-area padding; max() keeps the old 2.5rem on web
+        <div className="fixed left-0 top-0 z-50 grid w-full grid-flow-col items-center pb-2 pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] text-center text-white">
             <Button
                 variant="transparent-light"
                 className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
@@ -99,6 +102,50 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     )
 }
 
+function PasteActions({
+    onPaste,
+    detectedAddress,
+    onUseDetected,
+    showPasteChip,
+    onUsePasteChip,
+}: {
+    onPaste: () => void
+    detectedAddress: string | null
+    onUseDetected: () => void
+    showPasteChip: boolean
+    onUsePasteChip: () => void
+}) {
+    const t = useTranslations('global')
+    return (
+        <>
+            <button
+                onClick={onPaste}
+                className="justify mx-auto mt-10 flex items-center gap-1.5 text-center text-white underline underline-offset-2"
+            >
+                <Icon name="paste" fill="white" height={16} width={16} />
+                <span className="text-sm">{t('qrScanner.clickToPaste')}</span>
+            </button>
+            {detectedAddress ? (
+                <button
+                    onClick={onUseDetected}
+                    className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                >
+                    <Icon name="wallet" fill="white" height={16} width={16} />
+                    <span className="text-sm font-semibold">{printableAddress(detectedAddress)}</span>
+                </button>
+            ) : showPasteChip ? (
+                <button
+                    onClick={onUsePasteChip}
+                    className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                >
+                    <Icon name="paste" fill="white" height={16} width={16} />
+                    <span className="text-sm font-semibold">{t('qrScanner.useCopiedCode')}</span>
+                </button>
+            ) : null}
+        </>
+    )
+}
+
 function ScanRegionOverlay({
     onPaste,
     detectedAddress,
@@ -114,57 +161,72 @@ function ScanRegionOverlay({
 }) {
     const t = useTranslations('global')
     return (
-        <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
-            {/* Darkened background with transparent scan region */}
-            <div className="absolute inset-0">
-                <div className="absolute inset-0 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.8)]" />
-                {CORNER_POSITIONS.map(({ position, rotation }, index) => (
-                    <PinkCorner key={index} className={`absolute ${position} ${rotation}`} />
-                ))}
-            </div>
-
-            {/* Supported payment methods and paste option */}
-            <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
-                <div className="mt-10 flex flex-wrap justify-center gap-2">
-                    {PAYMENT_METHODS.map((method) => (
-                        <PaymentMethodBadge
-                            key={method.name ?? 'evm'}
-                            src={method.src}
-                            alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
-                            name={method.name ?? t('qrScanner.paymentMethods.evmName')}
-                        />
+        <>
+            <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
+                {/* Darkened background with transparent scan region */}
+                <div className="absolute inset-0">
+                    <div className="absolute inset-0 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.8)]" />
+                    {CORNER_POSITIONS.map(({ position, rotation }, index) => (
+                        <PinkCorner key={index} className={`absolute ${position} ${rotation}`} />
                     ))}
                 </div>
-                <button
-                    onClick={onPaste}
-                    className="justify mx-auto mt-10 flex items-center gap-1.5 text-center text-white underline underline-offset-2"
-                >
-                    <Icon name="paste" fill="white" height={16} width={16} />
-                    <span className="text-sm">{t('qrScanner.clickToPaste')}</span>
-                </button>
-                {detectedAddress ? (
-                    <button
-                        onClick={onUseDetected}
-                        className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
-                    >
-                        <Icon name="wallet" fill="white" height={16} width={16} />
-                        <span className="text-sm font-semibold">{printableAddress(detectedAddress)}</span>
-                    </button>
-                ) : showPasteChip ? (
-                    <button
-                        onClick={onUsePasteChip}
-                        className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
-                    >
-                        <Icon name="wallet" fill="white" height={16} width={16} />
-                        <span className="text-sm font-semibold">{t('qrScanner.useCopiedAddress')}</span>
-                    </button>
-                ) : null}
+
+                {/* Supported payment methods. This row is pinned to the top of the
+                    viewport while the paste actions rise from the bottom, so on a short
+                    screen the two meet. Measured: the gap between them is
+                    `viewportHeight - 714` px with the clipboard chip showing, so below
+                    730px it drops under the 16px this layout keeps elsewhere — hide the
+                    row rather than let it collide. */}
+                <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
+                    <div className="mt-10 flex flex-wrap justify-center gap-2 [@media(max-height:729px)]:hidden">
+                        {PAYMENT_METHODS.map((method) => (
+                            <PaymentMethodBadge
+                                key={method.name ?? 'evm'}
+                                src={method.src}
+                                alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
+                                name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                            />
+                        ))}
+                    </div>
+                </div>
             </div>
-        </div>
+
+            {/* The paste link and clipboard chips sit a fixed gap above the My QR
+                drawer's collapsed peek, so no locale's text length and no screen
+                height can push them underneath it. They used to hang off the scan
+                square, which is pinned to the top of the viewport, while the peek
+                grows from the bottom — two coordinate systems that only lined up
+                on a tall screen in English. Tailwind cannot JIT an interpolated
+                arbitrary value, so the offset is an inline style. The strip is
+                full-width and transparent, so it is click-through except for the
+                actions themselves. */}
+            <div
+                className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
+                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
+            >
+                <div className="pointer-events-auto flex flex-col items-center">
+                    <PasteActions
+                        onPaste={onPaste}
+                        detectedAddress={detectedAddress}
+                        onUseDetected={onUseDetected}
+                        showPasteChip={showPasteChip}
+                        onUsePasteChip={onUsePasteChip}
+                    />
+                </div>
+            </div>
+        </>
     )
 }
 
-function ErrorView({ message, onClose }: { message: string; onClose: () => void }) {
+function ErrorView({
+    message,
+    onClose,
+    children,
+}: {
+    message: string
+    onClose: () => void
+    children?: React.ReactNode
+}) {
     const tCommon = useTranslations('common')
     return (
         <div className="p-4 text-center text-white">
@@ -172,6 +234,7 @@ function ErrorView({ message, onClose }: { message: string; onClose: () => void 
             <button onClick={onClose} className="mt-4 rounded bg-white px-4 py-2 text-black">
                 {tCommon('close')}
             </button>
+            {children}
         </div>
     )
 }
@@ -240,34 +303,34 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         try {
             await onScan(data)
         } catch (err) {
-            console.error('Error processing QR code:', err)
+            // console.info, not error: captureConsoleIntegration would turn an
+            // error-level log into a second Sentry event on top of the capture below.
+            console.info('Error processing QR code:', err)
+            reportQrScanError(err, data)
             toast.error(t('qrScanner.qrProcessingError'))
         }
     }
 
+    /*
+     * The iOS chip is a nudge, not a filter: hasStrings() reports only THAT the
+     * clipboard has text, never what it is. Extracting an EVM address here and
+     * rejecting everything else therefore turned the chip into a dead end for
+     * the payloads the scanner exists to accept — a pasted Pix copia-e-cola was
+     * refused as "not a wallet address". Hand the raw text to the same scan path
+     * as "Click to paste" and let recognizeQr decide.
+     */
     const handleUsePasteChip = async () => {
         const text = await readClipboardText()
         if (!text) {
             setShowPasteChip(false)
-            if (text === '') toast.error(t('qrScanner.clipboardEmpty'))
             return
         }
-        const address = extractPaymentValue(text, 'evmAddress')
-        if (!address) {
-            setShowPasteChip(false)
-            toast.error(t('qrScanner.pastedTextNotAnAddress'))
-            return
-        }
-        await scanValue(address)
+        await scanValue(text)
     }
 
     const handlePaste = async () => {
         const text = await readClipboardText()
-        if (text === null) return
-        if (!text) {
-            toast.error(t('qrScanner.clipboardEmpty'))
-            return
-        }
+        if (!text) return
         await scanValue(text)
     }
 
@@ -277,9 +340,25 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         <div className="qr-scanner-container fixed left-0 top-0 z-50 flex h-full w-full flex-col bg-black">
             {/* modal uses !z-[60] to appear above this z-50 scanner portal (Dialog portals to body) */}
             {isPermissionDenied ? (
-                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
+                /*
+                 * The camera states offer paste too, rather than dead-ending. Pasting a
+                 * Pix code needs no camera, but the paste UI lived only in the happy
+                 * path — so on native, where the OS camera grant is a sticky
+                 * per-install decision, declining it removed the app's only entry point
+                 * for a copied Pix code. The modal owns the whole screen here, so the
+                 * action has to sit inside it to be reachable.
+                 */
+                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} onPaste={handlePaste} />
             ) : error ? (
-                <ErrorView message={error} onClose={close} />
+                <ErrorView message={error} onClose={close}>
+                    <PasteActions
+                        onPaste={handlePaste}
+                        detectedAddress={detectedAddress}
+                        onUseDetected={() => scanValue(detectedAddress!)}
+                        showPasteChip={showPasteChip}
+                        onUsePasteChip={handleUsePasteChip}
+                    />
+                </ErrorView>
             ) : (
                 <>
                     <video

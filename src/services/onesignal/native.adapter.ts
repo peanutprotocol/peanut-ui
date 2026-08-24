@@ -1,7 +1,10 @@
-import OneSignal from '@onesignal/capacitor-plugin'
+import OneSignal, { LogLevel } from '@onesignal/capacitor-plugin'
 import { captureMessage } from '@sentry/nextjs'
+import posthog from 'posthog-js'
 import type { NotificationClickEvent, PushSubscriptionChangedState } from '@onesignal/capacitor-plugin'
 import type { NotificationClickInfo, NotificationPermissionState, OneSignalAdapter } from './types'
+import { isOneSignalDebug } from './debug'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 async function nativePermission(): Promise<NotificationPermissionState> {
     if (await OneSignal.Notifications.hasPermission()) return 'granted'
@@ -18,13 +21,59 @@ const clickListeners = new Set<(info: NotificationClickInfo) => void>()
 /**
  * Cold-start tap buffer. Capacitor retains the click event only until the first
  * JS listener attaches — which happens inside init() (attachUnderlyingListeners),
- * driven by useNotifications. useNativePlugins registers its routing callback on
+ * driven by useNotifications. useNativeAppLinks registers its routing callback on
  * a separate async path, so if init() wins that race the retained event would be
  * consumed with an empty listener set and the tap silently dropped. Hold the
  * last unconsumed click here and replay it to the next listener that registers.
  */
 let pendingClick: NotificationClickInfo | null = null
 let underlyingListenersAttached = false
+
+const snapshotTriggersFired = new Set<string>()
+
+/**
+ * Fleet-visibility snapshot for debugging push without OneSignal dashboard
+ * access: hasToken distinguishes "device never registered with FCM/APNs"
+ * from "registered but nothing delivered" (a dashboard-credentials problem),
+ * and linked shows whether login() attached the external_id pushes target.
+ * Captured once per session per trigger — ~10s after init (token registration
+ * and login are async) and again on the first subscription change (opt-in
+ * often lands after the init snapshot). Deliberately omits the raw token.
+ *
+ * This is a state fact, not a fault, so it goes to PostHog. Only a failure to
+ * read the state is an error worth Sentry.
+ */
+function captureSubscriptionSnapshot(trigger: string) {
+    if (snapshotTriggersFired.has(trigger)) return
+    snapshotTriggersFired.add(trigger)
+    void (async () => {
+        try {
+            const [subscriptionId, token, optedIn, onesignalId, externalId, permission] = await Promise.all([
+                OneSignal.User.pushSubscription.getIdAsync(),
+                OneSignal.User.pushSubscription.getTokenAsync(),
+                OneSignal.User.pushSubscription.getOptedInAsync(),
+                OneSignal.User.getOnesignalId(),
+                OneSignal.User.getExternalId(),
+                nativePermission(),
+            ])
+            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIPTION_SNAPSHOT, {
+                trigger,
+                permission,
+                has_token: !!token,
+                opted_in: optedIn,
+                linked: !!externalId,
+                subscription_id: subscriptionId,
+                onesignal_id: onesignalId,
+            })
+        } catch (err) {
+            captureMessage('onesignal subscription snapshot failed', {
+                level: 'warning',
+                tags: { feature: 'onesignal', onesignal: 'subscription-snapshot', 'onesignal.trigger': trigger },
+                extra: { error: String(err) },
+            })
+        }
+    })()
+}
 
 function attachUnderlyingListeners() {
     if (underlyingListenersAttached) return
@@ -36,6 +85,7 @@ function attachUnderlyingListeners() {
 
     OneSignal.User.pushSubscription.addEventListener('change', (event: PushSubscriptionChangedState) => {
         const optedIn = !!event.current?.optedIn
+        captureSubscriptionSnapshot('subscription-change')
         subscriptionListeners.forEach((cb) => cb(optedIn))
     })
 
@@ -65,8 +115,10 @@ export const nativeOneSignalAdapter: OneSignalAdapter = {
                 })
                 throw new Error('OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID is required')
             }
+            if (isOneSignalDebug()) OneSignal.Debug.setLogLevel(LogLevel.Verbose)
             await OneSignal.initialize(appId)
             attachUnderlyingListeners()
+            setTimeout(() => captureSubscriptionSnapshot('init'), 10_000)
         })()
         return initPromise
     },

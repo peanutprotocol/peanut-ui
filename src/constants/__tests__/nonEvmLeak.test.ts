@@ -31,7 +31,7 @@ jest.mock('@/config/wagmi.config', () => ({
 
 import { NON_EVM_WITHDRAW_CHAINS } from '../chainRegistry.consts'
 import { TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS } from '@/components/Global/TokenSelector/TokenSelector.consts'
-import { supportedPeanutChains } from '@/constants/general.consts'
+import { supportedPeanutChains } from '@/constants/token-registry.consts'
 
 describe('non-EVM synthetic records do not leak into non-withdraw surfaces', () => {
     const nonEvmIds = Object.keys(NON_EVM_WITHDRAW_CHAINS) // ['solana', 'tron']

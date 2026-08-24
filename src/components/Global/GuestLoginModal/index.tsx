@@ -25,8 +25,9 @@ const GuestLoginModal = () => {
                     onClick={() => {
                         handleLogin()
                             .then(closeModal)
-                            .catch((e) => {
-                                console.error(e)
+                            .catch(() => {
+                                // useZeroDev already reported the underlying failure;
+                                // console.error here would capture the wrapper again.
                                 toast.error(t('guestLoginModal.loginError'))
                             })
                     }}

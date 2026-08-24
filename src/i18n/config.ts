@@ -12,7 +12,6 @@ export const ROUTE_SLUGS = [
     'content',
     'receive-money-from',
     'pay-with',
-    'team',
     'press',
     'help',
     'use-cases',

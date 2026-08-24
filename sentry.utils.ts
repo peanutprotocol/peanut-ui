@@ -63,6 +63,11 @@ const IGNORED_ERRORS = {
         // which is always true on capacitor://localhost — it then proceeds and the
         // camera works. Pure noise on native (PEANUT-UI-R1M).
         'The camera stream is only accessible if the page is transferred via https',
+        // OneSignal's worker messenger console.errors this whenever it wants to
+        // talk to a service worker that isn't registered yet — on first load, and
+        // on every native launch where the SW never registers at all. It retries,
+        // and nothing user-visible depends on it.
+        '[WM] No SW registration for postMessage',
     ],
 }
 
@@ -81,6 +86,26 @@ function isTransientCapgoNoise(searchTexts: string[]): boolean {
     const fromCapgo = searchTexts.some((text) => CAPGO_LOG_PREFIXES.some((prefix) => text.includes(prefix)))
     if (!fromCapgo) return false
     return !searchTexts.some((text) => CAPGO_ACTIONABLE.some((pattern) => text.includes(pattern)))
+}
+
+/**
+ * OneSignal's op queue console.errors a failed operation with the whole op
+ * payload inlined, and that payload carries a per-device `onesignalId`. Since
+ * captureConsoleIntegration groups a stackless message event by its text, every
+ * device minted its OWN Sentry issue — unbounded issue creation for what is one
+ * failure mode.
+ *
+ * These are not dropped: push-subscription writes failing is worth watching
+ * (iOS push was silently dead for months on a mis-provisioned APNs key), so
+ * they collapse onto one issue per op name instead, where the rate is legible.
+ */
+const ONESIGNAL_OP_FAILURE = /^Op failed[^:]*:\s*\[?\s*\{\s*"name"\s*:\s*"([^"]+)"/
+
+function collapseNoisyFingerprint(event: ErrorEvent): void {
+    const opName = event.message?.match(ONESIGNAL_OP_FAILURE)?.[1]
+    if (opName) {
+        event.fingerprint = ['onesignal-op-failed', opName]
+    }
 }
 
 /**
@@ -377,6 +402,7 @@ export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
     if (shouldIgnoreError(event)) {
         return null
     }
+    collapseNoisyFingerprint(event)
     cleanSensitiveHeaders(event)
     return event
 }

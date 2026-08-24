@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo } from 'react'
-import { type Address, type Hash } from 'viem'
+import { type Address } from 'viem'
 import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
@@ -23,6 +23,7 @@ import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useTranslations } from 'next-intl'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 
 export function useContributePotFlow() {
     const t = useTranslations('payment')
@@ -205,11 +206,7 @@ export function useContributePotFlow() {
                     // then routed through the same trusted-completion path.
                     chargeId: chargeResult.uuid,
                 })
-                // For the collateral-only strategy useSpendBundle returns only
-                // `txHash` (Rain coordinator submits the on-chain tx; no UserOp
-                // hash + no receipt land here). Fall back to it so users with
-                // card collateral can pay without smart-account balance.
-                const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
+                const { hash } = resolveSettledTxHash(txResult, 'contribute-pot')
 
                 setTxHash(hash)
 

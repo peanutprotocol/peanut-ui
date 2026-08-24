@@ -55,13 +55,11 @@ jobs:
             - name: Validate sitemap, footer, and blog links
               run: pnpm validate-links
 
-    # Advisory ESLint pass. Allowed to fail without blocking merge while the
-    # codebase is brought up to baseline. Not in ci-success.needs so a red
-    # eslint job doesn't gate the PR. Promote to blocking once errors are at
-    # zero (or after team decides a warn floor).
+    # Blocking ESLint pass. In ci-success.needs, so a red eslint job blocks the
+    # PR. `pnpm lint` fails on errors only — the remaining warnings do not gate.
+    # Ratchet to a warn floor (`--max-warnings`) once that count is down.
     eslint:
         runs-on: ubuntu-latest
-        continue-on-error: true
         steps:
             - uses: actions/checkout@v4
               with:
@@ -177,6 +175,13 @@ jobs:
     # reachability are wired in repo settings (per the prior comment).
     e2e:
         runs-on: ubuntu-latest
+        # Without a cap a stalled step runs to the 6h default. "Install
+        # Playwright browsers" hung three times on 2026-08-18 (~30min each)
+        # while sibling runs cleared it in under two minutes. An unbounded hang
+        # is worse than a failure here: `ci-success` never reports, and
+        # content-publish-automerge merges on all-green-of-N, so N stays 0 and
+        # a content publish stalls with no error anywhere. Fail fast instead.
+        timeout-minutes: 20
         steps:
             - uses: actions/checkout@v4
               with:
@@ -192,8 +197,58 @@ jobs:
 
             - run: pnpm install --frozen-lockfile
 
+            # Cache the browser binaries — the download is the step that hangs,
+            # so the cheapest fix is to not do it on most runs. Keyed on the
+            # Playwright version, because browser builds are pinned to it.
+            - name: Resolve Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
             - name: Install Playwright browsers
+              if: steps.pw-cache.outputs.cache-hit != 'true'
+              timeout-minutes: 6
               run: npx playwright install --with-deps chromium
+
+            # The cache holds browsers, not the apt packages they link against,
+            # so system deps still need installing on a cache hit.
+            #
+            # `apt-get update` inside install-deps stalls intermittently on the
+            # runner's Azure mirrors: three consecutive 6-minute timeouts on
+            # 2026-08-19 (PR #2755), all of them ignoring
+            # azure.archive.ubuntu.com and then hanging on noble-security, while
+            # sibling runs minutes apart cleared the same step in seconds. The
+            # stall is transient, so retry with a per-attempt cap — one bad
+            # mirror then costs an attempt instead of the whole job — and drop
+            # to the canonical archive after the first failure. `timeout` owns
+            # the attempt's process group, so --kill-after reaps an apt child
+            # that ignores the SIGTERM it sends first. Still exits
+            # non-zero once the attempts are spent: a genuinely missing system
+            # library must stay a red job, not a silent one.
+            - name: Install Playwright system deps
+              if: steps.pw-cache.outputs.cache-hit == 'true'
+              timeout-minutes: 9
+              run: |
+                  for attempt in 1 2 3; do
+                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                          exit 0
+                      fi
+                      echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      sudo rm -rf /var/lib/apt/lists/partial/* || true
+                      if [ "${attempt}" = 1 ]; then
+                          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                      fi
+                      sleep 5
+                  done
+                  echo "::error::playwright install-deps failed after 3 attempts"
+                  exit 1
 
             - name: Run E2E tests
               run: pnpm test:e2e
@@ -373,6 +428,72 @@ jobs:
                           });
                       }
 
+    # Human-only authorship gate. Every commit on the PR must be authored by a
+    # repo collaborator's own GitHub account — no `*[bot]` authors (claude[bot],
+    # github-actions[bot], …) and no emails that GitHub cannot map to an
+    # account. Policy set 2026-08-24: AI is a tool, not an owner; every commit
+    # has a human who is accountable for it. Cloud coding sessions that commit
+    # as claude[bot] are exactly what this blocks. Content-publish PRs pass:
+    # update-content.yml authors and signs its commit as a human account.
+    #
+    # No allowlist to maintain: "has write access to this repo" IS the team
+    # roster, and GitHub org/repo access management keeps it current. The
+    # per-user permission endpoint works with the default GITHUB_TOKEN.
+    human-authors:
+        name: human-authors
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        # The workflow-level permissions block drops pull-requests, and the
+        # commit-listing endpoint 403s without it.
+        permissions:
+            pull-requests: read
+        steps:
+            - name: Verify every commit is authored by a team member
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const memberCache = new Map();
+                      async function hasWriteAccess(login) {
+                        if (memberCache.has(login)) return memberCache.get(login);
+                        let ok = false;
+                        try {
+                          const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            username: login,
+                          });
+                          ok = ['admin', 'maintain', 'write'].includes(data.permission);
+                        } catch (e) {
+                          ok = false;
+                        }
+                        memberCache.set(login, ok);
+                        return ok;
+                      }
+                      const commits = await github.paginate(github.rest.pulls.listCommits, {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: context.payload.pull_request.number,
+                        per_page: 100,
+                      });
+                      const bad = [];
+                      for (const c of commits) {
+                        const sha = c.sha.slice(0, 7);
+                        const login = c.author && c.author.login;
+                        const email = (c.commit.author && c.commit.author.email) || 'unknown';
+                        if (!login) {
+                          bad.push(`${sha}: author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`);
+                        } else if (login.endsWith('[bot]')) {
+                          bad.push(`${sha}: authored by ${login} — bot-authored commits are not allowed; commit as yourself`);
+                        } else if (!(await hasWriteAccess(login))) {
+                          bad.push(`${sha}: authored by ${login}, who has no write access to this repo`);
+                        }
+                      }
+                      if (bad.length) {
+                        core.setFailed(`Commits must be authored by a team member:\n${bad.join('\n')}`);
+                      } else {
+                        console.log(`✅ All ${commits.length} commits are authored by team members`);
+                      }
+
     # Single umbrella check that aggregates all required test/quality jobs.
     # Branch protection on `dev`/`main` requires only `ci-success` instead of
     # listing every individual job — keeps the ruleset stable as jobs are
@@ -384,7 +505,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, typecheck, unit, e2e, report]
+        needs: [format, eslint, typecheck, unit, e2e, report, human-authors]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -393,10 +514,12 @@ jobs:
                       echo "::error::One or more required jobs failed or were cancelled"
                       echo "Job results:"
                       echo "  format:    ${{ needs.format.result }}"
+                      echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  e2e:       ${{ needs.e2e.result }}"
                       echo "  report:    ${{ needs.report.result }}"
+                      echo "  human-authors: ${{ needs['human-authors'].result }}"
                       exit 1
                   fi
                   echo "✅ All required jobs passed"

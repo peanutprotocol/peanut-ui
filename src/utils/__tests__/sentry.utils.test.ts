@@ -3,6 +3,7 @@ import { RETRY_STRATEGIES } from '../retry.utils'
 import {
     CLIENT_FETCH_TIMEOUT_MS,
     SERVER_FETCH_TIMEOUT_MS,
+    TRANSPORT_TIMEOUT_RETRY_DELAY_MS,
     fetchWithSentry,
     resolveDefaultTimeoutMs,
     sanitizeRequestBody,
@@ -15,6 +16,11 @@ jest.mock('@sentry/nextjs', () => ({
     captureMessage: jest.fn(),
     captureException: jest.fn(),
 }))
+
+// sentry.utils reports through the lazy wrapper, which dynamically imports the
+// SDK. Its surface matches the mock above, so aliasing it keeps the calls
+// synchronous and the assertions below unchanged.
+jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
 
 jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
@@ -375,21 +381,24 @@ describe('fetch timeout budgets', () => {
         )
     })
 
-    // The client budget is per ATTEMPT, and React Query retries on top, so the
-    // real wait is timeout x attempts + backoff. Pinned here because the
-    // multiplier lives in another file: bump RETRY_STRATEGIES.FAST or the budget
-    // far enough and this fails instead of silently shipping a long spinner.
+    // The client budget is per transport attempt. GET/HEAD also get one local
+    // timeout retry before React Query retries, so account for both layers.
+    // Pinned here because the multiplier lives in another file: bump
+    // RETRY_STRATEGIES.FAST or the budget far enough and this fails instead of
+    // silently shipping a long spinner.
     // Bounds the DEFAULT strategy only — queries that set their own `retry`
     // (e.g. Claim.tsx) are not covered by this.
-    it('keeps the worst case under 70s for the default retry strategy', () => {
+    it('models the bounded worst case for the default retry strategy', () => {
         const { retry, retryDelay } = RETRY_STRATEGIES.FAST
         const attempts = retry + 1
         const backoff = Array.from({ length: retry }, (_, i) => retryDelay(i)).reduce((a, b) => a + b, 0)
+        const transportAttempts = 2
+        const transportBackoff = (transportAttempts - 1) * TRANSPORT_TIMEOUT_RETRY_DELAY_MS
 
-        const worstCaseMs = attempts * CLIENT_FETCH_TIMEOUT_MS + backoff
+        const worstCaseMs = attempts * (transportAttempts * CLIENT_FETCH_TIMEOUT_MS + transportBackoff) + backoff
 
-        expect(worstCaseMs).toBe(63_000)
-        expect(worstCaseMs).toBeLessThan(70_000)
+        expect(worstCaseMs).toBe(123_900)
+        expect(worstCaseMs).toBeLessThan(125_000)
     })
 
     describe('fetchWithSentry timeout resolution', () => {

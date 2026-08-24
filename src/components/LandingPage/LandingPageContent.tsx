@@ -1,10 +1,14 @@
 import { Suspense } from 'react'
 import { LandingPageClient } from './LandingPageClient'
+import { FAQs } from './faq'
+import { SupportedRailsFaqAnswer } from './SupportedRailsFaqAnswer'
+import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import Manteca from './Manteca'
 import { RegulatedRails } from './RegulatedRails'
 import { YourMoney } from './yourMoney'
 import { SecurityBuiltIn } from './securityBuiltIn'
 import { SendInSeconds } from './sendInSeconds'
+import { ProblemFold } from './ProblemFold'
 import Footer from './Footer'
 import { faqSchema } from '@/lib/seo/schemas'
 import { singletonLocaleFor } from '@/lib/content'
@@ -14,11 +18,40 @@ import { getTranslations } from '@/i18n'
 import { landingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
 
+// Blue, not Manteca's default cream: on the homepage it follows RegulatedRails,
+// which is cream already.
+const MANTECA_BG_COLOR = '#90A8ED'
+
 // Shared body of the landing page, rendered by / (en) and by each per-locale
 // landing route. Reads the filesystem via getLandingContent, so this must stay
 // a server component.
 export function LandingPageContent({ locale }: { locale: Locale }) {
     const { heroConfig, faqData, marqueeMessages } = getLandingContent(locale)
+    const strings = landingStrings(getTranslations(locale))
+
+    /*
+     * The FAQ is static copy, so it is assembled here and passed in as a slot
+     * rather than built inside the client component.
+     *
+     * Only some answers have a single article worth linking: the first has no
+     * one article behind it, and the second already links the help centre in its
+     * own answer.
+     */
+    const learnMoreHrefs: Record<string, string> = {
+        '1': `/${locale}/help/what-are-digital-dollars`,
+        '2': `/${locale}/help/verification`,
+        '3': `/${locale}/help/passkeys`,
+        '4': `/${locale}/help/security-custody`,
+        '5': `/${locale}/help/fees-pricing`,
+        [SUPPORTED_RAILS_FAQ_ID]: `/${locale}/help/supported-geographies`,
+    }
+    const faqQuestions = faqData.questions.map((question) => ({
+        ...question,
+        ...(question.id === SUPPORTED_RAILS_FAQ_ID
+            ? { answerContent: <SupportedRailsFaqAnswer strings={strings.supportedRails} /> }
+            : {}),
+        ...(learnMoreHrefs[question.id] ? { learnMoreHref: learnMoreHrefs[question.id] } : {}),
+    }))
     // inLanguage reflects the language the FAQ prose actually resolved to —
     // until mono ships landing translations, that's English on every locale.
     const faqJsonLd = faqSchema(
@@ -35,16 +68,24 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
             <Suspense>
                 <LandingPageClient
                     heroConfig={heroConfig}
-                    faqData={faqData}
                     marqueeMessages={marqueeMessages}
                     locale={locale}
-                    strings={landingStrings(getTranslations(locale))}
-                    mantecaSlot={<Manteca locale={locale} />}
+                    strings={strings}
+                    problemSlot={<ProblemFold strings={strings} />}
+                    mantecaSlot={<Manteca locale={locale} backgroundColor={MANTECA_BG_COLOR} />}
                     regulatedRailsSlot={<RegulatedRails locale={locale} />}
                     yourMoneySlot={<YourMoney locale={locale} />}
                     securitySlot={<SecurityBuiltIn locale={locale} />}
                     sendInSecondsSlot={<SendInSeconds locale={locale} />}
                     footerSlot={<Footer locale={locale} />}
+                    faqSlot={
+                        <FAQs
+                            heading={faqData.heading}
+                            questions={faqQuestions}
+                            learnMoreLabel={strings.learnMore}
+                            marquee={faqData.marquee}
+                        />
+                    }
                 />
             </Suspense>
         </div>

@@ -47,7 +47,10 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 }
             }}
         >
-            <DrawerContent className={`py-5 ${isModalOpen ? '!z-[10]' : ''}`}>
+            {/* No z-index shuffle for the cancel confirmation any more: it is a vaul
+                NestedRoot now, so vaul stacks it above this drawer and scales this one
+                back on its own. */}
+            <DrawerContent className="py-5">
                 <DrawerTitle className="sr-only">{t('drawerTitle')}</DrawerTitle>
                 <TransactionDetailsReceipt
                     isLoading={isLoading}

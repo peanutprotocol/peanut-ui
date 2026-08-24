@@ -1,23 +1,13 @@
 import posthog from 'posthog-js'
-import * as Sentry from '@sentry/nextjs'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
-import { getIOSMajorVersion } from '@/utils/webkit.utils'
+import { withoutBrowserTracing } from '@/utils/sentry-integrations'
+import { whenIdle } from '@/utils/defer-analytics'
 
-// rrweb session replay serializes the DOM on every mutation — too heavy for low-end
-// WebViews. iOS WebKit has no deviceMemory, so gate on OS version there: iOS 17
-// requires A12+, which handles rrweb fine; anything stuck below is A11 or older.
-// On Android, deviceMemory (GB) is Chromium-only and often absent on cheap devices;
-// treat "unknown" as low-end and skip, to protect the weakest ones.
-function nativeReplayEnabled(): boolean {
-    if (typeof navigator === 'undefined') return false
-    const iosVersion = getIOSMajorVersion()
-    if (iosVersion !== null) return iosVersion >= 17
-    const nav = navigator as Navigator & { deviceMemory?: number }
-    return (nav.deviceMemory ?? 0) >= 4 && (nav.hardwareConcurrency ?? 0) >= 6
-}
+// NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
+const PERF_BARE = process.env.NEXT_PUBLIC_PERF_BARE === 'true'
 
-if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !PERF_BARE) {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
 
@@ -31,11 +21,40 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
         person_profiles: 'identified_only',
         capture_pageview: true,
         capture_pageleave: true,
-        autocapture: true,
-        // Leave replay sampling to the PostHog project settings (unchanged). Only extra
-        // gate: on native, skip low-end WebViews where rrweb serialization causes jank.
-        disable_session_recording: isNativeBuild && !nativeReplayEnabled(),
+        // autocapture walks the DOM ancestor chain on every tap, which costs frames
+        // in the in-app WebView renderer for data that 220+ explicit
+        // posthog.capture calls already cover. Native keeps the explicit events only.
+        autocapture: !isNativeBuild,
+        /*
+         * Session recording is ON everywhere, native included, as a deliberate
+         * trial from 1.0.48.
+         *
+         * It starts at `whenIdle` rather than at init: rrweb's recorder is a
+         * separate ~183 KB script whose load and first full-DOM snapshot landed
+         * in the middle of page load, and on the landing page that is the single
+         * largest blocking cost after the framework itself. Recording still
+         * covers every session — it begins a beat later, so the opening moment
+         * of a replay is not captured.
+         *
+         * It was disabled on native in 1.0.45 on the theory that rrweb's
+         * per-mutation DOM serialization was the jank users reported. That was
+         * never isolated: 1.0.45 also made pull-to-refresh listeners passive
+         * (the whole app's touch handling), dropped Sentry BrowserTracing and
+         * the data-sentry-* DOM annotations, and moved confetti off the main
+         * thread — so the improvement has at least four candidate causes and
+         * replay may not be the main one.
+         *
+         * Since then the amplifier that made rrweb worst on native is gone:
+         * useStaleDeploymentReload now bounds the document to 12h, so the node
+         * mirror and event buffers no longer grow across a document that lived
+         * for days. If this build does regress, full_snapshot_interval_millis
+         * (default 5 minutes of full-DOM re-serialization) is the first knob to
+         * reach for, before switching recording off again.
+         */
+        disable_session_recording: true,
     })
+
+    whenIdle(() => posthog.startSessionRecording())
 
     // expose the instance like the official snippet does — console access for
     // QA (feature-flag overrides, e.g. pwa-sunset preview testing) and support
@@ -47,23 +66,51 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
     // export runs neither withSentryConfig nor a server for that tunnel, so
     // without this it reports nothing — init here and post straight to the DSN.
     if (isNativeBuild && process.env.NEXT_PUBLIC_SENTRY_DSN) {
-        Sentry.init({
-            dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-            environment: inferSentryEnvironment(),
-            release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH,
-            // Errors captured at 100% (sampleRate stated explicitly for intent);
-            // traces sampled at 10% to match the web and keep transaction volume
-            // down. Mirror web by also capturing console.warn.
-            sampleRate: 1.0,
-            tracesSampleRate: 0.1,
-            beforeSend: beforeSendHandler,
-            // A WebView that can't reach the bundler can't reach ingest either,
-            // so the report of the failure died with the session. The offline
-            // transport parks undeliverable envelopes in IndexedDB and flushes
-            // them on a later launch — the failures worth reading are exactly
-            // the ones that happen while the network is misbehaving.
-            transport: Sentry.makeBrowserOfflineTransport(Sentry.makeFetchTransport),
-            integrations: [Sentry.captureConsoleIntegration({ levels: ['error', 'warn'] })],
+        /*
+         * Imported here rather than at module scope: this file is loaded on every
+         * page, and a static import put the ~440 KB SDK in the web bundle too —
+         * where it was parsed and evaluated (~1.7s of CPU on the landing page)
+         * for a branch that only ever runs in the Capacitor build.
+         */
+        void import('@sentry/nextjs').then((Sentry) => {
+            Sentry.init({
+                dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+                environment: inferSentryEnvironment(),
+                release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH,
+                // Errors captured at 100%; tracing fully off on native — BrowserTracing
+                // wraps fetch/XHR, patches history and runs PerformanceObservers in every
+                // session regardless of tracesSampleRate (sampling only gates sending),
+                // and that instrumentation overhead is visible jank in the WebView.
+                sampleRate: 1.0,
+                tracesSampleRate: 0,
+                beforeSend: beforeSendHandler,
+                // A WebView that can't reach the bundler can't reach ingest either,
+                // so the report of the failure died with the session. The offline
+                // transport parks undeliverable envelopes in IndexedDB and flushes
+                // them on a later launch — the failures worth reading are exactly
+                // the ones that happen while the network is misbehaving.
+                transport: Sentry.makeBrowserOfflineTransport(Sentry.makeFetchTransport),
+                integrations: (defaults) => [
+                    ...withoutBrowserTracing(defaults),
+                    Sentry.captureConsoleIntegration({ levels: ['error'] }),
+                ],
+            })
+
+            /*
+             * `release` above is the JS bundle's commit — with OTA updates it can differ
+             * from the installed binary, which made PEANUT-UI-R5F look like it came from
+             * a build it didn't. Tag the binary identity on every event so the skew is
+             * always visible; swControlled flags a stale pre-2026-04 service worker
+             * still intercepting requests inside the WebView.
+             */
+            Sentry.setTag('swControlled', String(!!navigator.serviceWorker?.controller))
+            import('@capacitor/app')
+                .then(({ App }) => App.getInfo())
+                .then((info) => {
+                    Sentry.setTag('binaryVersion', info.version)
+                    Sentry.setTag('binaryBuild', info.build)
+                })
+                .catch(() => {})
         })
     }
 

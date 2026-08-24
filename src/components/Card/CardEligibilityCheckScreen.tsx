@@ -22,7 +22,7 @@ import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import { getShakeClass } from '@/utils/perk.utils'
 import type { ShakeIntensity } from '@/hooks/useHoldToClaim'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -35,7 +35,7 @@ interface Props {
 
 const CardEligibilityCheckScreen: FC<Props> = ({ onComplete, onPrev, username }) => {
     const t = useTranslations('card')
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
     const [shake, setShake] = useState<{ on: boolean; intensity: ShakeIntensity }>({
         on: false,
         intensity: 'none',

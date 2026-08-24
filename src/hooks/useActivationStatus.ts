@@ -25,7 +25,12 @@ interface ActivationStatus {
     dismissCardStep: () => void
 }
 
-const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed'
+// v2 (2026-08-20): rotated when the card step moved AFTER deposit. The v1
+// flag was written by users dismissing the mis-timed PRE-deposit banner —
+// exactly the funded card-eligible cohort this change re-targets — so
+// honoring it would permanently suppress the step for the people it is for.
+// Worst case of the rotation: one extra "Maybe later".
+const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed_v2'
 
 /**
  * derives the user's activation status for gating rewards/referral UI.
@@ -36,9 +41,10 @@ const CARD_DISMISSED_STORAGE_KEY = 'peanut_card_activation_dismissed'
  * count; the BE computes `isActivated`/`activationMilestone` on /users/me and
  * this hook just consumes them, so it inherits the definition automatically)
  *
- * The `card` step only appears when the user is eligible for a Rain card
- * (hasCardAccess) but doesn't have an active one yet, and hasn't dismissed
- * it via "Maybe later". Otherwise the funnel skips straight to the spend step
+ * The `card` step only appears when the user is FUNDED (or already activated),
+ * eligible for a Rain card (hasCardAccess), doesn't hold an active one yet,
+ * and hasn't dismissed it via "Maybe later" — card comes after deposit, never
+ * before verify/deposit. Otherwise the funnel goes to the spend step
  * (`outbound` — step id kept for continuity, it now means "make your first spend").
  *
  * if the BE omits isActivated (bug/outage), falls back to false so gated UI
@@ -105,29 +111,38 @@ export function useActivationStatus(): ActivationStatus {
             }
         }
 
-        // Card takes priority for eligible users. An eligible user is one who
-        // holds a skip badge (e.g. WAITLIST_SKIP) or an explicit admin grant —
-        // both collapse into `cardInfo.hasCardAccess` on the BE, so gating here
-        // IS gating on the badge. If they don't yet hold a card and haven't
-        // dismissed the nudge, steer them straight to the card step (→ /card),
-        // overriding verify/deposit/outbound.
+        // Card surfaces for eligible users — AFTER money is in. An eligible
+        // user holds a skip badge (e.g. WAITLIST_SKIP) or an explicit admin
+        // grant — both collapse into `cardInfo.hasCardAccess` on the BE, so
+        // gating here IS gating on the badge.
         //
-        // Why this beats the old "insert between deposit and outbound" rule:
-        // the /card flow runs KYC on the `rain-requirements` Sumsub level,
-        // which does NOT send a regionIntent and does NOT enroll Bridge bank
-        // rails. The verify step instead routes to the region picker, where an
-        // EU/NA user gets `bridge-requirements` + auto-enrolled Bridge rails —
-        // the source of the "blocked by Bridge / proof of address" detours for
-        // users who only ever wanted a card. Surfacing card first keeps them
-        // off that path. Also fires for already-activated users who simply
-        // never took the card (the funnel would otherwise be `completed`).
+        // The funnel trunk is verify → deposit → card → first spend (decided
+        // 2026-07-13, regressed by the global card-first override of #2262,
+        // reaffirmed 2026-08-20): an unfunded user who is steered to the card
+        // first mints plastic with nothing to spend — the Brazil campaign
+        // cohort showed ~1% activation on that path. So the card step only
+        // replaces `outbound`/`completed` (funded states); `verify` and
+        // `deposit` keep the trunk.
+        //
+        // The #2262 problem this must not fully resurrect — the Bridge/
+        // region-picker KYC detour for card-only EU/NA users — is mitigated
+        // (not guaranteed) by two best-effort guards: UnlockedRegions
+        // redirects hasCardAccess users to /card before Bridge KYC starts
+        // (skipped while its card queries are still loading), and /add-money
+        // offers the KYC-free crypto path first (its bank rows still reach
+        // Bridge KYC). Residual exposure equals the pre-#2262 baseline; the
+        // full fix is the single-resolver consolidation (TASK-20837). The
+        // `completed` arm is belt-and-braces only: no shipped surface renders
+        // ActivationCTAs for an isActivated user (home swaps to the carousel),
+        // so it can only matter in the isActivated=false + milestone-lag edge.
         const hasCardAccess = cardInfo?.hasCardAccess ?? false
         const hasCard = !!findActiveCard(overview)
-        // The in-app card CTA is delay-gated for launch (see disableCardLaunchCTA):
-        // muted now, flipped on a few days post-launch. While muted, badge/access
-        // users fall through to the normal verify → deposit → outbound funnel;
-        // /card itself stays reachable (door, waitlist pill, direct link).
-        if (hasCardAccess && !hasCard && !cardDismissed && !underMaintenanceConfig.disableCardLaunchCTA) {
+        // Funded = the BE milestone says so, OR the live chain balance is
+        // positive — a user whose inbound is still mid-poller (milestone stuck
+        // at 'verified') has real money and must not be told "add money"
+        // while the card step is withheld.
+        const isFunded = activationStep === 'outbound' || activationStep === 'completed' || hasBalance
+        if (isFunded && hasCardAccess && !hasCard && !cardDismissed && !underMaintenanceConfig.disableCardLaunchCTA) {
             activationStep = 'card'
         }
 

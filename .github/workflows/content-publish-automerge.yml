@@ -9,8 +9,8 @@ name: Content publish auto-merge
 # content publish PR is a single `src/content` gitlink bump: safe by inspection
 # and shouldn't need a second human. This workflow supplies the approval ONLY
 # when the diff is exactly that pointer, so the review requirement stays fully
-# in force for real code. eslint is already advisory (not in `ci-success`), so
-# "green tests" here means the real test/typecheck/build jobs, not lint.
+# in force for real code. eslint is in `ci-success`, so "green tests" here
+# includes lint — a lint error on `main` stalls content publishes too.
 #
 # TWO PATHS TO MERGE, because the approver can't always approve:
 #
@@ -49,6 +49,14 @@ permissions:
 
 jobs:
     approve-and-merge:
+        # Read CONTENT_BOT_TOKEN from the `content-publish` environment, whose
+        # deployment branch policy allows `main` only. The token is an org admin
+        # (it needs the bypass to merge), and a dozen workflows in this repo carry
+        # `workflow_dispatch`, which runs a workflow FROM THE DISPATCHED REF. As a
+        # plain repo secret it was therefore readable by anyone with write access:
+        # push a branch with a workflow that echoes it, dispatch that branch, done.
+        # Scoped to the environment it is unreachable from any ref but `main`.
+        environment: content-publish
         # Same-repo PRs only — never a fork.
         if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
@@ -94,6 +102,14 @@ jobs:
                   fi
 
     merge-on-green:
+        # Read CONTENT_BOT_TOKEN from the `content-publish` environment, whose
+        # deployment branch policy allows `main` only. The token is an org admin
+        # (it needs the bypass to merge), and a dozen workflows in this repo carry
+        # `workflow_dispatch`, which runs a workflow FROM THE DISPATCHED REF. As a
+        # plain repo secret it was therefore readable by anyone with write access:
+        # push a branch with a workflow that echoes it, dispatch that branch, done.
+        # Scoped to the environment it is unreachable from any ref but `main`.
+        environment: content-publish
         # Self-approval fallback. Fires when `Tests` finishes for any commit; the
         # job itself works out whether there's a content publish to merge.
         if: github.event_name == 'workflow_run'
@@ -115,10 +131,8 @@ jobs:
 
                   # Key off the `ci-success` check run, NOT `workflow_run.conclusion`.
                   # `ci-success` is the single check the "Protect Prod" ruleset gates
-                  # on; the run conclusion also folds in advisory jobs. Today eslint is
-                  # `continue-on-error: true` so it happens not to move the conclusion —
-                  # but that's an eslint config detail, not a guarantee. Gate on exactly
-                  # what the ruleset gates on.
+                  # on; the run conclusion also folds in advisory jobs (e2e). Gate on
+                  # exactly what the ruleset gates on.
                   #
                   # `Tests` runs on both `push` and `pull_request`, so a commit usually
                   # carries TWO ci-success check runs. Require at least one and ALL of

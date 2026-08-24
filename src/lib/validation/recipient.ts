@@ -31,7 +31,7 @@ export async function validateAndResolveRecipient(
     const recipientType = getRecipientType(recipient, isWithdrawal)
 
     switch (recipientType) {
-        case 'ENS':
+        case 'ENS': {
             // resolve the ENS name to address
             const resolvedAddress = await resolveEns(recipient, chainId)
             if (!resolvedAddress) {
@@ -42,6 +42,7 @@ export async function validateAndResolveRecipient(
                 recipientType,
                 resolvedAddress,
             }
+        }
 
         case 'ADDRESS':
             if (!isAddress(recipient)) {

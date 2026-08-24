@@ -1,4 +1,4 @@
-import { toInviteCode } from '@/utils/general.utils'
+import { toInviteCode } from '@/utils/invite-code.utils'
 import { isCapacitor } from '@/utils/capacitor'
 
 export const DEMO_INVITE_CODE = 'demo'

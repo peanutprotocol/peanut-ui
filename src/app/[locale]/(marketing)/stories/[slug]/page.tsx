@@ -19,7 +19,8 @@ interface PageProps {
     params: Promise<{ locale: string; slug: string }>
 }
 
-const STORY_SLUGS = listPublishedSlugs('stories')
+// 'index' is the legacy stories/index/ directory — the hub at /stories owns that URL space.
+const STORY_SLUGS = listPublishedSlugs('stories').filter((slug) => slug !== 'index')
 
 export async function generateStaticParams() {
     return SUPPORTED_LOCALES.flatMap((locale) => STORY_SLUGS.map((slug) => ({ locale, slug })))

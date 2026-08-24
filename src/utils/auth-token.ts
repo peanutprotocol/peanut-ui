@@ -75,15 +75,22 @@ function releaseReadyGate(): void {
     readyGate = null
 }
 
+/*
+ * Resolves with the plugin wrapped in an object, never with the plugin itself:
+ * awaiting a value probes its .then, and Capacitor's plugin proxy turns that
+ * probe into a "Preferences.then()" plugin call that rejects on every
+ * platform — which silently broke all Preferences reads (the stored session
+ * looked absent on cold start).
+ */
 async function getPreferences() {
     const { Preferences } = await import('@capacitor/preferences')
-    return Preferences
+    return { Preferences }
 }
 
 async function detectSessionMode(): Promise<SessionMode> {
     if (guardedModeEnabled()) {
         try {
-            const Preferences = await getPreferences()
+            const { Preferences } = await getPreferences()
             const marker = await Preferences.get({ key: GUARDED_MARKER_KEY })
             if (marker.value) return 'guarded'
         } catch {
@@ -93,7 +100,7 @@ async function detectSessionMode(): Promise<SessionMode> {
         }
     }
     try {
-        const Preferences = await getPreferences()
+        const { Preferences } = await getPreferences()
         const { value } = await Preferences.get({ key: JWT_STORAGE_KEY })
         if (value) return 'plain'
     } catch {}
@@ -117,7 +124,7 @@ export function getSessionMode(): Promise<SessionMode> {
 
 async function hydrateFromPreferences(): Promise<void> {
     try {
-        const Preferences = await getPreferences()
+        const { Preferences } = await getPreferences()
         const { value } = await Preferences.get({ key: JWT_STORAGE_KEY })
         // a login that raced hydration is fresher than the stored value
         if (value && nativeToken === null) nativeToken = value
@@ -125,6 +132,26 @@ async function hydrateFromPreferences(): Promise<void> {
         // plugin missing (older binary running OTA'd JS) — those builds still
         // authenticate via the CapacitorHttp cookie jar, so this is benign.
     }
+    if (nativeToken !== null) return
+    // Legacy cookie-auth sessions (created by older binaries before header auth)
+    // hold the JWT only in the CapacitorHttp cookie jar, never in Preferences.
+    // Mirror it into the in-memory cache so getAuthHeaders() attaches the
+    // Authorization header on EVERY request. Without this, header-only requests
+    // that can't fall back to the cookie jar go out unauthenticated: notably
+    // POSTs like /manteca/qr-payment/init 400 with "authorization required",
+    // while GETs still work via the native-http cookie fallback — a confusing
+    // split that surfaced as "cannot pay through QR" (PEANUT-UI-R44 cohort).
+    // iOS-only in practice: Android's CapacitorCookies.getCookies evals
+    // document.cookie and ignores its url param, so the api-domain cookie is
+    // unreadable there — those sessions ride the OS HTTP client instead
+    // (preferNativeTransport in api-fetch) until the sliding refresh migrates
+    // them to Preferences.
+    try {
+        const { CapacitorCookies } = await import('@capacitor/core')
+        const cookies = await CapacitorCookies.getCookies({ url: PEANUT_API_URL })
+        const cookieToken = cookies?.[JWT_COOKIE_KEY]
+        if (cookieToken) nativeToken = cookieToken
+    } catch {}
 }
 
 /**
@@ -171,7 +198,7 @@ export async function unlockGuardedToken(reason: string): Promise<UnlockResult> 
         if (error instanceof GuardedStoreError && error.reason === 'not-found') {
             let plainToken: string | null = null
             try {
-                const Preferences = await getPreferences()
+                const { Preferences } = await getPreferences()
                 plainToken = (await Preferences.get({ key: JWT_STORAGE_KEY })).value ?? null
                 await Preferences.remove({ key: GUARDED_MARKER_KEY })
             } catch {}
@@ -218,7 +245,7 @@ export async function migratePlainToGuarded(): Promise<void> {
     if (!(await isBiometryEnrolled())) return
     try {
         await guardedWrite(token)
-        const Preferences = await getPreferences()
+        const { Preferences } = await getPreferences()
         await Preferences.set({ key: GUARDED_MARKER_KEY, value: '1' })
         sessionMode = Promise.resolve('guarded')
     } catch {
@@ -230,7 +257,7 @@ export async function migratePlainToGuarded(): Promise<void> {
 // after a guarded read has proven the Keychain/Keystore copy is retrievable.
 async function finishGuardedMigration(): Promise<void> {
     try {
-        const Preferences = await getPreferences()
+        const { Preferences } = await getPreferences()
         await Preferences.remove({ key: JWT_STORAGE_KEY })
         localStorage.removeItem(JWT_STORAGE_KEY)
     } catch {}
@@ -268,7 +295,7 @@ async function persistNativeToken(token: string): Promise<void> {
     if (guardedModeEnabled() && canWriteSilently() && (await isBiometryEnrolled())) {
         try {
             await guardedWrite(token)
-            const Preferences = await getPreferences()
+            const { Preferences } = await getPreferences()
             await Preferences.set({ key: GUARDED_MARKER_KEY, value: '1' })
             sessionMode = Promise.resolve('guarded')
             // an existing plain copy is kept until the next unlock round-trip
@@ -277,7 +304,7 @@ async function persistNativeToken(token: string): Promise<void> {
         } catch {}
     }
     try {
-        const Preferences = await getPreferences()
+        const { Preferences } = await getPreferences()
         await Preferences.set({ key: JWT_STORAGE_KEY, value: token })
     } catch {}
 }
@@ -338,7 +365,7 @@ export async function hasNativeSession(): Promise<boolean> {
     if (!isCapacitor()) return false
     if (nativeToken) return true
     try {
-        const Preferences = await getPreferences()
+        const { Preferences } = await getPreferences()
         if (guardedModeEnabled() && (await Preferences.get({ key: GUARDED_MARKER_KEY })).value) return true
         if ((await Preferences.get({ key: JWT_STORAGE_KEY })).value) return true
     } catch {}
@@ -372,7 +399,7 @@ export function clearAuthToken(): Promise<void> {
         setLockState('unlocked')
         localStorage.removeItem(JWT_STORAGE_KEY)
         const prefsClear = getPreferences()
-            .then((Preferences) =>
+            .then(({ Preferences }) =>
                 Promise.all([
                     Preferences.remove({ key: JWT_STORAGE_KEY }),
                     Preferences.remove({ key: GUARDED_MARKER_KEY }),

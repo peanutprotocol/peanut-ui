@@ -88,13 +88,16 @@ export interface SpecStage {
 }
 
 export interface SpecRules {
-    step1AfterDays: number
-    step2AfterDays: number
+    /** Per-step delay from the stage anchor, by index (lifecycle v2 — stages have 2 or 3 steps). */
+    stepAfterDays: number[]
     governorDays: number
     freshnessDays: number
+    /** Weeks-worth of silence (in days) before a formerly-transacting user is win_back-eligible. */
+    dormancyDays: number
     holdoutFraction: number
     sendWindowUtc: { startHour: number; endHour: number }
     maxSendsPerCycle: number
+    maxSendsPerDay: number
 }
 
 export interface SpecPushReminder {

@@ -5,7 +5,7 @@ import ShareButton from '@/components/Global/ShareButton'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
 
@@ -24,7 +24,7 @@ interface InviteFriendsModalProps {
  * Used in: CardSuccessScreen, Profile, PointsPage
  */
 export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
-    const t = useTranslations('global')
+    const t = useAppTranslations('global')
     const { inviteLink } = generateInviteCodeLink(username)
 
     const hasTrackedShow = useRef(false)

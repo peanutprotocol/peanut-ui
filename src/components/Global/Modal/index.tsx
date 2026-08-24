@@ -81,7 +81,10 @@ const Modal = ({
                 >
                     <DialogPanel
                         className={twMerge(
-                            `relative bottom-0 z-10 mx-0 max-h-[] w-full max-w-[26rem] self-end rounded-md border-0 bg-white outline-none dark:bg-n-1 sm:m-auto sm:self-auto ${
+                            // transform-gpu + will-change promote the panel to its own
+                            // compositor layer up front, so the scale/opacity enter tween
+                            // doesn't hitch on first-frame rasterization (Android WebView)
+                            `relative bottom-0 z-10 mx-0 w-full max-w-[26rem] transform-gpu self-end rounded-md border-0 bg-white outline-none will-change-transform dark:bg-n-1 sm:m-auto sm:self-auto ${
                                 video
                                     ? 'static aspect-video max-w-[64rem] overflow-hidden bg-n-1 shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
                                     : ''

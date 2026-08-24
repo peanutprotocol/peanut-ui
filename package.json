@@ -1,6 +1,6 @@
 {
     "name": "peanut-ui",
-    "version": "1.0.8",
+    "version": "1.0.53",
     "private": true,
     "packageManager": "pnpm@10.30.1",
     "engines": {
@@ -45,9 +45,10 @@
         "native:build": "node scripts/native-build.js",
         "native:sync": "pnpm exec cap sync android",
         "native:release": "bash scripts/native-release.sh",
-        "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel development --path ./out",
-        "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel staging --path ./out",
-        "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit"
+        "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel development --path ./out --bundle \"$(node scripts/capgo-bundle-version.mjs)\"",
+        "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel staging --path ./out --bundle \"$(node scripts/capgo-bundle-version.mjs)\"",
+        "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit",
+        "generate:marketing-messages": "node scripts/generate-marketing-messages.js"
     },
     "dependencies": {
         "@capacitor/android": "8.2.0",
@@ -113,7 +114,6 @@
         "pix-utils": "^2.8.2",
         "posthog-js": "^1.360.0",
         "posthog-node": "5.29.2",
-        "pulltorefreshjs": "^0.1.22",
         "qr-scanner": "^1.4.2",
         "react": "^19.2.1",
         "react-dom": "^19.2.1",
@@ -149,7 +149,6 @@
         "@types/jest": "^29.5.12",
         "@types/js-cookie": "^3.0.6",
         "@types/node": "20.4.2",
-        "@types/pulltorefreshjs": "^0.1.7",
         "@types/react": "^18.3.12",
         "@types/react-dom": "^18.3.1",
         "@types/validator": "^13.12.2",
@@ -204,7 +203,6 @@
             "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",
             "^@/config/wagmi\\.config$": "<rootDir>/src/utils/__mocks__/wagmi-config.ts",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
-            "^@justaname\\.id/react$": "<rootDir>/src/utils/__mocks__/justaname.ts",
             "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
             "^@zerodev/sdk(.*)$": "<rootDir>/src/utils/__mocks__/zerodev-sdk.ts",
             "^@simplewebauthn/browser$": "<rootDir>/src/utils/__mocks__/simplewebauthn-browser.ts",

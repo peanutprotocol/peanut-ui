@@ -1,16 +1,32 @@
 package me.peanut.wallet;
 
 import android.os.Bundle;
+import android.provider.Settings;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 
-import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Bridge;
+import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebViewClient;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 
 public class MainActivity extends BridgeActivity {
+
+    private void maybeSentryTestCrash() {
+        if (getIntent() == null || !getIntent().getBooleanExtra("sentry_test_crash", false)) return;
+        if (getReferrer() != null) return; // app-to-app starts always carry a referrer; adb doesn't
+        boolean adbOn = Settings.Global.getInt(getContentResolver(), Settings.Global.ADB_ENABLED, 0) == 1
+                || Settings.Global.getInt(getContentResolver(), "adb_wifi_enabled", 0) == 1;
+        if (!adbOn) return;
+        android.content.SharedPreferences prefs = getSharedPreferences("sentry_test_crash", MODE_PRIVATE);
+        if (prefs.getBoolean("fired", false)) return; // one-shot: a redelivered intent can't crash-loop
+        prefs.edit().putBoolean("fired", true).commit(); // sync commit — must persist before we die
+        throw new RuntimeException("sentry native test crash (deliberate, adb-triggered)");
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,17 +34,41 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(InstallReferrerPlugin.class);
         super.onCreate(savedInstanceState);
 
+        /*
+         * Sentry reconciliation hook (TASK-20964): deliberately crash the native
+         * process to verify crash capture + crash-free-session accounting end to
+         * end on a real device. Cold start only (singleTask routes a running app
+         * through onNewIntent, where the extra is dropped) — so force-stop first:
+         *   adb shell am force-stop me.peanut.wallet
+         *   adb shell am start -n me.peanut.wallet/.MainActivity --ez sentry_test_crash true
+         * One-shot per install (clear app data or reinstall to re-arm). Three
+         * independent gates keep this adb-only: the extra, a null referrer (an
+         * app-to-app start always carries android-app://<caller>; only a shell
+         * launch is referrer-less), and developer adb actually enabled (usb or
+         * wireless) — so a third-party app can't crash the wallet on a normal
+         * user's phone, and a recents relaunch redelivering the stored intent
+         * can't crash-loop.
+         */
+        maybeSentryTestCrash();
+
         Bridge bridge = this.getBridge();
         if (bridge != null) {
             WebView webView = bridge.getWebView();
-            final android.webkit.WebViewClient originalClient = webView.getWebViewClient();
 
-            webView.setWebViewClient(new android.webkit.WebViewClient() {
+            /*
+             * Extends BridgeWebViewClient instead of wrapping it in a plain
+             * WebViewClient: the wrapper forwarded only shouldInterceptRequest and
+             * shouldOverrideUrlLoading, silently dropping the other six callbacks —
+             * most critically onRenderProcessGone (a WebView renderer crash killed
+             * the app instead of recovering) and the onPageStarted/Finished
+             * notifications Capacitor plugins rely on.
+             */
+            webView.setWebViewClient(new BridgeWebViewClient(bridge) {
                 @Override
                 public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                    WebResourceResponse response = originalClient.shouldInterceptRequest(view, request);
+                    WebResourceResponse response = super.shouldInterceptRequest(view, request);
 
-                    if (response == null && "GET".equals(request.getMethod())) {
+                    if (response == null && "GET".equals(request.getMethod()) && isAppHost(request)) {
                         String path = request.getUrl().getPath();
                         if (path != null && !path.contains(".") && !path.startsWith("/_next/") && !path.startsWith("/_capacitor_")) {
                             response = findPageHtml(view, path);
@@ -38,9 +78,19 @@ public class MainActivity extends BridgeActivity {
                     return response;
                 }
 
-                @Override
-                public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                    return originalClient.shouldOverrideUrlLoading(view, request);
+                /*
+                 * The SPA fallback must only answer for the app's own origin.
+                 * Without this gate every cross-origin GET with a dotless path —
+                 * ipfs.io/ipfs/<CID> chain icons, any extensionless API URL —
+                 * got index.html back as text/html, which is why Base, Mantle
+                 * and Avalanche logos rendered as letter avatars natively.
+                 */
+                private boolean isAppHost(WebResourceRequest request) {
+                    String host = request.getUrl().getHost();
+                    if (host == null) return false;
+                    Bridge activeBridge = getBridge();
+                    String appHost = activeBridge != null ? activeBridge.getConfig().getHostname() : "localhost";
+                    return host.equalsIgnoreCase(appHost);
                 }
 
                 /**
@@ -57,7 +107,7 @@ public class MainActivity extends BridgeActivity {
                     // 1. try exact path
                     try {
                         String cleanPath = path.endsWith("/") ? path : path + "/";
-                        InputStream is = view.getContext().getAssets().open("public" + cleanPath + "index.html");
+                        InputStream is = openAppContent(view, cleanPath);
                         return new WebResourceResponse("text/html", "UTF-8", is);
                     } catch (Exception ignored) {}
 
@@ -71,7 +121,7 @@ public class MainActivity extends BridgeActivity {
                             String tryPath = String.join("/", segments);
                             if (!tryPath.endsWith("/")) tryPath += "/";
                             try {
-                                InputStream is = view.getContext().getAssets().open("public" + tryPath + "index.html");
+                                InputStream is = openAppContent(view, tryPath);
                                 return new WebResourceResponse("text/html", "UTF-8", is);
                             } catch (Exception ignored) {
                                 segments[i] = original;
@@ -87,18 +137,41 @@ public class MainActivity extends BridgeActivity {
                         parentPath = parentPath.substring(0, parentPath.lastIndexOf("/"));
                         if (parentPath.isEmpty()) break;
                         try {
-                            InputStream is = view.getContext().getAssets().open("public" + parentPath + "/index.html");
+                            InputStream is = openAppContent(view, parentPath + "/");
                             return new WebResourceResponse("text/html", "UTF-8", is);
                         } catch (Exception ignored) {}
                     }
 
                     // 4. root fallback
                     try {
-                        InputStream is = view.getContext().getAssets().open("public/index.html");
+                        InputStream is = openAppContent(view, "/");
                         return new WebResourceResponse("text/html", "UTF-8", is);
                     } catch (Exception ignored) {}
 
                     return null;
+                }
+
+                /**
+                 * Opens the index.html for a directory-style path ("/setup/"),
+                 * honoring an active OTA bundle. When CapacitorUpdater has
+                 * pointed the server base path at an on-disk bundle, HTML must
+                 * come from that bundle — the APK's assets are a stale export
+                 * whose chunk references no longer exist, and serving them
+                 * bricks navigation (stuck splash loop after logout). Only when
+                 * no bundle is active (base path isn't a directory) do we read
+                 * the bundled assets.
+                 */
+                private InputStream openAppContent(WebView view, String cleanPath) throws Exception {
+                    String rel = (cleanPath.startsWith("/") ? cleanPath.substring(1) : cleanPath) + "index.html";
+                    Bridge activeBridge = getBridge();
+                    String basePath = activeBridge != null ? activeBridge.getServerBasePath() : null;
+                    if (basePath != null && !basePath.isEmpty()) {
+                        File base = new File(basePath);
+                        if (base.isDirectory()) {
+                            return new FileInputStream(new File(base, rel));
+                        }
+                    }
+                    return view.getContext().getAssets().open("public/" + rel);
                 }
             });
         }

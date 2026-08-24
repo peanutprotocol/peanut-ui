@@ -1,5 +1,3 @@
-'use client'
-
 import Eyes from '@/assets/illustrations/eyes.svg'
 import PeanutsBG from '@/assets/illustrations/peanuts-bg.svg'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
@@ -12,7 +10,7 @@ type LocalFAQsProps = FAQsProps & {
     }
 }
 
-export function FAQs({ heading, questions, marquee = { visible: false } }: LocalFAQsProps) {
+export function FAQs({ heading, questions, learnMoreLabel, marquee = { visible: false } }: LocalFAQsProps) {
     return (
         <div
             id="faq"
@@ -23,7 +21,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: Local
                 backgroundRepeat: 'repeat',
             }}
         >
-            <FAQsPanel heading={heading} questions={questions} />
+            <FAQsPanel heading={heading} questions={questions} learnMoreLabel={learnMoreLabel} />
 
             {marquee.visible && (
                 <MarqueeComp

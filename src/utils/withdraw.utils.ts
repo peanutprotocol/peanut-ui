@@ -225,8 +225,18 @@ export const normalizePixPhoneNumber = (pixKey: string): string => {
  * @returns true if it's a valid EMVCo QR code format
  */
 export const isPixEmvcoQr = (pixKey: string): boolean => {
-    // EMVCo QR codes start with "000201" and contain "br.gov.bcb.pix"
-    return pixKey.startsWith('000201') && pixKey.includes('br.gov.bcb.pix')
+    /*
+     * Case-insensitive on the GUI: the BCB manual and most PSPs emit
+     * "BR.GOV.BCB.PIX" uppercase, so a case-sensitive `includes` rejected the
+     * canonical form of a copia-e-cola code. Scanning still worked (PIX_REGEX
+     * is /i and the scanner lowercases first), but every path that inspects a
+     * PASTED code went through here — so validatePixKey called a real payload
+     * "Invalid PIX key format", pixKeyToBRCode returned null, and the smart
+     * paste handler fell through to substring extraction and silently replaced
+     * the payload with a UUID/digit run found inside it.
+     */
+    const normalized = pixKey.toLowerCase()
+    return normalized.startsWith('000201') && normalized.includes('br.gov.bcb.pix')
 }
 
 /**

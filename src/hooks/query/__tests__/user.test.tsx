@@ -10,6 +10,7 @@ jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
 jest.mock('@/utils/auth-token', () => ({
     setAuthToken: jest.fn(),
     clearAuthToken: jest.fn(),
+    getAuthToken: jest.fn(() => null),
     getClearEpoch: jest.fn(() => 0),
 }))
 jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false }))
@@ -126,5 +127,19 @@ describe('useUserQuery — JWT sliding refresh', () => {
         await waitFor(() => expect(result.current.isFetched).toBe(true))
 
         expect(mockClearAuthToken).toHaveBeenCalledTimes(1)
+    })
+
+    it('does NOT clear a token that rotated mid-request (stale 401 racing a fresh login)', async () => {
+        const { getAuthToken } = jest.requireMock('@/utils/auth-token')
+        // old token at request time, fresh login token by the time the 401 lands
+        getAuthToken.mockReturnValueOnce('dead-jwt').mockReturnValue('fresh-jwt')
+        mockApiFetch.mockResolvedValueOnce(mockResponse(401, null))
+        // the thrown rotation error triggers a tanstack retry — succeed it
+        mockApiFetch.mockResolvedValueOnce(mockResponse(200, { user: { userId: 'u1', username: 'alice' } }))
+
+        const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
+
+        expect(mockClearAuthToken).not.toHaveBeenCalled()
     })
 })

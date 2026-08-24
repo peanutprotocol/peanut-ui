@@ -3,6 +3,7 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
@@ -80,7 +81,7 @@ const getDismissedCTAs = (userId: string | undefined): Map<string, Date> => {
 }
 
 export const useHomeCarouselCTAs = () => {
-    const t = useTranslations('home.carousel')
+    const t = useAppTranslations('home.carousel')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
     const flagEnabled = useFeatureFlags()

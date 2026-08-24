@@ -69,17 +69,33 @@ const P0_TRANSFORMS = [
         replacement: `'use client'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAuthToken } from '@/utils/auth-token'
+import { hasNativeSession } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
 
 export default function RootRedirect() {
     const router = useRouter()
     useEffect(() => {
-        const token = getAuthToken()
         // Demo has no JWT — without the isDemoMode() check a demo user who hits
         // the root (e.g. bounced from a web-only route) lands on /setup, whose
         // landing screen disables demo and dumps them at Log In.
-        router.replace(token || isDemoMode() ? '/home' : '/setup')
+        if (isDemoMode()) {
+            router.replace('/home')
+            return
+        }
+        /*
+         * Await real session presence instead of the sync getAuthToken() read:
+         * the in-memory token is null until Preferences hydration finishes, so
+         * the sync read routed every logged-in cold start to /setup first and
+         * the login screen flashed before the /home bounce. hasNativeSession()
+         * never prompts and fast-paths on the in-memory token once hydrated.
+         */
+        let cancelled = false
+        hasNativeSession().then((has) => {
+            if (!cancelled) router.replace(has ? '/home' : '/setup')
+        })
+        return () => {
+            cancelled = true
+        }
     }, [router])
     return null
 }
@@ -241,7 +257,7 @@ function copyComponentsBeforeDisable() {
 // and fails LOUDLY with the exact offending paths so the fix is obvious: add them
 // to ITEMS_TO_DISABLE (or give the page a generateStaticParams).
 function isCoveredByDisableList(relPath) {
-    return ITEMS_TO_DISABLE.some((item) => {
+    const inDisableList = ITEMS_TO_DISABLE.some((item) => {
         if (item.type === 'dir') {
             return (
                 relPath === item.path || relPath.startsWith(item.path + path.sep) || relPath.startsWith(item.path + '/')
@@ -249,6 +265,11 @@ function isCoveredByDisableList(relPath) {
         }
         return relPath === item.path
     })
+    if (inDisableList) return true
+    // P0_TRANSFORMS replace a route's content with a static-export-safe version
+    // (stripping force-dynamic / generateMetadata), so those paths are handled too
+    // and must not trip the guard — e.g. (mobile-ui)/claim/page.tsx.
+    return P0_TRANSFORMS.some((item) => relPath === item.path)
 }
 
 // P0_TRANSFORMS files are replaced with static-export-safe stubs before `next
@@ -544,6 +565,8 @@ async function main() {
             fs.unlinkSync(backupConfig)
         }
 
+        pruneExportedAssets()
+
         buildSucceeded = true
         console.log('\n✅ Native build completed successfully!')
         console.log('   Output directory: ./out')
@@ -559,6 +582,39 @@ async function main() {
         console.log('\n📱 Next steps:')
         console.log('   pnpm cap:sync         # Sync with native projects')
         console.log('   pnpm cap:open:android # Open in Android Studio')
+    }
+}
+
+// Web-only dead weight in the bundled export (~8 MB): /dev test pages and the
+// iOS-PWA install videos are unreachable from native flows. KEEP_DEV_PAGES=true
+// retains /dev for profiling/test builds (e.g. the confetti repro page).
+//
+// Exception: dev/deferred stays. It IS reachable from native flows — it's the
+// landing target for the deferred-deep-link e2e (dest=/dev/deferred) and the
+// AASA paths:["*"] routes it into the app on iOS. Pruning it turns those
+// navigations into a chunk-error reload loop that bounces users to setup
+// (seen on 1.0.46). It's a few KB and walled off web-prod inside the page.
+function pruneExportedAssets() {
+    const outDir = path.join(__dirname, '..', 'out')
+
+    const targets = []
+    if (process.env.KEEP_DEV_PAGES !== 'true') {
+        const devDir = path.join(outDir, 'dev')
+        if (fs.existsSync(devDir)) {
+            for (const entry of fs.readdirSync(devDir)) {
+                if (entry !== 'deferred') targets.push(path.join(devDir, entry))
+            }
+        }
+    }
+    for (const entry of fs.readdirSync(outDir)) {
+        if (entry.endsWith('.mov')) targets.push(path.join(outDir, entry))
+    }
+
+    for (const target of targets) {
+        if (fs.existsSync(target)) {
+            fs.rmSync(target, { recursive: true })
+            console.log(`🧹 Pruned ${path.relative(outDir, target)} from export`)
+        }
     }
 }
 

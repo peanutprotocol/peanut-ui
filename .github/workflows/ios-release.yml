@@ -24,9 +24,14 @@ on:
     workflow_dispatch:
         inputs:
             versionName:
-                description: 'versionName override (optional; defaults to project MARKETING_VERSION)'
+                description: 'versionName override (optional; defaults to package.json "version")'
                 required: false
                 type: string
+            pushDebug:
+                description: 'Enable OneSignal verbose logging in this build'
+                required: false
+                default: false
+                type: boolean
 
 permissions:
     contents: read
@@ -60,6 +65,68 @@ jobs:
             - name: Install dependencies
               run: pnpm install
 
+            - name: Resolve release versionName
+              id: version
+              env:
+                  INPUT_VERSION: ${{ github.event.inputs.versionName || '' }}
+              run: |
+                  # versionName: manual dispatch input wins; else the tag name minus
+                  # its leading 'v' (v1.0.31 -> 1.0.31); else package.json — the same
+                  # precedence the archive step always used. Resolved once, up front,
+                  # so the OTA floor check and the bundle publish below see the exact
+                  # version the binary ships with. Keep in lockstep with
+                  # android-release.yml.
+                  VERSION_NAME="$INPUT_VERSION"
+                  if [ -z "$VERSION_NAME" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
+                      VERSION_NAME="${GITHUB_REF_NAME#v}"
+                  fi
+                  if [ -z "$VERSION_NAME" ]; then
+                      VERSION_NAME="$(node -p "require('./package.json').version")"
+                  fi
+                  echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+                  echo "Release versionName: $VERSION_NAME"
+
+            # A binary whose versionName is ahead of the newest production OTA bundle
+            # makes Capgo's disable_auto_update_under_native rule reject every bundle
+            # on those devices — OTA goes silently dead for the whole fleet while CI
+            # stays green (TASK-21793: 102 devices, a month of refused updates). Read
+            # the floor before the long build; the publish step after the store
+            # upload closes the gap this detects. Keep in lockstep with
+            # android-release.yml.
+            - name: Check production OTA floor
+              id: ota_floor
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  VERSION_NAME: ${{ steps.version.outputs.name }}
+              run: |
+                  CURRENT="$(npx @capgo/cli@latest channel currentBundle production \
+                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
+                  if [ -z "$CURRENT" ]; then
+                      echo "::error::cannot read the production channel's current bundle from Capgo — refusing to ship a binary that may strand the fleet's OTA path" >&2
+                      exit 1
+                  fi
+                  NEEDS_OTA="$(node scripts/semver-newer.mjs "$VERSION_NAME" "$CURRENT")"
+                  echo "needs_ota=$NEEDS_OTA" >> "$GITHUB_OUTPUT"
+                  if [ "$NEEDS_OTA" = "true" ]; then
+                      echo "versionName $VERSION_NAME is ahead of production bundle $CURRENT — a matching bundle ships after the store upload"
+                  else
+                      echo "versionName $VERSION_NAME is covered by production bundle $CURRENT"
+                  fi
+
+            - name: Verify SumSub Cordova plugin materialized
+              # `cap sync ios` silently drops a Cordova plugin (exit 0, no folder)
+              # when node_modules isn't fully materialized, and the archive then
+              # fails a minute later with a cryptic SwiftPM error. Catch the real
+              # cause — a partial pnpm install — here, where a re-run recovers.
+              run: |
+                  P=node_modules/@sumsub/cordova-idensic-mobile-sdk-plugin
+                  if [ ! -f "$P/package.json" ] || [ ! -f "$P/plugin.xml" ]; then
+                      echo "::error::$P is not fully installed (package.json/plugin.xml missing). This is the intermittent iOS-release flake — cap sync would drop the plugin and the archive would fail cryptically. Re-run the job (pnpm install did not materialize the plugin)."
+                      ls -la "$P" 2>&1 || true
+                      exit 1
+                  fi
+                  echo "SumSub Cordova plugin materialized."
+
             - name: Production web env
               run: |
                   # NEXT_PUBLIC_* values are baked into the static export at build time.
@@ -83,6 +150,9 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
+                  if [ "${{ github.event.inputs.pushDebug }}" = "true" ]; then
+                      echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
+                  fi
 
             - name: Build web + sync iOS
               run: |
@@ -110,6 +180,13 @@ jobs:
                   cp /tmp/profile.mobileprovision "$PROFILE_DIR/$PROFILE_UUID.mobileprovision"
                   echo "name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
                   echo "Installed provisioning profile: $PROFILE_NAME ($PROFILE_UUID)"
+                  # A profile without aps-environment ships an app that can never
+                  # register with APNs, even when the entitlements file asks for it.
+                  PROFILE_APS=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' /tmp/profile.plist 2>/dev/null || true)
+                  if [ "$PROFILE_APS" != "production" ]; then
+                      echo "::error::provisioning profile aps-environment is '${PROFILE_APS:-missing}' — enable Push Notifications on the App ID, regenerate the profile, and update IOS_PROVISIONING_PROFILE_BASE64"
+                      exit 1
+                  fi
 
             - name: Archive & export IPA
               env:
@@ -118,13 +195,18 @@ jobs:
                   # Monotonic, always-increments-even-on-rerun. TestFlight requires each
                   # upload's build number to exceed the last.
                   IOS_BUILD_NUMBER: ${{ github.run_number }}
-                  IOS_VERSION_NAME: ${{ github.event.inputs.versionName || '' }}
+                  IOS_VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
-                  # Only override MARKETING_VERSION when an explicit versionName is supplied;
-                  # otherwise keep the project's MARKETING_VERSION. CURRENT_PROJECT_VERSION is
-                  # always the CI run number. Info.plist reads both via $(...) build settings.
-                  MARKETING_ARG=()
-                  if [ -n "$IOS_VERSION_NAME" ]; then MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME"); fi
+                  # MARKETING_VERSION comes from the "Resolve release versionName"
+                  # step (input > tag > package.json — the same precedence
+                  # android-release.yml uses, so the two platforms cannot report
+                  # different versions for one release). The project.pbxproj value is
+                  # itself stamped from package.json by scripts/native-ios-postsync.js
+                  # during the build step above, so this is belt-and-braces rather than
+                  # the only thing standing between us and the old hand-maintained 1.0.
+                  # CURRENT_PROJECT_VERSION is always the CI run number.
+                  # Info.plist reads both via $(...) build settings.
+                  MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME")
 
                   cat > /tmp/ExportOptions.plist <<EOF
                   <?xml version="1.0" encoding="UTF-8"?>
@@ -171,6 +253,17 @@ jobs:
                       -exportPath build/ios \
                       -exportOptionsPlist /tmp/ExportOptions.plist
 
+            - name: Verify push entitlements in exported IPA
+              run: |
+                  unzip -q build/ios/App.ipa -d /tmp/ipa-check
+                  APS=$(codesign -d --entitlements :- /tmp/ipa-check/Payload/App.app 2>/dev/null \
+                        | plutil -extract aps-environment raw -o - - || true)
+                  echo "aps-environment=$APS"
+                  if [ "$APS" != "production" ]; then
+                      echo "::error::exported ipa aps-environment is '${APS:-missing}', expected production — push would be dead in this build"
+                      exit 1
+                  fi
+
             - name: Upload to TestFlight
               uses: apple-actions/upload-testflight-build@1ad58030672057aa084b4e96beb6f7a8c627f9e6 # v5
               with:
@@ -183,6 +276,42 @@ jobs:
                   # token expires mid-wait (401 NOT_AUTHORIZED). The build is
                   # already in App Store Connect by then, so skip the wait.
                   wait-for-processing: 'false'
+
+            # The binary that just shipped is ahead of every production OTA bundle, so
+            # its devices would refuse all existing bundles. Publish the exact JS baked
+            # into this binary (the build step leaves it in out/) under the binary's own
+            # version — the lanes can no longer drift apart. A failure here is the floor
+            # guard firing: the job goes red instead of the fleet going silently dark.
+            # Upload flags in lockstep with capgo-deploy.yml; android-release.yml
+            # publishes the same version from the same tag, which --version-exists-ok
+            # turns into a verified no-op.
+            - name: Publish matching production OTA bundle
+              if: steps.ota_floor.outputs.needs_ota == 'true'
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
+                  VERSION: ${{ steps.version.outputs.name }}
+              run: |
+                  if [ ! -f out/index.html ]; then
+                      echo "::error::out/ is missing its static export — cannot publish the matching OTA bundle, and without it every device on the $VERSION binary refuses OTA updates" >&2
+                      exit 1
+                  fi
+                  npx @capgo/cli@latest bundle upload \
+                    --channel production \
+                    --apikey "$CAPGO_API_KEY" \
+                    --key-data-v2 "$CAPGO_PRIVATE_KEY" \
+                    --path ./out \
+                    --bundle "$VERSION" \
+                    --auto-min-update-version \
+                    --version-exists-ok \
+                    --comment "${GITHUB_SHA:0:7} — auto-published with the $VERSION native release"
+                  CURRENT="$(npx @capgo/cli@latest channel currentBundle production \
+                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
+                  if [ "$CURRENT" != "$VERSION" ]; then
+                      echo "::error::production channel serves '${CURRENT:-<none>}', expected $VERSION — devices on the $VERSION binary have no OTA path" >&2
+                      exit 1
+                  fi
+                  echo "Production channel now serves $VERSION"
 
             - name: Upload IPA as build artifact
               if: always()

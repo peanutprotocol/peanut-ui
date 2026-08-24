@@ -1,16 +1,24 @@
-import { nativeCurrencyAddresses, supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
+import { nativeCurrencyAddresses } from '@/constants/general.consts'
+import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
+import { toInviteCode } from '@/utils/invite-code.utils'
+import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import { isCapacitor } from '@/utils/capacitor'
-import * as Sentry from '@sentry/nextjs'
+import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
-import { getPublicClient, type ChainId } from '@/app/actions/clients'
+/*
+ * Type-only, so this module does not pull `actions/clients` — and through it
+ * viem's ~700-chain registry (596 KB) — into every bundle that imports these
+ * utils. `fetchTokenSymbol` below imports the client at call time instead.
+ */
+import { type ChainId } from '@/app/actions/clients'
 import { type ChargeEntry } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
-import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/zerodev.consts'
+import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
 import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
 
 export const shortenAddress = (address?: string, chars?: number) => {
@@ -101,27 +109,7 @@ export const validateEnsName = (ensName: string = ''): boolean => {
     return ENS_NAME_REGEX.test(ensName)
 }
 
-export function jsonStringify(data: unknown): string {
-    return JSON.stringify(data, (_key, value) => {
-        if ('bigint' === typeof value) {
-            return {
-                '@type': 'BigInt',
-                value: value.toString(),
-            }
-        }
-        return value
-    })
-}
-
 // Default matches JSON.parse's own return type so legacy untyped call sites keep compiling.
-export function jsonParse<T = ReturnType<typeof JSON.parse>>(data: string): T {
-    return JSON.parse(data, (_key, value) => {
-        if (value && typeof value === 'object' && value['@type'] === 'BigInt') {
-            return BigInt(value.value)
-        }
-        return value
-    })
-}
 
 export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: number) => {
     if (typeof localStorage === 'undefined') return
@@ -162,60 +150,6 @@ export const getFromLocalStorage = (key: string) => {
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error getting data from localStorage:', error)
-    }
-}
-
-export const saveToCookie = (key: string, data: unknown, expiryDays?: number) => {
-    if (typeof document === 'undefined') return
-    try {
-        // Convert the data to a string before storing it in cookies
-        const serializedData = jsonStringify(data)
-
-        let cookieString = `${key}=${encodeURIComponent(serializedData)}`
-
-        if (expiryDays) {
-            const expiryDate = new Date(new Date().getTime() + expiryDays * 24 * 60 * 60 * 1000)
-            cookieString += `; expires=${expiryDate.toUTCString()}`
-        }
-
-        // Add default cookie attributes for security
-        // Only add Secure flag in HTTPS contexts to avoid breaking local development
-        const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:'
-        cookieString += `; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`
-
-        document.cookie = cookieString
-        console.log(`Saved ${key} to cookie:`, data)
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error saving to cookie:', error)
-    }
-}
-
-export const getFromCookie = (key: string) => {
-    if (typeof document === 'undefined') return
-    try {
-        const cookies = document.cookie.split(';')
-        const targetCookie = cookies.find((cookie) => {
-            const [cookieKey] = cookie.trim().split('=')
-            return cookieKey === key
-        })
-
-        if (!targetCookie) {
-            console.log(`No data found in cookie for ${key}`)
-            return null
-        }
-
-        const [, ...cookieValueParts] = targetCookie.split('=')
-        const cookieValue = cookieValueParts.join('=') // Handle cases where value contains '='
-        const decodedValue = decodeURIComponent(cookieValue)
-
-        const parsedData = jsonParse(decodedValue)
-        console.log(`Retrieved ${key} from cookie:`, parsedData)
-        return parsedData
-    } catch (error) {
-        Sentry.captureException(error)
-        console.error('Error getting data from cookie:', error)
-        return null
     }
 }
 
@@ -494,6 +428,10 @@ export type UserPreferences = {
      *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
      *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
+    /** Last fully-settled spendable total (smart + Rain), in USDC base units as a
+     *  string. DISPLAY-only seed so a cold start paints the previous number instead
+     *  of $0 while /rain/cards is in flight or failing — see lastKnownSpendable.ts. */
+    lastKnownSpendable?: { units: string; at: number }
     /** ISO timestamp of the last "Remind me later" on the app-migration download prompt. */
     migrationPromptSnoozedAt?: string
     /** ISO timestamp the notifications pre-prompt was dismissed — replaces the
@@ -644,6 +582,7 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
     let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
     if (!tokenSymbol) {
         try {
+            const { getPublicClient } = await import('@/app/actions/clients')
             const client = getPublicClient(Number(chainId) as ChainId)
             tokenSymbol = (await client.readContract({
                 address: tokenAddress as Address,
@@ -816,29 +755,6 @@ export const clearRedirectUrl = () => {
     }
 }
 
-export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
-    try {
-        const u = new URL(redirectUrl, window.location.origin)
-        // Only allow same-origin URLs
-        if (u.origin === window.location.origin) {
-            return u.pathname + u.search + u.hash
-        }
-        console.log('Rejecting off-origin URL:', redirectUrl)
-        // Reject off-origin URLs
-        return null
-    } catch {
-        // For strings that can't be parsed as URLs, only allow relative paths
-        if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
-            // Additional check: ensure it doesn't contain a protocol
-            if (!redirectUrl.includes('://')) {
-                return redirectUrl
-            }
-        }
-        // Reject anything else (including protocol-relative URLs like //evil.com)
-        return null
-    }
-}
-
 export const getInitialsFromName = (name: string): string => {
     const nameParts = name.trim().split(/\s+/)
     if (nameParts.length === 1) {
@@ -883,7 +799,8 @@ export function slugify(text: string): string {
  * Also tolerates hand-typed input ("Who invited you?" asks for a username, so
  * people paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
  */
-export const toInviteCode = (username: string): string => username.trim().replace(/^@/, '').toLowerCase()
+export { toInviteCode }
+export { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 
 /**
  * invite-flow url for a guest CTA. web routes to the /invite landing page; in

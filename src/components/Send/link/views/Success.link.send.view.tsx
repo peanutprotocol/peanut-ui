@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import CancelSendLinkModal from '@/components/Global/CancelSendLinkModal'
+import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
@@ -32,7 +32,7 @@ const LinkSendSuccessView = () => {
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const toast = useToast()
     const [isLoading, setIsLoading] = useState<boolean>(false)
-    const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
+    const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
 
     const [cancelStatus, setCancelStatus] = useState<'idle' | 'cancelling' | 'cancelled'>('idle')
     const cancelLinkText =
@@ -85,7 +85,7 @@ const LinkSendSuccessView = () => {
                             {t('link.shareLink')}
                         </ShareButton>
                         <Button
-                            onClick={() => setshowCancelLinkModal(true)}
+                            onClick={() => setShowCancelLinkDrawer(true)}
                             variant={'primary-soft'}
                             className="flex w-full items-center gap-1"
                             shadowSize="4"
@@ -103,11 +103,11 @@ const LinkSendSuccessView = () => {
                 )}
             </div>
 
-            {/* Cancel Link Modal  */}
+            {/* Cancel Link Drawer */}
             {link && (
-                <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal}
-                    setshowCancelLinkModal={setshowCancelLinkModal}
+                <CancelSendLinkDrawer
+                    showCancelLinkDrawer={showCancelLinkDrawer}
+                    setShowCancelLinkDrawer={setShowCancelLinkDrawer}
                     amount={`$ ${tokenValue}`}
                     isLoading={isLoading}
                     onClick={async () => {
@@ -143,7 +143,7 @@ const LinkSendSuccessView = () => {
                                 await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
                                 setIsLoading(false)
-                                setshowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelStatus('cancelled')
                                 toast.success(t('link.cancelSuccess'))
 
@@ -159,7 +159,7 @@ const LinkSendSuccessView = () => {
 
                                 // Still navigate even if invalidation fails
                                 setIsLoading(false)
-                                setshowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelStatus('cancelled')
                                 toast.success(t('link.cancelSuccessRefresh'))
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
