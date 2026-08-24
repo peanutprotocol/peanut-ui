@@ -7,6 +7,13 @@ on:
     # is the separate, deliberate act that says "ship this JS to everyone", and the
     # tag is a permanent record of exactly which commit went out.
     #
+    # One deliberate exception to "tags only": a NATIVE release whose versionName
+    # is ahead of the newest production bundle auto-publishes a matching bundle
+    # from its own commit (see android-release.yml / ios-release.yml). Without
+    # that, Capgo's disable_auto_update_under_native rule makes every device on
+    # the new binary refuse all existing bundles — OTA silently dead for the
+    # fleet while CI stays green (TASK-21793).
+    #
     #   git tag ota-1.0.48 && git push origin ota-1.0.48
     #
     # The bundle version is taken from the tag (ota-1.0.48 -> 1.0.48), so each
