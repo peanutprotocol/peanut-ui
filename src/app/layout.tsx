@@ -9,7 +9,10 @@ import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
 import { type Metadata } from 'next'
 
 const baseUrl = BASE_URL || 'https://peanut.me'
-const IS_PRODUCTION_DOMAIN = baseUrl === 'https://peanut.me'
+// Fail closed: BASE_URL deliberately falls back to production for links, but
+// that fallback must not make an unset preview environment indexable.
+const configuredBaseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '')
+const IS_PRODUCTION_DOMAIN = configuredBaseUrl === 'https://peanut.me'
 
 export const metadata: Metadata = {
     title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
