@@ -12,9 +12,9 @@ const baseUrl = BASE_URL || 'https://peanut.me'
 const IS_PRODUCTION_DOMAIN = baseUrl === 'https://peanut.me'
 
 export const metadata: Metadata = {
-    title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+    title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
     description:
-        'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars. Easily transfer funds across borders. Enjoy cheap, instant remittances and cash out to local banks without technical hassle.',
+        'Peanut is a money app for people who cross borders — send and receive money globally, spend with the Peanut Card, cash in and out through local rails.',
     metadataBase: new URL(baseUrl),
     icons: { icon: '/favicon.ico' },
     alternates: { canonical: '/' },
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     robots: IS_PRODUCTION_DOMAIN ? { index: true, follow: true } : { index: false, follow: false },
     openGraph: {
         type: 'website',
-        title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+        title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
         description:
             'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars.',
         url: baseUrl,
@@ -33,12 +33,12 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+        title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
         description:
             'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars.',
         images: ['/metadata-img.png'],
-        creator: '@PeanutProtocol',
-        site: '@PeanutProtocol',
+        creator: '@joinpeanut',
+        site: '@joinpeanut',
     },
     applicationName: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
 }
@@ -58,7 +58,7 @@ const jsonLd = {
                 url: `${baseUrl}/metadata-img.png`,
             },
             sameAs: [
-                'https://twitter.com/PeanutProtocol',
+                'https://x.com/joinpeanut',
                 'https://github.com/peanutprotocol',
                 'https://www.linkedin.com/company/peanut-trade/',
             ],
@@ -109,20 +109,25 @@ const sniglet = Sniglet({
     variable: '--font-sniglet',
 })
 
+// The .woff2 files are latin + latin-ext subsets of the .ttf sources (built
+// with fonttools; roboto-flex additionally instanced down to just the wght
+// axis the CSS uses — the full 13-axis variable TTF was 1.6 MB, this is 53 KB).
+// The OG image routes still read the .ttf files at runtime (satori needs TTF),
+// so don't delete those.
 const knerdOutline = localFont({
-    src: '../assets/fonts/knerd-outline.ttf',
+    src: '../assets/fonts/knerd-outline.woff2',
     variable: '--font-knerd-outline',
     display: 'swap',
 })
 
 const knerdFilled = localFont({
-    src: '../assets/fonts/knerd-filled.ttf',
+    src: '../assets/fonts/knerd-filled.woff2',
     variable: '--font-knerd-filled',
     display: 'swap',
 })
 
 const robotoFlexBold = localFont({
-    src: '../assets/fonts/roboto-flex-bold.ttf',
+    src: '../assets/fonts/roboto-flex-bold.woff2',
     variable: '--font-roboto-flex-bold',
     display: 'swap',
 })
@@ -174,6 +179,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {process.env.NODE_ENV !== 'development' && (
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
+                            /*
+                             * Native: builds before 2026-04 registered the PWA service worker
+                             * inside the Capacitor WebView, and those registrations persist in
+                             * WebView storage across app updates (the native bundle ships no
+                             * sw.js, so they can never self-update — they sit frozen in front of
+                             * all GET traffic). Actively evict them; takes effect next launch.
+                             */
+                            if ('serviceWorker' in navigator && window.Capacitor) {
+                                navigator.serviceWorker.getRegistrations()
+                                    .then((regs) => regs.forEach((r) => r.unregister()))
+                                    .catch(() => {});
+                            }
                             if ('serviceWorker' in navigator && !window.Capacitor) {
                                 window.addEventListener('load', async () => {
                                     try {
@@ -222,22 +239,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 )}
 
                 {/* Note: Google Tag Manager (gtag.js) does not support version pinning.*/}
-                {process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_GA_KEY && (
-                    <>
-                        <Script
-                            src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
-                            strategy="afterInteractive"
-                        />
-                        <Script id="google-analytics" strategy="afterInteractive">
-                            {`
+                {process.env.NODE_ENV !== 'development' &&
+                    process.env.NEXT_PUBLIC_GA_KEY &&
+                    process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true' &&
+                    process.env.NEXT_PUBLIC_PERF_BARE !== 'true' && (
+                        <>
+                            <Script
+                                src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
+                                strategy="afterInteractive"
+                            />
+                            <Script id="google-analytics" strategy="afterInteractive">
+                                {`
                                 window.dataLayer = window.dataLayer || [];
                                 function gtag(){dataLayer.push(arguments);}
                                 gtag('js', new Date());
                                 gtag('config', '${process.env.NEXT_PUBLIC_GA_KEY}');
                             `}
-                        </Script>
-                    </>
-                )}
+                            </Script>
+                        </>
+                    )}
             </head>
             <body
                 className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}

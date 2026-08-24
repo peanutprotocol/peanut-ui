@@ -444,7 +444,16 @@ const CardPage: FC = () => {
     // fetches (and setState on an unmounted component) when an impatient user
     // navigates away from the pending screen mid-poll.
     const pollAbortRef = useRef<AbortController | null>(null)
-    useEffect(() => () => pollAbortRef.current?.abort(), [])
+    const isMountedRef = useRef(true)
+    useEffect(() => {
+        // Re-armed on run, not just cleared on cleanup: StrictMode's dev
+        // mount→cleanup→mount would otherwise leave the flag false for good.
+        isMountedRef.current = true
+        return () => {
+            isMountedRef.current = false
+            pollAbortRef.current?.abort()
+        }
+    }, [])
 
     const handleSumsubComplete = useCallback(async () => {
         sumsubCompletedRef.current = true
@@ -504,7 +513,14 @@ const CardPage: FC = () => {
             setApplyError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
         } finally {
-            if (!controller.signal.aborted) setIsIssuing(false)
+            // Release the issuance gate on EVERY exit, aborts included. Keying
+            // this on `aborted` latched `isIssuing` true forever whenever the
+            // poll was cancelled while the page stayed mounted — and nothing
+            // else ever clears it, so the user was stranded on the pending
+            // spinner (Android: the only way out was the hardware back). The
+            // ownership check keeps a superseded run from clearing the gate its
+            // successor now owns.
+            if (isMountedRef.current && pollAbortRef.current === controller) setIsIssuing(false)
         }
     }, [advanceFromApplyResponse, t])
 
@@ -588,8 +604,11 @@ const CardPage: FC = () => {
         // Highest priority: show the issuance spinner between "terms accepted"
         // and the overview refetch landing. Keeps the UX from flipping back
         // to Add Card for a split second while the API call is in flight.
+        // `onPrev` is not optional here: this screen carries no other control,
+        // so omitting it made a poll that ran long (or never resolved) read as
+        // a frozen app — animations running, nothing tappable.
         if (isIssuing) {
-            return <ApplicationStatusScreen variant="pending" />
+            return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
         }
         // Terminal regulatory block detected mid-funnel by the BE apply gate —
         // takes precedence over the confirmation/terms overlays (those flows

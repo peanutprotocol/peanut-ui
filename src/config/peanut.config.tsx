@@ -11,7 +11,6 @@ import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { authReady } from '@/utils/auth-token'
 import { installNativeAuthCapture } from '@/utils/native-auth-capture'
 import { scheduleDirectFetchCanary } from '@/utils/native-canary'
-import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
 
@@ -80,13 +79,6 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
                     .catch((err: unknown) => {
                         console.warn('[PeanutProvider] passkey shim init failed:', err)
                     })
-            })
-
-            // initialize native crisp chat sdk
-            import('@capgo/capacitor-crisp').then(({ CapacitorCrisp }) => {
-                CapacitorCrisp.configure({ websiteID: CRISP_WEBSITE_ID }).catch((err: unknown) => {
-                    console.warn('[PeanutProvider] crisp init failed:', err)
-                })
             })
         }
     }, [])

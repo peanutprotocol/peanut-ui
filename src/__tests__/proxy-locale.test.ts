@@ -34,8 +34,10 @@ describe('proxy — locale redirect on /', () => {
         expect(get('/', { 'app-locale': 'es-419' }).status).toBe(307)
     })
 
-    it('sets Vary on the redirect for both signals it reads', () => {
-        expect(get('/', { 'app-locale': 'es-419' }).headers.get('vary')).toBe('Cookie, Accept-Language')
+    it('sets Vary on the redirect for every signal it reads', () => {
+        expect(get('/', { 'app-locale': 'es-419' }).headers.get('vary')).toBe(
+            'Cookie, Accept-Language, x-vercel-ip-country'
+        )
     })
 
     it('does not claim Vary on the pass-through response', () => {
@@ -120,5 +122,72 @@ describe('proxy — Accept-Language preset on first visit', () => {
         const response = get('/', { 'app-locale': 'es-419' }, { 'user-agent': BROWSER_UA })
         expect(response.headers.get('location')).toBe('https://peanut.me/es-419')
         expect(response.headers.get('set-cookie')).toBeNull()
+    })
+})
+
+describe('proxy — country tiebreaker inside Spanish', () => {
+    const AR = { 'user-agent': BROWSER_UA, 'x-vercel-ip-country': 'AR' }
+
+    it('sends an es-419 browser in Argentina to the Argentine landing', () => {
+        // Chrome's Latin American build reports es-419 and matches a supported
+        // tag exactly, so before the tiebreaker Argentina could only ever reach
+        // es-419 — the whole reason the voseo catalog went unseen.
+        const response = get('/', {}, { ...AR, 'accept-language': 'es-419,es;q=0.9' })
+        expect(response.headers.get('location')).toBe('https://peanut.me/es-ar')
+        expect(response.headers.get('set-cookie')).toContain('app-locale=es-AR')
+    })
+
+    it('upgrades a bare es and a foreign regional Spanish alike', () => {
+        for (const header of ['es', 'es-ES,es;q=0.9', 'es-MX']) {
+            expect(get('/', {}, { ...AR, 'accept-language': header }).headers.get('location')).toBe(
+                'https://peanut.me/es-ar'
+            )
+        }
+    })
+
+    it('leaves the same browser on es-419 from any other country', () => {
+        for (const country of ['MX', 'CO', 'ES', 'US']) {
+            const response = get(
+                '/',
+                {},
+                { 'user-agent': BROWSER_UA, 'x-vercel-ip-country': country, 'accept-language': 'es-419' }
+            )
+            expect(response.headers.get('location')).toBe('https://peanut.me/es-419')
+        }
+    })
+
+    it('does not let the country beat a stated non-Spanish language', () => {
+        // English and Portuguese speakers in Argentina keep their language.
+        expect(get('/', {}, { ...AR, 'accept-language': 'en-US,en;q=0.9' }).headers.get('location')).toBeNull()
+        expect(get('/', {}, { ...AR, 'accept-language': 'pt-BR' }).headers.get('location')).toBe(
+            'https://peanut.me/pt-br'
+        )
+    })
+
+    it('does not let the country beat an explicit cookie choice', () => {
+        const response = get('/', { 'app-locale': 'es-419' }, { ...AR, 'accept-language': 'es-419' })
+        expect(response.headers.get('location')).toBe('https://peanut.me/es-419')
+        expect(response.headers.get('set-cookie')).toBeNull()
+    })
+
+    it('never geo-redirects a crawler', () => {
+        // Google's localized-versions guidance warns against IP-based variation,
+        // and Googlebot crawls Argentina's pages from US IPs anyway.
+        const response = get(
+            '/',
+            {},
+            {
+                'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)',
+                'x-vercel-ip-country': 'AR',
+                'accept-language': 'es-419',
+            }
+        )
+        expect(response.headers.get('location')).toBeNull()
+    })
+
+    it('falls back to the language-only resolution with no country header', () => {
+        // Local dev and preview deploys have no edge geolocation.
+        const response = get('/', {}, { 'user-agent': BROWSER_UA, 'accept-language': 'es-419' })
+        expect(response.headers.get('location')).toBe('https://peanut.me/es-419')
     })
 })

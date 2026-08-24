@@ -141,6 +141,7 @@ describe('friendly error copy catalog', () => {
         'sendLinkAlreadyClaimed',
         'lowLiquidity',
         'networkBusyTimeout',
+        'sessionExpired',
         'genericSupport',
         'staleCardApproval',
         'rainInsufficientCollateral',
@@ -159,6 +160,28 @@ describe('friendly error copy catalog', () => {
 
     it('has copy for the balance-gate code rendered directly by components', () => {
         expect(errors['notEnoughBalanceAddFunds']).toBeTruthy()
+    })
+})
+
+describe('ApiError HTTP status discrimination', () => {
+    const apiError = (status: number) =>
+        Object.assign(new Error('authorization required'), { name: 'ApiError', status })
+
+    test.each([401, 403])('a %i ApiError maps to sessionExpired, not "contact support"', (status) => {
+        expect(friendlyError(apiError(status))).toEqual({ kind: 'code', code: 'sessionExpired' })
+    })
+
+    test('a 5xx ApiError maps to the retryable copy', () => {
+        expect(friendlyError(apiError(503))).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
+    })
+
+    test('a 4xx ApiError with an unmapped message still falls through to genericSupport', () => {
+        expect(friendlyError(apiError(422))).toEqual({ kind: 'code', code: 'genericSupport' })
+    })
+
+    test('a numeric status on a non-ApiError is ignored', () => {
+        const ethersish = Object.assign(new Error('server error'), { status: 500 })
+        expect(friendlyError(ethersish)).toEqual({ kind: 'code', code: 'genericSupport' })
     })
 })
 
@@ -242,5 +265,26 @@ describe('backend wire codes', () => {
             kind: 'code',
             code: 'linkTransactionHashFetch',
         })
+    })
+})
+
+describe('chain-infrastructure outage on claim', () => {
+    // PEANUT-API-3M → PEANUT-UI-SJ5: ZeroDev's paymaster failed
+    // zd_sponsorUserOperation for six users inside 30 minutes on 2026-08-19.
+    // The API rolls the link back before responding, so the claim provably did
+    // not happen and a retry is the correct advice — but the 500 prose is
+    // sanitized to "contact support", which is what every one of them saw.
+    test('the wire code maps to retryable copy, not the support fallback', () => {
+        const outage = Object.assign(new Error('An unexpected error occurred. Please try again or contact support.'), {
+            code: 'CHAIN_INFRA_UNAVAILABLE',
+        })
+        expect(friendlyError(outage)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
+    })
+
+    test('the same prose WITHOUT the code keeps the support fallback', () => {
+        // the code is the only new signal — an API that predates it, or a
+        // genuinely unclassified 500, must not start advertising a retry
+        const unclassified = new Error('An unexpected error occurred. Please try again or contact support.')
+        expect(friendlyError(unclassified)).toEqual({ kind: 'code', code: 'genericSupport' })
     })
 })

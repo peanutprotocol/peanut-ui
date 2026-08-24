@@ -157,7 +157,7 @@ function discoverRoutes(): Set<string> {
     const routes = new Set<string>()
 
     // Static pages
-    for (const p of ['/', '/careers', '/exchange', '/privacy', '/terms', '/lp/card']) {
+    for (const p of ['/', '/careers', '/privacy', '/terms', '/shhhhh']) {
         routes.add(p)
     }
 
@@ -732,7 +732,7 @@ function expectedSitemapUrls(): string[] {
         urls.push(`/${locale}/supported-networks`)
         urls.push(`/${locale}/pricing`)
         urls.push(`/${locale}/content`)
-        urls.push(`/${locale}/blog`)
+        // No /{locale}/blog index — it is a 308 to /{locale}/content. Posts stay.
         for (const slug of blogSlugs) urls.push(`/${locale}/blog/${slug}`)
     }
 

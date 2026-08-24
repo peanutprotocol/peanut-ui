@@ -114,23 +114,16 @@ const Footer = ({
                         <Link className={NAV_LINK} href={`/${locale}/help`}>
                             {i18n.footerDocs}
                         </Link>
-                        <Link className={NAV_LINK} href={`/${locale}/terms`}>
-                            {i18n.footerTerms}
-                        </Link>
-                        <Link className={NAV_LINK} href={`/${locale}/privacy`}>
-                            {i18n.footerPrivacy}
-                        </Link>
+                        {/* Terms and Privacy deliberately live in the Legal column of
+                            the site directory below, not here — one home per document. */}
                         <Link className={NAV_LINK} href={`/${locale}/help/security-disclosure`}>
                             {i18n.footerSecurity}
                         </Link>
-                        <a
-                            className={NAV_LINK}
-                            href="https://peanutprotocol.notion.site/Career-b351de56d92e405e962f0027b3a60f52"
-                            rel="noopener noreferrer"
-                            target="_blank"
-                        >
-                            {i18n.footerJobs}
-                        </a>
+                        {/* /careers, not the Notion board: the page lists the open roles
+                            and keeps Notion as the application destination only. */}
+                        <Link className={NAV_LINK} href="/careers">
+                            {i18n.footerCareers}
+                        </Link>
                     </div>
                     <div className="hidden items-center gap-6 md:flex">
                         <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />

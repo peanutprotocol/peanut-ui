@@ -123,8 +123,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // catalog rail ids for joins against the rails table.
                 enabledRails: enabledRails.map((rail) => `${rail.rail.provider.code}:${rail.rail.method.code}`),
                 enabledRailIds: enabledRails.map((rail) => rail.rail.id),
-                // Client-only (locale never reaches the BE) — covers the first
-                // session, where the startup locale resolves before identify.
+                // Client-set (the BE mirror lives in users.locale via LocaleSync)
+                // — covers the first session, where the startup locale resolves
+                // before identify.
                 ...(appLocale ? { app_locale: appLocale } : {}),
             })
             // Sentry: every error captured from here on inherits user context
@@ -254,6 +255,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear user preferences (webauthn key in localStorage)
         updateUserPreferences(user?.user.userId, { webAuthnKey: undefined })
 
+        /*
+         * Cancel queries BEFORE wiping the token: an in-flight /users/me can carry a
+         * sliding-refresh token and would re-persist it into native Preferences right
+         * after the clear, so logout never sticks (Android splash-loop, kuxhagra).
+         */
+        try {
+            await queryClient.cancelQueries()
+            queryClient.clear()
+        } catch (e) {
+            console.warn('failed to clear queries on logout:', e)
+        }
+
         // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
         await clearAuthToken()
@@ -277,13 +290,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // of this device skip verification on card and withdrawal screens.
         clearStepUpToken()
 
-        // cancel + remove all queries to prevent refetches with cleared jwt
-        try {
-            queryClient.cancelQueries()
-            queryClient.clear()
-        } catch (e) {
-            console.warn('failed to clear queries on logout:', e)
-        }
+        // NOTE: main also cancelled/cleared queries here. That already happens
+        // above, deliberately BEFORE the token wipe — an in-flight /users/me can
+        // re-persist a sliding-refresh token into native Preferences otherwise
+        // (Android post-logout splash loop). Don't move it back down.
 
         // reset redux state (user, setup, zerodev)
         dispatch(userActions.setUser(null))
@@ -331,9 +341,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             setIsLoggingOut(true)
             try {
-                // No server-side session to invalidate — the JWT lives client-side
-                // only (the old logout-user route just dropped a cookie). Once we
-                // add a tokenVersion column we can revoke server-side too.
+                /*
+                 * Revoke server-side FIRST (needs the still-valid JWT): POST
+                 * /users/logout bumps the account's tokenVersion so every
+                 * outstanding JWT — this device and any other — stops
+                 * verifying. Best-effort: a dead backend must never trap the
+                 * user in a session, so failures fall through to local logout.
+                 */
+                if (!options?.skipBackendCall) {
+                    try {
+                        await apiFetch('/users/logout', { method: 'POST' })
+                    } catch (e) {
+                        console.warn('server-side session revocation failed, continuing local logout:', e)
+                    }
+                }
+
                 await clearLocalAuthState()
 
                 // fetch user (should return null after logout) - skip for capacitor

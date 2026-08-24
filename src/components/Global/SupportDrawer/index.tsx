@@ -18,6 +18,8 @@ import {
 import type { AppLocale } from '@/i18n/app/config'
 import { notificationsApi } from '@/services/notifications'
 import { isCapacitor } from '@/utils/capacitor'
+import { ensureNativeCameraPermission } from '@/utils/camera-permission'
+import { ensureNativeCrispConfigured } from '@/utils/crisp'
 
 const DISMISS_THRESHOLD = 100
 
@@ -157,50 +159,62 @@ const SupportDrawer = () => {
     useEffect(() => {
         if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
 
-        import('@capgo/capacitor-crisp').then(({ CapacitorCrisp }) => {
-            // set user data before opening
-            if (userData.email || userData.fullName) {
-                CapacitorCrisp.setUser({
-                    email: userData.email || undefined,
-                    nickname: userData.fullName || userData.username || undefined,
-                    avatar: userData.avatar || undefined,
+        ensureNativeCrispConfigured()
+            .then(async ({ CapacitorCrisp }) => {
+                /*
+                 * Settle the CAMERA runtime permission before the native Crisp UI
+                 * opens: the app manifest declares CAMERA (QR scanner), which makes
+                 * Crisp's "Take a photo" throw a SecurityException when it is
+                 * declared-but-ungranted — the SDK never requests it itself.
+                 * Result deliberately ignored: a denied camera must not block chat.
+                 */
+                await ensureNativeCameraPermission()
+                // set user data before opening
+                if (userData.email || userData.fullName) {
+                    CapacitorCrisp.setUser({
+                        email: userData.email || undefined,
+                        nickname: userData.fullName || userData.username || undefined,
+                        avatar: userData.avatar || undefined,
+                    })
+                }
+                if (crispTokenId) {
+                    CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
+                }
+                // set custom data for support agents
+                if (userData.walletAddress) {
+                    CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
+                }
+                if (userData.userId) {
+                    CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
+                }
+                // live verification state so agents stop guessing (#2360). Always
+                // write (empty string when absent) so a prior user's values can't
+                // linger on the device-local Crisp session — matching web/proxy.
+                CapacitorCrisp.setString({ key: 'identity_status', value: userData.identityStatus || '' })
+                CapacitorCrisp.setString({
+                    key: 'email_on_file',
+                    value: userData.emailOnFile === undefined ? '' : userData.emailOnFile ? 'yes' : 'no',
                 })
-            }
-            if (crispTokenId) {
-                CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
-            }
-            // set custom data for support agents
-            if (userData.walletAddress) {
-                CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
-            }
-            if (userData.userId) {
-                CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
-            }
-            // live verification state so agents stop guessing (#2360). Always
-            // write (empty string when absent) so a prior user's values can't
-            // linger on the device-local Crisp session — matching web/proxy.
-            CapacitorCrisp.setString({ key: 'identity_status', value: userData.identityStatus || '' })
-            CapacitorCrisp.setString({
-                key: 'email_on_file',
-                value: userData.emailOnFile === undefined ? '' : userData.emailOnFile ? 'yes' : 'no',
-            })
-            CapacitorCrisp.setString({ key: 'verification_gates', value: userData.verificationGates || '' })
-            CapacitorCrisp.setString({ key: 'verification_rails', value: userData.verificationRails || '' })
-            CapacitorCrisp.setString({ key: 'failure_reason', value: userData.failureReason || '' })
-            CapacitorCrisp.setString({ key: 'pending_actions', value: userData.pendingActions || '' })
-            if (prefilledMessage) {
-                CapacitorCrisp.sendMessage({ value: prefilledMessage })
-            }
+                CapacitorCrisp.setString({ key: 'verification_gates', value: userData.verificationGates || '' })
+                CapacitorCrisp.setString({ key: 'verification_rails', value: userData.verificationRails || '' })
+                CapacitorCrisp.setString({ key: 'failure_reason', value: userData.failureReason || '' })
+                CapacitorCrisp.setString({ key: 'pending_actions', value: userData.pendingActions || '' })
+                if (prefilledMessage) {
+                    CapacitorCrisp.sendMessage({ value: prefilledMessage })
+                }
 
-            CapacitorCrisp.openMessenger()
-            // The chat is now in front of the user, so the badge has done its
-            // job. There is no isCrispReady on this path — the native messenger
-            // reports nothing back — so clear it here rather than in the web
-            // effect above.
-            clearSupportBadge()
-            // close our drawer since native UI takes over
-            setIsSupportModalOpen(false)
-        })
+                CapacitorCrisp.openMessenger()
+                // The chat is now in front of the user, so the badge has done its
+                // job. There is no isCrispReady on this path — the native messenger
+                // reports nothing back — so clear it here rather than in the web
+                // effect above.
+                clearSupportBadge()
+                // close our drawer since native UI takes over
+                setIsSupportModalOpen(false)
+            })
+            .catch((err: unknown) => {
+                console.warn('[SupportDrawer] native crisp open failed:', err)
+            })
     }, [
         isSupportModalOpen,
         isAwaitingToken,

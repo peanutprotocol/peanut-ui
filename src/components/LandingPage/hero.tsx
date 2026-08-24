@@ -68,9 +68,15 @@ function PeanutMascot() {
         <Image
             ref={imgRef}
             src={PeanutWhistling}
+            // Animated webp — the optimizer passes animated images through
+            // untouched, so `unoptimized` skips a pointless /_next/image hop.
             unoptimized
+            // This is the mobile LCP element. Without `preload` Next emits
+            // loading="lazy" and the browser discovers it ~7s late on a
+            // throttled connection (Lighthouse: 19.5s LCP, 36% load delay).
+            preload
             alt="Peanut Guy"
-            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain"
+            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain md:max-h-[min(40vh,calc(100svh-28rem))]"
         />
     )
 }
@@ -111,7 +117,7 @@ const getHoverAnimation = (variant: 'primary' | 'secondary') => ({
 const transitionConfig = { type: 'spring', damping: 15 } as const
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `relative z-20 mt-8 md:mt-12 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
+    `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
 export function Hero({
     primaryCta,
@@ -170,11 +176,12 @@ export function Hero({
         >
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
+                {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports */}
                 <Image
                     src={GlobalCashLocalFeel}
-                    priority
+                    preload
                     sizes="(min-width: 768px) 50vw, 100vw"
-                    className="z-0 mx-auto h-auto w-full max-w-[1000px] object-contain md:w-[50%]"
+                    className="z-0 mx-auto h-auto max-h-[calc(100svh-23rem)] w-full max-w-[1000px] object-contain md:w-[50%]"
                     alt="Global Cash Local Feel"
                 />
 
@@ -198,7 +205,11 @@ export function Hero({
             <PeanutMascot />
 
             <div className="relative z-20 flex w-full flex-col items-center justify-center">
-                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:text-heading">
+                {/* Short phone viewports only: the pt-BR headline wraps to 3 lines (and to 4 below
+                    360px) where en/es take 2, which pushes the CTA under the fold. Buy the 38-76px
+                    back from this gap rather than from the artwork, so every locale keeps the same
+                    hero on normal screens. Width-scoped too, or it would fire on 1366x657 laptops. */}
+                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
                     {strings.heroTapScan}
                 </h2>
                 <span

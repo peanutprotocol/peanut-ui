@@ -22,7 +22,8 @@ export default function SecurityVerificationOverlay() {
     if (!isSecurityVerificationOpen) return null
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background"
+            // stop under the black status-bar strip instead of painting beige over it
+            className="fixed inset-x-0 bottom-0 top-safe-top z-50 flex items-center justify-center bg-background"
             role="status"
             aria-live="polite"
         >

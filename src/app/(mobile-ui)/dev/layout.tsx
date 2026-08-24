@@ -6,7 +6,9 @@ import { BASE_URL } from '@/constants/general.consts'
 
 // Routes allowed on peanut.me (production). All /dev routes are available elsewhere
 // (localhost, staging, Vercel preview deploys).
-const PRODUCTION_ALLOWED_ROUTES = ['/dev/full-graph', '/dev/payment-graph']
+// safe-area is read-only diagnostics and has to run on the production native build,
+// which is where the devices with the reported oversized inset actually are
+const PRODUCTION_ALLOWED_ROUTES = ['/dev/full-graph', '/dev/payment-graph', '/dev/safe-area']
 
 const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
 

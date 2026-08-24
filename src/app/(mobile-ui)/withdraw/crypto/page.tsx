@@ -30,7 +30,7 @@ import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
 import { Slider } from '@/components/Slider'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { useHaptic } from 'use-haptic'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
@@ -40,6 +40,7 @@ import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -109,7 +110,7 @@ export default function WithdrawCryptoPage() {
         strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
     } | null>(null)
 
-    const { triggerHaptic } = useHaptic()
+    const { triggerHaptic } = useAppHaptic()
 
     // local state for transaction execution
     const [isSendingTx, setIsSendingTx] = useState(false)
@@ -395,7 +396,7 @@ export default function WithdrawCryptoPage() {
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
-                finalTxHash = (receipt?.transactionHash as Hex | undefined) ?? userOpHash ?? txHash
+                finalTxHash = resolveSettledTxHash({ receipt, userOpHash, txHash }, 'withdraw-crypto').hash as Hex
             } else {
                 // payAmount is the USDC the kernel actually needs on-hand to execute
                 // the first tx — principal + Rhino fee on the SDA path (mode='receive'),
@@ -414,7 +415,8 @@ export default function WithdrawCryptoPage() {
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
-                finalTxHash = (receipt?.transactionHash as Hex | undefined) ?? txResult.userOpHash
+                finalTxHash = resolveSettledTxHash({ receipt, userOpHash: txResult.userOpHash }, 'withdraw-crypto')
+                    .hash as Hex
             }
 
             if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')

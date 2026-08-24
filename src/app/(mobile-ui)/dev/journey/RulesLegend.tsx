@@ -23,24 +23,28 @@ export default function RulesLegend({ rules, specError }: { rules: SpecRules | n
     }
     return (
         <div className="flex flex-wrap gap-2">
-            {/* The two nudge rules render the very badge the board stamps on each email. */}
-            <Rule label="nudge 1">
-                <StuckBadge days={rules.step1AfterDays} />
-            </Rule>
-            <Rule label="nudge 2">
-                <StuckBadge days={rules.step2AfterDays} />
-            </Rule>
+            {/* One nudge rule per ladder step — stages carry 2 or 3 steps in v2. */}
+            {rules.stepAfterDays.map((days, i) => (
+                <Rule key={i} label={`nudge ${i + 1}`}>
+                    <StuckBadge days={days} />
+                </Rule>
+            ))}
             <Rule label="governor">
                 <span className="text-xs font-bold">≥{rules.governorDays}d between emails</span>
             </Rule>
             <Rule label="freshness">
                 <span className="text-xs font-bold">{rules.freshnessDays}d window</span>
             </Rule>
+            <Rule label="dormancy">
+                <span className="text-xs font-bold">{rules.dormancyDays}d silent → win_back</span>
+            </Rule>
             <Rule label="holdout">
                 <span className="text-xs font-bold">{Math.round(rules.holdoutFraction * 100)}% control</span>
             </Rule>
             <Rule label="balance gate">
-                <span className="text-xs font-bold">fund ≤ $0.10 · spend ≥ $1 (live chain read)</span>
+                <span className="text-xs font-bold">
+                    fund ≤ $0.10 · spend ≥ $1 (live chain read; ≥ $1 re-routes fund → first_spend)
+                </span>
             </Rule>
             <Rule label="send window">
                 <span className="text-xs font-bold">
@@ -48,7 +52,9 @@ export default function RulesLegend({ rules, specError }: { rules: SpecRules | n
                 </span>
             </Rule>
             <Rule label="cap">
-                <span className="text-xs font-bold">{rules.maxSendsPerCycle}/cycle</span>
+                <span className="text-xs font-bold">
+                    {rules.maxSendsPerCycle}/cycle · {rules.maxSendsPerDay}/day
+                </span>
             </Rule>
         </div>
     )

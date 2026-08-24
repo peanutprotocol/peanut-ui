@@ -14,7 +14,8 @@ import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 
-if (process.env.NODE_ENV !== 'development') {
+// NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
+if (process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_PERF_BARE !== 'true') {
     Sentry.init({
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
         environment: inferSentryEnvironment(),
@@ -38,9 +39,5 @@ if (process.env.NODE_ENV !== 'development') {
                 projectId: 4505827431415808,
             }),
         ],
-
-        // Session replay settings
-        replaysOnErrorSampleRate: 1.0,
-        replaysSessionSampleRate: 0.1,
     })
 }

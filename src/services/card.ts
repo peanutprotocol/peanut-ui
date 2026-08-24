@@ -1,17 +1,18 @@
 /**
  * Card API service — virtual-card waitlist + flow access.
  *
- * Client-side fetches to /card and /card/waitlist/*. Matches the pattern in
- * services/rain.ts and services/manteca.ts: shared auth-token path, no
- * Next.js server-action indirection.
+ * Client-side fetches to /card and /card/waitlist/* via apiFetch, so auth
+ * works on both web and native. Native builds hold the JWT in Preferences and
+ * send it as an Authorization header — the cookie jar is empty there, so the
+ * old cookie-only header threw `Authentication required` on native, blanking
+ * hasCardAccess and dropping the card nav onto /shhhhh.
  *
  * Pioneer purchase API (`purchase()`) was removed in Phase 4 of the M2
  * launch — the new free badge-gated waitlist supersedes it.
  */
 
-import { PEANUT_API_KEY, PEANUT_API_URL } from '@/constants/general.consts'
-import { authReady, getAuthHeaders } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { PEANUT_API_KEY } from '@/constants/general.consts'
+import { apiFetch } from '@/utils/api-fetch'
 
 export interface CardInfoResponse {
     /** Inner gate: cardAccessGrantedAt set OR holds a SKIP_BADGE_CODES badge
@@ -20,13 +21,13 @@ export interface CardInfoResponse {
     /** Rain card geography eligibility — true iff user's country is in the
      *  Rain card geo list. Not affected by waitlist state. */
     isEligible: boolean
-    eligibilityReason?: string
     /** True iff the user's KYC country is KNOWN and on Rain's prohibited-issuance
      *  list. Distinct from `!isEligible`, which is also true when the country is
      *  simply unknown (no KYC yet) — the card state machine blocks on this, never
      *  on unknown. OPTIONAL: the BE that returns it deploys first; older APIs
      *  omit it and the FE must treat that as "not blocked". */
     geoProhibited?: boolean
+    eligibilityReason?: string
     // ─── Waitlist fields (Card Waitlist Launch — M2 2026-06-01) ──
     /** Outer gate. True iff user can ENTER the /card flow (via /shhhhh
      *  early access or post-public-launch). */
@@ -59,19 +60,14 @@ export interface WaitlistStateResponse {
     releasedAt: string | null
 }
 
-async function authHeaders(): Promise<Record<string, string>> {
-    await authReady()
-    const headers = getAuthHeaders({ 'api-key': PEANUT_API_KEY })
-    if (!headers['Authorization']) throw new Error('Authentication required')
-    return headers
-}
+const cardHeaders = { 'api-key': PEANUT_API_KEY }
 
 export const cardApi = {
     /** GET /card — info + waitlist state. */
     getInfo: async (): Promise<CardInfoResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card`, {
+        const response = await apiFetch('/card', {
             method: 'GET',
-            headers: await authHeaders(),
+            headers: cardHeaders,
             cache: 'no-store',
         })
         if (!response.ok) {
@@ -83,9 +79,9 @@ export const cardApi = {
 
     /** POST /card/waitlist/join — idempotent stamp + position. */
     joinWaitlist: async (): Promise<{ joinedAt: string; position: number | null }> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/join`, {
+        const response = await apiFetch('/card/waitlist/join', {
             method: 'POST',
-            headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+            headers: cardHeaders,
             body: '{}',
             cache: 'no-store',
         })
@@ -98,9 +94,9 @@ export const cardApi = {
 
     /** GET /card/waitlist/state — current waitlist state. */
     getWaitlistState: async (): Promise<WaitlistStateResponse> => {
-        const response = await fetchWithSentry(`${PEANUT_API_URL}/card/waitlist/state`, {
+        const response = await apiFetch('/card/waitlist/state', {
             method: 'GET',
-            headers: await authHeaders(),
+            headers: cardHeaders,
             cache: 'no-store',
         })
         if (!response.ok) {

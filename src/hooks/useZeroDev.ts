@@ -30,6 +30,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 
 // types
 type UserOpEncodedParams = {
@@ -298,7 +299,12 @@ export const useZeroDev = () => {
     const handleSendUserOpEncoded = useCallback(
         async (
             calls: UserOpEncodedParams[],
-            chainId: string
+            chainId: string,
+            // The kernel-migration noop relies on RECEIVING the bundle receipt
+            // of a reverted userOp so it can verify migration state against
+            // on-chain truth (kernelMigration.utils.ts). Payment flows must
+            // instead FAIL a reverted op — throwing is the default.
+            opts?: { returnRevertedReceipt?: boolean }
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
             // demo mode: simulated success, no chain.
             if (isDemoMode()) {
@@ -353,19 +359,36 @@ export const useZeroDev = () => {
             } catch (error) {
                 console.error('Error waiting for UserOp receipt:', error)
                 captureException(error)
-                // Reset the loading banner too — callers that treat a null
-                // receipt as a failure (migration gate) would otherwise leave
-                // the UI stuck on 'Executing transaction'.
+                // Rescue via the shared helper (skips after a genuine 120s
+                // timeout; captures telemetry). See rescueUserOpReceipt.
+                const rescued = await rescueUserOpReceipt(client, userOpHash, error, 'zerodev-send')
                 setLoadingState('Idle')
                 dispatch(zerodevActions.setIsSendingUserOp(false))
-                return {
-                    userOpHash,
-                    receipt: null,
+                // A rescued-but-REVERTED op is a real revert, not a lost
+                // receipt: returning a success-shaped result would send flows
+                // down the userOpHash fallback and show a success screen for a
+                // transfer that moved no funds.
+                if (rescued && !rescued.success) {
+                    if (opts?.returnRevertedReceipt) return { userOpHash, receipt: rescued.receipt }
+                    throw new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
                 }
+                return { userOpHash, receipt: rescued?.receipt ?? null }
             }
 
             setLoadingState('Idle')
             dispatch(zerodevActions.setIsSendingUserOp(false))
+
+            // A mined-but-REVERTED userOp still carries a successful EntryPoint
+            // bundle receipt — returning it here let downstream flows record a
+            // reverted transfer as a successful payment (same trap the rescue
+            // path above guards; caller-side isTxReverted checks the BUNDLE
+            // status and cannot catch an inner revert). The migration noop
+            // opts INTO receiving the receipt instead (contract documented in
+            // kernelMigration.utils.ts).
+            if (!userOpReceipt.success) {
+                if (opts?.returnRevertedReceipt) return { userOpHash, receipt: userOpReceipt.receipt }
+                throw new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
+            }
 
             return {
                 userOpHash,

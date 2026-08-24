@@ -1,4 +1,4 @@
-import { API_ERROR_CODES, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
+import { API_ERROR_CODES, apiErrorStatus, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
 
 /** Safely extract a string-form of an unknown error + its `.message` if any.
  *  Lets the matchers below use `string` methods without unsafe property access
@@ -79,6 +79,7 @@ export type FriendlyErrorCode =
     | 'sendLinkAlreadyClaimed'
     | 'lowLiquidity'
     | 'networkBusyTimeout'
+    | 'sessionExpired'
     | 'connectionTimeout'
     | 'genericSupport'
     // Mapped from backend wire codes — see WIRE_CODE_MAP below.
@@ -126,6 +127,11 @@ const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
     [API_ERROR_CODES.CARD_SECRETS_RATE_LIMITED]: 'cardRateLimited',
     [API_ERROR_CODES.WITHDRAWAL_SIGNATURE_EXPIRED]: 'nonceExpired',
     [API_ERROR_CODES.WITHDRAWAL_SUBMISSION_FAILED]: 'sendTransactionError',
+    // Paymaster/bundler outage. The API rolls the claim back before sending
+    // this, so the operation provably did not happen and a retry is the right
+    // advice — the sanitized 500 prose says "contact support" instead, which is
+    // what six users were told during the 2026-08-19 ZeroDev incident.
+    [API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE]: 'networkBusyTimeout',
 }
 
 /** Both cooldown codes render the same copy — the distinction between a
@@ -166,6 +172,16 @@ export const friendlyError = (error: unknown): FriendlyError => {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]
         if (mapped) return code(mapped)
     }
+
+    /*
+     * HTTP status off our own ApiError (name-guarded — see apiErrorStatus).
+     * Sits after the wire codes (a code is more specific than a status) and
+     * before the message matchers, so an auth failure can never collapse into
+     * the "contact support" fallback: a 401 means re-login, not a bug report.
+     */
+    const status = apiErrorStatus(error)
+    if (status === 401 || status === 403) return code('sessionExpired')
+    if (status !== undefined && status >= 500) return code('networkBusyTimeout')
 
     // Rain card-collateral errors — pre-contract fallback: surface the
     // backend's already user-friendly English verbatim. Now sits behind the

@@ -293,7 +293,7 @@ const JoinWaitlistPage = () => {
     if (isAutoAccepting) return <PeanutLoading coverFullScreen />
 
     return (
-        <InvitesPageLayout image={stepImage}>
+        <InvitesPageLayout image={stepImage} showRagdoll={step === 'jail'}>
             <div
                 className={twMerge(
                     'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',

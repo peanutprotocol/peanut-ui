@@ -83,6 +83,24 @@ const IDLE_SLEEP_MS = 15000
 const deg2rad = (d: number) => (d * Math.PI) / 180
 const rand = (min: number, max: number) => min + Math.random() * (max - min)
 
+// Read on every mount, never cached at module load: the document outlives any
+// single setting, so a value latched at boot would be stale by the time the
+// user toggles Reduce Motion. Same rule as utils/confetti.ts.
+function prefersReducedMotion(): boolean {
+    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+/*
+ * Reduce Motion: degrade instead of disappearing. The drop and the 60fps loop
+ * are exactly the large-area movement the preference is about, but an empty
+ * pane reads as a broken page. So fast-forward the physics with nothing
+ * painted, then draw the settled peanut once — a mascot you can still look at,
+ * with no motion and no RAF. Bounded so a world that never comes to rest can't
+ * spin here forever (10 simulated seconds).
+ */
+const SETTLE_MAX_STEPS = 600
+const SETTLE_MIN_STEPS = 60
+
 function loadImage(url: string): Promise<HTMLImageElement> {
     return new Promise((res, rej) => {
         const img = new Image()
@@ -106,6 +124,8 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
     if (!containerNullable) throw new Error('PeanutRagdoll: canvas must be mounted in a parent element')
     // Narrowing doesn't survive into nested closures (same trick as `ctx` above).
     const container: HTMLElement = containerNullable
+
+    const reducedMotion = prefersReducedMotion()
 
     // ---- rest-time face state machine ----
     let restTime = 0
@@ -482,6 +502,21 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         resetRest()
     }
 
+    // Step the physics with nothing painted until the peanut stops moving, so
+    // the single frame the Reduce Motion path draws is already at rest.
+    function settleWorld() {
+        const shell = parts.shell
+        for (let i = 0; i < SETTLE_MAX_STEPS; i++) {
+            world.step(1 / 60)
+            if (i < SETTLE_MIN_STEPS) continue
+            const still =
+                Math.hypot(shell.velocity[0], shell.velocity[1]) < 0.05 && Math.abs(shell.angularVelocity) < 0.1
+            if (still) break
+        }
+        faceAngle = shell.angle
+        faceAngularVel = 0
+    }
+
     function drawSprite(body: any) {
         const img: HTMLImageElement | undefined = body.__sprite
         if (!img) return
@@ -675,11 +710,15 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
         }
     }
 
-    canvas.addEventListener('pointerdown', onPointerDown)
-    canvas.addEventListener('pointermove', onPointerMove)
-    canvas.addEventListener('pointerup', onPointerEnd)
-    canvas.addEventListener('pointercancel', onPointerEnd)
-    document.addEventListener('visibilitychange', onVisibilityChange)
+    // Under Reduce Motion the canvas is a still image: nothing drags, nothing
+    // animates, so none of these have any work to do.
+    if (!reducedMotion) {
+        canvas.addEventListener('pointerdown', onPointerDown)
+        canvas.addEventListener('pointermove', onPointerMove)
+        canvas.addEventListener('pointerup', onPointerEnd)
+        canvas.addEventListener('pointercancel', onPointerEnd)
+        document.addEventListener('visibilitychange', onVisibilityChange)
+    }
 
     // ResizeObserver tracks the modal panel rather than the viewport, so a
     // panel that grows/shrinks reflows the cage. Fires once on .observe().
@@ -705,6 +744,14 @@ export function startRagdoll(canvas: HTMLCanvasElement): () => void {
             if (cancelled) return
             Object.assign(sprites, { shell, arm, leg, hand, foot, face, faceSurprised, faceSleepy })
             buildWorld()
+            if (reducedMotion) {
+                settleWorld()
+                // `sleeping` is what resize() checks before repainting, so a
+                // container resize still redraws the still frame.
+                sleeping = true
+                render()
+                return
+            }
             lastT = performance.now()
             lastInteractionT = lastT
             rafId = requestAnimationFrame(loop)

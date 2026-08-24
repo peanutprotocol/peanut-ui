@@ -52,6 +52,26 @@ export const ANALYTICS_EVENTS = {
 
     // ── Send ──
     SEND_METHOD_SELECTED: 'send_method_selected',
+    // Emitted for every direct send that ends in the error toast, whatever the
+    // step. Until this existed a failed send left no analytics trace at all.
+    SEND_FAILED: 'send_failed',
+    // A payment was recorded with the userOp hash because no receipt (and no
+    // coordinator txHash) was available — the backend cannot validate that
+    // hash, so this rate should be ~0. See resolveSettledTxHash.
+    SEND_TXHASH_FALLBACK: 'send_txhash_fallback',
+    // waitForUserOperationReceipt failed but a capped retry of the wait
+    // recovered the receipt. Carries elapsed_ms, context ('zerodev-send' |
+    // 'mixed-ephemeral-spend') and reverted (a rescued REVERTED op is failed
+    // by the caller, never recorded as success). Fires below the flow layer;
+    // high counts = flaky bundler RPC. Not captured in demo mode.
+    SEND_RECEIPT_RESCUED: 'send_receipt_rescued',
+    // Client-side latency split of a successful direct send: charge_create_ms,
+    // send_money_ms (sign + bundler + receipt — INCLUDES human passkey-prompt
+    // dwell time; read p50, not the tail), record_payment_ms, tx_hash_source.
+    // Measures the client leg that prod DB timing can't see (TASK-21147:
+    // created→POST /payments was p50 7.9s with no attribution). Not captured
+    // in demo mode.
+    SEND_LATENCY_BREAKDOWN: 'send_latency_breakdown',
 
     // ── Send Link ──
     SEND_LINK_CREATED: 'send_link_created',
@@ -185,6 +205,11 @@ export const ANALYTICS_EVENTS = {
     // Withdraw refused with 409 STALE_CARD_APPROVAL — stored session-key
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
+    // One-tap mixed spend via per-transaction ephemeral session key
+    // (SESSION_KEY_SPEND flag). A fallback means the passkey path took over —
+    // `reason` says why; watch this before widening the flag.
+    SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
+    SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',
 
     // ── Card: waitlist + early-access funnel (M2 Card Waitlist Launch) ──
     // /shhhhh closed-beta landing page → /card.

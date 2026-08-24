@@ -12,8 +12,9 @@
  * note: no cross-chain, always usdc on arbitrum
  */
 
-import { useCallback, useMemo } from 'react'
-import { type Address, type Hash } from 'viem'
+import { useCallback, useContext, useMemo } from 'react'
+import { type Address } from 'viem'
+import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
@@ -22,6 +23,12 @@ import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useTranslations } from 'next-intl'
+import { captureException } from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { isDemoMode } from '@/utils/demo'
 
 export function useDirectSendFlow() {
     const t = useTranslations('payment')
@@ -52,6 +59,12 @@ export function useDirectSendFlow() {
     } = useDirectSendFlowContext()
 
     const { user } = useAuth()
+    // Mirrored into the global loading context so useStaleDeploymentReload's
+    // safety gate sees this flow: a resume-triggered reload mid-payment (every
+    // passkey prompt backgrounds the app) would wipe the in-memory step-up
+    // cache and force extra signature prompts — or worse, reload between the
+    // on-chain send and recordPayment.
+    const { setLoadingState } = useContext(loadingStateContext)
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
     const {
@@ -117,9 +130,14 @@ export function useDirectSendFlow() {
         }
 
         setIsLoading(true)
+        setLoadingState('Loading')
         clearError()
 
+        let failedStep: 'create-charge' | 'send-money' | 'record-payment' = 'create-charge'
+        let chargeId: string | undefined
+
         try {
+            const t0 = Date.now()
             // step 1: create charge
             const chargeResult = await createCharge({
                 tokenAmount: amount,
@@ -136,6 +154,9 @@ export function useDirectSendFlow() {
             })
 
             setCharge(chargeResult)
+            chargeId = chargeResult.uuid
+            const tChargeCreated = Date.now()
+            failedStep = 'send-money'
 
             // step 2: send money via peanut wallet
             const txResult = await sendMoney(recipient.address, amount, {
@@ -146,13 +167,11 @@ export function useDirectSendFlow() {
                 // through the same trusted-completion path.
                 chargeId: chargeResult.uuid,
             })
-            // For the collateral-only strategy useSpendBundle returns only
-            // `txHash` (Rain coordinator submits the on-chain tx; no UserOp
-            // hash + no receipt land here). Fall back to it so users with
-            // card collateral can pay without smart-account balance.
-            const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
+            const { hash, source: txHashSource } = resolveSettledTxHash(txResult, 'direct-send')
+            const tMoneySent = Date.now()
 
             setTxHash(hash)
+            failedStep = 'record-payment'
 
             // step 3: record payment to backend
             const paymentResult = await recordPayment({
@@ -166,11 +185,53 @@ export function useDirectSendFlow() {
             setPayment(paymentResult)
             setIsSuccess(true)
             setCurrentView('STATUS')
+
+            // Client-leg latency split. Prod DB timing only sees intent
+            // creation → POST /payments as one opaque 7.9s-median block
+            // (TASK-21147) — this attributes it. Guarded: a capture throw must
+            // never route an already-successful payment into the error catch.
+            try {
+                if (!isDemoMode()) {
+                    posthog.capture(ANALYTICS_EVENTS.SEND_LATENCY_BREAKDOWN, {
+                        charge_id: chargeResult.uuid,
+                        charge_create_ms: tChargeCreated - t0,
+                        send_money_ms: tMoneySent - tChargeCreated,
+                        record_payment_ms: Date.now() - tMoneySent,
+                        total_ms: Date.now() - t0,
+                        tx_hash_source: txHashSource,
+                    })
+                }
+            } catch {
+                // analytics only — never user-visible
+            }
         } catch (err) {
             const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
+
+            // Report here, at the flow level, rather than relying on the
+            // console-capture integration: everything below this catch either
+            // console.errors (which the noise filters then drop) or reports
+            // only WebAuthn-named failures to PostHog, so a send that ended in
+            // "contact support" left no queryable record anywhere.
+            const errorName = err instanceof Error ? err.name : 'unknown'
+            posthog.capture(ANALYTICS_EVENTS.SEND_FAILED, {
+                step: failedStep,
+                charge_id: chargeId,
+                error_name: errorName,
+            })
+            captureException(err, {
+                tags: { ...criticalFlowTags('direct-send'), send_step: failedStep },
+                extra: {
+                    chargeId,
+                    recipientAddress: recipient.address,
+                    amount,
+                    usdAmount,
+                    userId: user?.user?.userId,
+                },
+            })
         } finally {
             setIsLoading(false)
+            setLoadingState('Idle')
         }
     }, [
         recipient,
@@ -188,8 +249,10 @@ export function useDirectSendFlow() {
         setCurrentView,
         setError,
         setIsLoading,
+        setLoadingState,
         clearError,
         toFriendlyError,
+        user,
         t,
     ])
 

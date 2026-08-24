@@ -1,7 +1,38 @@
 import { type CrispUserData } from '@/hooks/useCrispUserData'
 import { isCapacitor } from '@/utils/capacitor'
+import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 
 type CrispInstance = Window['$crisp']
+
+type NativeCrisp = typeof import('@capgo/capacitor-crisp').CapacitorCrisp
+
+let nativeCrispReady: Promise<{ CapacitorCrisp: NativeCrisp }> | null = null
+
+/**
+ * Lazily loads and configures the native Crisp SDK, memoized across calls.
+ * Configuration happens on first support open rather than app launch — the
+ * SDK init is part of the native startup burst we keep off the boot path.
+ *
+ * Resolves with the plugin wrapped in an object, never with the plugin itself:
+ * settling a promise with a value probes its .then, and Capacitor's plugin
+ * proxy answers that probe with a "CapacitorCrisp.then()" method wrapper. The
+ * wrapper never invokes the resolve/reject callbacks it is handed, so the
+ * promise stays pending forever — support opens to a blank panel and not even
+ * the .catch runs.
+ */
+export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeCrisp }> {
+    if (!nativeCrispReady) {
+        nativeCrispReady = import('@capgo/capacitor-crisp').then(async ({ CapacitorCrisp }) => {
+            await CapacitorCrisp.configure({ websiteID: CRISP_WEBSITE_ID })
+            return { CapacitorCrisp }
+        })
+        // allow a retry on next open if configure fails
+        nativeCrispReady.catch(() => {
+            nativeCrispReady = null
+        })
+    }
+    return nativeCrispReady
+}
 
 /**
  * Sets Crisp user identification and session metadata on a $crisp instance
@@ -109,11 +140,14 @@ export function resetCrispSession(crispInstance: CrispInstance): void {
 export function resetCrispProxySessions(): void {
     if (typeof window === 'undefined') return
 
-    // in capacitor, reset via native plugin
+    // in capacitor, reset via native plugin — only if it was ever configured
+    // this session (i.e. support was opened); nothing to reset otherwise
     if (isCapacitor()) {
-        import('@capgo/capacitor-crisp')
-            .then(({ CapacitorCrisp }) => CapacitorCrisp.reset())
-            .catch((err) => console.debug('[Crisp] native reset failed:', err))
+        if (nativeCrispReady) {
+            nativeCrispReady
+                .then(({ CapacitorCrisp }) => CapacitorCrisp.reset())
+                .catch((err) => console.debug('[Crisp] native reset failed:', err))
+        }
         return
     }
 

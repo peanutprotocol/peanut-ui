@@ -193,15 +193,25 @@ export function getLimitsWarningCardProps({
     // use limitCurrency from validation (correct currency for the limit) or fallback to transaction currency
     const limitCurrency = validation.limitCurrency ?? currency ?? 'USD'
     const currencySymbol = getCurrencySymbol(limitCurrency)
-    const formattedLimit = formatExtendedNumber(validation.remainingLimit ?? 0)
-    const amountDisplay = currencySymbol === '$' ? `$${formattedLimit}` : `${currencySymbol} ${formattedLimit}`
+    // `?? 0` here would state "you can add up to $0" when the remaining limit is
+    // merely UNKNOWN — the same unknown-rendered-as-zero shape as the $0 balance
+    // bug. Omit the sentence instead of inventing a figure.
+    const formattedLimit = validation.remainingLimit == null ? null : formatExtendedNumber(validation.remainingLimit)
+    const amountDisplay =
+        formattedLimit === null
+            ? null
+            : currencySymbol === '$'
+              ? `$${formattedLimit}`
+              : `${currencySymbol} ${formattedLimit}`
 
     // qr payments are always capped per transaction; onramp/offramp only when
     // there's no period limit to reset
     const perTransaction = flowType === 'qr-payment' || !validation.daysUntilReset
     const perTransactionSuffix = perTransaction ? ' per transaction' : ''
     let limitMessage = ''
-    if (flowType === 'onramp') {
+    if (amountDisplay === null) {
+        limitMessage = ''
+    } else if (flowType === 'onramp') {
         limitMessage = `You can add up to ${amountDisplay}${perTransactionSuffix}`
     } else if (flowType === 'offramp') {
         limitMessage = `You can withdraw up to ${amountDisplay}${perTransactionSuffix}`
@@ -209,7 +219,10 @@ export function getLimitsWarningCardProps({
         limitMessage = `You can pay up to ${amountDisplay}${perTransactionSuffix}`
     }
 
-    items.push({ text: limitMessage, kind: 'limit-amount', amount: amountDisplay, flowType, perTransaction })
+    // Skip the amount item entirely when the limit is unknown — no "$0" line.
+    if (amountDisplay !== null) {
+        items.push({ text: limitMessage, kind: 'limit-amount', amount: amountDisplay, flowType, perTransaction })
+    }
 
     // add days until reset if applicable
     if (validation.daysUntilReset) {
