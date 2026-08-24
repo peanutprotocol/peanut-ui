@@ -441,7 +441,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         }, [country])
 
         return (
-            <div className="flex h-full w-full flex-col gap-4 pb-4">
+            <div className="my-auto flex h-full w-full flex-col justify-center gap-4 pb-4">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"
@@ -456,14 +456,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     isFromSendFlow={framedAsSend}
                 />
 
-                <div className="flex flex-1 flex-col gap-4">
+                <div className="flex flex-col gap-4">
                     <h3 className="text-heading-card text-foreground-primary">{t('heading')}</h3>
                     <form
                         onSubmit={(e) => {
                             e.preventDefault()
                             handleSubmit(onSubmit)()
                         }}
-                        className="flex flex-1 flex-col gap-4"
+                        className="flex flex-col gap-4"
                     >
                         {/* CLAIM FLOW: show name field for guest users or logged-in users without fullName */}
                         {flow === 'claim' && !user?.user.userId && (
@@ -676,7 +676,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             type="submit"
                             variant="purple"
                             shadowSize="4"
-                            className="mt-auto w-full"
+                            className="w-full"
                             loading={isSubmitting || isCheckingBICValid || isValidating}
                             disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
                         >

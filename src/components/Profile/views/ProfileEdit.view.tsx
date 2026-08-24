@@ -147,73 +147,75 @@ export const ProfileEditView = () => {
     const username = user?.user.username || ''
 
     return (
-        // pinned-footer recipe: Save stays at the bottom edge instead of
-        // scrolling off under six fields.
-        <div className="flex flex-col justify-between gap-8">
-            <div className="flex flex-col gap-8">
-                <NavHeader title={t('title')} onPrev={onBack} />
+        <div className="flex flex-col gap-8">
+            <NavHeader title={t('title')} onPrev={onBack} />
 
-                <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
+            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
 
-                {/* two groups — who you are, then how we reach you. gap-6 (XL,
-                    the section step) against gap-4 (L) inside a group, so the
-                    rhythm reads 8 (label → field) < 16 (field → field) < 24. */}
-                <div className="flex flex-col gap-6">
-                    <div className="flex flex-col gap-4">
-                        <ProfileEditField
-                            label={t('fields.name')}
-                            value={formData.name}
-                            onChange={(value) => handleChange('name', value)}
-                            disabled={!canEditName}
-                        />
+            {/* two groups — who you are, then how we reach you. gap-6 (XL,
+                the section step) against gap-4 (L) inside a group, so the
+                rhythm reads 8 (label → field) < 16 (field → field) < 24. */}
+            <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4">
+                    <ProfileEditField
+                        label={t('fields.name')}
+                        value={formData.name}
+                        onChange={(value) => handleChange('name', value)}
+                        disabled={!canEditName}
+                    />
 
-                        <ProfileEditField
-                            label={t('fields.surname')}
-                            value={formData.surname}
-                            onChange={(value) => handleChange('surname', value)}
-                            disabled={!canEditName}
-                        />
+                    <ProfileEditField
+                        label={t('fields.surname')}
+                        value={formData.surname}
+                        onChange={(value) => handleChange('surname', value)}
+                        disabled={!canEditName}
+                    />
 
-                        <ProfileEditField
-                            label={t('fields.bio')}
-                            value={formData.bio}
-                            onChange={(value) => handleChange('bio', value)}
-                            badge={t('soonBadge')}
-                            disabled
-                        />
-                    </div>
+                    <ProfileEditField
+                        label={t('fields.bio')}
+                        value={formData.bio}
+                        onChange={(value) => handleChange('bio', value)}
+                        badge={t('soonBadge')}
+                        disabled
+                    />
+                </div>
 
-                    <div className="flex flex-col gap-4">
-                        <ProfileEditField
-                            label={t('fields.email')}
-                            value={formData.email}
-                            onChange={(value) => handleChange('email', value)}
-                            type="email"
-                            disabled={isEmailSet}
-                        />
+                <div className="flex flex-col gap-4">
+                    <ProfileEditField
+                        label={t('fields.email')}
+                        value={formData.email}
+                        onChange={(value) => handleChange('email', value)}
+                        type="email"
+                        disabled={isEmailSet}
+                    />
 
-                        <ProfileEditField
-                            label={t('fields.phoneNumber')}
-                            value={formData.phone}
-                            onChange={(value) => handleChange('phone', value)}
-                            type="tel"
-                            badge={t('soonBadge')}
-                            disabled
-                        />
+                    <ProfileEditField
+                        label={t('fields.phoneNumber')}
+                        value={formData.phone}
+                        onChange={(value) => handleChange('phone', value)}
+                        type="tel"
+                        badge={t('soonBadge')}
+                        disabled
+                    />
 
-                        <ProfileEditField
-                            label={t('fields.website')}
-                            value={formData.website}
-                            onChange={(value) => handleChange('website', value)}
-                            type="url"
-                            badge={t('soonBadge')}
-                            disabled
-                        />
-                    </div>
+                    <ProfileEditField
+                        label={t('fields.website')}
+                        value={formData.website}
+                        onChange={(value) => handleChange('website', value)}
+                        type="url"
+                        badge={t('soonBadge')}
+                        disabled
+                    />
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4">
+            {/* Save follows the scroll instead of dropping off the end of six
+                fields. `bottom-20` (80px) clears the bottom nav: AppShell
+                renders it `fixed`, so it overlays the scroll container rather
+                than reserving space, and a footer without the offset sits 18px
+                underneath it (measured). The general fix belongs in AppShell —
+                see the PR notes. */}
+            <div className="sticky bottom-20 flex flex-col gap-4 bg-background-page pt-4">
                 {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
 
                 <Button

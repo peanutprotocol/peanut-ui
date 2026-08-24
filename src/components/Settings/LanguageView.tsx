@@ -14,8 +14,9 @@ import { useAppLocale } from '@/i18n/app/AppIntlProvider'
 
 /**
  * ISO-2 country per locale, for the row flag. `es-419` is UN region 419
- * (Latin American Spanish) and has no country, so it falls back to the
- * neutral flag — a Spain flag would name the wrong variant.
+ * (Latin American Spanish) and has no country of its own — a Spain flag would
+ * name the wrong variant, and the `xx` fallback renders as a grey question
+ * mark that reads like a broken image. Those rows get the globe icon instead.
  */
 const LOCALE_FLAG_CODES: Record<AppLocale, string | null> = {
     en: 'us',
@@ -50,13 +51,17 @@ export const LanguageView = () => {
                         position={getCardPosition(index, APP_LOCALES.length)}
                         onClick={() => select(appLocale)}
                         leading={
-                            <Image
-                                src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
-                                alt=""
-                                width={80}
-                                height={80}
-                                className="size-6 rounded-full object-cover"
-                            />
+                            LOCALE_FLAG_CODES[appLocale] ? (
+                                <Image
+                                    src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
+                                    alt=""
+                                    width={80}
+                                    height={80}
+                                    className="size-6 rounded-full object-cover"
+                                />
+                            ) : (
+                                <Icon name="globe" size={24} className="text-foreground-primary" />
+                            )
                         }
                         title={
                             <span className="text-body-m text-foreground-primary" lang={appLocale}>

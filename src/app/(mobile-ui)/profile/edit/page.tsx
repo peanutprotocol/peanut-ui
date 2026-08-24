@@ -10,10 +10,7 @@ export const metadata = generateMetadata({
 
 export default function ProfileEditPage() {
     return (
-        // items-stretch hands PageContainer's own min-height down to the view,
-        // so the pinned Save footer sits at the bottom edge without the view
-        // re-declaring the height.
-        <PageContainer className="items-stretch">
+        <PageContainer>
             <ProfileEditView />
         </PageContainer>
     )
