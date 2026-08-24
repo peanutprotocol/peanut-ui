@@ -428,6 +428,57 @@ jobs:
                           });
                       }
 
+    # Human-only authorship gate. Every commit on the PR must be authored by a
+    # team member's own GitHub account — no `*[bot]` authors (claude[bot],
+    # github-actions[bot], …) and no emails that GitHub cannot map to an
+    # account. Policy set 2026-08-24: AI is a tool, not an owner; every commit
+    # has a human who is accountable for it. Cloud coding sessions that commit
+    # as claude[bot] are exactly what this blocks. Content-publish PRs pass:
+    # update-content.yml authors and signs its commit as a human account.
+    #
+    # To add a teammate: add their GitHub login to ALLOWED below (one line).
+    human-authors:
+        name: human-authors
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Verify every commit is authored by a team member
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const ALLOWED = new Set([
+                        'Hugo0',
+                        '0xkkonrad',
+                        'abalinda',
+                        'innolope-dev',
+                        'jjramirezn',
+                        'kushagrasarathe',
+                      ]);
+                      const commits = await github.paginate(github.rest.pulls.listCommits, {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: context.payload.pull_request.number,
+                        per_page: 100,
+                      });
+                      const bad = [];
+                      for (const c of commits) {
+                        const sha = c.sha.slice(0, 7);
+                        const login = c.author && c.author.login;
+                        const email = (c.commit.author && c.commit.author.email) || 'unknown';
+                        if (!login) {
+                          bad.push(`${sha}: author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`);
+                        } else if (login.endsWith('[bot]')) {
+                          bad.push(`${sha}: authored by ${login} — bot-authored commits are not allowed; commit as yourself`);
+                        } else if (!ALLOWED.has(login)) {
+                          bad.push(`${sha}: authored by ${login}, who is not in the team allowlist in .github/workflows/tests.yml`);
+                        }
+                      }
+                      if (bad.length) {
+                        core.setFailed(`Commits must be authored by a team member:\n${bad.join('\n')}`);
+                      } else {
+                        console.log(`✅ All ${commits.length} commits are authored by team members`);
+                      }
+
     # Single umbrella check that aggregates all required test/quality jobs.
     # Branch protection on `dev`/`main` requires only `ci-success` instead of
     # listing every individual job — keeps the ruleset stable as jobs are
@@ -439,7 +490,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, eslint, typecheck, unit, e2e, report]
+        needs: [format, eslint, typecheck, unit, e2e, report, human-authors]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -453,6 +504,7 @@ jobs:
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  e2e:       ${{ needs.e2e.result }}"
                       echo "  report:    ${{ needs.report.result }}"
+                      echo "  human-authors: ${{ needs['human-authors'].result }}"
                       exit 1
                   fi
                   echo "✅ All required jobs passed"
