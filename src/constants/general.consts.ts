@@ -1,4 +1,3 @@
-import type { IPeanutChainDetails, IPeanutTokenDetail } from '@/interfaces/interfaces'
 import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
 
 // Verified 2026-05-13 with curl from staging.peanut.me origin.
