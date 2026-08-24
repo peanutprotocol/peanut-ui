@@ -272,15 +272,17 @@ export default function ShhhhhLandingPage() {
 
     return (
         <>
-            {/* the page is reachable from /profile ("Peanut card" for
-                non-holders), and every other route out of it goes forward —
-                without this the only way back was the browser button */}
-            <div className="px-4 pt-4">
-                <NavHeader onPrev={onBack} />
-            </div>
-
             {/* §1 — Hero (pink) */}
             <section className="relative overflow-hidden bg-primary-1 px-4 py-20 text-n-1 md:py-24">
+                {/* the page is reachable from /profile ("Peanut card" for
+                    non-holders), and every other route out of it goes forward —
+                    without this the only way back was the browser button.
+                    It overlays the hero instead of sitting in a bar above it:
+                    a bar added a cream strip over the pink fold and pushed the
+                    wordmark down. Absolute, so it costs no vertical space. */}
+                <div className="absolute top-4 left-4 z-30">
+                    <NavHeader onPrev={onBack} hideLabel />
+                </div>
                 <motion.img
                     src={Star.src}
                     alt=""
