@@ -441,6 +441,10 @@ jobs:
         name: human-authors
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
+        # The workflow-level permissions block drops pull-requests, and the
+        # commit-listing endpoint 403s without it.
+        permissions:
+            pull-requests: read
         steps:
             - name: Verify every commit is authored by a team member
               uses: actions/github-script@v7
