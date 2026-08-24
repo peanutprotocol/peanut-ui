@@ -197,6 +197,11 @@
         "permanent": true
     },
     {
+        "source": "/split",
+        "destination": "https://peanutsplit.com/new",
+        "permanent": false
+    },
+    {
         "source": "/:locale/deposit/via-avalanche",
         "destination": "/:locale/supported-networks",
         "permanent": true
