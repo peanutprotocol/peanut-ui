@@ -1,7 +1,7 @@
 import { getInitialsFromName } from '@/utils/general.utils'
 import { getColorForUsername } from '@/utils/color.utils'
 import React, { useMemo, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Image, { type StaticImageData } from 'next/image'
 

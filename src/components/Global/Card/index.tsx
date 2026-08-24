@@ -1,5 +1,5 @@
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { type CardPosition } from './card.utils'
 
 interface CardProps {

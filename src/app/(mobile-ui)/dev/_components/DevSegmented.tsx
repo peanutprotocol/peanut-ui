@@ -1,6 +1,6 @@
 'use client'
 
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * The one segmented control for /dev pages — a small row of mutually exclusive

@@ -1,4 +1,4 @@
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 type DividerProps = {
     text?: string

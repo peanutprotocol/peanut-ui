@@ -3,7 +3,7 @@ import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/compon
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export interface ActionModalButtonProps extends ButtonProps {
     text: string

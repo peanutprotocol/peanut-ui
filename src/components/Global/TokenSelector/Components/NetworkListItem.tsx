@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import React, { useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'

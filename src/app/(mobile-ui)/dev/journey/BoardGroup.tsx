@@ -1,6 +1,6 @@
 'use client'
 
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * One channel band inside a funnel column. Each band carries its own tint so

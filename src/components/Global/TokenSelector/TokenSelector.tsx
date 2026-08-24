@@ -12,7 +12,7 @@
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import React, { type ReactNode, useCallback, useContext, useMemo, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 import { Button } from '@/components/0_Bruddle/Button'
 import Divider from '@/components/0_Bruddle/Divider'

@@ -1,4 +1,4 @@
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 type ShadowSize = '4' | '6' | '8'
 type ShadowColor = 'primary' | 'secondary'

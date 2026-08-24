@@ -1,7 +1,7 @@
 'use client'
 
 import { Root, List, Trigger } from '@radix-ui/react-tabs'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export interface SegmentedControlOption {
     value: string

@@ -1,6 +1,6 @@
 'use client'
 
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import Card from '../Global/Card'
 import { type CardPosition } from '../Global/Card/card.utils'
 import { Icon } from '../Global/Icons/Icon'

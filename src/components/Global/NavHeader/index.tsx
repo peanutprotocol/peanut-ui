@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import type enMessages from '@/i18n/app/messages/en.json'
 import { Button } from '@/components/0_Bruddle/Button'
 import Link from 'next/link'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Icons/Icon'
 import { useAuth } from '@/context/authContext'
 

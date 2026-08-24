@@ -1,4 +1,4 @@
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 
 type IconBubbleSize = 'xs' | 's' | 'm' | 'l'

@@ -1,6 +1,6 @@
 'use client'
 
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { DEV_CHIP_TONE_CLASS, type DevChipTone } from './devChipTones'
 
 /** Small colour-coded pill for dev-page taxonomies and badges. */

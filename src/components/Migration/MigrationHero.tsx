@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import starImage from '@/assets/icons/star.png'
 

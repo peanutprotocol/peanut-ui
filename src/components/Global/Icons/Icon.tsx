@@ -1,5 +1,5 @@
 import { type ComponentType, type FC, type SVGProps } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import type { LucideIcon } from 'lucide-react'
 import {
     AlertCircle,

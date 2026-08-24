@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Drawer as DrawerPrimitive } from 'vaul'
 
 type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {

@@ -1,5 +1,5 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 

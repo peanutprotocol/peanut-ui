@@ -3,7 +3,7 @@
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
 import { useAuth } from '@/context/authContext'

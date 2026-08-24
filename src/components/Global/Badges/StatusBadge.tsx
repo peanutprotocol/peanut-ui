@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export type StatusType =
     | 'completed'

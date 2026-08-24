@@ -2,7 +2,7 @@
 import Image from 'next/image'
 import starImage from '@/assets/icons/star.png'
 import { Icon } from '../Global/Icons/Icon'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
 import { useTranslations } from 'next-intl'
 

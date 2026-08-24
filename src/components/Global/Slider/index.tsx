@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import * as SliderPrimitive from '@radix-ui/react-slider'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 const SNAP_POINTS = [25, 100 / 3, 50, 100] // 100/3 = 33.333...% for equal 3-person splits
 const SNAP_THRESHOLD = 5 // ±5% proximity to trigger snap

@@ -13,7 +13,7 @@ import {
     ItemText,
     ItemIndicator,
 } from '@radix-ui/react-select'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 export interface BaseSelectOption {

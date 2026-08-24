@@ -2,7 +2,7 @@
 import { type FC, useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
 import { PEANUTMAN } from '@/assets/mascot'

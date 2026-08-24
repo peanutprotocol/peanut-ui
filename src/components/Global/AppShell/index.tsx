@@ -1,6 +1,6 @@
 'use client'
 
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 interface AppShellProps {
     /** app = authed chrome (scroll container + bottom nav); onboarding = setup chrome. */

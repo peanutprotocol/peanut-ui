@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { useModalsContext } from '@/context/ModalsContext'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { type IconName } from '../Icons/Icon'
 
 export default function DirectSendQr({

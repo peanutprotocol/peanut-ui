@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import CloudsBackground from '../0_Bruddle/CloudsBackground'
 import starImage from '@/assets/icons/star.png'
 

@@ -1,4 +1,4 @@
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'

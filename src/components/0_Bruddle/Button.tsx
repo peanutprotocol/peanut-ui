@@ -1,6 +1,6 @@
 'use client'
 import React, { forwardRef, useCallback, useEffect, useRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
 import { useAppHaptic } from '@/hooks/useAppHaptic'

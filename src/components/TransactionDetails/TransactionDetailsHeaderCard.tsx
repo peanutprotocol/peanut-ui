@@ -15,7 +15,7 @@ import Image from 'next/image'
 import React from 'react'
 import { VerifiedUserLabel } from '../UserHeader'
 import { useRouter } from 'next/navigation'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { PEANUTMAN } from '@/assets/mascot'
 import { profileUrl } from '@/utils/native-routes'
 

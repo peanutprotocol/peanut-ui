@@ -2,7 +2,7 @@ import React from 'react'
 import { Card } from '@/components/0_Bruddle/Card'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { type IconName } from '../Icons/Icon'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 interface EmptyStateProps {
     icon: IconName

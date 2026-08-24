@@ -1,7 +1,7 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 interface SearchInputProps {
     value: string

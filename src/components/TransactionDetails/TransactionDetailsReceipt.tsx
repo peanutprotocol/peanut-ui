@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'

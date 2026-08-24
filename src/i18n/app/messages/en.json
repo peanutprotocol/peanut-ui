@@ -301,7 +301,7 @@
             }
         },
         "regions": {
-            "title": "Unlocked regions",
+            "title": "Regions and verification",
             "description": "Transfer to and receive from any bank account and use supported payments methods.",
             "empty": {
                 "title": "No regions unlocked yet",

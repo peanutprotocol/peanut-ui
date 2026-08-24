@@ -1,6 +1,6 @@
 import { PEANUTMAN } from '@/assets/mascot'
 import Image from 'next/image'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /** 'spinner' = inline border spinner (buttons, rows). 'mascot' = screen-level
  *  spinning peanutman (the old PeanutLoading, folded in by DS 06). the union is

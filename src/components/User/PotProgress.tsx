@@ -2,7 +2,7 @@ import COIN_ICON from '@/assets/icons/coin.svg'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import ProgressBar, { type ProgressBarMarker } from '@/components/0_Bruddle/ProgressBar'
 import { formatExtendedNumber } from '@/utils/general.utils'
 

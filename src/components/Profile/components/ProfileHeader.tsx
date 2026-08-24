@@ -4,7 +4,7 @@ import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts
 import { shareableUrl } from '@/utils/url.utils'
 import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'

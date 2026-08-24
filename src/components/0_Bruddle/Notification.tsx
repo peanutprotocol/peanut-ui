@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import { Button } from './Button'
 

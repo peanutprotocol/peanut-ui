@@ -14,7 +14,7 @@ import { formatAmountWithSignificantDigits, formatAmount } from '@/utils/general
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import React, { useContext, useMemo, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../../Icons/Icon'
 
 interface TokenListItemProps {

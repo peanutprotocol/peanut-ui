@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../Global/Icons/Icon'
 
 interface LinkButtonProps {

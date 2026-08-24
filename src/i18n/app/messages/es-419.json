@@ -301,7 +301,7 @@
             }
         },
         "regions": {
-            "title": "Regiones desbloqueadas",
+            "title": "Regiones y verificación",
             "description": "Transfiere y recibe desde cualquier cuenta bancaria y usa los métodos de pago disponibles.",
             "empty": {
                 "title": "Aún no tienes regiones desbloqueadas",
