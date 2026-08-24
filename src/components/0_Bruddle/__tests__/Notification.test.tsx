@@ -60,6 +60,15 @@ describe('Notification', () => {
         expect(container).toBeEmptyDOMElement()
     })
 
+    test('an empty items list suppresses children rather than falling back to them', () => {
+        const { container } = render(
+            <Notification priority="info" items={[]}>
+                should not appear
+            </Notification>
+        )
+        expect(container).toBeEmptyDOMElement()
+    })
+
     test('a title alone still renders', () => {
         render(<Notification priority="info" title="Heads up" items={[]} />)
         expect(screen.getByText('Heads up')).toBeInTheDocument()

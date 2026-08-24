@@ -7,7 +7,7 @@ import { useAuth } from '@/context/authContext'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -61,9 +61,15 @@ export const ProfileEditView = () => {
         return { name, surname, email: user?.user.email || '' }
     }, [user?.user.fullName, user?.user.email, splitName])
 
+    // Hydrate once, when the saved values first arrive. `initial` also changes on
+    // any later auth refresh — re-applying it there would wipe whatever the user
+    // had already typed, since this screen is reachable before auth resolves.
+    const hydrated = useRef(false)
     useEffect(() => {
+        if (hydrated.current || !user) return
+        hydrated.current = true
         setFormData((prev) => ({ ...prev, ...initial }))
-    }, [initial])
+    }, [user, initial])
 
     // Save stays disabled until something the user may edit actually changed.
     // bio / phone / website are "Soon!" placeholders — always disabled, never

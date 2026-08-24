@@ -59,23 +59,25 @@ export const Notification = ({
     ...props
 }: NotificationProps) => {
     const { icon, bg } = PRIORITY_STYLES[priority]
-    const body = items?.length ? (
-        <div className="flex flex-col gap-1">
-            {items.map((item, index) => (
-                <div key={index} className="flex items-start gap-2">
-                    {/* mt-0.5 centres the 16px check on the 20px first line */}
-                    <Icon name="check" size={16} className="mt-0.5 shrink-0" />
-                    <div className="min-w-0 flex-1">{item}</div>
-                </div>
-            ))}
-        </div>
-    ) : (
-        children
-    )
+    // `items` wins whenever it is passed at all — an explicit [] means "no rows",
+    // not "fall back to children"
+    const body = items
+        ? items.length > 0 && (
+              <div className="flex flex-col gap-1">
+                  {items.map((item, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                          {/* mt-0.5 centres the 16px check on the 20px first line */}
+                          <Icon name="check" size={16} className="mt-0.5 shrink-0" />
+                          <div className="min-w-0 flex-1">{item}</div>
+                      </div>
+                  ))}
+              </div>
+          )
+        : children
     // an empty `items` array used to fall through to `children` (undefined at
     // every migrated call site) and paint a bare icon-only box — WelcomeUnlockModal
     // hits that when the user unlocked no channel at all
-    if (body == null && !title && !ctas?.length) return null
+    if (!body && !title && !ctas?.length) return null
     return (
         <div
             role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
