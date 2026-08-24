@@ -93,7 +93,7 @@ const DISABLE_XCHAIN_WITHDRAW_GLOBALLY = false
 const underMaintenanceConfig: MaintenanceConfig = {
     enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
     enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
-    disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
+    disabledPaymentProviders: ['MANTECA'], // Manteca outage 2026-08-24 — QR payments (MP AR + PIX BR) disabled. Empty the array to restore.
     /**
      * Cross-chain withdraw is force-disabled in the iOS app, on top of the global
      * kill-switch. Getter, not a constant: the platform is only knowable once the
@@ -109,7 +109,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableCardLaunchCTA: false, // kill-switch for the in-app "shhh" card CTA (funnel card step + activated home splash). Set true to mute it (dial down in-app load); /card flow + /shhhhh + waitlist stay reachable regardless.
     disableLandingCardFold: false, // set to true to hide the landing-page card fold (black door fold + the closed-beta strip under it)
     pixBrazilOnrampMaintenance: false, // BRL deposits restored via dynamic PIX QR (2026-07-02). Set true if the onramp degrades again.
-    disabledMantecaCurrencies: [], // Manteca restored (ARS + BRL live). Add a currency here to block it during a future outage.
+    disabledMantecaCurrencies: ['ARS', 'BRL'], // Manteca outage 2026-08-24 — add-money + withdraw blocked for both geos. Empty the array to restore.
 }
 
 // shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner
