@@ -1,8 +1,10 @@
 import OneSignal, { LogLevel } from '@onesignal/capacitor-plugin'
 import { captureMessage } from '@sentry/nextjs'
+import posthog from 'posthog-js'
 import type { NotificationClickEvent, PushSubscriptionChangedState } from '@onesignal/capacitor-plugin'
 import type { NotificationClickInfo, NotificationPermissionState, OneSignalAdapter } from './types'
 import { isOneSignalDebug } from './debug'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 async function nativePermission(): Promise<NotificationPermissionState> {
     if (await OneSignal.Notifications.hasPermission()) return 'granted'
@@ -37,6 +39,9 @@ const snapshotTriggersFired = new Set<string>()
  * Captured once per session per trigger — ~10s after init (token registration
  * and login are async) and again on the first subscription change (opt-in
  * often lands after the init snapshot). Deliberately omits the raw token.
+ *
+ * This is a state fact, not a fault, so it goes to PostHog. Only a failure to
+ * read the state is an error worth Sentry.
  */
 function captureSubscriptionSnapshot(trigger: string) {
     if (snapshotTriggersFired.has(trigger)) return
@@ -51,18 +56,14 @@ function captureSubscriptionSnapshot(trigger: string) {
                 OneSignal.User.getExternalId(),
                 nativePermission(),
             ])
-            captureMessage('onesignal subscription snapshot', {
-                level: 'info',
-                tags: {
-                    feature: 'onesignal',
-                    onesignal: 'subscription-snapshot',
-                    'onesignal.trigger': trigger,
-                    'onesignal.permission': permission,
-                    'onesignal.has_token': String(!!token),
-                    'onesignal.opted_in': String(optedIn),
-                    'onesignal.linked': String(!!externalId),
-                },
-                extra: { subscriptionId, onesignalId },
+            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIPTION_SNAPSHOT, {
+                trigger,
+                permission,
+                has_token: !!token,
+                opted_in: optedIn,
+                linked: !!externalId,
+                subscription_id: subscriptionId,
+                onesignal_id: onesignalId,
             })
         } catch (err) {
             captureMessage('onesignal subscription snapshot failed', {
