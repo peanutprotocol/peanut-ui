@@ -73,6 +73,9 @@ const LandingStep = () => {
                     <Button
                         shadowSize="4"
                         className="h-11"
+                        // a pending login ceremony must not be navigated away from —
+                        // mid-ceremony Sign Up taps flashed the waitlist step (TASK-21782)
+                        disabled={isLoggingIn}
                         onClick={() => {
                             posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
                             handleNext()

@@ -11,6 +11,7 @@ import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } fro
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
+import { isPasskeyShimInstalled, raceCeremonyTimeout, waitForPasskeyShim } from '@/utils/passkeyCeremony.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -251,6 +252,7 @@ export const useZeroDev = () => {
     // login function
     const handleLogin = async () => {
         dispatch(zerodevActions.setIsLoggingIn(true))
+        const ceremonyStartedAt = Date.now()
         try {
             const passkeyServerHeaders: Record<string, string> = {}
 
@@ -260,13 +262,25 @@ export const useZeroDev = () => {
 
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
 
-            const webAuthnKey = await toWebAuthnKey({
-                passkeyName: '[]',
-                passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                mode: WebAuthnMode.Login,
-                passkeyServerHeaders,
-                rpID: rpId,
-            })
+            // A tap that races the async autoShimWebAuthn install would run the
+            // webview's raw WebAuthn, which silently hangs in Capacitor — the
+            // TASK-21782 wedge. Fail fast with a retryable error instead.
+            if (isCapacitor()) await waitForPasskeyShim()
+
+            // zerodev's toWebAuthnKey has no timeout of its own; without this
+            // race a never-settling ceremony leaves isLoggingIn true forever
+            // and the user cannot retry without killing the app (TASK-21782).
+            // On timeout the late result is discarded, so a ceremony that
+            // completes after we gave up can never log the user in.
+            const webAuthnKey = await raceCeremonyTimeout(
+                toWebAuthnKey({
+                    passkeyName: '[]',
+                    passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                    mode: WebAuthnMode.Login,
+                    passkeyServerHeaders,
+                    rpID: rpId,
+                })
+            )
 
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
@@ -282,8 +296,21 @@ export const useZeroDev = () => {
                     : e
             const { code, message } = classifyPasskeyError(err)
             dispatch(zerodevActions.setIsLoggingIn(false))
-            // Cancel saved no state; everything else clears stale state and reports the error to Sentry.
-            if (code !== 'LOGIN_CANCELED') {
+            // Ceremony guards: nothing was authenticated, so keep any existing
+            // state (no clearAuthState) and report with a discriminating tag —
+            // this is the telemetry that tells us WHERE native logins hang.
+            if (code === 'CEREMONY_TIMEOUT' || code === 'PASSKEY_NOT_READY') {
+                captureException(err, {
+                    tags: {
+                        error_type: code === 'CEREMONY_TIMEOUT' ? 'login_ceremony_timeout' : 'login_shim_not_ready',
+                    },
+                    extra: {
+                        shimInstalled: isPasskeyShimInstalled(),
+                        isCapacitor: isCapacitor(),
+                        elapsedMs: Date.now() - ceremonyStartedAt,
+                    },
+                })
+            } else if (code !== 'LOGIN_CANCELED') {
                 console.error('Error logging in', err)
                 await clearAuthState(user?.user.userId)
                 captureException(err, { tags: { error_type: 'login_error' } })

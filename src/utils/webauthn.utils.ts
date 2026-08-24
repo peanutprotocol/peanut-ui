@@ -39,6 +39,8 @@ const PASSKEY_LOGIN_MESSAGES: Record<string, string> = {
     PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
     PASSKEY_ORIGIN: 'This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.',
     NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
+    CEREMONY_TIMEOUT: 'Login is taking longer than it should. Please try again.',
+    PASSKEY_NOT_READY: 'The app is still getting ready for passkeys. Wait a moment and try again.',
     LOGIN_ERROR: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
 }
 
@@ -78,6 +80,13 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
             break
         case 'SecurityError':
             code = 'PASSKEY_ORIGIN'
+            break
+        // ceremony guards from passkeyCeremony.utils (TASK-21782)
+        case 'CeremonyTimeoutError':
+            code = 'CEREMONY_TIMEOUT'
+            break
+        case 'PasskeyShimNotReadyError':
+            code = 'PASSKEY_NOT_READY'
             break
         default:
             if (isNetworkError(err)) code = 'NETWORK'
