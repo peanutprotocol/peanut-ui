@@ -54,29 +54,36 @@ export const ProfileEditView = () => {
     // fields are locked and never sent. one source of truth for that invariant.
     const canEditName = !isKycApproved
 
-    // the saved values, and the only fields the user can actually change.
-    // doubles as the baseline for the dirty check that gates Save.
+    // the saved values, and the only fields the user can actually change
     const initial = useMemo(() => {
         const { name, surname } = splitName(user?.user.fullName || '')
         return { name, surname, email: user?.user.email || '' }
     }, [user?.user.fullName, user?.user.email, splitName])
 
-    // Hydrate once, when the saved values first arrive. `initial` also changes on
-    // any later auth refresh — re-applying it there would wipe whatever the user
-    // had already typed, since this screen is reachable before auth resolves.
+    // What was in the fields when the form loaded. The dirty check compares
+    // against THIS, not against `initial`: `initial` re-derives on every auth
+    // refresh, so if the saved name changed elsewhere while this screen was
+    // open, an untouched form went dirty and Save wrote the stale values back
+    // over the newer ones. The baseline and the fields have to move together.
+    const [baseline, setBaseline] = useState(() => ({ name: '', surname: '', email: user?.user.email || '' }))
+
+    // Hydrate once, when the saved values first arrive. Re-applying `initial`
+    // on a later refresh would wipe whatever the user had already typed, since
+    // this screen is reachable before auth resolves.
     const hydrated = useRef(false)
     useEffect(() => {
         if (hydrated.current || !user) return
         hydrated.current = true
         setFormData((prev) => ({ ...prev, ...initial }))
+        setBaseline(initial)
     }, [user, initial])
 
     // Save stays disabled until something the user may edit actually changed.
     // bio / phone / website are "Soon!" placeholders — always disabled, never
     // sent, so they can never make the form dirty.
     const isDirty =
-        (canEditName && (formData.name !== initial.name || formData.surname !== initial.surname)) ||
-        (!isEmailSet && formData.email !== initial.email)
+        (canEditName && (formData.name !== baseline.name || formData.surname !== baseline.surname)) ||
+        (!isEmailSet && formData.email !== baseline.email)
 
     // handle input field changes
     const handleChange = useCallback((field: string, value: string) => {

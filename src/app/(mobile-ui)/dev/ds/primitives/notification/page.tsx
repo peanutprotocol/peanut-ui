@@ -165,7 +165,7 @@ export default function NotificationPage() {
                         description: 'Tone, background, and leading icon',
                     },
                     { name: 'title', type: 'string', default: '(none)', description: 'Bold first line' },
-                    { name: 'children', type: 'ReactNode', default: '(required)', description: 'Body text' },
+                    { name: 'children', type: 'ReactNode', default: '(none)', description: 'Body text' },
                     {
                         name: 'items',
                         type: 'ReactNode[]',
