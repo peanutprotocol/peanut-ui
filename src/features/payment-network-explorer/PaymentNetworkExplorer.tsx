@@ -17,6 +17,7 @@ import {
     scrubLegacyGraphPassword,
     toRelationships,
 } from './query'
+import { reciprocityIndex } from './selectors'
 import RelationshipTable from './RelationshipTable'
 import type { ExplorerNode, ExplorerRelationship, ExplorerSelection } from './types'
 import { useDesktopViewport } from './useDesktopViewport'
@@ -45,6 +46,8 @@ export default function PaymentNetworkExplorer() {
     const data = explorer.data
 
     const allRelationships = useMemo(() => (data ? toRelationships(data.p2pEdges) : []), [data])
+    // Derived over the unfiltered response: a filtered-out row still proves reciprocity.
+    const reciprocity = useMemo(() => reciprocityIndex(allRelationships), [allRelationships])
     const relationships = useMemo(
         () => filterRelationships(allRelationships, filters),
         // The filter fields are primitives/arrays from nuqs; key on their serialization.
@@ -188,6 +191,7 @@ export default function PaymentNetworkExplorer() {
                                     nodes={data.nodes}
                                     allRelationships={allRelationships}
                                     relationships={relationships}
+                                    reciprocity={reciprocity}
                                     selected={selectedCanonical}
                                     focusNodeId={focusedNode?.id ?? null}
                                     onSelectNode={selectNode}
@@ -197,6 +201,7 @@ export default function PaymentNetworkExplorer() {
                                 <RelationshipTable
                                     nodes={data.nodes}
                                     relationships={relationships}
+                                    reciprocity={reciprocity}
                                     selectedId={selectedRelationshipId}
                                     onSelect={selectRelationship}
                                 />
@@ -206,6 +211,7 @@ export default function PaymentNetworkExplorer() {
                             selection={selection}
                             nodes={data?.nodes ?? []}
                             relationships={relationships}
+                            reciprocity={reciprocity}
                             onSelectRelationship={selectRelationship}
                             onClear={() => setSelection(null)}
                         />

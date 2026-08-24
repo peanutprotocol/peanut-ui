@@ -11,6 +11,7 @@ import {
     EDGE_TYPE_LABELS,
     rankDenseGraphOverview,
     type GraphLinkProjection,
+    type Reciprocity,
     type GraphNodeProjection,
 } from './selectors'
 import type { ExplorerNode, ExplorerRelationship, P2PEdgeType } from './types'
@@ -41,6 +42,7 @@ interface NetworkCanvasProps {
     allRelationships: readonly ExplorerRelationship[]
     /** What the current filters keep — drives visibility, legend and ranking. */
     relationships: readonly ExplorerRelationship[]
+    reciprocity: ReadonlyMap<string, Reciprocity>
     selected: ExplorerNode | ExplorerRelationship | null
     focusNodeId: string | null
     onSelectNode: (node: ExplorerNode) => void
@@ -51,6 +53,7 @@ export default function NetworkCanvas({
     nodes,
     allRelationships,
     relationships,
+    reciprocity,
     selected,
     focusNodeId,
     onSelectNode,
@@ -275,7 +278,8 @@ export default function NetworkCanvas({
                           : Math.min(2.4, 0.6 + Math.log2(link.canonical.count + 1) * 0.22)
                 }
                 linkDirectionalArrowLength={(link: GraphLinkProjection) =>
-                    denseGraph || link.canonical.bidirectional ? 0 : 3
+                    // Only a same-type reverse edge makes this link's arrow redundant.
+                    denseGraph || reciprocity.get(link.canonicalRelationshipId) === 'sameType' ? 0 : 3
                 }
                 linkDirectionalArrowRelPos={0.86}
                 onNodeClick={(node: GraphNodeProjection) => onSelectNode(node.canonical)}

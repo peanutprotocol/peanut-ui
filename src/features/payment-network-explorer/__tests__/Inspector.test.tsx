@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import Inspector from '../Inspector'
+import { reciprocityIndex } from '../selectors'
 import type { ExplorerNode, ExplorerRelationship } from '../types'
 
 const node = (id: string, username: string): ExplorerNode => ({
@@ -24,8 +25,21 @@ const relationship: ExplorerRelationship = {
     bidirectional: true,
 }
 
+// The endpoint flags this SEND_LINK as bidirectional because a DIRECT_TRANSFER
+// came back — the reverse of this row's own type does not exist.
+const reverseOfAnotherType: ExplorerRelationship = {
+    id: 'b:a:DIRECT_TRANSFER',
+    source: 'b',
+    target: 'a',
+    type: 'DIRECT_TRANSFER',
+    count: 1,
+    totalUsd: 7,
+    bidirectional: true,
+}
+
 describe('Inspector', () => {
     const nodes = [node('a', 'alice'), node('b', 'bob')]
+    const reciprocity = reciprocityIndex([relationship, reverseOfAnotherType])
 
     it('shows the real username and profile facts for a selected node', () => {
         render(
@@ -33,6 +47,7 @@ describe('Inspector', () => {
                 selection={{ type: 'node', node: nodes[0] }}
                 nodes={nodes}
                 relationships={[relationship]}
+                reciprocity={reciprocity}
                 onSelectRelationship={jest.fn()}
                 onClear={jest.fn()}
             />
@@ -50,6 +65,7 @@ describe('Inspector', () => {
                 selection={{ type: 'node', node: nodes[0] }}
                 nodes={nodes}
                 relationships={[relationship]}
+                reciprocity={reciprocity}
                 onSelectRelationship={onSelectRelationship}
                 onClear={jest.fn()}
             />
@@ -66,13 +82,15 @@ describe('Inspector', () => {
                 selection={{ type: 'relationship', relationship }}
                 nodes={nodes}
                 relationships={[relationship]}
+                reciprocity={reciprocity}
                 onSelectRelationship={jest.fn()}
                 onClear={jest.fn()}
             />
         )
         expect(screen.getByText('From')).toBeInTheDocument()
         expect(screen.getByText('Send link')).toBeInTheDocument()
-        expect(screen.getByText('Both ways')).toBeInTheDocument()
-        expect(screen.getByText('Yes')).toBeInTheDocument()
+        // The endpoint's pair-level flag says bidirectional; this row's own type is not.
+        expect(screen.getByText('Direction')).toBeInTheDocument()
+        expect(screen.getByText('Reverse payment of another type')).toBeInTheDocument()
     })
 })

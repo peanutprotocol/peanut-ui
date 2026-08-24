@@ -72,7 +72,8 @@ export default function FilterPanel({ filters, relationships, onChange, onReset 
                 <legend className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-grey-1">
                     Direction
                     <InfoTooltip label="direction">
-                        Edges are directed payer to recipient. Both ways keeps pairs where any reverse payment exists.
+                        One row per payer, recipient and type. Both ways keeps every pair with any reverse payment; the
+                        row badge says whether the same type comes back.
                     </InfoTooltip>
                 </legend>
                 <div className="grid grid-cols-3 rounded-sm border border-n-1 bg-[#f3efe9] p-0.5">

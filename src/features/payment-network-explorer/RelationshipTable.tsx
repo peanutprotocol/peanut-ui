@@ -5,7 +5,9 @@ import { formatUsd } from './format'
 import {
     EDGE_TYPE_LABELS,
     nodeIndex,
+    RECIPROCITY_LABELS,
     sortRelationships,
+    type Reciprocity,
     type RelationshipSortKey,
     type SortDirection,
 } from './selectors'
@@ -16,11 +18,18 @@ const PAGE_SIZE = 100
 interface RelationshipTableProps {
     nodes: readonly ExplorerNode[]
     relationships: readonly ExplorerRelationship[]
+    reciprocity: ReadonlyMap<string, Reciprocity>
     selectedId: string | null
     onSelect: (relationship: ExplorerRelationship) => void
 }
 
-export default function RelationshipTable({ nodes, relationships, selectedId, onSelect }: RelationshipTableProps) {
+export default function RelationshipTable({
+    nodes,
+    relationships,
+    reciprocity,
+    selectedId,
+    onSelect,
+}: RelationshipTableProps) {
     const [sortKey, setSortKey] = useState<RelationshipSortKey>('totalUsd')
     const [sortDirection, setSortDirection] = useState<SortDirection>('descending')
     const [page, setPage] = useState(0)
@@ -111,10 +120,17 @@ export default function RelationshipTable({ nodes, relationships, selectedId, on
                                     <td className="whitespace-nowrap px-3 py-2">
                                         {EDGE_TYPE_LABELS[relationship.type]}
                                     </td>
-                                    <td className="whitespace-nowrap px-3 py-2">
-                                        {relationship.bidirectional ? (
+                                    <td
+                                        className="whitespace-nowrap px-3 py-2"
+                                        title={RECIPROCITY_LABELS[reciprocity.get(relationship.id) ?? 'oneWay']}
+                                    >
+                                        {reciprocity.get(relationship.id) === 'sameType' ? (
                                             <span className="rounded-full border border-n-1 bg-green-1 px-1.5 py-0.5 text-[10px] font-bold">
                                                 ⇄ both ways
+                                            </span>
+                                        ) : reciprocity.get(relationship.id) === 'otherType' ? (
+                                            <span className="rounded-full border border-n-1/40 px-1.5 py-0.5 text-[10px] font-bold text-grey-1">
+                                                ⇄ other type
                                             </span>
                                         ) : (
                                             <span aria-label="one way">→</span>

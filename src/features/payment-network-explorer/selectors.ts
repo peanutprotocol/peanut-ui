@@ -64,6 +64,37 @@ export function buildGraphProjection(
     }
 }
 
+/**
+ * The endpoint's `bidirectional` flag is pair-level and type-agnostic: it is true
+ * whenever ANY reverse row exists between the two users, so a Send-link row is
+ * flagged because a Direct transfer came back. Recover the finer answer here —
+ * the response carries every directed row, so no extra request is needed.
+ */
+export type Reciprocity = 'oneWay' | 'sameType' | 'otherType'
+
+export const RECIPROCITY_LABELS: Record<Reciprocity, string> = {
+    oneWay: 'One way',
+    sameType: 'Both ways, same type',
+    otherType: 'Reverse payment of another type',
+}
+
+export function reciprocityIndex(relationships: readonly ExplorerRelationship[]): ReadonlyMap<string, Reciprocity> {
+    const pairs = new Set<string>()
+    const typedPairs = new Set<string>()
+    for (const relationship of relationships) {
+        pairs.add(`${relationship.source}:${relationship.target}`)
+        typedPairs.add(`${relationship.source}:${relationship.target}:${relationship.type}`)
+    }
+    const index = new Map<string, Reciprocity>()
+    for (const relationship of relationships) {
+        const reversePair = `${relationship.target}:${relationship.source}`
+        if (typedPairs.has(`${reversePair}:${relationship.type}`)) index.set(relationship.id, 'sameType')
+        else if (pairs.has(reversePair)) index.set(relationship.id, 'otherType')
+        else index.set(relationship.id, 'oneWay')
+    }
+    return index
+}
+
 export function relationshipsForNode(
     relationships: readonly ExplorerRelationship[],
     nodeId: string

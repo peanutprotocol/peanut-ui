@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { formatUsd, formatUtc } from './format'
-import { nodeIndex, relationshipsForNode } from './selectors'
+import { nodeIndex, relationshipsForNode, type Reciprocity } from './selectors'
 import RelationshipDetails from './RelationshipDetails'
 import type { ExplorerNode, ExplorerRelationship, ExplorerSelection } from './types'
 
@@ -12,11 +12,19 @@ interface InspectorProps {
     selection: ExplorerSelection
     nodes: readonly ExplorerNode[]
     relationships: readonly ExplorerRelationship[]
+    reciprocity: ReadonlyMap<string, Reciprocity>
     onSelectRelationship: (relationship: ExplorerRelationship) => void
     onClear: () => void
 }
 
-export default function Inspector({ selection, nodes, relationships, onSelectRelationship, onClear }: InspectorProps) {
+export default function Inspector({
+    selection,
+    nodes,
+    relationships,
+    reciprocity,
+    onSelectRelationship,
+    onClear,
+}: InspectorProps) {
     const nodesById = useMemo(() => nodeIndex(nodes), [nodes])
 
     if (!selection) {
@@ -116,7 +124,11 @@ export default function Inspector({ selection, nodes, relationships, onSelectRel
                     </section>
                 </>
             ) : (
-                <RelationshipDetails relationship={selection.relationship} nodes={nodesById} />
+                <RelationshipDetails
+                    relationship={selection.relationship}
+                    nodes={nodesById}
+                    reciprocity={reciprocity.get(selection.relationship.id) ?? 'oneWay'}
+                />
             )}
         </aside>
     )

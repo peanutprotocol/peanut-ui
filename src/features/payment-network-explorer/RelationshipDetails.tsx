@@ -1,20 +1,21 @@
 import { formatUsd } from './format'
-import { EDGE_TYPE_LABELS } from './selectors'
+import { EDGE_TYPE_LABELS, RECIPROCITY_LABELS, type Reciprocity } from './selectors'
 import type { ExplorerNode, ExplorerRelationship } from './types'
 
 interface RelationshipDetailsProps {
     relationship: ExplorerRelationship
     nodes: ReadonlyMap<string, ExplorerNode>
+    reciprocity: Reciprocity
 }
 
-export default function RelationshipDetails({ relationship, nodes }: RelationshipDetailsProps) {
+export default function RelationshipDetails({ relationship, nodes, reciprocity }: RelationshipDetailsProps) {
     const rows: Array<[string, React.ReactNode]> = [
         ['From', nodes.get(relationship.source)?.username ?? relationship.source],
         ['To', nodes.get(relationship.target)?.username ?? relationship.target],
         ['Type', EDGE_TYPE_LABELS[relationship.type]],
         ['Transactions', relationship.count.toLocaleString()],
         ['Total USD', formatUsd(relationship.totalUsd)],
-        ['Both ways', relationship.bidirectional ? 'Yes' : 'No'],
+        ['Direction', RECIPROCITY_LABELS[reciprocity]],
     ]
 
     return (

@@ -1,6 +1,7 @@
 import { act, render, renderHook, waitFor } from '@testing-library/react'
 import ExplorerStatePanel from '../ExplorerStatePanel'
 import NetworkCanvas from '../NetworkCanvas'
+import { reciprocityIndex } from '../selectors'
 import type { ExplorerNode, ExplorerRelationship } from '../types'
 import { useReducedMotion } from '../useReducedMotion'
 
@@ -59,6 +60,7 @@ describe('payment explorer reduced motion', () => {
             <NetworkCanvas
                 nodes={[]}
                 allRelationships={[]}
+                reciprocity={new Map()}
                 relationships={[]}
                 selected={null}
                 focusNodeId={null}
@@ -91,6 +93,7 @@ describe('payment explorer reduced motion', () => {
             <NetworkCanvas
                 nodes={[focusedNode]}
                 allRelationships={[]}
+                reciprocity={new Map()}
                 relationships={[]}
                 selected={null}
                 focusNodeId={focusedNode.id}
@@ -151,6 +154,7 @@ describe('payment explorer reduced motion', () => {
             <NetworkCanvas
                 nodes={nodes}
                 allRelationships={first}
+                reciprocity={new Map()}
                 relationships={first}
                 selected={null}
                 focusNodeId={null}
@@ -171,6 +175,7 @@ describe('payment explorer reduced motion', () => {
             <NetworkCanvas
                 nodes={nodes}
                 allRelationships={second}
+                reciprocity={new Map()}
                 relationships={second}
                 selected={null}
                 focusNodeId={null}
@@ -212,6 +217,7 @@ describe('payment explorer graph stability', () => {
         const props = {
             nodes,
             allRelationships: all,
+            reciprocity: reciprocityIndex(all),
             selected: null,
             focusNodeId: null,
             onSelectNode: jest.fn(),

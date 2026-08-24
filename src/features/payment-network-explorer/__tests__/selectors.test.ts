@@ -4,6 +4,7 @@ import {
     edgeTypesPresent,
     nodeIndex,
     rankDenseGraphOverview,
+    reciprocityIndex,
     sortRelationships,
 } from '../selectors'
 import type { ExplorerNode, ExplorerRelationship } from '../types'
@@ -108,5 +109,29 @@ describe('canonical graph projection', () => {
             expect.objectContaining({ value: 'REQUEST_PAYMENT', observedCount: 0 }),
             expect.objectContaining({ value: 'DIRECT_TRANSFER', observedCount: 1 }),
         ])
+    })
+})
+
+describe('reciprocity derived from the unfiltered response', () => {
+    it('separates same-type reciprocity from the endpoint pair-level flag', () => {
+        const sendOut = { ...relationship('a:b:SEND_LINK', 'a', 'b'), bidirectional: true }
+        const sendBack = { ...relationship('b:a:SEND_LINK', 'b', 'a'), bidirectional: true }
+        const transferBack = {
+            ...relationship('b:a:DIRECT_TRANSFER', 'b', 'a'),
+            type: 'DIRECT_TRANSFER' as const,
+            bidirectional: true,
+        }
+        const lone = relationship('c:d:SEND_LINK', 'c', 'd')
+
+        const index = reciprocityIndex([sendOut, sendBack, transferBack, lone])
+        expect(index.get('a:b:SEND_LINK')).toBe('sameType')
+        expect(index.get('b:a:SEND_LINK')).toBe('sameType')
+        expect(index.get('b:a:DIRECT_TRANSFER')).toBe('otherType')
+        expect(index.get('c:d:SEND_LINK')).toBe('oneWay')
+    })
+
+    it('reports oneWay when the only reverse row was filtered out of the input', () => {
+        const sendOut = { ...relationship('a:b:SEND_LINK', 'a', 'b'), bidirectional: true }
+        expect(reciprocityIndex([sendOut]).get('a:b:SEND_LINK')).toBe('oneWay')
     })
 })
