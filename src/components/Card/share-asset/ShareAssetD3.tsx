@@ -237,9 +237,10 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
             ))}
 
             {/* ─── @username pill — the sharer's own handle, the asset's
-                "this is ME" anchor. Sits below the stickers (z-index 4) so a
-                sticker that lands over it reads as slapped on top; the pill's
-                repulsion keep-out keeps it mostly clear regardless.
+                "this is ME" anchor and the whole point of a shareable asset.
+                Renders ABOVE the stickers (z-index 5 > sticker z-index 4) so
+                the handle can never be covered; the layout keep-out still keeps
+                stickers mostly off it, so they rarely even tuck behind it.
 
                 The anti-dox "hide username" toggle hides it via `visibility`
                 (not conditional unmount): the entrance animation plays once on
@@ -252,7 +253,7 @@ const ShareAssetD3: FC<ShareAssetD3Props> = ({
                 style={{
                     bottom: 48,
                     right: 56,
-                    zIndex: 3,
+                    zIndex: 5,
                     visibility: hideUsername ? 'hidden' : 'visible',
                     animation: animate ? `fadeUp 600ms ease-out ${ANIM_ATTRIBUTION_DELAY}ms both` : 'none',
                 }}
