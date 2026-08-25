@@ -25,6 +25,7 @@ import { useSpendBundle } from './useSpendBundle'
 import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
 import { isDemoMode } from '@/utils/demo'
+import { ensureActiveFixture } from '@/dev/fixtures/active'
 import { useDemoBalanceUnits } from '@/utils/demo-balance'
 import { readLastKnownSpendable, writeLastKnownSpendable } from './lastKnownSpendable'
 
@@ -207,7 +208,10 @@ export const useWallet = () => {
     // demo mode: mutable, persisted balance overlay (utils/demo-balance.ts) —
     // debited on each simulated send so the displayed balance updates and
     // survives relaunch.
-    const demoMode = isDemoMode()
+    // Dev fixtures ride the same overlay: there is no kernel client to read a
+    // real balance with, so the alternative is a balance skeleton that never
+    // resolves.
+    const demoMode = isDemoMode() || !!ensureActiveFixture()
     const demoBalanceUnits = useDemoBalanceUnits()
 
     // Use balance from query if available, otherwise fall back to Redux

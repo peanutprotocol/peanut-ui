@@ -36,6 +36,13 @@ export default function DevToolsPage() {
             icon: 'switch',
         },
         {
+            name: 'Fixtures',
+            description:
+                'Named app states behind ?__fixture=<name>: long usernames, huge numbers, empty states, KYC gates, errors. Every API answer is faked, so any screen renders with no database, no API and no provider keys.',
+            path: '/dev/fixtures',
+            icon: 'docs',
+        },
+        {
             name: 'Debug',
             description:
                 'Sandbox-only: one-click full setup, fund USDC, fast-forward KYC, complete pending intents. Pink-banner console logs every action.',
