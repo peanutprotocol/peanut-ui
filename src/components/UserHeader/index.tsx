@@ -43,6 +43,19 @@ export const UserHeader = ({ username, fullName }: UserHeaderProps) => {
     )
 }
 
+/**
+ * Default type for the name. It has to be a type TOKEN, not a bare weight
+ * class: a caller passing `text-heading-s` (ProfileHeader does) merges with a
+ * token in the same conflict group and wins outright, but it can never beat a
+ * `font-semibold`, because a font-size utility resolves its weight through
+ * `var(--tw-font-weight, …)` and any font-weight class fills that var. The
+ * profile name measured 24px at weight 600 for exactly that reason — right
+ * size off the caller's token, wrong weight off this component's default.
+ * `text-body-m-semibold` is 16/600/20, which is what the old
+ * `font-semibold md:text-base` pair already computed to.
+ */
+const LABEL_TYPE = 'text-body-m-semibold'
+
 export const VerifiedUserLabel = ({
     name,
     username,
@@ -91,18 +104,10 @@ export const VerifiedUserLabel = ({
     return (
         <div className="flex items-center gap-1.5">
             {isCryptoAddressComputed ? (
-                <AddressLink
-                    isLink={false}
-                    className={twMerge('font-semibold md:text-base', className)}
-                    address={username}
-                />
+                <AddressLink isLink={false} className={twMerge(LABEL_TYPE, className)} address={username} />
             ) : (
                 <div
-                    className={twMerge(
-                        'line-clamp-1 font-semibold md:text-base',
-                        className,
-                        onNameClick && 'cursor-pointer'
-                    )}
+                    className={twMerge('line-clamp-1', LABEL_TYPE, className, onNameClick && 'cursor-pointer')}
                     onClick={
                         onNameClick &&
                         ((e) => {
