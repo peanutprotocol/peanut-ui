@@ -650,8 +650,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => ({ invitees: [], summary: { totalInvited: 0, totalPointsEarned: 0 } }),
     },
 
-    // notifications
-    { method: 'GET', pattern: '/notifications', handler: () => ({ items: [], nextCursor: null }) },
+    // notifications (support unread badge + mark-read only; the list page is gone)
     { method: 'GET', pattern: '/notifications/unread-count', handler: () => ({ count: 0 }) },
     { method: 'POST', pattern: '/notifications/mark-read', handler: () => ({}) },
 

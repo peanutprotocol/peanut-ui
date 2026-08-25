@@ -2254,15 +2254,6 @@
         }
     },
     "notifications": {
-        "title": "Notificações",
-        "loadFailed": "Não foi possível carregar as notificações. Tente de novo.",
-        "loadMoreFailed": "Não foi possível carregar mais notificações. Toque para tentar de novo.",
-        "emptyTitle": "Você ainda não tem notificações!",
-        "emptyDescription": "Suas notificações aparecerão aqui.",
-        "loadingMore": "Carregando mais...",
-        "today": "Hoje",
-        "yesterday": "Ontem",
-        "iconAlt": "ícone",
         "setupTitle": "Ativar as notificações?",
         "setupDescription": "Ative as notificações e receba alertas de toda a atividade da sua carteira.",
         "migrationSetupTitle": "Receba alertas de dinheiro",

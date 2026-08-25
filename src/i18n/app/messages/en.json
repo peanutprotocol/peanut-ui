@@ -2254,15 +2254,6 @@
         }
     },
     "notifications": {
-        "title": "Notifications",
-        "loadFailed": "Failed to load notifications. Please try again.",
-        "loadMoreFailed": "Failed to load more notifications. Tap to retry.",
-        "emptyTitle": "No notifications yet!",
-        "emptyDescription": "You will see your notifications here.",
-        "loadingMore": "Loading more...",
-        "today": "Today",
-        "yesterday": "Yesterday",
-        "iconAlt": "icon",
         "setupTitle": "Turn on notifications?",
         "setupDescription": "Enable notifications and get alerts for all wallet activity.",
         "migrationSetupTitle": "Get money alerts",

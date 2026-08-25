@@ -41,7 +41,6 @@ export const DEDICATED_ROUTES = [
     'qr-pay',
     'badges',
     'limits',
-    'notifications',
     'recover-funds',
     'card-recovery',
     'recover-wallet',

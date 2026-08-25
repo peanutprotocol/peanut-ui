@@ -2254,15 +2254,6 @@
         }
     },
     "notifications": {
-        "title": "Notificaciones",
-        "loadFailed": "No pudimos cargar las notificaciones. Inténtalo de nuevo.",
-        "loadMoreFailed": "No pudimos cargar más notificaciones. Toca para reintentar.",
-        "emptyTitle": "¡Aún no tienes notificaciones!",
-        "emptyDescription": "Aquí verás tus notificaciones.",
-        "loadingMore": "Cargando más...",
-        "today": "Hoy",
-        "yesterday": "Ayer",
-        "iconAlt": "ícono",
         "setupTitle": "¿Activar las notificaciones?",
         "setupDescription": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
         "migrationSetupTitle": "Recibe alertas de dinero",

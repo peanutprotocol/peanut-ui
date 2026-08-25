@@ -818,9 +818,6 @@
         "toastTapToView": "— tocá para ver"
     },
     "notifications": {
-        "loadFailed": "No pudimos cargar las notificaciones. Intentalo de nuevo.",
-        "loadMoreFailed": "No pudimos cargar más notificaciones. Tocá para reintentar.",
-        "emptyTitle": "¡Aún no tenés notificaciones!",
         "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
     },
     "kyc": {
