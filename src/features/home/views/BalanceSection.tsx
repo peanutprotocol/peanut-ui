@@ -66,7 +66,8 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                     <button
                         type="button"
                         onClick={onToggleVisibility}
-                        className="cursor-pointer"
+                        // 20px visual — extend the pressable area to 44px (touch-target law)
+                        className="relative cursor-pointer after:absolute after:-inset-3"
                         aria-pressed={isHidden}
                         aria-label={isHidden ? t('showBalance') : t('hideBalance')}
                     >

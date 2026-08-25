@@ -1,4 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
+// the dismiss aria-label comes from the common catalog via useTranslations
+import { renderWithIntl as render } from '@/test-utils/intl'
 import { Notification } from '../Notification'
 
 describe('Notification', () => {
@@ -20,7 +22,7 @@ describe('Notification', () => {
         )
         expect(screen.getByText('Heads up')).toBeInTheDocument()
         expect(screen.getByText('Body text')).toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: 'Dismiss' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
     })
 
     test('dismiss button calls onDismiss', () => {
@@ -30,7 +32,7 @@ describe('Notification', () => {
                 Bye
             </Notification>
         )
-        fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
         expect(onDismiss).toHaveBeenCalledTimes(1)
     })
 

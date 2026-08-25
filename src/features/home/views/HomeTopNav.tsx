@@ -46,7 +46,12 @@ export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
                 />
             </Link>
             {showRewards && (
-                <Link href="/rewards" onClick={() => triggerHaptic()} className="flex items-center gap-1">
+                <Link
+                    href="/rewards"
+                    onClick={() => triggerHaptic()}
+                    // 20px visual — extend the pressable area to 44px (touch-target law)
+                    className="relative flex items-center gap-1 after:absolute after:-inset-3"
+                >
                     <InvitesIcon />
                     <span className="text-button-m whitespace-nowrap text-foreground-primary">{t('rewards')}</span>
                     <Icon name="chevron-right" size={20} className="text-foreground-primary" />

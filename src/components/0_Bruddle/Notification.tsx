@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import { Button } from './Button'
@@ -63,6 +64,7 @@ export const Notification = ({
     className,
     ...props
 }: NotificationProps) => {
+    const t = useTranslations('common')
     const { icon, bg } = PRIORITY_STYLES[priority]
     // `items` wins whenever it is passed at all — an explicit [] means "no rows",
     // not "fall back to children"
@@ -147,7 +149,7 @@ export const Notification = ({
             {onDismiss && (
                 <button
                     type="button"
-                    aria-label="Dismiss"
+                    aria-label={t('close')}
                     onClick={onDismiss}
                     className="-m-2.5 flex size-11 shrink-0 items-center justify-center rounded-round text-foreground-over-color-secondary"
                 >
