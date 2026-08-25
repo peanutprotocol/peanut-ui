@@ -150,6 +150,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 {sumsubFlow.error && <ErrorAlert description={sumsubFlow.error} />}
             </div>
             <InitiateKycModal
+                prepPath="extended"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
