@@ -61,7 +61,7 @@ describe('StatusBoard', () => {
                                   id: 'i1',
                                   startedAt: new Date(BASE + 70 * HOUR).toISOString(),
                                   resolvedAt: null,
-                                  message: 'Failed to get price: Company blocked.',
+                                  reason: 'provider_rejected' as const,
                               },
                           ],
                       })
@@ -72,7 +72,13 @@ describe('StatusBoard', () => {
         render(<StatusBoard summary={withIncident} locale="en" i18n={i18n} />)
 
         expect(screen.getByText('Service outage')).toBeInTheDocument()
-        expect(screen.getByText('Failed to get price: Company blocked.')).toBeInTheDocument()
+        // The provider's own words never reach the page — a reader wondering
+        // where their money is gets told what they lost and whether it is safe.
+        expect(screen.queryByText(/Company blocked/)).not.toBeInTheDocument()
+        expect(
+            screen.getByText(/Deposits and withdrawals in Brazilian reais, including Pix, are unavailable/)
+        ).toBeInTheDocument()
+        expect(screen.getByText('The provider is refusing our requests.')).toBeInTheDocument()
         expect(screen.getByText('Ongoing')).toBeInTheDocument()
         expect(screen.getByText('91.25% uptime')).toBeInTheDocument()
     })
@@ -87,7 +93,7 @@ describe('StatusBoard', () => {
                                   id: 'i2',
                                   startedAt: new Date(BASE + 10 * HOUR).toISOString(),
                                   resolvedAt: new Date(BASE + 12 * HOUR).toISOString(),
-                                  message: 'Rhino bridge config failed',
+                                  reason: 'timeout' as const,
                               },
                           ],
                       })
@@ -99,5 +105,31 @@ describe('StatusBoard', () => {
 
         expect(screen.getByText('Resolved')).toBeInTheDocument()
         expect(screen.getByText(/→/)).toBeInTheDocument()
+        expect(screen.getByText(/Withdrawals to other blockchain networks are unavailable/)).toBeInTheDocument()
+    })
+
+    it('renders incident times in UTC, and says so', () => {
+        const withIncident = summary({
+            providers: KEYS.map((key) =>
+                key === 'rain'
+                    ? provider(key, {
+                          incidents: [
+                              {
+                                  id: 'i3',
+                                  // 14:05 UTC — a host in UTC-5 would print 09:05.
+                                  startedAt: '2026-08-25T14:05:00.000Z',
+                                  resolvedAt: null,
+                                  reason: 'provider_error' as const,
+                              },
+                          ],
+                      })
+                    : provider(key)
+            ),
+        })
+
+        render(<StatusBoard summary={withIncident} locale="en" i18n={i18n} />)
+
+        expect(screen.getByText(/Aug 25, 02:05 PM/)).toBeInTheDocument()
+        expect(screen.getByText('Times shown in UTC')).toBeInTheDocument()
     })
 })

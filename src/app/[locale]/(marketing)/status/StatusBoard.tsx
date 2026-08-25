@@ -1,5 +1,13 @@
 import { type Translations } from '@/i18n/types'
-import { STATUS_GROUPS, type BucketState, type StatusIncident, type StatusProvider, type StatusSummary } from './types'
+import {
+    incidentImpact,
+    incidentReasonLabel,
+    STATUS_GROUPS,
+    type BucketState,
+    type StatusIncident,
+    type StatusProvider,
+    type StatusSummary,
+} from './types'
 
 /* House tokens, not the stock Tailwind palette: tailwind.config.js redefines
    `red` as a single flat colour, so `bg-red-500` compiles to nothing at all
@@ -20,8 +28,19 @@ function headline(state: BucketState, i18n: Translations): string {
     return i18n.statusUnknown
 }
 
+/**
+ * Rendered on the server, so an unqualified `toLocaleString` would format in
+ * whatever zone the host happens to run in and give the reader nothing to
+ * interpret it against. Pinned to UTC, and the page states that it is.
+ */
 function formatTime(iso: string, locale: string): string {
-    return new Date(iso).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return new Date(iso).toLocaleString(locale, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC',
+    })
 }
 
 /**
@@ -47,10 +66,12 @@ function UptimeBars({ provider, locale, i18n }: { provider: StatusProvider; loca
 
 function IncidentList({
     incidents,
+    serviceKey,
     locale,
     i18n,
 }: {
     incidents: StatusIncident[]
+    serviceKey: string
     locale: string
     i18n: Translations
 }) {
@@ -72,7 +93,10 @@ function IncidentList({
                             {incident.resolvedAt ? ` → ${formatTime(incident.resolvedAt, locale)}` : ''}
                         </time>
                     </div>
-                    <p className="mt-1 break-words text-n-1">{incident.message}</p>
+                    <p className="mt-1 break-words text-n-1">
+                        {incidentImpact(serviceKey, i18n)}{' '}
+                        <span className="text-grey-1">{incidentReasonLabel(incident.reason, i18n)}</span>
+                    </p>
                 </li>
             ))}
         </ul>
@@ -121,7 +145,12 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                                             <span>{i18n.statusNow}</span>
                                         </div>
                                     </div>
-                                    <IncidentList incidents={provider.incidents} locale={locale} i18n={i18n} />
+                                    <IncidentList
+                                        incidents={provider.incidents}
+                                        serviceKey={service.key}
+                                        locale={locale}
+                                        i18n={i18n}
+                                    />
                                 </div>
                             )
                         })}
@@ -129,7 +158,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                 </section>
             ))}
 
-            <div className="mt-10 flex flex-wrap gap-4 border-t border-grey-2 pt-4 text-[11px] text-grey-1">
+            <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-grey-2 pt-4 text-[11px] text-grey-1">
                 {(
                     [
                         ['operational', i18n.statusLegendOperational],
@@ -143,6 +172,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                         {label}
                     </span>
                 ))}
+                <span className="ml-auto">{i18n.statusTimesInUtc}</span>
             </div>
         </div>
     )

@@ -227,6 +227,22 @@ export interface Translations {
     statusLegendDegraded: string
     statusLegendDown: string
     statusLegendNoData: string
+    statusImpactApp: string
+    statusImpactSumsub: string
+    statusImpactMantecaAr: string
+    statusImpactMantecaBr: string
+    statusImpactBridge: string
+    statusImpactRhino: string
+    statusImpactRpc: string
+    statusImpactMobula: string
+    statusImpactRain: string
+    statusImpactGeneric: string
+    statusReasonTimeout: string
+    statusReasonUnreachable: string
+    statusReasonProviderError: string
+    statusReasonProviderRejected: string
+    statusReasonUnknown: string
+    statusTimesInUtc: string
 
     // MDX component headings
     faqTitle: string

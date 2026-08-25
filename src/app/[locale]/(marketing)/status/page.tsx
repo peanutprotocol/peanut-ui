@@ -3,7 +3,7 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { StatusBoard } from './StatusBoard'
-import type { StatusSummary } from './types'
+import { parseStatusSummary, type StatusSummary } from './types'
 
 // The feed is resampled every 5 minutes; a minute of edge cache keeps a
 // traffic spike during an incident off the API that is already struggling.
@@ -28,7 +28,7 @@ async function loadSummary(): Promise<StatusSummary | null> {
             signal: AbortSignal.timeout(8000),
         })
         if (!response.ok) return null
-        return (await response.json()) as StatusSummary
+        return parseStatusSummary(await response.json())
     } catch {
         // Swallowed on purpose: this page's whole job is to render during an
         // outage, so a failed fetch is an expected state with its own copy,
