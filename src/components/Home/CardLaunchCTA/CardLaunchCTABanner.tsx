@@ -56,7 +56,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
                 <h3 className="font-roboto-flex-extrabold text-4xl leading-[1.02] font-extraBlack text-foreground-primary">
                     {t('title')}
                 </h3>
-                <p className="text-sm leading-snug font-bold text-foreground-primary">{t('subtitle')}</p>
+                <p className="text-label-l leading-snug text-foreground-primary">{t('subtitle')}</p>
                 <Button
                     variant="purple"
                     shadowSize="4"
