@@ -2942,8 +2942,8 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: 'Routes that skip the canonical PageContainer and build their own wrapper.',
         usages: 28,
         status: 'adhoc',
-        source: 'src/app/(mobile-ui)/settings/page.tsx, points/, claim/, qr/, card-payment/, withdraw/**, add-money/**, profile/**',
-        notes: "Manual count, not a grep pattern: walked all 49 page.tsx files under src/app/(mobile-ui) excluding /dev, then resolved each page's one-level-deep @/ imports; 28 never reach PageContainer. Was reported as 7 in 2026-06, which was a curated sample rather than a census - the true bypass rate is 57%. Worst offender is still settings (a single Logout button in a unique shell). Whole subtrees (withdraw/**, add-money/**) are consistent bypassers, so the fix is per-flow, not per-page.",
+        source: 'src/app/(mobile-ui)/points/, claim/, qr/, card-payment/, withdraw/**, add-money/**, profile/**',
+        notes: "Manual count, not a grep pattern: walked all 49 page.tsx files under src/app/(mobile-ui) excluding /dev, then resolved each page's one-level-deep @/ imports; 28 never reach PageContainer. Was reported as 7 in 2026-06, which was a curated sample rather than a census - the true bypass rate is 57%. The then-worst offender (settings, a single Logout button in a unique shell) has since been deleted outright. Whole subtrees (withdraw/**, add-money/**) are consistent bypassers, so the fix is per-flow, not per-page.",
     },
     {
         name: 'Success/confirmation screens (partly consolidated, 5 still bespoke)',

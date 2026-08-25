@@ -88,7 +88,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 divergence:
                     'New primitive, 38 product call-sites across 25 files. It is the row primitive the old Global/Card stacked-list variant used to cover, but Global/Card is still imported by 44 product files — so the two row idioms now coexist and the migration is roughly half done.',
                 usedIn: [
-                    'app/(mobile-ui)/settings/page.tsx',
                     'app/(mobile-ui)/profile/backup/page.tsx',
                     'features/home/components/HomeActionDrawers.tsx',
                     'features/payments/shared/components/PaymentMethodActionList.tsx',
@@ -153,7 +152,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 divergence:
                     'New primitive, 17 product call-sites in 11 files — but as many references again live in /dev. It is backed by the semantic --color-background-icon-bubble-* tokens (20 product call-sites for that token group), so adopting IconBubble is what makes those tokens live at all.',
                 usedIn: [
-                    'app/(mobile-ui)/settings/page.tsx',
                     'app/(mobile-ui)/withdraw/manteca/page.tsx',
                     'components/AddWithdraw/AddWithdrawRouterView.tsx',
                     'components/Common/SavedAccountsView.tsx',
@@ -404,7 +402,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 divergence:
                     "Still the only variant with no btn-* class behind it — an inline 'bg-white active:bg-action-primary' literal. It is now half-migrated: the active state uses a semantic token while the rest state is still a raw bg-white.",
                 usedIn: [
-                    'app/(mobile-ui)/settings/page.tsx',
                     'app/(mobile-ui)/qr-pay/page.tsx',
                     'features/payments/shared/components/PaymentSuccessView.tsx',
                     'components/Setup/Views/Landing.tsx',

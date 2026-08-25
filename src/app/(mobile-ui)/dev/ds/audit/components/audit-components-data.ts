@@ -596,7 +596,6 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 divergence:
                     "New since the last sweep and now the canonical row — 38 app call sites in 25 files. Board 17802:61530: leading slot, title text-body-m-semibold, body text-body-s/foreground-secondary, trailing slot, optional chevron. Wraps Global/Card and forwards `position`, so grouping and radius stay in one place. Overrides Card's px-4 py-2 to p-4, which is why a ListItem row and a bare Card row are not the same height.",
                 usedIn: [
-                    'app/(mobile-ui)/settings/page.tsx',
                     'components/Common/CountryList.tsx',
                     'components/Send/views/Contacts.view.tsx',
                     'features/home/components/HomeActionDrawers.tsx',
