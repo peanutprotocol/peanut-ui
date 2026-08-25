@@ -9,7 +9,7 @@ import Card from '@/components/Global/Card'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
-import { ReceiptRow } from '@/components/TransactionDetails/ReceiptRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { ReceiptTokenRows } from '@/components/TransactionDetails/ReceiptTokenRows'
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -85,37 +85,37 @@ export function ReceiptDetailsCard({
             <RequestPotProgressRow transaction={transaction} />
 
             {rowVisibilityConfig.createdAt && (
-                <ReceiptRow label={t('rows.created')} value={formatDate(new Date(transaction.createdAt!.toString()))} />
+                <DataRow label={t('rows.created')} value={formatDate(new Date(transaction.createdAt!.toString()))} />
             )}
 
             {rowVisibilityConfig.cancelled && (
-                <ReceiptRow
+                <DataRow
                     label={t('rows.cancelled')}
                     value={formatDate(new Date(transaction.cancelledDate || transaction.createdAt || transaction.date))}
                 />
             )}
 
             {rowVisibilityConfig.claimed && (
-                <ReceiptRow label={t('rows.claimed')} value={formatDate(new Date(transaction.claimedAt!))} />
+                <DataRow label={t('rows.claimed')} value={formatDate(new Date(transaction.claimedAt!))} />
             )}
 
             {rowVisibilityConfig.completed && (
-                <ReceiptRow label={getCompletedLabel()} value={formatDate(new Date(transaction.completedAt!))} />
+                <DataRow label={getCompletedLabel()} value={formatDate(new Date(transaction.completedAt!))} />
             )}
 
             {rowVisibilityConfig.refunded && (
-                <ReceiptRow label={t('rows.refunded')} value={formatDate(new Date(transaction.date))} />
+                <DataRow label={t('rows.refunded')} value={formatDate(new Date(transaction.date))} />
             )}
 
             {rowVisibilityConfig.closed && transaction.cancelledDate && (
-                <ReceiptRow label={t('rows.closedAt')} value={formatDate(new Date(transaction.cancelledDate))} />
+                <DataRow label={t('rows.closedAt')} value={formatDate(new Date(transaction.cancelledDate))} />
             )}
 
             {/* Contributors after the date rows, per the request board. */}
             <RequestPotContributorRows vm={vm} />
 
             {rowVisibilityConfig.to && (
-                <ReceiptRow
+                <DataRow
                     label={t('rows.to')}
                     value={
                         <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.txId && transaction.txHash && (
-                <ReceiptRow
+                <DataRow
                     label={t('rows.txId')}
                     value={
                         transaction.explorerUrl ? (
@@ -160,7 +160,7 @@ export function ReceiptDetailsCard({
 
             {rowVisibilityConfig.cardPayment && <CardPaymentRows transaction={transaction} />}
 
-            {rowVisibilityConfig.fee && <ReceiptRow label={t('rows.fee')} value={feeDisplay} />}
+            {rowVisibilityConfig.fee && <DataRow label={t('rows.fee')} value={feeDisplay} />}
 
             {rowVisibilityConfig.mantecaDepositInfo && (
                 <MantecaDepositInfo transaction={transaction} country={country} />
@@ -170,19 +170,19 @@ export function ReceiptDetailsCard({
                 conversion ≈ BRL 15.00"), suppressed on cancelled receipts
                 like the other money rows. */}
             {convertedAmount && transaction.status !== 'cancelled' && (
-                <ReceiptRow label={t('rows.estimateConversion')} value={`≈ ${convertedAmount}`} />
+                <DataRow label={t('rows.estimateConversion')} value={`≈ ${convertedAmount}`} />
             )}
 
             {/* Exchange rate and original currency for completed bank_deposit transactions */}
             {rowVisibilityConfig.exchangeRate && transaction.extraDataForDrawer?.receipt?.exchange_rate && (
-                <ReceiptRow
+                <DataRow
                     label={tCommon('exchangeRate')}
                     value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate, 4)}`}
                 />
             )}
 
             {rowVisibilityConfig.bankAccountDetails && transaction.bankAccountDetails && (
-                <ReceiptRow
+                <DataRow
                     label={bankAccountLabel(transaction.bankAccountDetails!.type)}
                     value={
                         <div className="flex items-center gap-2">
@@ -212,7 +212,7 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.transferId && (
-                <ReceiptRow
+                <DataRow
                     label={t('rows.transferId')}
                     value={
                         <div className="flex items-center gap-2">
@@ -227,7 +227,7 @@ export function ReceiptDetailsCard({
             {rowVisibilityConfig.depositInstructions && <BridgeDepositInstructions transaction={transaction} />}
 
             {rowVisibilityConfig.points && transaction.points && (
-                <ReceiptRow
+                <DataRow
                     label={t('rows.pointsEarned')}
                     value={
                         // board 17835:84517: "+11" then the star, right-aligned
@@ -241,14 +241,14 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.comment && (
-                <ReceiptRow
+                <DataRow
                     label={tCommon('comment')}
                     value={transaction.memoKey ? t(transaction.memoKey) : transaction.memo}
                 />
             )}
 
             {rowVisibilityConfig.networkFee && (
-                <ReceiptRow
+                <DataRow
                     label={t('rows.networkFee')}
                     value={transaction.networkFeeDetails!.amountDisplay}
                     moreInfoText={transaction.networkFeeDetails!.moreInfoText}
@@ -256,11 +256,11 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.peanutFee && (
-                <ReceiptRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
+                <DataRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
             )}
 
             {rowVisibilityConfig.attachment && transaction.attachmentUrl && (
-                <ReceiptRow
+                <DataRow
                     label={t('rows.attachment')}
                     value={
                         <Link

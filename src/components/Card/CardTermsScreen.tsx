@@ -1,5 +1,6 @@
 'use client'
 import { type FC, type ReactNode, useEffect, useMemo, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useLocale, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -107,7 +108,7 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={tCard('navAddCard')} onPrev={onPrev} />
 
             <div className="flex flex-col gap-2">
@@ -143,7 +144,7 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
             >
                 {tCommon('continue')}
             </Button>
-        </div>
+        </PageStack>
     )
 }
 

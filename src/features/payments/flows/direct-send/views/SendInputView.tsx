@@ -13,6 +13,7 @@
  */
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -61,7 +62,7 @@ export function SendInputView() {
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 {/* recipient card */}
                 {recipient && (
                     <UserCard
@@ -117,7 +118,7 @@ export function SendInputView() {
 
                 {/* action list for non-logged in users */}
                 {!isLoggedIn && !isFetchingUser && <PaymentMethodActionList isAmountEntered={isAmountEntered} />}
-            </div>
+            </PageStack.Center>
 
             {/* support cta for guest users */}
             {!isLoggedIn && !isFetchingUser && <SupportCTA />}

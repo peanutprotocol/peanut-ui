@@ -41,22 +41,22 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             role="button"
             tabIndex={0}
             onClick={handleTryDoor}
-            className="relative mb-3 cursor-pointer overflow-hidden rounded-sm border border-n-1 bg-white p-4"
+            className="relative mb-3 cursor-pointer overflow-hidden rounded-sm border border-border-default bg-white p-4"
         >
             <button
                 type="button"
                 aria-label={t('dismissAriaLabel')}
                 onClick={handleDismiss}
-                className="absolute top-2 right-2.5 z-10 cursor-pointer p-1 text-n-1 outline-none"
+                className="absolute top-2 right-2.5 z-10 cursor-pointer p-1 text-foreground-primary outline-none"
             >
                 <Icon name="cancel" size={16} />
             </button>
 
             <div className="relative z-[1] flex flex-col gap-3 pr-6">
-                <h3 className="font-roboto-flex-extrabold text-4xl leading-[1.02] font-extraBlack text-n-1">
+                <h3 className="font-roboto-flex-extrabold text-4xl leading-[1.02] font-extraBlack text-foreground-primary">
                     {t('title')}
                 </h3>
-                <p className="text-sm leading-snug font-bold text-n-1">{t('subtitle')}</p>
+                <p className="text-label-l leading-snug text-foreground-primary">{t('subtitle')}</p>
                 <Button
                     variant="purple"
                     shadowSize="4"

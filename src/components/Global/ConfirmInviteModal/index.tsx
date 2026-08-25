@@ -53,7 +53,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                 {
                     text: t('confirmInviteModal.continueWithMethod', { method }),
                     variant: 'transparent',
-                    className: 'h-6 !transform-none !pt-2 text-sm !font-normal underline sm:flex-none',
+                    className: 'h-6 !transform-none !pt-2 text-body-s !font-normal underline sm:flex-none',
                     onClick: handleLoseInvite,
                 },
             ]}

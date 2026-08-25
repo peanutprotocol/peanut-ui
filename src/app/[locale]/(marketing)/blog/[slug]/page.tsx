@@ -147,8 +147,8 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
                 </nav>
                 <header className="mb-8 border-b border-n-1 pb-6">
                     <h1 className="text-3xl font-bold md:text-4xl">{post.frontmatter.title}</h1>
-                    <p className="text-gray-600 mt-2">{post.frontmatter.description}</p>
-                    <time className="text-gray-400 mt-3 block text-sm">{post.frontmatter.date}</time>
+                    <p className="mt-2 text-gray-600">{post.frontmatter.description}</p>
+                    <time className="mt-3 block text-sm text-gray-400">{post.frontmatter.date}</time>
                 </header>
                 <article className="prose prose-lg prose-headings:font-bold prose-a:text-black prose-a:underline prose-pre:border prose-pre:border-n-1 prose-pre:bg-white max-w-none">
                     {post.content}

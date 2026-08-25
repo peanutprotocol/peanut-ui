@@ -1,6 +1,7 @@
 'use client'
 
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
+import { Section } from '@/components/0_Bruddle/Section'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
 import type { IntentKind } from '@/components/TransactionDetails/strategies/registry'
@@ -335,14 +336,13 @@ const HomeHistory = ({
     // show loading state
     if (isLoading) {
         return (
-            <div className="space-y-2">
-                <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>
+            <Section title={t('activity')}>
                 <div className="flex flex-col">
                     {Array.from({ length: 5 }).map((_, index) => (
                         <HistorySkeleton key={index} position={getCardPosition(index, 5)} />
                     ))}
                 </div>
-            </div>
+            </Section>
         )
     }
 
@@ -361,14 +361,13 @@ const HomeHistory = ({
             Sentry.captureException(error)
         }
         return (
-            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>{' '}
+            <Section title={t('activity')} className="mx-auto mt-6 w-full gap-3 md:max-w-2xl">
                 <EmptyState
                     icon="alert"
                     title={isNetworkError ? t('networkErrorTitle') : t('errorTitle')}
                     description={isNetworkError ? t('networkErrorDescription') : t('errorDescription')}
                 />
-            </div>
+            </Section>
         )
     }
 
@@ -389,8 +388,7 @@ const HomeHistory = ({
     // show empty state UI if no processed entries yet (but source data may still be processing)
     if (!isLoading && !combinedEntries.length && !hasSourceEntries) {
         return (
-            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>
+            <Section title={t('activity')} className="mx-auto mt-6 w-full gap-3 md:max-w-2xl">
                 {isViewingOwnHistory &&
                     user &&
                     (() => {
@@ -411,7 +409,7 @@ const HomeHistory = ({
                 {!isViewingOwnHistory && (
                     <EmptyState icon="txn-off" title={t('noTransactionsTitle')} description={t('emptyDescription')} />
                 )}
-            </div>
+            </Section>
         )
     }
 
@@ -536,10 +534,10 @@ export const HistorySkeleton = ({ position }: { position: CardPosition }) => {
     return (
         // p-4 matches ListItem row height so content doesn't jump on load
         <Card position={position} className="flex items-center justify-between gap-3 p-4">
-            <div className="h-8 w-8 min-w-8 animate-pulse rounded-full bg-grey-2" />
+            <div className="h-8 w-8 min-w-8 animate-pulse rounded-full bg-gray-200" />
             <div className="space-y-2 w-full">
-                <div className="h-4.5 w-full animate-pulse rounded-full bg-grey-2" />
-                <div className="h-3 w-1/3 animate-pulse rounded-full bg-grey-2" />
+                <div className="h-4.5 w-full animate-pulse rounded-full bg-gray-200" />
+                <div className="h-3 w-1/3 animate-pulse rounded-full bg-gray-200" />
             </div>
         </Card>
     )

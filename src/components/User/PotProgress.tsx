@@ -80,7 +80,7 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
     }
 
     const getTrackColor = () => {
-        if (isOverGoal) return 'bg-yellow-1'
+        if (isOverGoal) return 'bg-action-secondary'
         if (!isClosed) return 'bg-background-disabled'
         return isGoalAchieved ? 'bg-success-3' : 'bg-error-4'
     }
@@ -99,10 +99,8 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
         if (!isClosed) {
             return (
                 <div className="flex w-full items-center justify-between text-body-s">
-                    <p className="text-grey-5">{t('progressBar.contributed', { amount: formatCurrency(progress) })}</p>
-                    <p className="text-grey-5">
-                        {t('progressBar.remaining', { amount: formatCurrency(Math.max(goal - progress, 0)) })}
-                    </p>
+                    <p>{t('progressBar.contributed', { amount: formatCurrency(progress) })}</p>
+                    <p>{t('progressBar.remaining', { amount: formatCurrency(Math.max(goal - progress, 0)) })}</p>
                 </div>
             )
         }
@@ -150,7 +148,7 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
         if (isOverGoal) {
             return [
                 { position: goalPercentage, className: 'bg-success-3' },
-                { position: 'end', className: 'bg-yellow-1' },
+                { position: 'end', className: 'bg-action-secondary' },
             ]
         }
 

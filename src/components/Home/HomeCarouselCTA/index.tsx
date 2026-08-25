@@ -65,7 +65,7 @@ const HomeCarouselCTA = () => {
                 title: <p>{t.rich('rewardReady', { amount: perk.amountUsd, b: (chunks) => <b>{chunks}</b> })}</p>,
                 description,
                 icon: 'gift' as IconName,
-                iconContainerClassName: 'bg-primary-1',
+                iconContainerClassName: 'bg-action-primary',
                 onClick: () => setSelectedPerk(perk),
                 isPerkClaim: true,
                 iconSize: 16,

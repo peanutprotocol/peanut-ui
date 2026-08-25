@@ -22,7 +22,7 @@ export default function DevSegmented<T extends string>({
     size?: 'sm' | 'md'
 }) {
     return (
-        <div className={twMerge('flex shrink-0 rounded-sm border border-n-1 bg-white p-0.5', className)}>
+        <div className={twMerge('flex shrink-0 rounded-sm border border-border-default bg-white p-0.5', className)}>
             {options.map((option) => (
                 <button
                     key={option.value}
@@ -32,8 +32,10 @@ export default function DevSegmented<T extends string>({
                     onClick={() => onChange(option.value)}
                     className={twMerge(
                         'rounded-sm font-bold transition-colors',
-                        size === 'sm' ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs',
-                        value === option.value ? 'bg-primary-1 text-n-1' : 'text-grey-1 hover:bg-primary-3/40'
+                        size === 'sm' ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-body-xs',
+                        value === option.value
+                            ? 'bg-action-primary text-foreground-primary'
+                            : 'text-foreground-secondary hover:bg-purple-200/40'
                     )}
                 >
                     {option.label}

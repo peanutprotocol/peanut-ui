@@ -4,7 +4,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import { Tooltip } from '@/components/Tooltip'
 
-export interface ReceiptRowProps {
+export interface DataRowProps {
     label: React.ReactNode
     value: React.ReactNode
     moreInfoText?: string
@@ -12,16 +12,27 @@ export interface ReceiptRowProps {
     allowCopy?: boolean
     copyValue?: string
     onClick?: () => void
+    trailing?: React.ReactNode
 }
 
 /**
- * Label + value row for receipt cards (DS 09, TX Details board 17490:115877):
- * label left in foreground-secondary, value right-aligned in bold. Rows carry
- * no border logic — the parent card owns the dashed dividers via
+ * Label + value row (DS 09, TX Details board 17490:115877): label left in
+ * foreground-secondary, value right-aligned in bold. Rows carry no border
+ * logic — the parent card owns the dashed dividers via
  * `divide-y divide-dashed divide-border-default`, so a row never needs to
- * know whether it is last.
+ * know whether it is last. Was TransactionDetails/ReceiptRow; promoted here
+ * so labeled-value rows outside receipts stop hand-rolling the shape.
  */
-export const ReceiptRow = ({ label, value, moreInfoText, loading, allowCopy, copyValue, onClick }: ReceiptRowProps) => (
+export const DataRow = ({
+    label,
+    value,
+    moreInfoText,
+    loading,
+    allowCopy,
+    copyValue,
+    onClick,
+    trailing,
+}: DataRowProps) => (
     <div
         className={twMerge(
             'flex w-full items-center justify-between gap-3 py-3',
@@ -64,6 +75,7 @@ export const ReceiptRow = ({ label, value, moreInfoText, loading, allowCopy, cop
                 {allowCopy && typeof value === 'string' && (
                     <CopyToClipboard textToCopy={copyValue ?? value} fill="black" iconSize="4" />
                 )}
+                {trailing}
             </div>
         )}
     </div>

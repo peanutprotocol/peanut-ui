@@ -56,11 +56,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "secondary-2",
-        "value": "#e99898",
-        "section": "legacy"
-    },
-    {
         "name": "secondary-3",
         "value": "#90a8ed",
         "section": "legacy"
@@ -68,11 +63,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
     {
         "name": "secondary-4",
         "value": "#fff4cc",
-        "section": "legacy"
-    },
-    {
-        "name": "secondary-5",
-        "value": "#fbeaea",
         "section": "legacy"
     },
     {
@@ -88,11 +78,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
     {
         "name": "secondary-8",
         "value": "#d4b6ff",
-        "section": "legacy"
-    },
-    {
-        "name": "secondary-9",
-        "value": "#d6e1ff",
         "section": "legacy"
     },
     {
@@ -116,28 +101,8 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "outline-1",
-        "value": "#98e9ab",
-        "section": "legacy"
-    },
-    {
-        "name": "outline-2",
-        "value": "#ae7aff",
-        "section": "legacy"
-    },
-    {
-        "name": "outline-3",
-        "value": "#e99898",
-        "section": "legacy"
-    },
-    {
         "name": "purple-1",
         "value": "#ff90e8",
-        "section": "legacy"
-    },
-    {
-        "name": "purple-2",
-        "value": "#dc78b5",
         "section": "legacy"
     },
     {
@@ -146,48 +111,8 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "purple-4",
-        "value": "#ae7aff",
-        "section": "legacy"
-    },
-    {
-        "name": "purple-5",
-        "value": "#ede4fd",
-        "section": "legacy"
-    },
-    {
-        "name": "purple-6",
-        "value": "#9d7efe",
-        "section": "legacy"
-    },
-    {
         "name": "yellow-1",
         "value": "#ffc900",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-2",
-        "value": "#f5ff7c",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-3",
-        "value": "#fbfdd8",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-4",
-        "value": "#fae8a4",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-5",
-        "value": "#ffd25c",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-6",
-        "value": "#885b00",
         "section": "legacy"
     },
     {
@@ -206,11 +131,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "yellow-10",
-        "value": "#fefce8",
-        "section": "legacy"
-    },
-    {
         "name": "yellow-11",
         "value": "#ca8a04",
         "section": "legacy"
@@ -221,18 +141,8 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "green-2",
-        "value": "#eafbee",
-        "section": "legacy"
-    },
-    {
         "name": "teal-1",
         "value": "#23a094",
-        "section": "legacy"
-    },
-    {
-        "name": "teal-3",
-        "value": "#00577d",
         "section": "legacy"
     },
     {
@@ -253,11 +163,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
     {
         "name": "gray-4",
         "value": "#d1d5db",
-        "section": "legacy"
-    },
-    {
-        "name": "gray-5",
-        "value": "#60646c",
         "section": "legacy"
     },
     {
@@ -283,16 +188,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
     {
         "name": "violet-3",
         "value": "#6340df",
-        "section": "legacy"
-    },
-    {
-        "name": "violet-9",
-        "value": "#f1ebf8",
-        "section": "legacy"
-    },
-    {
-        "name": "cyan-1",
-        "value": "#4cccef",
         "section": "legacy"
     },
     {
@@ -678,6 +573,221 @@ export const COLOR_TOKENS: ThemeToken[] = [
     {
         "name": "shadow-primary",
         "value": "#000000",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-0",
+        "value": "#ffffff",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-50",
+        "value": "#faf4f0",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-100",
+        "value": "#efeff0",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-200",
+        "value": "#e7e8e9",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-300",
+        "value": "#d1d5db",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-400",
+        "value": "#9ca3af",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-600",
+        "value": "#5f646d",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-700",
+        "value": "#374151",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-800",
+        "value": "#1f2937",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-900",
+        "value": "#161616",
+        "section": "semantic"
+    },
+    {
+        "name": "gray-950",
+        "value": "#000000",
+        "section": "semantic"
+    },
+    {
+        "name": "pink-200",
+        "value": "#ffd5f6",
+        "section": "semantic"
+    },
+    {
+        "name": "pink-500",
+        "value": "#ff90e8",
+        "section": "semantic"
+    },
+    {
+        "name": "pink-600",
+        "value": "#e06ac8",
+        "section": "semantic"
+    },
+    {
+        "name": "pink-700",
+        "value": "#bd33a1",
+        "section": "semantic"
+    },
+    {
+        "name": "pink-800",
+        "value": "#a42089",
+        "section": "semantic"
+    },
+    {
+        "name": "yellow-200",
+        "value": "#fae184",
+        "section": "semantic"
+    },
+    {
+        "name": "yellow-400",
+        "value": "#fde047",
+        "section": "semantic"
+    },
+    {
+        "name": "yellow-500",
+        "value": "#ffc900",
+        "section": "semantic"
+    },
+    {
+        "name": "yellow-600",
+        "value": "#dcae01",
+        "section": "semantic"
+    },
+    {
+        "name": "yellow-900",
+        "value": "#885b00",
+        "section": "semantic"
+    },
+    {
+        "name": "purple-200",
+        "value": "#dcd6ff",
+        "section": "semantic"
+    },
+    {
+        "name": "purple-400",
+        "value": "#ba8bff",
+        "section": "semantic"
+    },
+    {
+        "name": "purple-500",
+        "value": "#ae7aff",
+        "section": "semantic"
+    },
+    {
+        "name": "purple-600",
+        "value": "#9333ea",
+        "section": "semantic"
+    },
+    {
+        "name": "blue-200",
+        "value": "#dbeafe",
+        "section": "semantic"
+    },
+    {
+        "name": "blue-300",
+        "value": "#90a8ed",
+        "section": "semantic"
+    },
+    {
+        "name": "blue-500",
+        "value": "#5883ff",
+        "section": "semantic"
+    },
+    {
+        "name": "blue-600",
+        "value": "#2563eb",
+        "section": "semantic"
+    },
+    {
+        "name": "green-200",
+        "value": "#c7f9c6",
+        "section": "semantic"
+    },
+    {
+        "name": "green-400",
+        "value": "#88d987",
+        "section": "semantic"
+    },
+    {
+        "name": "green-500",
+        "value": "#29cc6a",
+        "section": "semantic"
+    },
+    {
+        "name": "green-800",
+        "value": "#3b730c",
+        "section": "semantic"
+    },
+    {
+        "name": "green-900",
+        "value": "#2a5309",
+        "section": "semantic"
+    },
+    {
+        "name": "red-50",
+        "value": "#ffcccc",
+        "section": "semantic"
+    },
+    {
+        "name": "red-100",
+        "value": "#ea8282",
+        "section": "semantic"
+    },
+    {
+        "name": "red-200",
+        "value": "#fc5555",
+        "section": "semantic"
+    },
+    {
+        "name": "red-400",
+        "value": "#ff3b30",
+        "section": "semantic"
+    },
+    {
+        "name": "red-500",
+        "value": "#ff0000",
+        "section": "semantic"
+    },
+    {
+        "name": "red-600",
+        "value": "#e40c0c",
+        "section": "semantic"
+    },
+    {
+        "name": "orange-200",
+        "value": "#ffd3b4",
+        "section": "semantic"
+    },
+    {
+        "name": "orange-400",
+        "value": "#f69855",
+        "section": "semantic"
+    },
+    {
+        "name": "orange-800",
+        "value": "#b8450a",
         "section": "semantic"
     }
 ]

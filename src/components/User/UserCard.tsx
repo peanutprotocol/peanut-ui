@@ -100,8 +100,8 @@ const UserCard = ({
                                 <div>
                                     <p className="text-heading-s text-foreground-primary">${amount}</p>
                                     <div className="flex items-center gap-2">
-                                        <Icon name="alert-filled" size={16} className="text-yellow-11" />
-                                        <p className="text-body-s text-yellow-11">{t('userCard.sendExactAmount')}</p>
+                                        <Icon name="alert-filled" size={16} className="text-yellow-900" />
+                                        <p className="text-body-s text-yellow-900">{t('userCard.sendExactAmount')}</p>
                                     </div>
                                 </div>
                             )}
@@ -117,7 +117,7 @@ const UserCard = ({
                                     className={
                                         type === 'request_pay'
                                             ? 'text-heading-s font-medium text-foreground-primary md:text-heading-m'
-                                            : 'text-base font-medium'
+                                            : 'text-body-m'
                                     }
                                     isLink={type !== 'request_pay'}
                                 />
@@ -129,7 +129,7 @@ const UserCard = ({
                             username={username}
                             isVerified={isVerified}
                             haveSentMoneyToUser={haveSentMoneyToUser}
-                            className="text-base font-medium"
+                            className="text-body-m"
                         />
                     )}
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />

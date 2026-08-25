@@ -39,7 +39,11 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
     const url = `/${urlAddress}`
 
     return isLink ? (
-        <Link className={twMerge('cursor-pointer text-xs text-grey-1 underline', className)} href={url} target="_blank">
+        <Link
+            className={twMerge('cursor-pointer text-body-xs text-foreground-secondary underline', className)}
+            href={url}
+            target="_blank"
+        >
             {displayAddress}
         </Link>
     ) : (

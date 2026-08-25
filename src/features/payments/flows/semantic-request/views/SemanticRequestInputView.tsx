@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useContext, useMemo } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
@@ -151,7 +152,7 @@ export function SemanticRequestInputView() {
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 {/* recipient card */}
                 {recipient && (
                     <UserCard
@@ -183,7 +184,7 @@ export function SemanticRequestInputView() {
 
                 {/* hint for free transactions */}
                 {showTokenSelector && selectedTokenAddress && selectedChainID && !isUsingPeanutDefault && (
-                    <div className="pt-1 text-center text-xs text-grey-1">
+                    <div className="pt-1 text-center text-body-xs text-foreground-secondary">
                         <span>{t('input.freeTransactionsHint')}</span>
                     </div>
                 )}
@@ -207,7 +208,7 @@ export function SemanticRequestInputView() {
                     onPayWithExternalWallet={handleOpenExternalWalletFlow}
                     isAmountEntered={isAmountEntered}
                 />
-            </div>
+            </PageStack.Center>
 
             {/* support cta */}
             {!isLoggedIn && <SupportCTA />}

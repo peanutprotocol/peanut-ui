@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
@@ -176,7 +177,7 @@ export default function InitialWithdrawView({
     return (
         // flex/gap shell per the page-layout rules — space-y on the outer div
         // conflicts with centering and clipped the CTA on short viewports
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={isFromSendFlow ? tNav('send') : tNav('withdraw')} onPrev={onBack || defaultOnBack} />
 
             <div className="space-y-4">
@@ -245,6 +246,6 @@ export default function InitialWithdrawView({
                     <Notification priority="error">{error.errorMessage}</Notification>
                 )}
             </div>
-        </div>
+        </PageStack>
     )
 }

@@ -73,7 +73,7 @@ export const PasskeySetupHelpModal = ({
             visible={visible}
             onClose={onClose}
             icon="alert"
-            iconContainerClassName="bg-yellow-400"
+            iconContainerClassName="bg-action-secondary"
             iconProps={{ className: 'text-foreground-primary' }}
             title={title}
             footer={
@@ -99,7 +99,7 @@ export const PasskeySetupHelpModal = ({
                         <p>
                             {t.rich('contactSupport', {
                                 link: (chunks) => (
-                                    <a href="https://peanut.me/support" className="text-secondary-7 underline">
+                                    <a href="https://peanut.me/support" className="text-blue-500 underline">
                                         {chunks}
                                     </a>
                                 ),

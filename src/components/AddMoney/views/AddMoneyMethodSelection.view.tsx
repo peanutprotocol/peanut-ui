@@ -1,6 +1,8 @@
 'use client'
 
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Section } from '@/components/0_Bruddle/Section'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import ChooseNetworkDrawer from '../components/ChooseNetworkDrawer'
 import type { RhinoChainType } from '@/services/services.types'
@@ -33,14 +35,12 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
 
     return (
         <>
-            <div className="flex flex-col gap-2">
-                <h2 className="text-heading-card text-foreground-primary">{t('howWouldYouLikeToAdd')}</h2>
-                <div className="flex flex-col">
+            <Section title={t('howWouldYouLikeToAdd')}>
+                <ListGroup>
                     {hasOfframpMigrationEntry && (
                         <ListItem
                             title={t('methods.migrateFromOfframp')}
                             body={<div>{t('methods.migrateFromOfframpDescription')}</div>}
-                            position="first"
                             chevron
                             leading={
                                 <AvatarWithBadge
@@ -55,7 +55,6 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
                     <ListItem
                         title={t('methods.crypto')}
                         body={<div>{t('methods.cryptoDescription')}</div>}
-                        position={hasOfframpMigrationEntry ? 'middle' : 'first'}
                         chevron
                         leading={
                             <AvatarWithBadge
@@ -69,7 +68,6 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
                     <ListItem
                         title={t('methods.bankTransfer')}
                         body={<div>{t('methods.kycRequired')}</div>}
-                        position="last"
                         chevron
                         leading={
                             <AvatarWithBadge
@@ -81,8 +79,8 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
                         }
                         onClick={onBankTransferClick}
                     />
-                </div>
-            </div>
+                </ListGroup>
+            </Section>
 
             <ChooseNetworkDrawer
                 open={isDrawerOpen}

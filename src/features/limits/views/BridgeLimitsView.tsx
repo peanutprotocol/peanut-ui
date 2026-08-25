@@ -1,6 +1,8 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Section } from '@/components/0_Bruddle/Section'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
@@ -47,7 +49,7 @@ const BridgeLimitsView = () => {
     const showBankTransferLimits = (BANK_TRANSFER_REGIONS as readonly string[]).includes(region)
 
     return (
-        <div className="space-y-6 flex min-h-[inherit] flex-col">
+        <PageStack gap="6">
             <NavHeader title={t('title')} onPrev={onBack} />
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
@@ -58,8 +60,7 @@ const BridgeLimitsView = () => {
                 <>
                     {/* main limits card - only for bank transfer regions */}
                     {showBankTransferLimits && (
-                        <div className="space-y-2">
-                            <h3 className="font-bold">{t('fiatLimits')}</h3>
+                        <Section title={t('fiatLimits')}>
                             <Card position="single" className="space-y-2 p-4">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
@@ -88,13 +89,12 @@ const BridgeLimitsView = () => {
                                     </div>
                                 </div>
                             </Card>
-                        </div>
+                        </Section>
                     )}
 
                     {/* qr payment limits accordion - for bridge users without manteca kyc */}
                     {!hasMantecaLimits && (
-                        <div className="space-y-2">
-                            <h3 className="font-bold">{t('qrPaymentLimits')}</h3>
+                        <Section title={t('qrPaymentLimits')}>
                             <Accordion
                                 type="single"
                                 collapsible
@@ -128,7 +128,7 @@ const BridgeLimitsView = () => {
                                     </Accordion.Item>
                                 ))}
                             </Accordion>
-                        </div>
+                        </Section>
                     )}
 
                     <LimitsDocsLink />
@@ -136,7 +136,7 @@ const BridgeLimitsView = () => {
             )}
 
             {!isLoading && !error && !bridgeLimits && <EmptyState title={t('noData')} icon="meter" />}
-        </div>
+        </PageStack>
     )
 }
 

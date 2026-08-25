@@ -1,6 +1,7 @@
 'use client'
 
 import { type CardPosition } from '@/components/Global/Card/card.utils'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
@@ -271,7 +272,7 @@ const HistoryPage = () => {
     const today = new Date()
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('title')} />
             <div className="h-full w-full">
                 {combinedAndSortedEntries.map((item, index) => {
@@ -349,7 +350,7 @@ const HistoryPage = () => {
                     {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
                 </div>
             </div>
-        </div>
+        </PageStack>
     )
 }
 

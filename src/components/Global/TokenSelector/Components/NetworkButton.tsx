@@ -35,7 +35,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
             variant="stroke"
             className={twMerge(
                 'shadow-2 flex h-fit min-w-14 flex-1 flex-col items-center justify-center gap-1 rounded-sm p-3 text-center text-foreground-primary hover:text-foreground-primary',
-                isSelected ? 'bg-primary-3 hover:bg-primary-3' : 'bg-background-default hover:bg-background-default'
+                isSelected ? 'bg-purple-200 hover:bg-purple-200' : 'bg-background-default hover:bg-background-default'
             )}
             onClick={onClick}
         >

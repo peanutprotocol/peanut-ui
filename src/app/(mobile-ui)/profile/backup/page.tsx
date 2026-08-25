@@ -1,7 +1,9 @@
 'use client'
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Section } from '@/components/0_Bruddle/Section'
 import ActionModal from '@/components/Global/ActionModal'
 import Card from '@/components/Global/Card'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -48,8 +50,7 @@ export default function BackupPage() {
                     icon="upload-cloud"
                 />
 
-                <div className="space-y-2">
-                    <h1 className="text-heading-card text-foreground-primary">{t('enableNow')}</h1>
+                <Section title={t('enableNow')}>
                     <Card>
                         <ol className="space-y-4 list-decimal py-2 pl-5">
                             {backupSteps.map((step, index) => (
@@ -63,32 +64,17 @@ export default function BackupPage() {
                     <Notification priority="attention" title={t('noBackupWarning.title')}>
                         {t('noBackupWarning.description')}
                     </Notification>
-                </div>
+                </Section>
 
-                <div>
-                    <h1 className="mb-2 text-heading-card text-foreground-primary">{t('faqHeading')}</h1>
-                    <ListItem
-                        position="first"
-                        title={t('faq.losePhone')}
-                        chevron
-                        onClick={() => setActiveModal('lose-phone')}
-                    />
-                    <ListItem
-                        position="middle"
-                        title={t('faq.changePhone')}
-                        chevron
-                        onClick={() => setActiveModal('change-phone')}
-                    />
-                    <ListItem
-                        position="last"
-                        title={t('faq.exportKeys')}
-                        chevron
-                        onClick={() => setActiveModal('export-keys')}
-                    />
-                </div>
+                <Section title={t('faqHeading')}>
+                    <ListGroup>
+                        <ListItem title={t('faq.losePhone')} chevron onClick={() => setActiveModal('lose-phone')} />
+                        <ListItem title={t('faq.changePhone')} chevron onClick={() => setActiveModal('change-phone')} />
+                        <ListItem title={t('faq.exportKeys')} chevron onClick={() => setActiveModal('export-keys')} />
+                    </ListGroup>
+                </Section>
             </div>
 
-            {/* FAQ Modal: What if I lose my phone? */}
             <ActionModal
                 visible={activeModal === 'lose-phone'}
                 onClose={closeModal}
@@ -107,7 +93,6 @@ export default function BackupPage() {
                 }
             />
 
-            {/* FAQ Modal: What if I change phone? */}
             <ActionModal
                 visible={activeModal === 'change-phone'}
                 onClose={closeModal}
@@ -134,7 +119,6 @@ export default function BackupPage() {
                 }
             />
 
-            {/* FAQ Modal: Why can't I export my private key? */}
             <ActionModal
                 visible={activeModal === 'export-keys'}
                 onClose={closeModal}

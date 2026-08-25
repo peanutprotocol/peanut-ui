@@ -106,6 +106,41 @@ export default function PrimitivesPage() {
                     status="production"
                     usages={1}
                 />
+                <CatalogCard
+                    title="PageStack"
+                    description="Page shell recipe: NavHeader + vertical stack with Center and Footer regions"
+                    href="/dev/ds/primitives/page-stack"
+                    icon="docs"
+                    status="production"
+                />
+                <CatalogCard
+                    title="Section"
+                    description="Section title above a list/card stack. Owns the heading token"
+                    href="/dev/ds/primitives/section"
+                    icon="docs"
+                    status="production"
+                />
+                <CatalogCard
+                    title="ListGroup"
+                    description="Derives first/middle/last positions for ListItem/Card children"
+                    href="/dev/ds/primitives/list-group"
+                    icon="docs"
+                    status="production"
+                />
+                <CatalogCard
+                    title="TitleBlock"
+                    description="Title + supporting-text pair extracted from EmptyState"
+                    href="/dev/ds/primitives/title-block"
+                    icon="docs"
+                    status="production"
+                />
+                <CatalogCard
+                    title="DataRow"
+                    description="Label + value row, promoted from TransactionDetails/ReceiptRow. Copy, tooltip, loading, trailing slot"
+                    href="/dev/ds/primitives/data-row"
+                    icon="docs"
+                    status="production"
+                />
             </CatalogGrid>
         </DocPage>
     )

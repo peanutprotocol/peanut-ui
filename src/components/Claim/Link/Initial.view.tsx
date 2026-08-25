@@ -1,6 +1,7 @@
 'use client'
 
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
@@ -983,7 +984,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     <div className="pb-1 text-center text-heading-s">{t('receive')}</div>
                 </div>
             )}
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"
                     transactionType="CLAIM_LINK"
@@ -1082,7 +1083,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         />
                     )}
                 </div>
-            </div>
+            </PageStack.Center>
             <ActionModal
                 visible={showConfirmationModal}
                 onClose={() => setShowConfirmationModal(false)}
@@ -1094,7 +1095,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     </div>
                 }
                 icon="alert"
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName="bg-action-secondary"
                 footer={
                     <div className="space-y-3 w-full">
                         <SlideToConfirm

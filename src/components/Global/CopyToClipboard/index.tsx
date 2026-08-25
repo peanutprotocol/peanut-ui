@@ -60,7 +60,7 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
                     shadowSize="4"
                     variant="primary-soft"
                 >
-                    <p className="text-sm">{t('copyToClipboard.copyCode')}</p>
+                    <p className="text-body-s">{t('copyToClipboard.copyCode')}</p>
                 </Button>
             )
         }

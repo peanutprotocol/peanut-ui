@@ -1,6 +1,7 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
@@ -194,9 +195,9 @@ export default function RecoverFundsPage() {
         return null
     } else if (status === 'review') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={reset} />
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
@@ -219,7 +220,7 @@ export default function RecoverFundsPage() {
                                 {t('youWillReceiveTo')}{' '}
                                 <AddressLink
                                     address={recipient.address}
-                                    className="text-sm font-normal text-foreground-secondary"
+                                    className="text-body-s font-normal text-foreground-secondary"
                                 />
                             </h1>
                             <h2 className="text-heading-s">
@@ -243,15 +244,15 @@ export default function RecoverFundsPage() {
                     >
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tCommon('confirm')}
                     </Button>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     if (status === 'final') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack>
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
@@ -274,7 +275,7 @@ export default function RecoverFundsPage() {
                                 {t('sentTo')}{' '}
                                 <AddressLink
                                     address={recipient.address}
-                                    className="text-sm font-normal text-foreground-secondary"
+                                    className="text-body-s font-normal text-foreground-secondary"
                                 />
                             </h1>
                             <h2 className="text-heading-s">
@@ -326,13 +327,13 @@ export default function RecoverFundsPage() {
                     >
                         {t('recoverOtherToken')}
                     </Button>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('title')} />
             {/* nothing recoverable — the token picker, address input and review
                 button are all pointless, show the ds empty state with a way
@@ -357,7 +358,7 @@ export default function RecoverFundsPage() {
                     />
                 </div>
             ) : (
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                <PageStack.Center className="gap-4">
                     <h1>{t('selectToken')}</h1>
                     <ScrollableList>
                         {tokenBalances.map((balance) => (
@@ -403,8 +404,8 @@ export default function RecoverFundsPage() {
                         {t('review')}
                     </Button>
                     {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
-                </div>
+                </PageStack.Center>
             )}
-        </div>
+        </PageStack>
     )
 }

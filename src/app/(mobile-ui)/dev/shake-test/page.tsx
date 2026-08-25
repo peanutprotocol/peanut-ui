@@ -158,13 +158,11 @@ export default function DevShakeTestPage() {
         >
             <div className="space-y-6 flex flex-col">
                 <Card className="space-y-4 p-6">
-                    <h2 className="text-center text-2xl font-bold">Shake & Hold Test</h2>
-                    <p className="text-gray-600 text-center text-sm">
-                        Test the progressive shake animation and confetti effect
-                    </p>
+                    <h2 className="text-center text-heading-s">Shake & Hold Test</h2>
+                    <p className="text-center text-body-s">Test the progressive shake animation and confetti effect</p>
 
                     <div className="space-y-3">
-                        <div className="bg-gray-100 rounded-lg p-3 text-sm">
+                        <div className="rounded-lg p-3 text-body-s">
                             <div className="flex justify-between">
                                 <span>Progress:</span>
                                 <span className="font-mono font-bold">{Math.floor(holdProgress)}%</span>
@@ -228,17 +226,17 @@ export default function DevShakeTestPage() {
                             <span className="relative z-10">⭐ Hold to Claim Perk</span>
                         </Button>
 
-                        <div className="text-gray-500 text-center text-xs">
+                        <div className="text-center text-body-xs">
                             Hold the button for the full duration (quick taps show 500ms preview)
                         </div>
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        <Card className="bg-green-50 p-6">
+                        <Card className="p-6">
                             <div className="space-y-2 text-center">
-                                <div className="text-4xl">🎉</div>
-                                <h3 className="text-green-800 text-xl font-bold">Perk Claimed!</h3>
-                                <p className="text-green-700 text-sm">Check if confetti appeared at the right time</p>
+                                <div className="text-heading-l">🎉</div>
+                                <h3 className="text-heading-xs">Perk Claimed!</h3>
+                                <p className="text-body-s">Check if confetti appeared at the right time</p>
                             </div>
                         </Card>
 
@@ -248,9 +246,9 @@ export default function DevShakeTestPage() {
                     </div>
                 )}
 
-                <Card className="bg-orange-50 space-y-2 p-4">
-                    <h3 className="text-orange-900 font-bold">Testing Checklist:</h3>
-                    <ul className="text-orange-800 space-y-1 text-sm">
+                <Card className="space-y-2 p-4">
+                    <h3 className="font-bold">Testing Checklist:</h3>
+                    <ul className="space-y-1 text-body-s">
                         <li>✓ Button fills with black as you hold</li>
                         <li>✓ Shake starts weak and gets progressively stronger</li>
                         <li>✓ Haptic feedback intensifies with shake (PWA only)</li>

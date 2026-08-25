@@ -44,7 +44,7 @@ export const AppShell = ({
                     illustration). --safe-top resolves to env(), which is 0 on web and
                     on non-edge-to-edge Android — no-op there. On Android 15+ Capacitor
                     overwrites it with the natively measured inset. */}
-                <div className="bg-secondary-3 pt-safe-top">{banner}</div>
+                <div className="bg-blue-300 pt-safe-top">{banner}</div>
                 {children}
                 {/* Bottom safe-area fill. Mirrors the strip above so the bottom
                     matches on edge-to-edge Android; iOS fills white (the panel

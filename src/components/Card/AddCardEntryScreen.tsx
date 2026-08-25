@@ -1,5 +1,6 @@
 'use client'
 import { type FC, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -28,7 +29,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
         }
     }
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('entry.navTitle')} onPrev={onPrev} />
 
             {/* Pixelated card — keeps the anticipation/tease intact through
@@ -42,7 +43,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
                 <p className="text-foreground-secondary">{t('entry.description')}</p>
             </div>
 
-            <ul className="flex flex-col gap-2 rounded-sm bg-primary-3 p-4 text-foreground-primary">
+            <ul className="flex flex-col gap-2 rounded-sm bg-purple-200 p-4 text-foreground-primary">
                 {FEATURE_KEYS.map((featureKey) => (
                     <li key={featureKey} className="flex items-center gap-2">
                         <Icon name="check-circle" size={16} />
@@ -68,7 +69,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
             >
                 {t('entry.cta')}
             </Button>
-        </div>
+        </PageStack>
     )
 }
 
