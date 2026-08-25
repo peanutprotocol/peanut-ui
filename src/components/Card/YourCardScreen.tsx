@@ -1,5 +1,8 @@
 'use client'
 import { type FC, useCallback, useState } from 'react'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { Section } from '@/components/0_Bruddle/Section'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
@@ -56,7 +59,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     )
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
             <CardFace
@@ -104,26 +107,17 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 {t('payAsCreditBody')}
             </Notification>
 
-            <div className="flex flex-col gap-2">
-                <h2 className="text-heading-card text-foreground-primary">{t('managementTitle')}</h2>
-                <div>
-                    <ProfileMenuItem icon="more-horizontal" label={t('pin')} href="/card/pin" position="first" />
-                    <ProfileMenuItem icon="meter" label={t('spendingLimit')} href="/card/limit" position="middle" />
-                    <ProfileMenuItem
-                        icon="credit-card"
-                        label={t('physicalCard')}
-                        href="/card/physical"
-                        position={walletLabel ? 'middle' : 'last'}
-                    />
-                    {walletLabel && (
-                        <ProfileMenuItem icon="wallet" label={walletLabel} href="/card/add-to-wallet" position="last" />
-                    )}
-                </div>
-            </div>
+            <Section title={t('managementTitle')}>
+                <ListGroup>
+                    <ProfileMenuItem icon="more-horizontal" label={t('pin')} href="/card/pin" />
+                    <ProfileMenuItem icon="meter" label={t('spendingLimit')} href="/card/limit" />
+                    <ProfileMenuItem icon="credit-card" label={t('physicalCard')} href="/card/physical" />
+                    {walletLabel && <ProfileMenuItem icon="wallet" label={walletLabel} href="/card/add-to-wallet" />}
+                </ListGroup>
+            </Section>
 
-            <div className="flex flex-col gap-2">
-                <h2 className="text-heading-card text-foreground-primary">{t('redZone')}</h2>
-                <div>
+            <Section title={t('redZone')}>
+                <ListGroup>
                     <ProfileMenuItem
                         icon="lock"
                         label={isLocked ? t('unlockCard') : t('lockCard')}
@@ -134,7 +128,6 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                             void setAction(isLocked ? 'unlock' : 'lock')
                         }}
                         href="/dummy"
-                        position="first"
                     />
                     <ProfileMenuItem
                         icon="trash"
@@ -144,10 +137,9 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                             void setAction('cancel')
                         }}
                         href="/dummy"
-                        position="last"
                     />
-                </div>
-            </div>
+                </ListGroup>
+            </Section>
 
             <LockCardModal
                 cardId={card.id}
@@ -156,7 +148,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 onClose={closeAction}
             />
             <CancelCardModal cardId={card.id} isOpen={action === 'cancel'} onClose={closeAction} />
-        </div>
+        </PageStack>
     )
 }
 

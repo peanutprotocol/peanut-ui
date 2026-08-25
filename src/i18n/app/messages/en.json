@@ -2703,6 +2703,7 @@
         "title": "Recover Funds",
         "selectToken": "Select a token to recover",
         "noTokens": "No tokens to recover",
+        "noTokensDescription": "Tokens sent to your address on other networks will show up here.",
         "recipientPlaceholder": "Enter the address where you want to receive the funds",
         "review": "Review",
         "youWillReceiveTo": "You will receive to",

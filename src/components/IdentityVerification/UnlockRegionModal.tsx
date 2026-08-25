@@ -61,7 +61,7 @@ const UnlockRegionModal = ({
             description={<p>{t.rich('unlockDescription', bold)}</p>}
             descriptionClassName="text-black"
             icon="shield"
-            iconContainerClassName="bg-primary-1"
+            iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
             ctas={[
                 {
@@ -74,11 +74,11 @@ const UnlockRegionModal = ({
             ]}
             content={
                 <div className="flex w-full flex-col items-start gap-2">
-                    <h2 className="text-xs font-bold">{t('whatYoullUnlock')}</h2>
+                    <h2 className="text-label-m">{t('whatYoullUnlock')}</h2>
                     <Notification priority="info" className="w-full" items={unlockItems} />
                     <div className="flex items-center gap-2">
-                        <Icon name="info" size={12} className="text-gray-1" />
-                        <p className="text-xs text-gray-1">{tKyc('doesntStoreDocumentsPeriod')}</p>
+                        <Icon name="info" size={12} className="text-foreground-secondary" />
+                        <p className="text-body-xs text-foreground-secondary">{tKyc('doesntStoreDocumentsPeriod')}</p>
                     </div>
                 </div>
             }

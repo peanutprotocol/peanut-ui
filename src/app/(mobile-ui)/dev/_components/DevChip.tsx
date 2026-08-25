@@ -20,7 +20,7 @@ export default function DevChip({
         <span
             title={title}
             className={twMerge(
-                'inline-block shrink-0 rounded-sm border border-n-1 px-1.5 py-0.5 text-[9px] leading-tight font-bold uppercase',
+                'inline-block shrink-0 rounded-sm border border-border-default px-1.5 py-0.5 text-[9px] leading-tight font-bold uppercase',
                 DEV_CHIP_TONE_CLASS[tone],
                 title && 'cursor-help',
                 className

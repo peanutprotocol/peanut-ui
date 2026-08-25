@@ -55,8 +55,8 @@ const CooldownPillContent = ({ endsAt }: { endsAt: number }) => {
     const remainingMs = Math.max(0, endsAt - now)
     return (
         <div className="flex items-center gap-2">
-            <Icon name="clock" className="h-4 w-4 text-n-1" />
-            <span className="text-sm font-bold text-n-1 tabular-nums">
+            <Icon name="clock" className="h-4 w-4 text-foreground-primary" />
+            <span className="text-label-l text-foreground-primary tabular-nums">
                 {t('rainCooldownPill')} · {formatRemaining(remainingMs)}
             </span>
         </div>
@@ -106,7 +106,7 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
             id: COOLDOWN_TOAST_ID,
             duration: 'persistent',
             position: 'bottom-right',
-            className: 'border-yellow-1',
+            className: 'border-action-secondary',
             content: <CooldownPillContent endsAt={cooldownEndsAt} />,
         })
     }, [cooldownEndsAt, toast, dismiss])

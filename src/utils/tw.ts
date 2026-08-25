@@ -75,7 +75,7 @@ export const twMerge = extendTailwindMerge<
             duration: [{ duration: DS_DURATION_TOKENS }],
             // component classes whose tailwind-shaped names land in color/bg
             // groups by default, so a colour class deleted them: text-link lost
-            // to text-grey-1, bg-peanut-repeat-normal lost to bg-white even
+            // to text-foreground-secondary, bg-peanut-repeat-normal lost to bg-white even
             // though they compose in css. Own group each = no cross-conflicts;
             // the peanut patterns still conflict among themselves (an exact
             // class-name entry beats the colour groups' validators).

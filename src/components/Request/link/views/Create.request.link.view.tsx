@@ -432,7 +432,9 @@ export const CreateRequestLinkView = () => {
 
                 {errorState.showError && (
                     <div className="text-start">
-                        <label className="text-h8 font-normal text-foreground-error">{errorState.errorMessage}</label>
+                        <label className="text-body-s font-normal text-foreground-error">
+                            {errorState.errorMessage}
+                        </label>
                     </div>
                 )}
             </div>

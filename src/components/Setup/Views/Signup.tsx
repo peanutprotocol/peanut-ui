@@ -135,7 +135,10 @@ const SignupStep = () => {
                             isInputChanging={isChanging}
                             className={twMerge(
                                 !isValid && !isChanging && !!username && 'border-error dark:border-error',
-                                isValid && !isChanging && !!username && 'border-secondary-8 dark:border-secondary-8',
+                                isValid &&
+                                    !isChanging &&
+                                    !!username &&
+                                    'border-border-accent dark:border-border-accent',
                                 'rounded-sm'
                             )}
                         />

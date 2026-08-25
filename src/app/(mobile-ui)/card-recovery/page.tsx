@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 import type { Hex } from 'viem'
@@ -109,14 +110,14 @@ export default function CardRecoveryPage() {
     if (!preview && !error) return <Loading variant="mascot" />
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onBack} />
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 {error && <Notification priority="error">{error}</Notification>}
 
                 {step === 'done' && txHash ? (
                     <Card className="flex flex-col gap-3 p-6">
-                        <h2 className="text-h7 font-bold">{t('doneTitle')}</h2>
+                        <h2 className="text-heading-card">{t('doneTitle')}</h2>
                         <p className="text-body-s text-foreground-secondary">
                             {t('doneBody', { amount: `$${formatCents(recoveredCents ?? preview!.amountCents)}` })}
                         </p>
@@ -132,7 +133,7 @@ export default function CardRecoveryPage() {
                     preview && (
                         <>
                             <Card className="flex flex-col gap-3 p-6">
-                                <h2 className="text-h7 font-bold">
+                                <h2 className="text-heading-card">
                                     {preview.hasRecoverableCard ? t('title') : t('noCardOnFile')}
                                 </h2>
                                 <p className="text-body-s text-foreground-secondary">{t('description')}</p>
@@ -170,8 +171,8 @@ export default function CardRecoveryPage() {
                         </>
                     )
                 )}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }
 

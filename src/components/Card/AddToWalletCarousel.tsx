@@ -1,5 +1,6 @@
 'use client'
 import { type FC, type PointerEvent as ReactPointerEvent, useRef, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Image, { type StaticImageData } from 'next/image'
 import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
@@ -80,7 +81,7 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={platformLabel} onPrev={onPrev} />
 
             <div className="my-auto flex flex-col items-center gap-6 text-center">
@@ -111,7 +112,7 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
                     {isLast ? tCommon('done') : tCommon('next')}
                 </Button>
             </div>
-        </div>
+        </PageStack>
     )
 }
 

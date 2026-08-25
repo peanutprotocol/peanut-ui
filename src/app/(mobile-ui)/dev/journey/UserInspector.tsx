@@ -61,47 +61,55 @@ export default function UserInspector() {
                         if (e.key === 'Enter') void inspect()
                     }}
                     placeholder="username or userId"
-                    className="h-10 flex-1 rounded-sm border border-n-1 px-3 font-mono text-sm outline-none"
+                    className="h-10 flex-1 rounded-sm border border-border-default px-3 font-mono text-body-s outline-none"
                 />
                 <Button variant="purple" shadowSize="4" className="w-auto px-6" onClick={() => void inspect()}>
                     {loading ? 'Looking…' : 'Inspect'}
                 </Button>
             </div>
 
-            {error && <div className="rounded-sm border border-n-1 bg-yellow-1/40 p-3 text-sm">{error}</div>}
+            {error && (
+                <div className="rounded-sm border border-border-default bg-action-secondary/40 p-3 text-body-s">
+                    {error}
+                </div>
+            )}
 
             {result && (
-                <div className="rounded-sm border border-n-1 bg-white p-3">
-                    <div className="text-sm font-bold">
+                <div className="rounded-sm border border-border-default bg-white p-3">
+                    <div className="text-label-l">
                         {result.user.username ?? '(no username)'}{' '}
-                        <span className="font-normal text-grey-1">{result.user.email ?? '(no email)'}</span>
+                        <span className="font-normal text-foreground-secondary">
+                            {result.user.email ?? '(no email)'}
+                        </span>
                     </div>
-                    <p className="mt-0.5 font-mono text-[11px] text-grey-1">
+                    <p className="mt-0.5 font-mono text-[11px] text-foreground-secondary">
                         resolved {result.user.username ? `@${result.user.username}` : '(no username)'} →{' '}
                         {result.user.userId}
                     </p>
-                    <p className="mt-0.5 text-xs text-grey-1">
+                    <p className="mt-0.5 text-body-xs text-foreground-secondary">
                         signed up {new Date(result.user.createdAt).toLocaleDateString()} · card access{' '}
                         {result.user.cardAccessGrantedAt
                             ? new Date(result.user.cardAccessGrantedAt).toLocaleDateString()
                             : 'not granted'}
                     </p>
-                    <p className="mt-2 text-sm">
+                    <p className="mt-2 text-body-s">
                         <span className="font-bold">Current nudge:</span>{' '}
-                        <span className="rounded-sm bg-primary-3 px-1.5 py-0.5 font-mono text-xs">{dueLabel}</span>
+                        <span className="rounded-sm bg-purple-200 px-1.5 py-0.5 font-mono text-body-xs">
+                            {dueLabel}
+                        </span>
                     </p>
 
                     <div className="mt-3">
-                        <div className="text-xs font-bold tracking-wide text-grey-1 uppercase">
+                        <div className="text-label-m tracking-wide text-foreground-secondary uppercase">
                             Lifecycle email history
                         </div>
                         {result.history.length === 0 ? (
-                            <p className="mt-1 text-sm text-grey-1">Nothing sent or attempted yet.</p>
+                            <p className="mt-1 text-body-s text-foreground-secondary">Nothing sent or attempted yet.</p>
                         ) : (
                             <div className="mt-1 overflow-x-auto">
-                                <table className="w-full text-left text-xs">
+                                <table className="w-full text-left text-body-xs">
                                     <thead>
-                                        <tr className="border-b border-n-1 text-grey-1">
+                                        <tr className="border-b border-border-default text-foreground-secondary">
                                             <th className="py-1 pr-3 font-bold">event</th>
                                             <th className="py-1 pr-3 font-bold">channel</th>
                                             <th className="py-1 pr-3 font-bold">status</th>
@@ -111,7 +119,7 @@ export default function UserInspector() {
                                     </thead>
                                     <tbody>
                                         {result.history.map((row, i) => (
-                                            <tr key={i} className="border-b border-n-1/20">
+                                            <tr key={i} className="border-b border-border-default/20">
                                                 <td className="py-1 pr-3 font-mono">{row.eventType}</td>
                                                 <td className="py-1 pr-3">{row.channel}</td>
                                                 <td className="py-1 pr-3">{row.status}</td>

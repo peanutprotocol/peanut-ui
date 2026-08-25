@@ -75,7 +75,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
 
     if (comingSoon || !href) {
         return (
-            <Card position={position} className="bg-grey-4 p-4">
+            <Card position={position} className="bg-background-disabled p-4">
                 {content}
             </Card>
         )
@@ -83,7 +83,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
 
     if (onClick) {
         return (
-            <Card position={position} onClick={onClick} className="cursor-pointer p-4 active:bg-grey-4">
+            <Card position={position} onClick={onClick} className="cursor-pointer p-4 active:bg-background-disabled">
                 {content}
             </Card>
         )
@@ -96,7 +96,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
             target={isExternalLink ? '_blank' : undefined}
             rel={isExternalLink ? 'noopener noreferrer' : undefined}
         >
-            <Card position={position} onClick={onClick} className="p-4 active:bg-grey-4">
+            <Card position={position} onClick={onClick} className="p-4 active:bg-background-disabled">
                 {content}
             </Card>
         </Link>

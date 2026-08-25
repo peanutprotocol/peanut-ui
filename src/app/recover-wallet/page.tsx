@@ -21,6 +21,7 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
@@ -181,55 +182,55 @@ function RecoverWalletInner() {
 
     if (phase === 'invalid') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
-                <div className="my-auto flex flex-col gap-6">
-                    <h1 className="text-2xl font-extrabold">Wallet recovery</h1>
+            <PageStack>
+                <PageStack.Center>
+                    <h1 className="text-heading-s">Wallet recovery</h1>
                     <Notification priority="error">{fatal}</Notification>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     if (phase === 'final') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
-                <div className="my-auto flex flex-col gap-6">
-                    <h1 className="text-2xl font-extrabold">Funds on the way 🎉</h1>
+            <PageStack>
+                <PageStack.Center>
+                    <h1 className="text-heading-s">Funds on the way 🎉</h1>
                     <Card className="flex flex-col gap-1 p-4">
-                        <span className="text-sm text-grey-1">
+                        <span className="text-body-s text-foreground-secondary">
                             Sent to <AddressLink address={recipient.address} />
                         </span>
-                        <span className="text-2xl font-extrabold">
+                        <span className="text-heading-s">
                             {formattedBalance} {PEANUT_WALLET_TOKEN_SYMBOL}
                         </span>
                         <LinkButton href={`${getExplorerUrl(chainId)}/tx/${txHash}`} external icon>
                             View on explorer
                         </LinkButton>
                     </Card>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     // phase === 'ready'
     const nothingToRecover = balance <= 0n
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
-            <div className="my-auto flex flex-col gap-6">
+        <PageStack>
+            <PageStack.Center>
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-extrabold">
+                    <h1 className="text-heading-s">
                         {recoveryKey?.label ? `${recoveryKey.label}, let's` : "Let's"} recover your funds
                     </h1>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Sign with the passkey on this device to move your balance to any address.
                     </p>
                 </div>
 
                 <Card className="flex flex-col gap-1 p-4">
-                    <span className="text-sm text-grey-1">
+                    <span className="text-body-s text-foreground-secondary">
                         Wallet <AddressLink address={recoveryKey!.address} />
                     </span>
-                    <span className="text-2xl font-extrabold">
+                    <span className="text-heading-s">
                         {formattedBalance} {PEANUT_WALLET_TOKEN_SYMBOL}
                     </span>
                 </Card>
@@ -260,7 +261,7 @@ function RecoverWalletInner() {
                         {!!signError && <Notification priority="error">{signError}</Notification>}
                     </>
                 )}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

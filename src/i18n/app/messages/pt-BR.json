@@ -2703,6 +2703,7 @@
         "title": "Recuperar fundos",
         "selectToken": "Selecione um token para recuperar",
         "noTokens": "Nenhum token para recuperar",
+        "noTokensDescription": "Tokens enviados para seu endereço em outras redes aparecerão aqui.",
         "recipientPlaceholder": "Digite o endereço onde você quer receber os fundos",
         "review": "Revisar",
         "youWillReceiveTo": "Você vai receber em",

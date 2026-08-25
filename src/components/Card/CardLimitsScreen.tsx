@@ -1,5 +1,7 @@
 'use client'
 import { type FC, useState } from 'react'
+import { Section } from '@/components/0_Bruddle/Section'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
@@ -41,10 +43,9 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
     const amount = limits?.find((l) => l.frequency === FREQUENCY)?.amount
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
-            <div className="flex flex-col gap-3">
-                <h2 className="text-heading-card text-foreground-primary">{t('subtitle')}</h2>
+            <Section title={t('subtitle')} className="gap-3">
                 {isLoading ? (
                     <div className="flex justify-center py-8">
                         <Loading />
@@ -67,7 +68,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                         <LinkButton onClick={() => setIsEditing(true)}>{t('edit')}</LinkButton>
                     </div>
                 )}
-            </div>
+            </Section>
 
             <CardLimitEditModal
                 cardId={cardId}
@@ -77,7 +78,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                 isOpen={isEditing}
                 onClose={() => setIsEditing(false)}
             />
-        </div>
+        </PageStack>
     )
 }
 

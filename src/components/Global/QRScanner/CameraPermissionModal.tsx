@@ -81,7 +81,7 @@ export default function CameraPermissionModal({ visible, onRetry, onClose, onPas
             visible={visible}
             onClose={onClose}
             icon="camera"
-            iconContainerClassName="bg-yellow-400"
+            iconContainerClassName="bg-action-secondary"
             iconProps={{ className: 'text-foreground-primary' }}
             title={t('qrScanner.cameraPermission.title')}
             modalClassName="!z-[60]"

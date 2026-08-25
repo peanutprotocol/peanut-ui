@@ -202,7 +202,7 @@ export const ShareAssetActions: FC<Props> = ({
                 {t('saveImage')}
             </Button>
             {error && (
-                <p className="text-center text-xs text-red" role="alert">
+                <p className="text-center text-body-xs text-red" role="alert">
                     {error}
                 </p>
             )}

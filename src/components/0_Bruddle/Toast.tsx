@@ -24,7 +24,7 @@ interface ToastOptions {
      *  duplicate call is a no-op (no re-animation). Auto-generated when omitted. */
     id?: ToastId
     /** Extra classes merged into the toast container — for one-off accents like
-     *  `border-yellow-1` that don't fit the standard success/error/info/warning. */
+     *  `border-action-secondary` that don't fit the standard success/error/info/warning. */
     className?: string
 }
 

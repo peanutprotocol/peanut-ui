@@ -153,7 +153,7 @@ export default function QuestsExplorePage() {
                                 />
                             </div>
                             <p className="text-center text-base font-black text-black md:text-xl">QUESTS</p>
-                            <p className="text-gray-700 text-center text-sm font-bold md:text-base">
+                            <p className="text-center text-sm font-bold md:text-base">
                                 Nov 17-22, 2025 • Compete & Win up to $1500!
                             </p>
                         </div>
@@ -164,10 +164,10 @@ export default function QuestsExplorePage() {
                         {quests.map((quest, index) => {
                             const bgColorClass =
                                 quest.backgroundColor === 'purple'
-                                    ? 'bg-purple-200'
+                                    ? ''
                                     : quest.backgroundColor === 'pink'
-                                      ? 'bg-pink-100'
-                                      : 'bg-blue-100'
+                                      ? 'bg-pink-200'
+                                      : 'bg-blue-200'
 
                             return (
                                 <motion.div
@@ -196,7 +196,7 @@ export default function QuestsExplorePage() {
                                             <h2 className="mb-2 text-2xl font-black text-black md:text-3xl">
                                                 {quest.title}
                                             </h2>
-                                            <p className="text-gray-700 text-sm">{quest.explainer}</p>
+                                            <p className="text-sm">{quest.explainer}</p>
                                         </div>
                                     </div>
 
@@ -212,22 +212,16 @@ export default function QuestsExplorePage() {
                                           !useTestTimePeriod ? (
                                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
                                                 <div className="mb-3 text-4xl md:mb-4 md:text-5xl">⏰</div>
-                                                <p className="text-gray-700 mb-2 text-base font-bold md:text-lg">
-                                                    Coming Soon!
-                                                </p>
-                                                <p className="text-gray-500 text-xs md:text-sm">
+                                                <p className="mb-2 text-base font-bold md:text-lg">Coming Soon!</p>
+                                                <p className="text-xs md:text-sm">
                                                     Leaderboards will be available on November 17th, 2025
                                                 </p>
                                             </div>
                                         ) : quest.leaderboard.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
                                                 <div className="mb-3 text-3xl md:mb-4 md:text-4xl">🏆</div>
-                                                <p className="text-gray-700 mb-2 text-base font-bold md:text-lg">
-                                                    No entries yet
-                                                </p>
-                                                <p className="text-gray-500 text-xs md:text-sm">
-                                                    Be the first to compete!
-                                                </p>
+                                                <p className="mb-2 text-base font-bold md:text-lg">No entries yet</p>
+                                                <p className="text-xs md:text-sm">Be the first to compete!</p>
                                             </div>
                                         ) : (
                                             <div className="space-y-3">

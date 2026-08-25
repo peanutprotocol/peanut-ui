@@ -103,7 +103,7 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             visible={isOpen}
             onClose={onClose}
             icon={'globe-lock' as IconName}
-            iconContainerClassName="bg-primary-1 text-black"
+            iconContainerClassName="bg-action-primary text-black"
             title={t('title')}
             ctas={[
                 {

@@ -103,7 +103,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     </p>
                 ),
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-primary-1',
+                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('iframeWrapper.copyLink'),
@@ -119,13 +119,13 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
                         variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
+                        className: 'underline text-body-s w-full fill-none h-fit mt-3',
                     },
                     {
                         text: t('iframeWrapper.cancel'),
                         onClick: () => setIsHelpModalOpen(false),
                         variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full h-fit mt-3',
+                        className: 'underline text-body-s w-full h-fit mt-3',
                     },
                 ],
             }
@@ -135,7 +135,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             title: t('iframeWrapper.exitTitle'),
             description: t('iframeWrapper.exitDescription'),
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-secondary-1',
+            iconContainerClassName: 'bg-action-secondary',
             ctas: [
                 {
                     text: t('iframeWrapper.exit'),
@@ -150,7 +150,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     text: t('iframeWrapper.continueVerifying'),
                     onClick: () => setIsHelpModalOpen(false),
                     variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    className: 'underline text-body-s w-full h-fit mt-3',
                 },
             ],
         }
@@ -238,8 +238,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             }}
                             className="flex items-center gap-1"
                         >
-                            <Icon name="peanut-support" size={16} className="text-grey-1" />
-                            <p className="text-xs font-medium text-grey-1 underline">
+                            <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
+                            <p className="text-body-xs font-medium text-foreground-secondary underline">
                                 {t('iframeWrapper.havingTrouble')}
                             </p>
                         </button>

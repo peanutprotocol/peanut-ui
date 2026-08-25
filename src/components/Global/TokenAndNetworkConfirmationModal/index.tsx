@@ -26,12 +26,12 @@ export default function TokenAndNetworkConfirmationModal({
             visible={isVisible}
             onClose={onClose}
             icon={'alert'}
-            iconContainerClassName="bg-yellow-1"
+            iconContainerClassName="bg-action-secondary"
             modalClassName="z-[9999]"
             title={t('tokenAndNetworkConfirmationModal.title')}
             description={
                 <div className="flex flex-col items-center gap-2">
-                    <span className="text-sm">{t('tokenAndNetworkConfirmationModal.warning')}</span>
+                    <span className="text-body-s">{t('tokenAndNetworkConfirmationModal.warning')}</span>
 
                     <div className="mt-2 flex w-full flex-col items-start gap-2">
                         <h2 className="font-bold text-black">

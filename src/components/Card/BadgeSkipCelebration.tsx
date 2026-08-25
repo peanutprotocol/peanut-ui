@@ -17,6 +17,7 @@
  */
 
 import { type FC, useEffect, useRef, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -99,7 +100,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
     const showAsset = phase === 'revealed' || phase === 'shaking'
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('celebration.navTitle')} />
 
             <AnimatePresence mode="wait">
@@ -199,7 +200,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                     {t('celebration.continueToCard')}
                 </Button>
             </motion.div>
-        </div>
+        </PageStack>
     )
 }
 

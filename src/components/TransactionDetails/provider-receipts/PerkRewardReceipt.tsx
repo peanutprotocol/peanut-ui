@@ -3,7 +3,7 @@
 import { type RefObject } from 'react'
 import { twMerge } from '@/utils/tw'
 import Card from '@/components/Global/Card'
-import { ReceiptRow } from '@/components/TransactionDetails/ReceiptRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
 import { ReceiptSupportLink } from '@/components/TransactionDetails/ReceiptSupportLink'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -68,8 +68,8 @@ export function PerkRewardReceipt({
                 listener.ts) and shouldn't surface to users. Backend follow-up:
                 add requestPaymentUuid column so reason can be clean. */}
             <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
-                <ReceiptRow label={t('perk.received')} value={formatDate(new Date(transaction.date))} />
-                <ReceiptRow
+                <DataRow label={t('perk.received')} value={formatDate(new Date(transaction.date))} />
+                <DataRow
                     label={t('rows.reason')}
                     value={perkRewardData.reason.replace(/\s*\(payment:\s*[a-f0-9-]+\)/i, '')}
                 />

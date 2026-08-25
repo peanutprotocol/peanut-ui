@@ -286,7 +286,7 @@ const UnlockedRegions = () => {
                           : t('providerRejection.unavailableDescription')
                 }
                 icon="alert"
-                iconContainerClassName="bg-yellow-1"
+                iconContainerClassName="bg-action-secondary"
                 ctas={[
                     providerRejectionForRegion.state === 'fixable'
                         ? {
@@ -326,7 +326,7 @@ const UnlockedRegions = () => {
                 title={failedRegionRetriable ? t('initError.retriableTitle') : t('initError.notAvailableTitle')}
                 description={flow.error || tCommon('genericError')}
                 icon="alert"
-                iconContainerClassName="bg-yellow-1"
+                iconContainerClassName="bg-action-secondary"
                 ctas={
                     failedRegionRetriable
                         ? [

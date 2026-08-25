@@ -34,7 +34,7 @@ export function MarqueeWrapper({
     )
 }
 
-const wordClass = 'text-lg font-bold uppercase md:text-xl'
+const wordClass = 'text-heading-card uppercase md:text-heading-xs'
 
 // A word is either plain text or a link — the strip looks identical either way,
 // so a linked word still reads as part of the run of words.
@@ -61,7 +61,11 @@ export function MarqueeComp({
 }) {
     return (
         <div className="border-white shadow">
-            <MarqueeWrapper backgroundColor={backgroundColor} direction="left" className="border-y-2 border-n-1">
+            <MarqueeWrapper
+                backgroundColor={backgroundColor}
+                direction="left"
+                className="border-y-2 border-border-default"
+            >
                 {Array.isArray(message)
                     ? message.map((msg, index) => (
                           <div key={index} className="mx-3 inline-flex min-h-12 items-center gap-3 py-2">

@@ -1,6 +1,8 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
@@ -193,9 +195,9 @@ export default function RecoverFundsPage() {
         return null
     } else if (status === 'review') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={reset} />
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
@@ -218,7 +220,7 @@ export default function RecoverFundsPage() {
                                 {t('youWillReceiveTo')}{' '}
                                 <AddressLink
                                     address={recipient.address}
-                                    className="text-sm font-normal text-foreground-secondary"
+                                    className="text-body-s font-normal text-foreground-secondary"
                                 />
                             </h1>
                             <h2 className="text-heading-s">
@@ -242,15 +244,15 @@ export default function RecoverFundsPage() {
                     >
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tCommon('confirm')}
                     </Button>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     if (status === 'final') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack>
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
@@ -273,7 +275,7 @@ export default function RecoverFundsPage() {
                                 {t('sentTo')}{' '}
                                 <AddressLink
                                     address={recipient.address}
-                                    className="text-sm font-normal text-foreground-secondary"
+                                    className="text-body-s font-normal text-foreground-secondary"
                                 />
                             </h1>
                             <h2 className="text-heading-s">
@@ -325,19 +327,41 @@ export default function RecoverFundsPage() {
                     >
                         {t('recoverOtherToken')}
                     </Button>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('title')} />
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
-                <h1>{t('selectToken')}</h1>
-                <ScrollableList>
-                    {tokenBalances.length > 0 ? (
-                        tokenBalances.map((balance) => (
+            {/* nothing recoverable — the token picker, address input and review
+                button are all pointless, show the ds empty state with a way
+                back home instead */}
+            {tokenBalances.length === 0 ? (
+                <div className="my-auto">
+                    <EmptyState
+                        icon="wallet"
+                        title={t('noTokens')}
+                        description={t('noTokensDescription')}
+                        cta={
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                size="small"
+                                className="mt-2"
+                                onClick={() => router.push('/home')}
+                            >
+                                {t('goToHome')}
+                            </Button>
+                        }
+                    />
+                </div>
+            ) : (
+                <PageStack.Center className="gap-4">
+                    <h1>{t('selectToken')}</h1>
+                    <ScrollableList>
+                        {tokenBalances.map((balance) => (
                             <TokenListItem
                                 key={balance.address}
                                 balance={balance}
@@ -350,42 +374,38 @@ export default function RecoverFundsPage() {
                                     setSelectedBalance(balance)
                                 }}
                             />
-                        ))
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                            <div className="text-center text-heading-xs text-foreground-secondary">{t('noTokens')}</div>
-                        </div>
-                    )}
-                </ScrollableList>
-                <GeneralRecipientInput
-                    placeholder={t('recipientPlaceholder')}
-                    recipient={recipient}
-                    onUpdate={(update: GeneralRecipientUpdate) => {
-                        setRecipient(update.recipient)
-                        setErrorMessage(update.errorMessage)
-                        setInputChanging(update.isChanging)
-                    }}
-                />
-                <Button
-                    variant="purple"
-                    shadowSize="4"
-                    onClick={() => {
-                        setStatus('review')
-                    }}
-                    disabled={
-                        !!errorMessage ||
-                        inputChanging ||
-                        !recipient.address ||
-                        !selectedBalance ||
-                        selectedBalance.amount <= 0
-                    }
-                    loading={false}
-                    className="w-full"
-                >
-                    {t('review')}
-                </Button>
-                {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
-            </div>
-        </div>
+                        ))}
+                    </ScrollableList>
+                    <GeneralRecipientInput
+                        placeholder={t('recipientPlaceholder')}
+                        recipient={recipient}
+                        onUpdate={(update: GeneralRecipientUpdate) => {
+                            setRecipient(update.recipient)
+                            setErrorMessage(update.errorMessage)
+                            setInputChanging(update.isChanging)
+                        }}
+                    />
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={() => {
+                            setStatus('review')
+                        }}
+                        disabled={
+                            !!errorMessage ||
+                            inputChanging ||
+                            !recipient.address ||
+                            !selectedBalance ||
+                            selectedBalance.amount <= 0
+                        }
+                        loading={false}
+                        className="w-full"
+                    >
+                        {t('review')}
+                    </Button>
+                    {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                </PageStack.Center>
+            )}
+        </PageStack>
     )
 }

@@ -1,5 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -169,11 +170,11 @@ export const ConfirmClaimLinkView = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <PageStack className="justify-between">
             <div className="md:hidden">
                 <NavHeader title={tNav('claim')} onPrev={onPrev} />
             </div>
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
@@ -219,7 +220,7 @@ export const ConfirmClaimLinkView = ({
                                                         altText={resolvedChainName || t('confirm.chainAlt')}
                                                         fallbackName={resolvedChainName || 'C'}
                                                         sizeClass="h-3.5 w-3.5"
-                                                        className="rounded-full border-2 border-white dark:border-grey-4"
+                                                        className="rounded-full border-2 border-white dark:border-gray-100"
                                                     />
                                                 </div>
                                             )}
@@ -255,7 +256,7 @@ export const ConfirmClaimLinkView = ({
                 </Button>
 
                 {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

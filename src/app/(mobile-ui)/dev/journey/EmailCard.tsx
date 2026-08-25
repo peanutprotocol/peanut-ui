@@ -35,15 +35,15 @@ export default function EmailCard({
         <div
             data-review-state={pending ? 'pending' : 'reviewed'}
             data-email-type={step.type}
-            className={twMerge('rounded-sm border border-n-1 bg-white', pending && REVIEW_PENDING_CLASS)}
+            className={twMerge('rounded-sm border border-border-default bg-white', pending && REVIEW_PENDING_CLASS)}
         >
             <button
                 type="button"
                 onClick={() => onOpen(step.type, 0)}
-                className="block w-full p-2.5 text-left hover:bg-primary-3/30"
+                className="block w-full p-2.5 text-left hover:bg-purple-200/30"
             >
                 <div className="flex items-start justify-between gap-2">
-                    <div className="text-xs leading-tight font-bold">{step.subject}</div>
+                    <div className="text-label-m leading-tight">{step.subject}</div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                         {typeof step.afterDaysStuck === 'number' && <StuckBadge days={step.afterDaysStuck} />}
                         {pending ? (
@@ -57,27 +57,27 @@ export default function EmailCard({
                         )}
                     </div>
                 </div>
-                <p className="mt-1 text-[11px] leading-snug text-grey-1">{step.preview}</p>
+                <p className="mt-1 text-[11px] leading-snug text-foreground-secondary">{step.preview}</p>
                 <p className="mt-1 text-[11px] leading-snug">
-                    <span className="rounded-sm bg-yellow-1 px-1 font-bold">{step.ctaText}</span>
-                    <span className="text-grey-1"> → {step.ctaPath}</span>
+                    <span className="rounded-sm bg-action-secondary px-1 font-bold">{step.ctaText}</span>
+                    <span className="text-foreground-secondary"> → {step.ctaPath}</span>
                 </p>
                 {decision && (
                     <div className="mt-1.5 flex flex-col gap-0.5">
                         <DevChip tone="pink" className="self-start" title={decision.note}>
                             {decision.label}
                         </DevChip>
-                        <p className="text-[10px] leading-snug text-grey-1">{decision.note}</p>
+                        <p className="text-[10px] leading-snug text-foreground-secondary">{decision.note}</p>
                     </div>
                 )}
                 {examples.length > 1 && (
-                    <p className="mt-1 text-[10px] leading-snug text-grey-1">
+                    <p className="mt-1 text-[10px] leading-snug text-foreground-secondary">
                         {examples.length} copy variants: {examples.map((example) => example.label).join(' / ')}
                     </p>
                 )}
             </button>
-            <div className="flex items-center justify-between gap-2 border-t border-n-1 px-2.5 py-1">
-                <span className="truncate font-mono text-[9px] leading-tight text-grey-1">
+            <div className="flex items-center justify-between gap-2 border-t border-border-default px-2.5 py-1">
+                <span className="truncate font-mono text-[9px] leading-tight text-foreground-secondary">
                     {showDev ? step.type : 'click to review'}
                 </span>
                 <a
