@@ -22,6 +22,8 @@ interface ResidenceChangeModalProps {
     declared: string | null
     /** KYC-verified residence, when one exists */
     verified: string | null
+    /** when the escalating change cooldown lifts (ISO); null = change allowed now */
+    nextChangeAllowedAt?: string | null
     /** refetch the user so the new declared residence lands everywhere */
     onSaved: () => Promise<unknown> | void
     /** start identity re-verification at the current level (existing restart primitive) */
@@ -43,6 +45,7 @@ const ResidenceChangeModal = ({
     userId,
     declared,
     verified,
+    nextChangeAllowedAt,
     onSaved,
     onReverify,
 }: ResidenceChangeModalProps) => {
@@ -84,6 +87,21 @@ const ResidenceChangeModal = ({
 
     const selectedRestrictions = deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
     const differsFromVerified = !!verified && !!selected && selected !== verified
+
+    // Escalating change cooldown (server-enforced; this is the honest preface).
+    // Gate only ACTUAL changes: re-saving the current country stays allowed.
+    const cooldownUntilMs = nextChangeAllowedAt ? Date.parse(nextChangeAllowedAt) : NaN
+    const cooldownActive = Number.isFinite(cooldownUntilMs) && cooldownUntilMs > Date.now()
+    const isActualChange = !!selected && !!declared && selected !== declared
+    const changeBlocked = cooldownActive && isActualChange
+    const cooldownDate = cooldownActive
+        ? new Date(cooldownUntilMs).toLocaleString(locale, {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+          })
+        : null
 
     const save = async (reverifyAfter: boolean) => {
         if (!userId || !selected || isSaving) return false
@@ -130,6 +148,9 @@ const ResidenceChangeModal = ({
                         value={selected || undefined}
                         onValueChange={setSelected}
                     />
+                    {cooldownActive && cooldownDate && (
+                        <p className="text-xs text-grey-1">{t('cooldownNote', { until: cooldownDate })}</p>
+                    )}
                     {differsFromVerified && <p className="text-xs text-grey-1">{t('verifiedMismatchNote')}</p>}
                     {(selectedRestrictions.banking || selectedRestrictions.card) && (
                         <p className="text-xs text-grey-1">
@@ -151,7 +172,7 @@ const ResidenceChangeModal = ({
                 {
                     shadowSize: '4',
                     text: isSaving ? tCommon('loading') : t('save'),
-                    disabled: isSaving || !selected || !userId,
+                    disabled: isSaving || !selected || !userId || changeBlocked,
                     onClick: () => void save(false),
                     variant: 'purple',
                 },
@@ -159,7 +180,7 @@ const ResidenceChangeModal = ({
                     ? [
                           {
                               text: t('saveAndReverify'),
-                              disabled: isSaving,
+                              disabled: isSaving || changeBlocked,
                               onClick: () => void save(true),
                               variant: 'stroke' as const,
                           },

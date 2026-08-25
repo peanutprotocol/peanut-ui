@@ -462,6 +462,7 @@ const UnlockPayments = () => {
                 userId={user?.user?.userId}
                 declared={residence?.declared ?? null}
                 verified={residence?.verified ?? null}
+                nextChangeAllowedAt={residence?.nextChangeAllowedAt ?? null}
                 onSaved={async () => {
                     // A residence change shifts everything derived from it:
                     // card eligibility (server recomputes from the declared
