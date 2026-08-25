@@ -583,6 +583,10 @@
             "setItUp": "Configurar",
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Inténtalo de nuevo.",
             "cancelled": "La configuración de la passkey fue cancelada. Inténtalo de nuevo cuando quieras.",
+            "tookTooLong": "Esto está tardando más de lo esperado. Inténtalo de nuevo.",
+            "notReady": "La app todavía se está preparando para las passkeys. Espera un momento e inténtalo de nuevo.",
+            "deviceState": "Hubo un problema con la passkey en este dispositivo. Reinicia la app e inténtalo de nuevo.",
+            "interrupted": "Algo interrumpió la solicitud de la passkey. Inténtalo de nuevo.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste tú, tu passkey está lista: solo inicia sesión.",
             "learnMore": "Aprende más sobre qué son las passkeys",
             "help": {
