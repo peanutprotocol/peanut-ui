@@ -119,9 +119,6 @@ const Footer = ({
                         <Link prefetch={false} className={NAV_LINK} href={`/${locale}/help/security-disclosure`}>
                             {i18n.footerSecurity}
                         </Link>
-                        <Link prefetch={false} className={NAV_LINK} href={`/${locale}/status`}>
-                            {i18n.footerStatus}
-                        </Link>
                         {/* /careers, not the Notion board: the page lists the open roles
                             and keeps Notion as the application destination only. */}
                         <Link prefetch={false} className={NAV_LINK} href="/careers">
