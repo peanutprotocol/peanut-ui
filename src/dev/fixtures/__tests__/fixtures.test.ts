@@ -1,8 +1,25 @@
-import { existsSync } from 'fs'
+import { existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { FIXTURES } from '@/dev/fixtures/registry'
 
 const names = Object.keys(FIXTURES)
+
+const APP_DIR = join(process.cwd(), 'src', 'app', '(mobile-ui)')
+
+// A dynamic segment is a real route: /limits/manteca is served by limits/[provider].
+function routeExists(route: string): boolean {
+    let dir = APP_DIR
+    for (const segment of route.split('/').filter(Boolean)) {
+        if (existsSync(join(dir, segment))) {
+            dir = join(dir, segment)
+            continue
+        }
+        const dynamic = readdirSync(dir).find((entry) => entry.startsWith('['))
+        if (!dynamic) return false
+        dir = join(dir, dynamic)
+    }
+    return existsSync(join(dir, 'page.tsx'))
+}
 
 describe('fixture registry', () => {
     it('has unique kebab-case names', () => {
@@ -14,10 +31,10 @@ describe('fixture registry', () => {
     // fixture is broken. The name also becomes a screenshot filename, so a stale
     // route quietly rots a screenshot job.
     it('points every fixture at a route that exists', () => {
-        const appDir = join(process.cwd(), 'src', 'app', '(mobile-ui)')
         for (const [name, fixture] of Object.entries(FIXTURES)) {
-            const page = join(appDir, fixture.route, 'page.tsx')
-            expect(existsSync(page) ? fixture.route : `${name} → missing ${fixture.route}`).toBe(fixture.route)
+            expect(routeExists(fixture.route) ? fixture.route : `${name} → missing ${fixture.route}`).toBe(
+                fixture.route
+            )
         }
     })
 })

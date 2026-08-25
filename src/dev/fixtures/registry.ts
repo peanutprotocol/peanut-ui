@@ -18,25 +18,91 @@ const HUGE_POINTS = 1_200_244_192
 
 const LONG_FULL_NAME = 'Maximiliano Alejandro Fernández de la Vega y Santibáñez'
 
+// The withdraw screen reads saved accounts from `user.accounts` — NOT from
+// GET /users/accounts, which nothing on that screen calls. Overriding the
+// wrong endpoint is why this fixture used to show "No accounts yet".
+// Arrays replace on merge, so the wallet row has to be repeated here: useWallet
+// matches the balance on it. Same shape as DEMO_USER.accounts[0], copied rather
+// than imported — this file stays dependency-free so Playwright can load it.
+const WALLET_ACCOUNT = {
+    id: 'demo-account',
+    userId: 'demo-user',
+    bridgeAccountId: '',
+    type: 'peanut-wallet',
+    identifier: '0xdec0debad1dec0debad1dec0debad1dec0debad1',
+    details: { bankName: null, accountOwnerName: 'Demo User', countryCode: '', countryName: '' },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    chainId: '42161',
+}
+
 const BANK_ACCOUNTS = [
     {
-        account_id: 'fixture-iban-1',
-        account_type: 'iban',
-        account_identifier: 'ES27 0075 0984 2206 0708 0217',
-        asset: 'EUR',
-        is_active: true,
-        country: 'ES',
+        id: 'fixture-iban-1',
+        userId: 'demo-user',
+        bridgeAccountId: '',
+        type: 'iban',
+        identifier: 'ES27007509842206070802',
+        details: { bankName: 'Banco Fixture', accountOwnerName: 'Demo User', countryCode: 'ESP', countryName: 'spain' },
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        chainId: null,
     },
     {
-        account_id: 'fixture-us-1',
-        account_type: 'us',
-        account_identifier: '938636999398030',
-        asset: 'USD',
-        routing_number: '021000021',
-        is_active: true,
-        country: 'US',
+        id: 'fixture-us-1',
+        userId: 'demo-user',
+        bridgeAccountId: '',
+        type: 'us',
+        identifier: '938636999398030',
+        routingNumber: '021000021',
+        details: {
+            bankName: 'Fixture Bank',
+            accountOwnerName: 'Demo User',
+            countryCode: 'USA',
+            countryName: 'united-states',
+        },
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        chainId: null,
     },
 ]
+
+// Two rows so the screenshot proves both states: one unread (orange dot), one
+// read. The frozen capture clock is 2026-06-15T12:00Z, so these group as
+// "Today" and "June 13, 2026".
+const NOTIFICATIONS_TWO = {
+    items: [
+        {
+            id: 'fixture-notif-1',
+            category: 'payment',
+            title: 'You received $45.00',
+            body: 'alice sent you money.',
+            iconUrl: null,
+            ctaDeeplink: null,
+            createdAt: '2026-06-15T09:00:00.000Z',
+            state: { readAt: null, dismissedAt: null, pinned: false },
+        },
+        {
+            id: 'fixture-notif-2',
+            category: 'rewards',
+            title: 'You earned 50 points',
+            body: 'testfriend1 joined with your invite.',
+            iconUrl: null,
+            ctaDeeplink: null,
+            createdAt: '2026-06-13T09:00:00.000Z',
+            state: { readAt: '2026-06-13T10:00:00.000Z', dismissedAt: null, pinned: false },
+        },
+    ],
+    nextCursor: null,
+}
+
+// The activity list is not only transactions: it also injects a row per badge
+// in `user.badges` and one identity-verification row. An empty state needs all
+// three cleared, or "no transactions" still renders four rows.
+const NO_TIMELINE_EXTRAS = {
+    'GET /users/history': { entries: [], hasMore: false },
+    'GET /users/me': { user: { badges: [] }, identityVerification: { status: 'not_started' } },
+}
 
 const RICH_POINTS = {
     userId: 'demo-user',
@@ -108,7 +174,11 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     settings: { route: '/settings', about: 'Settings list.' },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
-    notifications: { route: '/notifications', about: 'Notifications list.' },
+    notifications: {
+        route: '/notifications',
+        about: 'Notifications list: one unread row and one read row.',
+        responses: { 'GET /notifications': NOTIFICATIONS_TWO },
+    },
     rewards: {
         route: '/rewards',
         about: 'Points total, tier badge and invite list.',
@@ -121,15 +191,15 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     badges: { route: '/badges', about: 'Badge wall with three earned badges.' },
     history: { route: '/history', about: 'Activity list, four entries, both directions.' },
-    'add-money': { route: '/add-money', about: 'Add money: country and method picker.' },
-    'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit address and network picker.' },
+    'add-money': { route: '/add-money', about: 'Add money: the crypto and bank-transfer picker.' },
+    'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
     withdraw: {
         route: '/withdraw',
-        about: 'Withdraw with two saved bank accounts (EUR and USD).',
-        responses: { 'GET /users/accounts': BANK_ACCOUNTS },
+        about: 'Withdraw with two saved bank accounts (a Spanish IBAN and a US account).',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
-    limits: { route: '/limits', about: 'Per-provider deposit and withdraw caps.' },
-    send: { route: '/send', about: 'Send: recipient input with four known contacts.' },
+    limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
+    send: { route: '/send', about: 'Send: the method picker — link, contacts, bank or Mercado Pago.' },
     request: { route: '/request', about: 'Request money: amount entry.' },
 
     // ---------------------------------------------------------------------
@@ -137,17 +207,12 @@ export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
     'hugo-long-username': {
         route: '/profile',
-        about: `Hugo's case: username "${LONG_USERNAME}" with ${HUGE_POINTS.toLocaleString('en-US')} points. The username overflows here; the points total shows on /rewards with the same fixture.`,
+        about: `Hugo's case: the ${LONG_USERNAME.length}-character username "${LONG_USERNAME}" in the header and the share-link pill.`,
         responses: {
             'GET /users/me': { user: { username: LONG_USERNAME, fullName: LONG_USERNAME, showFullName: false } },
             'GET /points': RICH_POINTS,
             'GET /points/invites': INVITES_ONE,
         },
-    },
-    'long-username-home': {
-        route: '/home',
-        about: 'Home greeting and avatar with the long username.',
-        responses: { 'GET /users/me': { user: { username: LONG_USERNAME, showFullName: false } } },
     },
     'long-full-name': {
         route: '/profile',
@@ -156,7 +221,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'long-name-history': {
         route: '/history',
-        about: 'Activity rows where the counterparty name and memo both overflow.',
+        about: 'Activity row where a long counterparty name is clipped by a nine-digit amount.',
         responses: {
             'GET /users/history': { entries: [HUGE_HISTORY_ENTRY], hasMore: false },
         },
@@ -171,12 +236,13 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // /limits is a region list; the numbers live one screen deeper, on the
+    // per-provider page. Aim at that page or the big values never reach the shot.
     'huge-limits': {
-        route: '/limits',
-        about: 'Nine-figure caps: checks number formatting and row wrapping.',
+        route: '/limits/manteca',
+        about: 'Eleven-digit ARS monthly caps: checks the number abbreviation and the progress bar.',
         responses: {
             'GET /users/limits': {
-                bridge: { onRampPerTransaction: '999999999', offRampPerTransaction: '999999999', asset: 'USD' },
                 manteca: [
                     {
                         exchangeCountry: 'ARG',
@@ -216,14 +282,14 @@ export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
     'empty-history': {
         route: '/history',
-        about: 'No transactions yet.',
-        responses: { 'GET /users/history': { entries: [], hasMore: false } },
+        about: 'Nothing on the timeline yet: no transaction, no badge, no ID check.',
+        responses: NO_TIMELINE_EXTRAS,
     },
     'empty-home': {
         route: '/home',
-        about: 'Fresh account: no activity and no points. The balance comes from the demo overlay, not the API.',
+        about: 'Fresh account: nothing on the timeline, so the activity block is gone. The balance comes from the demo overlay, not the API.',
         responses: {
-            'GET /users/history': { entries: [], hasMore: false },
+            ...NO_TIMELINE_EXTRAS,
             'GET /points': { totalPoints: 0, directPoints: 0, transitivePoints: 0, currentTier: 0 },
         },
     },
@@ -232,15 +298,10 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Nobody invited yet.',
         responses: { 'GET /points/invites': { invitees: [], summary: { totalInvited: 0, totalPointsEarned: 0 } } },
     },
-    'empty-contacts': {
-        route: '/send',
-        about: 'Send with no saved contacts.',
-        responses: { 'GET /users/contacts': { contacts: [], total: 0, hasMore: false } },
-    },
     'empty-accounts': {
         route: '/withdraw',
         about: 'Withdraw with no saved bank account — the add-account path.',
-        responses: { 'GET /users/accounts': [] },
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT] } },
     },
     'empty-notifications': {
         route: '/notifications',
@@ -265,69 +326,64 @@ export const FIXTURES: Record<string, Fixture> = {
 
     // ---------------------------------------------------------------------
     // Verification states.
+    //
+    // The region screens read `capabilities.rails`, never
+    // `identityVerification.status`. Override the rails or the screen shows a
+    // fully unlocked user whatever the status says.
     // ---------------------------------------------------------------------
     unverified: {
-        route: '/profile',
-        about: 'ID check never started, every rail needs info — KYC gates visible.',
+        route: '/profile/identity-verification',
+        about: 'ID check never started: no region unlocked, all four locked.',
         responses: {
             'GET /users/me': {
                 identityVerification: { status: 'not_started' },
                 capabilities: { rails: [], nextActions: [], restrictions: [] },
-            },
-        },
-    },
-    'kyc-processing': {
-        route: '/profile/identity-verification',
-        about: 'Documents submitted, decision pending.',
-        responses: {
-            'GET /users/me': {
-                identityVerification: { status: 'processing', submittedAt: '2026-08-01T10:00:00.000Z' },
             },
         },
     },
     'kyc-action-required': {
         route: '/profile/identity-verification',
-        about: 'Document rejected: the user must re-submit.',
+        about: 'Bridge asks for more verification: the task card and its Complete verification button.',
         responses: {
             'GET /users/me': {
-                identityVerification: {
-                    status: 'action_required',
-                    actionMessage: 'Your proof of address was not readable. Upload a clearer photo.',
-                    rejectLabels: ['document_rejected'],
-                    submittedAt: '2026-08-01T10:00:00.000Z',
-                    reviewedAt: '2026-08-02T10:00:00.000Z',
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.ach_us',
+                            provider: 'bridge',
+                            method: 'ACH_US',
+                            channel: 'bank',
+                            country: 'US',
+                            currency: 'USD',
+                            status: 'requires-info',
+                            blockingActions: ['bridge-hosted:proof-of-address'],
+                        },
+                    ],
+                    nextActions: [
+                        {
+                            key: 'bridge-hosted:proof-of-address',
+                            kind: 'bridge-hosted',
+                            purpose: 'unlock-bridge-ach',
+                            requirementKey: 'proof_of_address',
+                        },
+                    ],
+                    restrictions: [],
                 },
             },
-        },
-    },
-    'kyc-gated-withdraw': {
-        route: '/withdraw',
-        about: 'Withdraw for an unverified user: the flow is blocked, not empty.',
-        responses: {
-            'GET /users/me': {
-                identityVerification: { status: 'not_started' },
-                capabilities: { rails: [], nextActions: [], restrictions: [] },
-            },
-            'GET /users/accounts': [],
         },
     },
 
     // ---------------------------------------------------------------------
     // Error states.
     // ---------------------------------------------------------------------
-    'error-user': {
-        route: '/home',
-        about: 'GET /users/me answers 500 — the backend error screen.',
-        fails: ['GET /users/me'],
-    },
     'error-history': {
         route: '/history',
         about: 'Activity fails to load while the rest of the app works.',
         fails: ['GET /users/history'],
     },
     'error-limits': {
-        route: '/limits',
-        about: 'Limits fail to load.',
+        route: '/limits/manteca',
+        about: 'The caps screen when GET /users/limits fails.',
         fails: ['GET /users/limits'],
     },
 }
