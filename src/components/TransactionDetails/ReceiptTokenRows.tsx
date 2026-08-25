@@ -2,7 +2,7 @@
 
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import DisplayIcon from '@/components/Global/DisplayIcon'
-import { ReceiptRow } from '@/components/TransactionDetails/ReceiptRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTokenDisplay } from '@/components/TransactionDetails/useTokenDisplay'
 import { isStableCoin } from '@/utils/general.utils'
@@ -30,10 +30,10 @@ export function ReceiptTokenRows({
     return (
         <>
             {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
-                <ReceiptRow label={t('rows.tokenAmount')} value={transaction.amount} />
+                <DataRow label={t('rows.tokenAmount')} value={transaction.amount} />
             )}
             {!isPeanutWalletToken && (
-                <ReceiptRow
+                <DataRow
                     label={t('rows.tokenAndNetwork')}
                     value={
                         isLoading || !tokenData ? (
