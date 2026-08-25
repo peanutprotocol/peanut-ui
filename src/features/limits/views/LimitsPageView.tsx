@@ -1,8 +1,10 @@
 'use client'
 
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Section } from '@/components/0_Bruddle/Section'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
@@ -76,7 +78,7 @@ const LimitsPageView = () => {
     }, [lockedRegions])
 
     return (
-        <div className="space-y-6 flex min-h-[inherit] flex-col">
+        <PageStack gap="6">
             <NavHeader title={t('title')} onPrev={goBack} />
 
             {/* page description */}
@@ -97,8 +99,7 @@ const LimitsPageView = () => {
 
             {/* rest of world - always shown with coming soon */}
             {hasRestOfWorld && (
-                <div className="space-y-2">
-                    <h2 className="font-bold">{t('otherRegions')}</h2>
+                <Section title={t('otherRegions')}>
                     <ListItem
                         leading={
                             <Image
@@ -115,13 +116,12 @@ const LimitsPageView = () => {
                         disabled={true}
                         trailing={<StatusBadge status="custom" customText={tCommon('comingSoon')} />}
                     />
-                </div>
+                </Section>
             )}
 
             {/* card limits — separate from KYC/region limits; managed per-card via Rain */}
             {activeCard && (
-                <div className="space-y-2">
-                    <h2 className="font-bold">{t('cardLimits.title')}</h2>
+                <Section title={t('cardLimits.title')}>
                     <ListItem
                         position="single"
                         leading={<Icon name="credit-card" size={24} />}
@@ -130,12 +130,12 @@ const LimitsPageView = () => {
                         chevron
                         onClick={() => router.push('/card/limit')}
                     />
-                </div>
+                </Section>
             )}
 
             {/* crypto limits section */}
             <CryptoLimitsSection />
-        </div>
+        </PageStack>
     )
 }
 
@@ -152,34 +152,34 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
     const router = useRouter()
 
     return (
-        <div>
-            {regions.length > 0 && <h2 className="mb-2 font-bold">{t('unlockedRegions')}</h2>}
-            {regions.map((region, index) => {
-                const label = regionLabel(region)
-                return (
-                    <ListItem
-                        key={region.path}
-                        leading={
-                            <Image
-                                src={region.icon}
-                                alt={label.name}
-                                width={36}
-                                height={36}
-                                className="size-8 rounded-full object-cover"
-                            />
-                        }
-                        position={getCardPosition(index, regions.length)}
-                        title={label.name}
-                        onClick={() => {
-                            const route = getProviderRoute(region.path, hasMantecaKyc)
-                            router.push(route)
-                        }}
-                        body={<div className="text-body-xs">{label.description}</div>}
-                        chevron
-                    />
-                )
-            })}
-        </div>
+        <Section title={regions.length > 0 ? t('unlockedRegions') : undefined}>
+            <ListGroup>
+                {regions.map((region) => {
+                    const label = regionLabel(region)
+                    return (
+                        <ListItem
+                            key={region.path}
+                            leading={
+                                <Image
+                                    src={region.icon}
+                                    alt={label.name}
+                                    width={36}
+                                    height={36}
+                                    className="size-8 rounded-full object-cover"
+                                />
+                            }
+                            title={label.name}
+                            onClick={() => {
+                                const route = getProviderRoute(region.path, hasMantecaKyc)
+                                router.push(route)
+                            }}
+                            body={<div className="text-body-xs">{label.description}</div>}
+                            chevron
+                        />
+                    )
+                })}
+            </ListGroup>
+        </Section>
     )
 }
 
@@ -198,37 +198,37 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
     const isPendingRegion = (regionPath: string) => pendingRegionPaths.has(regionPath)
 
     return (
-        <div>
-            {regions.length > 0 && <h2 className="mb-2 font-bold">{t('lockedRegions')}</h2>}
-            {regions.map((region, index) => {
-                const isPending = isPendingRegion(region.path)
-                const label = regionLabel(region)
-                return (
-                    <ListItem
-                        key={region.path}
-                        leading={
-                            <Image
-                                src={region.icon}
-                                alt={label.name}
-                                width={36}
-                                height={36}
-                                className="size-8 rounded-full object-cover"
-                            />
-                        }
-                        position={getCardPosition(index, regions.length)}
-                        title={label.name}
-                        onClick={() => {
-                            if (!isPending) {
-                                router.push('/profile/identity-verification')
+        <Section title={regions.length > 0 ? t('lockedRegions') : undefined}>
+            <ListGroup>
+                {regions.map((region) => {
+                    const isPending = isPendingRegion(region.path)
+                    const label = regionLabel(region)
+                    return (
+                        <ListItem
+                            key={region.path}
+                            leading={
+                                <Image
+                                    src={region.icon}
+                                    alt={label.name}
+                                    width={36}
+                                    height={36}
+                                    className="size-8 rounded-full object-cover"
+                                />
                             }
-                        }}
-                        disabled={isPending}
-                        body={<div className="text-body-xs">{label.description}</div>}
-                        trailing={isPending && <StatusBadge status="pending" customText={tCommon('pending')} />}
-                        chevron={!isPending}
-                    />
-                )
-            })}
-        </div>
+                            title={label.name}
+                            onClick={() => {
+                                if (!isPending) {
+                                    router.push('/profile/identity-verification')
+                                }
+                            }}
+                            disabled={isPending}
+                            body={<div className="text-body-xs">{label.description}</div>}
+                            trailing={isPending && <StatusBadge status="pending" customText={tCommon('pending')} />}
+                            chevron={!isPending}
+                        />
+                    )
+                })}
+            </ListGroup>
+        </Section>
     )
 }

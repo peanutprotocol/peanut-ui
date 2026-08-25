@@ -1,8 +1,10 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
@@ -18,17 +20,16 @@ const SettingsPage = () => {
     const tSettings = useTranslations('settings')
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-between gap-8">
+        <PageStack className="justify-between">
             <NavHeader titleKey="settings" />
-            <div className="flex flex-col">
+            <ListGroup>
                 <ListItem
-                    position="single"
                     leading={<IconBubble icon="globe" size="s" color="blue" />}
                     title={tSettings('language.title')}
                     chevron
                     onClick={() => router.push('/settings/language')}
                 />
-            </div>
+            </ListGroup>
             <Button
                 loading={isLoggingOut}
                 disabled={isLoggingOut}
@@ -43,7 +44,7 @@ const SettingsPage = () => {
                 <Icon name="logout" size={20} fill="black" />
                 <span className="font-bold">{tNav('logout')}</span>
             </Button>
-        </div>
+        </PageStack>
     )
 }
 

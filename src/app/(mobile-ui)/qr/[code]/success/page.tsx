@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
@@ -39,19 +40,19 @@ export default function RedirectQrSuccessPage() {
 
     if (isLoading || !redirectQrData) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('claimSuccess.navTitle')} />
                 <div className="flex h-full items-center justify-center">
                     <Loading variant="mascot" />
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('claimSuccess.navTitle')} />
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 {/* Title */}
                 <div className="space-y-1 text-center">
                     <h1 className="text-heading-s">{t('claimSuccess.title')}</h1>
@@ -117,7 +118,7 @@ export default function RedirectQrSuccessPage() {
                         {t('claimSuccess.shareQr')}
                     </Button>
                 </div>
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }
