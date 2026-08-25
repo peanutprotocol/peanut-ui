@@ -744,7 +744,7 @@
     "send": {
         "linkCard": {
             "title": "Send money with a link",
-            "description": "No account needed for bank or crypto-wallet claims. Pix and Mercado Pago need a Peanut account.",
+            "description": "No account needed for crypto-wallet claims. Bank, Pix and Mercado Pago need a Peanut account.",
             "cta": "Send via link"
         },
         "methods": {

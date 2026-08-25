@@ -15,6 +15,7 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import en from '@/i18n/app/messages/en.json'
+import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 
 const COOLDOWN_MESSAGE = 'A previous withdrawal signature is still active. Try again in about 2 min.'
 
@@ -242,5 +243,14 @@ describe('LinkSendInitialView sub-minimum fiat-claim warning', () => {
         renderView('5')
         await waitFor(() => expect(screen.getByText('Create link')).toBeEnabled())
         expect(screen.queryByTestId('info-card')).not.toBeInTheDocument()
+    })
+
+    test('the per-rail minimums agree — the warning copy depends on it', () => {
+        // The warning names bank, Pix and Mercado Pago as one class ("can't be
+        // claimed to a bank, Pix or Mercado Pago"), which is only true while
+        // the three minimums are equal. If this fails, a per-rail minimum
+        // diverged: revisit the warning copy (and its Math.min gate) before
+        // shipping the constant change.
+        expect(new Set(Object.values(CLAIM_RAIL_MINIMUMS)).size).toBe(1)
     })
 })

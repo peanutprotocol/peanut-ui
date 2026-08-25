@@ -4,7 +4,7 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import InfoCard from '@/components/Global/InfoCard'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
-import { MIN_BANK_TRANSFER_AMOUNT, MIN_MERCADOPAGO_AMOUNT, MIN_PIX_AMOUNT } from '@/constants/payment.consts'
+import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -28,8 +28,10 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 // Below the smallest fiat minimum the recipient loses every fiat claim rail
 // (bank / Pix / Mercado Pago all reject at claim time) and is left with only
 // Peanut-account or wallet claims. Warn the sender here — the claim screen is
-// too late, the money is already locked in the link.
-const MIN_FIAT_CLAIM_AMOUNT = Math.min(MIN_BANK_TRANSFER_AMOUNT, MIN_MERCADOPAGO_AMOUNT, MIN_PIX_AMOUNT)
+// too late, the money is already locked in the link. The warning copy asserts
+// that conjunction, which only holds while the per-rail minimums agree — a
+// test pins them equal so a divergence forces the copy question.
+const MIN_FIAT_CLAIM_AMOUNT = Math.min(...Object.values(CLAIM_RAIL_MINIMUMS))
 
 const LinkSendInitialView = () => {
     const t = useTranslations('send')
@@ -64,10 +66,8 @@ const LinkSendInitialView = () => {
 
     // Informational only — small links are legitimate (Peanut-account / wallet
     // claims have no minimum), so this never blocks Create link.
-    const isBelowFiatClaimMinimum = useMemo(() => {
-        const amount = parseFloat(tokenValue ?? '')
-        return amount > 0 && amount < MIN_FIAT_CLAIM_AMOUNT
-    }, [tokenValue])
+    const enteredAmount = parseFloat(tokenValue ?? '')
+    const isBelowFiatClaimMinimum = enteredAmount > 0 && enteredAmount < MIN_FIAT_CLAIM_AMOUNT
 
     const handleOnNext = useCallback(async () => {
         try {
