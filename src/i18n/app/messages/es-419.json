@@ -2386,6 +2386,7 @@
             "loadFailed": "No se pudieron cargar los términos. Puedes aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Puedes aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Inténtalo de nuevo.",
+            "notAcceptedYet": "Parece que todavía no aceptaste los términos. Inténtalo de nuevo.",
             "acceptTerms": "Aceptar términos",
             "notNow": "Ahora no"
         },
@@ -3275,8 +3276,8 @@
                 "answer": "Durante la beta cerrada dejamos entrar a unas 50 personas por semana. El orden importa. Las insignias saltan la fila por completo."
             },
             "q6": {
-                "question": "¿DÓNDE PUEDO CONSEGUIR LA TARJETA?",
-                "answer": "Primero estamos habilitando algunas regiones y sumamos más a medida que crece la cobertura de nuestros socios. La elegibilidad se muestra durante el registro."
+                "question": "¿PUEDO USARLA DONDE VIVO?",
+                "answer": "Es una tarjeta Visa: se acepta donde acepten Visa, en tiendas, en línea y en cajeros. Inicia sesión y prueba la puerta para ver qué sigue en tu cuenta."
             },
             "q7": {
                 "question": "¿HAY COMISIONES?",

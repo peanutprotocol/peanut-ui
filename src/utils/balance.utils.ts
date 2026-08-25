@@ -1,4 +1,4 @@
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 import { formatUnits, parseUnits } from 'viem'
 
 /**

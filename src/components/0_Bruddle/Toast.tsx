@@ -1,12 +1,13 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
-import { Notification } from './Notification'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
 type ToastId = string | number
+
+const ToastStack = dynamic(() => import('./ToastStack'), { ssr: false })
 
 interface ToastOptions {
     /** Plain-string message — wrapped in a styled <p>. Ignored when `content` is provided. */
@@ -27,7 +28,7 @@ interface ToastOptions {
     className?: string
 }
 
-interface ToastMessage extends Omit<ToastOptions, 'id'> {
+export interface ToastMessage extends Omit<ToastOptions, 'id'> {
     id: ToastId
 }
 
@@ -42,37 +43,6 @@ interface ToastContextType {
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
-
-// toast tone -> notification priority (board 17369:136904: a toast is the
-// notification component in its floating, dismissible format)
-const TOAST_PRIORITY = {
-    success: 'success',
-    error: 'error',
-    info: 'info',
-    warning: 'attention',
-} as const
-
-const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
-    type = 'info',
-    message,
-    content,
-    className,
-    onDismiss,
-}) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 80 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 80 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="max-w-[calc(100vw_-_2rem)] md:max-w-md"
-        >
-            <Notification priority={TOAST_PRIORITY[type]} onDismiss={onDismiss} className={className}>
-                {content ?? message}
-            </Notification>
-        </motion.div>
-    )
-}
 
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -141,11 +111,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         <>
             <ToastContext.Provider value={contextValue}>
                 <div className="fixed right-4 bottom-[100px] z-[99999] flex flex-col items-end gap-2">
-                    <AnimatePresence mode="sync">
-                        {toasts.map((toast) => (
-                            <Toast key={toast.id} {...toast} onDismiss={() => dismiss(toast.id)} />
-                        ))}
-                    </AnimatePresence>
+                    {toasts.length > 0 && <ToastStack toasts={toasts} dismiss={dismiss} />}
                 </div>
                 {children}
             </ToastContext.Provider>

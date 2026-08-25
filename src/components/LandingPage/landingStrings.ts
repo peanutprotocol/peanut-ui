@@ -98,6 +98,6 @@ export function landingStrings(i18n: Translations): LandingStrings {
     }
 }
 
-// For the English-only pages that reuse landing sections (/exchange, /quests).
+// For the English-only pages that reuse landing sections (/quests).
 // Imports just en.json so those client bundles don't pull every locale catalog.
 export const EN_LANDING_STRINGS = landingStrings(en as Translations)

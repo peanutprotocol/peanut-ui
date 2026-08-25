@@ -87,9 +87,13 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
           }
         : null
 
+    // The standalone /{locale}/blog index is gone (308 to the content hub), so the
+    // parent crumb is the hub filtered to blog — same shape as compare/ and use-cases/.
+    const hubHref = `/${locale}/content?type=blog`
+
     const breadcrumbs = [
         { name: i18n.home, href: `/${locale}` },
-        { name: i18n.blog, href: `/${locale}/blog` },
+        { name: i18n.filterBlog, href: hubHref },
         { name: post.frontmatter.title, href: `/${locale}/blog/${slug}` },
     ]
 
@@ -116,8 +120,8 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             {faqSchema && <JsonLd data={faqSchema} />}
             <MarketingShell className="max-w-2xl">
                 <ArticleBackNav
-                    parentLabel={i18n.blog}
-                    parentHref={`/${locale}/blog`}
+                    parentLabel={i18n.filterBlog}
+                    parentHref={hubHref}
                     backToTemplate={i18n.backTo}
                     currentLocale={locale as Locale}
                     localizedHrefs={localizedHrefs}

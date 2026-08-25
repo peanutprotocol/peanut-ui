@@ -294,7 +294,7 @@ const JoinWaitlistPage = () => {
     if (isAutoAccepting) return <Loading variant="mascot" coverFullScreen />
 
     return (
-        <InvitesPageLayout image={stepImage}>
+        <InvitesPageLayout image={stepImage} showRagdoll={step === 'jail'}>
             <div
                 className={twMerge(
                     'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',

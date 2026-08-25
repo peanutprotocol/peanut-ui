@@ -35,8 +35,12 @@ export function PartnerLockup({
 }) {
     return (
         <Link
+            prefetch={false}
             href={href}
-            aria-label={ariaLabel}
+            // WCAG 2.5.3 / Lighthouse label-content-name-mismatch: the
+            // accessible name must contain the visible "Learn more" text, so
+            // prefix it rather than replacing it with just the description.
+            aria-label={`${learnMore} — ${ariaLabel}`}
             className={twMerge(
                 'group flex flex-col items-center transition-transform hover:-translate-y-0.5 hover:opacity-90',
                 className

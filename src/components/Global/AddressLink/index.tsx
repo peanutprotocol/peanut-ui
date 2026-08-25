@@ -1,5 +1,5 @@
 import { printableAddress, isCryptoAddress } from '@/utils/general.utils'
-import { normalizeEnsName } from '@/utils/ens.utils'
+import { normalizeEnsName } from '@/utils/ens-name.utils'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'

@@ -16,6 +16,7 @@ import { EInviteType } from '@/services/services.types'
 import { getValidRedirectUrl, saveRedirectUrl, saveToCookie } from '@/utils/general.utils'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useLogin } from '@/hooks/useLogin'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
@@ -38,6 +39,7 @@ import { destinationForInviteAcquisition } from '@/services/invite-acquisition'
 function InvitePageContent() {
     const t = useTranslations('invites')
     const tSetup = useTranslations('setup')
+    const toast = useToast()
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
@@ -292,7 +294,11 @@ function InvitePageContent() {
             // normal-app fallback.
             saveRedirectUrl()
         }
-        void handleLoginClick()
+        // PasskeyError carries curated user-facing copy; without this catch a
+        // cancelled passkey prompt becomes an unhandled rejection and a Sentry event.
+        handleLoginClick().catch((error: unknown) => {
+            toast.error((error instanceof Error && error.message) || tSetup('loginFailed'))
+        })
     }
 
     useEffect(() => {

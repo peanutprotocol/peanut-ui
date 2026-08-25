@@ -27,7 +27,7 @@ async function getAllPaths(): Promise<string[]> {
     const { SUPPORTED_LOCALES } = await import('../src/i18n/types')
     const { listContentSlugs } = await import('../src/lib/content')
 
-    const paths: string[] = ['/', '/shhhhh', '/careers', '/exchange', '/privacy', '/terms']
+    const paths: string[] = ['/', '/shhhhh', '/careers', '/privacy', '/terms']
 
     for (const locale of SUPPORTED_LOCALES) {
         for (const country of Object.keys(COUNTRIES_SEO)) {

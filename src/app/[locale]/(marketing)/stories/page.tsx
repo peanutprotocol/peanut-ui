@@ -44,6 +44,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
 
     const stories = slugs
         .map((slug) => {
+            if (slug === 'index') return null // legacy stories/index/ directory
             const content = readPageContentLocalized<ContentFrontmatter>('stories', slug, locale)
             if (!content || content.frontmatter.published === false) return null
             return {

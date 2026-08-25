@@ -10,6 +10,7 @@ import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useUserStore } from '@/redux/hooks'
+import { getUserPreferences } from '@/utils/general.utils'
 import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem, type KycHistoryEntry } from '@/components/Kyc/KycStatusItem'
@@ -50,6 +51,8 @@ const HistoryPage = () => {
     // Synthetic card-unlock row inputs — same cached queries HomeHistory uses.
     const { cardInfo } = useCardInfo()
     const { overview: rainOverview } = useRainCardOverview()
+    const userId = user?.user.userId
+    const hideTxnAmount = useMemo(() => getUserPreferences(userId)?.balanceHidden ?? false, [userId])
 
     const {
         data: historyData,
@@ -333,6 +336,7 @@ const HistoryPage = () => {
                                             transaction={transactionDetails}
                                             position={position}
                                             haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
+                                            hideTxnAmount={hideTxnAmount}
                                         />
                                     )
                                 })()

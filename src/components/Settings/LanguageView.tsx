@@ -10,7 +10,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { APP_LOCALES, LOCALE_LABELS, type AppLocale } from '@/i18n/app/config'
-import { useAppLocale } from '@/i18n/app/AppIntlProvider'
+import { useAppLocale } from '@/i18n/app/locale-context'
 
 /**
  * ISO-2 country per locale, for the row flag. `es-419` is UN region 419 (Latin

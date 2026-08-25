@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Divider } from '@/components/0_Bruddle/Divider'
 import { Notification } from '@/components/0_Bruddle/Notification'
+import { isAlreadyReported } from '@/utils/webauthn.utils'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useState } from 'react'
@@ -90,7 +91,9 @@ const JoinWaitlist = () => {
                   ? t('waitlist.noPasskey')
                   : t('waitlist.loginUnexpectedError')
         toast.error(errorMessage)
-        Sentry.captureException(error, { extra: { errorCode } })
+        if (!isAlreadyReported(error)) {
+            Sentry.captureException(error, { extra: { errorCode } })
+        }
     }
 
     const _onLoginClick = async () => {

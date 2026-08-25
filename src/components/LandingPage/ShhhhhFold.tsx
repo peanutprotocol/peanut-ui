@@ -32,6 +32,7 @@ export function ShhhhhFold() {
             <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-9 md:grid-cols-[1.1fr_0.9fr] md:gap-13">
                 <div className="min-w-0">
                     <Link
+                        prefetch={false}
                         href="/shhhhh"
                         className="font-roboto-flex-extrabold inline-block text-headingMedium leading-none font-extraBlack md:text-headingLarge"
                     >
@@ -43,7 +44,7 @@ export function ShhhhhFold() {
                     </p>
 
                     <div className="mt-8 flex flex-wrap items-center gap-5 md:gap-6">
-                        <Link href="/shhhhh">
+                        <Link prefetch={false} href="/shhhhh">
                             {/* no shadowSize: that prop only paints black. The pink
                                 shadow is an arbitrary class so the base
                                 `active:shadow-none` still flattens it on press. */}
@@ -52,6 +53,7 @@ export function ShhhhhFold() {
                             </Button>
                         </Link>
                         <Link
+                            prefetch={false}
                             href="/shhhhh"
                             className="font-roboto-flex text-base font-extraBlack underline underline-offset-4"
                         >
@@ -68,7 +70,12 @@ export function ShhhhhFold() {
                     {/* blurAll: closed-beta tease — card shape recognisable, logos +
                         number unreadable. Rotation sits on the wrapper so the inner
                         host still measures its layout width for the fit-to-width scale. */}
-                    <Link href="/shhhhh" aria-label={t('tryTheDoor')} className="inline-block -rotate-12">
+                    <Link
+                        prefetch={false}
+                        href="/shhhhh"
+                        aria-label={t('tryTheDoor')}
+                        className="inline-block -rotate-12"
+                    >
                         <div className="aspect-[400/252] w-[min(20rem,72vw)] md:w-[min(25rem,30vw)]">
                             <ScaledPixelatedCardFace last4="????" blurAll shadowColor={PINK} />
                         </div>

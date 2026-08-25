@@ -1,6 +1,7 @@
 'use client'
 
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { isAlreadyReported } from '@/utils/webauthn.utils'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
@@ -45,7 +46,9 @@ const LandingStep = () => {
     const handleError = (error: unknown) => {
         const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
         toast.error((error instanceof Error && error.message) || t('loginFailed'))
-        Sentry.captureException(error, { extra: { errorCode } })
+        if (!isAlreadyReported(error)) {
+            Sentry.captureException(error, { extra: { errorCode } })
+        }
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode })
     }
 

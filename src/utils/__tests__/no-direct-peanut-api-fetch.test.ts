@@ -41,9 +41,6 @@ const EXEMPT = new Set<string>([
     'context/ReproduceBootstrap.tsx',
     // the wrapper itself — apiFetch IS the one sanctioned fetchWithSentry(PEANUT_API_URL…) call
     'utils/api-fetch.ts',
-    // connectivity canary — probes the API host with raw fetch + native http on
-    // purpose, outside the session/Sentry layer it exists to diagnose
-    'utils/native-canary.ts',
     // sanctioned demo-mode passthrough: forwards public GETs to the real
     // backend, deliberately without Sentry/auth (it IS the apiFetch demo leg)
     'utils/demo-api.ts',
