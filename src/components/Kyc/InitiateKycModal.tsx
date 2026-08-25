@@ -29,6 +29,9 @@ interface InitiateKycModalProps {
     reasonCode?: string
     /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
     regionName?: string
+    /** Which prep checklist the SDK-bound variants show: extended for the
+     *  Manteca (BR/AR) flows, standard elsewhere. */
+    prepPath?: 'standard' | 'extended'
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
@@ -48,6 +51,7 @@ export const InitiateKycModal = ({
     providerMessage,
     reasonCode,
     regionName,
+    prepPath = 'standard',
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -189,14 +193,14 @@ export const InitiateKycModal = ({
             onClose={onClose}
             title={getTitle()}
             description={
-                // The plain unlock offer is the moment before the SDK opens, so
-                // it carries the prep checklist (standard path: this gate does
-                // not know the provider region up front). Every other variant
+                // The variants that lead into a fresh SDK run (the plain unlock
+                // offer and the cross-region unlock) carry the prep checklist,
+                // so no path reaches the vendor without it. Every other variant
                 // is an error/action state where the list would be noise.
-                variant === 'default' && !error ? (
+                (variant === 'default' || variant === 'cross_region') && !error ? (
                     <div className="flex flex-col gap-3">
                         <p>{getDescription()}</p>
-                        <KycPrepChecklist path="standard" />
+                        <KycPrepChecklist path={prepPath} />
                     </div>
                 ) : (
                     getDescription()

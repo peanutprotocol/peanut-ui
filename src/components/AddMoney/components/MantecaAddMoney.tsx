@@ -266,6 +266,7 @@ const MantecaAddMoney: FC = () => {
         return (
             <>
                 <InitiateKycModal
+                    prepPath="extended"
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
