@@ -19,11 +19,17 @@ export const CarouselDots = ({ count, activeIndex, onSelect, className, ...props
             const dotClass =
                 i === activeIndex ? 'h-2 w-6 rounded-round bg-border-default' : 'size-2 rounded-round bg-border-subtle'
             return onSelect ? (
+                // 8px dots sit 8px apart, so a full 44px hit area would overlap
+                // its neighbours — the pseudo-element extends to ~32px tall and
+                // half the gap sideways instead (the LinkButton/Toggle pattern)
                 <button
                     key={i}
                     type="button"
                     onClick={() => onSelect(i)}
-                    className={twMerge(dotClass, 'transition-all duration-fast')}
+                    className={twMerge(
+                        dotClass,
+                        'relative transition-all duration-fast after:absolute after:-inset-x-1 after:-inset-y-3'
+                    )}
                     aria-label={`${i + 1} / ${count}`}
                     aria-current={i === activeIndex}
                 />

@@ -27,8 +27,10 @@ interface ListItemProps {
  * Row component from the figma list-item board (17802:61530).
  * Anatomy: leading slot + title (16/20 semibold) + body (14/20 secondary),
  * trailing slot / chevron. Grouping via position (top/middle/bottom/solo),
- * pressed = disabled-background fill, disabled = 40% opacity. 56px tall at
- * default padding — over the 44px touch-target floor.
+ * pressed = disabled-background fill, disabled (board 17785:14606) =
+ * background/disabled fill + border/subtle + secondary title, content at full
+ * opacity so badges and checkmarks keep their contrast. 56px tall at default
+ * padding — over the 44px touch-target floor.
  */
 export const ListItem = ({
     title,
@@ -44,6 +46,7 @@ export const ListItem = ({
     'aria-label': ariaLabel,
 }: ListItemProps) => {
     const { triggerHaptic } = useAppHaptic()
+    const titleColor = disabled ? 'text-foreground-secondary' : 'text-foreground-primary'
     // every row click gets haptic feedback (both pointer and keyboard paths)
     const handleClick = onClick
         ? () => {
@@ -75,7 +78,7 @@ export const ListItem = ({
                 onClick &&
                     !disabled &&
                     'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled',
-                disabled && 'opacity-40',
+                disabled && 'border-border-subtle bg-background-disabled',
                 className
             )}
         >
@@ -86,9 +89,9 @@ export const ListItem = ({
                     and truncate only ellipsizes text anyway) */}
                 <div className="flex min-w-0 flex-col gap-0.5">
                     {typeof title === 'string' ? (
-                        <span className="truncate text-body-m-semibold text-foreground-primary">{title}</span>
+                        <span className={twMerge('truncate text-body-m-semibold', titleColor)}>{title}</span>
                     ) : (
-                        <div className="min-w-0 text-body-m-semibold text-foreground-primary">{title}</div>
+                        <div className={twMerge('min-w-0 text-body-m-semibold', titleColor)}>{title}</div>
                     )}
                     {body &&
                         (typeof body === 'string' ? (
@@ -101,7 +104,7 @@ export const ListItem = ({
             {(trailing || chevron) && (
                 <div className="flex shrink-0 items-center gap-2">
                     {trailing}
-                    {chevron && <Icon name="chevron-right" size={20} className="text-foreground-primary" />}
+                    {chevron && <Icon name="chevron-right" size={20} className={titleColor} />}
                 </div>
             )}
         </Card>

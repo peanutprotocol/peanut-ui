@@ -109,7 +109,12 @@ export default function ListItemPage() {
                         default: "'single'",
                         description: 'Grouped-list borders/radius',
                     },
-                    { name: 'disabled', type: 'boolean', default: 'false', description: '40% opacity, no onClick' },
+                    {
+                        name: 'disabled',
+                        type: 'boolean',
+                        default: 'false',
+                        description: 'disabled fill + subtle border + secondary title, no onClick',
+                    },
                     { name: 'onClick', type: '() => void', default: '(none)' },
                 ]}
             />

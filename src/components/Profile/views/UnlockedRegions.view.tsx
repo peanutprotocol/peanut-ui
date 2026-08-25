@@ -207,7 +207,7 @@ const UnlockedRegions = () => {
 
     return (
         <div className="space-y-8 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto">
                 <h1 className="font-bold">{t('title')}</h1>
                 <p className="mt-2 text-body-s">{t('description')}</p>
