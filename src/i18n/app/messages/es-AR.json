@@ -231,7 +231,8 @@
                 "cardRestrictionNote": "Atención: la tarjeta no está disponible para residentes de este país.",
                 "bankingRestrictionNote": "Atención: las transferencias bancarias no están disponibles para residentes de este país.",
                 "save": "Guardar",
-                "saveAndReverify": "Guardar y verificar ahora"
+                "saveAndReverify": "Guardar y verificar ahora",
+                "cooldownNote": "Cambiaste tu residencia hace poco. Podés cambiarla de nuevo después del {until}."
             },
             "degraded": {
                 "title": "La verificación está temporalmente caída",

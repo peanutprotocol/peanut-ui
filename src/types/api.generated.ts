@@ -10960,6 +10960,7 @@ export interface paths {
                             };
                             residence: {
                                 declared: string | null;
+                                nextChangeAllowedAt: string | null;
                                 verified: string | null;
                             };
                             residenceRestrictions: {

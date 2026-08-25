@@ -2730,7 +2730,7 @@
                         "description": "Default Response"
                     }
                 },
-                "summary": "Get the user\u2019s current waitlist state",
+                "summary": "Get the user’s current waitlist state",
                 "tags": [
                     "card"
                 ]
@@ -7281,7 +7281,7 @@
         },
         "/dev/poll": {
             "post": {
-                "description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+                "description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
                 "responses": {
                     "200": {
                         "content": {
@@ -7946,7 +7946,7 @@
         },
         "/dev/submit-to-providers": {
             "post": {
-                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
+                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -8184,7 +8184,7 @@
         },
         "/dev/trigger-sumsub-webhook": {
             "post": {
-                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) \u2014 same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub \u2192 routing chain without real webhook delivery.",
+                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -10117,7 +10117,7 @@
         },
         "/manteca/deposit/{depositId}/status": {
             "get": {
-                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only \u2014 the webhook/poller remain the authoritative completion trigger.",
+                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.",
                 "parameters": [
                     {
                         "in": "path",
@@ -18033,6 +18033,16 @@
                                                         }
                                                     ]
                                                 },
+                                                "nextChangeAllowedAt": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
                                                 "verified": {
                                                     "anyOf": [
                                                         {
@@ -18046,7 +18056,8 @@
                                             },
                                             "required": [
                                                 "declared",
-                                                "verified"
+                                                "verified",
+                                                "nextChangeAllowedAt"
                                             ],
                                             "type": "object"
                                         },

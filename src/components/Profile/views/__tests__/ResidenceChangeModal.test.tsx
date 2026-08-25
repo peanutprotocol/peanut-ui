@@ -44,6 +44,19 @@ describe('ResidenceChangeModal', () => {
         expect(onReverify).not.toHaveBeenCalled()
     })
 
+    it('the change cooldown shows its date and blocks changing to another country, not re-saving', () => {
+        const future = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+        render({ declared: 'BR', verified: 'BR', nextChangeAllowedAt: future })
+        // The note is visible before any pick, so nobody discovers the wait late.
+        expect(screen.getByText(/You can change it again after/)).toBeInTheDocument()
+        // Re-saving the current country stays allowed.
+        expect(screen.getByText('Save').closest('button')).not.toBeDisabled()
+        // Picking a different country under cooldown disables saving.
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByText('France'))
+        expect(screen.getByText('Save').closest('button')).toBeDisabled()
+    })
+
     it('offers re-verification only when the pick differs from the verified residence', () => {
         render()
         expect(screen.getByText('Save & re-verify now')).toBeInTheDocument()

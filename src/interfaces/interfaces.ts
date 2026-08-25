@@ -299,7 +299,9 @@ export interface IUserProfile {
     residenceRestrictions?: { banking: boolean; card: boolean }
     // Residence, both flavors: declared at signup (advisory) and verified by
     // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
-    residence?: { declared: string | null; verified: string | null }
+    // nextChangeAllowedAt: when the escalating change cooldown lifts (ISO);
+    // null or absent = a change is allowed right now.
+    residence?: { declared: string | null; verified: string | null; nextChangeAllowedAt?: string | null }
 }
 
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue }
