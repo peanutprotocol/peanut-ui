@@ -44,12 +44,17 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     fallback,
 }) => {
     const [logoFailed, setLogoFailed] = useState(false)
+    // board 17802:61529 sizes XS/S/M/L are 24/32/48/64 — the boxes here already
+    // matched, under different names, but every initials step was raw stock
+    // type and none of the five sat on the DS scale. Board type per box:
+    // 24 and 32 = Label/M, 48 = Body/M-SemiBold, 64 = Heading/S. `large` (96)
+    // has no board row and takes the next heading step up.
     const sizeClasses: Record<AvatarSize, string> = {
-        tiny: 'h-6 w-6 text-[10px]',
-        'extra-small': 'h-8 w-8 text-xs',
-        small: 'h-12 w-12 text-sm',
-        medium: 'h-16 w-16 text-2xl',
-        large: 'h-24 w-24 text-3xl',
+        tiny: 'h-6 w-6 text-label-m',
+        'extra-small': 'h-8 w-8 text-label-m',
+        small: 'h-12 w-12 text-body-m-semibold',
+        medium: 'h-16 w-16 text-heading-s',
+        large: 'h-24 w-24 text-heading-m',
     }
 
     const iconSizeMap: Record<AvatarSize, number> = {
@@ -70,13 +75,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     if (logo && !logoFailed) {
         return (
             <div className={'relative'}>
-                <div
-                    className={twMerge(
-                        `flex items-center justify-center rounded-full font-bold`,
-                        sizeClasses[size],
-                        className
-                    )}
-                >
+                <div className={twMerge(`flex items-center justify-center rounded-full`, sizeClasses[size], className)}>
                     <Image
                         src={logo}
                         alt={name ? `${name} logo` : 'logo'}
@@ -105,7 +104,10 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
             {/* the main avatar circle */}
             <div
                 className={twMerge(
-                    `flex items-center justify-center rounded-full font-bold`,
+                    // no font-weight here: the size classes carry the board
+                    // weights (Label/M is 800, Body/M-SemiBold 600, Heading/S
+                    // 800) and a blanket bold rendered all three at 700.
+                    `flex items-center justify-center rounded-full`,
                     sizeClasses[size],
                     className
                 )}
