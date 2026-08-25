@@ -19,11 +19,13 @@ const bubbleSizes: Record<IconBubbleSize, string> = {
     l: 'size-18',
 }
 
+// board icon per bubble: xs/s = 16, m = 24, l = 40 (the l bubble is the
+// empty/error hero, so it takes the one off-scale step the icon law allows)
 const bubbleIconSizes: Record<IconBubbleSize, number> = {
     xs: 16,
     s: 16,
     m: 24,
-    l: 32,
+    l: 40,
 }
 
 const bubbleColors: Record<IconBubbleColor, string> = {

@@ -27,10 +27,20 @@ import { extendTailwindMerge } from 'tailwind-merge'
 // the block but already sit in the stock font-size group, so they stay out.
 const DS_TYPE_TOKEN = /^(?:heading|body|label|button)(?:-[a-z0-9-]+)?$|^(?:display|0|h(?:10|[1-9]))$/
 
+// `--radius-round` (999px) and `--radius-1` (1px). Stock tailwind-merge only
+// knows its own t-shirt radii, so it leaves `rounded-round` unrecognised: a
+// caller passing `rounded-sm` to a component whose own class is `rounded-round`
+// gets BOTH, and css source order — not the caller — decides the corner. That
+// is the same silent-loss family as the type tokens, just in the other
+// direction (nothing is deleted, the override is ignored instead). Registering
+// them makes the caller win, which is the whole point of merging.
+const DS_RADIUS_TOKEN = /^(?:round|1)$/
+
 export const twMerge = extendTailwindMerge({
     extend: {
         classGroups: {
             'font-size': [{ text: [(value: string) => DS_TYPE_TOKEN.test(value)] }],
+            rounded: [{ rounded: [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
         },
     },
 })

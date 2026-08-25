@@ -69,10 +69,12 @@ const buttonSizes: Record<ButtonSize, string> = {
     large: 'btn-large',
 }
 
+// board 17802:61527 icon per button size: S = 16, M = 20, L = 24. 18 was off
+// the 16/20/24 icon scale entirely and matched no board row.
 const buttonIconSizes: Record<ButtonSize, number> = {
     small: 16,
-    medium: 16,
-    large: 18,
+    medium: 20,
+    large: 24,
 }
 
 const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
@@ -147,13 +149,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             buttonVariants[variant],
             variant === 'transparent' && props.disabled && 'disabled:bg-transparent disabled:border-transparent',
             size && buttonSizes[size],
+            // board icon/label gap: S is XS/4, L and M are S/8. It has to sit
+            // here rather than in `.btn-small`, because @layer components loses
+            // to the base `gap-2` utility — twMerge is what resolves it.
+            size === 'small' && 'gap-1',
             shape === 'square' && 'btn-square',
             shadowSize && buttonShadows[shadowType || 'primary'][shadowSize],
 
             className
         )
 
-        const resolvedIconSize = iconSize ?? (size && buttonIconSizes[size]) ?? 18
+        // no `size` means medium (`.btn` is h-11), so the fallback is medium's icon
+        const resolvedIconSize = iconSize ?? (size && buttonIconSizes[size]) ?? buttonIconSizes.medium
 
         const renderIcon = () => {
             if (!icon || loading) return null

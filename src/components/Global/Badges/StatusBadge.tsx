@@ -70,24 +70,29 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
     // (see SendLinkActionList's soon badge).
     const label = customText || t(STATUS_LABEL_KEYS[status] ?? 'status.unknown')
 
+    // board 17802:61533: small = px S/8 + py XXS/2 + Label/M, medium = px M/12
+    // + py XS/4 + Label/L. The sizes were right, the type was raw tailwind —
+    // text-[10px]/text-xs/text-sm are not on the DS type scale at all. `large`
+    // has no board row; it keeps its padding and takes the nearest label step.
     const getSizeClasses = () => {
         switch (size) {
-            case 'small':
-                return 'px-2 py-0.5 text-[10px]'
             case 'medium':
-                return 'px-3 py-1 text-xs'
+                return 'px-3 py-1 text-label-l'
             case 'large':
-                return 'px-4 py-1.5 text-sm'
+                return 'px-4 py-1.5 text-label-l'
+            case 'small':
             default:
-                return 'px-2 py-0.5 text-[10px]'
+                return 'px-2 py-0.5 text-label-m'
         }
     }
 
     return (
         <span
             className={twMerge(
+                // no font-weight class here: the label tokens carry the board
+                // weights (Label/M is 800, Label/L is 700) and a `font-semibold`
+                // alongside them silently overrode both with 600.
                 'inline-block rounded-full whitespace-nowrap',
-                'font-roboto font-semibold',
                 getSizeClasses(),
                 getStatusStyles(),
                 className

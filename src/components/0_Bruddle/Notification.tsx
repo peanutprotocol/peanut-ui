@@ -107,19 +107,25 @@ export const Notification = ({
             {...props}
         >
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-                {/* items-start pins the icon to the first line. The icon is
-                    20px and every first-line token is a 20px line box, so a
-                    one-line banner is unchanged — but a list or a wrapping
-                    body no longer centres the icon against the whole block. */}
-                <div className="flex items-start gap-2">
-                    {showIcon && <Icon name={icon} size={20} className="shrink-0" />}
-                    {title ? (
-                        <span className="text-body-m-semibold">{title}</span>
-                    ) : (
-                        <div className="min-w-0 flex-1 text-body-m">{body}</div>
-                    )}
+                {/* board 17872:89021 nests a "Content" group (title + body, 2px
+                    apart) inside the 8px stack, so the body hugs its title and
+                    only the ctas sit a full step away. A flat gap-2 put 8px in
+                    both places and the title read as a separate line. */}
+                <div className="flex flex-col gap-0.5">
+                    {/* items-start pins the icon to the first line. The icon is
+                        20px and every first-line token is a 20px line box, so a
+                        one-line banner is unchanged — but a list or a wrapping
+                        body no longer centres the icon against the whole block. */}
+                    <div className="flex items-start gap-2">
+                        {showIcon && <Icon name={icon} size={20} className="shrink-0" />}
+                        {title ? (
+                            <span className="text-body-m-semibold">{title}</span>
+                        ) : (
+                            <div className="min-w-0 flex-1 text-body-m">{body}</div>
+                        )}
+                    </div>
+                    {title && <div className={twMerge('text-body-m', indent)}>{body}</div>}
                 </div>
-                {title && <div className={twMerge('text-body-m', indent)}>{body}</div>}
                 {!!ctas?.length && (
                     <div className={twMerge('flex flex-wrap gap-2', indent)}>
                         {ctas.slice(0, 2).map((cta, i) => (
