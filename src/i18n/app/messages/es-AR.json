@@ -134,14 +134,6 @@
             "inviteFriends": "Invitá amigos a Peanut"
         },
         "edit": {
-            "placeholders": {
-                "name": "Agregá tu nombre",
-                "surname": "Agregá tu apellido",
-                "bio": "Agregá una bio",
-                "email": "Agregá tu email",
-                "phone": "Agregá tu número",
-                "website": "Agregá tu sitio web"
-            },
             "errors": {
                 "nameRequired": "Por favor ingresá tu nombre."
             }

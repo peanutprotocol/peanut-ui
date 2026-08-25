@@ -13,7 +13,7 @@ import {
     ItemText,
     ItemIndicator,
 } from '@radix-ui/react-select'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 export interface BaseSelectOption {
@@ -30,10 +30,25 @@ interface BaseSelectProps {
     className?: string
     disabled?: boolean
     error?: boolean
+    /** accessible name — the trigger is a button, so a sibling <label htmlFor> cannot name it */
+    'aria-label'?: string
 }
 
 const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
-    ({ options, placeholder = 'Select...', value, onValueChange, onBlur, className, disabled, error }, ref) => {
+    (
+        {
+            options,
+            placeholder = 'Select...',
+            value,
+            onValueChange,
+            onBlur,
+            className,
+            disabled,
+            error,
+            'aria-label': ariaLabel,
+        },
+        ref
+    ) => {
         return (
             <Root
                 value={value}
@@ -48,6 +63,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
             >
                 <Trigger
                     ref={ref}
+                    aria-label={ariaLabel}
                     className={twMerge(
                         'flex h-12 w-full items-center justify-between rounded-sm border border-n-1 bg-white px-4 text-sm font-bold text-n-1 transition-colors outline-none placeholder:text-n-3',
                         'disabled:cursor-not-allowed disabled:opacity-50',

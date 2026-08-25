@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../Icons/Icon'
 import Loading from '../Loading'
 

@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 interface IconStackProps {
     icons: string[]

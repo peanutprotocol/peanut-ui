@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export const PeanutDoesntStoreAnyPersonalInformation = ({ className }: { className?: string }) => {
     const t = useTranslations('kyc')

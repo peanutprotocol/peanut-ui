@@ -2,7 +2,7 @@
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Image from 'next/image'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '../consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { ListItem } from '@/components/0_Bruddle/ListItem'

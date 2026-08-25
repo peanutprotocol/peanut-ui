@@ -15,7 +15,7 @@ export default function NotificationPage() {
         <DocPage>
             <DocHeader
                 title="Notification"
-                description="Inline notification banner from the figma notification board (17802:61535). Priority sets tone and icon; supports body or title + body, optional dismiss, and up to two CTAs. No prod consumer yet — this page is its consumer."
+                description="Inline notification banner from the figma notification board (17802:61535). Priority sets tone and icon; supports body or title + body, a checklist body, optional dismiss, and up to two CTAs. It backs every inline banner and error in the app, plus Toast and the Banner announcement surface."
                 status="limited"
             />
 
@@ -56,6 +56,40 @@ export default function NotificationPage() {
                         code={`<Notification priority="attention" title="Title">
     Body text can be longer, but try not to go over two lines.
 </Notification>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
+            <DocSection title="Checklist (items)">
+                <DocSection.Content>
+                    <div className="flex flex-col gap-3">
+                        <Notification
+                            priority="info"
+                            items={[
+                                'Europe SEPA transfers (+30 countries)',
+                                'UK Faster payments (GBP)',
+                                'US ACH and wire transfers',
+                                'Mexico SPEI transfers',
+                            ]}
+                        />
+                        <Notification
+                            priority="info"
+                            title="What you'll unlock"
+                            items={['Bank transfers in your country']}
+                        />
+                    </div>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Checklist"
+                        code={`// a checklist carries its own check marks, so it renders
+// no leading priority icon, and rows use the dense text step
+<Notification
+    priority="info"
+    items={['Europe SEPA transfers (+30 countries)', 'UK Faster payments (GBP)']}
+/>`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -131,7 +165,13 @@ export default function NotificationPage() {
                         description: 'Tone, background, and leading icon',
                     },
                     { name: 'title', type: 'string', default: '(none)', description: 'Bold first line' },
-                    { name: 'children', type: 'ReactNode', default: '(required)', description: 'Body text' },
+                    { name: 'children', type: 'ReactNode', default: '(none)', description: 'Body text' },
+                    {
+                        name: 'items',
+                        type: 'ReactNode[]',
+                        default: '(none)',
+                        description: 'Checklist body — one check row each, no leading icon. Wins over children',
+                    },
                     {
                         name: 'onDismiss',
                         type: '() => void',

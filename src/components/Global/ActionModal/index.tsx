@@ -3,7 +3,7 @@ import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/compon
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export interface ActionModalButtonProps extends ButtonProps {
     text: string
@@ -116,26 +116,33 @@ const ActionModal: React.FC<ActionModalProps> = ({
             classOverlay={classOverlay}
             hideOverlay={hideOverlay}
         >
-            <div className={twMerge('flex flex-col items-center gap-4 p-6 text-center', contentContainerClassName)}>
-                {iconContent && (
-                    <div
-                        className={twMerge(
-                            'flex size-8 items-center justify-center rounded-full',
-                            customIconContainerClassName || defaultIconContainerClassName
-                        )}
-                    >
-                        {iconContent}
-                    </div>
-                )}
-
-                <div className="space-y-2 w-full">
-                    {/* board head: Heading XS + Body S */}
-                    <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>{title}</h3>
-                    {description && (
-                        <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
-                            {typeof description === 'string' ? <p>{description}</p> : description}
+            {/* anatomy 17800:57224: p = XL/24, and the stack is nested — the icon
+                and the head sit L/16 apart inside a "Top" group, the head's own
+                title and description XS/4 apart, and the whole group is XL/24
+                from the ctas. It used to be one flat gap-4, so the description
+                sat as far from its title as the ctas did from the head. */}
+            <div className={twMerge('flex flex-col items-center gap-6 p-6 text-center', contentContainerClassName)}>
+                <div className="flex w-full flex-col items-center gap-4">
+                    {iconContent && (
+                        <div
+                            className={twMerge(
+                                'flex size-8 items-center justify-center rounded-full',
+                                customIconContainerClassName || defaultIconContainerClassName
+                            )}
+                        >
+                            {iconContent}
                         </div>
                     )}
+
+                    <div className="flex w-full flex-col gap-1">
+                        {/* board head: Heading XS + Body S */}
+                        <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>{title}</h3>
+                        {description && (
+                            <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
+                                {typeof description === 'string' ? <p>{description}</p> : description}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {content}

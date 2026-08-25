@@ -3,7 +3,7 @@ import { normalizeEnsName } from '@/utils/ens.utils'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { isAddress } from 'viem'
 
 interface AddressLinkProps {

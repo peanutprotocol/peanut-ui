@@ -14,7 +14,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * props interface for the SetupWrapper component

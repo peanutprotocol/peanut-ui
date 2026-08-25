@@ -34,7 +34,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import type { HistoryEntry, HistoryResponse } from '@/hooks/useTransactionHistory'
 import { AccountType } from '@/interfaces/interfaces'
 import { completeHistoryEntry, dedupeHistoryEntriesByUuid } from '@/utils/history.utils'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 

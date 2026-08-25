@@ -272,10 +272,11 @@
             "yourCard": "Tu tarjeta",
             "peanutCard": "Tarjeta Peanut",
             "newBadge": "¡Nuevo!",
+            "unlockBadge": "Desbloquear",
             "yourBadges": "Tus insignias",
             "points": "Puntos",
             "personalDetails": "Datos personales",
-            "unlockedRegions": "Regiones desbloqueadas",
+            "unlockedRegions": "Regiones y verificación",
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar mi nombre completo",
             "backup": "Respaldo",
@@ -293,14 +294,6 @@
                 "phoneNumber": "Número de teléfono",
                 "website": "Sitio web"
             },
-            "placeholders": {
-                "name": "Agrega tu nombre",
-                "surname": "Agrega tu apellido",
-                "bio": "Agrega una bio",
-                "email": "Agrega tu email",
-                "phone": "Agrega tu número",
-                "website": "Agrega tu sitio web"
-            },
             "soonBadge": "¡Pronto!",
             "saveChanges": "Guardar cambios",
             "errors": {
@@ -308,7 +301,7 @@
             }
         },
         "regions": {
-            "title": "Regiones desbloqueadas",
+            "title": "Regiones y verificación",
             "description": "Transfiere y recibe desde cualquier cuenta bancaria y usa los métodos de pago disponibles.",
             "empty": {
                 "title": "Aún no tienes regiones desbloqueadas",
@@ -1699,6 +1692,10 @@
             "city": "Tu ciudad",
             "cityRequired": "La ciudad es obligatoria",
             "state": "Selecciona tu estado",
+            "stateLabel": "Estado",
+            "streetLabel": "Dirección",
+            "cityLabel": "Ciudad",
+            "postalCodeLabel": "Código postal",
             "stateRequired": "El estado es obligatorio",
             "postalCode": "Tu código postal",
             "postalCodeRequired": "El código postal es obligatorio",

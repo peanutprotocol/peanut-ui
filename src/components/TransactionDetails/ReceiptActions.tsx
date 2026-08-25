@@ -207,7 +207,7 @@ export function ReceiptActions({
             {showSplitCta && (
                 <Button
                     onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
-                    icon="split"
+                    icon="users"
                     shadowSize="4"
                 >
                     {t('actions.splitBill')}

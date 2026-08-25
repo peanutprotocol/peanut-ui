@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export interface ProgressBarMarker {
     /** 0-100, or 'end' to pin at the right edge */

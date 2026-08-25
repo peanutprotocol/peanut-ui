@@ -29,7 +29,7 @@ import {
     STRUCK_AMOUNT_STATUSES,
 } from '@/utils/history.utils'
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import { isAddress } from 'viem'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'

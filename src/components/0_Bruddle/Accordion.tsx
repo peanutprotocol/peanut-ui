@@ -2,7 +2,7 @@
 
 import React from 'react'
 import * as AccordionPrimitive from '@radix-ui/react-accordion'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../Global/Icons/Icon'
 
 /**

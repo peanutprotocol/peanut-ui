@@ -7,7 +7,7 @@ import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useUserStore } from '@/redux/hooks'
 import { Banner } from '@/components/Global/Banner'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export default function PaymentLayoutWrapper({ children }: { children: React.ReactNode }) {
     const { user } = useUserStore()

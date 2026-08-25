@@ -98,7 +98,12 @@ export const Profile = () => {
                             label={t('menu.unlockedRegions')}
                             href="/profile/identity-verification"
                             position="middle"
-                            highlight={!isUserSumsubKycApproved}
+                            // same chip treatment as the card row's "New!" — a
+                            // pulsing dot was a second attention language on
+                            // one screen. COPY IS PROPOSED: "Unlock" over
+                            // "Verify" / "Start", because the destination
+                            // modal already says "Unlock {region}".
+                            badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
 
                         <ProfileMenuItem

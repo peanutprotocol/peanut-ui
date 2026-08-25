@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import type enMessages from '@/i18n/app/messages/en.json'
 import { Button } from '@/components/0_Bruddle/Button'
 import Link from 'next/link'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Icons/Icon'
 import { useAuth } from '@/context/authContext'
 
@@ -90,7 +90,11 @@ const NavHeader = ({
             {!hideLabel && (
                 <div
                     className={twMerge(
-                        'absolute top-1/2 left-1/2 min-w-max -translate-x-1/2 -translate-y-1/2 transform pb-1 text-2xl font-extrabold',
+                        // board 17343:1781 title is Heading/S. The stock size +
+                        // weight pair used here happened to render the same
+                        // 24/800/32, but off the token the two drift apart the
+                        // moment Heading/S moves.
+                        'absolute top-1/2 left-1/2 min-w-max -translate-x-1/2 -translate-y-1/2 transform pb-1 text-heading-s',
                         titleClassName
                     )}
                 >

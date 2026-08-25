@@ -2,7 +2,6 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
-import IndicatorDot from '@/components/Global/IndicatorDot'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { Tooltip } from '@/components/Tooltip'
 import Link from 'next/link'
@@ -24,7 +23,6 @@ interface ProfileMenuItemProps {
     showTooltip?: boolean
     toolTipText?: string
     badge?: string
-    highlight?: boolean
 }
 
 const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
@@ -42,7 +40,6 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     showTooltip = false,
     toolTipText,
     badge,
-    highlight = false,
 }) => {
     const content = (
         <div className="flex items-center justify-between py-1">
@@ -54,10 +51,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                         {icon}
                     </div>
                 )}
-                <div className="flex items-center gap-2">
-                    <label className="text-body-m text-foreground-primary">{label}</label>
-                    {highlight && <IndicatorDot className="animate-pulse" aria-label="highlight-indicator" />}
-                </div>
+                <label className="text-body-m text-foreground-primary">{label}</label>
                 {badge && <StatusBadge status="custom" customText={badge} />}
                 {showTooltip && (
                     <Tooltip content={toolTipText}>

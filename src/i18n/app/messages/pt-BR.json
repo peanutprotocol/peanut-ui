@@ -272,10 +272,11 @@
             "yourCard": "Seu cartão",
             "peanutCard": "Cartão Peanut",
             "newBadge": "Novo!",
+            "unlockBadge": "Desbloquear",
             "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Dados pessoais",
-            "unlockedRegions": "Regiões desbloqueadas",
+            "unlockedRegions": "Regiões e verificação",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
@@ -293,14 +294,6 @@
                 "phoneNumber": "Número de telefone",
                 "website": "Site"
             },
-            "placeholders": {
-                "name": "Adicione seu nome",
-                "surname": "Adicione seu sobrenome",
-                "bio": "Adicione uma bio",
-                "email": "Adicione seu e-mail",
-                "phone": "Adicione seu número",
-                "website": "Adicione seu site"
-            },
             "soonBadge": "Em breve!",
             "saveChanges": "Salvar alterações",
             "errors": {
@@ -308,7 +301,7 @@
             }
         },
         "regions": {
-            "title": "Regiões desbloqueadas",
+            "title": "Regiões e verificação",
             "description": "Transfira e receba de qualquer conta bancária e use os métodos de pagamento disponíveis.",
             "empty": {
                 "title": "Nenhuma região desbloqueada ainda",
@@ -1699,6 +1692,10 @@
             "city": "Sua cidade",
             "cityRequired": "A cidade é obrigatória",
             "state": "Selecione seu estado",
+            "stateLabel": "Estado",
+            "streetLabel": "Endereço",
+            "cityLabel": "Cidade",
+            "postalCodeLabel": "CEP",
             "stateRequired": "O estado é obrigatório",
             "postalCode": "Seu CEP",
             "postalCodeRequired": "O CEP é obrigatório",

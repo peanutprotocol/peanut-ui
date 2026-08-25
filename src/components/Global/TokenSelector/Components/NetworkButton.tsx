@@ -9,7 +9,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import React, { useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../../Icons/Icon'
 
 interface NetworkButtonProps {

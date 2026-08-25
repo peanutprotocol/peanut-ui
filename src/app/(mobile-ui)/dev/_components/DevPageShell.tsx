@@ -2,7 +2,7 @@
 
 import NavHeader from '@/components/Global/NavHeader'
 import Link from 'next/link'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * The shell every /dev page sits in.

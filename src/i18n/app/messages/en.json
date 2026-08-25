@@ -272,10 +272,11 @@
             "yourCard": "Your Card",
             "peanutCard": "Peanut Card",
             "newBadge": "New!",
+            "unlockBadge": "Unlock",
             "yourBadges": "Your Badges",
             "points": "Points",
             "personalDetails": "Personal details",
-            "unlockedRegions": "Unlocked regions",
+            "unlockedRegions": "Regions and verification",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
@@ -293,14 +294,6 @@
                 "phoneNumber": "Phone number",
                 "website": "Website"
             },
-            "placeholders": {
-                "name": "Add your name",
-                "surname": "Add your surname",
-                "bio": "Add a bio",
-                "email": "Add your email",
-                "phone": "Add your number",
-                "website": "Add your website"
-            },
             "soonBadge": "Soon!",
             "saveChanges": "Save Changes",
             "errors": {
@@ -308,7 +301,7 @@
             }
         },
         "regions": {
-            "title": "Unlocked regions",
+            "title": "Regions and verification",
             "description": "Transfer to and receive from any bank account and use supported payments methods.",
             "empty": {
                 "title": "No regions unlocked yet",
@@ -1699,6 +1692,10 @@
             "city": "Your City",
             "cityRequired": "City is required",
             "state": "Select your state",
+            "stateLabel": "State",
+            "streetLabel": "Street address",
+            "cityLabel": "City",
+            "postalCodeLabel": "Postal code",
             "stateRequired": "State is required",
             "postalCode": "Your Postal Code",
             "postalCodeRequired": "Postal code is required",

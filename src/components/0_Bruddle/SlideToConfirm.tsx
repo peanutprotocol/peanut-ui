@@ -2,7 +2,7 @@
 
 import { type FC, useEffect, useRef, useState } from 'react'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../Global/Icons/Icon'
 
 interface SlideToConfirmProps {

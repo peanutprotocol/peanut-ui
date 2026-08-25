@@ -3,7 +3,7 @@ import Loading from '@/components/Global/Loading'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import QRCode from 'react-qr-code'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 interface QRCodeWrapperProps {
     url: string

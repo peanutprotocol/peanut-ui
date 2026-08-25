@@ -1,7 +1,7 @@
 'use client'
 
 import { type RefObject } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import Card from '@/components/Global/Card'
 import { ReceiptRow } from '@/components/TransactionDetails/ReceiptRow'
 import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
