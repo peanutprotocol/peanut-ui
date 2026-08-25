@@ -744,7 +744,7 @@
     "send": {
         "linkCard": {
             "title": "Envía dinero con un enlace",
-            "description": "No se necesita cuenta para reclamar en banco o billetera. Pix y Mercado Pago requieren una cuenta Peanut.",
+            "description": "No se necesita cuenta para reclamar en banco o billetera cripto. Pix y Mercado Pago requieren una cuenta Peanut.",
             "cta": "Enviar por enlace"
         },
         "methods": {

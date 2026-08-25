@@ -744,7 +744,7 @@
     "send": {
         "linkCard": {
             "title": "Envie dinheiro com um link",
-            "description": "Não precisa de conta para resgatar em banco ou carteira. Pix e Mercado Pago exigem uma conta Peanut.",
+            "description": "Não precisa de conta para resgatar em banco ou carteira cripto. Pix e Mercado Pago exigem uma conta Peanut.",
             "cta": "Enviar por link"
         },
         "methods": {
