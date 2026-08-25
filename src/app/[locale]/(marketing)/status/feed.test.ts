@@ -11,28 +11,30 @@ async function resolveOrigin() {
 }
 
 describe('statusFeedOrigin', () => {
-    it('reads staging on preview deployments, where prod has not shipped the feed yet', async () => {
-        process.env.VERCEL_ENV = 'preview'
-        delete process.env.STATUS_API_URL
-        expect(await resolveOrigin()).toBe('https://api.staging.peanut.me')
-    })
+    // The page reports the system users are on, not the one it happens to be
+    // deployed beside — staging health under a production banner is worse
+    // than showing nothing.
+    it.each(['preview', 'development', 'production', undefined])(
+        'reads the production API when VERCEL_ENV is %s',
+        async (vercelEnv) => {
+            delete process.env.STATUS_API_URL
+            delete process.env.PEANUT_API_URL
+            delete process.env.NEXT_PUBLIC_PEANUT_API_URL
+            delete process.env.NEXT_PUBLIC_VERCEL_ENV
+            if (vercelEnv) process.env.VERCEL_ENV = vercelEnv
+            else delete process.env.VERCEL_ENV
 
-    it('falls back to the client-exposed copy of VERCEL_ENV', async () => {
-        delete process.env.VERCEL_ENV
-        delete process.env.STATUS_API_URL
-        process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
-        expect(await resolveOrigin()).toBe('https://api.staging.peanut.me')
-    })
+            expect(await resolveOrigin()).toBe('https://api.peanut.me')
+        }
+    )
 
-    it('uses the app API in production', async () => {
-        process.env.VERCEL_ENV = 'production'
+    it('does not follow the app API, which differs per environment', async () => {
         delete process.env.STATUS_API_URL
-        delete process.env.PEANUT_API_URL
-        delete process.env.NEXT_PUBLIC_PEANUT_API_URL
+        process.env.PEANUT_API_URL = 'https://api.staging.peanut.me'
         expect(await resolveOrigin()).toBe('https://api.peanut.me')
     })
 
-    it('lets STATUS_API_URL override even a preview build, trailing slash trimmed', async () => {
+    it('lets STATUS_API_URL override, trailing slash trimmed', async () => {
         process.env.VERCEL_ENV = 'preview'
         process.env.STATUS_API_URL = 'https://api.example.test/'
         expect(await resolveOrigin()).toBe('https://api.example.test')

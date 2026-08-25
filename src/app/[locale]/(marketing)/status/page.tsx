@@ -4,6 +4,7 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getTranslations } from '@/i18n'
 import { getAlternatesFor, localizedPath } from '@/i18n/config'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
+import { Hero } from '@/components/Marketing/mdx/Hero'
 import { StatusBoard } from './StatusBoard'
 import { parseStatusSummary, type StatusSummary } from './types'
 
@@ -59,13 +60,18 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
     const summary = await loadSummary()
 
     if (!summary) {
+        // Same header as the loaded page: this is a normal state, not an
+        // error page, and it is the one on show whenever the feed's own
+        // backend is the thing that is down.
         return (
-            <div className="mx-auto w-full max-w-3xl px-6 py-12">
-                <h1 className="text-3xl font-bold">{i18n.statusPageTitle}</h1>
-                <p className="mt-4 rounded-md border border-secondary-2 bg-secondary-4 p-4 text-sm">
-                    {i18n.statusFetchFailed}
-                </p>
-            </div>
+            <>
+                <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} />
+                <div className="mx-auto w-full max-w-3xl px-6 pb-12">
+                    <p className="rounded-md border border-secondary-2 bg-secondary-4 p-4 text-sm">
+                        {i18n.statusFetchFailed}
+                    </p>
+                </div>
+            </>
         )
     }
 
