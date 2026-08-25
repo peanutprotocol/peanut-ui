@@ -1,4 +1,6 @@
+import { captureException } from '@sentry/nextjs'
 import { isCapacitor } from '@/utils/capacitor'
+import { setAuthToken } from '@/utils/auth-token'
 
 /**
  * Guards for the passkey ceremony (TASK-21782).
@@ -11,10 +13,14 @@ import { isCapacitor } from '@/utils/capacitor'
  */
 
 // WebAuthn UI sheets time out on their own around 60s; racing shorter would
-// cancel a ceremony the user is legitimately still completing. Native-only:
-// on web, cross-device (QR/hybrid) and security-key ceremonies routinely run
-// minutes, and the silent-hang this defends against is a Capacitor defect.
+// cancel a ceremony the user is legitimately still completing.
 export const CEREMONY_TIMEOUT_MS = 60_000
+
+// Web cross-device (QR/hybrid) and security-key ceremonies legitimately run
+// minutes, so the web bound is generous — it exists only so a ceremony the
+// browser never settles can't leave isLoggingIn true (and the landing
+// buttons dead) forever.
+export const WEB_CEREMONY_TIMEOUT_MS = 300_000
 
 // The shim install is a dynamic import + native plugin call — normally
 // sub-second. 3s covers a slow cold start without stalling a real tap.
@@ -42,12 +48,43 @@ export class PasskeyShimFailedError extends Error {
     }
 }
 
+export class CeremonyConflictError extends Error {
+    constructor() {
+        super('another passkey ceremony is already in progress')
+        this.name = 'CeremonyConflictError'
+    }
+}
+
 /** True for the pre-ceremony / timeout guard errors thrown by this module. */
 export const isCeremonyGuardError = (err: unknown): err is Error =>
     err instanceof Error &&
     (err.name === 'CeremonyTimeoutError' ||
         err.name === 'PasskeyShimNotReadyError' ||
-        err.name === 'PasskeyShimFailedError')
+        err.name === 'PasskeyShimFailedError' ||
+        err.name === 'CeremonyConflictError')
+
+const GUARD_ERROR_TAG: Record<string, string> = {
+    CeremonyTimeoutError: 'ceremony_timeout',
+    PasskeyShimNotReadyError: 'shim_not_ready',
+    PasskeyShimFailedError: 'shim_failed',
+    CeremonyConflictError: 'ceremony_conflict',
+}
+
+/**
+ * One Sentry capture for guard errors from both the login and register catch
+ * paths — the tag is derived from the error class, so a new guard error can't
+ * silently collapse into the wrong bucket in one copy of a hand-rolled ternary.
+ */
+export const captureCeremonyGuardError = (
+    err: Error,
+    flow: 'login' | 'register',
+    extra?: Record<string, unknown>
+): void => {
+    captureException(err, {
+        tags: { error_type: `${flow}_${GUARD_ERROR_TAG[err.name] ?? 'ceremony_guard'}` },
+        extra: { shimInstalled: isPasskeyShimInstalled(), isCapacitor: isCapacitor(), ...extra },
+    })
+}
 
 type ShimGlobals = typeof globalThis & {
     __capgoPasskeyShimInstalled?: unknown
@@ -80,17 +117,23 @@ export const waitForPasskeyShim = async (timeoutMs: number = SHIM_WAIT_TIMEOUT_M
     }
 }
 
-// Ceremony-in-flight tracking. native-auth-capture binds each
-// /passkeys/*/verify request to the ceremony that was active when the
-// request was ISSUED, and persists its token only if that same ceremony is
-// still active when the response lands. A verify response arriving after
-// its ceremony timed out is dropped — even when the user has already
-// started a NEW ceremony (a bare "any ceremony active" check would re-open
-// the window and store the stale token).
+// Ceremony-in-flight tracking. Ceremonies are serialized (guardPasskeyCeremony
+// rejects a second concurrent one), so the single active window always has one
+// owner. native-auth-capture STASHES a /passkeys/*/verify token while a
+// ceremony is active; the token is persisted only when the owning ceremony
+// RESOLVES — a verify response from a ceremony that timed out or was told
+// "failed" can never end up persisted (the guard discards the stash on
+// failure), even when it lands while a retry ceremony is running.
 let ceremonySeq = 0
 let activeCeremonyId: number | null = null
+let stashedVerifyToken: string | null = null
 export const currentCeremonyId = (): number | null => activeCeremonyId
 export const isCeremonyStillActive = (id: number | null): boolean => id !== null && id === activeCeremonyId
+
+/** Called by native-auth-capture; ignored unless a guarded ceremony is active. */
+export const stashCeremonyVerifyToken = (token: string): void => {
+    if (activeCeremonyId !== null) stashedVerifyToken = token
+}
 
 /**
  * Races `promise` against a `CeremonyTimeoutError`. On timeout the original
@@ -109,19 +152,35 @@ export const raceCeremonyTimeout = <T>(promise: Promise<T>, ms: number = CEREMON
 /**
  * The one wrapper both login and register ceremonies route through: on
  * Capacitor, gate on the shim actually being installed and bound the
- * ceremony to CEREMONY_TIMEOUT_MS; on web, run it untouched (hybrid/QR
- * ceremonies legitimately run for minutes). Tracks the active window for
- * native-auth-capture either way.
+ * ceremony to CEREMONY_TIMEOUT_MS; on web, use the generous
+ * WEB_CEREMONY_TIMEOUT_MS bound (hybrid/QR ceremonies legitimately run for
+ * minutes, but an abandoned one must not wedge the UI forever).
+ *
+ * Ceremonies are mutually exclusive: overlapping windows would make verify
+ * tokens unattributable (the fetch layer can't tell whose fetch it sees), so
+ * a second concurrent ceremony fails fast with CeremonyConflictError instead
+ * of evicting the first's window. The stashed verify token is committed only
+ * when the ceremony resolves, so a ceremony reported as failed can never
+ * leave a persisted token behind.
  */
 export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): Promise<T> => {
     const native = isCapacitor()
+    if (activeCeremonyId !== null) throw new CeremonyConflictError()
     if (native) await waitForPasskeyShim()
+    // re-check: another ceremony may have claimed the window during the wait
+    if (activeCeremonyId !== null) throw new CeremonyConflictError()
     const ceremonyId = ++ceremonySeq
     activeCeremonyId = ceremonyId
+    stashedVerifyToken = null
     try {
-        return native ? await raceCeremonyTimeout(startCeremony()) : await startCeremony()
+        const result = await raceCeremonyTimeout(
+            startCeremony(),
+            native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS
+        )
+        if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)
+        return result
     } finally {
-        // only clear our own registration — a newer ceremony may have taken over
         if (activeCeremonyId === ceremonyId) activeCeremonyId = null
+        stashedVerifyToken = null
     }
 }

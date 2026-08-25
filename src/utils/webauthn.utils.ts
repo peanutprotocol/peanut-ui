@@ -90,6 +90,9 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
         case 'CeremonyTimeoutError':
             code = 'CEREMONY_TIMEOUT'
             break
+        case 'CeremonyConflictError':
+            code = 'PASSKEY_INTERRUPTED'
+            break
         case 'PasskeyShimNotReadyError':
             code = 'PASSKEY_NOT_READY'
             break

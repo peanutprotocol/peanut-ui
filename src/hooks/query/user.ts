@@ -4,7 +4,7 @@ import { userActions } from '@/redux/slices/user-slice'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useQuery } from '@tanstack/react-query'
-import { usePWAStatus } from '../usePWAStatus'
+import { isStandaloneDisplayMode } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
@@ -24,7 +24,6 @@ export class BackendError extends Error {
 }
 
 export const useUserQuery = (dependsOn: boolean = true) => {
-    const isPwa = usePWAStatus()
     const { deviceType } = useDeviceType()
     const dispatch = useAppDispatch()
     const { user: authUser } = useUserStore()
@@ -58,12 +57,14 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             if (payload) {
                 // Was: hitUserMetric(userData.user.userId, 'login', ...) → POST /users/:id/metrics/login.
                 // DB `user_metrics` table deprecated 2026-04-24; analytics is PostHog's job.
-                // usePWAStatus deliberately returns true for the Capacitor shell
-                // (it means "standalone app-like shell", which layouts rely on) —
-                // but for analytics the native app is not a PWA. isNativeBridge()
-                // not isCapacitor(): capacitor-flavored WEB builds must keep real
-                // PWA semantics (TASK-21782 telemetry fix).
-                posthog.capture(ANALYTICS_EVENTS.LOGIN, { isPwa: isNativeBridge() ? false : isPwa, deviceType })
+                // For analytics the native app is not a PWA, and a capacitor-
+                // flavored WEB build in a plain browser tab isn't either — use
+                // real display-mode detection, not usePWAStatus's Capacitor
+                // short-circuit (TASK-21782 telemetry fix).
+                posthog.capture(ANALYTICS_EVENTS.LOGIN, {
+                    isPwa: isNativeBridge() ? false : isStandaloneDisplayMode(),
+                    deviceType,
+                })
                 dispatch(userActions.setUser(payload))
             }
             return payload

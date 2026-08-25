@@ -11,7 +11,12 @@ import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } fro
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
-import { guardPasskeyCeremony, isCeremonyGuardError, isPasskeyShimInstalled } from '@/utils/passkeyCeremony.utils'
+import {
+    captureCeremonyGuardError,
+    guardPasskeyCeremony,
+    isCeremonyGuardError,
+    isPasskeyShimInstalled,
+} from '@/utils/passkeyCeremony.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -241,24 +246,16 @@ export const useZeroDev = () => {
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
+                // the concurrent-request bail must still release the button
+                dispatch(zerodevActions.setIsRegistering(false))
                 return
             }
             const err = e as Error
             console.error('[useZeroDev] registration failed:', err.name, err.message, err, {
                 shimInstalled: isPasskeyShimInstalled(),
             })
-            // Same discriminating telemetry as the login guard — the register
-            // path previously produced zero signal for a hung ceremony.
             if (isCeremonyGuardError(err)) {
-                captureException(err, {
-                    tags: {
-                        error_type:
-                            err.name === 'CeremonyTimeoutError'
-                                ? 'register_ceremony_timeout'
-                                : 'register_shim_not_ready',
-                    },
-                    extra: { shimInstalled: isPasskeyShimInstalled(), isCapacitor: isCapacitor() },
-                })
+                captureCeremonyGuardError(err, 'register')
             }
             dispatch(zerodevActions.setIsRegistering(false))
             throw e
@@ -312,17 +309,7 @@ export const useZeroDev = () => {
             // state (no clearAuthState) and report with a discriminating tag —
             // this is the telemetry that tells us WHERE native logins hang.
             if (isCeremonyGuardError(err)) {
-                captureException(err, {
-                    tags: {
-                        error_type:
-                            err.name === 'CeremonyTimeoutError' ? 'login_ceremony_timeout' : 'login_shim_not_ready',
-                    },
-                    extra: {
-                        shimInstalled: isPasskeyShimInstalled(),
-                        isCapacitor: isCapacitor(),
-                        elapsedMs: Date.now() - ceremonyStartedAt,
-                    },
-                })
+                captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (code !== 'LOGIN_CANCELED') {
                 console.error('Error logging in', err)
                 await clearAuthState(user?.user.userId)

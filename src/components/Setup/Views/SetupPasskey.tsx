@@ -11,7 +11,8 @@ import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useRef, useState } from 'react'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
-import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
+import { classifyPasskeyError, WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
+import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import * as Sentry from '@sentry/nextjs'
@@ -117,6 +118,21 @@ const SetupPasskey = () => {
 
             // capture debug info for all failures
             await capturePasskeyDebugInfo('passkey-registration-failed')
+
+            // Ceremony-guard errors (shim race / timeout, TASK-21782) are already
+            // reported with a discriminating tag inside handleRegister — surface
+            // the curated retry copy instead of the generic help modal. A timed-out
+            // register may have completed server-side (its verify can land after
+            // the cutoff), so the username check routes the user to login instead
+            // of a colliding re-register.
+            if (isCeremonyGuardError(error)) {
+                if (error.name === 'CeremonyTimeoutError' && (await isUsernameTaken(username))) {
+                    setUsernameTaken(true)
+                } else {
+                    setInlineError(classifyPasskeyError(error).message)
+                }
+                return
+            }
 
             // notallowederror can mean two things:
             // 1. user actually cancelled (most common)

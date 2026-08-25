@@ -1,4 +1,5 @@
 import {
+    CeremonyConflictError,
     CeremonyTimeoutError,
     PasskeyShimFailedError,
     PasskeyShimNotReadyError,
@@ -9,12 +10,17 @@ import {
     isPasskeyShimInstalled,
     markPasskeyShimFailed,
     raceCeremonyTimeout,
+    stashCeremonyVerifyToken,
     waitForPasskeyShim,
 } from '../passkeyCeremony.utils'
 import { isCapacitor } from '@/utils/capacitor'
+import { setAuthToken } from '@/utils/auth-token'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
+jest.mock('@/utils/auth-token', () => ({ setAuthToken: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 const mockIsCapacitor = isCapacitor as jest.Mock
+const mockSetAuthToken = setAuthToken as jest.Mock
 
 const SHIM_INSTALLED = '__capgoPasskeyShimInstalled'
 const SHIM_FAILED = '__capgoPasskeyShimFailed'
@@ -28,6 +34,7 @@ afterEach(() => {
     delete (globalThis as Record<string, unknown>)[SHIM_FAILED]
     mockIsCapacitor.mockReset()
     mockIsCapacitor.mockReturnValue(false)
+    mockSetAuthToken.mockReset()
     jest.useRealTimers()
 })
 
@@ -103,7 +110,7 @@ describe('raceCeremonyTimeout', () => {
 })
 
 describe('guardPasskeyCeremony', () => {
-    it('web: runs the ceremony unraced and untracked-gated (no shim requirement)', async () => {
+    it('web: runs the ceremony without a shim requirement', async () => {
         await expect(guardPasskeyCeremony(() => Promise.resolve('ok'))).resolves.toBe('ok')
     })
 
@@ -182,6 +189,65 @@ describe('guardPasskeyCeremony', () => {
         expect(isCeremonyStillActive(idB)).toBe(true)
         resolveB('done')
         await pendingB
+    })
+
+    it('rejects a second concurrent ceremony instead of evicting the first', async () => {
+        let resolveA!: (v: string) => void
+        const pendingA = guardPasskeyCeremony(
+            () =>
+                new Promise<string>((resolve) => {
+                    resolveA = resolve
+                })
+        )
+        await Promise.resolve()
+        const idA = currentCeremonyId()
+        const ceremonyB = jest.fn()
+        await expect(guardPasskeyCeremony(ceremonyB)).rejects.toBeInstanceOf(CeremonyConflictError)
+        expect(ceremonyB).not.toHaveBeenCalled()
+        // A's window survived the conflict
+        expect(isCeremonyStillActive(idA)).toBe(true)
+        resolveA('done')
+        await pendingA
+    })
+
+    it('persists a stashed verify token only when the ceremony resolves', async () => {
+        let resolveCeremony!: (v: string) => void
+        const pending = guardPasskeyCeremony(
+            () =>
+                new Promise<string>((resolve) => {
+                    resolveCeremony = resolve
+                })
+        )
+        await Promise.resolve()
+        stashCeremonyVerifyToken('jwt-abc')
+        expect(mockSetAuthToken).not.toHaveBeenCalled()
+        resolveCeremony('key')
+        await pending
+        expect(mockSetAuthToken).toHaveBeenCalledWith('jwt-abc')
+    })
+
+    it('discards a stashed verify token when the ceremony times out', async () => {
+        mockIsCapacitor.mockReturnValue(true)
+        setGlobal(SHIM_INSTALLED, true)
+        jest.useFakeTimers()
+        const pending = guardPasskeyCeremony(() => new Promise<never>(() => {}))
+        const assertion = expect(pending).rejects.toBeInstanceOf(CeremonyTimeoutError)
+        await Promise.resolve()
+        stashCeremonyVerifyToken('jwt-stale')
+        await jest.advanceTimersByTimeAsync(60_000)
+        await assertion
+        expect(mockSetAuthToken).not.toHaveBeenCalled()
+        // a token landing with no ceremony active is refused outright
+        stashCeremonyVerifyToken('jwt-late')
+        expect(mockSetAuthToken).not.toHaveBeenCalled()
+    })
+
+    it('bounds a web ceremony with the generous web timeout', async () => {
+        jest.useFakeTimers()
+        const pending = guardPasskeyCeremony(() => new Promise<never>(() => {}))
+        const assertion = expect(pending).rejects.toBeInstanceOf(CeremonyTimeoutError)
+        await jest.advanceTimersByTimeAsync(300_000)
+        await assertion
     })
 })
 

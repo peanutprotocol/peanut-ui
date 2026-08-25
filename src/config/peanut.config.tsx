@@ -31,67 +31,68 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
             void authReady() // start Preferences hydration before any API call needs it
             installNativeAuthCapture()
             scheduleDirectFetchCanary()
-            import('@capgo/capacitor-passkey')
-                .then(({ CapacitorPasskey }) => {
-                    const nativeRpId = getNativeRpId()
+            const installPasskeyShim = async () => {
+                const { CapacitorPasskey } = await import('@capgo/capacitor-passkey')
+                const nativeRpId = getNativeRpId()
 
-                    // check native passkey support first
-                    CapacitorPasskey.isSupported()
-                        .then((support) => {
-                            console.log('[PeanutProvider] passkey support:', JSON.stringify(support))
-                        })
-                        .catch((err: unknown) => {
-                            console.warn('[PeanutProvider] passkey isSupported check failed:', err)
-                        })
+                // check native passkey support first
+                CapacitorPasskey.isSupported()
+                    .then((support) => {
+                        console.log('[PeanutProvider] passkey support:', JSON.stringify(support))
+                    })
+                    .catch((err: unknown) => {
+                        console.warn('[PeanutProvider] passkey isSupported check failed:', err)
+                    })
 
-                    CapacitorPasskey.autoShimWebAuthn({ origin: `https://${nativeRpId}` })
-                        .then(() => {
-                            // verify the shim actually installed by checking if credentials was patched
-                            const shimInstalled =
-                                (globalThis as { __capgoPasskeyShimInstalled?: unknown })
-                                    .__capgoPasskeyShimInstalled === true
-                            console.log('[PeanutProvider] passkey shim installed:', shimInstalled)
+                await CapacitorPasskey.autoShimWebAuthn({ origin: `https://${nativeRpId}` })
 
-                            // the shim's credentialFromJSON replaces its credential's prototype with
-                            // PublicKeyCredential.prototype. WKWebView's native getClientExtensionResults
-                            // brand-checks `this` and throws on shim credentials ("Can only call ... on
-                            // instances of PublicKeyCredential"), breaking both registration and login.
-                            // Wrap it unconditionally: native credentials keep the real behavior, shim
-                            // credentials fall back to their JSON payload.
-                            const PKC = globalThis.PublicKeyCredential
-                            if (PKC) {
-                                const nativeGetter = PKC.prototype.getClientExtensionResults
-                                PKC.prototype.getClientExtensionResults = function () {
-                                    try {
-                                        return nativeGetter ? nativeGetter.call(this) : {}
-                                    } catch {
-                                        return (
-                                            (
-                                                this as PublicKeyCredential & {
-                                                    json?: {
-                                                        clientExtensionResults?: AuthenticationExtensionsClientOutputs
-                                                    }
-                                                }
-                                            ).json?.clientExtensionResults ?? {}
-                                        )
+                // verify the shim actually installed by checking if credentials was patched
+                const shimInstalled =
+                    (globalThis as { __capgoPasskeyShimInstalled?: unknown }).__capgoPasskeyShimInstalled === true
+                console.log('[PeanutProvider] passkey shim installed:', shimInstalled)
+
+                // the shim's credentialFromJSON replaces its credential's prototype with
+                // PublicKeyCredential.prototype. WKWebView's native getClientExtensionResults
+                // brand-checks `this` and throws on shim credentials ("Can only call ... on
+                // instances of PublicKeyCredential"), breaking both registration and login.
+                // Wrap it unconditionally: native credentials keep the real behavior, shim
+                // credentials fall back to their JSON payload.
+                const PKC = globalThis.PublicKeyCredential
+                if (PKC) {
+                    const nativeGetter = PKC.prototype.getClientExtensionResults
+                    PKC.prototype.getClientExtensionResults = function () {
+                        try {
+                            return nativeGetter ? nativeGetter.call(this) : {}
+                        } catch {
+                            return (
+                                (
+                                    this as PublicKeyCredential & {
+                                        json?: {
+                                            clientExtensionResults?: AuthenticationExtensionsClientOutputs
+                                        }
                                     }
-                                }
-                            }
-                        })
-                        .catch((err: unknown) => {
-                            // known-dead install: waitForPasskeyShim fails a login tap
-                            // immediately with restart copy instead of polling out 3s
-                            // on a shim that will never arrive (TASK-21782)
-                            markPasskeyShimFailed()
-                            console.warn('[PeanutProvider] passkey shim init failed:', err)
-                        })
-                })
-                .catch((err: unknown) => {
-                    // chunk import / plugin resolution failed — previously an
-                    // unhandled rejection, leaving the shim flag unset forever
-                    markPasskeyShimFailed()
-                    console.warn('[PeanutProvider] passkey plugin import failed:', err)
-                })
+                                ).json?.clientExtensionResults ?? {}
+                            )
+                        }
+                    }
+                }
+            }
+
+            // One bounded re-attempt before declaring the install dead: a single
+            // transient import/bridge failure at cold start must not convert every
+            // tap for the rest of the session into "restart the app" copy. Only a
+            // failure of BOTH attempts marks the flag (which fails login taps
+            // immediately with restart copy instead of polling out 3s, TASK-21782).
+            const SHIM_INSTALL_RETRY_DELAY_MS = 1_500
+            installPasskeyShim().catch((firstErr: unknown) => {
+                console.warn('[PeanutProvider] passkey shim install failed, retrying once:', firstErr)
+                setTimeout(() => {
+                    installPasskeyShim().catch((err: unknown) => {
+                        markPasskeyShimFailed()
+                        console.warn('[PeanutProvider] passkey shim install failed:', err)
+                    })
+                }, SHIM_INSTALL_RETRY_DELAY_MS)
+            })
         }
     }, [])
 
