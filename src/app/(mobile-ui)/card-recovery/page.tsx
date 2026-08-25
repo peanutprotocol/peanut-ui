@@ -112,7 +112,7 @@ export default function CardRecoveryPage() {
     return (
         <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onBack} />
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 {error && <Notification priority="error">{error}</Notification>}
 
                 {step === 'done' && txHash ? (
@@ -171,7 +171,7 @@ export default function CardRecoveryPage() {
                         </>
                     )
                 )}
-            </div>
+            </PageStack.Center>
         </PageStack>
     )
 }

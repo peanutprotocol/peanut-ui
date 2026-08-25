@@ -1,5 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -173,7 +174,7 @@ export const ConfirmClaimLinkView = ({
             <div className="md:hidden">
                 <NavHeader title={tNav('claim')} onPrev={onPrev} />
             </div>
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
@@ -255,7 +256,7 @@ export const ConfirmClaimLinkView = ({
                 </Button>
 
                 {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
-            </div>
+            </PageStack.Center>
         </div>
     )
 }

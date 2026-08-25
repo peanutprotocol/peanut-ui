@@ -63,7 +63,7 @@ export default function FixCardSignaturePage() {
     return (
         <PageStack>
             <NavHeader title={t('fixSignature.navTitle')} />
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 <p className="text-body-s text-foreground-secondary">{t('fixSignature.intro')}</p>
 
                 {(isDiagnosing || (!address && !diagnosis)) && (
@@ -153,7 +153,7 @@ export default function FixCardSignaturePage() {
                         })}
                     </p>
                 )}
-            </div>
+            </PageStack.Center>
         </PageStack>
     )
 }

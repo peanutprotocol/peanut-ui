@@ -53,7 +53,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
     return (
         <PageStack>
             <NavHeader title={t('pixKey.title')} onPrev={onBack} />
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 <div className="space-y-4">
                     <h2 className="text-heading-card text-foreground-primary">{t('pixKey.heading')}</h2>
                     <div className="space-y-2">
@@ -89,7 +89,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
 
                     {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
                 </div>
-            </div>
+            </PageStack.Center>
         </PageStack>
     )
 }

@@ -183,10 +183,10 @@ function RecoverWalletInner() {
     if (phase === 'invalid') {
         return (
             <PageStack>
-                <div className="my-auto flex flex-col gap-6">
+                <PageStack.Center>
                     <h1 className="text-2xl font-extrabold">Wallet recovery</h1>
                     <Notification priority="error">{fatal}</Notification>
-                </div>
+                </PageStack.Center>
             </PageStack>
         )
     }
@@ -194,7 +194,7 @@ function RecoverWalletInner() {
     if (phase === 'final') {
         return (
             <PageStack>
-                <div className="my-auto flex flex-col gap-6">
+                <PageStack.Center>
                     <h1 className="text-2xl font-extrabold">Funds on the way 🎉</h1>
                     <Card className="flex flex-col gap-1 p-4">
                         <span className="text-sm text-foreground-secondary">
@@ -207,7 +207,7 @@ function RecoverWalletInner() {
                             View on explorer
                         </LinkButton>
                     </Card>
-                </div>
+                </PageStack.Center>
             </PageStack>
         )
     }
@@ -216,7 +216,7 @@ function RecoverWalletInner() {
     const nothingToRecover = balance <= 0n
     return (
         <PageStack>
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 <div className="flex flex-col gap-1">
                     <h1 className="text-2xl font-extrabold">
                         {recoveryKey?.label ? `${recoveryKey.label}, let's` : "Let's"} recover your funds
@@ -261,7 +261,7 @@ function RecoverWalletInner() {
                         {!!signError && <Notification priority="error">{signError}</Notification>}
                     </>
                 )}
-            </div>
+            </PageStack.Center>
         </PageStack>
     )
 }

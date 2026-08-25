@@ -197,7 +197,7 @@ export default function RecoverFundsPage() {
         return (
             <PageStack>
                 <NavHeader title={t('title')} onPrev={reset} />
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
@@ -244,7 +244,7 @@ export default function RecoverFundsPage() {
                     >
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tCommon('confirm')}
                     </Button>
-                </div>
+                </PageStack.Center>
             </PageStack>
         )
     }
@@ -252,7 +252,7 @@ export default function RecoverFundsPage() {
     if (status === 'final') {
         return (
             <PageStack>
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
@@ -327,7 +327,7 @@ export default function RecoverFundsPage() {
                     >
                         {t('recoverOtherToken')}
                     </Button>
-                </div>
+                </PageStack.Center>
             </PageStack>
         )
     }
@@ -358,7 +358,7 @@ export default function RecoverFundsPage() {
                     />
                 </div>
             ) : (
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                <PageStack.Center className="gap-4">
                     <h1>{t('selectToken')}</h1>
                     <ScrollableList>
                         {tokenBalances.map((balance) => (
@@ -404,7 +404,7 @@ export default function RecoverFundsPage() {
                         {t('review')}
                     </Button>
                     {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
-                </div>
+                </PageStack.Center>
             )}
         </PageStack>
     )

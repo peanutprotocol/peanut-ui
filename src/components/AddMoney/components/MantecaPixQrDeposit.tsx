@@ -88,7 +88,7 @@ const MantecaPixQrDeposit: FC<{
     return (
         <PageStack>
             <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 <div className="text-center">
                     <p className="text-body-s text-foreground-secondary">{t('pix.payWithPix')}</p>
                     {currencyAmount && <p className="text-heading-s text-foreground-primary">R$ {currencyAmount}</p>}
@@ -123,7 +123,7 @@ const MantecaPixQrDeposit: FC<{
                         )}
                     </>
                 )}
-            </div>
+            </PageStack.Center>
         </PageStack>
     )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import NavHeader from '@/components/Global/NavHeader'
@@ -54,7 +55,7 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
     return (
         <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-4 md:pb-0">
             <NavHeader title={t('methods.migrateFromOfframp')} onPrev={onBack} />
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 <div className="flex flex-col gap-2">
                     <h2 className="text-heading-xs text-foreground-primary">{t('offrampGate.title')}</h2>
                     <p className="text-body-m text-foreground-secondary">{t('offrampGate.description')}</p>
@@ -84,7 +85,7 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
                 >
                     {tCommon('continue')}
                 </Button>
-            </div>
+            </PageStack.Center>
         </div>
     )
 }
