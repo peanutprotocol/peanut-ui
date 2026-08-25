@@ -206,6 +206,8 @@ export interface Translations {
     statusSomeDegraded: string
     statusSomeDown: string
     statusUnknown: string
+    statusServicesOperational: string
+    statusServicesOperationalCount: string
     statusWindowLabel: string
     statusUptimeLabel: string
     statusNow: string

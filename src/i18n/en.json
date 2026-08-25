@@ -56,6 +56,8 @@
     "statusSomeDegraded": "Some services degraded",
     "statusSomeDown": "Service outage",
     "statusUnknown": "Status unavailable",
+    "statusServicesOperational": "{percent}% operational — {operational} of {total} services",
+    "statusServicesOperationalCount": "{operational} of {total} services operational",
     "statusWindowLabel": "Last 72 hours",
     "statusUptimeLabel": "uptime",
     "statusNow": "now",

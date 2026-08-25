@@ -1,4 +1,5 @@
-import { CloudsCss } from '@/components/LandingPage/CloudsCss'
+import { Hero } from '@/components/Marketing/mdx/Hero'
+import { t } from '@/i18n'
 import { type Translations } from '@/i18n/types'
 import {
     incidentImpact,
@@ -13,11 +14,6 @@ import {
 /* House tokens, not the stock Tailwind palette: tailwind.config.js redefines
    `red` as a single flat colour, so `bg-red-500` compiles to nothing at all
    and the outage bars render transparent. */
-const STATUS_CLOUDS = [
-    { top: '18%', width: 150, speed: '45s', direction: 'ltr' as const },
-    { top: '62%', width: 170, speed: '50s', direction: 'rtl' as const, delay: '6s' },
-]
-
 const BAR_COLORS: Record<BucketState, string> = {
     operational: 'bg-success-1',
     degraded: 'bg-secondary-1',
@@ -26,6 +22,103 @@ const BAR_COLORS: Record<BucketState, string> = {
 }
 
 const DOT_COLORS = BAR_COLORS
+
+/**
+ * The summary card — donut plus headline — is built, translated and tested,
+ * but not rendered: the page opens straight at App & Account. Flip this to
+ * bring it back.
+ */
+const SHOW_SUMMARY_CARD: boolean = false
+
+const RING_STROKES: Record<BucketState, string> = {
+    operational: 'stroke-success-1',
+    degraded: 'stroke-secondary-1',
+    down: 'stroke-error-5',
+    unknown: 'stroke-grey-2',
+}
+
+/**
+ * Donut of how many services are operational right now.
+ *
+ * Hand-rolled SVG rather than a chart library: this page has to render when
+ * the rest of the system is on fire, so it ships no client JS at all. The
+ * remaining arc takes the colour of the worst state present, so the shape says
+ * how much is broken and the colour says how badly.
+ */
+/**
+ * Share of Peanut that is working, as a percentage.
+ *
+ * The app and website carry half the figure on their own, and the rails split
+ * the other half. A user who cannot open Peanut at all has lost more than
+ * someone who can use everything except one deposit rail, and a flat
+ * per-service average would score those two the same.
+ */
+export function operationalScore(providers: StatusProvider[]): { operationalCount: number; percent: number } {
+    const operationalCount = providers.filter((p) => p.state === 'operational').length
+    const app = providers.find((p) => p.provider === 'app')
+    const rails = providers.filter((p) => p.provider !== 'app')
+    const railsOperational = rails.filter((p) => p.state === 'operational').length
+
+    const raw = app
+        ? (app.state === 'operational' ? 50 : 0) + (rails.length === 0 ? 50 : (railsOperational / rails.length) * 50)
+        : providers.length === 0
+          ? 0
+          : (operationalCount / providers.length) * 100
+
+    // Never round up to a whole 100% while something is still broken — the
+    // headline would say outage while the figure said everything was fine.
+    const percent = operationalCount === providers.length ? 100 : Math.min(99, Math.round(raw))
+    return { operationalCount, percent }
+}
+
+export function OperationalDonut({
+    operational,
+    total,
+    worstState,
+    percent,
+    label,
+}: {
+    operational: number
+    total: number
+    worstState: BucketState
+    percent: number
+    label: string
+}) {
+    const fraction = total === 0 ? 0 : operational / total
+    const remainderStroke = worstState === 'operational' ? RING_STROKES.unknown : RING_STROKES[worstState]
+    const R = 15.5
+    const circumference = 2 * Math.PI * R
+
+    return (
+        <svg viewBox="0 0 40 40" className="h-36 w-36 shrink-0" role="img" aria-label={label}>
+            {/* Rotated so the arc starts at 12 o'clock rather than 3. */}
+            <g transform="rotate(-90 20 20)">
+                <circle cx="20" cy="20" r={R} fill="none" className={remainderStroke} strokeWidth="7" />
+                {fraction > 0 && (
+                    <circle
+                        cx="20"
+                        cy="20"
+                        r={R}
+                        fill="none"
+                        className={RING_STROKES.operational}
+                        strokeWidth="7"
+                        strokeDasharray={`${(fraction * circumference).toFixed(3)} ${circumference.toFixed(3)}`}
+                    />
+                )}
+            </g>
+            <text
+                x="20"
+                y="20"
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="fill-n-1 font-bold"
+                fontSize="9"
+            >
+                {percent}%
+            </text>
+        </svg>
+    )
+}
 
 function headline(state: BucketState, i18n: Translations): string {
     if (state === 'down') return i18n.statusSomeDown
@@ -111,33 +204,46 @@ function IncidentList({
 
 export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary; locale: string; i18n: Translations }) {
     const byKey = new Map(summary.providers.map((p) => [p.provider, p]))
+    const { operationalCount, percent } = operationalScore(summary.providers)
+    const ratioLabel = t(i18n.statusServicesOperational, {
+        percent: String(percent),
+        operational: String(operationalCount),
+        total: String(summary.providers.length),
+    })
 
     return (
         <div className="bg-background">
-            {/* Same treatment as the marketing Hero — pink band, clouds, Roboto
-                Flex display face — but without its marquee and CTA: "No fees ·
-                Instant · 24/7" scrolling above a live outage is the wrong
-                thing to say. */}
-            <section className="relative overflow-hidden bg-primary-1 px-4 py-12 text-center md:px-8 md:py-16">
-                <CloudsCss clouds={STATUS_CLOUDS} />
-                <div className="relative z-10 mx-auto max-w-4xl">
-                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] font-extraBlack uppercase leading-[0.95] text-black md:text-[4rem]">
-                        {i18n.statusPageTitle}
-                    </h1>
-                    <p className="font-roboto-flex-extrabold mt-4 text-[1rem] uppercase text-black md:mt-6 md:text-[1.5rem]">
-                        {i18n.statusPageSubtitle}
-                    </p>
-                </div>
-            </section>
+            {/* The same Hero every marketing page uses (privacy, pricing, help),
+                so the pink band, its height, and the yellow marquee below it
+                match exactly. Subtitle is the window label rather than the
+                metadata description — a full sentence wraps to three lines at
+                the Hero's uppercase 2rem. */}
+            <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} />
 
-            <div className="mx-auto w-full max-w-3xl px-6 py-10">
-                <div className="flex items-center gap-3 rounded-md border border-grey-2 bg-white p-4">
-                    <span className={`h-3 w-3 shrink-0 rounded-full ${DOT_COLORS[summary.state]}`} />
-                    <span className="font-bold">{headline(summary.state, i18n)}</span>
-                </div>
+            <div className="mx-auto w-full max-w-3xl px-6 pb-12">
+                {SHOW_SUMMARY_CARD && (
+                    <div className="flex items-center gap-4 rounded-md border border-grey-2 bg-white p-4">
+                        <OperationalDonut
+                            operational={operationalCount}
+                            total={summary.providers.length}
+                            worstState={summary.state}
+                            percent={percent}
+                            label={ratioLabel}
+                        />
+                        <div>
+                            <p className="text-lg font-bold">{headline(summary.state, i18n)}</p>
+                            <p className="mt-1 text-sm text-grey-1">
+                                {t(i18n.statusServicesOperationalCount, {
+                                    operational: String(operationalCount),
+                                    total: String(summary.providers.length),
+                                })}
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {STATUS_GROUPS.map((group) => (
-                    <section key={group.label(i18n)} className="mt-10">
+                    <section key={group.label(i18n)} className="mt-10 first:mt-0">
                         <h2 className="text-xs font-bold uppercase tracking-wide text-grey-1">{group.label(i18n)}</h2>
                         <div className="mt-3 space-y-6">
                             {group.services.map((service) => {

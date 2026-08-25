@@ -56,6 +56,8 @@
     "statusSomeDegraded": "Alguns serviços degradados",
     "statusSomeDown": "Interrupção de serviço",
     "statusUnknown": "Status indisponível",
+    "statusServicesOperational": "{percent}% operacional — {operational} de {total} serviços",
+    "statusServicesOperationalCount": "{operational} de {total} serviços operacionais",
     "statusWindowLabel": "Últimas 72 horas",
     "statusUptimeLabel": "de disponibilidade",
     "statusNow": "agora",

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { StatusBoard } from './StatusBoard'
+import { OperationalDonut, StatusBoard, operationalScore } from './StatusBoard'
 import { getTranslations } from '@/i18n'
 import type { StatusProvider, StatusSummary } from './types'
 
@@ -40,7 +40,6 @@ describe('StatusBoard', () => {
     it('renders one 72-hour bar row per service, in user-facing language', () => {
         render(<StatusBoard summary={summary()} locale="en" i18n={i18n} />)
 
-        expect(screen.getByText('All systems operational')).toBeInTheDocument()
         expect(screen.getByText('Brazil (Pix / BRL)')).toBeInTheDocument()
         expect(screen.getByText('Peanut Card payments')).toBeInTheDocument()
         // Endpoint paths are what the old UptimeRobot page leaked; none here.
@@ -71,7 +70,6 @@ describe('StatusBoard', () => {
 
         render(<StatusBoard summary={withIncident} locale="en" i18n={i18n} />)
 
-        expect(screen.getByText('Service outage')).toBeInTheDocument()
         // The provider's own words never reach the page — a reader wondering
         // where their money is gets told what they lost and whether it is safe.
         expect(screen.queryByText(/Company blocked/)).not.toBeInTheDocument()
@@ -131,5 +129,54 @@ describe('StatusBoard', () => {
 
         expect(screen.getByText(/Aug 25, 02:05 PM/)).toBeInTheDocument()
         expect(screen.getByText('Times shown in UTC')).toBeInTheDocument()
+    })
+
+    // The summary card is hidden behind SHOW_SUMMARY_CARD; the page opens at
+    // the first group. The donut and its maths stay covered below.
+    it('opens at App & Account, with no summary card', () => {
+        render(<StatusBoard summary={summary()} locale="en" i18n={i18n} />)
+        expect(screen.queryByRole('img', { name: /operational —/ })).not.toBeInTheDocument()
+        expect(screen.queryByText(/services operational/)).not.toBeInTheDocument()
+        expect(screen.getByText('App & Account')).toBeInTheDocument()
+    })
+})
+
+describe('operationalScore', () => {
+    const providers = (down: string[] = []) =>
+        KEYS.map((key) => provider(key, down.includes(key) ? { state: 'down' } : {}))
+
+    it('is 100% when everything is up', () => {
+        expect(operationalScore(providers())).toEqual({ operationalCount: 9, percent: 100 })
+    })
+
+    // Losing the app is worth more than losing one deposit rail; a flat
+    // per-service average would score those two the same.
+    it('gives the app half the score on its own', () => {
+        expect(operationalScore(providers(['app'])).percent).toBe(50)
+    })
+
+    it('splits the other half evenly across the rails', () => {
+        // app up (50) + 7 of 8 rails (43.75) = 93.75 → 94.
+        expect(operationalScore(providers(['rain'])).percent).toBe(94)
+    })
+
+    it('never rounds up to 100 while something is down', () => {
+        const many = [...Array(200)].map((_, i) => provider(`rail-${i}`))
+        many[0] = provider('app')
+        many[1] = provider('rail-1', { state: 'down' })
+        expect(operationalScore(many).percent).toBe(99)
+    })
+
+    it('falls back to a flat average when the app is absent from the feed', () => {
+        const railsOnly = KEYS.filter((k) => k !== 'app').map((key) => provider(key))
+        expect(operationalScore(railsOnly).percent).toBe(100)
+    })
+})
+
+describe('OperationalDonut', () => {
+    it('renders the figure and labels the arc for screen readers', () => {
+        render(<OperationalDonut operational={7} total={9} worstState="down" percent={88} label="88% operational" />)
+        expect(screen.getByText('88%')).toBeInTheDocument()
+        expect(screen.getByRole('img', { name: '88% operational' })).toBeInTheDocument()
     })
 })
