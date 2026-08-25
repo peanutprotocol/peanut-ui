@@ -3899,7 +3899,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: 'text',
         usages: 11,
         status: 'adhoc',
-        source: 'src/app/not-found.tsx; src/app/shhhhh/ShhhhhLandingPage.tsx:359,491; src/app/(mobile-ui)/qr-pay/page.tsx:1518; src/app/(mobile-ui)/notifications/page.tsx; src/components/Settings/DeleteAccountButton.tsx:97; src/components/Home/ActivationCTAs.tsx; src/components/Home/PerkClaimModal.tsx; src/components/TransactionDetails/provider-rows/BridgeDepositInstructions.tsx:58; src/components/Global/InvitesGraph/index.tsx; src/components/Global/QRScanner/index.tsx:123',
+        source: 'src/app/not-found.tsx; src/app/shhhhh/ShhhhhLandingPage.tsx:359,491; src/app/(mobile-ui)/qr-pay/page.tsx:1518; src/components/Settings/DeleteAccountButton.tsx:97; src/components/Home/ActivationCTAs.tsx; src/components/Home/PerkClaimModal.tsx; src/components/TransactionDetails/provider-rows/BridgeDepositInstructions.tsx:58; src/components/Global/InvitesGraph/index.tsx; src/components/Global/QRScanner/index.tsx:123',
         notes: "Still 11, but the excuse is gone: LinkButton now EXISTS (20 sites) and is exactly this component. These 11 disagree on color (text-black / text-grey-1 / text-foreground-error / text-white / text-purple-900), size and underline-offset. Migrate to <LinkButton>. Counted by hand — the tag and its className land on different lines, so no single-line ERE can express it; recipe: grep -rEn --include='*.tsx' -A4 '<button' src, drop /dev/ and tests, keep lines containing 'underline'.",
     },
     {
