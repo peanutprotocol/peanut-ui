@@ -252,9 +252,10 @@ const PointsPage = () => {
                 {/* invite graph with consolidated explanation */}
                 {myGraphResult?.data && (
                     <>
-                        {/* only render the graph when there are people to show — an
-                            empty graph renders as a blank box (demo / no invites yet) */}
-                        {myGraphResult.data.nodes?.length > 0 && (
+                        {/* only render the graph when there are people to show — a
+                            single node is just the user themselves and renders as a
+                            giant lone blob (no invites yet) */}
+                        {myGraphResult.data.nodes?.length > 1 && (
                             <Card className="!mt-8 overflow-hidden p-0">
                                 <InvitesGraph
                                     minimal
@@ -341,25 +342,24 @@ const PointsPage = () => {
                     </>
                 ) : (
                     <>
-                        {/* if user has no invites: show empty state with modal button */}
-                        <Card className="!mt-8 flex flex-col items-center justify-center gap-4 py-4">
-                            <div className="flex items-center justify-center rounded-full bg-action-primary p-2">
-                                <Icon name="trophy" />
-                            </div>
-                            <h2 className="text-body-m font-medium text-foreground-primary">{t('noInvitesYet')}</h2>
-
-                            <p className="text-center text-body-s text-foreground-secondary">
-                                {t('shareInviteLinkPrompt')}
-                            </p>
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                onClick={() => setIsInviteModalOpen(true)}
-                                className="w-full"
-                            >
-                                {t('shareInviteLink')}
-                            </Button>
-                        </Card>
+                        {/* if user has no invites: canonical empty state with modal button */}
+                        <EmptyState
+                            icon="trophy"
+                            title={t('noInvitesYet')}
+                            description={t('shareInviteLinkPrompt')}
+                            containerClassName="!mt-8"
+                            cta={
+                                <Button
+                                    variant="purple"
+                                    shadowSize="4"
+                                    size="small"
+                                    className="mt-2"
+                                    onClick={() => setIsInviteModalOpen(true)}
+                                >
+                                    {t('shareInviteLink')}
+                                </Button>
+                            }
+                        />
                     </>
                 )}
 

@@ -20,7 +20,9 @@ import { type PointsInvite } from '@/services/services.types'
 import { formatPoints } from '@/utils/format.utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import { Button } from '@/components/0_Bruddle/Button'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { isIOSNative } from '@/utils/capacitor'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
@@ -31,6 +33,7 @@ const InvitesPage = () => {
     const router = useRouter()
     const onBack = useSafeBack('/rewards')
     const { user } = useAuth()
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const listRef = useRef(null)
     const listInView = useInView(listRef, { once: true, margin: '-50px' })
 
@@ -66,6 +69,41 @@ const InvitesPage = () => {
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <EmptyState icon="alert" title={t('loadInvitesFailed')} description={t('contactSupport')} />
             </div>
+        )
+    }
+
+    // zero invites — the summary card and "people you invited" heading over a
+    // blank list say nothing; show the canonical empty state with the existing
+    // invite modal instead
+    if (!invites?.invitees || invites.invitees.length === 0) {
+        return (
+            <PageContainer className="flex flex-col">
+                <NavHeader title={t('invitesTitle')} onPrev={onBack} />
+                <div className="mx-auto my-auto w-full">
+                    <EmptyState
+                        icon="trophy"
+                        title={t('noInvitesYet')}
+                        description={t('shareInviteLinkPrompt')}
+                        cta={
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                size="small"
+                                className="mt-2"
+                                onClick={() => setIsInviteModalOpen(true)}
+                            >
+                                {t('shareInviteLink')}
+                            </Button>
+                        }
+                    />
+                </div>
+                <InviteFriendsModal
+                    visible={isInviteModalOpen}
+                    onClose={() => setIsInviteModalOpen(false)}
+                    username={user?.user.username ?? ''}
+                    source="invites_page"
+                />
+            </PageContainer>
         )
     }
 

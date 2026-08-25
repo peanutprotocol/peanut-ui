@@ -31,7 +31,7 @@ const MantecaLimitsView = () => {
     const t = useTranslations('limits.provider')
     const tPeriod = useTranslations('limits.period')
     const onBack = useSafeBack('/limits')
-    const { mantecaLimits, isLoading, error } = useLimits()
+    const { mantecaLimits, isLoading, error, refetch, isRefetching } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
 
     return (
@@ -40,7 +40,7 @@ const MantecaLimitsView = () => {
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
 
-            {error && <LimitsError />}
+            {error && <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />}
 
             {!isLoading && !error && mantecaLimits && mantecaLimits.length > 0 && (
                 <>

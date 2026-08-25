@@ -44,7 +44,7 @@ export function useLimits(options: UseLimitsOptions = {}) {
         return await response.json()
     }
 
-    const { data, isLoading, error, refetch } = useQuery({
+    const { data, isLoading, error, refetch, isRefetching } = useQuery({
         queryKey: [LIMITS],
         queryFn: fetchLimits,
         enabled,
@@ -61,6 +61,7 @@ export function useLimits(options: UseLimitsOptions = {}) {
         isLoading,
         error,
         refetch,
+        isRefetching,
         // convenience flags
         hasBridgeLimits: !!data?.bridge,
         hasMantecaLimits: !!data?.manteca && data.manteca.length > 0,

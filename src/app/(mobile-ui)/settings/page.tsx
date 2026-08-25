@@ -20,7 +20,7 @@ const SettingsPage = () => {
     const tSettings = useTranslations('settings')
 
     return (
-        <PageStack className="justify-between">
+        <PageStack>
             <NavHeader titleKey="settings" />
             <ListGroup>
                 <ListItem
@@ -30,20 +30,22 @@ const SettingsPage = () => {
                     onClick={() => router.push('/settings/language')}
                 />
             </ListGroup>
-            <Button
-                loading={isLoggingOut}
-                disabled={isLoggingOut}
-                variant="primary-soft"
-                shadowSize="4"
-                className="w-full"
-                onClick={async () => {
-                    await logoutUser()
-                    queryClient.invalidateQueries()
-                }}
-            >
-                <Icon name="logout" size={20} fill="black" />
-                <span className="font-bold">{tNav('logout')}</span>
-            </Button>
+            <PageStack.Footer>
+                <Button
+                    loading={isLoggingOut}
+                    disabled={isLoggingOut}
+                    variant="primary-soft"
+                    shadowSize="4"
+                    className="w-full"
+                    onClick={async () => {
+                        await logoutUser()
+                        queryClient.invalidateQueries()
+                    }}
+                >
+                    <Icon name="logout" size={20} fill="black" />
+                    <span className="font-bold">{tNav('logout')}</span>
+                </Button>
+            </PageStack.Footer>
         </PageStack>
     )
 }

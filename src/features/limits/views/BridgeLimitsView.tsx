@@ -28,7 +28,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 const BridgeLimitsView = () => {
     const t = useTranslations('limits.provider')
     const onBack = useSafeBack('/limits')
-    const { bridgeLimits, isLoading, error, hasMantecaLimits } = useLimits()
+    const { bridgeLimits, isLoading, error, hasMantecaLimits, refetch, isRefetching } = useLimits()
 
     // url state for source region (where user came from)
     const [region] = useQueryState(
@@ -54,7 +54,7 @@ const BridgeLimitsView = () => {
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
 
-            {error && <LimitsError />}
+            {error && <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />}
 
             {!isLoading && !error && bridgeLimits && (
                 <>
