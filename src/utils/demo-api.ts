@@ -750,6 +750,11 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
                 signal: controller.signal,
             })
             if (res.ok) return res
+            // a 404 is a definitive answer ("not known"), not a passthrough
+            // failure — forward it so fetchTokenPrice's 404→undefined contract
+            // holds in demo mode. 5xx/timeouts still fall through to the canned
+            // handlers (the fx trio's designed best-effort degradation).
+            if (res.status === 404) return res
         } catch {
             // fall through to the canned handler below (the FX trio has one)
         } finally {

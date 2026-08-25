@@ -10,6 +10,7 @@ import { KycStatusItem } from '@/components/Kyc/KycStatusItem'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { useUserStore } from '@/redux/hooks'
 import { getUserPreferences } from '@/utils/general.utils'
 import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
@@ -48,6 +49,9 @@ const HistoryPage = () => {
     const format = useFormatter()
     const { user } = useUserStore()
     const queryClient = useQueryClient()
+    // one `?tx=` subscription for the whole list — rows are memo'd and get
+    // isSelected/open/close as props (see useTransactionDetailsDrawer)
+    const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { fetchUser } = useAuth()
     // Synthetic card-unlock row inputs — same cached queries HomeHistory uses.
     const { cardInfo } = useCardInfo()
@@ -338,6 +342,9 @@ const HistoryPage = () => {
                                             position={position}
                                             haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
                                             hideTxnAmount={hideTxnAmount}
+                                            isSelected={isTransactionSelected(transactionDetails.id)}
+                                            onOpen={openTransactionDetails}
+                                            onClose={closeTransactionDetails}
                                         />
                                     )
                                 })()

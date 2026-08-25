@@ -4,6 +4,7 @@ import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { Section } from '@/components/0_Bruddle/Section'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import type { IntentKind } from '@/components/TransactionDetails/strategies/registry'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useUserStore } from '@/redux/hooks'
@@ -60,6 +61,9 @@ const HomeHistory = ({
 }) => {
     const t = useTranslations('home.history')
     const { user } = useUserStore()
+    // one `?tx=` subscription for the whole widget — rows are memo'd and get
+    // isSelected/open/close as props (see useTransactionDetailsDrawer)
+    const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const isLoggedIn = !!user?.user.userId || false
     // Only filter when user is requesting for some different user's history
     const filterMutualTxs = username !== user?.user.username
@@ -441,6 +445,9 @@ const HomeHistory = ({
                                     isPending={true}
                                     haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
                                     hideTxnAmount={hideTxnAmount}
+                                    isSelected={isTransactionSelected(transactionDetails.id)}
+                                    onOpen={openTransactionDetails}
+                                    onClose={closeTransactionDetails}
                                 />
                             )
                         })}
@@ -520,6 +527,9 @@ const HomeHistory = ({
                                 position={position}
                                 haveSentMoneyToUser={haveSentMoneyToUser}
                                 hideTxnAmount={hideTxnAmount}
+                                isSelected={isTransactionSelected(transactionDetails.id)}
+                                onOpen={openTransactionDetails}
+                                onClose={closeTransactionDetails}
                             />
                         )
                     })}

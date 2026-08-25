@@ -171,9 +171,7 @@ export const ConfirmClaimLinkView = ({
 
     return (
         <PageStack className="justify-between">
-            <div className="md:hidden">
-                <NavHeader title={tNav('claim')} onPrev={onPrev} />
-            </div>
+            <NavHeader title={tNav('claim')} onPrev={onPrev} />
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     transactionType="CLAIM_LINK"
