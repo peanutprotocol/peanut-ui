@@ -9,7 +9,6 @@ import * as Sentry from '@sentry/nextjs'
 import { isCapacitor } from './capacitor'
 import { currentCeremonyId, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
 
-const VERIFY_URL_PATTERN = /\/passkeys\/(login|register)\/verify/
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
 // reaches Sentry only as an opaque "Login not verified" (PEANUT-UI-R0X) with
 // no hint of WHICH server check failed — report non-2xx responses here.
