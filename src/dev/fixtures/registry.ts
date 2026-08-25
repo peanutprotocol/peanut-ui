@@ -5,9 +5,9 @@
 // balance, four contacts, four history entries and working rails. A fixture
 // only states what differs, so most screen defaults need no overrides at all.
 //
-// Account shapes below are adapted from e2e/utils/mock-api.ts, whose responses
-// were checked against production on 2026-04-16. The duplication is on purpose
-// and temporary — the two systems merge later.
+// Account shapes below are adapted from the old e2e/utils/mock-api.ts, whose
+// responses were checked against production on 2026-04-16. That file is gone;
+// this registry replaced it.
 
 import type { Fixture } from './types'
 
