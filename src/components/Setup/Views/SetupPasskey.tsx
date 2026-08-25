@@ -11,7 +11,7 @@ import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useRef, useState } from 'react'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
-import { classifyPasskeyError, WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
+import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -128,8 +128,14 @@ const SetupPasskey = () => {
             if (isCeremonyGuardError(error)) {
                 if (error.name === 'CeremonyTimeoutError' && (await isUsernameTaken(username))) {
                     setUsernameTaken(true)
+                } else if (error.name === 'CeremonyTimeoutError') {
+                    setInlineError(t('passkey.tookTooLong'))
+                } else if (error.name === 'PasskeyShimNotReadyError') {
+                    setInlineError(t('passkey.notReady'))
+                } else if (error.name === 'CeremonyConflictError') {
+                    setInlineError(t('passkey.interrupted'))
                 } else {
-                    setInlineError(classifyPasskeyError(error).message)
+                    setInlineError(t('passkey.deviceState'))
                 }
                 return
             }
