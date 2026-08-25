@@ -23,9 +23,11 @@ import { extendTailwindMerge } from 'tailwind-merge'
 
 // text-heading-m, text-body-m-semibold, text-label-l, text-button-s, and the
 // bare/legacy entries in the same block: text-heading, text-display, text-0,
-// text-h1..h10. Tailwind's own names (text-sm, text-6xl…) are re-declared in
+// text-h1..h10, plus the camelCase pair text-headingLarge/text-headingMedium.
+// Tailwind's own names (text-sm, text-6xl…) are re-declared in
 // the block but already sit in the stock font-size group, so they stay out.
-const DS_TYPE_TOKEN = /^(?:heading|body|label|button)(?:-[a-z0-9-]+)?$|^(?:display|0|h(?:10|[1-9]))$/
+const DS_TYPE_TOKEN =
+    /^(?:heading|body|label|button)(?:-[a-z0-9-]+)?$|^(?:headingLarge|headingMedium|display|0|h(?:10|[1-9]))$/
 
 // `--radius-round` (999px) and `--radius-1` (1px). Stock tailwind-merge only
 // knows its own t-shirt radii, so it leaves `rounded-round` unrecognised: a
@@ -40,6 +42,11 @@ export const twMerge = extendTailwindMerge({
     extend: {
         classGroups: {
             'font-size': [{ text: [(value: string) => DS_TYPE_TOKEN.test(value)] }],
+            // `--font-weight-extraBlack` yields `font-extraBlack`, which stock
+            // tailwind-merge puts in the font-FAMILY group — so `font-sans`
+            // deleted the weight. Register it as a weight so it merges with
+            // font-bold and coexists with families.
+            'font-weight': [{ font: ['extraBlack'] }],
             rounded: [{ rounded: [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
         },
     },
