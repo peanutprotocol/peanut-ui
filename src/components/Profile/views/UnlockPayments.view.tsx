@@ -664,18 +664,18 @@ const UnlockGroupCard = ({
                 Everywhere group always states that — it is the one limit that
                 exists before any unlock. */}
             {group.id === 'everywhere' && (
-                <div className="border-t border-n-1 px-3 py-2 dark:border-white">
-                    <p className="text-[11px] text-grey-1">{t('limits.p2pNoLimit')}</p>
+                <div className="border-t border-n-1 bg-primary-3 px-3 py-2 dark:border-white dark:bg-n-2">
+                    <p className="text-[11px] text-grey-1 dark:text-white">{t('limits.p2pNoLimit')}</p>
                 </div>
             )}
             {limitSummariesForGroup(group, mantecaLimits, bridgeLimits).map((summary) => (
                 <div
                     key={summary.kind === 'manteca' ? summary.asset : 'bridge'}
-                    className="border-t border-n-1 px-3 py-2 dark:border-white"
+                    className="border-t border-n-1 bg-primary-3 px-3 py-2 dark:border-white dark:bg-n-2"
                 >
                     {summary.kind === 'manteca' ? (
                         <>
-                            <p className="mb-1 text-[11px] text-grey-1">
+                            <p className="mb-1 text-[11px] text-grey-1 dark:text-white">
                                 {t('limits.monthlyLeft', {
                                     remaining: formatAmountWithCurrency(summary.monthlyRemaining, summary.asset),
                                     limit: formatAmountWithCurrency(summary.monthlyLimit, summary.asset),
@@ -684,7 +684,7 @@ const UnlockGroupCard = ({
                             <LimitsProgressBar total={summary.monthlyLimit} remaining={summary.monthlyRemaining} />
                         </>
                     ) : (
-                        <p className="text-[11px] text-grey-1">
+                        <p className="text-[11px] text-grey-1 dark:text-white">
                             {t('limits.perTransfer', { amount: summary.perTransaction })}
                         </p>
                     )}
