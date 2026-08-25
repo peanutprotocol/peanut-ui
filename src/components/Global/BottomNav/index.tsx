@@ -205,7 +205,7 @@ export const BottomNav = () => {
     }
 
     return (
-        <nav className="flex w-full items-center gap-4 bg-background-page px-6 py-2" translate="no">
+        <nav className="flex w-full items-center gap-4 px-6 py-2" translate="no">
             <div
                 ref={barRef}
                 onClickCapture={(e) => {
