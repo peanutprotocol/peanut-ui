@@ -71,9 +71,10 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
     const label = customText || t(STATUS_LABEL_KEYS[status] ?? 'status.unknown')
 
     // board 17802:61533: small = px S/8 + py XXS/2 + Label/M, medium = px M/12
-    // + py XS/4 + Label/L. The sizes were right, the type was raw tailwind —
-    // text-[10px]/text-xs/text-sm are not on the DS type scale at all. `large`
-    // has no board row; it keeps its padding and takes the nearest label step.
+    // + py XS/4 + Label/L. The paddings were already right; the type was raw
+    // stock tailwind (a 10px arbitrary and two stock steps), none of which is
+    // on the DS type scale. `large` has no board row, so it keeps its padding
+    // and takes the nearest label step.
     const getSizeClasses = () => {
         switch (size) {
             case 'medium':
