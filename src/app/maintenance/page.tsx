@@ -14,11 +14,11 @@ const MaintenancePage = () => {
             {/* The canvas sizes itself to this box, so the height has to be
                 definite — h-screen above gives the column one, but the box needs
                 its own. 250px matches the mascot it replaces. */}
-            <div aria-hidden="true" className="size-[250px] overflow-hidden rounded-sm border border-n-1">
+            <div aria-hidden="true" className="size-[250px] overflow-hidden rounded-sm border border-border-default">
                 {PeanutRagdoll && <PeanutRagdoll />}
             </div>
             <h1 className="text-3xl font-bold text-black">We&apos;re doing some maintenance.</h1>
-            <p className="max-w-md text-center text-lg text-grey-1">
+            <p className="max-w-md text-center text-lg text-foreground-secondary">
                 We&apos;ve taken the app offline to fix something. Check back in a few minutes — we&apos;ll have it
                 running again as soon as we can.
             </p>

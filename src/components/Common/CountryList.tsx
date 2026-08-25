@@ -175,7 +175,11 @@ export const CountryList = ({
                                 position={'single'}
                                 chevron
                                 leading={
-                                    <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
+                                    <AvatarWithBadge
+                                        icon="wallet-outline"
+                                        size="extra-small"
+                                        className="bg-action-secondary"
+                                    />
                                 }
                             />
                         </div>

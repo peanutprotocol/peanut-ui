@@ -166,7 +166,7 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
                             </div>
                             <div className="flex-1 text-center md:text-left">
                                 <h1 className="mb-2 text-2xl font-black text-black md:text-3xl">{questConfig.title}</h1>
-                                <p className="text-gray-700 text-sm">{questConfig.explainer}</p>
+                                <p className="text-sm">{questConfig.explainer}</p>
                             </div>
                         </div>
                     </motion.div>
@@ -192,18 +192,16 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
                           !useTestTimePeriod ? (
                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                                 <div className="mb-4 text-5xl">⏰</div>
-                                <p className="text-gray-700 mb-2 text-lg font-bold">Coming Soon!</p>
-                                <p className="text-gray-500 text-sm">
-                                    Leaderboard will be available on November 17th, 2025
-                                </p>
+                                <p className="mb-2 text-lg font-bold">Coming Soon!</p>
+                                <p className="text-sm">Leaderboard will be available on November 17th, 2025</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
                                 {leaderboard.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                                         <div className="mb-4 text-4xl">🏆</div>
-                                        <p className="text-gray-700 mb-2 text-lg font-bold">No entries yet</p>
-                                        <p className="text-gray-500 text-sm">Be the first to compete!</p>
+                                        <p className="mb-2 text-lg font-bold">No entries yet</p>
+                                        <p className="text-sm">Be the first to compete!</p>
                                     </div>
                                 ) : (
                                     <QuestLeaderboard

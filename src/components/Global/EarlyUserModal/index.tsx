@@ -42,7 +42,7 @@ const EarlyUserModal = () => {
             onClose={handleCloseModal}
             content={
                 <>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-sm text-foreground-secondary">
                         <span className="block">{t('earlyUserModal.inviteOnly')}</span>
                         <span>{t.rich('earlyUserModal.earnRules', { b: (chunks) => <b>{chunks}</b> })}</span>
                     </p>
@@ -50,7 +50,7 @@ const EarlyUserModal = () => {
                     <ShareButton url={inviteLink} title={t('earlyUserModal.shareSheetTitle')}>
                         {t('earlyUserModal.shareCta')}
                     </ShareButton>
-                    <DocsLink href="/en/help" className="text-sm text-grey-1 underline">
+                    <DocsLink href="/en/help" className="text-sm text-foreground-secondary underline">
                         {t('earlyUserModal.learnMore')}
                     </DocsLink>
                 </>

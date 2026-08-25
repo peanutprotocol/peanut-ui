@@ -26,7 +26,7 @@ export default function TokenAndNetworkConfirmationModal({
             visible={isVisible}
             onClose={onClose}
             icon={'alert'}
-            iconContainerClassName="bg-yellow-1"
+            iconContainerClassName="bg-action-secondary"
             modalClassName="z-[9999]"
             title={t('tokenAndNetworkConfirmationModal.title')}
             description={

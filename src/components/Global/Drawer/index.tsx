@@ -107,7 +107,11 @@ const DrawerDescription = React.forwardRef<
     React.ElementRef<typeof DrawerPrimitive.Description>,
     React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
 >(({ className, ...props }, ref) => (
-    <DrawerPrimitive.Description ref={ref} className={twMerge('text-sm text-grey-1', className)} {...props} />
+    <DrawerPrimitive.Description
+        ref={ref}
+        className={twMerge('text-sm text-foreground-secondary', className)}
+        {...props}
+    />
 ))
 DrawerDescription.displayName = DrawerPrimitive.Description.displayName
 

@@ -328,7 +328,7 @@ export default function SendLinkActionList({
                         onClick: () => setShowMinAmountError(false),
                     },
                 ]}
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName=""
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />

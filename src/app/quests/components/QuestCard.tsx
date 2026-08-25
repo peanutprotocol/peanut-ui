@@ -48,13 +48,13 @@ export function QuestCard({
     const getBadgeColorClasses = (color: string) => {
         switch (color) {
             case 'YELLOW':
-                return 'bg-yellow-100 text-yellow-700'
+                return ''
             case 'PINK':
                 return 'bg-pink-100 text-pink-700'
             case 'BLUE':
                 return 'bg-blue-100 text-blue-700'
             default:
-                return 'bg-gray-100 text-gray-700'
+                return ''
         }
     }
 
@@ -75,7 +75,7 @@ export function QuestCard({
                 </div>
                 <div className="flex-1">
                     <h3 className="text-lg font-black text-black md:text-xl">{title}</h3>
-                    <p className="text-gray-600 text-xs md:text-sm">{description}</p>
+                    <p className="text-xs md:text-sm">{description}</p>
                 </div>
             </div>
 
@@ -88,14 +88,14 @@ export function QuestCard({
                 ) : leaderboard.length === 0 && !hasUserData && questStatus === 'not_started' && !useTestTimePeriod ? (
                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                         <div className="mb-3 text-4xl">⏰</div>
-                        <p className="text-gray-700 text-sm font-bold">Coming Soon!</p>
-                        <p className="text-gray-500 text-xs">Starts Nov 17th</p>
+                        <p className="text-sm font-bold">Coming Soon!</p>
+                        <p className="text-xs">Starts Nov 17th</p>
                     </div>
                 ) : leaderboard.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                         <div className="mb-3 text-3xl">🏆</div>
-                        <p className="text-gray-700 text-sm font-bold">No entries yet</p>
-                        <p className="text-gray-500 text-xs">Be the first!</p>
+                        <p className="text-sm font-bold">No entries yet</p>
+                        <p className="text-xs">Be the first!</p>
                     </div>
                 ) : (
                     <>
@@ -119,7 +119,7 @@ export function QuestCard({
                                     {/* Username */}
                                     <div className="flex min-w-0 flex-col">
                                         <div className="flex items-center gap-1.5 md:gap-2">
-                                            <span className="text-gray-900 truncate text-sm font-bold md:text-base">
+                                            <span className="truncate text-sm font-bold md:text-base">
                                                 {entry.username}
                                             </span>
                                             {entry.rank <= 3 && (

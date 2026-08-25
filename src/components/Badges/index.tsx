@@ -94,7 +94,7 @@ export const Badges = () => {
                     ))}
                 </div>
 
-                <div className="flex items-center justify-center gap-2 text-xs text-grey-1">
+                <div className="flex items-center justify-center gap-2 text-xs text-foreground-secondary">
                     <Icon name="info" width={16} height={16} />
                     <span>{t('publicProfileNote')}</span>
                 </div>

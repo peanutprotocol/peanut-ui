@@ -99,7 +99,7 @@ const Navigation = memo(function Navigation({
             <div className="flex items-center gap-3">
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-grey-1">{t('skip')}</span>
+                        <span className="text-foreground-secondary">{t('skip')}</span>
                     </Button>
                 )}
                 {showLogoutButton && (
@@ -181,7 +181,7 @@ const ImageSection = ({
             className={classNames(
                 containerClass,
                 'flex w-full flex-row items-center justify-center bg-secondary-3/100 md:h-[100dvh] md:w-7/12',
-                screenId === 'success' && 'bg-secondary-1/15'
+                screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
             <Image

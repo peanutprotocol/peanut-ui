@@ -183,7 +183,7 @@ export function SemanticRequestInputView() {
 
                 {/* hint for free transactions */}
                 {showTokenSelector && selectedTokenAddress && selectedChainID && !isUsingPeanutDefault && (
-                    <div className="pt-1 text-center text-xs text-grey-1">
+                    <div className="pt-1 text-center text-xs text-foreground-secondary">
                         <span>{t('input.freeTransactionsHint')}</span>
                     </div>
                 )}

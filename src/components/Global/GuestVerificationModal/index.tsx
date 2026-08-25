@@ -32,7 +32,7 @@ export const GuestVerificationModal = ({
             title={t('guestVerificationModal.title')}
             description={description}
             icon="alert"
-            iconContainerClassName="bg-yellow-400"
+            iconContainerClassName=""
             ctaClassName="md:flex-col gap-4"
             ctas={[
                 {

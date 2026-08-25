@@ -329,7 +329,7 @@ const SumsubWebSdkModal = ({
                 title: t('wrapper.troubleTitle'),
                 description: t('wrapper.troubleDescription'),
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-primary-1',
+                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('wrapper.chatWithSupport'),
@@ -351,7 +351,7 @@ const SumsubWebSdkModal = ({
             title: t('wrapper.exitForNowTitle'),
             description: t('wrapper.exitForNowDescription'),
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-secondary-1',
+            iconContainerClassName: 'bg-action-secondary',
             ctas: [
                 {
                     text: t('wrapper.exit'),
@@ -397,7 +397,7 @@ const SumsubWebSdkModal = ({
                                 }}
                                 className="flex items-center gap-1 p-1"
                             >
-                                <Icon name="peanut-support" size={20} className="text-grey-1" />
+                                <Icon name="peanut-support" size={20} className="text-foreground-secondary" />
                             </button>
                             <button onClick={handleCloseButton} className="p-1">
                                 <Icon name="cancel" size={24} />

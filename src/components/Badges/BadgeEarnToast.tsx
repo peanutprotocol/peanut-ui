@@ -85,7 +85,7 @@ export default function BadgeEarnToast() {
             id: toastId,
             type: 'success',
             duration: 6000,
-            className: 'border-yellow-1',
+            className: 'border-action-secondary',
             content: (
                 <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
                     <BadgeImage

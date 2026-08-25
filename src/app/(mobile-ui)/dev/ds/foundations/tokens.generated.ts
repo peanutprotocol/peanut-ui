@@ -56,11 +56,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "secondary-2",
-        "value": "#e99898",
-        "section": "legacy"
-    },
-    {
         "name": "secondary-3",
         "value": "#90a8ed",
         "section": "legacy"
@@ -68,11 +63,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
     {
         "name": "secondary-4",
         "value": "#fff4cc",
-        "section": "legacy"
-    },
-    {
-        "name": "secondary-5",
-        "value": "#fbeaea",
         "section": "legacy"
     },
     {
@@ -88,11 +78,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
     {
         "name": "secondary-8",
         "value": "#d4b6ff",
-        "section": "legacy"
-    },
-    {
-        "name": "secondary-9",
-        "value": "#d6e1ff",
         "section": "legacy"
     },
     {
@@ -116,28 +101,8 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "outline-1",
-        "value": "#98e9ab",
-        "section": "legacy"
-    },
-    {
-        "name": "outline-2",
-        "value": "#ae7aff",
-        "section": "legacy"
-    },
-    {
-        "name": "outline-3",
-        "value": "#e99898",
-        "section": "legacy"
-    },
-    {
         "name": "purple-1",
         "value": "#ff90e8",
-        "section": "legacy"
-    },
-    {
-        "name": "purple-2",
-        "value": "#dc78b5",
         "section": "legacy"
     },
     {
@@ -146,48 +111,8 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "purple-4",
-        "value": "#ae7aff",
-        "section": "legacy"
-    },
-    {
-        "name": "purple-5",
-        "value": "#ede4fd",
-        "section": "legacy"
-    },
-    {
-        "name": "purple-6",
-        "value": "#9d7efe",
-        "section": "legacy"
-    },
-    {
         "name": "yellow-1",
         "value": "#ffc900",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-2",
-        "value": "#f5ff7c",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-3",
-        "value": "#fbfdd8",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-4",
-        "value": "#fae8a4",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-5",
-        "value": "#ffd25c",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-6",
-        "value": "#885b00",
         "section": "legacy"
     },
     {
@@ -206,11 +131,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "yellow-10",
-        "value": "#fefce8",
-        "section": "legacy"
-    },
-    {
         "name": "yellow-11",
         "value": "#ca8a04",
         "section": "legacy"
@@ -221,18 +141,8 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "green-2",
-        "value": "#eafbee",
-        "section": "legacy"
-    },
-    {
         "name": "teal-1",
         "value": "#23a094",
-        "section": "legacy"
-    },
-    {
-        "name": "teal-3",
-        "value": "#00577d",
         "section": "legacy"
     },
     {
@@ -253,11 +163,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
     {
         "name": "gray-4",
         "value": "#d1d5db",
-        "section": "legacy"
-    },
-    {
-        "name": "gray-5",
-        "value": "#60646c",
         "section": "legacy"
     },
     {
@@ -283,16 +188,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
     {
         "name": "violet-3",
         "value": "#6340df",
-        "section": "legacy"
-    },
-    {
-        "name": "violet-9",
-        "value": "#f1ebf8",
-        "section": "legacy"
-    },
-    {
-        "name": "cyan-1",
-        "value": "#4cccef",
         "section": "legacy"
     },
     {

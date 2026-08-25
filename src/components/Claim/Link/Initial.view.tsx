@@ -1094,7 +1094,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     </div>
                 }
                 icon="alert"
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName=""
                 footer={
                     <div className="space-y-3 w-full">
                         <SlideToConfirm

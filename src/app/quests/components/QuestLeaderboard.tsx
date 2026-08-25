@@ -18,13 +18,13 @@ export function QuestLeaderboard({ entries, badgeColor, isCurrency = false }: Qu
     const getBadgeColorClasses = (color: string) => {
         switch (color) {
             case 'YELLOW':
-                return 'bg-yellow-100 text-yellow-700'
+                return ''
             case 'PINK':
                 return 'bg-pink-100 text-pink-700'
             case 'BLUE':
                 return 'bg-blue-100 text-blue-700'
             default:
-                return 'bg-gray-100 text-gray-700'
+                return ''
         }
     }
 
@@ -45,17 +45,13 @@ export function QuestLeaderboard({ entries, badgeColor, isCurrency = false }: Qu
                             {entry.rank === 1 && <span className="text-xl md:text-2xl">🥇</span>}
                             {entry.rank === 2 && <span className="text-xl md:text-2xl">🥈</span>}
                             {entry.rank === 3 && <span className="text-xl md:text-2xl">🥉</span>}
-                            {entry.rank > 3 && (
-                                <span className="text-gray-400 text-base font-bold md:text-lg">#{entry.rank}</span>
-                            )}
+                            {entry.rank > 3 && <span className="text-base font-bold md:text-lg">#{entry.rank}</span>}
                         </div>
 
                         {/* Username */}
                         <div className="flex min-w-0 flex-col">
                             <div className="flex items-center gap-1.5 md:gap-2">
-                                <span className="text-gray-900 truncate text-sm font-bold md:text-base">
-                                    {entry.username}
-                                </span>
+                                <span className="truncate text-sm font-bold md:text-base">{entry.username}</span>
                                 {entry.rank <= 3 && (
                                     <span
                                         className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold md:px-2 md:text-xs ${getBadgeColorClasses(badgeColor)}`}

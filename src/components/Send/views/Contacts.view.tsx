@@ -181,9 +181,7 @@ export default function ContactsView() {
                             {/* infinite scroll loader */}
                             <div ref={loaderRef} className="w-full py-4">
                                 {isFetchingNextPage && (
-                                    <div className="text-gray-500 w-full text-center text-sm">
-                                        {t('contacts.loadingMore')}
-                                    </div>
+                                    <div className="w-full text-center text-sm">{t('contacts.loadingMore')}</div>
                                 )}
                             </div>
                         </div>

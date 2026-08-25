@@ -101,7 +101,7 @@ const CarouselCTA = ({
             <div
                 className={twMerge(
                     'relative flex size-8 items-center justify-center rounded-full',
-                    logo ? 'bg-transparent' : 'bg-primary-1',
+                    logo ? 'bg-transparent' : 'bg-action-primary',
                     iconContainerClassName
                 )}
             >
@@ -130,7 +130,7 @@ const CarouselCTA = ({
             {/* Content */}
             <div className="flex w-[80%] flex-col">
                 <p className="font-medium">{title}</p>
-                <p className="text-xs text-gray-1">{description}</p>
+                <p className="text-xs text-foreground-secondary">{description}</p>
             </div>
         </Card>
     )

@@ -20,20 +20,22 @@ export function MantecaTransfersMaintenanceView({ action }: { action: 'deposits'
     return (
         <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
             <Card className="flex w-full flex-col items-center gap-2 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                     <Icon name="alert" size={24} />
                 </div>
                 <span className="text-lg font-bold">{t('mantecaMaintenance.title')}</span>
-                <p className="text-center font-normal text-grey-1">{t('mantecaMaintenance.description', { action })}</p>
+                <p className="text-center font-normal text-foreground-secondary">
+                    {t('mantecaMaintenance.description', { action })}
+                </p>
             </Card>
             <Button onClick={() => router.push('/home')} variant="purple" shadowSize="4">
                 {t('mantecaMaintenance.goBack')}
             </Button>
             <button
                 onClick={() => setIsSupportModalOpen(true)}
-                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground-secondary transition-colors hover:text-black"
             >
-                <Icon name="peanut-support" size={16} className="text-grey-1" />
+                <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
                 {t('mantecaMaintenance.havingTrouble')}
             </button>
         </div>

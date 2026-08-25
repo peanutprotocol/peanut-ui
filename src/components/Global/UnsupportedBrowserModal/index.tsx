@@ -103,12 +103,13 @@ const UnsupportedBrowserModalContent = ({
                     toast.error(t('unsupportedBrowserModal.copyErrorToast'))
                 }
             },
-            className: 'bg-primary-1 hover:bg-primary-2 text-black sm:py-3',
+            className: 'bg-action-primary hover:bg-primary-2 text-black sm:py-3',
             shadowSize: '4',
         },
         {
             variant: 'transparent-dark',
-            className: 'text-grey-1 text-xs font-medium h-2 mt-1 hover:text-grey-1 active:text-grey-1',
+            className:
+                'text-foreground-secondary text-xs font-medium h-2 mt-1 hover:text-foreground-secondary active:text-foreground-secondary',
             text: t('unsupportedBrowserModal.pasteHint'),
         },
     ]
@@ -120,7 +121,7 @@ const UnsupportedBrowserModalContent = ({
             title={t('unsupportedBrowserModal.title')}
             description={t('unsupportedBrowserModal.description')}
             icon={'alert' as IconName}
-            iconContainerClassName="bg-primary-1"
+            iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
             ctas={copyLinkAction}
             hideModalCloseButton={!allowClose}

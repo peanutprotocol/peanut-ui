@@ -64,7 +64,7 @@ const InvitesPageLayout = ({ image, children, showRagdoll = false }: InvitesPage
                     {showRagdoll && PeanutRagdoll ? (
                         <div
                             aria-hidden="true"
-                            className="relative z-10 aspect-square max-h-full w-full max-w-[80%] overflow-hidden rounded-sm border border-n-1 md:max-w-[75%] lg:max-w-xl"
+                            className="relative z-10 aspect-square max-h-full w-full max-w-[80%] overflow-hidden rounded-sm border border-border-default md:max-w-[75%] lg:max-w-xl"
                         >
                             <PeanutRagdoll />
                         </div>

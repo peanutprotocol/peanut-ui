@@ -61,7 +61,11 @@ export function MarqueeComp({
 }) {
     return (
         <div className="border-white shadow">
-            <MarqueeWrapper backgroundColor={backgroundColor} direction="left" className="border-y-2 border-n-1">
+            <MarqueeWrapper
+                backgroundColor={backgroundColor}
+                direction="left"
+                className="border-y-2 border-border-default"
+            >
                 {Array.isArray(message)
                     ? message.map((msg, index) => (
                           <div key={index} className="mx-3 inline-flex min-h-12 items-center gap-3 py-2">

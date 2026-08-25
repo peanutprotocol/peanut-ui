@@ -196,7 +196,7 @@ function RecoverWalletInner() {
                 <div className="my-auto flex flex-col gap-6">
                     <h1 className="text-2xl font-extrabold">Funds on the way 🎉</h1>
                     <Card className="flex flex-col gap-1 p-4">
-                        <span className="text-sm text-grey-1">
+                        <span className="text-sm text-foreground-secondary">
                             Sent to <AddressLink address={recipient.address} />
                         </span>
                         <span className="text-2xl font-extrabold">
@@ -220,13 +220,13 @@ function RecoverWalletInner() {
                     <h1 className="text-2xl font-extrabold">
                         {recoveryKey?.label ? `${recoveryKey.label}, let's` : "Let's"} recover your funds
                     </h1>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-sm text-foreground-secondary">
                         Sign with the passkey on this device to move your balance to any address.
                     </p>
                 </div>
 
                 <Card className="flex flex-col gap-1 p-4">
-                    <span className="text-sm text-grey-1">
+                    <span className="text-sm text-foreground-secondary">
                         Wallet <AddressLink address={recoveryKey!.address} />
                     </span>
                     <span className="text-2xl font-extrabold">

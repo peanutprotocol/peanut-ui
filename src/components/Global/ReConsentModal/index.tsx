@@ -145,8 +145,8 @@ const ReConsentModal = () => {
                      * it when a future version bump shows this modal for a different
                      * change. "No rush" is literal: "Not now" snoozes to the effective
                      * date (see utils.ts). */}
-                    <p className="text-sm text-grey-1">{t('reConsent.reassurance')}</p>
-                    <p className="text-sm text-grey-1">{t('reConsent.whatChanged')}</p>
+                    <p className="text-sm text-foreground-secondary">{t('reConsent.reassurance')}</p>
+                    <p className="text-sm text-foreground-secondary">{t('reConsent.whatChanged')}</p>
                     <ul className="space-y-1 text-sm">
                         {outdatedDocs.map((doc) => {
                             const label = DOC_LABELS[doc.slug] ?? { name: doc.slug, href: `/${doc.slug}` }
@@ -184,7 +184,7 @@ const ReConsentModal = () => {
                     disabled: submitting,
                     onClick: handlePostpone,
                     // secondary de-emphasis: .btn is font-bold by default
-                    className: 'sm:flex-none font-normal text-grey-1',
+                    className: 'sm:flex-none font-normal text-foreground-secondary',
                 },
             ]}
             ctaClassName={STACKED_CTAS}

@@ -43,8 +43,8 @@ const PinInput: FC<Props> = ({ value, onChange, length = 4, autoFocus = true, di
                         key={i}
                         aria-hidden="true"
                         className={twMerge(
-                            'h-5 w-5 rounded-full border border-n-1 transition-colors',
-                            filled ? 'bg-n-1' : ''
+                            'h-5 w-5 rounded-full border border-border-default transition-colors',
+                            filled ? 'bg-black' : ''
                         )}
                     />
                 )

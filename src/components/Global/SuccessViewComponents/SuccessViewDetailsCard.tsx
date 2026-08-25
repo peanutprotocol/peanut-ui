@@ -33,7 +33,7 @@ export const SuccessViewDetailsCard: React.FC<SuccessViewDetailsCardProps> = ({
                         {amountDisplay && <h2 className="text-4xl font-extrabold">$ {amountDisplay}</h2>}
 
                         {description && (
-                            <p className="line-clamp-3 text-sm text-grey-1">
+                            <p className="line-clamp-3 text-sm text-foreground-secondary">
                                 {t('successViewDetailsCard.for', { description })}
                             </p>
                         )}

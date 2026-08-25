@@ -61,7 +61,7 @@ function LockScreen({
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-white px-6">
             <div className="text-center">
                 <h1 className="text-2xl font-bold">{t('title')}</h1>
-                <p className="mt-2 text-sm text-grey-1">{failed ? t('promptFailed') : t('prompt')}</p>
+                <p className="mt-2 text-sm text-foreground-secondary">{failed ? t('promptFailed') : t('prompt')}</p>
             </div>
             <div className="flex w-full max-w-xs flex-col gap-3">
                 <Button variant="purple" shadowSize="4" loading={unlocking} onClick={onUnlock}>

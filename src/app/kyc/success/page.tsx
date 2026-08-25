@@ -21,7 +21,7 @@ export default function KycSuccessPage() {
             <Image src={HandThumbsUp} alt="Peanut HandThumbsUp" className="size-34" />
             <div className="space-y-2">
                 <p className="text-lg font-semibold">{t('successTitle')}</p>
-                <p className="text-sm text-gray-1">{t('successCloseWindow')}</p>
+                <p className="text-sm text-foreground-secondary">{t('successCloseWindow')}</p>
             </div>
         </div>
     )

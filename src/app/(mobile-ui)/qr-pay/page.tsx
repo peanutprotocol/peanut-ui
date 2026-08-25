@@ -1217,11 +1217,11 @@ export default function QRPayPage() {
         return (
             <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="alert" size={24} />
                     </div>
                     <span className="text-lg font-bold">{t('maintenance.title')}</span>
-                    <p className="text-center font-normal text-grey-1">
+                    <p className="text-center font-normal text-foreground-secondary">
                         {t('maintenance.description', { method: paymentMethodName })}
                     </p>
                 </Card>
@@ -1230,9 +1230,9 @@ export default function QRPayPage() {
                 </Button>
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground-secondary transition-colors hover:text-black"
                 >
-                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
                     {t('havingTrouble')}
                 </button>
             </div>
@@ -1243,7 +1243,7 @@ export default function QRPayPage() {
         return (
             <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="alert" size={24} />
                     </div>
                     <p className="font-medium"> {errorInitiatingPayment || t('errors.genericQrDetails')}</p>
@@ -1267,11 +1267,13 @@ export default function QRPayPage() {
         return (
             <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="qr-code" size={24} />
                     </div>
                     <span className="text-lg font-bold">{t('orderNotReady.title')}</span>
-                    <p className="max-w-52 text-center font-normal text-grey-1">{t('orderNotReady.description')}</p>
+                    <p className="max-w-52 text-center font-normal text-foreground-secondary">
+                        {t('orderNotReady.description')}
+                    </p>
                 </Card>
                 <Button
                     onClick={() => {
@@ -1287,9 +1289,9 @@ export default function QRPayPage() {
                 </Button>
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground-secondary transition-colors hover:text-black"
                 >
-                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
                     {t('havingTrouble')}
                 </button>
             </div>
@@ -1340,7 +1342,7 @@ export default function QRPayPage() {
                             </div>
 
                             <div className="space-y-1">
-                                <h1 className="text-sm font-normal text-grey-1">
+                                <h1 className="text-sm font-normal text-foreground-secondary">
                                     {t('success.youPaid', {
                                         merchant:
                                             qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName ?? '',
@@ -1358,7 +1360,7 @@ export default function QRPayPage() {
                                 </div>
                                 {/* Savings Message (Argentina Manteca only) */}
                                 {showSavingsMessage && savingsMessage && (
-                                    <p className="text-sm text-grey-1 italic">{savingsMessage}</p>
+                                    <p className="text-sm text-foreground-secondary italic">{savingsMessage}</p>
                                 )}
                             </div>
                         </Card>
@@ -1367,12 +1369,12 @@ export default function QRPayPage() {
                     {/* Reward Eligibility Card - Show before claiming */}
                     {rewardClaimable && (
                         <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
-                            <div className="bg-yellow-400 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full">
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-lg font-bold">{t('success.earnedRewardTitle')}</h2>
-                                <p className="text-gray-600 text-sm">
+                                <p className="text-sm">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         if (amountSponsored && typeof amountSponsored === 'number') {
@@ -1391,12 +1393,12 @@ export default function QRPayPage() {
                     {/* Reward Success Banner - Show after claiming */}
                     {(perkClaimed || qrPayment?.perk?.claimed) && (
                         <Card className="flex items-start gap-3 bg-white p-4">
-                            <div className="bg-yellow-400 flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full p-2">
+                            <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full p-2">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-2xl font-bold">{t('success.earnedRewardTitle')}</h2>
-                                <p className="text-gray-900 text-base">
+                                <p className="text-base">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
 
@@ -1515,9 +1517,9 @@ export default function QRPayPage() {
                         {user?.user.username && !rewardClaimable && (
                             <button
                                 onClick={() => setShowInviteFriendsModal(true)}
-                                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground-secondary underline transition-colors hover:text-black"
                             >
-                                <Icon name="invite-heart" size={16} className="text-grey-1" />
+                                <Icon name="invite-heart" size={16} className="text-foreground-secondary" />
                                 {t('success.inviteFriendsCta')}
                             </button>
                         )}
@@ -1572,7 +1574,7 @@ export default function QRPayPage() {
                                 />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-gray-600 flex items-center gap-1 text-center text-sm">
+                                <p className="flex items-center gap-1 text-center text-sm">
                                     <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
                                 </p>
                                 <p className="text-xl font-semibold break-words">{merchantName}</p>
@@ -1709,7 +1711,7 @@ const QrPayPageLoading = ({ message }: { message: string }) => {
                 />
 
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="clock" size={24} />
                     </div>
                     <p className="font-medium">{message}</p>

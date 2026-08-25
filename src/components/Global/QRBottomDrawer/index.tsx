@@ -99,8 +99,8 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                         overflow-auto scroll wrapper clips the shadow at the bottom */}
                     <div className="pb-1">
                         <QRCodeWrapper url={url} />
-                        <div className="text-gray-500 mx-auto mt-4 w-full p-2 text-center text-base">{text}</div>
-                        <Divider className="text-gray-500" text={tCommon('or')} />
+                        <div className="mx-auto mt-4 w-full p-2 text-center text-base">{text}</div>
+                        <Divider text={tCommon('or')} />
                         <ShareButton url={url} title={t('qrBottomDrawer.shareTitle')}>
                             {buttonText}
                         </ShareButton>
