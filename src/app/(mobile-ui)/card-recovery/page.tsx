@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 import type { Hex } from 'viem'
@@ -109,7 +110,7 @@ export default function CardRecoveryPage() {
     if (!preview && !error) return <Loading variant="mascot" />
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 {error && <Notification priority="error">{error}</Notification>}
@@ -171,7 +172,7 @@ export default function CardRecoveryPage() {
                     )
                 )}
             </div>
-        </div>
+        </PageStack>
     )
 }
 

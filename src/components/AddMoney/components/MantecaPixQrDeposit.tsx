@@ -1,6 +1,7 @@
 'use client'
 
 import { type FC, useEffect, useMemo, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
@@ -54,7 +55,7 @@ const MantecaPixQrDeposit: FC<{
 
     if (status === 'completed') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={onDone} />
                 <div className="my-auto flex flex-col items-center gap-4 text-center">
                     <IconBubble icon="check" size="m" color="green" />
@@ -64,7 +65,7 @@ const MantecaPixQrDeposit: FC<{
                         {tCommon('done')}
                     </Button>
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
@@ -75,17 +76,17 @@ const MantecaPixQrDeposit: FC<{
     // screen — the webhook/poller post it server-side.
     if (status === 'processing') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={onDone} />
                 <div className="my-auto flex flex-col justify-center">
                     <CyclingLoading />
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 <div className="text-center">
@@ -123,7 +124,7 @@ const MantecaPixQrDeposit: FC<{
                     </>
                 )}
             </div>
-        </div>
+        </PageStack>
     )
 }
 

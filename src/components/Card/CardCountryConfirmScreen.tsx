@@ -1,5 +1,6 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useLocale, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -49,19 +50,19 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
 
     if (candidates.length === 0) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-6">
+            <PageStack gap="6">
                 <NavHeader title={t('navAddCard')} onPrev={onPrev} />
                 <div className="my-auto flex flex-col items-center gap-3 text-center">
                     <h1 className="text-heading-s text-foreground-primary">{t('countryConfirm.noCandidatesTitle')}</h1>
                     <p className="text-foreground-secondary">{t('countryConfirm.noCandidatesBody')}</p>
                     <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
 
             <div className="flex flex-col gap-2">
@@ -98,7 +99,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
             >
                 {tCommon('continue')}
             </Button>
-        </div>
+        </PageStack>
     )
 }
 

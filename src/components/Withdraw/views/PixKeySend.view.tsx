@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useRouter } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -50,7 +51,7 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('pixKey.title')} onPrev={onBack} />
             <div className="my-auto flex flex-col gap-6">
                 <div className="space-y-4">
@@ -89,6 +90,6 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
                     {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
                 </div>
             </div>
-        </div>
+        </PageStack>
     )
 }

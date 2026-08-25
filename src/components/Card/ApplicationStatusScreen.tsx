@@ -1,5 +1,6 @@
 'use client'
 import type { FC } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { PeanutCrying } from '@/assets/mascot'
@@ -74,7 +75,7 @@ const ApplicationStatusScreen: FC<Props> = ({
     const reasonKey = reasonCodeKey(reasonCode)
     const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 {variant === 'pending' && <Loading />}
@@ -111,7 +112,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                     <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                 )}
             </div>
-        </div>
+        </PageStack>
     )
 }
 

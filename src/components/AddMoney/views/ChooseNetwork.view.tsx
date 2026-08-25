@@ -1,6 +1,7 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
 import { useChainRollout } from '@/hooks/useChainRollout'
@@ -47,7 +48,7 @@ const ChooseNetworkView = ({ onSelect, onBack }: ChooseNetworkViewProps) => {
     ]
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('addCryptoTitle')} onPrev={onBack} />
             <div className="flex flex-col gap-4">
                 <h2 className="text-heading-card text-foreground-primary">{t('networkDrawer.title')}</h2>
@@ -66,7 +67,7 @@ const ChooseNetworkView = ({ onSelect, onBack }: ChooseNetworkViewProps) => {
                     ))}
                 </div>
             </div>
-        </div>
+        </PageStack>
     )
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
+import { Section } from '@/components/0_Bruddle/Section'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntry, useTransactionHistory } from '@/hooks/useTransactionHistory'
 import type { IntentKind } from '@/components/TransactionDetails/strategies/registry'
@@ -335,14 +336,13 @@ const HomeHistory = ({
     // show loading state
     if (isLoading) {
         return (
-            <div className="space-y-2">
-                <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>
+            <Section title={t('activity')}>
                 <div className="flex flex-col">
                     {Array.from({ length: 5 }).map((_, index) => (
                         <HistorySkeleton key={index} position={getCardPosition(index, 5)} />
                     ))}
                 </div>
-            </div>
+            </Section>
         )
     }
 

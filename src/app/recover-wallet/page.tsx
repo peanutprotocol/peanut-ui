@@ -21,6 +21,7 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
@@ -181,18 +182,18 @@ function RecoverWalletInner() {
 
     if (phase === 'invalid') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <div className="my-auto flex flex-col gap-6">
                     <h1 className="text-2xl font-extrabold">Wallet recovery</h1>
                     <Notification priority="error">{fatal}</Notification>
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     if (phase === 'final') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <div className="my-auto flex flex-col gap-6">
                     <h1 className="text-2xl font-extrabold">Funds on the way 🎉</h1>
                     <Card className="flex flex-col gap-1 p-4">
@@ -207,14 +208,14 @@ function RecoverWalletInner() {
                         </LinkButton>
                     </Card>
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     // phase === 'ready'
     const nothingToRecover = balance <= 0n
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <div className="my-auto flex flex-col gap-6">
                 <div className="flex flex-col gap-1">
                     <h1 className="text-2xl font-extrabold">
@@ -261,6 +262,6 @@ function RecoverWalletInner() {
                     </>
                 )}
             </div>
-        </div>
+        </PageStack>
     )
 }

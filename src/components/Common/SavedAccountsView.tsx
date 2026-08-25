@@ -1,5 +1,6 @@
 'use client'
 import { countryData as ALL_METHODS_DATA, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
+import { Section } from '@/components/0_Bruddle/Section'
 import { formatIban } from '@/utils/general.utils'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import Image from 'next/image'
@@ -72,8 +73,7 @@ export default function SavedAccountsView({
                     callers (claim's BankFlowManager) keep the legacy button so
                     the redesign doesn't leak into their screens */}
                 {onCryptoClick || onMercadoPagoClick ? (
-                    <div className="space-y-2">
-                        <h2 className="text-heading-card text-foreground-primary">{tWithdraw('addNewAccount')}</h2>
+                    <Section title={tWithdraw('addNewAccount')}>
                         <ListItem
                             position="single"
                             leading={<IconBubble icon="bank" size="s" color="gray" />}
@@ -113,7 +113,7 @@ export default function SavedAccountsView({
                                 data-testid="withdraw-add-crypto"
                             />
                         )}
-                    </div>
+                    </Section>
                 ) : (
                     <Button icon="plus" onClick={onSelectNewMethodClick} shadowSize="4">
                         {t('savedAccounts.selectNewMethod')}

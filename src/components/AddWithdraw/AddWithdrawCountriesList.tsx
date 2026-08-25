@@ -1,6 +1,7 @@
 'use client'
 
 import { COUNTRY_SPECIFIC_METHODS, countryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
+import { Section } from '@/components/0_Bruddle/Section'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -464,8 +465,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         }
 
         return (
-            <div className="space-y-2">
-                <h2 className="text-heading-card text-foreground-primary">{title}</h2>
+            <Section title={title}>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
@@ -538,7 +538,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         )
                     })}
                 </div>
-            </div>
+            </Section>
         )
     }
 
