@@ -2024,7 +2024,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             <div className="flex flex-1 items-center justify-center">
                 <div className="flex items-center gap-3">
                     <Icon name="pending" size={24} className="animate-spin" />
-                    <span className="text-lg font-medium">{t('invitesGraph.loadingNetwork')}</span>
+                    <span className="text-body-l font-medium">{t('invitesGraph.loadingNetwork')}</span>
                 </div>
             </div>
         )
@@ -2034,9 +2034,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     if (!isMinimal && error) {
         return (
             <div className="flex flex-1 items-center justify-center p-4">
-                <div className="bg-red-50 max-w-md rounded-2xl p-8 text-center shadow-lg">
-                    <div className="mb-4 text-5xl">⚠️</div>
-                    <p className="text-red-900 mb-4 text-lg font-medium">{error}</p>
+                <div className="max-w-md rounded-2xl p-8 text-center shadow-lg">
+                    <div className="mb-4 text-heading-xl">⚠️</div>
+                    <p className="mb-4 text-body-l font-medium">{error}</p>
                     {props.onClose && (
                         <Button onClick={props.onClose} variant="stroke">
                             {t('invitesGraph.goBack')}
@@ -2138,7 +2138,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     {selectedUserId && (
                         <button
                             onClick={handleResetView}
-                            className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-medium shadow-md transition-colors"
+                            className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-body-xs font-medium shadow-md transition-colors"
                         >
                             <span>←</span>
                             <span>{t('invitesGraph.resetView')}</span>
@@ -2192,7 +2192,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                             <>
                                 <button
                                     onClick={props.onClose}
-                                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-body-s transition-colors"
                                 >
                                     <span>←</span>
                                     <span className="hidden sm:inline">{t('invitesGraph.back')}</span>
@@ -2200,10 +2200,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 <div className="h-6 w-px"></div>
                             </>
                         )}
-                        <h1 className="text-lg font-bold">
+                        <h1 className="text-heading-card">
                             {mode === 'payment' ? t('invitesGraph.paymentNetwork') : t('invitesGraph.inviteNetwork')}
                         </h1>
-                        <div className="flex gap-3 text-xs font-medium">
+                        <div className="flex gap-3 text-body-xs font-medium">
                             <span className="rounded-full px-2 py-1">
                                 {t('invitesGraph.nodes', { count: combinedGraphNodes.length })}
                                 {externalNodesConfig.enabled &&
@@ -2213,7 +2213,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                         </span>
                                     )}
                             </span>
-                            <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-700">
+                            <span className="rounded-full bg-blue-200 px-2 py-1 text-blue-600">
                                 {/* In payment mode, show P2P edges; in other modes, show invite edges */}
                                 {t('invitesGraph.edges', {
                                     count:
@@ -2241,7 +2241,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                     value={searchQuery}
                                     onChange={(e) => handleSearch(e.target.value)}
                                     placeholder={t('invitesGraph.searchPlaceholder')}
-                                    className="/20 w-full rounded-lg border py-1.5 pr-9 pl-9 text-sm transition-colors focus:ring-2 focus:outline-none"
+                                    className="/20 w-full rounded-lg border py-1.5 pr-9 pl-9 text-body-s transition-colors focus:ring-2 focus:outline-none"
                                 />
                                 <Icon
                                     name="search"
@@ -2258,7 +2258,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 )}
                             </div>
                             {searchResults.length > 0 && (
-                                <span className="text-xs">
+                                <span className="text-body-xs">
                                     {searchResults.length} {searchResults.length === 1 ? 'match' : 'matches'}
                                 </span>
                             )}
@@ -2273,13 +2273,13 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                             setSelectedUserId(node.id)
                                             handleClearSearch()
                                         }}
-                                        className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors ${
+                                        className={`flex w-full items-center justify-between px-3 py-2 text-body-s transition-colors ${
                                             node.isExternal ? '' : ''
                                         }`}
                                     >
                                         <div className="flex items-center gap-2">
                                             {node.isExternal && (
-                                                <span className="text-xs">
+                                                <span className="text-body-xs">
                                                     {node.externalType === 'WALLET'
                                                         ? '💳'
                                                         : node.externalType === 'BANK'
@@ -2289,7 +2289,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                             )}
                                             <span className="font-medium">{node.displayName}</span>
                                         </div>
-                                        <span className="text-xs">
+                                        <span className="text-body-xs">
                                             {node.isExternal
                                                 ? node.totalUsd
                                                     ? `${node.uniqueUsers} users, $${node.totalUsd.toFixed(0)}`
@@ -2307,7 +2307,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 {/* Selected User/Node Banner */}
                 {selectedUserId && (
-                    <div className={`border-t px-4 py-2 text-sm ${selectedUserId.startsWith('ext_') ? '' : ''}`}>
+                    <div className={`border-t px-4 py-2 text-body-s ${selectedUserId.startsWith('ext_') ? '' : ''}`}>
                         <span className={selectedUserId.startsWith('ext_') ? '' : ''}>
                             {t('invitesGraph.focusedOn')}{' '}
                             <span className="font-bold">

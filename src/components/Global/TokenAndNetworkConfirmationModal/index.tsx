@@ -31,7 +31,7 @@ export default function TokenAndNetworkConfirmationModal({
             title={t('tokenAndNetworkConfirmationModal.title')}
             description={
                 <div className="flex flex-col items-center gap-2">
-                    <span className="text-sm">{t('tokenAndNetworkConfirmationModal.warning')}</span>
+                    <span className="text-body-s">{t('tokenAndNetworkConfirmationModal.warning')}</span>
 
                     <div className="mt-2 flex w-full flex-col items-start gap-2">
                         <h2 className="font-bold text-black">

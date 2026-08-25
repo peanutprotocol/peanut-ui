@@ -117,7 +117,7 @@ export default function CardRecoveryPage() {
 
                 {step === 'done' && txHash ? (
                     <Card className="flex flex-col gap-3 p-6">
-                        <h2 className="text-h7 font-bold">{t('doneTitle')}</h2>
+                        <h2 className="text-heading-card">{t('doneTitle')}</h2>
                         <p className="text-body-s text-foreground-secondary">
                             {t('doneBody', { amount: `$${formatCents(recoveredCents ?? preview!.amountCents)}` })}
                         </p>
@@ -133,7 +133,7 @@ export default function CardRecoveryPage() {
                     preview && (
                         <>
                             <Card className="flex flex-col gap-3 p-6">
-                                <h2 className="text-h7 font-bold">
+                                <h2 className="text-heading-card">
                                     {preview.hasRecoverableCard ? t('title') : t('noCardOnFile')}
                                 </h2>
                                 <p className="text-body-s text-foreground-secondary">{t('description')}</p>

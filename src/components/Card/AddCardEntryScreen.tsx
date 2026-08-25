@@ -43,7 +43,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
                 <p className="text-foreground-secondary">{t('entry.description')}</p>
             </div>
 
-            <ul className="flex flex-col gap-2 rounded-sm bg-primary-3 p-4 text-foreground-primary">
+            <ul className="flex flex-col gap-2 rounded-sm bg-purple-200 p-4 text-foreground-primary">
                 {FEATURE_KEYS.map((featureKey) => (
                     <li key={featureKey} className="flex items-center gap-2">
                         <Icon name="check-circle" size={16} />

@@ -305,10 +305,12 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
                                         </div>
                                         <div className="w-full">
-                                            <div className="text-base font-bold">{copy.title}</div>
-                                            <div className="text-sm text-foreground-secondary">{copy.description}</div>
+                                            <div className="text-body-m font-bold">{copy.title}</div>
+                                            <div className="text-body-s text-foreground-secondary">
+                                                {copy.description}
+                                            </div>
                                             {deadline && (
-                                                <div className="mt-1 text-xs font-medium">
+                                                <div className="mt-1 text-body-xs font-medium">
                                                     {t('pendingTasks.completeBefore', { deadline })}
                                                 </div>
                                             )}
@@ -331,7 +333,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                             )
                         })}
                     </Carousel>
-                    {error && <p className="mt-2 text-center text-sm text-error">{error}</p>}
+                    {error && <p className="mt-2 text-center text-body-s text-error">{error}</p>}
                 </div>
             )}
 

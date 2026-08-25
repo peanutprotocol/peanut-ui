@@ -87,7 +87,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     text: t('provideEmail.notNow'),
                     onClick: onSkip,
                     variant: 'transparent' as const,
-                    className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    className: 'underline text-body-s w-full h-fit mt-3',
                 },
             ]}
             content={
@@ -99,7 +99,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                         placeholder={t('provideEmail.emailPlaceholder')}
                         type="email"
                     />
-                    {error && <p className="mt-2 text-sm text-error">{error}</p>}
+                    {error && <p className="mt-2 text-body-s text-error">{error}</p>}
                 </div>
             }
         />

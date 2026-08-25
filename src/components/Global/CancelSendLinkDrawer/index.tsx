@@ -45,10 +45,10 @@ const CancelSendLinkDrawer = ({
                     </div>
 
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle className="text-base font-bold text-black">
+                        <DrawerTitle className="text-body-m font-bold text-black">
                             {t('cancelSendLinkModal.title')}
                         </DrawerTitle>
-                        <DrawerDescription className="text-sm text-foreground-secondary">
+                        <DrawerDescription className="text-body-s text-foreground-secondary">
                             {t.rich('cancelSendLinkModal.amountReturned', {
                                 amount,
                                 strong: (chunks) => <strong>{chunks}</strong>,

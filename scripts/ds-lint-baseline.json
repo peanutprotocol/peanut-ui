@@ -1,12 +1,12 @@
 {
-    "rawHex": 64,
-    "rawHexFiles": 40,
+    "rawHex": 65,
+    "rawHexFiles": 41,
     "inlineStyle": 167,
-    "stockTextSize": 648,
-    "dsTextScale": 18,
-    "nonDsClassesInViews": 353,
+    "stockTextSize": 366,
+    "dsTextScale": 13,
+    "nonDsClassesInViews": 172,
     "useSearchParamsFiles": 49,
     "nuqsFiles": 18,
-    "legacyColorClasses": 41,
-    "classNameSitesInPages": 338
+    "legacyColorClasses": 0,
+    "classNameSitesInPages": 337
 }

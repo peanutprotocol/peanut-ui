@@ -17,8 +17,8 @@ const MaintenancePage = () => {
             <div aria-hidden="true" className="size-[250px] overflow-hidden rounded-sm border border-border-default">
                 {PeanutRagdoll && <PeanutRagdoll />}
             </div>
-            <h1 className="text-3xl font-bold text-black">We&apos;re doing some maintenance.</h1>
-            <p className="max-w-md text-center text-lg text-foreground-secondary">
+            <h1 className="text-heading-m text-black">We&apos;re doing some maintenance.</h1>
+            <p className="max-w-md text-center text-body-l text-foreground-secondary">
                 We&apos;ve taken the app offline to fix something. Check back in a few minutes — we&apos;ll have it
                 running again as soon as we can.
             </p>

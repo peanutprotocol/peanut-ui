@@ -99,7 +99,7 @@ export const PasskeySetupHelpModal = ({
                         <p>
                             {t.rich('contactSupport', {
                                 link: (chunks) => (
-                                    <a href="https://peanut.me/support" className="text-secondary-7 underline">
+                                    <a href="https://peanut.me/support" className="text-blue-500 underline">
                                         {chunks}
                                     </a>
                                 ),

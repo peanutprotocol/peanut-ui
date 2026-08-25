@@ -78,7 +78,7 @@ export default function DesignSystemPage() {
                             className="cursor-pointer p-4 transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-sm border border-n-1 bg-primary-3">
+                                <div className="flex size-10 items-center justify-center rounded-sm border border-n-1 bg-purple-200">
                                     <Icon name={section.icon} size={20} />
                                 </div>
                                 <div className="flex-1">
@@ -98,7 +98,7 @@ export default function DesignSystemPage() {
             </div>
 
             {/* Design rules quick reference */}
-            <div className="space-y-4 rounded-sm border border-n-1 bg-primary-3/20 p-3">
+            <div className="space-y-4 rounded-sm border border-n-1 bg-purple-200/20 p-3">
                 <p className="text-sm font-bold">Quick Rules</p>
                 <ul className="space-y-1 text-sm text-grey-1">
                     <li>

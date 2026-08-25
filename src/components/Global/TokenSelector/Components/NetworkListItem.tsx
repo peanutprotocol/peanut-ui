@@ -49,7 +49,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                 position="single"
                 className={twMerge(
                     'w-full !overflow-visible border-border-default p-4',
-                    isSelected && !isComingSoon ? 'bg-primary-3' : 'bg-background-default',
+                    isSelected && !isComingSoon ? 'bg-purple-200' : 'bg-background-default',
                     isComingSoon && 'bg-background-disabled'
                 )}
                 border={true}

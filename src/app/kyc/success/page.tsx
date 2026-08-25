@@ -20,8 +20,8 @@ export default function KycSuccessPage() {
         <div className="flex h-screen min-h-full w-full flex-col items-center justify-center gap-4">
             <Image src={HandThumbsUp} alt="Peanut HandThumbsUp" className="size-34" />
             <div className="space-y-2">
-                <p className="text-lg font-semibold">{t('successTitle')}</p>
-                <p className="text-sm text-foreground-secondary">{t('successCloseWindow')}</p>
+                <p className="text-body-l font-semibold">{t('successTitle')}</p>
+                <p className="text-body-s text-foreground-secondary">{t('successCloseWindow')}</p>
             </div>
         </div>
     )

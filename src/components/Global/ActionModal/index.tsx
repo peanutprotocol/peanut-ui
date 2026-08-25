@@ -108,7 +108,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
             className={twMerge('items-center justify-center md:mx-auto md:max-w-md', modalClassName)}
             classButtonClose={hideModalCloseButton ? '!hidden' : ''}
             classWrap={twMerge(
-                // board 17800:57216 panel: white, border-default, sharp 2px corners
+                // board 17800:57216 panel: white, , sharp 2px corners
                 'sm:m-auto sm:self-center self-center m-4 bg-background-default rounded-sm border border-border-default z-50',
                 defaultModalPanelClasses,
                 modalPanelClassName
@@ -151,11 +151,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     <div className="space-y-4 w-full">
                         {checkbox && (
                             <div className={twMerge('self-start text-left', checkbox.className)}>
-                                <label className="space-x-2 flex cursor-pointer items-center justify-center text-sm dark:text-white">
+                                <label className="space-x-2 flex cursor-pointer items-center justify-center text-body-s dark:text-white">
                                     <input
                                         type="checkbox"
                                         className={twMerge(
-                                            'h-4 w-4 rounded text-action-primary shadow-sm focus:border-primary-3 focus:ring focus:ring-primary-2/50 dark:bg-n-2 dark:ring-offset-n-1 dark:checked:bg-action-primary dark:focus:ring-action-primary/50',
+                                            'h-4 w-4 rounded text-action-primary shadow-sm focus:border-purple-200 focus:ring focus:ring-action-focus/50 dark:ring-offset-black dark:checked:bg-action-primary dark:focus:ring-action-primary/50',
                                             checkbox.inputClassName
                                         )}
                                         checked={checkbox.checked}

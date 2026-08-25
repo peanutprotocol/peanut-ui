@@ -166,8 +166,8 @@ export default function QuestsExplorePage() {
                                 quest.backgroundColor === 'purple'
                                     ? ''
                                     : quest.backgroundColor === 'pink'
-                                      ? 'bg-pink-100'
-                                      : 'bg-blue-100'
+                                      ? 'bg-pink-200'
+                                      : 'bg-blue-200'
 
                             return (
                                 <motion.div

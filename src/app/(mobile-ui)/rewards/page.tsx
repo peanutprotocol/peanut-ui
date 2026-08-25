@@ -235,11 +235,11 @@ const PointsPage = () => {
                     the explainer is part of that framing, so web and Android skip it */}
                 {isIOSNative() && (
                     <Card className="flex flex-col gap-3 p-6">
-                        <h2 className="text-base font-black">{t('howItWorks.title')}</h2>
+                        <h2 className="text-body-m font-black">{t('howItWorks.title')}</h2>
                         <ol className="flex flex-col gap-2">
                             {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
-                                <li key={step} className="flex items-start gap-3 text-sm">
-                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-action-secondary text-xs font-black">
+                                <li key={step} className="flex items-start gap-3 text-body-s">
+                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-action-secondary text-body-xs font-black">
                                         {i + 1}
                                     </span>
                                     <span>{t(`howItWorks.${step}`)}</span>

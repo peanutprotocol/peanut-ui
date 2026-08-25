@@ -220,7 +220,7 @@ export default function RecoverFundsPage() {
                                 {t('youWillReceiveTo')}{' '}
                                 <AddressLink
                                     address={recipient.address}
-                                    className="text-sm font-normal text-foreground-secondary"
+                                    className="text-body-s font-normal text-foreground-secondary"
                                 />
                             </h1>
                             <h2 className="text-heading-s">
@@ -275,7 +275,7 @@ export default function RecoverFundsPage() {
                                 {t('sentTo')}{' '}
                                 <AddressLink
                                     address={recipient.address}
-                                    className="text-sm font-normal text-foreground-secondary"
+                                    className="text-body-s font-normal text-foreground-secondary"
                                 />
                             </h1>
                             <h2 className="text-heading-s">

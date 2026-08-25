@@ -209,7 +209,7 @@ export function UsageAudit({
                                         <p className="text-sm leading-tight font-bold">{i.name}</p>
                                         <span
                                             className={`shrink-0 rounded-sm px-2 py-0.5 text-xs font-bold ${
-                                                i.realUsages > 0 ? 'bg-n-1 text-white' : 'bg-grey-2 text-grey-1'
+                                                i.realUsages > 0 ? 'bg-n-1 text-white' : 'bg-gray-200 text-grey-1'
                                             }`}
                                         >
                                             {i.realUsages}× app

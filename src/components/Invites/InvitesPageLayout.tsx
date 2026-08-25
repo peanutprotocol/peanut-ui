@@ -42,7 +42,7 @@ const InvitesPageLayout = ({ image, children, showRagdoll = false }: InvitesPage
                         // h-full against this pane and would collapse to 0.
                         // md:h-[100dvh] below covers the desktop side.
                         'h-[55dvh]',
-                        'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                        'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
                     )}
                 >
                     {/* render animated star decorations */}

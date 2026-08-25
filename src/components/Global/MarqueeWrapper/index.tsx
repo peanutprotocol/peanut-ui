@@ -34,7 +34,7 @@ export function MarqueeWrapper({
     )
 }
 
-const wordClass = 'text-lg font-bold uppercase md:text-xl'
+const wordClass = 'text-heading-card uppercase md:text-heading-xs'
 
 // A word is either plain text or a link — the strip looks identical either way,
 // so a linked word still reads as part of the run of words.

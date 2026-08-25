@@ -1203,7 +1203,7 @@ export default function QRPayPage() {
                             text: t('kyc.notNow'),
                             onClick: onBack,
                             variant: 'transparent',
-                            className: 'underline text-sm font-medium w-full h-fit mt-3',
+                            className: 'underline text-body-s w-full h-fit mt-3',
                         },
                     ]}
                 />
@@ -1220,7 +1220,7 @@ export default function QRPayPage() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="alert" size={24} />
                     </div>
-                    <span className="text-lg font-bold">{t('maintenance.title')}</span>
+                    <span className="text-heading-card">{t('maintenance.title')}</span>
                     <p className="text-center font-normal text-foreground-secondary">
                         {t('maintenance.description', { method: paymentMethodName })}
                     </p>
@@ -1230,7 +1230,7 @@ export default function QRPayPage() {
                 </Button>
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground-secondary transition-colors hover:text-black"
+                    className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary transition-colors hover:text-black"
                 >
                     <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
                     {t('havingTrouble')}
@@ -1270,7 +1270,7 @@ export default function QRPayPage() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="qr-code" size={24} />
                     </div>
-                    <span className="text-lg font-bold">{t('orderNotReady.title')}</span>
+                    <span className="text-heading-card">{t('orderNotReady.title')}</span>
                     <p className="max-w-52 text-center font-normal text-foreground-secondary">
                         {t('orderNotReady.description')}
                     </p>
@@ -1289,7 +1289,7 @@ export default function QRPayPage() {
                 </Button>
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground-secondary transition-colors hover:text-black"
+                    className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary transition-colors hover:text-black"
                 >
                     <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
                     {t('havingTrouble')}
@@ -1342,25 +1342,25 @@ export default function QRPayPage() {
                             </div>
 
                             <div className="space-y-1">
-                                <h1 className="text-sm font-normal text-foreground-secondary">
+                                <h1 className="text-body-s font-normal text-foreground-secondary">
                                     {t('success.youPaid', {
                                         merchant:
                                             qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName ?? '',
                                     })}
                                 </h1>
-                                <div className="text-2xl font-extrabold">
+                                <div className="text-heading-s">
                                     {currency.symbol}{' '}
                                     {formatNumberForDisplay(
                                         qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount,
                                         { maxDecimals: 2 }
                                     )}
                                 </div>
-                                <div className="text-lg font-bold">
+                                <div className="text-heading-card">
                                     ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
                                 </div>
                                 {/* Savings Message (Argentina Manteca only) */}
                                 {showSavingsMessage && savingsMessage && (
-                                    <p className="text-sm text-foreground-secondary italic">{savingsMessage}</p>
+                                    <p className="text-body-s text-foreground-secondary italic">{savingsMessage}</p>
                                 )}
                             </div>
                         </Card>
@@ -1373,8 +1373,8 @@ export default function QRPayPage() {
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-lg font-bold">{t('success.earnedRewardTitle')}</h2>
-                                <p className="text-sm">
+                                <h2 className="text-heading-card">{t('success.earnedRewardTitle')}</h2>
+                                <p className="text-body-s">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         if (amountSponsored && typeof amountSponsored === 'number') {
@@ -1397,8 +1397,8 @@ export default function QRPayPage() {
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-2xl font-bold">{t('success.earnedRewardTitle')}</h2>
-                                <p className="text-base">
+                                <h2 className="text-heading-s">{t('success.earnedRewardTitle')}</h2>
+                                <p className="text-body-m">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
 
@@ -1517,7 +1517,7 @@ export default function QRPayPage() {
                         {user?.user.username && !rewardClaimable && (
                             <button
                                 onClick={() => setShowInviteFriendsModal(true)}
-                                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground-secondary underline transition-colors hover:text-black"
+                                className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary underline transition-colors hover:text-black"
                             >
                                 <Icon name="invite-heart" size={16} className="text-foreground-secondary" />
                                 {t('success.inviteFriendsCta')}
@@ -1574,10 +1574,10 @@ export default function QRPayPage() {
                                 />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="flex items-center gap-1 text-center text-sm">
+                                <p className="flex items-center gap-1 text-center text-body-s">
                                     <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
                                 </p>
-                                <p className="text-xl font-semibold break-words">{merchantName}</p>
+                                <p className="text-heading-xs break-words">{merchantName}</p>
                             </div>
                         </div>
                     </Card>

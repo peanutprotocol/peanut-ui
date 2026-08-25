@@ -119,13 +119,13 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
                         variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
+                        className: 'underline text-body-s w-full fill-none h-fit mt-3',
                     },
                     {
                         text: t('iframeWrapper.cancel'),
                         onClick: () => setIsHelpModalOpen(false),
                         variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full h-fit mt-3',
+                        className: 'underline text-body-s w-full h-fit mt-3',
                     },
                 ],
             }
@@ -150,7 +150,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     text: t('iframeWrapper.continueVerifying'),
                     onClick: () => setIsHelpModalOpen(false),
                     variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    className: 'underline text-body-s w-full h-fit mt-3',
                 },
             ],
         }
@@ -239,7 +239,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             className="flex items-center gap-1"
                         >
                             <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
-                            <p className="text-xs font-medium text-foreground-secondary underline">
+                            <p className="text-body-xs font-medium text-foreground-secondary underline">
                                 {t('iframeWrapper.havingTrouble')}
                             </p>
                         </button>

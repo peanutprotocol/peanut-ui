@@ -14,7 +14,7 @@ const Attachment = ({ message, fileUrl }: AttachmentProps) => {
     if (!fileUrl && !message) return null
 
     return (
-        <div className="text-sm text-foreground-secondary">
+        <div className="text-body-s text-foreground-secondary">
             {fileUrl ? (
                 <Link href={fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2">
                     {message ? `${message}` : t('attachment.viewAttachment')}

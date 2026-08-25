@@ -389,7 +389,7 @@ const JoinWaitlistPage = () => {
                                         isValid &&
                                             !isChanging &&
                                             !!inviteCode &&
-                                            'border-secondary-8 dark:border-secondary-8',
+                                            'border-border-accent dark:border-border-accent',
                                         'rounded-sm'
                                     )}
                                 />

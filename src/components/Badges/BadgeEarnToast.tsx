@@ -96,7 +96,7 @@ export default function BadgeEarnToast() {
                         className="size-7 shrink-0 object-contain"
                         unoptimized
                     />
-                    <span className="text-sm font-bold">
+                    <span className="text-label-l">
                         {label} <span className="font-medium underline">{t('toastTapToView')}</span>
                     </span>
                 </button>

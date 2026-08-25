@@ -119,7 +119,7 @@ export default function PeanutActionDetailsCard({
         }
         if (transactionType === 'REGIONAL_METHOD_CLAIM') title = recipientName // Render the string as is for regional method
         return (
-            <h1 className="flex items-center gap-2 overflow-hidden text-base font-normal text-ellipsis whitespace-nowrap text-foreground-secondary">
+            <h1 className="flex items-center gap-2 overflow-hidden text-body-m font-normal text-ellipsis whitespace-nowrap text-foreground-secondary">
                 {icon && <Icon name={icon} size={10} />} {title}
             </h1>
         )
@@ -222,7 +222,7 @@ export default function PeanutActionDetailsCard({
                     {isLoading ? (
                         <Loading />
                     ) : (
-                        <h2 className="text-2xl font-extrabold">
+                        <h2 className="text-heading-s">
                             {(transactionType === 'ADD_MONEY' || isAddBankAccount || isClaimLinkBankAccount) &&
                             currencySymbol
                                 ? `${currencySymbol}`

@@ -91,7 +91,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     scrollAreaClassName={`max-h-[calc(var(--qr-drawer-expanded)-3.3125rem)] ${activeSnapPoint === snapPoints[0] ? 'touch-none' : ''}`}
                 >
                     <DrawerTitle className="space-y-2 mb-8">
-                        <h2 className="text-lg font-bold">
+                        <h2 className="text-heading-card">
                             {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
                         </h2>
                     </DrawerTitle>
@@ -99,7 +99,7 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                         overflow-auto scroll wrapper clips the shadow at the bottom */}
                     <div className="pb-1">
                         <QRCodeWrapper url={url} />
-                        <div className="mx-auto mt-4 w-full p-2 text-center text-base">{text}</div>
+                        <div className="mx-auto mt-4 w-full p-2 text-center text-body-m">{text}</div>
                         <Divider text={tCommon('or')} />
                         <ShareButton url={url} title={t('qrBottomDrawer.shareTitle')}>
                             {buttonText}

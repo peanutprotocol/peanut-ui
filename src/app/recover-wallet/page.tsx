@@ -184,7 +184,7 @@ function RecoverWalletInner() {
         return (
             <PageStack>
                 <PageStack.Center>
-                    <h1 className="text-2xl font-extrabold">Wallet recovery</h1>
+                    <h1 className="text-heading-s">Wallet recovery</h1>
                     <Notification priority="error">{fatal}</Notification>
                 </PageStack.Center>
             </PageStack>
@@ -195,12 +195,12 @@ function RecoverWalletInner() {
         return (
             <PageStack>
                 <PageStack.Center>
-                    <h1 className="text-2xl font-extrabold">Funds on the way 🎉</h1>
+                    <h1 className="text-heading-s">Funds on the way 🎉</h1>
                     <Card className="flex flex-col gap-1 p-4">
-                        <span className="text-sm text-foreground-secondary">
+                        <span className="text-body-s text-foreground-secondary">
                             Sent to <AddressLink address={recipient.address} />
                         </span>
-                        <span className="text-2xl font-extrabold">
+                        <span className="text-heading-s">
                             {formattedBalance} {PEANUT_WALLET_TOKEN_SYMBOL}
                         </span>
                         <LinkButton href={`${getExplorerUrl(chainId)}/tx/${txHash}`} external icon>
@@ -218,19 +218,19 @@ function RecoverWalletInner() {
         <PageStack>
             <PageStack.Center>
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-extrabold">
+                    <h1 className="text-heading-s">
                         {recoveryKey?.label ? `${recoveryKey.label}, let's` : "Let's"} recover your funds
                     </h1>
-                    <p className="text-sm text-foreground-secondary">
+                    <p className="text-body-s text-foreground-secondary">
                         Sign with the passkey on this device to move your balance to any address.
                     </p>
                 </div>
 
                 <Card className="flex flex-col gap-1 p-4">
-                    <span className="text-sm text-foreground-secondary">
+                    <span className="text-body-s text-foreground-secondary">
                         Wallet <AddressLink address={recoveryKey!.address} />
                     </span>
-                    <span className="text-2xl font-extrabold">
+                    <span className="text-heading-s">
                         {formattedBalance} {PEANUT_WALLET_TOKEN_SYMBOL}
                     </span>
                 </Card>

@@ -315,8 +315,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     <Icon name={step.icon} size={24} />
                 </div>
                 <div className="w-full text-center">
-                    <div className="text-lg font-bold">{step.title}</div>
-                    <div className="text-sm text-foreground-secondary">{step.description}</div>
+                    <div className="text-heading-card">{step.title}</div>
+                    <div className="text-body-s text-foreground-secondary">{step.description}</div>
                 </div>
                 <Button
                     variant="purple"
@@ -353,7 +353,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     {step.ctaLabel}
                 </Button>
                 {step.dismissable && onDismissCard && (
-                    <button type="button" onClick={onDismissCard} className="text-sm font-medium text-black underline">
+                    <button type="button" onClick={onDismissCard} className="text-body-s text-black underline">
                         {tCommon('maybeLater')}
                     </button>
                 )}

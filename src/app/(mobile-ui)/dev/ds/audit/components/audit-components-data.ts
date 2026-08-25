@@ -613,7 +613,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 devUsages: 0,
                 source: 'components/Global/TokenSelector/Components/TokenListItem.tsx',
                 divergence:
-                    'Token/asset row. Wraps Global/Card but overrides padding to p-4 py-3.5 (taller than ActionListCard py-2) and forces border+shadow-4. Left slot = token logo with an overlaid chain badge (-bottom-1 -right-1) — a unique two-image avatar not present in any other row. Selected state = bg-primary-3 applied on BOTH the outer div and the Card (double).',
+                    'Token/asset row. Wraps Global/Card but overrides padding to p-4 py-3.5 (taller than ActionListCard py-2) and forces border+shadow-4. Left slot = token logo with an overlaid chain badge (-bottom-1 -right-1) — a unique two-image avatar not present in any other row. Selected state = bg-purple-200 applied on BOTH the outer div and the Card (double).',
                 usedIn: ['components/Global/TokenSelector/TokenSelector.tsx', 'app/(mobile-ui)/recover-funds/page.tsx'],
             },
             {
@@ -740,7 +740,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 devUsages: 0,
                 source: 'components/Card/CardUnlockHistoryItem.tsx',
                 divergence:
-                    "Third synthetic feed row (card-unlock milestone). Uniquely wraps Card in a native <button> for a11y and uses a h-10 w-10 bg-primary-3 icon circle (bigger than KycStatusItem's KYCStatusIcon and BadgeStatusItem's size-8) — same feed-row job, third divergent avatar/left-slot size. Explicitly documented as 'Mirrors KycStatusItem's shape'.",
+                    "Third synthetic feed row (card-unlock milestone). Uniquely wraps Card in a native <button> for a11y and uses a h-10 w-10 bg-purple-200 icon circle (bigger than KycStatusItem's KYCStatusIcon and BadgeStatusItem's size-8) — same feed-row job, third divergent avatar/left-slot size. Explicitly documented as 'Mirrors KycStatusItem's shape'.",
                 usedIn: ['components/Home/HomeHistory.tsx', 'app/(mobile-ui)/history/page.tsx'],
             },
             {

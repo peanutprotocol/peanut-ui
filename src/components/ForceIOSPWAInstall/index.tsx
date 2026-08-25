@@ -35,7 +35,7 @@ const ForceIOSPWAInstall = () => {
 
     return (
         <main className="h-[100dvh] w-full">
-            <section className="relative flex h-1/2 w-full items-center justify-center overflow-hidden bg-secondary-3 p-10">
+            <section className="relative flex h-1/2 w-full items-center justify-center overflow-hidden bg-blue-300 p-10">
                 {STAR_POSITIONS.map((positions, index) => (
                     <Image
                         key={index}
@@ -56,8 +56,8 @@ const ForceIOSPWAInstall = () => {
                 )}
             </section>
             <section className="flex h-1/2 w-full flex-col gap-4 bg-white p-4">
-                <h1 className="text-3xl font-bold">{t('forceIosPwaInstall.title')}</h1>
-                <h2 className="text-base font-medium">{t('forceIosPwaInstall.subtitle')}</h2>
+                <h1 className="text-heading-m">{t('forceIosPwaInstall.title')}</h1>
+                <h2 className="text-body-m">{t('forceIosPwaInstall.subtitle')}</h2>
                 <h3>{t('forceIosPwaInstall.description')}</h3>
                 <p className="flex items-center gap-1">
                     {t.rich('forceIosPwaInstall.tapShare', {

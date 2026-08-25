@@ -21,7 +21,7 @@ export function CatalogCard({ title, description, href, icon, status, quality, u
             <Card className="h-full cursor-pointer p-4 transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-4">
                 <div className="flex items-start gap-3">
                     {icon && (
-                        <div className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-n-1 bg-primary-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-n-1 bg-purple-200">
                             <Icon name={icon} size={18} />
                         </div>
                     )}

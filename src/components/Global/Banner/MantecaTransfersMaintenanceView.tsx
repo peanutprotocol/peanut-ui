@@ -23,7 +23,7 @@ export function MantecaTransfersMaintenanceView({ action }: { action: 'deposits'
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                     <Icon name="alert" size={24} />
                 </div>
-                <span className="text-lg font-bold">{t('mantecaMaintenance.title')}</span>
+                <span className="text-heading-card">{t('mantecaMaintenance.title')}</span>
                 <p className="text-center font-normal text-foreground-secondary">
                     {t('mantecaMaintenance.description', { action })}
                 </p>
@@ -33,7 +33,7 @@ export function MantecaTransfersMaintenanceView({ action }: { action: 'deposits'
             </Button>
             <button
                 onClick={() => setIsSupportModalOpen(true)}
-                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground-secondary transition-colors hover:text-black"
+                className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary transition-colors hover:text-black"
             >
                 <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
                 {t('mantecaMaintenance.havingTrouble')}

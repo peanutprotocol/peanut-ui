@@ -9,8 +9,8 @@ interface CalloutProps {
 
 const STYLES: Record<string, { bg: string; border: string; label: string }> = {
     info: { bg: 'bg-primary-3/20', border: 'border-primary-3', label: 'Info' },
-    tip: { bg: 'bg-green-50', border: 'border-green-300', label: 'Tip' },
-    warning: { bg: 'bg-yellow-50', border: 'border-yellow-300', label: 'Important' },
+    tip: { bg: '', border: '', label: 'Tip' },
+    warning: { bg: '', border: '', label: 'Important' },
 }
 
 /** Highlighted callout box for tips, warnings, or important info. */

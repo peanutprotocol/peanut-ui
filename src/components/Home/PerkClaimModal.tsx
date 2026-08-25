@@ -220,19 +220,19 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                 title=""
                 description={
                     <div className={isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}>
-                        <p className="text-3xl font-extrabold text-black">+${perk.amountUsd}</p>
+                        <p className="text-heading-m text-black">+${perk.amountUsd}</p>
                         {isSurpriseMoment ? (
                             <>
                                 {/* Approved copy — see notion: notifs-copy-33083811757980638a27effc79a033f3 */}
-                                <p className="mt-2 text-center text-base font-semibold text-foreground-primary">
+                                <p className="mt-2 text-center text-body-m-semibold text-foreground-primary">
                                     {t('surpriseTitle', { amount: perk.amountUsd })}
                                 </p>
-                                <p className="mt-1 text-center text-sm text-foreground-secondary">
+                                <p className="mt-1 text-center text-body-s text-foreground-secondary">
                                     {claimCount === 0 ? t('surpriseDescriptionFirst') : t('surpriseDescriptionNext')}
                                 </p>
                             </>
                         ) : inviteeName ? (
-                            <p className="mt-1 flex items-center justify-center gap-1 text-sm text-foreground-secondary">
+                            <p className="mt-1 flex items-center justify-center gap-1 text-body-s text-foreground-secondary">
                                 <Icon name="invite-heart" size={14} />
                                 {t.rich('usedPeanut', {
                                     inviteeName,
@@ -240,7 +240,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                 })}
                             </p>
                         ) : (
-                            <p className="mt-1 text-sm text-foreground-secondary">{t('rewardClaimed')}</p>
+                            <p className="mt-1 text-body-s text-foreground-secondary">{t('rewardClaimed')}</p>
                         )}
                     </div>
                 }
@@ -266,7 +266,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                             {t('shareAndEarn')}
                                         </Button>
                                         <button
-                                            className="text-sm text-foreground-secondary underline"
+                                            className="text-body-s text-foreground-secondary underline"
                                             onClick={onDismiss}
                                         >
                                             {tCommon('maybeLater')}
@@ -278,7 +278,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                             {tCommon('done')}
                                         </Button>
                                         <p
-                                            className="cursor-pointer text-center text-sm text-foreground-secondary underline"
+                                            className="cursor-pointer text-center text-body-s text-foreground-secondary underline"
                                             onClick={() => {
                                                 onDismiss()
                                                 router.push('/rewards')
@@ -344,7 +344,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
     return (
         <div className="flex flex-col items-center">
             {/* Title */}
-            <p className="mb-6 text-center text-sm text-foreground-secondary">
+            <p className="mb-6 text-center text-body-s text-foreground-secondary">
                 <Icon name="invite-heart" size={14} className="mr-1 inline" />
                 {t.rich('usedPeanut', {
                     inviteeName: inviteeName ?? '',
@@ -364,7 +364,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                 <div {...buttonProps} className="relative cursor-pointer touch-none select-none">
                     {/* Gift box */}
                     <div
-                        className={`gift-box-shine relative h-32 w-44 overflow-hidden rounded-xl border-4 border-action-primary bg-gradient-to-br from-action-primary/20 via-white to-primary-2/20 shadow-xl transition-transform ${holdProgress > 0 ? 'scale-[0.98]' : ''}`}
+                        className={`gift-box-shine relative h-32 w-44 overflow-hidden rounded-xl border-4 border-action-primary bg-gradient-to-br from-action-primary/20 via-white to-action-primary/20 shadow-xl transition-transform ${holdProgress > 0 ? 'scale-[0.98]' : ''}`}
                     >
                         {/* Vertical ribbon */}
                         <div className="absolute top-0 bottom-0 left-1/2 w-5 -translate-x-1/2 bg-gradient-to-r from-action-primary/50 via-action-primary/70 to-action-primary/50" />
@@ -439,13 +439,13 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                     {holdProgress > 30 && (
                         <>
                             <div
-                                className="absolute top-2 -right-4 animate-ping text-lg"
+                                className="absolute top-2 -right-4 animate-ping text-body-l"
                                 style={{ animationDuration: '1s' }}
                             >
                                 ✨
                             </div>
                             <div
-                                className="absolute bottom-4 -left-4 animate-ping text-lg"
+                                className="absolute bottom-4 -left-4 animate-ping text-body-l"
                                 style={{ animationDuration: '1.2s', animationDelay: '0.2s' }}
                             >
                                 ✨
@@ -455,13 +455,13 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                     {holdProgress > 60 && (
                         <>
                             <div
-                                className="absolute -top-2 right-2 animate-ping text-sm"
+                                className="absolute -top-2 right-2 animate-ping text-body-s"
                                 style={{ animationDuration: '0.8s', animationDelay: '0.3s' }}
                             >
                                 ⭐
                             </div>
                             <div
-                                className="absolute -bottom-2 left-2 animate-ping text-sm"
+                                className="absolute -bottom-2 left-2 animate-ping text-body-s"
                                 style={{ animationDuration: '1s', animationDelay: '0.1s' }}
                             >
                                 ⭐
@@ -472,7 +472,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
             </div>
 
             {/* Instructions */}
-            <p className="mt-6 text-center text-sm text-foreground-secondary">{t('holdToUnwrap')}</p>
+            <p className="mt-6 text-center text-body-s text-foreground-secondary">{t('holdToUnwrap')}</p>
         </div>
     )
 }

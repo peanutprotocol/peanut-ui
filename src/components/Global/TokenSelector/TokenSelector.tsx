@@ -434,7 +434,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 <Icon name="plus" size={24} />
                             )}
                             {buttonChainLogoURI && buttonLogoURI && (
-                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black dark:bg-grey-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black">
                                     <Image
                                         src={buttonChainLogoURI}
                                         alt={`Chain logo`}

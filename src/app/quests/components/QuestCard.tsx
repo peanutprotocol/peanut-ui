@@ -50,15 +50,15 @@ export function QuestCard({
             case 'YELLOW':
                 return ''
             case 'PINK':
-                return 'bg-pink-100 text-pink-700'
+                return 'bg-pink-200 text-pink-700'
             case 'BLUE':
-                return 'bg-blue-100 text-blue-700'
+                return 'bg-blue-200 text-blue-600'
             default:
                 return ''
         }
     }
 
-    const bgColorClass = backgroundColor === 'purple' ? '' : backgroundColor === 'pink' ? 'bg-pink-100' : 'bg-blue-100'
+    const bgColorClass = backgroundColor === 'purple' ? '' : backgroundColor === 'pink' ? 'bg-pink-200' : 'bg-blue-200'
 
     return (
         <motion.div

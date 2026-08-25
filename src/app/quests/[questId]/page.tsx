@@ -82,8 +82,8 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
         questConfig.backgroundColor === 'purple'
             ? ''
             : questConfig.backgroundColor === 'pink'
-              ? 'bg-pink-100'
-              : 'bg-blue-100'
+              ? 'bg-pink-200'
+              : 'bg-blue-200'
 
     return (
         <Layout className="enable-select !m-0 w-full !p-0">

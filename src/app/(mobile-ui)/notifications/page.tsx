@@ -211,7 +211,7 @@ export default function NotificationsPage() {
                                                     </div>
                                                 </Link>
                                                 {!notif.state.readAt ? (
-                                                    <span className="absolute top-2 right-2 size-1.5 rounded-full bg-orange-2" />
+                                                    <span className="absolute top-2 right-2 size-1.5 rounded-full bg-red-200" />
                                                 ) : null}
                                             </Card>
                                         )

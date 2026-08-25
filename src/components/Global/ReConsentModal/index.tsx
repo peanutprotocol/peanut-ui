@@ -145,9 +145,9 @@ const ReConsentModal = () => {
                      * it when a future version bump shows this modal for a different
                      * change. "No rush" is literal: "Not now" snoozes to the effective
                      * date (see utils.ts). */}
-                    <p className="text-sm text-foreground-secondary">{t('reConsent.reassurance')}</p>
-                    <p className="text-sm text-foreground-secondary">{t('reConsent.whatChanged')}</p>
-                    <ul className="space-y-1 text-sm">
+                    <p className="text-body-s text-foreground-secondary">{t('reConsent.reassurance')}</p>
+                    <p className="text-body-s text-foreground-secondary">{t('reConsent.whatChanged')}</p>
+                    <ul className="space-y-1 text-body-s">
                         {outdatedDocs.map((doc) => {
                             const label = DOC_LABELS[doc.slug] ?? { name: doc.slug, href: `/${doc.slug}` }
                             return (
@@ -159,7 +159,7 @@ const ReConsentModal = () => {
                             )
                         })}
                     </ul>
-                    {error && <p className="text-sm text-error">{error}</p>}
+                    {error && <p className="text-body-s text-error">{error}</p>}
                 </div>
             }
             checkbox={{

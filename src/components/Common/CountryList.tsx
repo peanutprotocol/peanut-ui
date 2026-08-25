@@ -142,8 +142,8 @@ export const CountryList = ({
     return (
         <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
             <div className="space-y-2">
-                <div className="text-base font-bold">{inputTitle}</div>
-                {inputDescription && <p className="text-xs font-normal">{inputDescription}</p>}
+                <div className="text-body-m font-bold">{inputTitle}</div>
+                {inputDescription && <p className="text-body-xs font-normal">{inputDescription}</p>}
                 <SearchInput
                     value={searchTerm}
                     onChange={setSearchTerm}

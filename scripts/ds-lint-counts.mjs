@@ -95,9 +95,11 @@ counts.nuqsFiles = files.filter((f) => /from ['"]nuqs['"]/.test(f.text)).length
 // still using them is either allowlisted (dev tooling, marketing/landing,
 // og) or flagged in the phase-2 PR as having no semantic equivalent.
 // no `shadow-` prefix: shadow-primary-4/6/8 + shadow-secondary-* are real
-// offset-shadow utilities in globals.css, not palette classes
+// offset-shadow utilities in globals.css, not palette classes. indices 1-11
+// are the legacy palette; 50+ are the figma primitive ramp (gray-200 etc.),
+// which is the design system, not debt.
 const LEGACY_PALETTE_RE =
-    /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(?:n|grey|gray|primary|purple|yellow|green|secondary|teal|violet|cyan|orange)-[0-9]{1,3}\b/g
+    /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(?:n|grey|gray|primary|purple|yellow|green|secondary|teal|violet|cyan|orange)-(?:[1-9]|1[01])\b/g
 const LEGACY_ALLOW = [
     'components/LandingPage/',
     'components/Marketing/',

@@ -130,7 +130,7 @@ const CarouselCTA = ({
             {/* Content */}
             <div className="flex w-[80%] flex-col">
                 <p className="font-medium">{title}</p>
-                <p className="text-xs text-foreground-secondary">{description}</p>
+                <p className="text-body-xs text-foreground-secondary">{description}</p>
             </div>
         </Card>
     )

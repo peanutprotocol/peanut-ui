@@ -116,7 +116,7 @@ export default function NavigationPage() {
                             disableBackBtn={flowStep <= 1}
                             rightElement={<span className="text-xs text-grey-1">{flowStep}/3</span>}
                         />
-                        <div className="flex items-center justify-center rounded-sm bg-primary-3/20 py-8">
+                        <div className="flex items-center justify-center rounded-sm bg-purple-200/20 py-8">
                             <span className="text-sm font-bold">Step {flowStep} Content</span>
                         </div>
                         {flowStep < 3 ? (

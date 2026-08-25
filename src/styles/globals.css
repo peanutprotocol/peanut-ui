@@ -177,6 +177,54 @@
 
     --color-shadow-primary: #000000;
 
+    /* figma primitive ramp (tokens node 17292:3144) — the non-semantic palette
+       the semantic tokens point at. names + values mirror figma exactly; use a
+       semantic token when one exists, a primitive when it doesn't. the old
+       tailwind stock scales stay reset above, so only these indices exist. */
+    --color-gray-0: #ffffff;
+    --color-gray-50: #faf4f0;
+    --color-gray-100: #efeff0;
+    --color-gray-200: #e7e8e9;
+    --color-gray-300: #d1d5db;
+    --color-gray-400: #9ca3af;
+    --color-gray-600: #5f646d;
+    --color-gray-700: #374151;
+    --color-gray-800: #1f2937;
+    --color-gray-900: #161616;
+    --color-gray-950: #000000;
+    --color-pink-200: #ffd5f6;
+    --color-pink-500: #ff90e8;
+    --color-pink-600: #e06ac8;
+    --color-pink-700: #bd33a1;
+    --color-pink-800: #a42089;
+    --color-yellow-200: #fae184;
+    --color-yellow-400: #fde047;
+    --color-yellow-500: #ffc900;
+    --color-yellow-600: #dcae01;
+    --color-yellow-900: #885b00;
+    --color-purple-200: #dcd6ff;
+    --color-purple-400: #ba8bff;
+    --color-purple-500: #ae7aff;
+    --color-purple-600: #9333ea;
+    --color-blue-200: #dbeafe;
+    --color-blue-300: #90a8ed;
+    --color-blue-500: #5883ff;
+    --color-blue-600: #2563eb;
+    --color-green-200: #c7f9c6;
+    --color-green-400: #88d987;
+    --color-green-500: #29cc6a;
+    --color-green-800: #3b730c;
+    --color-green-900: #2a5309;
+    --color-red-50: #ffcccc;
+    --color-red-100: #ea8282;
+    --color-red-200: #fc5555;
+    --color-red-400: #ff3b30;
+    --color-red-500: #ff0000;
+    --color-red-600: #e40c0c;
+    --color-orange-200: #ffd3b4;
+    --color-orange-400: #f69855;
+    --color-orange-800: #b8450a;
+
     /* semantic type scale (figma Heading/Body/Label/Button, Roboto Flex) */
     --text-heading-big-input: 3.25rem;
     --text-heading-big-input--line-height: 4rem;

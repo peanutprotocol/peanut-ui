@@ -109,7 +109,7 @@ const DrawerDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <DrawerPrimitive.Description
         ref={ref}
-        className={twMerge('text-sm text-foreground-secondary', className)}
+        className={twMerge('text-body-s text-foreground-secondary', className)}
         {...props}
     />
 ))

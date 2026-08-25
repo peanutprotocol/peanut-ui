@@ -140,7 +140,7 @@ export default function ContactsView() {
                         <ContactsListSkeleton count={5} />
                     ) : contacts.length > 0 ? (
                         <div className="space-y-2">
-                            <h2 className="text-base font-bold">{t('contacts.yourContacts')}</h2>
+                            <h2 className="text-body-m font-bold">{t('contacts.yourContacts')}</h2>
                             <div className="space-y-0 flex-1 overflow-y-auto">
                                 {contacts.map((contact, index) => {
                                     const isVerified = contact.isVerified
@@ -181,7 +181,7 @@ export default function ContactsView() {
                             {/* infinite scroll loader */}
                             <div ref={loaderRef} className="w-full py-4">
                                 {isFetchingNextPage && (
-                                    <div className="w-full text-center text-sm">{t('contacts.loadingMore')}</div>
+                                    <div className="w-full text-center text-body-s">{t('contacts.loadingMore')}</div>
                                 )}
                             </div>
                         </div>

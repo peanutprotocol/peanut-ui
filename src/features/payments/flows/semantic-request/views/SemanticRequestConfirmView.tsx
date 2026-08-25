@@ -337,7 +337,7 @@ function TokenChainInfoDisplay({
                                 altText={`${chainName} chain`}
                                 fallbackName={chainName.charAt(0) || 'C'}
                                 sizeClass="h-3.5 w-3.5"
-                                className="rounded-full border-2 border-white dark:border-grey-4"
+                                className="rounded-full border-2 border-white"
                             />
                         </div>
                     )}

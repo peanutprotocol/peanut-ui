@@ -145,7 +145,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -180,7 +180,7 @@ const ImageSection = ({
         <div
             className={classNames(
                 containerClass,
-                'flex w-full flex-row items-center justify-center bg-secondary-3/100 md:h-[100dvh] md:w-7/12',
+                'flex w-full flex-row items-center justify-center bg-blue-300/100 md:h-[100dvh] md:w-7/12',
                 screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
@@ -295,7 +295,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                         {headingTitle && (
                             <h1
                                 className={twMerge(
-                                    'w-full text-left text-xl leading-tight font-extrabold',
+                                    'w-full text-left text-heading-xs leading-tight',
                                     sunsetLanding && 'md:text-center',
                                     titleClassName
                                 )}
@@ -304,12 +304,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             </h1>
                         )}
                         {headingDescription && (
-                            <p
-                                className={twMerge(
-                                    'text-base font-medium text-black',
-                                    sunsetLanding && 'md:text-center'
-                                )}
-                            >
+                            <p className={twMerge('text-body-m text-black', sunsetLanding && 'md:text-center')}>
                                 {headingDescription}
                             </p>
                         )}

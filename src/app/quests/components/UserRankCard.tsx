@@ -15,9 +15,9 @@ export function UserRankCard({ metric, username, isCurrency = false, backgroundC
         backgroundColor === 'purple'
             ? ''
             : backgroundColor === 'pink'
-              ? 'bg-pink-100'
+              ? 'bg-pink-200'
               : backgroundColor === 'blue'
-                ? 'bg-blue-100'
+                ? 'bg-blue-200'
                 : 'bg-white'
 
     return (
@@ -37,7 +37,7 @@ export function UserRankCard({ metric, username, isCurrency = false, backgroundC
                 <div className="flex min-w-0 flex-col">
                     <div className="flex items-center gap-1.5 md:gap-2">
                         <span className="truncate text-sm font-bold md:text-base">{username}</span>
-                        <span className="flex-shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 md:px-2 md:text-xs">
+                        <span className="flex-shrink-0 rounded-full bg-blue-200 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 md:px-2 md:text-xs">
                             YOU
                         </span>
                     </div>
