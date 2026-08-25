@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { statusFeedOrigin } from './feed'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { StatusBoard } from './StatusBoard'
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 
 async function loadSummary(): Promise<StatusSummary | null> {
     try {
-        const response = await fetch(`${PEANUT_API_URL}/status/summary`, {
+        const response = await fetch(`${statusFeedOrigin()}/status/summary`, {
             next: { revalidate },
             signal: AbortSignal.timeout(8000),
         })
