@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { statusFeedOrigin } from './feed'
+import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getTranslations } from '@/i18n'
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { getAlternatesFor, localizedPath } from '@/i18n/config'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { StatusBoard } from './StatusBoard'
 import { parseStatusSummary, type StatusSummary } from './types'
 
@@ -11,12 +13,26 @@ export const revalidate = 60
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
     const { locale } = await params
-    const i18n = getTranslations(locale)
+    const resolved = locale ?? DEFAULT_LOCALE
+    const i18n = getTranslations(resolved)
+    const canonical = localizedPath('status', resolved)
+
     return {
-        title: i18n.statusPageTitle,
-        description: i18n.statusPageSubtitle,
+        ...metadataHelper({
+            locale: resolved,
+            title: i18n.statusMetaTitle,
+            description: i18n.statusPageSubtitle,
+            canonical,
+            // Branded card rather than the generic marketing image: this link
+            // gets pasted into chats during an incident, and the unfurl is the
+            // first thing anyone reads.
+            dynamicOg: true,
+            ogSubtitle: i18n.statusPageSubtitle,
+        }),
+        alternates: { canonical, languages: getAlternatesFor(SUPPORTED_LOCALES, 'status') },
         // Nothing here should compete with the marketing pages in search, and
-        // a stale cached copy of an outage is worse than none.
+        // a stale cached copy of an outage is worse than none. Unfurls are
+        // unaffected — og:/twitter: tags are read regardless of robots.
         robots: { index: false, follow: true },
     }
 }

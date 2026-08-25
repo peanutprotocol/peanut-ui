@@ -201,6 +201,7 @@ export interface Translations {
 
     // Public status page (/status)
     statusPageTitle: string
+    statusMetaTitle: string
     statusPageSubtitle: string
     statusAllOperational: string
     statusSomeDegraded: string

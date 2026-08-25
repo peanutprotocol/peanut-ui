@@ -51,6 +51,7 @@
     "categorySendingReceiving": "Sending & Receiving",
     "categoryTroubleshooting": "Troubleshooting",
     "statusPageTitle": "Peanut Status",
+    "statusMetaTitle": "Peanut Status — Service availability",
     "statusPageSubtitle": "Availability of Peanut services over the last 72 hours.",
     "statusAllOperational": "All systems operational",
     "statusSomeDegraded": "Some services degraded",
