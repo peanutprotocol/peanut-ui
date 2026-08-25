@@ -1,8 +1,13 @@
 name: Tests
 
 on:
+    # push is post-merge signal only. `['**']` double-ran the whole suite on
+    # every PR commit (push + pull_request runs on the same SHA, in different
+    # concurrency groups, so neither cancelled the other).
+    # content-publish-automerge's merge-on-green requires "at least one and
+    # ALL green" ci-success check runs per SHA, so one run per SHA satisfies it.
     push:
-        branches: ['**']
+        branches: [main, dev]
     pull_request:
         branches: [main, dev, develop]
     workflow_dispatch:
