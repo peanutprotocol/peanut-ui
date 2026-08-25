@@ -201,6 +201,7 @@
         ],
         "moduleNameMapper": {
             "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",
+            "\\.css$": "jest-transform-stub",
             "^@/config/wagmi\\.config$": "<rootDir>/src/utils/__mocks__/wagmi-config.ts",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
             "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
