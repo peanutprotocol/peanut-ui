@@ -53,7 +53,7 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
     }
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-4 md:pb-0">
+        <PageStack className="pb-4 md:pb-0">
             <NavHeader title={t('methods.migrateFromOfframp')} onPrev={onBack} />
             <PageStack.Center>
                 <div className="flex flex-col gap-2">
@@ -86,7 +86,7 @@ const OfframpHandleGateView = ({ onBack, onDone }: OfframpHandleGateViewProps) =
                     {tCommon('continue')}
                 </Button>
             </PageStack.Center>
-        </div>
+        </PageStack>
     )
 }
 

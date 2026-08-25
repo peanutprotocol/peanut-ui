@@ -97,7 +97,7 @@ counts.nuqsFiles = files.filter((f) => /from ['"]nuqs['"]/.test(f.text)).length
 // no `shadow-` prefix: shadow-primary-4/6/8 + shadow-secondary-* are real
 // offset-shadow utilities in globals.css, not palette classes
 const LEGACY_PALETTE_RE =
-    /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(?:n-[0-9]|grey-[0-9]|gray-[0-9]|primary-[0-9]|purple-[0-9]|yellow-[0-9]{1,2}|green-[0-9]|secondary-[0-9]|teal-[0-9]|violet-[0-9]|cyan-[0-9]|orange-[0-9])\b/g
+    /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(?:n|grey|gray|primary|purple|yellow|green|secondary|teal|violet|cyan|orange)-[0-9]{1,3}\b/g
 const LEGACY_ALLOW = [
     'components/LandingPage/',
     'components/Marketing/',
@@ -108,7 +108,7 @@ const LEGACY_ALLOW = [
     'app/jobs/',
     'app/m/',
     'app/[locale]/(marketing)/',
-    'dev/', // all dev tooling, not just dev/ds
+    '/dev/', // all dev tooling, not just dev/ds
 ]
 counts.legacyColorClasses = files
     .filter((f) => isTsx(f) && !allowed(f.path, LEGACY_ALLOW))

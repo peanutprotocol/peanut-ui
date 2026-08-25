@@ -97,7 +97,7 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
             modalClassName="z-50 !items-center !justify-center !px-6"
             modalPanelClassName="!bottom-auto !mx-auto !w-auto !max-w-md !self-center"
             icon="alert"
-            iconContainerClassName="size-16"
+            iconContainerClassName="bg-action-secondary size-16"
             iconProps={{ className: 'size-6' }}
             title={t('balanceWarningModal.title')}
             description={

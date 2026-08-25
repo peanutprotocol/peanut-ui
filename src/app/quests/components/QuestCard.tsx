@@ -58,8 +58,7 @@ export function QuestCard({
         }
     }
 
-    const bgColorClass =
-        backgroundColor === 'purple' ? 'bg-purple-200' : backgroundColor === 'pink' ? 'bg-pink-100' : 'bg-blue-100'
+    const bgColorClass = backgroundColor === 'purple' ? '' : backgroundColor === 'pink' ? 'bg-pink-100' : 'bg-blue-100'
 
     return (
         <motion.div

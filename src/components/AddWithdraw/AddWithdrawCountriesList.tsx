@@ -1,6 +1,7 @@
 'use client'
 
 import { COUNTRY_SPECIFIC_METHODS, countryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Section } from '@/components/0_Bruddle/Section'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { type IconName } from '@/components/Global/Icons/Icon'
@@ -525,15 +526,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         handleAddMethodClick(method)
                                     }
                                 }}
-                                position={
-                                    paymentMethods.length === 1
-                                        ? 'single'
-                                        : index === 0
-                                          ? 'first'
-                                          : index === paymentMethods.length - 1
-                                            ? 'last'
-                                            : 'middle'
-                                }
+                                position={getCardPosition(index, paymentMethods.length)}
                             />
                         )
                     })}

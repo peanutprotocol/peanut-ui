@@ -130,12 +130,12 @@ export default function RedirectQrClaimPage() {
     // Show loading while checking status or if we're in the process of redirecting
     if (isCheckingStatus || (redirectQrData?.claimed && redirectQrData?.redirectUrl)) {
         return (
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
+            <PageStack className={getShakeClass(shake.on, shake.intensity)}>
                 <NavHeader title={tLoading('loading')} />
                 <div className="my-auto flex h-full items-center justify-center">
                     <Loading variant="mascot" />
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
@@ -143,12 +143,12 @@ export default function RedirectQrClaimPage() {
     // This loading screen will show briefly during that redirect
     if (!user) {
         return (
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
+            <PageStack className={getShakeClass(shake.on, shake.intensity)}>
                 <NavHeader title={tLoading('loading')} />
                 <div className="my-auto flex h-full items-center justify-center">
                     <Loading variant="mascot" />
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
@@ -159,7 +159,7 @@ export default function RedirectQrClaimPage() {
             console.error('QR status check error:', redirectQrError)
         }
         return (
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
+            <PageStack className={getShakeClass(shake.on, shake.intensity)}>
                 <NavHeader title={t('claim.navTitle')} />
                 <PageStack.Center className="gap-4">
                     <Card className="space-y-4 p-6">
@@ -179,19 +179,19 @@ export default function RedirectQrClaimPage() {
                         {tCommon('goToHome')}
                     </Button>
                 </PageStack.Center>
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(shake.on, shake.intensity)}`}>
+        <PageStack className={getShakeClass(shake.on, shake.intensity)}>
             <NavHeader title={t('claim.inviteQrTitle')} />
             <PageStack.Center className="gap-4">
                 {/* QR Code Visual */}
                 <Card className="space-y-4 p-6">
                     <div className="flex items-center justify-center">
                         <div className="flex h-24 w-24 items-center justify-center rounded-full">
-                            <Icon name="qr-code" size={64} className="text-purple-600" />
+                            <Icon name="qr-code" size={64} />
                         </div>
                     </div>
                     <div className="space-y-2 text-center">
@@ -223,6 +223,6 @@ export default function RedirectQrClaimPage() {
 
                 {error && <Notification priority="error">{error}</Notification>}
             </PageStack.Center>
-        </div>
+        </PageStack>
     )
 }

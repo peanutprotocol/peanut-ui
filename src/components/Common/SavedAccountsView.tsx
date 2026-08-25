@@ -59,10 +59,9 @@ export default function SavedAccountsView({
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
             <div className="space-y-6">
-                <div className="space-y-2 flex h-full flex-col justify-center">
-                    <h2 className="text-heading-card text-foreground-primary">{t('savedAccounts.title')}</h2>
+                <Section title={t('savedAccounts.title')} className="h-full justify-center">
                     <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
-                </div>
+                </Section>
                 <Divider
                     textClassname="text-label-m text-foreground-secondary"
                     dividerClassname="bg-border-subtle"

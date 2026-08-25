@@ -361,14 +361,13 @@ const HomeHistory = ({
             Sentry.captureException(error)
         }
         return (
-            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>{' '}
+            <Section title={t('activity')} className="mx-auto mt-6 w-full gap-3 md:max-w-2xl">
                 <EmptyState
                     icon="alert"
                     title={isNetworkError ? t('networkErrorTitle') : t('errorTitle')}
                     description={isNetworkError ? t('networkErrorDescription') : t('errorDescription')}
                 />
-            </div>
+            </Section>
         )
     }
 
@@ -389,8 +388,7 @@ const HomeHistory = ({
     // show empty state UI if no processed entries yet (but source data may still be processing)
     if (!isLoading && !combinedEntries.length && !hasSourceEntries) {
         return (
-            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <h2 className="text-heading-card text-foreground-primary">{t('activity')}</h2>
+            <Section title={t('activity')} className="mx-auto mt-6 w-full gap-3 md:max-w-2xl">
                 {isViewingOwnHistory &&
                     user &&
                     (() => {
@@ -411,7 +409,7 @@ const HomeHistory = ({
                 {!isViewingOwnHistory && (
                     <EmptyState icon="txn-off" title={t('noTransactionsTitle')} description={t('emptyDescription')} />
                 )}
-            </div>
+            </Section>
         )
     }
 

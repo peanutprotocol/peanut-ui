@@ -212,7 +212,7 @@ export function RequestPotActionList({
                 description={t('minAmount.description', { minAmount: MIN_BANK_TRANSFER_AMOUNT })}
                 icon="alert"
                 ctas={[{ text: tCommon('close'), shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
-                iconContainerClassName=""
+                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />

@@ -13,7 +13,7 @@ interface UserRankCardProps {
 export function UserRankCard({ metric, username, isCurrency = false, backgroundColor = 'white' }: UserRankCardProps) {
     const bgColorClass =
         backgroundColor === 'purple'
-            ? 'bg-purple-200'
+            ? ''
             : backgroundColor === 'pink'
               ? 'bg-pink-100'
               : backgroundColor === 'blue'

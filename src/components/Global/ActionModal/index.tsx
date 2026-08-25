@@ -108,7 +108,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
             className={twMerge('items-center justify-center md:mx-auto md:max-w-md', modalClassName)}
             classButtonClose={hideModalCloseButton ? '!hidden' : ''}
             classWrap={twMerge(
-                // board 17800:57216 panel: white, , sharp 2px corners
+                // board 17800:57216 panel: white, border-default, sharp 2px corners
                 'sm:m-auto sm:self-center self-center m-4 bg-background-default rounded-sm border border-border-default z-50',
                 defaultModalPanelClasses,
                 modalPanelClassName

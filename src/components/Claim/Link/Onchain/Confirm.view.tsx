@@ -170,7 +170,7 @@ export const ConfirmClaimLinkView = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <PageStack className="justify-between">
             <div className="md:hidden">
                 <NavHeader title={tNav('claim')} onPrev={onPrev} />
             </div>
@@ -257,6 +257,6 @@ export const ConfirmClaimLinkView = ({
 
                 {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
             </PageStack.Center>
-        </div>
+        </PageStack>
     )
 }

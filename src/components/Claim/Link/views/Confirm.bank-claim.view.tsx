@@ -68,7 +68,7 @@ export function ConfirmBankClaimView({
     )?.currencyCode
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+        <PageStack className="justify-between md:min-h-fit">
             <div>
                 <NavHeader title={t('receive')} onPrev={onBack} />
             </div>
@@ -135,6 +135,6 @@ export function ConfirmBankClaimView({
                     {error && <Notification priority="error">{error}</Notification>}
                 </div>
             </PageStack.Center>
-        </div>
+        </PageStack>
     )
 }
