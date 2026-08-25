@@ -196,7 +196,37 @@ export interface Translations {
     footerTerms: string
     footerPrivacy: string
     footerSecurity: string
+    footerStatus: string
     footerCareers: string
+
+    // Public status page (/status)
+    statusPageTitle: string
+    statusPageSubtitle: string
+    statusAllOperational: string
+    statusSomeDegraded: string
+    statusSomeDown: string
+    statusUnknown: string
+    statusWindowLabel: string
+    statusUptimeLabel: string
+    statusNow: string
+    statusWindowStart: string
+    statusIncidentOngoing: string
+    statusIncidentResolved: string
+    statusFetchFailed: string
+    statusGroupApp: string
+    statusServiceApp: string
+    statusServiceSumsub: string
+    statusServiceMantecaAr: string
+    statusServiceMantecaBr: string
+    statusServiceBridge: string
+    statusServiceRhino: string
+    statusServiceRpc: string
+    statusServiceMobula: string
+    statusServiceRain: string
+    statusLegendOperational: string
+    statusLegendDegraded: string
+    statusLegendDown: string
+    statusLegendNoData: string
 
     // MDX component headings
     faqTitle: string
