@@ -75,7 +75,6 @@ export default function BackupPage() {
                 </Section>
             </div>
 
-            {/* FAQ Modal: What if I lose my phone? */}
             <ActionModal
                 visible={activeModal === 'lose-phone'}
                 onClose={closeModal}
@@ -94,7 +93,6 @@ export default function BackupPage() {
                 }
             />
 
-            {/* FAQ Modal: What if I change phone? */}
             <ActionModal
                 visible={activeModal === 'change-phone'}
                 onClose={closeModal}
@@ -121,7 +119,6 @@ export default function BackupPage() {
                 }
             />
 
-            {/* FAQ Modal: Why can't I export my private key? */}
             <ActionModal
                 visible={activeModal === 'export-keys'}
                 onClose={closeModal}

@@ -24,12 +24,10 @@ export default function RedirectQrSuccessPage() {
     const code = (params?.code as string) || searchParams.get('code') || ''
     const toast = useToast()
 
-    // Fetch redirect QR details using shared hook
     const { data: redirectQrData, isLoading } = useRedirectQrStatus(code)
 
     const qrUrl = `${BASE_URL}/qr/${code}`
 
-    // Trigger confetti on mount
     useEffect(() => {
         const timer = setTimeout(() => {
             confettiPresets.success()
@@ -53,18 +51,15 @@ export default function RedirectQrSuccessPage() {
         <PageStack>
             <NavHeader title={t('claimSuccess.navTitle')} />
             <PageStack.Center className="gap-4">
-                {/* Title */}
                 <div className="space-y-1 text-center">
                     <h1 className="text-heading-s">{t('claimSuccess.title')}</h1>
                     <p className="text-body-m text-foreground-secondary">{t('claimSuccess.description')}</p>
                 </div>
 
-                {/* QR Code Display */}
                 <div className="flex justify-center py-4">
                     <QRCodeWrapper url={qrUrl} />
                 </div>
 
-                {/* Sticker Info Card */}
                 <Card className="border-2 border-action-secondary bg-action-secondary/10 p-4">
                     <div className="flex gap-3">
                         <Icon name="star" size={20} className="flex-shrink-0 text-action-secondary" />
@@ -77,7 +72,6 @@ export default function RedirectQrSuccessPage() {
                     </div>
                 </Card>
 
-                {/* Action Buttons */}
                 <div className="space-y-3">
                     <Button
                         variant="purple"
@@ -93,11 +87,10 @@ export default function RedirectQrSuccessPage() {
                         shadowSize="4"
                         onClick={async () => {
                             try {
-                                // ALWAYS copy to clipboard first (works on both desktop and mobile)
+                                // copy first — clipboard works everywhere, share() is mobile-only
                                 await navigator.clipboard.writeText(qrUrl)
                                 toast.info(t('claimSuccess.linkCopied'))
 
-                                // THEN try to open share dialog if available (bonus for mobile users)
                                 if (navigator.share) {
                                     await navigator.share({
                                         title: t('claimSuccess.shareTitle'),
@@ -106,7 +99,7 @@ export default function RedirectQrSuccessPage() {
                                     })
                                 }
                             } catch (error) {
-                                // Ignore user cancellation
+                                // user cancelled the share sheet — not an error
                                 if (!(error instanceof Error) || error.name !== 'AbortError') {
                                     console.error('Share error:', error)
                                 }
