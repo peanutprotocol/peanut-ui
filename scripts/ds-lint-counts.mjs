@@ -90,6 +90,34 @@ counts.nonDsClassesInViews = files
 counts.useSearchParamsFiles = files.filter((f) => /\buseSearchParams\b/.test(f.text)).length
 counts.nuqsFiles = files.filter((f) => /from ['"]nuqs['"]/.test(f.text)).length
 
+// legacy palette classes (phase-2 tier-2 kill list). semantic tokens
+// (foreground-*, background-*, action-*, border-*) replaced these; anything
+// still using them is either allowlisted (dev tooling, marketing/landing,
+// og) or flagged in the phase-2 PR as having no semantic equivalent.
+const LEGACY_PALETTE_RE =
+    /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|shadow|from|to|via)-(?:n-[0-9]|grey-[0-9]|gray-[0-9]|primary-[0-9]|purple-[0-9]|yellow-[0-9]{1,2}|green-[0-9]|secondary-[0-9]|teal-[0-9]|violet-[0-9]|cyan-[0-9]|orange-[0-9])\b/g
+const LEGACY_ALLOW = [
+    'components/LandingPage/',
+    'components/Marketing/',
+    'components/Jobs/',
+    'app/lp/',
+    'app/shhhhh/',
+    'app/careers/',
+    'app/jobs/',
+    'app/m/',
+    'app/[locale]/(marketing)/',
+    'dev/', // all dev tooling, not just dev/ds
+]
+counts.legacyColorClasses = files
+    .filter((f) => isTsx(f) && !allowed(f.path, LEGACY_ALLOW))
+    .reduce((sum, f) => sum + countMatches(f.text, LEGACY_PALETTE_RE), 0)
+
+// className sites in (mobile-ui) page.tsx files — pages should compose
+// recipes/views, not respell utility strings. goes down as pages de-inline.
+counts.classNameSitesInPages = files
+    .filter((f) => /^app\/\(mobile-ui\)\//.test(f.path) && /(^|\/)page\.tsx$/.test(f.path) && !f.path.includes('/dev/'))
+    .reduce((sum, f) => sum + countMatches(f.text, /className=/g), 0)
+
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
 // else is debt (must only go DOWN). the ratchet only enforces the debt keys.
 const DEBT_KEYS = [
@@ -99,6 +127,8 @@ const DEBT_KEYS = [
     'stockTextSize',
     'nonDsClassesInViews',
     'useSearchParamsFiles',
+    'legacyColorClasses',
+    'classNameSitesInPages',
 ]
 
 const mode = process.argv[2] ?? ''
