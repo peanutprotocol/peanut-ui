@@ -31,7 +31,7 @@ export default function StoreBadges({
                         icon={s === 'ios' ? 'apple-logo' : 'google-play'}
                         className={
                             isHero
-                                ? 'w-52 bg-white px-6 py-3 text-button-m hover:bg-white/90 md:py-7 md:text-button-l'
+                                ? 'w-52 bg-white px-6 py-3 text-button-m font-extrabold hover:bg-white/90 md:py-7 md:text-button-l'
                                 : 'w-auto px-4'
                         }
                     >

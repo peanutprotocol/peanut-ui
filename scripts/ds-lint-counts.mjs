@@ -40,10 +40,11 @@ const INLINE_STYLE_RE = /style=\{\{/g
 // stock tailwind text sizes that the text-h* scale replaces
 const STOCK_TEXT_RE = /\btext-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl)\b/g
 const DS_TEXT_RE = /\btext-h(?:10|[1-9])\b/g
-// stock tailwind palette colors — the DS palette is n-*, grey-*, purple-*,
-// primary-*, secondary-* etc., so any stock-palette class in a view is non-DS
+// stock tailwind families the DS does not define at all — any use in a view
+// is non-DS. families the figma ramp owns (gray/pink/yellow/purple/blue/
+// green/red/orange) are policed by offRampPalette below instead.
 const STOCK_PALETTE_RE =
-    /\b(?:bg|text|border|ring|fill|stroke|from|to|via)-(?:red|blue|gray|slate|zinc|neutral|stone|amber|lime|emerald|teal|cyan|sky|indigo|violet|fuchsia|rose|orange)-[0-9]{2,3}\b/g
+    /\b(?:bg|text|border|ring|fill|stroke|from|to|via)-(?:slate|zinc|neutral|stone|amber|lime|emerald|teal|cyan|sky|indigo|violet|fuchsia|rose)-[0-9]{2,3}\b/g
 // arbitrary-value tailwind classes, e.g. bg-[#fff], w-[13px], text-[11px]
 const ARBITRARY_RE = /[a-z-]+-\[[^\]\s]+\]/g
 
@@ -116,6 +117,31 @@ counts.legacyColorClasses = files
     .filter((f) => isTsx(f) && !allowed(f.path, LEGACY_ALLOW))
     .reduce((sum, f) => sum + countMatches(f.text, LEGACY_PALETTE_RE), 0)
 
+// ramp families with a non-figma index (gray-500, blue-400, pink-300, …).
+// post-ramp these are silent holes (render nothing) or, if tailwind ever
+// re-defines them, off-DS colors — either way debt, app-wide.
+const RAMP_INDICES = {
+    gray: [0, 50, 100, 200, 300, 400, 600, 700, 800, 900, 950],
+    pink: [200, 500, 600, 700, 800],
+    yellow: [200, 400, 500, 600, 900],
+    purple: [200, 400, 500, 600],
+    blue: [200, 300, 500, 600],
+    green: [200, 400, 500, 800, 900],
+    red: [50, 100, 200, 400, 500, 600],
+    orange: [200, 400, 800],
+}
+const RAMP_FAMILY_RE =
+    /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(gray|pink|yellow|purple|blue|green|red|orange)-([0-9]{2,3})\b/g
+counts.offRampPalette = files
+    .filter((f) => isTsx(f) && !allowed(f.path, LEGACY_ALLOW))
+    .reduce((sum, f) => {
+        let n = 0
+        for (const m of f.text.matchAll(RAMP_FAMILY_RE)) {
+            if (!RAMP_INDICES[m[1]].includes(Number(m[2]))) n++
+        }
+        return sum + n
+    }, 0)
+
 // className sites in (mobile-ui) page.tsx files — pages should compose
 // recipes/views, not respell utility strings. goes down as pages de-inline.
 counts.classNameSitesInPages = files
@@ -132,6 +158,7 @@ const DEBT_KEYS = [
     'nonDsClassesInViews',
     'useSearchParamsFiles',
     'legacyColorClasses',
+    'offRampPalette',
     'classNameSitesInPages',
 ]
 

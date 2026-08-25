@@ -20,7 +20,7 @@ export const SumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent, ...bu
                 {flow.isLoading ? 'Loading...' : (buttonProps.children ?? 'Start Verification')}
             </Button>
 
-            {flow.error && <p className="mt-2 text-body-s">{flow.error}</p>}
+            {flow.error && <p className="mt-2 text-body-s text-error">{flow.error}</p>}
 
             <SumsubKycModals flow={flow} />
         </>

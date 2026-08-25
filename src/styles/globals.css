@@ -27,6 +27,8 @@
     --color-teal-*: initial;
     --color-violet-*: initial;
     --color-cyan-*: initial;
+    --color-blue-*: initial;
+    --color-pink-*: initial;
     --color-orange-*: initial;
 
     --color-primary-1: #ff90e8;
@@ -179,8 +181,10 @@
 
     /* figma primitive ramp (tokens node 17292:3144) — the non-semantic palette
        the semantic tokens point at. names + values mirror figma exactly; use a
-       semantic token when one exists, a primitive when it doesn't. the old
-       tailwind stock scales stay reset above, so only these indices exist. */
+       semantic token when one exists, a primitive when it doesn't. every family
+       here is reset above, so only these indices exist (a typo like gray-500
+       or blue-400 renders nothing instead of a stock color). amber is
+       deliberately NOT reset — landing still paints stock amber. */
     --color-gray-0: #ffffff;
     --color-gray-50: #faf4f0;
     --color-gray-100: #efeff0;

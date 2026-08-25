@@ -156,7 +156,7 @@ export default function ColorsPage() {
                     {BACKGROUNDS.map((bg) => (
                         <button key={bg.name} onClick={() => copyClass(bg.name)} className="w-full text-left">
                             <div
-                                className={`${bg.name} h-20 rounded-sm border border-dashed border-n-1 bg-purple-200 p-2`}
+                                className={`${bg.name} h-20 rounded-sm border border-dashed border-n-1 bg-primary-3 p-2`}
                             >
                                 <span className="font-mono text-[10px]">.{bg.name} · unused</span>
                             </div>

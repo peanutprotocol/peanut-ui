@@ -7,7 +7,7 @@ const styles = {
         iconName: 'alert' as const,
     },
     info: {
-        container: 'border-purple-200 bg-purple-200/20',
+        container: 'border-primary-3 bg-primary-3/20',
         icon: 'text-n-1',
         iconName: 'info' as const,
     },

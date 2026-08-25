@@ -161,7 +161,7 @@ export default function CardsGlobalPage() {
                 <div className="overflow-x-auto rounded-sm border border-n-1 text-xs">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-n-1 bg-purple-200/20">
+                            <tr className="border-b border-n-1 bg-primary-3/20">
                                 <th className="px-3 py-1.5 text-left font-bold">Position</th>
                                 <th className="px-3 py-1.5 text-left font-bold">Border Radius</th>
                                 <th className="px-3 py-1.5 text-left font-bold">Border</th>

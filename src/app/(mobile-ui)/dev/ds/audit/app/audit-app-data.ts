@@ -335,7 +335,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 devUsages: 0,
                 source: 'inline lowercase <button> JSX elements in product code, not the 0_Bruddle Button primitive',
                 divergence:
-                    '7 hand-rolled <button bg-*...rounded-*> elements across 5 files use off-DS radii (rounded-full/rounded-lg/rounded vs DS rounded-sm) and gray hover colors () instead of Button; InvitesGraph forks it 3x despite importing Button on line 35. (Of 57 total inline <button> product elements, 7 carry bg-+rounded styling and should be Button.)',
+                    '7 hand-rolled <button bg-*...rounded-*> elements across 5 files use off-DS radii (rounded-full/rounded-lg/rounded vs DS rounded-sm) and gray hover colors (hover:bg-gray-50/100) instead of Button; InvitesGraph forks it 3x despite importing Button on line 35. (Of 57 total inline <button> product elements, 7 carry bg-+rounded styling and should be Button.)',
                 usedIn: [
                     'components/Global/InvitesGraph/index.tsx',
                     'components/Global/QRScanner/index.tsx',
@@ -350,7 +350,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
         category: 'Pills, Badges & Chips',
         layer: 'components',
         summary:
-            'The design brief\'s "info pills in 5 variations" is real: there is ONE canonical token-based text pill (StatusBadge, 17 real usages) but at least 6 competing implementations of the same "small rounded status label" concept. StatusPill (icon-only, 7 uses) shares StatusType with StatusBadge but has drifted color tokens (pending = border-yellow-8 vs StatusBadge\'s border-yellow-7). Three ad-hoc families reimplement the SAME completed/pending/failed semantics with raw Tailwind-default palette (bg-green-100/bg-yellow-100/) instead of design tokens: PerkRewardReceipt\'s status pill, the InvitesGraph debug pills, and the Quest badge pills — the latter via a byte-identical getBadgeColorClasses helper copy-pasted across QuestCard and QuestLeaderboard. ChainChip is a separate token-less "chip" built on Card. StatusTag is showcase/DS-audit only (0 product usages). Net: 1 canonical pill live, 1 divergent-token sibling live, 3 hard-coded-color duplicates live, 1 duplicated helper, 1 showcase-only. Consolidation target: fold PerkRewardReceipt + Quest pills into StatusBadge/customText and align StatusPill\'s color map to StatusBadge\'s.',
+            'The design brief\'s "info pills in 5 variations" is real: there is ONE canonical token-based text pill (StatusBadge, 17 real usages) but at least 6 competing implementations of the same "small rounded status label" concept. StatusPill (icon-only, 7 uses) shares StatusType with StatusBadge but has drifted color tokens (pending = border-yellow-8 vs StatusBadge\'s border-yellow-7). Three ad-hoc families reimplement the SAME completed/pending/failed semantics with raw Tailwind-default palette (bg-green-100/bg-yellow-100/bg-gray-100) instead of design tokens: PerkRewardReceipt\'s status pill, the InvitesGraph debug pills, and the Quest badge pills — the latter via a byte-identical getBadgeColorClasses helper copy-pasted across QuestCard and QuestLeaderboard. ChainChip is a separate token-less "chip" built on Card. StatusTag is showcase/DS-audit only (0 product usages). Net: 1 canonical pill live, 1 divergent-token sibling live, 3 hard-coded-color duplicates live, 1 duplicated helper, 1 showcase-only. Consolidation target: fold PerkRewardReceipt + Quest pills into StatusBadge/customText and align StatusPill\'s color map to StatusBadge\'s.',
         items: [
             {
                 name: 'StatusBadge',
@@ -391,7 +391,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 devUsages: 0,
                 source: 'components/TransactionDetails/provider-receipts/PerkRewardReceipt.tsx',
                 divergence:
-                    "Reimplements StatusBadge's exact completed/processing/fallback branch as three inline rounded-full spans with RAW Tailwind-default palette (bg-green-100/, bg-yellow-100/, bg-gray-100/) instead of design tokens, and padding px-3 py-1 text-xs (StatusBadge 'medium' is px-3 py-1 text-xs but token-colored). Pure duplicate of StatusBadge — should be <StatusBadge status={transaction.status} />.",
+                    "Reimplements StatusBadge's exact completed/processing/fallback branch as three inline rounded-full spans with RAW Tailwind-default palette (bg-green-100/text-green-700, bg-yellow-100/text-yellow-700, bg-gray-100/text-gray-700) instead of design tokens, and padding px-3 py-1 text-xs (StatusBadge 'medium' is px-3 py-1 text-xs but token-colored). Pure duplicate of StatusBadge — should be <StatusBadge status={transaction.status} />.",
                 usedIn: ['components/TransactionDetails/provider-receipts/PerkRewardReceipt.tsx'],
             },
             {
@@ -401,7 +401,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 devUsages: 0,
                 source: 'app/quests/components/QuestCard.tsx + app/quests/components/QuestLeaderboard.tsx',
                 divergence:
-                    'getBadgeColorClasses(color) is BYTE-IDENTICAL in both files (YELLOW/PINK/BLUE/default → etc., raw Tailwind palette not tokens). Both render the pill inline with rounded-full px-1.5 py-0.5 text-[10px] md:px-2 md:text-xs. Copy-paste duplicate helper + hard-coded colors; extract one shared QuestBadge or map onto StatusBadge customText.',
+                    'getBadgeColorClasses(color) is BYTE-IDENTICAL in both files (YELLOW/PINK/BLUE/default → bg-yellow-100 text-yellow-700 etc., raw Tailwind palette not tokens). Both render the pill inline with rounded-full px-1.5 py-0.5 text-[10px] md:px-2 md:text-xs. Copy-paste duplicate helper + hard-coded colors; extract one shared QuestBadge or map onto StatusBadge customText.',
                 usedIn: ['app/quests/components/QuestCard.tsx', 'app/quests/components/QuestLeaderboard.tsx'],
             },
             {
@@ -411,7 +411,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 devUsages: 0,
                 source: 'components/Global/InvitesGraph/index.tsx',
                 divergence:
-                    'Debug/stat count pills: rounded-full and bg-blue-200 text-blue-600, px-2 py-1, raw Tailwind palette, no shared component. Ad-hoc info pills unrelated to StatusBadge tokens; low-stakes (dev-ish graph overlay) but still a color-source divergence (Tailwind purple-100 vs Peanut primary tokens).',
+                    'Debug/stat count pills: rounded-full bg-purple-100 text-purple-700 and bg-blue-100 text-blue-700, px-2 py-1, raw Tailwind palette, no shared component. Ad-hoc info pills unrelated to StatusBadge tokens; low-stakes (dev-ish graph overlay) but still a color-source divergence (Tailwind purple-100 vs Peanut primary tokens).',
                 usedIn: ['components/Global/InvitesGraph/index.tsx'],
             },
             {
@@ -693,7 +693,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 devUsages: 0,
                 source: 'tailwind.config.js:82-84',
                 divergence:
-                    "Direct class usage is tiny (n-2/n-3/n-4 = 1/1/0 real files), but they ARE load-bearing via the config's own addBase/addComponents layer: body uses dark:bg-gray-900, .btn uses disabled:bg-n-4, .input uses placeholder:text-n-3. So they're live-through-config, not dead — count reflects direct component references only.",
+                    "Direct class usage is tiny (n-2/n-3/n-4 = 1/1/0 real files), but they ARE load-bearing via the config's own addBase/addComponents layer: body uses dark:bg-n-2, .btn uses disabled:bg-n-4, .input uses placeholder:text-n-3. So they're live-through-config, not dead — count reflects direct component references only.",
                 usedIn: ['components/Global/ActionModal/index.tsx'],
             },
             {

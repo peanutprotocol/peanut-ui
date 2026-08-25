@@ -293,7 +293,7 @@ export default function ModalPage() {
                 <div className="overflow-x-auto rounded-sm border border-n-1 text-xs">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-n-1 bg-purple-200/20">
+                            <tr className="border-b border-n-1 bg-primary-3/20">
                                 <th className="px-3 py-1.5 text-left font-bold">Component</th>
                                 <th className="px-3 py-1.5 text-left font-bold">Purpose</th>
                             </tr>

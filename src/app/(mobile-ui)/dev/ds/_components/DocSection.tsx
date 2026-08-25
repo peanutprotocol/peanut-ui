@@ -57,7 +57,7 @@ function DocSectionRoot({ title, description, children }: DocSectionProps) {
             {/* Right: code */}
             {hasCode && (
                 <div className={`mt-6 lg:mt-0 ${codeVisible ? 'block' : 'hidden'} lg:block`}>
-                    <div className="space-y-6 rounded-sm bg-purple-200/10 p-4">{codeNode}</div>
+                    <div className="space-y-6 rounded-sm bg-primary-3/10 p-4">{codeNode}</div>
                 </div>
             )}
         </section>

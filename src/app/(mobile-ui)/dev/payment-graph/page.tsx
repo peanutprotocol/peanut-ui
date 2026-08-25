@@ -39,7 +39,7 @@ export default function PaymentGraphPage() {
     // Password input screen (only shown if not provided in URL)
     if (!passwordSubmitted) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
                 <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
                     <div className="text-center">
                         <div className="mb-4 text-6xl">💸</div>
@@ -390,7 +390,7 @@ export default function PaymentGraphPage() {
                                                             }
                                                             className={`rounded px-1 py-0.5 text-[9px] transition-colors ${
                                                                 externalNodesConfig.minConnections === val
-                                                                    ? 'text-white'
+                                                                    ? 'bg-orange-800 text-white'
                                                                     : ''
                                                             }`}
                                                         >
@@ -488,7 +488,9 @@ export default function PaymentGraphPage() {
                                     <button
                                         onClick={() => setPerformanceMode(!performanceMode)}
                                         className={`flex-1 rounded border px-2 py-1 text-[10px] transition-colors ${
-                                            performanceMode ? '' : ''
+                                            performanceMode
+                                                ? 'border-green-500 bg-green-200 text-green-800'
+                                                : 'border-gray-200 hover:bg-gray-100'
                                         }`}
                                         title="Limit to top 1000 nodes for better performance"
                                     >

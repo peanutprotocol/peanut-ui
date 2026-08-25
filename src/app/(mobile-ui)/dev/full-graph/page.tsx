@@ -37,7 +37,7 @@ export default function FullGraphPage() {
     // Loading state
     if (isFetchingUser) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
                 <div className="text-white">Loading...</div>
             </div>
         )
@@ -46,7 +46,7 @@ export default function FullGraphPage() {
     // Access denied screen
     if (!isAllowedUser) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
                 <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
                     <div className="text-center">
                         <div className="mb-4 text-heading-big-input">🔒</div>
@@ -67,7 +67,7 @@ export default function FullGraphPage() {
     // API key input screen
     if (!apiKeySubmitted) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
                 <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
                     <div className="text-center">
                         <div className="mb-4 text-heading-big-input">🕸️</div>
@@ -475,7 +475,7 @@ export default function FullGraphPage() {
                                                                 }
                                                                 className={`rounded px-1.5 py-0.5 text-[9px] transition-colors ${
                                                                     externalNodesConfig.minConnections === val
-                                                                        ? 'text-white'
+                                                                        ? 'bg-orange-800 text-white'
                                                                         : ''
                                                                 }`}
                                                             >

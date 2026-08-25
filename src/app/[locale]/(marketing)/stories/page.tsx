@@ -73,7 +73,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                             <Link
                                 key={story.slug}
                                 href={`/${locale}/stories/${encodeURIComponent(story.slug)}`}
-                                className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors"
+                                className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-100"
                             >
                                 <span className="text-sm font-medium text-n-1">{story.title}</span>
                                 <span className="line-clamp-2 text-xs text-grey-1">{story.description}</span>

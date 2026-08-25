@@ -2034,9 +2034,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     if (!isMinimal && error) {
         return (
             <div className="flex flex-1 items-center justify-center p-4">
-                <div className="max-w-md rounded-2xl p-8 text-center shadow-lg">
+                <div className="max-w-md rounded-2xl bg-red-50 p-8 text-center shadow-lg">
                     <div className="mb-4 text-heading-xl">⚠️</div>
-                    <p className="mb-4 text-body-l font-medium">{error}</p>
+                    <p className="mb-4 text-body-l font-medium text-red-600">{error}</p>
                     {props.onClose && (
                         <Button onClick={props.onClose} variant="stroke">
                             {t('invitesGraph.goBack')}
@@ -2274,7 +2274,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                             handleClearSearch()
                                         }}
                                         className={`flex w-full items-center justify-between px-3 py-2 text-body-s transition-colors ${
-                                            node.isExternal ? '' : ''
+                                            node.isExternal ? 'hover:bg-orange-200/40' : 'hover:bg-purple-200/40'
                                         }`}
                                     >
                                         <div className="flex items-center gap-2">
@@ -2307,8 +2307,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 {/* Selected User/Node Banner */}
                 {selectedUserId && (
-                    <div className={`border-t px-4 py-2 text-body-s ${selectedUserId.startsWith('ext_') ? '' : ''}`}>
-                        <span className={selectedUserId.startsWith('ext_') ? '' : ''}>
+                    <div
+                        className={`border-t px-4 py-2 text-body-s ${selectedUserId.startsWith('ext_') ? 'border-orange-200 bg-orange-200/40' : 'border-purple-200 bg-purple-200/40'}`}
+                    >
+                        <span className={selectedUserId.startsWith('ext_') ? 'text-orange-800' : 'text-purple-600'}>
                             {t('invitesGraph.focusedOn')}{' '}
                             <span className="font-bold">
                                 {selectedUserId.startsWith('ext_')

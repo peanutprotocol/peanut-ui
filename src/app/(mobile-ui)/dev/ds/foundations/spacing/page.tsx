@@ -55,14 +55,14 @@ export default function SpacingPage() {
                         <p className="text-xs font-bold">Example: .row</p>
                         <div className="row rounded-sm border border-n-1 p-3">
                             <div className="size-8 rounded-sm bg-purple-1" />
-                            <div className="size-8 rounded-sm bg-purple-200" />
+                            <div className="size-8 rounded-sm bg-primary-3" />
                             <div className="size-8 rounded-sm bg-yellow-1" />
                         </div>
 
                         <p className="text-xs font-bold">Example: .col</p>
                         <div className="col rounded-sm border border-n-1 p-3">
                             <div className="h-6 w-full rounded-sm bg-purple-1" />
-                            <div className="h-6 w-full rounded-sm bg-purple-200" />
+                            <div className="h-6 w-full rounded-sm bg-primary-3" />
                             <div className="h-6 w-full rounded-sm bg-yellow-1" />
                         </div>
                     </div>

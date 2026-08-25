@@ -28,7 +28,7 @@ export default function LayoutsPage() {
                     {/* Wireframe */}
                     <div className="rounded-sm border border-n-1">
                         <div className="flex h-80 flex-col p-3">
-                            <div className="rounded-sm bg-gray-200/30 px-3 py-1.5">
+                            <div className="rounded-sm bg-grey-2/30 px-3 py-1.5">
                                 <div className="flex items-center gap-1">
                                     <Icon name="chevron-up" size={12} className="-rotate-90" />
                                     <span className="text-xs text-grey-1">NavHeader (hideLabel)</span>
@@ -80,17 +80,17 @@ export default function LayoutsPage() {
                     {/* Wireframe */}
                     <div className="rounded-sm border border-n-1">
                         <div className="flex h-80 flex-col p-3">
-                            <div className="rounded-sm bg-gray-200/30 px-3 py-1.5">
+                            <div className="rounded-sm bg-grey-2/30 px-3 py-1.5">
                                 <span className="text-xs text-grey-1">NavHeader</span>
                             </div>
                             <div className="space-y-1.5 mt-2">
-                                <div className="rounded-sm bg-purple-200/20 px-3 py-2">
+                                <div className="rounded-sm bg-primary-3/20 px-3 py-2">
                                     <span className="text-xs">Form Field 1</span>
                                 </div>
-                                <div className="rounded-sm bg-purple-200/20 px-3 py-2">
+                                <div className="rounded-sm bg-primary-3/20 px-3 py-2">
                                     <span className="text-xs">Form Field 2</span>
                                 </div>
-                                <div className="rounded-sm bg-purple-200/20 px-3 py-2">
+                                <div className="rounded-sm bg-primary-3/20 px-3 py-2">
                                     <span className="text-xs">Form Field 3</span>
                                 </div>
                             </div>
@@ -136,7 +136,7 @@ export default function LayoutsPage() {
                     {/* Wireframe */}
                     <div className="rounded-sm border border-n-1">
                         <div className="flex h-80 flex-col p-3">
-                            <div className="rounded-sm bg-gray-200/30 px-3 py-1.5">
+                            <div className="rounded-sm bg-grey-2/30 px-3 py-1.5">
                                 <span className="text-xs text-grey-1">NavHeader + Search/Filter</span>
                             </div>
                             <div className="space-y-1 mt-2 flex-1 overflow-hidden">

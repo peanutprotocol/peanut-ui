@@ -18,12 +18,12 @@ export default function BordersPage() {
                 </p>
                 <div className="mt-4 flex gap-4">
                     <div className="flex flex-col items-center gap-1">
-                        <div className="size-16 rounded-sm border border-n-1 bg-purple-200/30" />
+                        <div className="size-16 rounded-sm border border-n-1 bg-primary-3/30" />
                         <span className="text-xs font-bold">rounded-sm</span>
                         <span className="text-xs text-grey-1">standard</span>
                     </div>
                     <div className="flex flex-col items-center gap-1">
-                        <div className="size-16 rounded-full border border-n-1 bg-purple-200/30" />
+                        <div className="size-16 rounded-full border border-n-1 bg-primary-3/30" />
                         <span className="text-xs font-bold">rounded-full</span>
                         <span className="text-xs text-grey-1">badges, avatars</span>
                     </div>

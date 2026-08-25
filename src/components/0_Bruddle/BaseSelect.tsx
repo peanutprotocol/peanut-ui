@@ -99,7 +99,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                                     className={twMerge(
                                         'relative flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-label-l outline-none select-none',
                                         'transition-colors',
-                                        '',
+                                        'hover:bg-gray-200 focus:bg-gray-200',
                                         'data-[state=checked]:bg-action-primary data-[state=checked]:font-bold data-[state=checked]:text-white'
                                     )}
                                 >
