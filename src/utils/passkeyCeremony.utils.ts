@@ -130,9 +130,14 @@ let stashedVerifyToken: string | null = null
 export const currentCeremonyId = (): number | null => activeCeremonyId
 export const isCeremonyStillActive = (id: number | null): boolean => id !== null && id === activeCeremonyId
 
-/** Called by native-auth-capture; ignored unless a guarded ceremony is active. */
-export const stashCeremonyVerifyToken = (token: string): void => {
-    if (activeCeremonyId !== null) stashedVerifyToken = token
+/**
+ * Called by native-auth-capture with the ceremony id captured when the verify
+ * REQUEST was issued. Accepted only while that same ceremony is still the
+ * active one — a request issued before the current window opened (e.g. a
+ * timed-out ceremony's late verify) cannot enter the retry's stash.
+ */
+export const stashCeremonyVerifyToken = (token: string, issuingCeremonyId: number | null): void => {
+    if (isCeremonyStillActive(issuingCeremonyId)) stashedVerifyToken = token
 }
 
 /**

@@ -219,7 +219,7 @@ describe('guardPasskeyCeremony', () => {
                 })
         )
         await Promise.resolve()
-        stashCeremonyVerifyToken('jwt-abc')
+        stashCeremonyVerifyToken('jwt-abc', currentCeremonyId())
         expect(mockSetAuthToken).not.toHaveBeenCalled()
         resolveCeremony('key')
         await pending
@@ -233,12 +233,40 @@ describe('guardPasskeyCeremony', () => {
         const pending = guardPasskeyCeremony(() => new Promise<never>(() => {}))
         const assertion = expect(pending).rejects.toBeInstanceOf(CeremonyTimeoutError)
         await Promise.resolve()
-        stashCeremonyVerifyToken('jwt-stale')
+        stashCeremonyVerifyToken('jwt-stale', currentCeremonyId())
         await jest.advanceTimersByTimeAsync(60_000)
         await assertion
         expect(mockSetAuthToken).not.toHaveBeenCalled()
         // a token landing with no ceremony active is refused outright
-        stashCeremonyVerifyToken('jwt-late')
+        stashCeremonyVerifyToken('jwt-late', null)
+        expect(mockSetAuthToken).not.toHaveBeenCalled()
+    })
+
+    it('refuses a token whose request was issued outside the active window', async () => {
+        // A's verify request went out before B's window opened (issue id null
+        // or A's dead id) — even though B is active, A's token must not enter
+        // B's stash and be committed by B's success.
+        mockIsCapacitor.mockReturnValue(true)
+        setGlobal(SHIM_INSTALLED, true)
+        jest.useFakeTimers()
+        const pendingA = guardPasskeyCeremony(() => new Promise<never>(() => {}))
+        const assertionA = expect(pendingA).rejects.toBeInstanceOf(CeremonyTimeoutError)
+        await Promise.resolve()
+        const idA = currentCeremonyId()
+        await jest.advanceTimersByTimeAsync(60_000)
+        await assertionA
+        let resolveB!: (v: string) => void
+        const pendingB = guardPasskeyCeremony(
+            () =>
+                new Promise<string>((resolve) => {
+                    resolveB = resolve
+                })
+        )
+        await Promise.resolve()
+        stashCeremonyVerifyToken('jwt-from-A', idA)
+        stashCeremonyVerifyToken('jwt-from-nowhere', null)
+        resolveB('done')
+        await pendingB
         expect(mockSetAuthToken).not.toHaveBeenCalled()
     })
 

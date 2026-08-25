@@ -46,10 +46,14 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
                 await CapacitorPasskey.autoShimWebAuthn({ origin: `https://${nativeRpId}` })
 
-                // verify the shim actually installed by checking if credentials was patched
+                // verify the shim actually installed by checking if credentials was
+                // patched — a resolved call that did NOT patch (e.g. a binary config
+                // with autoShim disabled) must go through the retry/failed path, not
+                // leave taps polling out on a flag that will never flip
                 const shimInstalled =
                     (globalThis as { __capgoPasskeyShimInstalled?: unknown }).__capgoPasskeyShimInstalled === true
                 console.log('[PeanutProvider] passkey shim installed:', shimInstalled)
+                if (!shimInstalled) throw new Error('autoShimWebAuthn resolved without patching navigator.credentials')
 
                 // the shim's credentialFromJSON replaces its credential's prototype with
                 // PublicKeyCredential.prototype. WKWebView's native getClientExtensionResults

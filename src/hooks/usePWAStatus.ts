@@ -10,7 +10,7 @@ export const isStandaloneDisplayMode = (): boolean => {
         window.matchMedia('(display-mode: standalone)').matches ||
         window.navigator.standalone ||
         document.referrer.includes('android-app://') ||
-        window.location.href.includes('?mode=pwa')
+        new URLSearchParams(window.location.search).get('mode') === 'pwa'
     )
 }
 
