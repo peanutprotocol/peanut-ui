@@ -11,7 +11,7 @@ import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useRef, useState } from 'react'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
-import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
+import { WebAuthnErrorName, getPasskeyErrorSetupKey, withWebAuthnRetry } from '@/utils/webauthn.utils'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
 import ErrorAlert from '@/components/Global/ErrorAlert'
@@ -198,8 +198,10 @@ const SetupPasskey = () => {
             await handleLoginClick()
             // success — useLogin's effect redirects once the user is loaded
         } catch (error) {
-            // handleLogin throws PasskeyError with a curated user-facing message
-            setInlineError((error as Error)?.message || t('loginFailed'))
+            // handleLogin throws PasskeyError with a curated code + English
+            // message — prefer the translated catalog copy for known codes.
+            const i18nKey = getPasskeyErrorSetupKey(error)
+            setInlineError(i18nKey ? t(i18nKey) : (error as Error)?.message || t('loginFailed'))
         }
     }
 
