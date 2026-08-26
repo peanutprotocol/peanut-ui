@@ -9,8 +9,10 @@ export function normalizeSavedAddress(address: string): string {
 }
 
 /** Lookup key for (chain, address) — same shape the BE uses to join nicknames. */
-export function savedAddressKey(chainId: string, address: string): string {
-    return `${chainId.trim().toLowerCase()}:${normalizeSavedAddress(address)}`
+export function savedAddressKey(chainId: string | number, address: string): string {
+    // chain ids arrive as strings from the BE but as numbers from some chain
+    // metadata objects — coerce so a numeric 42161 and '42161' share one key
+    return `${String(chainId).trim().toLowerCase()}:${normalizeSavedAddress(address)}`
 }
 
 /** "Binance · …aeC9" — nickname plus the last 4 chars so two entries never look alike. */

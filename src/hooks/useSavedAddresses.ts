@@ -33,7 +33,7 @@ export function useSavedAddresses() {
     })
 
     const savedAddresses = query.data ?? []
-    const findSaved = (chainId: string, address: string): SavedAddress | undefined => {
+    const findSaved = (chainId: string | number, address: string): SavedAddress | undefined => {
         const key = savedAddressKey(chainId, address)
         return savedAddresses.find((s) => savedAddressKey(s.chainId, s.address) === key)
     }

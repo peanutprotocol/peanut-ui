@@ -15,6 +15,7 @@ describe('saved-address.utils', () => {
         expect(savedAddressKey('42161', HEX)).toBe(`42161:${HEX.toLowerCase()}`)
         expect(savedAddressKey('TRON', ` ${TRON} `)).toBe(`tron:${TRON}`)
         expect(normalizeSavedAddress('0XABC')).toBe('0xabc')
+        expect(savedAddressKey(42161, HEX)).toBe(savedAddressKey('42161', HEX))
     })
 
     it('label = nickname + last 4 chars', () => {
