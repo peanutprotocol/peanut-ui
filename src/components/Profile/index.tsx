@@ -56,31 +56,12 @@ export const Profile = () => {
                 <div className="space-y-4">
                     <div>
                         <ProfileMenuItem
-                            icon="smile"
-                            label={t('menu.inviteFriends')}
-                            onClick={() => setIsInviteFriendsModalOpen(true)}
-                            href="/dummy" // Dummy link, wont be called
-                            position="first"
-                        />
-                        {/* Unlock payments sits next to the invite CTA: the two
-                            highest-leverage actions lead the menu. */}
-                        <ProfileMenuItem
                             icon="bank"
                             label={t('menu.unlockedRegions')}
                             href="/profile/identity-verification"
-                            position="middle"
+                            position="first"
                             highlight={!isUserSumsubKycApproved}
                         />
-                        <ProfileMenuItem
-                            icon="exchange"
-                            label={t('menu.exchangeRatesAndFees')}
-                            href="/profile/exchange-rate"
-                            position="last"
-                            iconClassName="size-4"
-                        />
-                    </div>
-                    {/* Menu Items - First Group */}
-                    <div>
                         {/* Card row shows for everyone. Holders go straight to /card;
                             everyone else lands on /shhhhh — the waitlist/explainer door,
                             the canonical card entry point — whose CTA forwards on to /card
@@ -94,14 +75,31 @@ export const Profile = () => {
                                 label={hasCardAccess ? t('menu.yourCard') : t('menu.peanutCard')}
                                 href={hasCardAccess ? '/card' : '/shhhhh'}
                                 badge={hasCardAccess ? undefined : t('menu.newBadge')}
-                                position="first"
+                                position="middle"
                             />
                         )}
+                        <ProfileMenuItem
+                            icon="exchange"
+                            label={t('menu.exchangeRatesAndFees')}
+                            href="/profile/exchange-rate"
+                            position="last"
+                            iconClassName="size-4"
+                        />
+                    </div>
+                    {/* Menu Items - First Group */}
+                    <div>
+                        <ProfileMenuItem
+                            icon="smile"
+                            label={t('menu.inviteFriends')}
+                            onClick={() => setIsInviteFriendsModalOpen(true)}
+                            href="/dummy" // Dummy link, wont be called
+                            position="first"
+                        />
                         <ProfileMenuItem
                             icon="achievements"
                             label={t('menu.yourBadges')}
                             href="/badges"
-                            position={showCardMenuItem ? 'middle' : 'first'}
+                            position="middle"
                         />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}
