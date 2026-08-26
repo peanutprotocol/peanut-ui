@@ -89,6 +89,141 @@ export function singletonLocaleFor(intent: string, lang: string): string {
     return 'en'
 }
 
+const CONTENT_ROUTE_LOCALES = new Set([...SUPPORTED_LOCALES, 'es-es'])
+const PEANUT_PRODUCTION_ORIGIN = 'https://peanut.me'
+const SINGLETON_CONTENT_SLUGS = new Set(['pricing', 'supported-networks', 'press'])
+
+let legalContentSlugs: Set<string> | null = null
+function isLegalContentSlug(slug: string): boolean {
+    legalContentSlugs ??= new Set(listContentSlugs('legal'))
+    return legalContentSlugs.has(slug)
+}
+
+// Links must only target pages their routes will actually serve, so ownership
+// requires a published file, not just an existing one — routes notFound() on
+// `published: false`.
+
+function existingPageLocale(intent: string, slug: string, locale: Locale): string | null {
+    for (const lang of getLocaleFallbacks(locale)) {
+        if (isPublished(readPageContent(intent, slug, lang))) return lang
+    }
+    return null
+}
+
+function existingCorridorLocale(destination: string, origin: string, locale: Locale): string | null {
+    for (const lang of getLocaleFallbacks(locale)) {
+        if (isPublished(readCorridorContent(destination, origin, lang))) return lang
+    }
+    return null
+}
+
+function existingSingletonLocale(intent: string, locale: Locale): string | null {
+    for (const lang of getLocaleFallbacks(locale)) {
+        if (isPublished(readSingletonContent(intent, lang))) return lang
+    }
+    return null
+}
+
+function decodedSegment(segment: string): string {
+    try {
+        return decodeURIComponent(segment)
+    } catch {
+        return segment
+    }
+}
+
+/** Return the locale that owns the content behind a localized marketing path. */
+function contentOwnerForPath(encodedSegments: string[], locale: Locale): string | null {
+    // Content directories are named in decoded form; hrefs arrive encoded.
+    const segments = encodedSegments.map(decodedSegment)
+    if (segments.length === 1) {
+        const slug = segments[0]
+        if (isLegalContentSlug(slug)) return existingPageLocale('legal', slug, locale)
+        if (SINGLETON_CONTENT_SLUGS.has(slug)) return existingSingletonLocale(slug, locale)
+        return existingPageLocale('countries', slug, locale)
+    }
+
+    if (segments.length === 4 && segments[0] === 'send-money-from' && segments[2] === 'to') {
+        return existingCorridorLocale(segments[3], segments[1], locale)
+    }
+
+    if (segments.length !== 2) return null
+
+    const [route, rawSlug] = segments
+    switch (route) {
+        case 'send-money-to':
+            return existingPageLocale('send-to', rawSlug, locale)
+        case 'receive-money-from':
+            return existingPageLocale('receive-from', rawSlug, locale)
+        case 'compare': {
+            const slug = rawSlug.startsWith('peanut-vs-') ? rawSlug.slice('peanut-vs-'.length) : ''
+            return slug ? existingPageLocale('compare', slug, locale) : null
+        }
+        case 'deposit': {
+            const slug = rawSlug.replace(/^(?:from-|via-)/, '')
+            return slug !== rawSlug ? existingPageLocale('deposit', slug, locale) : null
+        }
+        case 'pay-with':
+        case 'help':
+        case 'use-cases':
+        case 'stories':
+        case 'withdraw':
+        case 'blog':
+            return existingPageLocale(route, rawSlug, locale)
+        default:
+            return null
+    }
+}
+
+function contentPathSegments(pathname: string): { segments: string[]; strippedLocale: string | null } {
+    const segments = pathname.split('/').filter(Boolean)
+    let strippedLocale: string | null = null
+    if (segments[0] && CONTENT_ROUTE_LOCALES.has(segments[0].toLowerCase())) {
+        strippedLocale = segments[0].toLowerCase()
+        segments.shift()
+    }
+    return { segments, strippedLocale }
+}
+
+/**
+ * Localize an internal content href, then point it at the locale that owns its
+ * prose. Locale-native hubs and paths without content files keep the requested
+ * locale. Exact https://peanut.me content URLs retain their absolute form and
+ * follow the same rules when authored under /en/; non-en absolute URLs are
+ * deliberate locale pins and only move to a content owner. True external
+ * links, same-origin non-content URLs and anchors pass through.
+ */
+export function resolveContentHref(href: string, locale: Locale): string {
+    if (!href.startsWith('/')) {
+        let absoluteHref: URL
+        try {
+            absoluteHref = new URL(href)
+        } catch {
+            return href
+        }
+        if (absoluteHref.origin !== PEANUT_PRODUCTION_ORIGIN) return href
+
+        const { segments, strippedLocale } = contentPathSegments(absoluteHref.pathname)
+        const owner = contentOwnerForPath(segments, locale)
+        const targetLocale = owner ?? (strippedLocale === 'en' ? locale : null)
+        if (!targetLocale) return href
+
+        const ownedPath = `/${[targetLocale, ...segments].join('/')}`
+        return `${PEANUT_PRODUCTION_ORIGIN}${ownedPath}${absoluteHref.search}${absoluteHref.hash}`
+    }
+    if (href.startsWith('//')) return href
+
+    const suffixIndex = href.search(/[?#]/)
+    const pathname = suffixIndex === -1 ? href : href.slice(0, suffixIndex)
+    const suffix = suffixIndex === -1 ? '' : href.slice(suffixIndex)
+    const { segments } = contentPathSegments(pathname)
+
+    const owner = contentOwnerForPath(segments, locale)
+    const targetLocale = owner ?? locale
+    const localizedPath = `/${[targetLocale, ...segments].join('/')}`
+    return `${localizedPath}${suffix}`
+}
+
 /** Supported locales whose own file exists for this page. */
 export function availableContentLocales(intent: string, slug: string): Locale[] {
     return SUPPORTED_LOCALES.filter((locale) => hasPageContent(intent, slug, locale))
@@ -171,17 +306,26 @@ export function readPageContent<T = Record<string, unknown>>(
     return result
 }
 
+/** Read page content with locale fallback, returning which locale served it. */
+export function readPageContentLocalizedResolved<T = Record<string, unknown>>(
+    intent: string,
+    slug: string,
+    lang: string
+): { content: MarkdownContent<T>; lang: string } | null {
+    for (const locale of getLocaleFallbacks(lang)) {
+        const content = readPageContent<T>(intent, slug, locale)
+        if (content) return { content, lang: locale }
+    }
+    return null
+}
+
 /** Read page content with locale fallback */
 export function readPageContentLocalized<T = Record<string, unknown>>(
     intent: string,
     slug: string,
     lang: string
 ): MarkdownContent<T> | null {
-    for (const locale of getLocaleFallbacks(lang)) {
-        const content = readPageContent<T>(intent, slug, locale)
-        if (content) return content
-    }
-    return null
+    return readPageContentLocalizedResolved<T>(intent, slug, lang)?.content ?? null
 }
 
 /** Read corridor content: content/send-to/{destination}/from/{origin}/{lang}.md */
@@ -345,19 +489,6 @@ function hrefFor(type: ContentItemType, slug: string, locale: Locale): string {
     return `/${locale}/${type}/${encodeURIComponent(slug)}`
 }
 
-/** Resolve a content page through the locale fallback chain, returning which locale was used. */
-function resolveLocalized(
-    intent: string,
-    slug: string,
-    lang: Locale
-): { content: MarkdownContent<HubFrontmatter>; lang: Locale } | null {
-    for (const locale of getLocaleFallbacks(lang)) {
-        const content = readPageContent<HubFrontmatter>(intent, slug, locale)
-        if (content) return { content, lang: locale as Locale }
-    }
-    return null
-}
-
 const HUB_TYPES: ContentItemType[] = ['blog', 'stories', 'use-cases', 'compare']
 
 /**
@@ -371,9 +502,10 @@ export function listAllContent(locale: Locale): ContentItem[] {
     for (const type of HUB_TYPES) {
         for (const slug of listContentSlugs(type)) {
             if (slug === 'index') continue // legacy stories/index/ directory
-            const resolved = resolveLocalized(type, slug, locale)
+            const resolved = readPageContentLocalizedResolved<HubFrontmatter>(type, slug, locale)
             if (!resolved) continue
-            const { content, lang } = resolved
+            const { content } = resolved
+            const lang = resolved.lang as Locale
             if (content.frontmatter.published === false) continue
 
             items.push({
@@ -381,7 +513,7 @@ export function listAllContent(locale: Locale): ContentItem[] {
                 slug,
                 title: content.frontmatter.title ?? slug,
                 description: content.frontmatter.description ?? '',
-                href: hrefFor(type, slug, locale),
+                href: hrefFor(type, slug, lang),
                 lang,
                 date: type === 'blog' ? coerceDate(content.frontmatter.date) : undefined,
                 tags: Array.isArray(content.frontmatter.tags) ? content.frontmatter.tags : undefined,

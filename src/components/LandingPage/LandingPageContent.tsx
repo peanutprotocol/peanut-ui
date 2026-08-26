@@ -14,6 +14,7 @@ import { getLandingContent } from '@/lib/landingContent'
 import { getTranslations } from '@/i18n'
 import { landingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
+import { contentHrefsFor } from './landingContentHrefs.server'
 
 // Blue, not Manteca's default cream: on the homepage it follows RegulatedRails,
 // which is cream already.
@@ -25,6 +26,7 @@ const MANTECA_BG_COLOR = '#90A8ED'
 export function LandingPageContent({ locale }: { locale: Locale }) {
     const { heroConfig, faqData, marqueeMessages } = getLandingContent(locale)
     const strings = landingStrings(getTranslations(locale))
+    const contentHrefs = contentHrefsFor(locale)
     // inLanguage reflects the language the FAQ prose actually resolved to —
     // until mono ships landing translations, that's English on every locale.
     const faqJsonLd = faqSchema(
@@ -45,6 +47,7 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     marqueeMessages={marqueeMessages}
                     locale={locale}
                     strings={strings}
+                    contentHrefs={contentHrefs}
                     problemSlot={<ProblemFold strings={strings} />}
                     mantecaSlot={<Manteca locale={locale} backgroundColor={MANTECA_BG_COLOR} />}
                     regulatedRailsSlot={<RegulatedRails locale={locale} />}

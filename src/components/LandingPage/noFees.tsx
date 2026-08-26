@@ -15,16 +15,16 @@ import { useAuth } from '@/context/authContext'
 import { twMerge } from 'tailwind-merge'
 import { ContextualLinks } from './ContextualLinks'
 import type { LandingStrings } from './landingStrings'
-import type { Locale } from '@/i18n/types'
+import type { LandingContentHrefs } from './landingContentHrefs'
 
 export function NoFees({
     className,
-    locale,
     strings,
+    contentHrefs,
 }: {
     className?: string
-    locale: Locale
     strings: LandingStrings
+    contentHrefs: LandingContentHrefs
 }) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const router = useRouter()
@@ -177,9 +177,9 @@ export function NoFees({
                     links={[
                         // the route is `peanut-vs-<slug>` — generateStaticParams builds
                         // no bare-slug page, so the short form 404s
-                        { label: 'Wise', href: `/${locale}/compare/peanut-vs-wise` },
-                        { label: 'PayPal', href: `/${locale}/compare/peanut-vs-paypal` },
-                        { label: 'Western Union', href: `/${locale}/compare/peanut-vs-western-union` },
+                        { label: 'Wise', href: contentHrefs.wiseComparison },
+                        { label: 'PayPal', href: contentHrefs.paypalComparison },
+                        { label: 'Western Union', href: contentHrefs.westernUnionComparison },
                     ]}
                 />
             </div>
