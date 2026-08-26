@@ -1,6 +1,5 @@
 import GITHUB_WHITE_ICON from '@/assets/icons/github-white.png'
 import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
-import TELEGRAM_ICON from '@/assets/icons/telegram-white.svg'
 import X_ICON from '@/assets/icons/x-logo.svg'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -16,7 +15,6 @@ import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 const NAV_LINK = 'text-xl font-bold text-white'
 
 const SOCIALS = [
-    { href: 'https://t.me/clubpeanut', label: 'Join us on Telegram', icon: TELEGRAM_ICON, alt: 'Telegram' },
     { href: 'https://x.com/joinpeanut', label: 'Follow us on X', icon: X_ICON, alt: 'X' },
     { href: 'https://github.com/peanutprotocol', label: 'View our GitHub', icon: GITHUB_WHITE_ICON, alt: 'GitHub' },
 ]
