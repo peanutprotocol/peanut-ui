@@ -31,11 +31,8 @@ const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
 async function loadProdBuild() {
     process.env.NEXT_PUBLIC_BASE_URL = 'https://peanut.me'
     jest.resetModules()
-    const [{ proxy, config }, { isBlockedDevRoute }] = await Promise.all([
-        import('@/proxy'),
-        import('@/constants/dev-tools.consts'),
-    ])
-    return { proxy, config, isBlockedDevRoute }
+    const { proxy, config } = await import('@/proxy')
+    return { proxy, config }
 }
 
 afterAll(() => {
@@ -51,14 +48,13 @@ describe('dev routes on peanut.me', () => {
     })
 
     it('404s every dev page except the three allowed ones', async () => {
-        const { proxy, isBlockedDevRoute } = await loadProdBuild()
+        const { proxy } = await loadProdBuild()
 
-        const answering = DEV_ROUTES.filter((route) => {
-            if (isBlockedDevRoute(route)) {
-                return proxy(new NextRequest(`https://peanut.me${route}`))?.status !== 404
-            }
-            return true
-        })
+        // every route goes through the proxy — so the allowlist is asserted
+        // to actually answer, not just skipped by the filter
+        const answering = DEV_ROUTES.filter(
+            (route) => proxy(new NextRequest(`https://peanut.me${route}`))?.status !== 404
+        )
 
         expect(answering.sort()).toEqual(ALLOWED_ON_PROD)
     })

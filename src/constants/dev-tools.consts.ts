@@ -27,3 +27,11 @@ export function isBlockedDevRoute(pathname: string): boolean {
     if (pathname !== '/dev' && !pathname.startsWith('/dev/')) return false
     return !PROD_ALLOWED_DEV_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))
 }
+
+// The one call every gate makes — proxy.ts on the web, the two dev layouts on
+// the native static export. The flag and the predicate are only meaningful
+// together; a call site that uses isBlockedDevRoute alone would 404 dev
+// tooling on staging and previews.
+export function shouldBlockDevRoute(pathname: string): boolean {
+    return !DEV_ROUTES_ENABLED && isBlockedDevRoute(pathname)
+}

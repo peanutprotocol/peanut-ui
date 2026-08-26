@@ -116,7 +116,12 @@ const PointsPage = () => {
     // query never reports an error. Past the guard above the request has settled,
     // so missing data means it failed.
     if (isInvitesError || isTierInfoError || !tierInfo?.data) {
-        console.error('Error loading points data:', invitesError ?? tierInfoError)
+        // in the swallowed-error path both error objects are null — log the
+        // settled response so the branch never prints a contentless "null"
+        console.error(
+            'Error loading points data:',
+            invitesError ?? tierInfoError ?? { tierInfoSettledWithoutData: tierInfo }
+        )
 
         return (
             <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">

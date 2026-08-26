@@ -4,7 +4,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
-import { DEV_ROUTES_ENABLED, isBlockedDevRoute } from '@/constants/dev-tools.consts'
+import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -15,7 +15,7 @@ export function proxy(request: NextRequest) {
     // (mobile-ui)/dev/layout.tsx renders the not-found UI but still returns 200,
     // so the real 404 has to come from here. This also covers the pages under
     // `src/app/dev/*`, which have no layout gate at all.
-    if (!DEV_ROUTES_ENABLED && isBlockedDevRoute(pathname)) {
+    if (shouldBlockDevRoute(pathname)) {
         return new NextResponse(null, { status: 404 })
     }
 
