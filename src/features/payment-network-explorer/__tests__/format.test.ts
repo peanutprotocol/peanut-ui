@@ -1,11 +1,11 @@
 import { formatCompactCount, formatUsd, formatUtc } from '../format'
 
 describe('payment explorer formatting', () => {
-    it('formats USD with cents below $1k and whole dollars above', () => {
+    it('formats USD at a fixed 2dp so a sorted money column stays aligned', () => {
         expect(formatUsd(12.5)).toBe('$12.50')
         expect(formatUsd(0)).toBe('$0.00')
-        expect(formatUsd(1500)).toBe('$1,500')
-        expect(formatUsd(1234567.89)).toBe('$1,234,568')
+        expect(formatUsd(1500)).toBe('$1,500.00')
+        expect(formatUsd(1234567.89)).toBe('$1,234,567.89')
     })
 
     it('never renders a non-finite amount', () => {

@@ -53,17 +53,6 @@ export function buildGraphLinkProjections(relationships: readonly ExplorerRelati
     }))
 }
 
-/** Force-layout wrappers hold references only; canonical response objects stay single-owner. */
-export function buildGraphProjection(
-    nodes: readonly ExplorerNode[],
-    relationships: readonly ExplorerRelationship[]
-): { nodes: GraphNodeProjection[]; links: GraphLinkProjection[] } {
-    return {
-        nodes: buildGraphNodeProjections(nodes),
-        links: buildGraphLinkProjections(relationships),
-    }
-}
-
 /**
  * The endpoint's `bidirectional` flag is pair-level and type-agnostic: it is true
  * whenever ANY reverse row exists between the two users, so a Send-link row is

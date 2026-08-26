@@ -67,6 +67,7 @@ export default function NetworkCanvas({
     const appliedFocusRef = useRef<{
         graph: ForceGraphMethods<GraphNodeProjection, GraphLinkProjection>
         nodeId: string
+        settled: boolean
     } | null>(null)
     const [focusCameraApplied, setFocusCameraApplied] = useState(false)
     const reducedMotion = useReducedMotion()
@@ -141,29 +142,42 @@ export default function NetworkCanvas({
         return () => observer.disconnect()
     }, [])
 
-    const applyFocusedCamera = useCallback(() => {
-        if (!focusNodeId || !graphInstance) return
-        const alreadyApplied =
-            appliedFocusRef.current?.graph === graphInstance && appliedFocusRef.current.nodeId === focusNodeId
-        if (alreadyApplied) return
-        const node = projection.nodes.find((item) => item.id === focusNodeId)
-        if (!node || typeof node.x !== 'number' || typeof node.y !== 'number') return
-        graphInstance.centerAt(node.x, node.y, reducedMotion ? 0 : 500)
-        graphInstance.zoom(3.2, reducedMotion ? 0 : 500)
-        appliedFocusRef.current = { graph: graphInstance, nodeId: focusNodeId }
-        setFocusCameraApplied(true)
-    }, [focusNodeId, graphInstance, projection.nodes, reducedMotion])
+    /*
+     * A pre-settle aim is PROVISIONAL: the simulation is still moving the node, so a
+     * camera pointed at its tick-1 position leaves the node far off-centre once the
+     * layout stops. Only a settled aim latches; the provisional one is re-aimed when
+     * `layoutReady` flips. Latching on the first tick is what made `?user=` deep links
+     * land off-screen while still reporting the camera as applied.
+     */
+    const applyFocusedCamera = useCallback(
+        (settled: boolean) => {
+            if (!focusNodeId || !graphInstance) return
+            const applied = appliedFocusRef.current
+            const sameTarget = applied?.graph === graphInstance && applied.nodeId === focusNodeId
+            // Re-aim only to upgrade provisional -> settled; never fight our own transition.
+            if (sameTarget && (applied.settled || !settled)) return
+            const node = projection.nodes.find((item) => item.id === focusNodeId)
+            if (!node || typeof node.x !== 'number' || typeof node.y !== 'number') return
+            graphInstance.centerAt(node.x, node.y, reducedMotion ? 0 : 500)
+            graphInstance.zoom(3.2, reducedMotion ? 0 : 500)
+            appliedFocusRef.current = { graph: graphInstance, nodeId: focusNodeId, settled }
+            // Only a settled aim counts as applied — the flag is what QA asserts on.
+            setFocusCameraApplied(settled)
+        },
+        [focusNodeId, graphInstance, projection.nodes, reducedMotion]
+    )
 
     const handleEngineStop = useCallback(() => {
-        applyFocusedCamera()
         setSettledProjection(projection)
-    }, [applyFocusedCamera, projection])
+    }, [projection])
 
     useEffect(() => {
         appliedFocusRef.current = null
         setFocusCameraApplied(false)
-        applyFocusedCamera()
-    }, [applyFocusedCamera])
+        // Settled already (a search on a live graph emits no further engine stop) vs
+        // still settling (first load / deep link) — the latter re-runs when it settles.
+        applyFocusedCamera(layoutReady)
+    }, [applyFocusedCamera, layoutReady])
 
     const paintNode = (node: GraphNodeProjection, ctx: CanvasRenderingContext2D, scale: number) => {
         const points = Math.max(0, node.canonical.totalPoints)
@@ -285,7 +299,7 @@ export default function NetworkCanvas({
                 onNodeClick={(node: GraphNodeProjection) => onSelectNode(node.canonical)}
                 onLinkClick={(link: GraphLinkProjection) => onSelectRelationship(link.canonical)}
                 onZoom={denseGraph ? handleZoom : undefined}
-                onEngineTick={focusNodeId ? applyFocusedCamera : undefined}
+                onEngineTick={focusNodeId ? () => applyFocusedCamera(false) : undefined}
                 onEngineStop={handleEngineStop}
                 warmupTicks={denseGraph ? 40 : reducedMotion ? 20 : 0}
                 cooldownTicks={denseGraph || reducedMotion ? 0 : 80}

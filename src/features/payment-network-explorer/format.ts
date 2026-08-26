@@ -3,7 +3,10 @@ export function formatUsd(value: number): string {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
-        maximumFractionDigits: Math.abs(value) >= 1000 ? 0 : 2,
+        // Fixed 2dp: a magnitude-dependent precision made one sorted money column
+        // read as "$3,300" above "$920.00".
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
     }).format(value)
 }
 

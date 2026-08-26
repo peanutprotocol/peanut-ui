@@ -92,10 +92,8 @@ export default function Inspector({
                         </h3>
                         <ul className="mt-2 space-y-1">
                             {connections.slice(0, CONNECTION_LIMIT).map((relationship) => {
-                                const otherId =
-                                    relationship.source === selection.node.id
-                                        ? relationship.target
-                                        : relationship.source
+                                const outgoing = relationship.source === selection.node.id
+                                const otherId = outgoing ? relationship.target : relationship.source
                                 return (
                                     <li key={relationship.id}>
                                         <button
@@ -103,8 +101,22 @@ export default function Inspector({
                                             onClick={() => onSelectRelationship(relationship)}
                                             className="flex w-full items-center justify-between gap-2 rounded-sm border border-n-1/20 px-2 py-1.5 text-left text-xs hover:bg-primary-3/20"
                                         >
-                                            <span className="min-w-0 truncate font-semibold">
-                                                {nodesById.get(otherId)?.username ?? otherId}
+                                            <span className="flex min-w-0 items-center gap-1.5 font-semibold">
+                                                {/* Both directions of a two-way pair are separate rows;
+                                                    without this they read as duplicates. */}
+                                                <span
+                                                    aria-hidden="true"
+                                                    className="shrink-0 text-grey-1"
+                                                    title={outgoing ? 'Sent to' : 'Received from'}
+                                                >
+                                                    {outgoing ? '→' : '←'}
+                                                </span>
+                                                <span className="sr-only">
+                                                    {outgoing ? 'Sent to' : 'Received from'}
+                                                </span>
+                                                <span className="truncate">
+                                                    {nodesById.get(otherId)?.username ?? otherId}
+                                                </span>
                                             </span>
                                             <span className="shrink-0 text-grey-1">
                                                 {relationship.count.toLocaleString()} ·{' '}

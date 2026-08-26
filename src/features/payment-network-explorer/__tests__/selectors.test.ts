@@ -1,5 +1,6 @@
 import {
-    buildGraphProjection,
+    buildGraphLinkProjections,
+    buildGraphNodeProjections,
     edgeTypeFacets,
     edgeTypesPresent,
     nodeIndex,
@@ -39,7 +40,10 @@ describe('canonical graph projection', () => {
     it('keeps one visual link per relationship and the exact canonical object', () => {
         const nodes = [node('a'), node('b')]
         const canonical = relationship('r1', 'a', 'b')
-        const projection = buildGraphProjection(nodes, [canonical])
+        const projection = {
+            nodes: buildGraphNodeProjections(nodes),
+            links: buildGraphLinkProjections([canonical]),
+        }
         expect(projection.links).toHaveLength(1)
         expect(projection.links[0].canonical).toBe(canonical)
         expect(projection.links[0].canonicalRelationshipId).toBe('r1')
@@ -69,7 +73,10 @@ describe('canonical graph projection', () => {
             relationship(`r${index}`, `n${index % 5000}`, `n${(index + 1) % 5000}`)
         )
         const started = performance.now()
-        const projection = buildGraphProjection(nodes, relationships)
+        const projection = {
+            nodes: buildGraphNodeProjections(nodes),
+            links: buildGraphLinkProjections(relationships),
+        }
         const elapsed = performance.now() - started
         expect(projection.nodes).toHaveLength(5000)
         expect(projection.links).toHaveLength(8000)

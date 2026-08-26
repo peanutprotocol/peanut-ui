@@ -77,7 +77,7 @@ describe('payment explorer reduced motion', () => {
         expect(container.querySelector('.animate-spin')).toHaveClass('motion-reduce:animate-none')
     })
 
-    it('applies a signed-focus camera after both the graph ref and layout coordinates are ready', async () => {
+    it('re-aims the focus camera once the layout settles, not at the first tick', async () => {
         const focusedNode: ExplorerNode = {
             id: 'focus-node',
             username: 'focused-user',
@@ -110,15 +110,33 @@ describe('payment explorer reduced motion', () => {
             ;(mockForceGraphProps?.onEngineTick as () => void)()
         })
 
+        // Provisional: aimed for early feedback, but the simulation is still moving
+        // the node, so this must NOT be reported as the final camera.
         await waitFor(() => expect(mockCenterAt).toHaveBeenCalledWith(42, -17, 0))
-        expect(mockZoom).toHaveBeenCalledWith(3.2, 0)
-        expect(container.querySelector('[data-focus-camera-applied="true"]')).toBeInTheDocument()
+        expect(container.querySelector('[data-focus-camera-applied="true"]')).not.toBeInTheDocument()
 
+        // Further ticks must not fight the in-flight transition.
         act(() => {
             ;(mockForceGraphProps?.onEngineTick as () => void)()
         })
         expect(mockCenterAt).toHaveBeenCalledTimes(1)
-        expect(mockZoom).toHaveBeenCalledTimes(1)
+
+        // The node drifts to its final position before the engine stops.
+        graphData.nodes[0].x = 100
+        graphData.nodes[0].y = 200
+        act(() => {
+            ;(mockForceGraphProps?.onEngineStop as () => void)()
+        })
+
+        await waitFor(() => expect(mockCenterAt).toHaveBeenCalledWith(100, 200, 0))
+        expect(mockZoom).toHaveBeenLastCalledWith(3.2, 0)
+        expect(container.querySelector('[data-focus-camera-applied="true"]')).toBeInTheDocument()
+
+        // Settled aims latch — no further camera work.
+        act(() => {
+            ;(mockForceGraphProps?.onEngineStop as () => void)()
+        })
+        expect(mockCenterAt).toHaveBeenCalledTimes(2)
     })
 
     it('resets dense link visibility to overview when a filter response replaces the projection', () => {
