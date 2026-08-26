@@ -53,7 +53,7 @@ const PointsPage = () => {
     }
     const {
         data: invites,
-        isLoading,
+        isPending: isInvitesPending,
         isError: isInvitesError,
         error: invitesError,
     } = useQuery({
@@ -64,7 +64,7 @@ const PointsPage = () => {
 
     const {
         data: tierInfo,
-        isLoading: isTierInfoLoading,
+        isPending: isTierInfoPending,
         isError: isTierInfoError,
         error: tierInfoError,
     } = useQuery({
@@ -105,11 +105,17 @@ const PointsPage = () => {
         fetchUser()
     }, [])
 
-    if (isLoading || isTierInfoLoading || !tierInfo?.data) {
+    // isPending, not isLoading: both queries wait on `user`, and a disabled query
+    // reports isLoading false. isLoading would send the first paint to the error
+    // state below, before either request has even started.
+    if (isInvitesPending || isTierInfoPending) {
         return <Loading variant="mascot" />
     }
 
-    if (isInvitesError || isTierInfoError) {
+    // getTierInfo catches its own failures and resolves with `data: null`, so the
+    // query never reports an error. Past the guard above the request has settled,
+    // so missing data means it failed.
+    if (isInvitesError || isTierInfoError || !tierInfo?.data) {
         console.error('Error loading points data:', invitesError ?? tierInfoError)
 
         return (
