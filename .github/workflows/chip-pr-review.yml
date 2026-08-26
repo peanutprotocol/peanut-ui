@@ -85,4 +85,3 @@ jobs:
           ssh -i "$RUNNER_TEMP/chip-pr-review" \
             -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
             chip@195.201.2.135 "human-review $REPOSITORY $PULL_REQUEST $REVIEW_ID $SOURCE_ID"
-
