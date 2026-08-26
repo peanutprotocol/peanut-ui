@@ -194,13 +194,6 @@ export interface RestoredContext {
 let restoreInFlight: Promise<RestoredContext | null> | null = null
 
 /**
- * one-shot first-launch restore. reads the platform hand-off (android install
- * referrer / iOS clipboard), applies invite + campaign cookies, persists the
- * locale preference, and returns the destination for the caller to navigate
- * to. the consumed flag is set even when nothing is found, so the iOS paste
- * prompt can never fire twice.
- */
-/**
  * Records the outcome of the one-shot restore. Only booleans and the channel
  * leave the device — never the invite code, campaign tag or destination, which
  * would put a user's inviter and intended screen into analytics.
@@ -232,6 +225,13 @@ export function trackDeferredHandoffCreated(platform: 'ios' | 'android'): void {
     } catch {}
 }
 
+/**
+ * one-shot first-launch restore. reads the platform hand-off (android install
+ * referrer / iOS clipboard), applies invite + campaign cookies, persists the
+ * locale preference, and returns the destination for the caller to navigate
+ * to. the consumed flag is set even when nothing is found, so the iOS paste
+ * prompt can never fire twice.
+ */
 export function restoreDeferredContext(): Promise<RestoredContext | null> {
     // in-flight guard: overlapping calls (react strict-mode double-effect,
     // effect re-runs) share one read so the iOS paste prompt can't stack
