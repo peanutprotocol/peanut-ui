@@ -205,7 +205,6 @@ const UnlockPayments = () => {
                 secondResidenceIso2,
                 isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),
             }),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, residenceIso2, secondResidenceIso2]
     )
 
