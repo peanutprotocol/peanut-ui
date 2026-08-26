@@ -81,6 +81,17 @@ describe('ResidenceStep', () => {
         expect(screen.getByText('Select your second country')).toBeInTheDocument()
     })
 
+    it('shows the per-country availability comparison with the truth-first guidance', () => {
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        expect(screen.getByText('Available with Brazil')).toBeInTheDocument()
+        expect(screen.getByText('Available with Germany')).toBeInTheDocument()
+        expect(screen.getByText('PIX & bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('SEPA transfers')).toBeInTheDocument()
+        expect(screen.getByText('Which country goes first?')).toBeInTheDocument()
+        expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
+    })
+
     it('advances directly for an unrestricted residence', () => {
         mockSetupState.residenceCountry = 'BR'
         render(<ResidenceStep />)

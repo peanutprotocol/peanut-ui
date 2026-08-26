@@ -14,7 +14,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
-import { storeDeclaredResidence } from '@/utils/declared-residence.storage'
+import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from 'tailwind-merge'
@@ -165,6 +165,7 @@ const SignTestTransaction = () => {
                     const userId = user?.user?.userId
                     if (userId) {
                         storeDeclaredResidence(userId, residenceCountry)
+                        storeSecondResidence(userId, secondResidenceCountry || null)
                         void updateUserById({
                             userId,
                             residenceCountry,

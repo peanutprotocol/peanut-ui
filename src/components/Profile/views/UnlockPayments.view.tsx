@@ -43,7 +43,7 @@ import {
     type UnlockRow,
 } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
-import { readDeclaredResidence } from '@/utils/declared-residence.storage'
+import { readDeclaredResidence, readSecondResidence } from '@/utils/declared-residence.storage'
 import { countryData } from '@/components/AddMoney/consts'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -179,6 +179,10 @@ const UnlockPayments = () => {
     const localDeclared = readDeclaredResidence(user?.user?.userId)
     const declaredIso2 = residence?.declared ?? localDeclared
     const residenceIso2 = residence?.verified ?? declaredIso2 ?? null
+    // Second declared residence: device mirror only until the API returns it.
+    const secondResidenceIso2 = readSecondResidence(user?.user?.userId)
+    const isEuropeIso2 = (iso2: string | null): boolean =>
+        !!iso2 && iso2 !== 'US' && iso2 !== 'MX' && isBridgeSupportedCountry(iso2)
     const hasActiveCard = !!findActiveCard(overview)
 
     const groups = useMemo(
@@ -198,13 +202,11 @@ const UnlockPayments = () => {
                 // waitlist grant only gates activation and is handled on /card.
                 card: hasActiveCard ? 'active' : isEligible === false ? 'notAvailable' : 'get',
                 residenceIso2,
-                isEuropeResidence:
-                    !!residenceIso2 &&
-                    residenceIso2 !== 'US' &&
-                    residenceIso2 !== 'MX' &&
-                    isBridgeSupportedCountry(residenceIso2),
+                secondResidenceIso2,
+                isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),
             }),
-        [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, residenceIso2]
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, residenceIso2, secondResidenceIso2]
     )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
