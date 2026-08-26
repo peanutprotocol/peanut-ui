@@ -67,35 +67,6 @@ const BANK_ACCOUNTS = [
     },
 ]
 
-// Two rows so the screenshot proves both states: one unread (orange dot), one
-// read. The frozen capture clock is 2026-06-15T12:00Z, so these group as
-// "Today" and "June 13, 2026".
-const NOTIFICATIONS_TWO = {
-    items: [
-        {
-            id: 'fixture-notif-1',
-            category: 'payment',
-            title: 'You received $45.00',
-            body: 'alice sent you money.',
-            iconUrl: null,
-            ctaDeeplink: null,
-            createdAt: '2026-06-15T09:00:00.000Z',
-            state: { readAt: null, dismissedAt: null, pinned: false },
-        },
-        {
-            id: 'fixture-notif-2',
-            category: 'rewards',
-            title: 'You earned 50 points',
-            body: 'testfriend1 joined with your invite.',
-            iconUrl: null,
-            ctaDeeplink: null,
-            createdAt: '2026-06-13T09:00:00.000Z',
-            state: { readAt: '2026-06-13T10:00:00.000Z', dismissedAt: null, pinned: false },
-        },
-    ],
-    nextCursor: null,
-}
-
 // The activity list is not only transactions: it also injects a row per badge
 // in `user.badges` and one identity-verification row. An empty state needs all
 // three cleared, or "no transactions" still renders four rows.
@@ -172,13 +143,7 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/profile/identity-verification',
         about: 'Unlocked regions for a user whose ID check passed.',
     },
-    settings: { route: '/settings', about: 'Settings list.' },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
-    notifications: {
-        route: '/notifications',
-        about: 'Notifications list: one unread row and one read row.',
-        responses: { 'GET /notifications': NOTIFICATIONS_TWO },
-    },
     rewards: {
         route: '/rewards',
         about: 'Points total, tier badge and invite list.',
@@ -302,11 +267,6 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/withdraw',
         about: 'Withdraw with no saved bank account — the add-account path.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT] } },
-    },
-    'empty-notifications': {
-        route: '/notifications',
-        about: 'No notifications.',
-        responses: { 'GET /notifications': { items: [], nextCursor: null } },
     },
     'empty-rewards': {
         route: '/rewards',
