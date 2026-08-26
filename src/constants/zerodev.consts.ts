@@ -10,6 +10,21 @@ import { isCapacitor } from '@/utils/capacitor'
 export const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL!
 export const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL!
 
+// The `!` above is a build-time promise, and an env-less bundle breaks it: both read
+// `undefined`, viem's http() takes that as "use the chain's public RPC", and a public
+// RPC has no ERC-4337 methods — so every userOp failed with an error naming neither
+// ZeroDev nor the missing variable. Assert at the transports instead of at module load,
+// which would white-screen the whole app over a wallet-only misconfiguration.
+export function assertZeroDevRpcUrls(bundlerUrl?: string, paymasterUrl?: string) {
+    const missing = [
+        !bundlerUrl && 'NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL',
+        !paymasterUrl && 'NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL',
+    ].filter(Boolean)
+    if (missing.length) {
+        throw new Error(`ZeroDev RPC is not configured — ${missing.join(' and ')} missing from this bundle`)
+    }
+}
+
 // Timeout for the ZeroDev bundler + paymaster RPC transports. viem's http()
 // default is 10s, which intermittently trips a `TimeoutError` on
 // `zd_sponsorUserOperation` during ZeroDev paymaster latency spikes — silently
