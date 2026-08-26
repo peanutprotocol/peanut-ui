@@ -88,11 +88,14 @@ function nextOta(major, current) {
 // (a collision no-ops under --version-exists-ok and ships nothing). It still rides
 // the current build number, or it would sort below the binary the moment one ships.
 function commitCount() {
+    const shallow = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+    }).trim()
+    if (shallow === 'true') throw new Error('shallow clone — OTA workflows need fetch-depth: 0.')
     const out = execFileSync('git', ['rev-list', '--count', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim()
     if (!/^\d+$/.test(out)) throw new Error(`git rev-list returned "${out}"`)
-    const count = Number(out)
-    if (count < 2) throw new Error(`commit count ${count} — a shallow clone? OTA workflows need fetch-depth: 0.`)
-    return count
+    return Number(out)
 }
 
 function validate(major, version, kind) {

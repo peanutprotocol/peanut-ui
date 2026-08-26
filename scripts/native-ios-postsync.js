@@ -47,6 +47,7 @@ const pbxprojPath = path.join(repoRoot, 'ios/App/App.xcodeproj/project.pbxproj')
  * remains the local-build fallback.
  */
 ;(function syncMarketingVersion() {
+    const source = process.env.IOS_MARKETING_VERSION ? 'IOS_MARKETING_VERSION' : 'package.json'
     const version = process.env.IOS_MARKETING_VERSION || require(path.join(repoRoot, 'package.json')).version
     const marketingVersion = toMarketingVersion(version)
     const before = fs.readFileSync(pbxprojPath, 'utf8')
@@ -57,7 +58,7 @@ const pbxprojPath = path.join(repoRoot, 'ios/App/App.xcodeproj/project.pbxproj')
         return
     }
     fs.writeFileSync(pbxprojPath, after)
-    console.log(`[postsync] MARKETING_VERSION -> ${marketingVersion} (from package.json)`)
+    console.log(`[postsync] MARKETING_VERSION -> ${marketingVersion} (from ${source})`)
 })()
 
 const pluginInstalled = (() => {

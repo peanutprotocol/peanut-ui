@@ -242,7 +242,9 @@ the build is reproducible, the AAB lands on a Play track.
 - **Flow:** checkout (submodules) → JDK 17 + Node 22 → install → decode keystore +
   write `keystore.properties` → write prod `NEXT_PUBLIC_*` → `pnpm native:release`
   (`versionCode = github.run_number`) → upload AAB to Play (`internal` by default).
-- **Gate** with a `production` GitHub Environment + required reviewers.
+- **Gate** with a `production` GitHub Environment + required reviewers — not configured
+  yet: the environment has no protection rules today, so runs ship without a second
+  approval (see §9, "No second approver yet").
 - **Track promotion:** internal → closed/beta → production with **staged rollout**
   (`status: inProgress` + `userFraction: 0.1`, promote after metrics look clean).
 

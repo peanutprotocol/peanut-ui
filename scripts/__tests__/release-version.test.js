@@ -29,6 +29,16 @@ function makeRepo(version, { commits = 3, tags = [] } = {}) {
     return dir
 }
 
+// `--depth` is silently ignored on plain-path local clones, hence file://.
+function makeShallowClone(sourceDir, depth) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'release-version-shallow-'))
+    execFileSync('git', ['clone', '-q', '--depth', String(depth), `file://${sourceDir}`, dir], { stdio: 'ignore' })
+    fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true })
+    fs.copyFileSync(SCRIPT_PATH, path.join(dir, 'scripts', SCRIPT_NAME))
+    fs.copyFileSync(path.join(sourceDir, 'package.json'), path.join(dir, 'package.json'))
+    return dir
+}
+
 function run(dir, args) {
     return spawnSync(process.execPath, [path.join(dir, 'scripts', SCRIPT_NAME), ...args], {
         cwd: dir,
@@ -126,7 +136,9 @@ describe('release version resolver', () => {
         })
 
         it('fails on a shallow clone instead of shipping a version under the binary', () => {
-            const result = run(repo('1.0.53', { commits: 1, tags: ['v1.5.0'] }), ['staging'])
+            const dir = makeShallowClone(repo('1.0.53', { commits: 5, tags: ['v1.5.0'] }), 2)
+            repos.push(dir)
+            const result = run(dir, ['staging'])
 
             expect(result.status).toBe(1)
             expect(result.stderr).toMatch(/shallow clone/)
