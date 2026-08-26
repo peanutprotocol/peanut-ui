@@ -10,6 +10,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { isValidEmail } from '@/utils/format.utils'
+import { residenceAvailability } from '@/utils/residence-availability'
 import posthog from 'posthog-js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
@@ -232,6 +233,48 @@ const ResidenceStep = () => {
                         onValueChange={(value) => dispatch(setupActions.setSecondResidenceCountry(value))}
                     />
                 )}
+                {/* Dual-residence comparison: facts about each residence, not a
+                    menu of perks. The guidance leads with the truth norm; the
+                    order is presentation only and eligibility stays with the
+                    verification, so there is nothing to win by answering
+                    untruthfully. Entirely client-derived (restriction tiers +
+                    the same static rail map Unlock payments renders). */}
+                {showSecondCountry &&
+                    residenceCountry &&
+                    secondResidenceCountry &&
+                    residenceCountry !== secondResidenceCountry && (
+                        <div className="mt-2 flex flex-col gap-3">
+                            <div className="grid grid-cols-2 gap-2">
+                                {[residenceCountry, secondResidenceCountry].map((iso2) => {
+                                    const summary = residenceAvailability(restrictionSets, iso2)
+                                    const label = countryOptions.find((option) => option.value === iso2)?.label ?? iso2
+                                    return (
+                                        <div key={iso2} className="rounded-sm border border-n-1 bg-white p-3">
+                                            <p className="mb-1 text-xs font-bold">
+                                                {t('residenceStep.compare.cardTitle', { country: label })}
+                                            </p>
+                                            <ul className="space-y-0.5 text-xs text-grey-1">
+                                                {summary.available.map((item) => (
+                                                    <li key={item}>{t(`residenceStep.compare.items.${item}`)}</li>
+                                                ))}
+                                                {summary.unavailable.map((item) => (
+                                                    <li key={item} className="text-grey-1 line-through">
+                                                        {t(`residenceStep.compare.missing.${item}`)}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                            <div className="rounded-sm border border-n-1 bg-white p-3 text-xs text-grey-1">
+                                <p className="mb-1 font-bold text-n-1">{t('residenceStep.compare.guideTitle')}</p>
+                                <p>{t('residenceStep.compare.guideDeclaration')}</p>
+                                <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
+                                <p className="mt-1">{t('residenceStep.compare.guideSecond')}</p>
+                            </div>
+                        </div>
+                    )}
             </div>
             <Button shadowSize="4" onClick={onContinue} disabled={!residenceCountry || isLoading} loading={isLoading}>
                 {t('next')}

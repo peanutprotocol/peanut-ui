@@ -64,6 +64,8 @@ export interface BuildUnlockGroupsInput {
     card: 'active' | 'get' | 'notAvailable'
     /** ISO-2 residence (verified preferred, else declared) for the "Your region" tag */
     residenceIso2: string | null
+    /** second declared residence (device mirror), so both regions carry the tag */
+    secondResidenceIso2?: string | null
     /** whether the residence country is served by Bridge's Europe coverage */
     isEuropeResidence: boolean
 }
@@ -71,7 +73,8 @@ export interface BuildUnlockGroupsInput {
 const CARD_ROW_BASE = { id: 'card', labelKey: 'card', icon: 'credit-card' } as const
 
 export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] {
-    const { regionChips, qrOnly, restrictions, card, residenceIso2, isEuropeResidence } = input
+    const { regionChips, qrOnly, restrictions, card, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
+    const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
 
     const bankChip = (chip: BankRegionChip): UnlockChip => (restrictions.banking ? 'notAvailable' : chip)
     const bankRow = (
@@ -118,7 +121,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         {
             id: 'southAmerica',
             labelKey: 'southAmerica',
-            isYourRegion: residenceIso2 === 'BR' || residenceIso2 === 'AR',
+            isYourRegion: residences.has('BR') || residences.has('AR'),
             rows:
                 (!qrOnly.brazil && !qrOnly.argentina) || regionChips.latam === 'active'
                     ? [bankRow('sa-bank', 'saBank', 'qr-code', 'latam', ['BRL', 'ARS'])]
@@ -155,7 +158,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         {
             id: 'northAmerica',
             labelKey: 'northAmerica',
-            isYourRegion: residenceIso2 === 'US' || residenceIso2 === 'MX',
+            isYourRegion: residences.has('US') || residences.has('MX'),
             rows: [bankRow('na-bank', 'naBank', 'bank', 'north-america', ['bridge'])],
         },
         {

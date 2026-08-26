@@ -12,6 +12,7 @@
  * previous account's country (wrong residence display, wrong "Your region").
  */
 const keyFor = (userId: string) => `peanut:declaredResidence:${userId}`
+const secondKeyFor = (userId: string) => `peanut:secondResidence:${userId}`
 
 /** Pre-scoping key. Not attributable to an account, so it is only ever removed. */
 const LEGACY_KEY = 'peanut:declaredResidence'
@@ -33,6 +34,37 @@ export function readDeclaredResidence(userId: string | undefined): string | null
         // different account that used this device.
         window.localStorage.removeItem(LEGACY_KEY)
         const value = window.localStorage.getItem(keyFor(userId))
+        return value && /^[A-Z]{2}$/.test(value) ? value : null
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Device-local mirror of the SECOND declared residence. Interim: the server
+ * stores it but does not yet return it on /users/me, so this mirror is the
+ * only post-signup reader. Presentation-grade data only (region tags,
+ * restriction softening on this device); it can never grant anything, and a
+ * fresh device simply degrades to primary-only until the API exposes it.
+ */
+export function storeSecondResidence(userId: string | undefined, iso2: string | null | undefined): void {
+    if (!userId) return
+    try {
+        const value = iso2?.trim().toUpperCase()
+        if (value && /^[A-Z]{2}$/.test(value)) {
+            window.localStorage.setItem(secondKeyFor(userId), value)
+        } else {
+            window.localStorage.removeItem(secondKeyFor(userId))
+        }
+    } catch {
+        // storage unavailable — the app degrades to primary-only
+    }
+}
+
+export function readSecondResidence(userId: string | undefined): string | null {
+    if (!userId) return null
+    try {
+        const value = window.localStorage.getItem(secondKeyFor(userId))
         return value && /^[A-Z]{2}$/.test(value) ? value : null
     } catch {
         return null

@@ -44,6 +44,15 @@ describe('buildUnlockGroups', () => {
         expect(buildUnlockGroups(base({ residenceIso2: 'MX' }))[1].id).toBe('northAmerica')
     })
 
+    it('a second residence tags its region too, so a dual resident sees both as theirs', () => {
+        const groups = buildUnlockGroups(
+            base({ residenceIso2: 'DE', isEuropeResidence: true, secondResidenceIso2: 'BR' })
+        )
+        expect(group(groups, 'europe').isYourRegion).toBe(true)
+        expect(group(groups, 'southAmerica').isYourRegion).toBe(true)
+        expect(group(groups, 'northAmerica').isYourRegion).toBe(false)
+    })
+
     it('marks Europe as your region for a European residence', () => {
         const groups = buildUnlockGroups(base({ residenceIso2: 'DE', isEuropeResidence: true }))
         expect(groups[1].id).toBe('europe')

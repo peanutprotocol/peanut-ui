@@ -5,7 +5,7 @@ import {
     type ResidenceRestrictionSets,
 } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupStore } from '@/redux/hooks'
-import { readDeclaredResidence } from '@/utils/declared-residence.storage'
+import { readDeclaredResidence, readSecondResidence } from '@/utils/declared-residence.storage'
 import { useMemo } from 'react'
 
 export interface ResidenceRestrictions {
@@ -46,6 +46,13 @@ export const deriveResidenceRestrictions = (iso2: string | null | undefined): Re
  * lists (bundled mirror until they load).
  * Advisory offer-shaping, not a compliance gate: it hides bank/card surfaces
  * the user could never use, and can only ever remove offers.
+ *
+ * Dual residents: when the device knows a second declared residence (the
+ * signup mirror — the API stores it but does not return it yet), hiding
+ * softens to the INTERSECTION: an offer disappears only when BOTH residences
+ * rule it out. Safe by construction — restrictions never grant anything, so
+ * softening them can only stop hiding offers whose verification the second
+ * residence's documents can legitimately pass.
  */
 export const useResidenceRestrictions = (): ResidenceRestrictions => {
     const { user } = useAuth()
@@ -53,8 +60,16 @@ export const useResidenceRestrictions = (): ResidenceRestrictions => {
     const sets = useResidenceRestrictionSets()
 
     return useMemo(() => {
-        if (user?.residenceRestrictions) return user.residenceRestrictions
-        const declared = user?.residence?.declared || residenceCountry || readDeclaredResidence(user?.user?.userId)
-        return deriveResidenceRestrictionsFrom(sets, declared)
+        const userId = user?.user?.userId
+        const primary =
+            user?.residenceRestrictions ??
+            deriveResidenceRestrictionsFrom(
+                sets,
+                user?.residence?.declared || residenceCountry || readDeclaredResidence(userId)
+            )
+        const second = readSecondResidence(userId)
+        if (!second) return primary
+        const secondary = deriveResidenceRestrictionsFrom(sets, second)
+        return { banking: primary.banking && secondary.banking, card: primary.card && secondary.card }
     }, [user?.residenceRestrictions, user?.residence?.declared, user?.user?.userId, residenceCountry, sets])
 }

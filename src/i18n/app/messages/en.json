@@ -738,6 +738,27 @@
                 "notifySubmit": "Notify me",
                 "notifyDone": "Got it. We'll email you when it's available.",
                 "changeCountry": "Choose a different country"
+            },
+            "compare": {
+                "cardTitle": "Available with {country}",
+                "items": {
+                    "p2p": "Payments to any @username",
+                    "pix": "PIX & bank transfers",
+                    "arQr": "QR payments & transfers",
+                    "spei": "SPEI bank transfers",
+                    "achWire": "ACH & Wire transfers",
+                    "sepa": "SEPA transfers",
+                    "bank": "Bank transfers where supported",
+                    "card": "Peanut card"
+                },
+                "missing": {
+                    "banking": "Bank transfers",
+                    "card": "Peanut card"
+                },
+                "guideTitle": "Which country goes first?",
+                "guideDeclaration": "Both entries must be countries where you genuinely hold legal residence. This is a declaration, and providers verify it during the ID check, including proof of address.",
+                "guideOrder": "If both countries are truly home, either order is honest. The order only changes what the app shows you first, never what you are eligible for. Eligibility is decided by the verification itself.",
+                "guideSecond": "Your second country stays on record. You can verify its payment rails anytime from Unlock payments, and change the order later."
             }
         },
         "passkey": {

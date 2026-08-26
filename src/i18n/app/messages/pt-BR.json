@@ -738,6 +738,27 @@
                 "notifySubmit": "Me avisar",
                 "notifyDone": "Pronto. Enviaremos um e-mail quando estiver disponível.",
                 "changeCountry": "Escolher outro país"
+            },
+            "compare": {
+                "cardTitle": "Disponível com {country}",
+                "items": {
+                    "p2p": "Pagamentos para qualquer @usuário",
+                    "pix": "PIX e transferências bancárias",
+                    "arQr": "Pagamentos QR e transferências",
+                    "spei": "Transferências bancárias SPEI",
+                    "achWire": "Transferências ACH e Wire",
+                    "sepa": "Transferências SEPA",
+                    "bank": "Transferências bancárias onde houver suporte",
+                    "card": "Cartão Peanut"
+                },
+                "missing": {
+                    "banking": "Transferências bancárias",
+                    "card": "Cartão Peanut"
+                },
+                "guideTitle": "Qual país vem primeiro?",
+                "guideDeclaration": "Os dois devem ser países onde você realmente tem residência legal. Isso é uma declaração, e os provedores a verificam durante a verificação de identidade, incluindo o comprovante de residência.",
+                "guideOrder": "Se os dois países são realmente seu lar, qualquer ordem é honesta. A ordem só muda o que o app mostra primeiro, nunca aquilo a que você é elegível. A elegibilidade é decidida pela própria verificação.",
+                "guideSecond": "Seu segundo país fica registrado. Você pode verificar os métodos de pagamento dele a qualquer momento em Desbloquear pagamentos, e mudar a ordem depois."
             }
         },
         "passkey": {
