@@ -1,6 +1,7 @@
 'use client'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import {
+    assertZeroDevRpcUrls,
     PEANUT_WALLET_CHAIN,
     USER_OP_ENTRY_POINT,
     ZERODEV_KERNEL_VERSION,
@@ -124,6 +125,7 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
     privateKey: `0x${string}`,
     { bundlerUrl, paymasterUrl }: { bundlerUrl: string; paymasterUrl: string }
 ): Promise<GenericSmartAccountClient<C>> => {
+    assertZeroDevRpcUrls(bundlerUrl, paymasterUrl)
     const signer = privateKeyToAccount(privateKey)
     const validator = await signerToEcdsaValidator(publicClient, {
         signer,
@@ -201,6 +203,7 @@ export const createKernelClientForChain = async <C extends Chain>(
     console.log(`Creating new kernel client for chain ${chain.name}...`)
 
     const { bundlerUrl, paymasterUrl } = options
+    assertZeroDevRpcUrls(bundlerUrl, paymasterUrl)
 
     let kernelAccount: Awaited<ReturnType<typeof createKernelAccount>>
     // The v0.0.3 PATCHED validator this account migrates *to* — the same
