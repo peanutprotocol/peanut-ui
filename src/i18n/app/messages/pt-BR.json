@@ -3072,6 +3072,16 @@
             "flagAlt": "Bandeira de {country}",
             "flagAltGeneric": "Bandeira do país"
         },
+        "savedAddresses": {
+            "title": "Agenda de endereços cripto",
+            "lastUsed": "{days, plural, =0 {Usado hoje} =1 {Usado ontem} other {Usado há # dias}}",
+            "editTitle": "Editar endereço",
+            "editAria": "Editar {nickname}",
+            "nicknameLabel": "Apelido",
+            "nicknamePlaceholder": "ex.: Binance",
+            "deleteCta": "Excluir endereço",
+            "savePrompt": "Salvar na agenda"
+        },
         "forceIosPwaInstall": {
             "videoUnsupported": "Seu navegador não suporta a tag de vídeo.",
             "title": "Tenha a experiência completa",

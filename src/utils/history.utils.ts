@@ -113,6 +113,9 @@ export interface HistoryEntryExtraData {
      *  principal — set only for CRYPTO_WITHDRAW that booked a matching FEE
      *  entry (SDA path). Baked into the displayed amount in the transformer. */
     networkFeeUsd?: number | null
+    // Crypto address-book nickname for the viewer's CRYPTO_WITHDRAW destination
+    // (BE joins it at read time; absent when the address is not saved).
+    savedAddressNickname?: string
     haveSentMoneyToUser?: boolean
     /** Token-transfer block number — `string` from indexer, sometimes `number`
      *  from on-chain webhooks. Treated as a presence signal, not parsed. */

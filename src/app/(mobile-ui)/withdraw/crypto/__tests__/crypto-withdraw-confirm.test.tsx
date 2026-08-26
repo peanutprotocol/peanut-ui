@@ -248,6 +248,17 @@ jest.mock('@/features/payments/shared/hooks/usePaymentRecorder', () => ({
         reset: jest.fn(),
     }),
 }))
+// address book: react-query backed; these tests pin the charge-completion paths only
+jest.mock('@/hooks/useSavedAddresses', () => ({
+    useSavedAddresses: () => ({
+        savedAddresses: [],
+        isLoading: false,
+        findSaved: () => undefined,
+        save: { mutate: jest.fn() },
+        rename: { mutateAsync: jest.fn() },
+        remove: { mutateAsync: jest.fn() },
+    }),
+}))
 
 import WithdrawCryptoPage from '../page'
 

@@ -16,6 +16,7 @@ import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { useTranslations } from 'next-intl'
+import { savedAddressLabel } from '@/utils/saved-address.utils'
 
 interface WithdrawConfirmViewProps {
     amount: string
@@ -64,6 +65,10 @@ interface WithdrawConfirmViewProps {
     belowMinimumMessage?: string | null
     /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
     isFromSendFlow?: boolean
+    /** Address-book nickname when the destination is already saved — "To" renders "Nickname · …abcd". */
+    toNickname?: string | null
+    /** "Save to address book" prompt, rendered under the details card (only when not yet saved). */
+    saveAddressPrompt?: React.ReactNode
 }
 
 export default function ConfirmWithdrawView({
@@ -85,6 +90,8 @@ export default function ConfirmWithdrawView({
     insufficientBalance = false,
     belowMinimumMessage = null,
     isFromSendFlow = false,
+    toNickname = null,
+    saveAddressPrompt = null,
 }: WithdrawConfirmViewProps) {
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
@@ -184,7 +191,13 @@ export default function ConfirmWithdrawView({
                     />
                     <PaymentInfoRow
                         label={t('confirm.to')}
-                        value={<AddressLink isLink={false} address={toAddress} className="text-black no-underline" />}
+                        value={
+                            toNickname ? (
+                                <span className="text-black">{savedAddressLabel(toNickname, toAddress)}</span>
+                            ) : (
+                                <AddressLink isLink={false} address={toAddress} className="text-black no-underline" />
+                            )
+                        }
                     />
                     <PaymentInfoRow
                         label={t('confirm.networkFee')}
@@ -197,6 +210,8 @@ export default function ConfirmWithdrawView({
                     )}
                     <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value={`$${peanutFee}`} />
                 </Card>
+
+                {saveAddressPrompt}
 
                 {showHighFeeWarning && (
                     <InfoCard variant="info" icon="info" description={t('confirm.highFeeWarning')} />

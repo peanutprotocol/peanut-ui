@@ -1,7 +1,8 @@
 'use client'
 import { countryData as ALL_METHODS_DATA, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { formatIban } from '@/utils/general.utils'
-import { AccountType, type Account } from '@/interfaces/interfaces'
+import { AccountType, type Account, type SavedAddress } from '@/interfaces/interfaces'
+import SavedAddressesList from '@/components/Withdraw/AddressBook/SavedAddressesList'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -18,6 +19,10 @@ interface SavedAccountListProps {
     savedAccounts: Account[]
     onAccountClick: (account: Account, path: string) => void
     onSelectNewMethodClick: () => void
+    /** Crypto address book — rendered as its own list under the bank accounts. */
+    savedAddresses?: SavedAddress[]
+    onSavedAddressClick?: (saved: SavedAddress) => void
+    onSavedAddressEdit?: (saved: SavedAddress) => void
 }
 
 /**
@@ -36,6 +41,9 @@ export default function SavedAccountsView({
     savedAccounts,
     onAccountClick,
     onSelectNewMethodClick,
+    savedAddresses = [],
+    onSavedAddressClick,
+    onSavedAddressEdit,
 }: SavedAccountListProps) {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
@@ -43,10 +51,22 @@ export default function SavedAccountsView({
         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
             <div className="space-y-4">
-                <div className="flex h-full flex-col justify-center space-y-2">
-                    <h2 className="text-base font-bold">{t('savedAccounts.title')}</h2>
-                    <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
-                </div>
+                {savedAccounts.length > 0 && (
+                    <div className="flex h-full flex-col justify-center space-y-2">
+                        <h2 className="text-base font-bold">{t('savedAccounts.title')}</h2>
+                        <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
+                    </div>
+                )}
+                {savedAddresses.length > 0 && onSavedAddressClick && onSavedAddressEdit && (
+                    <div className="flex h-full flex-col justify-center space-y-2">
+                        <h2 className="text-base font-bold">{t('savedAddresses.title')}</h2>
+                        <SavedAddressesList
+                            savedAddresses={savedAddresses}
+                            onSelect={onSavedAddressClick}
+                            onEdit={onSavedAddressEdit}
+                        />
+                    </div>
+                )}
                 <Divider textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" text={tCommon('or')} />
                 <Button icon="plus" onClick={onSelectNewMethodClick} shadowSize="4">
                     {t('savedAccounts.selectNewMethod')}
