@@ -68,8 +68,15 @@ export const Profile = () => {
                             icon="bank"
                             label={t('menu.unlockedRegions')}
                             href="/profile/identity-verification"
-                            position="last"
+                            position="middle"
                             highlight={!isUserSumsubKycApproved}
+                        />
+                        <ProfileMenuItem
+                            icon="exchange"
+                            label={t('menu.exchangeRatesAndFees')}
+                            href="/profile/exchange-rate"
+                            position="last"
+                            iconClassName="size-4"
                         />
                     </div>
                     {/* Menu Items - First Group */}
@@ -127,8 +134,9 @@ export const Profile = () => {
                             label={t('menu.backup')}
                             href="/profile/backup"
                             onClick={() => router.push('/profile/backup')}
-                            position="last"
+                            position="middle"
                         />
+                        <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" position="last" />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
                             icon="bank"
@@ -138,17 +146,7 @@ export const Profile = () => {
                             comingSoon
                         /> */}
                     </div>
-                    {/* Menu Items - Second Group */}
-                    <div>
-                        <ProfileMenuItem
-                            icon="exchange"
-                            label={t('menu.exchangeRatesAndFees')}
-                            href="/profile/exchange-rate"
-                            position="first"
-                            iconClassName="size-4"
-                        />
-                        <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" position="last" />
-                    </div>
+
                     {/* Logout + Delete account */}
                     <div className="w-full space-y-6 pb-10">
                         <Button
