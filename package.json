@@ -45,8 +45,8 @@
         "native:build": "node scripts/native-build.js",
         "native:sync": "pnpm exec cap sync android",
         "native:release": "bash scripts/native-release.sh",
-        "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel development --path ./out --bundle \"$(node scripts/capgo-bundle-version.mjs)\"",
-        "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel staging --path ./out --bundle \"$(node scripts/capgo-bundle-version.mjs)\"",
+        "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel development --path ./out --bundle \"$(node scripts/release-version.mjs staging)\"",
+        "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel staging --path ./out --bundle \"$(node scripts/release-version.mjs staging)\"",
         "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit",
         "generate:marketing-messages": "node scripts/generate-marketing-messages.js"
     },

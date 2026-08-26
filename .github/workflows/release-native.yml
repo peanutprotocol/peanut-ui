@@ -1,0 +1,111 @@
+name: Release Native
+
+# The single entry point for a store build. Click "Run workflow" on `dev`; the
+# version is resolved here, not typed, and both platforms build from that one
+# number so they can never disagree about what a release is called.
+#
+# Nothing about this is automatic: no push, merge or commit reaches it. It is the
+# same deliberate act as the `git tag v… && git push` it replaces, minus the part
+# where a human picks the number — which is the part that let the native and OTA
+# lanes drift out of order (TASK-21793).
+#
+# The tag is written afterwards, as the record of what shipped. A failed build
+# leaves no tag, so a re-run resolves the same number instead of burning one.
+#
+# Ships to TestFlight and the Play `internal` track. Promotion to App Store review
+# and to Play production stays a manual step in the respective consoles.
+
+on:
+    workflow_dispatch:
+        inputs:
+            track:
+                description: 'Play track'
+                required: true
+                default: 'internal'
+                type: choice
+                options: [internal, alpha, beta, production]
+            pushDebug:
+                description: 'Enable OneSignal verbose logging in this build'
+                required: false
+                default: false
+                type: boolean
+
+permissions:
+    contents: read
+
+concurrency:
+    group: release-native
+    cancel-in-progress: false
+
+jobs:
+    resolve:
+        runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.resolve.outputs.version }}
+        steps:
+            # `main` runs 80+ commits behind `dev`, and workflow_dispatch will happily
+            # build whichever ref the dropdown was left on. The version resolver reads
+            # global tags, so a release off the wrong ref would look correctly numbered
+            # and ship stale code.
+            - name: Guard release ref
+              run: |
+                  if [ "$GITHUB_REF_NAME" != "dev" ]; then
+                      echo "::error::releases are cut from dev, not $GITHUB_REF_NAME" >&2
+                      exit 1
+                  fi
+
+            - uses: actions/checkout@v7
+              with:
+                  # Full history + tags: the resolver reads the v<major>.<build>.0 tags.
+                  fetch-depth: 0
+
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '22'
+
+            - name: Resolve next build version
+              id: resolve
+              run: |
+                  VERSION="$(node scripts/release-version.mjs native)"
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+                  echo "Next native build: $VERSION (from ${GITHUB_SHA:0:7})"
+                  echo "## Release $VERSION" >> "$GITHUB_STEP_SUMMARY"
+                  echo "- **Commit:** ${GITHUB_SHA:0:7}" >> "$GITHUB_STEP_SUMMARY"
+
+    ios:
+        needs: resolve
+        uses: ./.github/workflows/ios-release.yml
+        secrets: inherit
+        with:
+            versionName: ${{ needs.resolve.outputs.version }}
+            pushDebug: ${{ inputs.pushDebug }}
+
+    android:
+        needs: resolve
+        uses: ./.github/workflows/android-release.yml
+        secrets: inherit
+        with:
+            versionName: ${{ needs.resolve.outputs.version }}
+            track: ${{ inputs.track }}
+            pushDebug: ${{ inputs.pushDebug }}
+
+    tag:
+        needs: [resolve, ios, android]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@v7
+
+            # GITHUB_TOKEN deliberately: GitHub does not start workflows from a push
+            # made with it, so this records the release without re-triggering the
+            # builds it just finished. Swapping in a PAT here would double-build.
+            - name: Tag the shipped commit
+              env:
+                  VERSION: ${{ needs.resolve.outputs.version }}
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git tag -a "v$VERSION" -m "Native release $VERSION"
+                  git push origin "v$VERSION"
+                  echo "Tagged v$VERSION at ${GITHUB_SHA:0:7}"
