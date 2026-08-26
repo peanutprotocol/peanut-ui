@@ -17,11 +17,20 @@ const secondKeyFor = (userId: string) => `peanut:secondResidence:${userId}`
 /** Pre-scoping key. Not attributable to an account, so it is only ever removed. */
 const LEGACY_KEY = 'peanut:declaredResidence'
 
+// The legacy delete only needs to happen once per session, not on every read
+// from every consumer (localStorage is synchronous main-thread I/O).
+let legacyKeyCleaned = false
+const cleanLegacyKeyOnce = () => {
+    if (legacyKeyCleaned) return
+    legacyKeyCleaned = true
+    window.localStorage.removeItem(LEGACY_KEY)
+}
+
 export function storeDeclaredResidence(userId: string | undefined, iso2: string): void {
     if (!userId) return
     try {
         window.localStorage.setItem(keyFor(userId), iso2.toUpperCase())
-        window.localStorage.removeItem(LEGACY_KEY)
+        cleanLegacyKeyOnce()
     } catch {
         // storage unavailable (private mode, blocked) — the server copy stands
     }
@@ -32,7 +41,7 @@ export function readDeclaredResidence(userId: string | undefined): string | null
     try {
         // Drop, never migrate, the unscoped value: it may belong to a
         // different account that used this device.
-        window.localStorage.removeItem(LEGACY_KEY)
+        cleanLegacyKeyOnce()
         const value = window.localStorage.getItem(keyFor(userId))
         return value && /^[A-Z]{2}$/.test(value) ? value : null
     } catch {

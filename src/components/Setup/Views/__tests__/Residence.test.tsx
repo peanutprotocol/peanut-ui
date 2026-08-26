@@ -161,8 +161,10 @@ describe('ResidenceStep', () => {
         // supplemental options must fill the gap or the heads-up never fires.
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('combobox'))
+        // Substring match: the selector now renders Intl.DisplayNames names,
+        // which can extend the catalog title (en shows Myanmar (Burma)).
         for (const name of ['Russia', 'Iran', 'North Korea', 'Syria', 'Cuba', 'Myanmar']) {
-            expect(screen.getByText(name)).toBeInTheDocument()
+            expect(screen.getByText(name, { exact: false })).toBeInTheDocument()
         }
     })
 

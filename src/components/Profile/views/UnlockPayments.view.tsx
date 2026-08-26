@@ -10,6 +10,7 @@ import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycActionRequiredModal } from '@/components/Kyc/modals/KycActionRequiredModal'
 import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
+import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
@@ -134,7 +135,7 @@ const UnlockPayments = () => {
     const { user, fetchUser } = useAuth()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     const restrictions = useResidenceRestrictions()
-    const { identity, isProcessing: isIdentityInReview } = useIdentityVerification()
+    const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
     const { isEligible } = useCardInfo()
     const queryClient = useQueryClient()
@@ -176,11 +177,18 @@ const UnlockPayments = () => {
     // Server copy first; the localStorage mirror of the signup answer covers
     // reloads before /users/me returns it (or an API without the fields yet).
     const residence = user?.residence ?? null
-    const localDeclared = readDeclaredResidence(user?.user?.userId)
+    const userId = user?.user?.userId
+    // localStorage is synchronous I/O: read once per account, not per render.
+    const { localDeclared, secondResidenceIso2 } = useMemo(
+        () => ({
+            localDeclared: readDeclaredResidence(userId),
+            // Second declared residence: device mirror until the API returns it.
+            secondResidenceIso2: readSecondResidence(userId),
+        }),
+        [userId]
+    )
     const declaredIso2 = residence?.declared ?? localDeclared
     const residenceIso2 = residence?.verified ?? declaredIso2 ?? null
-    // Second declared residence: device mirror only until the API returns it.
-    const secondResidenceIso2 = readSecondResidence(user?.user?.userId)
     const isEuropeIso2 = (iso2: string | null): boolean =>
         !!iso2 && iso2 !== 'US' && iso2 !== 'MX' && isBridgeSupportedCountry(iso2)
     const hasActiveCard = !!findActiveCard(overview)
@@ -448,14 +456,22 @@ const UnlockPayments = () => {
                 {showCardRestrictionNote && <p className="mt-3 text-xs text-grey-1">{t('cardNotAvailableNote')}</p>}
             </div>
 
-            <UnlockMethodModal
-                visible={modalVariant === 'start'}
-                onClose={handleModalClose}
-                onUnlock={handleStartKyc}
-                methodLabel={selectedMethodLabel}
-                path={selectedRegion?.path === 'latam' ? 'extended' : 'standard'}
-                isLoading={flow.isLoading}
-            />
+            {/* Region-restricted users get the one honest region screen instead
+                of an unlock offer that can only end in the same rejection: the
+                InitiateKycModal choke point does not cover this surface (it
+                renders its own modal), so the invariant is enforced here too. */}
+            {isRegionRestricted ? (
+                <KycRegionRestrictedModal visible={modalVariant === 'start'} onClose={handleModalClose} />
+            ) : (
+                <UnlockMethodModal
+                    visible={modalVariant === 'start'}
+                    onClose={handleModalClose}
+                    onUnlock={handleStartKyc}
+                    methodLabel={selectedMethodLabel}
+                    path={selectedRegion?.path === 'latam' ? 'extended' : 'standard'}
+                    isLoading={flow.isLoading}
+                />
+            )}
 
             <ResidenceChangeModal
                 visible={isChangeModalOpen}

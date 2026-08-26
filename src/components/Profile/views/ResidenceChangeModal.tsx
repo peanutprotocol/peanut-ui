@@ -2,17 +2,15 @@
 
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import ActionModal from '@/components/Global/ActionModal'
-import { countryData } from '@/components/AddMoney/consts'
-import { SUPPLEMENTAL_RESIDENCE_OPTIONS } from '@/constants/residence.consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { storeDeclaredResidence } from '@/utils/declared-residence.storage'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 interface ResidenceChangeModalProps {
     visible: boolean
@@ -66,24 +64,7 @@ const ResidenceChangeModal = ({
         setError(null)
     }, [visible, declared, verified])
 
-    const countryOptions = useMemo(() => {
-        const options = countryData
-            .filter((c) => c.type === 'country' && !!c.iso2)
-            .map((c) => ({
-                label: localizedCountryTitle(locale, { iso2: c.iso2!.toUpperCase(), title: c.title }),
-                value: c.iso2!.toUpperCase(),
-            }))
-        const present = new Set(options.map((o) => o.value))
-        for (const extra of SUPPLEMENTAL_RESIDENCE_OPTIONS) {
-            if (!present.has(extra.iso2)) {
-                options.push({
-                    label: localizedCountryTitle(locale, { iso2: extra.iso2, title: extra.title }),
-                    value: extra.iso2,
-                })
-            }
-        }
-        return options.sort((a, b) => a.label.localeCompare(b.label, locale))
-    }, [locale])
+    const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
 
     const selectedRestrictions = deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
     const differsFromVerified = !!verified && !!selected && selected !== verified
