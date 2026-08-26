@@ -74,7 +74,7 @@ describe('BadgeDetailModal', () => {
         await expect(shareProps.generateText()).resolves.toContain('Just put my Peanut card to work')
         // attributed share link, asserted origin-agnostically: shareableUrl resolves
         // to the jsdom origin here, not NEXT_PUBLIC_BASE_URL.
-        await expect(shareProps.generateText()).resolves.toContain('/invite?code=satoshi')
+        await expect(shareProps.generateText()).resolves.toContain('/invite?invited_by=satoshi')
 
         screen.getByRole('button', { name: en.badges.shareAchievement }).click()
         expect(onClose).toHaveBeenCalledTimes(1)
@@ -86,7 +86,7 @@ describe('BadgeDetailModal', () => {
         expect(screen.getByRole('button', { name: ptBR.badges.shareAchievement })).toBeInTheDocument()
         const text = await mockShareButton.mock.calls[0][0].generateText()
         expect(text).toContain('Ganhei o selo First Swipe no Peanut!')
-        expect(text).toContain('/invite?code=satoshi')
+        expect(text).toContain('/invite?invited_by=satoshi')
         expect(text).not.toContain('Just put my Peanut card to work')
     })
 })

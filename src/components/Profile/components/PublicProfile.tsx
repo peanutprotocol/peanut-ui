@@ -111,7 +111,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             })
             if (intercepted) return
             // Unresolvable and mismatched codes still navigate — /invite owns the messaging.
-            router.push(`/invite?code=${code}`)
+            router.push(`/invite?invited_by=${code}`)
         } finally {
             setIsJoining(false)
         }

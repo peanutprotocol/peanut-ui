@@ -353,6 +353,21 @@ describe('invite and badge campaign routing boundaries', () => {
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/alice'))
     })
 
+    it('accepts invited_by as an alias for the legacy code param', async () => {
+        mockSearch = 'invited_by=alice&badge_campaign=nita'
+        mockQueryResult.data = {
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            username: 'alice',
+        }
+
+        render(<InvitesPage />)
+
+        await waitFor(() => expect(mockClaimBadgeCampaigns).toHaveBeenCalledWith(['nita']))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/alice'))
+    })
+
     it('lets a confirmed bespoke campaign destination override a personal inviter profile', async () => {
         mockSearch = 'code=alice&badge_campaign=offramp'
         mockQueryResult.data = {

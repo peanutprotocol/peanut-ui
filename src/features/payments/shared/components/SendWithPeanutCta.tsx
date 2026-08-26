@@ -70,7 +70,7 @@ export default function SendWithPeanutCta({
             // migration window: web signups are closed — hand the guest to the
             // app stores instead (QR modal on desktop, store link on mobile).
             // the inviter rides the deferred hand-off, mirroring the web path
-            // below that routes to /invite?code=<inviter>
+            // below that routes to /invite?invited_by=<inviter>
             if (interceptGuestCta({ invite: inviterUsername ? toInviteCode(inviterUsername) : undefined })) return
             const redirectUri = encodeURIComponent(
                 window.location.pathname + window.location.search + window.location.hash

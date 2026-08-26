@@ -112,7 +112,7 @@ describe('PublicProfile guest door', () => {
 
         fireEvent.click(screen.getByRole('button', { name: JOIN_CTA }))
 
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?invited_by=satoshi'))
         expect(mockValidateInviteCode).toHaveBeenCalledWith('satoshi')
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
@@ -190,7 +190,7 @@ describe('PublicProfile guest door', () => {
         const joinButtons = screen.getAllByRole('button', { name: JOIN_CTA })
         fireEvent.click(joinButtons[joinButtons.length - 1])
 
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?invited_by=satoshi'))
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
     })
 
@@ -211,7 +211,7 @@ describe('PublicProfile guest door', () => {
 
             fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
 
-            await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/invite?code=${expectedCode}`))
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/invite?invited_by=${expectedCode}`))
             expect(mockSaveToCookie).not.toHaveBeenCalled()
             expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                 source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,

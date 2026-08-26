@@ -7,7 +7,7 @@ import { captureMessage } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import { sanitizeRedirectURL, saveToCookie } from '@/utils/cookie-url.utils'
-import { toInviteCode } from '@/utils/invite-code.utils'
+import { inviteCodeFromParams, toInviteCode } from '@/utils/invite-code.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
 
 /*
@@ -59,7 +59,7 @@ export function useNativeAppLinks() {
             try {
                 const parsed = new URL(url, 'https://peanut.me')
                 if (parsed.pathname.split('/').filter(Boolean)[0] === 'invite') {
-                    const code = toInviteCode(parsed.searchParams.get('code') ?? '')
+                    const code = toInviteCode(inviteCodeFromParams(parsed.searchParams) ?? '')
                     if (code) saveToCookie('inviteCode', code)
                 }
             } catch {}

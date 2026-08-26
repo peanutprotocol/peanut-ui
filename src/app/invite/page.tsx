@@ -4,10 +4,11 @@ import { type Metadata } from 'next'
 import { validateInviteCode } from '../actions/invites'
 import { BASE_URL } from '@/constants/general.consts'
 import { buildOgImageUrl } from '@/utils/og.utils'
+import { inviteCodeFromParams } from '@/utils/invite-code.utils'
 
 export const dynamic = 'force-dynamic'
 
-async function getInviteCodeData(inviteCode: string) {
+async function getInviteCodeData(inviteCode: string | null) {
     if (!inviteCode) return null
 
     const response = await validateInviteCode(inviteCode)
@@ -30,7 +31,15 @@ export async function generateMetadata({
     const resolvedSearchParams = await searchParams
     const siteUrl: string = (await getOrigin()) || BASE_URL
 
-    const inviteCode = resolvedSearchParams.code as string
+    // Same reader as the client: new links carry ?invited_by=, every older
+    // shared link ?code=. The unfurl (X / WhatsApp / Telegram) is built here,
+    // so this reader must not lag the emitted shape.
+    const inviteCode = inviteCodeFromParams({
+        get: (name) => {
+            const value = resolvedSearchParams[name]
+            return (Array.isArray(value) ? value[0] : value) ?? null
+        },
+    })
 
     const inviteCodeData = await getInviteCodeData(inviteCode)
 
