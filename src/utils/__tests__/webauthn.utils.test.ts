@@ -1,5 +1,5 @@
 import posthog from 'posthog-js'
-import { capturePasskeySignFailure, classifyPasskeyError } from '../webauthn.utils'
+import { capturePasskeySignFailure, classifyPasskeyError, getPasskeyErrorSetupKey } from '../webauthn.utils'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -71,5 +71,29 @@ describe('classifyPasskeyError', () => {
 
     test('falls back to LOGIN_ERROR for unknown errors', () => {
         expect(classifyPasskeyError(new Error('mystery')).code).toBe('LOGIN_ERROR')
+    })
+})
+
+describe('getPasskeyErrorSetupKey', () => {
+    const passkeyError = (code: string) =>
+        Object.assign(new Error('curated english copy'), { name: 'PasskeyError', code })
+
+    test('maps a known PasskeyError code to its translated setup.* catalog key', () => {
+        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_CANCELED'))).toBe('waitlist.loginCanceled')
+        expect(getPasskeyErrorSetupKey(passkeyError('CEREMONY_TIMEOUT'))).toBe('passkey.tookTooLong')
+        expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_NOT_READY'))).toBe('passkey.notReady')
+        expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_STATE'))).toBe('passkey.deviceState')
+        expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_INTERRUPTED'))).toBe('passkey.interrupted')
+    })
+
+    test('returns undefined for codes without a translated equivalent (English fallback)', () => {
+        expect(getPasskeyErrorSetupKey(passkeyError('NETWORK'))).toBeUndefined()
+        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_ERROR'))).toBeUndefined()
+    })
+
+    test('returns undefined for non-PasskeyError failures and unknown codes', () => {
+        expect(getPasskeyErrorSetupKey(new Error('boom'))).toBeUndefined()
+        expect(getPasskeyErrorSetupKey(passkeyError('SOME_FUTURE_CODE'))).toBeUndefined()
+        expect(getPasskeyErrorSetupKey(undefined)).toBeUndefined()
     })
 })

@@ -35,6 +35,7 @@ import {
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
 import { destinationForInviteAcquisition } from '@/services/invite-acquisition'
+import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
 
 function InvitePageContent() {
     const t = useTranslations('invites')
@@ -294,10 +295,13 @@ function InvitePageContent() {
             // normal-app fallback.
             saveRedirectUrl()
         }
-        // PasskeyError carries curated user-facing copy; without this catch a
-        // cancelled passkey prompt becomes an unhandled rejection and a Sentry event.
+        // PasskeyError carries curated copy; without this catch a cancelled
+        // passkey prompt becomes an unhandled rejection and a Sentry event.
+        // Known codes render the translated catalog copy instead of the
+        // error's hardcoded English message.
         handleLoginClick().catch((error: unknown) => {
-            toast.error((error instanceof Error && error.message) || tSetup('loginFailed'))
+            const i18nKey = getPasskeyErrorSetupKey(error)
+            toast.error(i18nKey ? tSetup(i18nKey) : (error instanceof Error && error.message) || tSetup('loginFailed'))
         })
     }
 
