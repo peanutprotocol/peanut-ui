@@ -477,6 +477,30 @@ function restoreModifiedFiles() {
     }
 }
 
+// Every NEXT_PUBLIC_* is inlined into the static export at build time, so a missing
+// or half-written .env.production.local ships a bundle where each one is `undefined`.
+// The Capgo OTA lane did exactly that for four months and nothing could report it —
+// Sentry and PostHog were among the undefined keys (mono
+// `ops/native-ota-envless-bundle-rca.md`). In CI that has to fail the build, not warn.
+const REQUIRED_NATIVE_ENV = [
+    'NEXT_PUBLIC_NATIVE_RP_ID',
+    'NEXT_PUBLIC_BASE_URL',
+    'NEXT_PUBLIC_PEANUT_API_URL',
+    'NEXT_PUBLIC_SENTRY_DSN',
+    'NEXT_PUBLIC_POSTHOG_KEY',
+    'NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL',
+    'NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL',
+]
+
+// A key is missing when it has no line of its own, or its line carries no value
+// (`KEY=`). Anchoring per line also skips comments and blank lines.
+function missingNativeEnv(envContent) {
+    return REQUIRED_NATIVE_ENV.filter((key) => {
+        const match = envContent.match(new RegExp(`^${key}=(.*)$`, 'm'))
+        return !match || !match[1].trim()
+    })
+}
+
 async function main() {
     let buildSucceeded = false
 
@@ -491,6 +515,7 @@ async function main() {
         }
 
         // validate required env vars for native build
+        const strict = Boolean(process.env.CI)
         const envFile = path.join(__dirname, '..', '.env.production.local')
         if (fs.existsSync(envFile)) {
             const envContent = fs.readFileSync(envFile, 'utf-8')
@@ -508,6 +533,17 @@ async function main() {
             } else {
                 console.log('✅ NEXT_PUBLIC_ONESIGNAL_APP_ID is set')
             }
+
+            const missing = missingNativeEnv(envContent)
+            if (missing.length) {
+                const message = `.env.production.local has no value for: ${missing.join(', ')}`
+                if (strict) throw new Error(message)
+                console.warn(`⚠️  ${message}`)
+            }
+        } else if (strict) {
+            throw new Error(
+                '.env.production.local not found — CI must write it before native-build.js (see capgo-deploy.yml / ios-release.yml / android-release.yml)'
+            )
         } else {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')
         }
