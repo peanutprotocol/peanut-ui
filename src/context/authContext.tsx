@@ -24,7 +24,7 @@ import { disableDemoMode } from '@/utils/demo'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
-import { captureException, setUser as setSentryUser } from '@sentry/nextjs'
+import { captureException, setUser as setSentryUser } from '@/utils/sentry-lazy'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 import { purgeCaches } from '@/utils/cache.utils'
@@ -123,8 +123,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // catalog rail ids for joins against the rails table.
                 enabledRails: enabledRails.map((rail) => `${rail.rail.provider.code}:${rail.rail.method.code}`),
                 enabledRailIds: enabledRails.map((rail) => rail.rail.id),
-                // Client-only (locale never reaches the BE) — covers the first
-                // session, where the startup locale resolves before identify.
+                // Client-set (the BE mirror lives in users.locale via LocaleSync)
+                // — covers the first session, where the startup locale resolves
+                // before identify.
                 ...(appLocale ? { app_locale: appLocale } : {}),
             })
             // Sentry: every error captured from here on inherits user context

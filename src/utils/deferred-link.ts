@@ -7,7 +7,8 @@ import { registerPlugin } from '@capacitor/core'
 import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
-import { getFromCookie, saveToCookie, sanitizeRedirectURL, toInviteCode } from './general.utils'
+import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './cookie-url.utils'
+import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
 import {
     BADGE_CAMPAIGN_QUERY_PARAM,

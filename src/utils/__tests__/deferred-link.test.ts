@@ -11,7 +11,7 @@ import {
 } from '../deferred-link'
 import { isAndroidNative, isIOSNative } from '../capacitor'
 import { clipboardHasStrings, clipboardHasProbableWebUrl } from '../clipboard-detect'
-import { saveToCookie } from '../general.utils'
+import { saveToCookie } from '../cookie-url.utils'
 
 const getReferrer = jest.fn()
 
@@ -19,8 +19,10 @@ jest.mock('@capacitor/core', () => ({
     registerPlugin: jest.fn(() => ({ getReferrer: () => getReferrer() })),
 }))
 
-jest.mock('../general.utils', () => {
-    const actual = jest.requireActual('../general.utils')
+// saveToCookie moved to cookie-url.utils so deep-link handling stops pulling
+// general.utils' chain/token catalogs; spy on it where it now lives.
+jest.mock('../cookie-url.utils', () => {
+    const actual = jest.requireActual('../cookie-url.utils')
     return { ...actual, saveToCookie: jest.fn(actual.saveToCookie) }
 })
 

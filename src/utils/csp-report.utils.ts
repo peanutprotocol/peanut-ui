@@ -8,7 +8,7 @@
  * /api/csp-report collector, instead of alongside the other Sentry filters.
  */
 
-import { isPaymentNetworkExplorerPath } from '@/features/payment-network-explorer/privacy-route'
+import { isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
 /**
  * Legacy `report-uri` payload (`application/csp-report`). Still what Firefox

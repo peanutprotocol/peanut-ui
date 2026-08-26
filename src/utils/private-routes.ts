@@ -1,3 +1,10 @@
+/**
+ * Routes whose contents must never reach analytics, error reporting or a cache.
+ *
+ * Lives in utils, not in the feature folder: app-wide infrastructure
+ * (instrumentation-client, sentry-init, the service worker, the CSP report
+ * filter) consults this, and infrastructure must not import from a /dev feature.
+ */
 export const PAYMENT_NETWORK_PATH = '/dev/payment-graph'
 
 export function isPaymentNetworkExplorerPath(pathname: string): boolean {
@@ -39,11 +46,4 @@ export function installPaymentNetworkGoogleAnalyticsGuard(): void {
     wrap('pushState')
     wrap('replaceState')
     window.addEventListener('popstate', () => disablePaymentNetworkGoogleAnalytics())
-}
-
-export function googleAnalyticsBootstrapScript(measurementId: string): string {
-    if (!/^[A-Za-z0-9_-]+$/.test(measurementId)) return ''
-    const id = JSON.stringify(measurementId)
-    const path = JSON.stringify(PAYMENT_NETWORK_PATH)
-    return `(()=>{const id=${id};const path=${path};const disabled='ga-disable-'+id;const privatePath=location.pathname===path||location.pathname.startsWith(path+'/');if(privatePath){window[disabled]=true;return;}window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments)};window.gtag('js',new Date());window.gtag('config',id);const script=document.createElement('script');script.async=true;script.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(id);document.head.appendChild(script)})()`
 }

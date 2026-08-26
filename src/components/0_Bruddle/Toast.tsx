@@ -1,12 +1,13 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
 type ToastId = string | number
+
+const ToastStack = dynamic(() => import('./ToastStack'), { ssr: false })
 
 interface ToastOptions {
     /** Plain-string message — wrapped in a styled <p>. Ignored when `content` is provided. */
@@ -27,7 +28,7 @@ interface ToastOptions {
     className?: string
 }
 
-interface ToastMessage extends Omit<ToastOptions, 'id'> {
+export interface ToastMessage extends Omit<ToastOptions, 'id'> {
     id: ToastId
 }
 
@@ -42,32 +43,6 @@ interface ToastContextType {
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
-
-const Toast: React.FC<ToastMessage> = ({ type = 'info', message, content, className }) => {
-    const colors = {
-        success: 'border-green-500 ',
-        error: 'border-red-500 ',
-        info: 'border-blue-500 ',
-        warning: 'border-yellow-500 ',
-    }
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 80 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 80 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className={twMerge(
-                'border-2 px-6 py-1',
-                'card shadow-4 max-w-[calc(100vw_-_2rem)] md:max-w-md',
-                colors[type],
-                className
-            )}
-        >
-            {content ?? <p className="break-words text-center text-sm font-bold">{message}</p>}
-        </motion.div>
-    )
-}
 
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -136,11 +111,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         <>
             <ToastContext.Provider value={contextValue}>
                 <div className="fixed bottom-[100px] right-4 z-[99999] flex flex-col items-end gap-2">
-                    <AnimatePresence mode="sync">
-                        {toasts.map((toast) => (
-                            <Toast key={toast.id} {...toast} />
-                        ))}
-                    </AnimatePresence>
+                    {toasts.length > 0 && <ToastStack toasts={toasts} />}
                 </div>
                 {children}
             </ToastContext.Provider>

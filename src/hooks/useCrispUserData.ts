@@ -1,3 +1,4 @@
+import { buildSupportVerificationSummary } from '@/utils/support-verification'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
 import { useMemo } from 'react'
@@ -14,6 +15,13 @@ export interface CrispUserData {
     bridgeCustomerLink: string | undefined
     mantecaUserId: string | undefined
     posthogPersonLink: string | undefined
+    // Live verification state so agents stop guessing where a user is stuck (#2360).
+    identityStatus: string | undefined
+    emailOnFile: boolean | undefined
+    verificationGates: string | undefined
+    verificationRails: string | undefined
+    failureReason: string | undefined
+    pendingActions: string | undefined
 }
 
 /**
@@ -44,10 +52,15 @@ export function useCrispUserData(): CrispUserData {
 
         const posthogPersonLink = userId ? `${POSTHOG_PERSON_BASE_URL}/${userId}` : undefined
 
+        const email = user?.user?.email || undefined
+        const verification = user
+            ? buildSupportVerificationSummary(user.capabilities, user.identityVerification, email)
+            : undefined
+
         return {
             username,
             userId,
-            email: user?.user?.email || undefined,
+            email,
             fullName: user?.user?.fullName,
             avatar: user?.user?.profile_picture || undefined,
             walletAddress,
@@ -55,6 +68,12 @@ export function useCrispUserData(): CrispUserData {
             bridgeCustomerLink,
             mantecaUserId,
             posthogPersonLink,
+            identityStatus: verification?.identityStatus,
+            emailOnFile: verification?.emailOnFile,
+            verificationGates: verification?.gates,
+            verificationRails: verification?.verificationRails,
+            failureReason: verification?.failureReason,
+            pendingActions: verification?.pendingActions,
         }
     }, [username, userId, user])
 }

@@ -40,6 +40,8 @@ import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { toError } from '@/utils/to-error'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -395,7 +397,7 @@ export default function WithdrawCryptoPage() {
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
-                finalTxHash = (receipt?.transactionHash as Hex | undefined) ?? userOpHash ?? txHash
+                finalTxHash = resolveSettledTxHash({ receipt, userOpHash, txHash }, 'withdraw-crypto').hash as Hex
             } else {
                 // payAmount is the USDC the kernel actually needs on-hand to execute
                 // the first tx — principal + Rhino fee on the SDA path (mode='receive'),
@@ -414,7 +416,8 @@ export default function WithdrawCryptoPage() {
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
-                finalTxHash = (receipt?.transactionHash as Hex | undefined) ?? txResult.userOpHash
+                finalTxHash = resolveSettledTxHash({ receipt, userOpHash: txResult.userOpHash }, 'withdraw-crypto')
+                    .hash as Hex
             }
 
             if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')
@@ -494,7 +497,7 @@ export default function WithdrawCryptoPage() {
                 method_type: 'crypto',
             })
         } catch (err) {
-            console.error('Withdrawal execution failed:', err)
+            console.error('Withdrawal execution failed:', toError(err))
             const errMsg = toFriendlyError(err)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                 method_type: 'crypto',

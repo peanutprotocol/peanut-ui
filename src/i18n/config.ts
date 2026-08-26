@@ -12,7 +12,6 @@ export const ROUTE_SLUGS = [
     'content',
     'receive-money-from',
     'pay-with',
-    'team',
     'press',
     'help',
     'use-cases',
@@ -27,6 +26,7 @@ export const ROUTE_SLUGS = [
     'card-privacy',
     'card-prohibited-activities',
     'card-esign',
+    'status',
 ] as const
 
 export type RouteSlug = (typeof ROUTE_SLUGS)[number]

@@ -2,9 +2,9 @@ import posthog from 'posthog-js'
 import * as Sentry from '@sentry/nextjs'
 import {
     disablePaymentNetworkGoogleAnalytics,
-    googleAnalyticsBootstrapScript,
+    installPaymentNetworkGoogleAnalyticsGuard,
     isPaymentNetworkExplorerPath,
-} from '../privacy-route'
+} from '@/utils/private-routes'
 import { resetPaymentNetworkTelemetryGuardForTest, suppressPaymentNetworkTelemetry } from '../privacy'
 
 jest.mock('posthog-js', () => ({
@@ -95,15 +95,22 @@ describe('payment explorer privacy boundary', () => {
         expect((window as unknown as Window & Record<string, unknown>)['ga-disable-G-QATEST']).toBe(true)
     })
 
-    it('does not load or configure Google Analytics on a direct legacy URL', () => {
+    it('kills GA before a lazily-loaded gtag can run, on entry and on client navigation', () => {
+        // gtag.js loads at lazyOnload (after `load`); this guard runs during the
+        // client bootstrap, so the flag is always set first. The guard patches
+        // history, so a client-side nav into the explorer is covered too.
+        process.env.NEXT_PUBLIC_GA_KEY = 'G-QATEST'
         window.history.replaceState({}, '', '/dev/payment-graph?user=alice&password=marker')
-        const append = jest.spyOn(document.head, 'appendChild')
-        const script = googleAnalyticsBootstrapScript('G-QATEST')
-        new Function('window', 'document', 'location', script)(window, document, window.location)
-
+        installPaymentNetworkGoogleAnalyticsGuard()
         expect((window as unknown as Window & Record<string, unknown>)['ga-disable-G-QATEST']).toBe(true)
-        expect(append).not.toHaveBeenCalled()
-        append.mockRestore()
+
+        delete (window as unknown as Window & Record<string, unknown>)['ga-disable-G-QATEST']
+        window.history.pushState({}, '', '/home')
+        expect((window as unknown as Window & Record<string, unknown>)['ga-disable-G-QATEST']).toBeUndefined()
+
+        window.history.pushState({}, '', '/dev/payment-graph')
+        expect((window as unknown as Window & Record<string, unknown>)['ga-disable-G-QATEST']).toBe(true)
+
         window.history.replaceState({}, '', '/')
     })
 })

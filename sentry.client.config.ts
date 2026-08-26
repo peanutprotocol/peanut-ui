@@ -7,49 +7,8 @@
 // Vercel does NOT auto-rebuild when env-var scope changes, so changing the
 // scope without re-triggering a build leaves the DSN undefined in the cached
 // bundle and Sentry silently disabled. Burned by this 2026-05-14.
-
-import * as Sentry from '@sentry/nextjs'
-import posthog from 'posthog-js'
-
-import { beforeSendHandler } from './sentry.utils'
-import { inferSentryEnvironment } from '@/utils/sentry-env'
-import { isPaymentNetworkExplorerPath } from '@/features/payment-network-explorer/privacy-route'
-
-// NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
-if (
-    process.env.NODE_ENV !== 'development' &&
-    process.env.NEXT_PUBLIC_PERF_BARE !== 'true' &&
-    (typeof window === 'undefined' || !isPaymentNetworkExplorerPath(window.location.pathname))
-) {
-    Sentry.init({
-        dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-        environment: inferSentryEnvironment(),
-        enabled: true,
-        tracesSampleRate: 0.1,
-        debug: false,
-
-        // Client navigation can enter the explorer after Sentry initialized.
-        // Drop events there; direct explorer loads skip init above.
-        beforeSend: (event) =>
-            typeof window !== 'undefined' && isPaymentNetworkExplorerPath(window.location.pathname)
-                ? null
-                : beforeSendHandler(event),
-        beforeSendTransaction: (event) =>
-            typeof window !== 'undefined' && isPaymentNetworkExplorerPath(window.location.pathname) ? null : event,
-
-        integrations: [
-            Sentry.captureConsoleIntegration({
-                levels: ['error', 'warn'],
-            }),
-            // Cross-link Sentry ↔ PostHog: every Sentry error becomes a `$exception`
-            // event in PostHog with a Sentry deeplink, and the Sentry event gets a
-            // PostHog tag pointing back at the user's profile + session replay.
-            // posthog.init() runs in instrumentation-client.ts; the integration uses
-            // the singleton lazily, so init order doesn't matter.
-            posthog.sentryIntegration({
-                organization: 'peanut-c34d84c05',
-                projectId: 4505827431415808,
-            }),
-        ],
-    })
-}
+//
+// The init itself lives in src/utils/sentry-init.ts. Importing it here installs
+// the pre-init error buffer on every page; the SDK is fetched when an app route
+// mounts or when something throws, so the marketing site doesn't pay for it.
+import '@/utils/sentry-init'

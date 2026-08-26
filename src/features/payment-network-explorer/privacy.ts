@@ -2,7 +2,7 @@
 
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
-import { disablePaymentNetworkGoogleAnalytics, isPaymentNetworkExplorerPath } from './privacy-route'
+import { disablePaymentNetworkGoogleAnalytics, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
 type StoppableReplay = { stop?: () => Promise<void> }
 
