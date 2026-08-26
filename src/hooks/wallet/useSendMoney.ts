@@ -9,6 +9,7 @@ import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCar
 import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { useTranslations } from 'next-intl'
 import { notifyHaptic } from '@/utils/haptics'
+import { toError } from '@/utils/to-error'
 import type { RainCollateralKind } from '@/services/rain'
 import { useSpendBundle } from './useSpendBundle'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError, type SpendStrategy } from './spendPreflight'
@@ -125,7 +126,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
             // pre-tap cached value.
             queryClient.invalidateQueries({ queryKey: ['balance', address] })
 
-            console.error('[useSendMoney] Transaction failed, rolled back balance:', error)
+            console.error('[useSendMoney] Transaction failed, rolled back balance:', toError(error))
 
             if (error instanceof InsufficientSpendableError) {
                 // Passed the display gate but couldn't route yet — useSpendBundle has

@@ -13,7 +13,7 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
  * Same-page href for `target`.
  *
  * Marketing routes are all `/{locale}/rest`, so switching swaps the first
- * segment. Paths whose first segment is NOT a locale (`/`, `/lp`, `/exchange`,
+ * segment. Paths whose first segment is NOT a locale (`/`, `/lp`, `/careers`,
  * `/quests`) have no localized twin, so they resolve to that locale's landing
  * instead of inventing a `/es-419/lp` that would 404. English landing is `/`,
  * not `/en` — `/en` redirects.

@@ -1,28 +1,7 @@
 'use client'
-import { JustaNameContext } from '@/config/justaname.config'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { WagmiProvider, cookieToInitialState, createConfig, http, type Config } from 'wagmi'
+import { WagmiProvider, cookieToInitialState, createConfig, createStorage, http, type Config } from 'wagmi'
 import { arbitrum, bsc, celo, gnosis, linea, mainnet, optimism, polygon, scroll, worldchain } from 'wagmi/chains'
-import { RETRY_STRATEGIES } from '@/utils/retry.utils'
-
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            ...RETRY_STRATEGIES.FAST,
-            staleTime: 30 * 1000, // Cache data as fresh for 30s
-            gcTime: 5 * 60 * 1000, // Keep inactive queries in memory for 5min
-            refetchOnWindowFocus: true, // Refetch stale data when user returns
-            refetchOnReconnect: true, // Refetch when connectivity restored
-            // Allow queries when offline to read from TanStack Query in-memory cache
-            networkMode: 'always', // Run queries even when offline (reads from cache)
-        },
-        mutations: {
-            retry: 1, // Total 2 attempts: immediate + 1 retry (conservative for write operations)
-            retryDelay: 1000, // Fixed 1s delay
-            networkMode: 'online', // Pause mutations while offline (writes require network)
-        },
-    },
-})
+import { resilientWebStorage } from '@/utils/safe-storage'
 
 // Base intentionally absent: WAGMI's `http()` (no URL) defaults to mainnet.base.org,
 // which IP-rate-limits us with 403s and pollutes the console. We don't use Base for
@@ -33,6 +12,10 @@ export const networks = [arbitrum, mainnet, optimism, polygon, gnosis, scroll, b
 export const wagmiConfig = createConfig({
     chains: [arbitrum, mainnet, optimism, polygon, gnosis, scroll, bsc, linea, worldchain, celo],
     ssr: true,
+    // wagmi's default storage touches window.localStorage unguarded, and this
+    // createConfig runs at module scope — a document that throws SecurityError
+    // on that property takes the app shell down before it renders.
+    storage: createStorage({ storage: resilientWebStorage }),
     transports: {
         [arbitrum.id]: http(),
         [mainnet.id]: http(),
@@ -47,14 +30,17 @@ export const wagmiConfig = createConfig({
     },
 })
 
-export function ContextProvider({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
+/**
+ * Mounted only on app routes. Importing this module pulls wagmi (and viem's
+ * connector surface) into the chunk, which the marketing site has no use for —
+ * `PeanutProvider` loads it lazily behind `isMarketingRoute`.
+ */
+export function WagmiRoot({ children, cookies }: { children: React.ReactNode; cookies: string | null }) {
     const initialState = cookieToInitialState(wagmiConfig as Config, cookies)
 
     return (
         <WagmiProvider config={wagmiConfig} initialState={initialState}>
-            <QueryClientProvider client={queryClient}>
-                <JustaNameContext>{children}</JustaNameContext>
-            </QueryClientProvider>
+            {children}
         </WagmiProvider>
     )
 }

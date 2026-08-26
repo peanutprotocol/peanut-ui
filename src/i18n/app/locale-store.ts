@@ -6,6 +6,7 @@
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
 import { getPlatform, isCapacitor } from '@/utils/capacitor'
+import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { resolveLocale, type AppLocale } from './config'
 
 const LOCALE_KEY = 'app-locale'
@@ -112,15 +113,26 @@ async function resolveStartupLocale(): Promise<AppLocale> {
         // shares the memoized bridge call with the analytics emit
         return resolveLocale(await rawDeviceTag())
     }
-    const stored =
-        Cookies.get(LOCALE_KEY) ?? (typeof localStorage !== 'undefined' ? localStorage.getItem(LOCALE_KEY) : null)
+    const stored = Cookies.get(LOCALE_KEY) ?? readStoredValue(LOCALE_KEY)
     if (stored) return resolveLocale(stored)
     return navigatorLocale()
 }
 
-/** Resolves the startup locale once; memoized for the session. */
+/**
+ * Resolves the startup locale once; memoized for the session. The catch is
+ * what makes memoizing safe: a rejected promise cached here would leave every
+ * later awaiter — AppIntlProvider included — hanging on a failure it has no
+ * handler for.
+ */
 export function localeReady(): Promise<AppLocale> {
-    if (!resolution) resolution = resolveStartupLocale()
+    if (!resolution)
+        resolution = resolveStartupLocale().catch((err) => {
+            // the unhandled rejection was the only signal that startup locale
+            // resolution had failed (PEANUT-UI-STC); neither caller handles it,
+            // so warn to keep captureConsoleIntegration reporting the next one
+            console.warn('Startup locale resolution failed; falling back to the browser language', err)
+            return navigatorLocale()
+        })
     return resolution
 }
 
@@ -131,12 +143,15 @@ export function persistLocale(locale: AppLocale): void {
             .catch(() => {})
         return
     }
-    Cookies.set(LOCALE_KEY, locale, { expires: 365, path: '/' })
     try {
-        localStorage.setItem(LOCALE_KEY, locale)
+        // document.cookie throws in a sandboxed/opaque-origin document, and this
+        // runs straight off a LocaleSwitcher onClick with no handler upstream
+        Cookies.set(LOCALE_KEY, locale, { expires: 365, path: '/' })
     } catch {
-        // storage may be unavailable (private mode); cookie is authoritative
+        // storage below is the only remaining mirror
     }
+    // storage may be unavailable (private mode); cookie is authoritative
+    writeStoredValue(LOCALE_KEY, locale)
 }
 
 let markApplied: (() => void) | null = null

@@ -5,7 +5,7 @@ import { isAddress } from 'viem'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 
 import { resolveRecipientDisplay, type RecipientDisplay, type ResolveRecipientInput } from '@/utils/recipient-display'
-import { normalizeEnsName } from '@/utils/ens.utils'
+import { normalizeEnsName } from '@/utils/ens-name.utils'
 
 /**
  * Returns a recipient display result without blocking on the ENS lookup:

@@ -1,4 +1,5 @@
-// Build-time kill-switch for the rewards-screen ragdoll easter egg.
+// Build-time kill-switch for the PeanutRagdoll mascot — the 404, maintenance
+// and waitlist-jail screens all read it.
 // On by default; set NEXT_PUBLIC_RAGDOLL_ENABLED=false to disable. Next.js
 // inlines `process.env.NEXT_PUBLIC_*` at compile time, so a `false` build
 // dead-code-eliminates the `dynamic(() => import(...))` and tree-shakes the

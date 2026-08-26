@@ -131,8 +131,8 @@ export function buildClaimMetadata({
         },
         twitter: {
             card: 'summary_large_image',
-            site: '@PeanutProtocol',
-            creator: '@PeanutProtocol',
+            site: '@joinpeanut',
+            creator: '@joinpeanut',
             title,
             description,
             images: [{ url: ogImageUrl }],

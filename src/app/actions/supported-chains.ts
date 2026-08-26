@@ -1,5 +1,5 @@
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
-import { supportedPeanutChains, peanutTokenDetails } from '@/constants/general.consts'
+import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
 import ARBITRUM_ICON from '@/assets/chains/arbitrum.svg'
 import MANTLE_ICON from '@/assets/chains/mantle.svg'
 
