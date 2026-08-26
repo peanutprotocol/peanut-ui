@@ -1,14 +1,8 @@
 import Layout from '@/components/Global/Layout'
-import {
-    DropLink,
-    FAQs,
-    Marquee,
-    NoFees,
-    SecurityBuiltIn,
-    SendInSeconds,
-    YourMoney,
-    RegulatedRails,
-} from '@/components/LandingPage'
+import { DropLink, FAQs, Marquee, NoFees, SendInSeconds } from '@/components/LandingPage'
+import { SecurityBuiltIn } from '@/components/LandingPage/securityBuiltIn'
+import { YourMoney } from '@/components/LandingPage/yourMoney'
+import { RegulatedRails } from '@/components/LandingPage/RegulatedRails'
 import Footer from '@/components/LandingPage/Footer'
 import Manteca from '@/components/LandingPage/Manteca'
 import { QuestsHero } from './components/QuestsHero'
