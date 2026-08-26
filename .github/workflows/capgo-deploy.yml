@@ -53,8 +53,17 @@ permissions:
     contents: read
 
 concurrency:
-    group: capgo-deploy-${{ github.ref }}
-    cancel-in-progress: true
+    # Two separate hazards, one expression. A routine merge to dev must never cancel a
+    # production write mid-flight, so the channel is part of the group and production
+    # never cancels. And a break-glass `ota-*` tag push runs outside release-ota.yml's
+    # mutex, so it joins `production-release` here — while a CALLED run must not, since
+    # release-ota.yml is already holding that mutex and would deadlock against its own
+    # child (github.event_name is the caller's `workflow_dispatch`, not `push`).
+    group: >-
+        ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ota-'))
+        && 'production-release'
+        || format('capgo-deploy-{0}-{1}', inputs.channel || 'staging', github.ref) }}
+    cancel-in-progress: ${{ inputs.channel != 'production' && !startsWith(github.ref, 'refs/tags/ota-') }}
 
 jobs:
     deploy:

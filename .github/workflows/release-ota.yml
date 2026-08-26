@@ -24,7 +24,12 @@ permissions:
     contents: read
 
 concurrency:
-    group: release-ota
+    # One mutex across every sanctioned production release: this workflow and its
+    # counterpart both end by writing the production Capgo channel, and interleaving
+    # them leaves it serving a bundle the newest binary rejects. An OTA that resolves
+    # its version before a concurrent native release publishes its `.0` is exactly the
+    # TASK-21793 shape, so the whole resolve-through-publish span holds the mutex.
+    group: production-release
     cancel-in-progress: false
 
 jobs:

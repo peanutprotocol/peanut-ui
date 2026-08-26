@@ -38,7 +38,7 @@ on:
     workflow_dispatch:
         inputs:
             versionName:
-                description: 'versionName override (optional; defaults to package.json "version")'
+                description: 'Break-glass <major>.<build>.0 version (required; there is no package.json fallback)'
                 required: false
                 type: string
             pushDebug:
@@ -51,7 +51,16 @@ permissions:
     contents: read
 
 concurrency:
-    group: ios-release-${{ github.ref }}
+    # A break-glass `v*` tag push runs outside release-native.yml's mutex, so it joins
+    # `production-release` here (which serialises iOS and Android for that path only —
+    # the price of not racing a concurrent OTA). When release-native.yml calls this
+    # workflow the parent already holds the mutex, and github.event_name is the
+    # caller's `workflow_dispatch`, so the called run keeps its own group instead of
+    # deadlocking against its parent. A direct dispatch of this workflow is
+    # indistinguishable from that, so it sits outside the mutex — deepest break-glass.
+    group: >-
+        ${{ github.event_name == 'push' && 'production-release'
+        || format('ios-release-{0}', github.ref) }}
     cancel-in-progress: false
 
 jobs:

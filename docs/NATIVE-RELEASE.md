@@ -277,10 +277,13 @@ release**, never a side effect of pushing code:
 | **Release OTA** workflow (§6)        | `production` | `<major>.<build>.<ota+1>`         |
 | merge to `dev`                       | `staging`    | `<major>.<build>.<commit count>`  |
 | push tag `ota-1.1.4` (break-glass)   | `production` | `1.1.4`                           |
-| manual dispatch                      | your choice  | as above                          |
+| manual dispatch                      | `staging` / `development` only | `<major>.<build>.<commit count>` |
 
 Shipping an OTA to everyone is therefore two steps — land the code, then run **Release
-OTA** (§6). Merging only reaches `staging`, which no production device sees.
+OTA** (§6). Merging only reaches `staging`, which no production device sees. A bare manual
+dispatch to `production` is refused: it would upload a staging-shaped version and drag
+the production OTA counter into the commit-count band, where the next resolved version
+collides with a bundle that already exists.
 
 Staging keeps the commit count as its OTA component on purpose. Both lanes share one
 bundle namespace, production counts OTAs in single digits, and a version collision
