@@ -8,7 +8,8 @@
 
 async function campaignRedirects(): Promise<Array<Record<string, unknown>>> {
     const previousEnv = process.env.NODE_ENV
-    process.env.NODE_ENV = 'development'
+    // NODE_ENV is typed read-only by Next; Object.assign sidesteps the type, not the runtime.
+    Object.assign(process.env, { NODE_ENV: 'development' })
     try {
         let config: { redirects(): Promise<Array<Record<string, unknown>>> } | undefined
         jest.isolateModules(() => {
@@ -16,7 +17,7 @@ async function campaignRedirects(): Promise<Array<Record<string, unknown>>> {
         })
         return await config!.redirects()
     } finally {
-        process.env.NODE_ENV = previousEnv
+        Object.assign(process.env, { NODE_ENV: previousEnv })
     }
 }
 
