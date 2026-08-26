@@ -50,7 +50,7 @@ export function MarketingHero({
                         />
                     )}
                     <h1>
-                        <Title text={title} className="text-7xl md:text-9xl" />
+                        <Title text={title} className="text-6xl sm:text-7xl md:text-9xl" />
                     </h1>
                     <p className="mt-6 text-3xl font-bold text-black md:text-5xl">{subtitle}</p>
                     {ctaText && (
