@@ -10,18 +10,40 @@ import { useQRScanner } from '../useQRScanner'
 let onDecode: (result: { data: string }) => void
 let startBehaviour: () => Promise<void> = () => Promise.resolve()
 let startCalls = 0
+let attachStream = true
+let lastOptions: { preferredCamera?: unknown } = {}
 
 jest.mock('qr-scanner', () => ({
     __esModule: true,
     default: class {
-        constructor(_video: HTMLVideoElement, cb: (result: { data: string }) => void) {
+        video: HTMLVideoElement
+        active = false
+        constructor(video: HTMLVideoElement, cb: (result: { data: string }) => void, options: object) {
             onDecode = cb
+            this.video = video
+            lastOptions = options
         }
-        start = jest.fn(() => {
+        /*
+         * Models the library contract the hook now depends on: start() is a
+         * no-op while already active, attaches the MediaStream to the <video>
+         * before resolving, and clears `active` when acquisition rejects.
+         */
+        start = jest.fn(async () => {
+            if (this.active) return
+            this.active = true
             startCalls++
-            return startBehaviour()
+            try {
+                await startBehaviour()
+            } catch (err) {
+                this.active = false
+                throw err
+            }
+            if (attachStream) this.video.srcObject = {} as MediaStream
         })
-        stop = jest.fn()
+        stop = jest.fn(() => {
+            this.active = false
+            this.video.srcObject = null
+        })
         destroy = jest.fn()
         setCamera = jest.fn()
         setInversionMode = jest.fn()
@@ -77,24 +99,32 @@ describe('resume after backgrounding (TASK-21862)', () => {
         document.dispatchEvent(new Event('visibilitychange'))
     }
 
+    /*
+     * The mount effect starts the camera before the <video> exists and leaves a
+     * 100ms element-retry timer behind. Draining that on a real clock raced CI,
+     * so run the retry synchronously and assert on a settled scanner.
+     */
     async function mountScanning() {
         const { result } = renderHook(() => useQRScanner(jest.fn(), undefined, true))
         const videoRef = result.current.videoRef as React.MutableRefObject<HTMLVideoElement | null>
         videoRef.current = document.createElement('video')
         await act(async () => {
-            await result.current.retryCamera()
-        })
-        // the mount-time start ran before the <video> existed and left a
-        // 100ms element-retry timer behind; let it fire before asserting
-        await act(async () => {
-            await new Promise((resolve) => setTimeout(resolve, 150))
+            jest.advanceTimersByTime(100) // CONFIG.VIDEO_ELEMENT_RETRY_DELAY_MS
         })
         return result
     }
 
+    beforeEach(() => {
+        jest.useFakeTimers()
+        startCalls = 0
+        attachStream = true
+    })
+
     afterEach(() => {
+        jest.useRealTimers()
         Object.defineProperty(document, 'hidden', { value: false, configurable: true })
         startBehaviour = () => Promise.resolve()
+        attachStream = true
     })
 
     it('a successful restart returns to the live camera', async () => {
@@ -149,5 +179,47 @@ describe('resume after backgrounding (TASK-21862)', () => {
 
         expect(startCalls - before).toBe(1)
         expect(result.current.isCameraReady).toBe(true)
+    })
+
+    it('does not re-enter the camera flow while the error view is up', async () => {
+        const result = await mountScanning()
+
+        startBehaviour = () => Promise.reject(new DOMException('nope', 'NotFoundError'))
+        await act(async () => {
+            await result.current.retryCamera()
+        })
+        expect(result.current.error).toBe('qrScanner.cameraNotFound')
+
+        // a foreground here used to clear the error, show a spinner and hang on
+        // a denied getUserMedia before landing back on the same view
+        const before = startCalls
+        await act(async () => setHidden(true))
+        await act(async () => setHidden(false))
+        expect(startCalls).toBe(before)
+        expect(result.current.error).toBe('qrScanner.cameraNotFound')
+    })
+
+    it('treats a start that resolves without a stream as a failed start', async () => {
+        const result = await mountScanning()
+
+        attachStream = false
+        await act(async () => {
+            await result.current.retryCamera()
+        })
+
+        expect(result.current.isCameraReady).toBe(false)
+        expect(result.current.error).toBe('qrScanner.cameraStartFailed')
+    })
+
+    it('retryCamera ignores the click event its callers pass straight through', async () => {
+        const result = await mountScanning()
+        expect(lastOptions.preferredCamera).toBe('environment')
+
+        await act(async () => {
+            await (result.current.retryCamera as (event: unknown) => Promise<void>)(new MouseEvent('click'))
+        })
+
+        // a MouseEvent here becomes qr-scanner's deviceId {exact: ...}
+        expect(lastOptions.preferredCamera).toBe('environment')
     })
 })

@@ -359,7 +359,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                  */
                 <CameraPermissionModal visible onRetry={retryCamera} onClose={close} onPaste={handlePaste} />
             ) : error ? (
-                <ErrorView message={error} onClose={close} onRetry={() => retryCamera()}>
+                <ErrorView message={error} onClose={close} onRetry={retryCamera}>
                     <PasteActions
                         onPaste={handlePaste}
                         detectedAddress={detectedAddress}
