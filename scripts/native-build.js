@@ -511,6 +511,33 @@ function missingNativeEnv(envContent) {
     return REQUIRED_NATIVE_ENV.filter((key) => !values[key])
 }
 
+// The pre-build check proves the file carried values; this proves Next inlined them.
+// Only .js is scanned: a real native build puts every required value there and nowhere
+// else. NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID and NEXT_PUBLIC_GA_KEY reach no shipped
+// module at all, which is why neither is on the required list — adding a key here that
+// the native build drops would red-build the release lane, so measure before adding one.
+function collectJsFiles(dir, found = []) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name)
+        if (entry.isDirectory()) collectJsFiles(full, found)
+        else if (entry.name.endsWith('.js')) found.push(full)
+    }
+    return found
+}
+
+function unbakedNativeEnv(envValues, outDir) {
+    const wanted = REQUIRED_NATIVE_ENV.filter((key) => envValues[key])
+    const baked = new Set()
+    for (const file of collectJsFiles(outDir)) {
+        const content = fs.readFileSync(file, 'utf-8')
+        for (const key of wanted) {
+            if (!baked.has(key) && content.includes(envValues[key])) baked.add(key)
+        }
+        if (baked.size === wanted.length) break
+    }
+    return wanted.filter((key) => !baked.has(key))
+}
+
 async function main() {
     let buildSucceeded = false
 
@@ -527,9 +554,11 @@ async function main() {
         // validate required env vars for native build
         const strict = Boolean(process.env.CI)
         const envFile = path.join(__dirname, '..', '.env.production.local')
+        let bakedEnv = null
         if (fs.existsSync(envFile)) {
             const envContent = fs.readFileSync(envFile, 'utf-8')
             const envValues = nativeEnvValues(envContent)
+            bakedEnv = envValues
             const missing = missingNativeEnv(envContent)
             if (missing.length) {
                 const message = `.env.production.local has no value for: ${missing.join(', ')}`
@@ -604,6 +633,17 @@ async function main() {
         }
 
         pruneExportedAssets()
+
+        // A value present in the file but absent from out/ means the export never saw
+        // it — the exact shape of the OTA outage, just one step further down the lane.
+        if (bakedEnv) {
+            const outDir = path.join(__dirname, '..', 'out')
+            const unbaked = unbakedNativeEnv(bakedEnv, outDir)
+            if (unbaked.length) {
+                throw new Error(`built bundle has no trace of: ${unbaked.join(', ')} — the export did not inline them`)
+            }
+            console.log(`✅ all ${REQUIRED_NATIVE_ENV.length} required NEXT_PUBLIC_* found in the exported bundle`)
+        }
 
         buildSucceeded = true
         console.log('\n✅ Native build completed successfully!')

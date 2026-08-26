@@ -23,6 +23,7 @@ import {
 } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import {
+    assertZeroDevRpcUrls,
     BUNDLER_URL,
     PAYMASTER_URL,
     PEANUT_WALLET_CHAIN,
@@ -194,6 +195,7 @@ export async function createEphemeralSpendSession(args: {
     patchedSudoValidator: KernelValidator
 }): Promise<EphemeralSpendSession> {
     const { publicClient, chain, scope, patchedSudoValidator } = args
+    assertZeroDevRpcUrls(BUNDLER_URL, PAYMASTER_URL)
 
     try {
         let privateKey: Hex | null = generatePrivateKey()

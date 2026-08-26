@@ -1,4 +1,5 @@
 const fs = require('fs')
+const os = require('os')
 const path = require('path')
 const Module = require('module')
 
@@ -12,7 +13,8 @@ function loadScriptInternals() {
     const withoutEntrypoint = source.replace(/\nmain\(\)\s*$/, '\n')
     expect(withoutEntrypoint).not.toBe(source)
 
-    const exposed = withoutEntrypoint + '\nmodule.exports = { missingNativeEnv, REQUIRED_NATIVE_ENV }\n'
+    const exposed =
+        withoutEntrypoint + '\nmodule.exports = { missingNativeEnv, unbakedNativeEnv, REQUIRED_NATIVE_ENV }\n'
 
     const mod = new Module(SCRIPT_PATH, null)
     mod.filename = SCRIPT_PATH
@@ -21,7 +23,7 @@ function loadScriptInternals() {
     return mod.exports
 }
 
-const { missingNativeEnv, REQUIRED_NATIVE_ENV } = loadScriptInternals()
+const { missingNativeEnv, unbakedNativeEnv, REQUIRED_NATIVE_ENV } = loadScriptInternals()
 
 describe('missingNativeEnv', () => {
     it('reports nothing when every required key has a value', () => {
@@ -79,5 +81,38 @@ describe('missingNativeEnv', () => {
             '',
         ].join('\n')
         expect(missingNativeEnv(env)).toEqual(['NEXT_PUBLIC_POSTHOG_KEY'])
+    })
+})
+
+// The pre-build check can only see the file. This one reads the export, so a value the
+// file carried but the bundle never inlined — the outage one step further down the lane
+// — is caught before the bundle ships.
+describe('unbakedNativeEnv', () => {
+    const values = Object.fromEntries(REQUIRED_NATIVE_ENV.map((key) => [key, `value-for-${key}`]))
+
+    function bundleOf(keys) {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'native-out-'))
+        fs.mkdirSync(path.join(dir, 'chunks'))
+        fs.writeFileSync(path.join(dir, 'chunks', 'app.js'), keys.map((key) => `"${values[key]}"`).join(';'))
+        // a value hiding in a non-.js asset must not count: only .js ships as code
+        fs.writeFileSync(path.join(dir, 'index.html'), REQUIRED_NATIVE_ENV.map((key) => values[key]).join(' '))
+        return dir
+    }
+
+    it('reports nothing when every required value is inlined somewhere in out/', () => {
+        expect(unbakedNativeEnv(values, bundleOf(REQUIRED_NATIVE_ENV))).toEqual([])
+    })
+
+    it('reports a value the export never inlined', () => {
+        const partial = REQUIRED_NATIVE_ENV.filter((key) => key !== 'NEXT_PUBLIC_SENTRY_DSN')
+        expect(unbakedNativeEnv(values, bundleOf(partial))).toEqual(['NEXT_PUBLIC_SENTRY_DSN'])
+    })
+
+    // The pre-build check has already thrown on these in CI; locally it only warns, and
+    // a key with no value is not evidence of a broken export.
+    it('skips a key that had no value to look for', () => {
+        const withHole = { ...values, NEXT_PUBLIC_POSTHOG_KEY: '' }
+        const partial = REQUIRED_NATIVE_ENV.filter((key) => key !== 'NEXT_PUBLIC_POSTHOG_KEY')
+        expect(unbakedNativeEnv(withHole, bundleOf(partial))).toEqual([])
     })
 })
