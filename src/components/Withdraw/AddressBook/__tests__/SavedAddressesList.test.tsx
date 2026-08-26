@@ -35,8 +35,8 @@ describe('SavedAddressesList', () => {
         })
         expect(screen.getByText('Binance')).toBeInTheDocument()
         expect(screen.getAllByText(/0xab58\.\.\.ec9b/)).toHaveLength(2)
-        expect(screen.getByText('Used yesterday')).toHaveAttribute('data-tone', 'recent')
-        expect(screen.getByText('Used 45 days ago')).toHaveAttribute('data-tone', 'stale')
+        expect(screen.getByText('Used yesterday').closest('[data-tone]')).toHaveAttribute('data-tone', 'recent')
+        expect(screen.getByText('Used 45 days ago').closest('[data-tone]')).toHaveAttribute('data-tone', 'stale')
     })
 
     it('tap selects; the edit button edits without selecting', () => {

@@ -1,27 +1,23 @@
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import { daysSince, lastUsedTone, type LastUsedTone } from '@/utils/saved-address.utils'
 
-const TONE_CLASS: Record<LastUsedTone, string> = {
-    recent: 'bg-green-1 text-black',
-    aging: 'bg-orange-1 text-black',
-    stale: 'bg-orange-2 text-white',
+// Recency → the DS status semantics (success / attention / error) so the pill
+// takes the design-system badge tokens rather than its own palette.
+const TONE_STATUS: Record<LastUsedTone, StatusType> = {
+    recent: 'completed',
+    aging: 'pending',
+    stale: 'failed',
 }
 
-/** "Used today / 3 days ago" pill; colour = how long since the last withdraw to this address. */
+/** "Used today / 3 days ago" pill; tone = how long since the last withdraw to this address. */
 export default function LastUsedPill({ lastUsedAt, className }: { lastUsedAt: string; className?: string }) {
     const t = useTranslations('global')
     const days = daysSince(lastUsedAt)
+    const tone = lastUsedTone(days)
     return (
-        <span
-            data-tone={lastUsedTone(days)}
-            className={twMerge(
-                'inline-block rounded-sm border border-n-1 px-1.5 py-0.5 text-[10px] font-bold leading-tight',
-                TONE_CLASS[lastUsedTone(days)],
-                className
-            )}
-        >
-            {t('savedAddresses.lastUsed', { days })}
+        <span data-tone={tone} className={className}>
+            <StatusBadge status={TONE_STATUS[tone]} size="small" customText={t('savedAddresses.lastUsed', { days })} />
         </span>
     )
 }
