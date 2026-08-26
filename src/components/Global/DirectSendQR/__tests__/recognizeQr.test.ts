@@ -632,4 +632,34 @@ describe('recognizeQr', () => {
             expect(recognizeQr('ar.com.globalgetnet')).toBe(EQrType.ENS_NAME)
         })
     })
+
+    // ota-1.0.54 and ota-1.0.55 shipped with every NEXT_PUBLIC_* undefined. The old
+    // local `BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!` was read on the first line
+    // of recognizeQr, so every payload threw a TypeError before any match ran — mono
+    // `ops/native-ota-envless-bundle-rca.md`. BASE_URL now comes from
+    // @/constants/general.consts, which falls back to https://peanut.me.
+    describe('with no NEXT_PUBLIC_BASE_URL (env-less native bundle)', () => {
+        const original = process.env.NEXT_PUBLIC_BASE_URL
+
+        afterEach(() => {
+            // assigning undefined would store the string "undefined" and defeat the fallback
+            if (original === undefined) delete process.env.NEXT_PUBLIC_BASE_URL
+            else process.env.NEXT_PUBLIC_BASE_URL = original
+        })
+
+        it('still recognizes a Pix payload and a peanut.me URL', () => {
+            delete process.env.NEXT_PUBLIC_BASE_URL
+
+            jest.isolateModules(() => {
+                // isolateModules is sync-only, so this has to be require() rather than import
+                const scoped = require('../utils')
+                expect(
+                    scoped.recognizeQr(
+                        '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+                    )
+                ).toBe(EQrType.PIX)
+                expect(scoped.recognizeQr('https://peanut.me/claim?x=1')).toBe(EQrType.PEANUT_URL)
+            })
+        })
+    })
 })

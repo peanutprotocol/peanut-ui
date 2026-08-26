@@ -8,6 +8,7 @@
  */
 
 const { execSync } = require('child_process')
+const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
 
@@ -477,6 +478,66 @@ function restoreModifiedFiles() {
     }
 }
 
+// Every NEXT_PUBLIC_* is inlined into the static export at build time, so a missing
+// or half-written .env.production.local ships a bundle where each one is `undefined`.
+// The Capgo OTA lane did exactly that for four months and nothing could report it —
+// Sentry and PostHog were among the undefined keys (mono
+// `ops/native-ota-envless-bundle-rca.md`). In CI that has to fail the build, not warn.
+const REQUIRED_NATIVE_ENV = [
+    'NEXT_PUBLIC_NATIVE_RP_ID',
+    'NEXT_PUBLIC_BASE_URL',
+    'NEXT_PUBLIC_PEANUT_API_URL',
+    'NEXT_PUBLIC_SENTRY_DSN',
+    'NEXT_PUBLIC_POSTHOG_KEY',
+    'NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL',
+    'NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL',
+    // the native OneSignal adapter throws at init without it — push dead on every device
+    'NEXT_PUBLIC_ONESIGNAL_APP_ID',
+]
+
+// Read the file with the same parser that bakes it: Next loads .env.production.local
+// through @next/env, which is dotenv. A per-key regex disagrees with dotenv in ways
+// that all end in a bundle the check called healthy — a repeated key (dotenv keeps
+// the LAST, so a trailing `KEY=` wins), an inline `# comment` (dotenv strips it, so
+// `KEY= # todo` bakes ''), and an `export ` prefix (dotenv accepts it).
+// Trimmed because a quoted-whitespace value (`KEY='  '`) is as dead as an empty one.
+function nativeEnvValues(envContent) {
+    const parsed = dotenv.parse(envContent)
+    return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, value.trim()]))
+}
+
+function missingNativeEnv(envContent) {
+    const values = nativeEnvValues(envContent)
+    return REQUIRED_NATIVE_ENV.filter((key) => !values[key])
+}
+
+// The pre-build check proves the file carried values; this proves Next inlined them.
+// Only .js is scanned: a real native build puts every required value there and nowhere
+// else. NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID and NEXT_PUBLIC_GA_KEY reach no shipped
+// module at all, which is why neither is on the required list — adding a key here that
+// the native build drops would red-build the release lane, so measure before adding one.
+function collectJsFiles(dir, found = []) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name)
+        if (entry.isDirectory()) collectJsFiles(full, found)
+        else if (entry.name.endsWith('.js')) found.push(full)
+    }
+    return found
+}
+
+function unbakedNativeEnv(envValues, outDir) {
+    const wanted = REQUIRED_NATIVE_ENV.filter((key) => envValues[key])
+    const baked = new Set()
+    for (const file of collectJsFiles(outDir)) {
+        const content = fs.readFileSync(file, 'utf-8')
+        for (const key of wanted) {
+            if (!baked.has(key) && content.includes(envValues[key])) baked.add(key)
+        }
+        if (baked.size === wanted.length) break
+    }
+    return wanted.filter((key) => !baked.has(key))
+}
+
 async function main() {
     let buildSucceeded = false
 
@@ -491,23 +552,29 @@ async function main() {
         }
 
         // validate required env vars for native build
+        const strict = Boolean(process.env.CI)
         const envFile = path.join(__dirname, '..', '.env.production.local')
+        let bakedEnv = null
         if (fs.existsSync(envFile)) {
             const envContent = fs.readFileSync(envFile, 'utf-8')
-            const rpIdMatch = envContent.match(/NEXT_PUBLIC_NATIVE_RP_ID=(.+)/)
-            if (!rpIdMatch || !rpIdMatch[1].trim()) {
-                throw new Error('NEXT_PUBLIC_NATIVE_RP_ID is not set in .env.production.local — passkeys will fail')
+            const envValues = nativeEnvValues(envContent)
+            bakedEnv = envValues
+            const missing = missingNativeEnv(envContent)
+            if (missing.length) {
+                const message = `.env.production.local has no value for: ${missing.join(', ')}`
+                // rpId is fatal everywhere (passkeys break); the rest fail closed in CI only
+                if (strict || missing.includes('NEXT_PUBLIC_NATIVE_RP_ID')) throw new Error(message)
+                console.warn(`⚠️  ${message}`)
             }
-            console.log(`✅ NEXT_PUBLIC_NATIVE_RP_ID=${rpIdMatch[1].trim()}`)
-
-            // app id is inlined into the bundle at build time; without it the native
-            // OneSignal SDK can't initialize and push notifications silently no-op.
-            const appIdMatch = envContent.match(/NEXT_PUBLIC_ONESIGNAL_APP_ID=(.+)/)
-            if (!appIdMatch || !appIdMatch[1].trim()) {
-                console.warn('⚠️  NEXT_PUBLIC_ONESIGNAL_APP_ID is not set — native push notifications will be disabled')
-            } else {
-                console.log('✅ NEXT_PUBLIC_ONESIGNAL_APP_ID is set')
+            for (const key of REQUIRED_NATIVE_ENV) {
+                if (missing.includes(key)) continue
+                // rpId is printed in full — it must read peanut.me (passkeys + assetlinks/AASA)
+                console.log(key === 'NEXT_PUBLIC_NATIVE_RP_ID' ? `✅ ${key}=${envValues[key]}` : `✅ ${key} is set`)
             }
+        } else if (strict) {
+            throw new Error(
+                '.env.production.local not found — CI must write it before native-build.js (see capgo-deploy.yml / ios-release.yml / android-release.yml)'
+            )
         } else {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')
         }
@@ -566,6 +633,17 @@ async function main() {
         }
 
         pruneExportedAssets()
+
+        // A value present in the file but absent from out/ means the export never saw
+        // it — the exact shape of the OTA outage, just one step further down the lane.
+        if (bakedEnv) {
+            const outDir = path.join(__dirname, '..', 'out')
+            const unbaked = unbakedNativeEnv(bakedEnv, outDir)
+            if (unbaked.length) {
+                throw new Error(`built bundle has no trace of: ${unbaked.join(', ')} — the export did not inline them`)
+            }
+            console.log(`✅ all ${REQUIRED_NATIVE_ENV.length} required NEXT_PUBLIC_* found in the exported bundle`)
+        }
 
         buildSucceeded = true
         console.log('\n✅ Native build completed successfully!')

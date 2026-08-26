@@ -1,21 +1,13 @@
-'use client'
-
 import Layout from '@/components/Global/Layout'
-import {
-    DropLink,
-    FAQs,
-    Marquee,
-    NoFees,
-    SecurityBuiltIn,
-    SendInSeconds,
-    YourMoney,
-    RegulatedRails,
-} from '@/components/LandingPage'
+import { DropLink, FAQs, Marquee, NoFees, SendInSeconds } from '@/components/LandingPage'
+import { SecurityBuiltIn } from '@/components/LandingPage/securityBuiltIn'
+import { YourMoney } from '@/components/LandingPage/yourMoney'
+import { RegulatedRails } from '@/components/LandingPage/RegulatedRails'
 import Footer from '@/components/LandingPage/Footer'
 import Manteca from '@/components/LandingPage/Manteca'
 import { QuestsHero } from './components/QuestsHero'
 import { EN_LANDING_STRINGS } from '@/components/LandingPage/landingStrings'
-import { DEFAULT_LOCALE } from '@/i18n/types'
+import { EN_LANDING_CONTENT_HREFS } from '@/components/LandingPage/landingContentHrefs'
 
 export default function QuestsPage() {
     const marqueeProps = {
@@ -69,7 +61,7 @@ export default function QuestsPage() {
             <Marquee {...marqueeProps} />
             <SendInSeconds />
             <Marquee {...marqueeProps} />
-            <NoFees locale={DEFAULT_LOCALE} strings={EN_LANDING_STRINGS} />
+            <NoFees strings={EN_LANDING_STRINGS} contentHrefs={EN_LANDING_CONTENT_HREFS} />
             <Marquee {...marqueeProps} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
             <Marquee {...marqueeProps} />
