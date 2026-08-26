@@ -231,7 +231,7 @@ export default function ConfirmWithdrawView({
                                 onConfirm()
                             }
                         }}
-                        disabled={false}
+                        disabled={confirmDisabled}
                         loading={false}
                         className="w-full"
                         icon="retry"
