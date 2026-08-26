@@ -23,13 +23,13 @@ export const UserHeader = ({ username }: UserHeaderProps) => {
             <Button
                 variant="primary-soft"
                 className={twMerge(
-                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5'
+                    'flex h-14 w-auto cursor-pointer items-center justify-center gap-2 rounded-full px-1.5 md:px-2'
                 )}
                 shadowSize="3"
                 size="small"
             >
-                <DotFaceAvatar username={username} className="h-6 w-6 md:h-7 md:w-7" />
-                <span className="whitespace-nowrap text-xs font-semibold md:text-sm">{username}</span>
+                <DotFaceAvatar username={username} className="h-12 w-12" />
+                <span className="whitespace-nowrap pr-2 text-sm font-semibold md:text-base">{username}</span>
             </Button>
         </Link>
     )
