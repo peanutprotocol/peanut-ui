@@ -221,19 +221,28 @@ function ScanRegionOverlay({
 function ErrorView({
     message,
     onClose,
+    onRetry,
     children,
 }: {
     message: string
     onClose: () => void
+    onRetry?: () => void
     children?: React.ReactNode
 }) {
     const tCommon = useTranslations('common')
     return (
         <div className="p-4 text-center text-white">
             <p className="text-red-500">{message}</p>
-            <button onClick={onClose} className="mt-4 rounded bg-white px-4 py-2 text-black">
-                {tCommon('close')}
-            </button>
+            <div className="mt-4 flex items-center justify-center gap-2">
+                {onRetry && (
+                    <button onClick={onRetry} className="rounded bg-white px-4 py-2 text-black">
+                        {tCommon('retry')}
+                    </button>
+                )}
+                <button onClick={onClose} className="rounded bg-white px-4 py-2 text-black">
+                    {tCommon('close')}
+                </button>
+            </div>
             {children}
         </div>
     )
@@ -350,7 +359,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                  */
                 <CameraPermissionModal visible onRetry={retryCamera} onClose={close} onPaste={handlePaste} />
             ) : error ? (
-                <ErrorView message={error} onClose={close}>
+                <ErrorView message={error} onClose={close} onRetry={() => retryCamera()}>
                     <PasteActions
                         onPaste={handlePaste}
                         detectedAddress={detectedAddress}
