@@ -642,7 +642,9 @@ describe('recognizeQr', () => {
         const original = process.env.NEXT_PUBLIC_BASE_URL
 
         afterEach(() => {
-            process.env.NEXT_PUBLIC_BASE_URL = original
+            // assigning undefined would store the string "undefined" and defeat the fallback
+            if (original === undefined) delete process.env.NEXT_PUBLIC_BASE_URL
+            else process.env.NEXT_PUBLIC_BASE_URL = original
         })
 
         it('still recognizes a Pix payload and a peanut.me URL', () => {
