@@ -54,7 +54,8 @@
             "custom": "Custom",
             "unknown": "Unknown"
         },
-        "exchangeRate": "Exchange rate"
+        "exchangeRate": "Exchange rate",
+        "userAvatarAlt": "Avatar for {username}"
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
