@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import ErrorAlert from '@/components/Global/ErrorAlert'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import type { SavedAddress } from '@/interfaces/interfaces'
@@ -20,9 +21,13 @@ export default function SavedAddressEditDrawer({ saved, onClose, onRename, onDel
     const tCommon = useTranslations('common')
     const [nickname, setNickname] = useState('')
     const [busy, setBusy] = useState<'rename' | 'delete' | null>(null)
+    const [failed, setFailed] = useState(false)
 
     useEffect(() => {
-        if (saved) setNickname(saved.nickname)
+        if (saved) {
+            setNickname(saved.nickname)
+            setFailed(false)
+        }
     }, [saved])
 
     const trimmed = nickname.trim()
@@ -30,9 +35,14 @@ export default function SavedAddressEditDrawer({ saved, onClose, onRename, onDel
 
     const run = async (kind: 'rename' | 'delete', fn: () => Promise<unknown>) => {
         setBusy(kind)
+        setFailed(false)
         try {
             await fn()
             onClose()
+        } catch (error) {
+            // keep the drawer open so the user sees the write did not land
+            console.error('[address-book] edit failed:', error)
+            setFailed(true)
         } finally {
             setBusy(null)
         }
@@ -74,6 +84,7 @@ export default function SavedAddressEditDrawer({ saved, onClose, onRename, onDel
                     >
                         {tCommon('save')}
                     </Button>
+                    {failed && <ErrorAlert description={t('savedAddresses.editFailed')} />}
                     <Button
                         variant="stroke"
                         className="w-full"

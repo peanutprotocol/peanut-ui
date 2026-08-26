@@ -666,6 +666,7 @@ export default function WithdrawCryptoPage() {
                     belowMinimumMessage={belowMinimumMessage}
                     isFromSendFlow={isFromSendFlow}
                     toNickname={existingSaved?.nickname}
+                    confirmDisabled={!existingSaved && saveToBook && !trimmedBookNickname}
                     saveAddressPrompt={
                         !existingSaved && (
                             <SaveAddressPrompt

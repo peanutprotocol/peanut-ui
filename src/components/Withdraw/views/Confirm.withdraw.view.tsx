@@ -69,6 +69,8 @@ interface WithdrawConfirmViewProps {
     toNickname?: string | null
     /** "Save to address book" prompt, rendered under the details card (only when not yet saved). */
     saveAddressPrompt?: React.ReactNode
+    /** Extra gate for the CTA — e.g. "Save to address book" ticked with no nickname yet. */
+    confirmDisabled?: boolean
 }
 
 export default function ConfirmWithdrawView({
@@ -92,6 +94,7 @@ export default function ConfirmWithdrawView({
     isFromSendFlow = false,
     toNickname = null,
     saveAddressPrompt = null,
+    confirmDisabled = false,
 }: WithdrawConfirmViewProps) {
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
@@ -240,7 +243,13 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={onConfirm}
-                        disabled={isProcessing || isCalculating || insufficientBalance || !!belowMinimumMessage}
+                        disabled={
+                            isProcessing ||
+                            isCalculating ||
+                            insufficientBalance ||
+                            !!belowMinimumMessage ||
+                            confirmDisabled
+                        }
                         loading={isProcessing}
                         className="w-full"
                     >

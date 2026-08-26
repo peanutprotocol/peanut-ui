@@ -3080,7 +3080,9 @@
             "nicknameLabel": "Apodo",
             "nicknamePlaceholder": "p. ej. Binance",
             "deleteCta": "Eliminar dirección",
-            "savePrompt": "Guardar en la libreta"
+            "savePrompt": "Guardar en la libreta",
+            "editFailed": "No pudimos actualizar la dirección. Intentá de nuevo.",
+            "nicknameRequired": "Agregá un apodo para guardar esta dirección."
         },
         "forceIosPwaInstall": {
             "videoUnsupported": "Tu navegador no admite la etiqueta de video.",

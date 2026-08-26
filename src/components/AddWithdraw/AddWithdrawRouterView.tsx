@@ -81,7 +81,12 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         setIsValidRecipient,
     } = useWithdrawFlow()
     // crypto address book — only meaningful on the withdraw flow, hook is cheap otherwise
-    const { savedAddresses, rename: renameSavedAddress, remove: removeSavedAddress } = useSavedAddresses()
+    const {
+        savedAddresses,
+        isLoading: isLoadingSavedAddresses,
+        rename: renameSavedAddress,
+        remove: removeSavedAddress,
+    } = useSavedAddresses({ enabled: flow === 'withdraw' })
     const { setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
     const [editingSavedAddress, setEditingSavedAddress] = useState<SavedAddress | null>(null)
     const onrampFlowContext = useOnrampFlow()
@@ -208,9 +213,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     // pick the crypto method exactly like the "Crypto" tile (no navigation — the
     // withdraw page owns the amount step and pushes /withdraw/crypto after Continue)
     const handleSavedAddressClick = (saved: SavedAddress) => {
-        const usdc = supportedChainsAndTokens?.[saved.chainId]?.tokens.find((t) => t.symbol.toUpperCase() === 'USDC')
+        const tokens = supportedChainsAndTokens?.[saved.chainId]?.tokens ?? []
+        // USDC where the chain has it; otherwise the chain's only/first token (Tron → USDT)
+        const token = tokens.find((t) => t.symbol.toUpperCase() === 'USDC') ?? tokens[0]
         setSelectedChainID(saved.chainId)
-        setSelectedTokenAddress(usdc?.address ?? '')
+        setSelectedTokenAddress(token?.address ?? '')
         setRecipient({ name: undefined, address: saved.address })
         setIsValidRecipient(true)
         handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
@@ -219,7 +226,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     // check if we're coming from request fulfillment or similar flow
     const fromRequestFulfillment = typeof window !== 'undefined' && getFromLocalStorage('fromRequestFulfillment')
 
-    if (isLoadingPreferences) {
+    if (isLoadingPreferences || (flow === 'withdraw' && isLoadingSavedAddresses)) {
         return (
             <div className="flex min-h-[inherit] flex-col justify-center gap-8">
                 <PeanutLoading />
@@ -422,6 +429,10 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                         // to /withdraw/crypto after Continue. navigating here (pre-amount)
                         // trips the crypto page's "no amount" redirect guard, whose unmount
                         // cleanup resets the whole flow back to saved accounts.
+                        // the plain tile is a fresh destination — drop anything an
+                        // address-book tap left in the recipient state
+                        setRecipient({ name: undefined, address: '' })
+                        setIsValidRecipient(false)
                         handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
                     }
                 }}

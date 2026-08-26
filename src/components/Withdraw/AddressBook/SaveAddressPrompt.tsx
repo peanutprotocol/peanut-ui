@@ -41,6 +41,9 @@ export default function SaveAddressPrompt({
                     }
                 />
             )}
+            {checked && !nickname.trim() && (
+                <p className="text-xs text-grey-1">{t('savedAddresses.nicknameRequired')}</p>
+            )}
         </Card>
     )
 }

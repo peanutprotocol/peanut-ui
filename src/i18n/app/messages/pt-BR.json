@@ -3080,7 +3080,9 @@
             "nicknameLabel": "Apelido",
             "nicknamePlaceholder": "ex.: Binance",
             "deleteCta": "Excluir endereço",
-            "savePrompt": "Salvar na agenda"
+            "savePrompt": "Salvar na agenda",
+            "editFailed": "Não foi possível atualizar o endereço. Tente de novo.",
+            "nicknameRequired": "Adicione um apelido para salvar este endereço."
         },
         "forceIosPwaInstall": {
             "videoUnsupported": "Seu navegador não suporta a tag de vídeo.",

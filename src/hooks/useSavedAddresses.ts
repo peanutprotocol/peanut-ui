@@ -6,8 +6,9 @@ import { useUserStore } from '@/redux/hooks'
 import type { SavedAddress } from '@/interfaces/interfaces'
 import { savedAddressKey } from '@/utils/saved-address.utils'
 
-/** The user's crypto address book, plus save / rename / remove. Every mutation refetches the list. */
-export function useSavedAddresses() {
+/** The user's crypto address book, plus save / rename / remove. Every mutation refetches the list.
+ *  `enabled: false` skips the fetch on surfaces that never read it (the add-money flow). */
+export function useSavedAddresses({ enabled = true }: { enabled?: boolean } = {}) {
     const { user } = useUserStore()
     const queryClient = useQueryClient()
     const invalidate = () => queryClient.invalidateQueries({ queryKey: [SAVED_ADDRESSES] })
@@ -15,7 +16,7 @@ export function useSavedAddresses() {
     const query = useQuery({
         queryKey: [SAVED_ADDRESSES],
         queryFn: savedAddressesApi.list,
-        enabled: !!user,
+        enabled: enabled && !!user,
         staleTime: 5 * 60 * 1000,
     })
 

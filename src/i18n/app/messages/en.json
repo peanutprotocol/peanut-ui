@@ -3080,7 +3080,9 @@
             "nicknameLabel": "Nickname",
             "nicknamePlaceholder": "e.g. Binance",
             "deleteCta": "Delete address",
-            "savePrompt": "Save to address book"
+            "savePrompt": "Save to address book",
+            "editFailed": "Could not update the address. Try again.",
+            "nicknameRequired": "Add a nickname to save this address."
         },
         "forceIosPwaInstall": {
             "videoUnsupported": "Your browser does not support the video tag.",

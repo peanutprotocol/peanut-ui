@@ -19,13 +19,13 @@ describe('saved-address.utils', () => {
     })
 
     it('label = nickname + last 4 chars', () => {
-        expect(savedAddressLabel('Binance', HEX)).toBe('Binance · …eC9B')
+        expect(savedAddressLabel('Binance', HEX)).toBe('Binance · ...eC9B')
     })
 
     it('short form keeps 6+4 for hex, 4+4 for base58', () => {
-        expect(shortSavedAddress(HEX)).toBe('0xAb58…eC9B')
-        expect(shortSavedAddress(TRON)).toBe('TN3W…b3m9')
-        expect(shortSavedAddress('short')).toBe('short')
+        expect(shortSavedAddress(HEX)).toBe('0xAb58...eC9B')
+        expect(shortSavedAddress(TRON)).toBe('TN3W...b3m9')
+        expect(shortSavedAddress('not-an-address')).toBe('not-an-address')
     })
 
     it('tone: <7d recent, 7–30d aging, 30+ stale', () => {

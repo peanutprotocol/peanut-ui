@@ -1,4 +1,5 @@
 import { isAddress } from 'viem'
+import { printableAddress } from '@/utils/general.utils'
 
 export const SAVED_ADDRESS_NICKNAME_MAX = 15
 
@@ -15,15 +16,14 @@ export function savedAddressKey(chainId: string | number, address: string): stri
     return `${String(chainId).trim().toLowerCase()}:${normalizeSavedAddress(address)}`
 }
 
-/** "Binance · …aeC9" — nickname plus the last 4 chars so two entries never look alike. */
+/** "Binance · ...aeC9" — nickname plus the last 4 chars so two entries never look alike. */
 export function savedAddressLabel(nickname: string, address: string): string {
-    return `${nickname} · …${address.slice(-4)}`
+    return `${nickname} · ...${address.slice(-4)}`
 }
 
-/** "0x1234…abcd" — 4+4 so an address-poisoning lookalike is harder to pass off. */
+/** "0x1234...abcd" — head 6 for hex, 4 for base58, tail 4: enough that an address-poisoning lookalike stands out. */
 export function shortSavedAddress(address: string): string {
-    if (address.length <= 12) return address
-    return `${address.slice(0, isAddress(address) ? 6 : 4)}…${address.slice(-4)}`
+    return printableAddress(address, isAddress(address) ? 6 : 4, 4)
 }
 
 export type LastUsedTone = 'recent' | 'aging' | 'stale'
