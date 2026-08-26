@@ -1,6 +1,7 @@
 'use client'
-import { WagmiProvider, cookieToInitialState, createConfig, http, type Config } from 'wagmi'
+import { WagmiProvider, cookieToInitialState, createConfig, createStorage, http, type Config } from 'wagmi'
 import { arbitrum, bsc, celo, gnosis, linea, mainnet, optimism, polygon, scroll, worldchain } from 'wagmi/chains'
+import { resilientWebStorage } from '@/utils/safe-storage'
 
 // Base intentionally absent: WAGMI's `http()` (no URL) defaults to mainnet.base.org,
 // which IP-rate-limits us with 403s and pollutes the console. We don't use Base for
@@ -11,6 +12,10 @@ export const networks = [arbitrum, mainnet, optimism, polygon, gnosis, scroll, b
 export const wagmiConfig = createConfig({
     chains: [arbitrum, mainnet, optimism, polygon, gnosis, scroll, bsc, linea, worldchain, celo],
     ssr: true,
+    // wagmi's default storage touches window.localStorage unguarded, and this
+    // createConfig runs at module scope — a document that throws SecurityError
+    // on that property takes the app shell down before it renders.
+    storage: createStorage({ storage: resilientWebStorage }),
     transports: {
         [arbitrum.id]: http(),
         [mainnet.id]: http(),

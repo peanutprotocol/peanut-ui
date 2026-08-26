@@ -6,6 +6,7 @@
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
 import { getPlatform, isCapacitor } from '@/utils/capacitor'
+import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { resolveLocale, type AppLocale } from './config'
 
 const LOCALE_KEY = 'app-locale'
@@ -112,15 +113,19 @@ async function resolveStartupLocale(): Promise<AppLocale> {
         // shares the memoized bridge call with the analytics emit
         return resolveLocale(await rawDeviceTag())
     }
-    const stored =
-        Cookies.get(LOCALE_KEY) ?? (typeof localStorage !== 'undefined' ? localStorage.getItem(LOCALE_KEY) : null)
+    const stored = Cookies.get(LOCALE_KEY) ?? readStoredValue(LOCALE_KEY)
     if (stored) return resolveLocale(stored)
     return navigatorLocale()
 }
 
-/** Resolves the startup locale once; memoized for the session. */
+/**
+ * Resolves the startup locale once; memoized for the session. The catch is
+ * what makes memoizing safe: a rejected promise cached here would leave every
+ * later awaiter — AppIntlProvider included — hanging on a failure it has no
+ * handler for.
+ */
 export function localeReady(): Promise<AppLocale> {
-    if (!resolution) resolution = resolveStartupLocale()
+    if (!resolution) resolution = resolveStartupLocale().catch(() => navigatorLocale())
     return resolution
 }
 
@@ -132,11 +137,8 @@ export function persistLocale(locale: AppLocale): void {
         return
     }
     Cookies.set(LOCALE_KEY, locale, { expires: 365, path: '/' })
-    try {
-        localStorage.setItem(LOCALE_KEY, locale)
-    } catch {
-        // storage may be unavailable (private mode); cookie is authoritative
-    }
+    // storage may be unavailable (private mode); cookie is authoritative
+    writeStoredValue(LOCALE_KEY, locale)
 }
 
 let markApplied: (() => void) | null = null
