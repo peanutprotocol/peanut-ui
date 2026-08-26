@@ -1,4 +1,4 @@
-import { PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_TOKEN } from '@/constants/wallet-token.consts'
 import { peanutPublicClient } from '@/app/actions/clients'
 import { useQuery } from '@tanstack/react-query'
 import { erc20Abi } from 'viem'

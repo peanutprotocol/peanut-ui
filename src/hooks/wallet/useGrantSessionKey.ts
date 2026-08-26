@@ -247,7 +247,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 // back a rebuilt client. One extra passkey tap.
                 await ensureRootValidatorMigrated({
                     client: kernelClient,
-                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainId),
+                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainId, { returnRevertedReceipt: true }),
                     rebuildClient: () => rebuildClientForChain(chainId),
                 })
                 // Freshly deployed: read the live nonce; fail loud if unreadable.

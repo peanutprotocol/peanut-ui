@@ -186,8 +186,8 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
         },
         twitter: {
             card: 'summary_large_image',
-            site: '@PeanutProtocol',
-            creator: '@PeanutProtocol',
+            site: '@joinpeanut',
+            creator: '@joinpeanut',
             title,
             description,
             images: [

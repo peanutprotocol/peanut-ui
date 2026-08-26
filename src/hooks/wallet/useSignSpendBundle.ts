@@ -190,7 +190,8 @@ export const useSignSpendBundle = () => {
                     requireOverview: true,
                     grant,
                     onGrantRequired,
-                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainIdStr),
+                    sendNoopUserOp: (call) =>
+                        handleSendUserOpEncoded([call], chainIdStr, { returnRevertedReceipt: true }),
                     rebuildClient: () => rebuildClientForChain(chainIdStr),
                     setSecurityOverlay: modals?.setIsSecurityVerificationOpen,
                     migrationTrigger: 'sign-spend',

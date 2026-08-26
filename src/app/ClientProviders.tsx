@@ -7,15 +7,9 @@
  * the root layout (server component) renders this single client boundary.
  */
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
-import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
-import StaleCardApprovalReEnableModal from '@/components/Global/StaleCardApproval/ReEnableModal'
-import StaleDeploymentReload from '@/components/Global/StaleDeploymentReload'
-import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
-import { AppLockGate } from '@/components/Global/AppLock'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
-import { AppIntlProvider } from '@/i18n/app/AppIntlProvider'
-import { LocaleSync } from '@/i18n/app/LocaleSync'
+import { MarketingIntlProvider } from '@/i18n/app/MarketingIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
@@ -24,10 +18,11 @@ import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
 import { useOtaUpdates } from '@/hooks/useOtaUpdates'
 import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
+import { isMarketingRoute } from '@/utils/marketing-routes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 import { Suspense } from 'react'
-import { PeanutDebug } from '@/context/PeanutDebug'
 
 // Harness bootstrap ships only in harness builds. In prod bundles the dynamic
 // import is in dead code behind `if (false)` and webpack drops the chunk.
@@ -36,6 +31,10 @@ const HarnessBootstrap = HARNESS_ENABLED
           ssr: false,
       })
     : null
+
+const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
+// The full message catalog is 129 KB; app routes load it as their own chunk.
+const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
@@ -46,49 +45,34 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     useNativeAppLinks()
     useZeroLegacyAndroidSafeAreaInsets()
 
+    // The marketing site renders without the wallet provider tree, so the
+    // globals that depend on it are not mounted there either. `isMarketingRoute`
+    // fails safe: an unrecognised path gets the full app tree.
+    const marketing = isMarketingRoute(usePathname())
+    const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
+
     return (
         <NuqsAdapter>
             <PeanutProvider>
                 {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
                     → useSendMoney calls useTranslations, so the intl context has to
                     exist by the time ContextProvider renders. */}
-                <AppIntlProvider>
+                <IntlProvider>
                     <ContextProvider>
                         <FooterVisibilityProvider>
                             <TranslationSafeWrapper>
-                                <LocaleSync />
                                 <ConsoleGreeting />
                                 <ScreenOrientationLocker />
-                                <PeanutDebug />
-                                {/* Mounted here (not in a route-group layout) so the cooldown
-                                explainer also covers public pay/send/request pages —
-                                the rain:cooldown event fires on every spend path. */}
-                                <RainCooldownIntroModal />
-                                {/* Global recovery prompt: a withdraw refused with 409
-                                STALE_CARD_APPROVAL (stale session-key approval) fires
-                                RAIN_STALE_APPROVAL_EVENT — mount here so the re-enable
-                                CTA covers every spend path, not just the card screen. */}
-                                <StaleCardApprovalReEnableModal />
-                                {/* Non-intrusive "badge unlocked" toast on /home (TASK-19791).
-                                Global so it surfaces wherever the user lands after earning. */}
-                                <BadgeEarnToast />
-                                {/* Mounted inside the providers (not called in this
-                                component's body like useOtaUpdates) because it
-                                reads the query client, redux and loading-state
-                                context to know when a reload is safe. */}
-                                <StaleDeploymentReload />
                                 {HarnessBootstrap && (
                                     <Suspense fallback={null}>
                                         <HarnessBootstrap />
                                     </Suspense>
                                 )}
-                                {/* Wraps rather than sits beside the page: while the
-                                    native app is locked, nothing protected renders. */}
-                                <AppLockGate>{children}</AppLockGate>
+                                {marketing ? children : <AppGlobals>{children}</AppGlobals>}
                             </TranslationSafeWrapper>
                         </FooterVisibilityProvider>
                     </ContextProvider>
-                </AppIntlProvider>
+                </IntlProvider>
             </PeanutProvider>
         </NuqsAdapter>
     )

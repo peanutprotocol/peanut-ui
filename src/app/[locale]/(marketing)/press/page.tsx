@@ -18,7 +18,8 @@ import {
 
 // Press kit data lives in mono at content/press/{lang}.md frontmatter — singleton
 // content authored by marketing/leadership, shipped via the mirror. Team member
-// data is reused as-is from content/team/{lang}.md (one fact, one place).
+// data comes from content/team/{lang}.md (one fact, one place); this page is the
+// only surface for it since /team was removed.
 //
 // brand_assets/team_photos hrefs are author-supplied frontmatter that can be
 // pushed straight to mono main without code review — only emit http(s) URLs
@@ -114,6 +115,15 @@ export default async function PressPage({ params }: PageProps) {
         name: 'Peanut',
         url: 'https://peanut.me',
         description: fm.boilerplate?.press,
+        member: members.map((member) => {
+            const linkedin = safeHttpUrl(member.social?.linkedin)
+            return {
+                '@type': 'Person',
+                name: member.name,
+                jobTitle: member.role,
+                ...(linkedin ? { sameAs: [linkedin] } : {}),
+            }
+        }),
     }
 
     return (
@@ -126,7 +136,7 @@ export default async function PressPage({ params }: PageProps) {
                 <div className="flex flex-col gap-10">
                     {fm.boilerplate && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">Company description</h2>
+                            <h2 className="text-xl font-bold">{i18n.pressCompanyDescription}</h2>
                             <div className="grid gap-4 md:grid-cols-3">
                                 {fm.boilerplate.short && (
                                     <Card className="gap-2 p-6">
@@ -152,7 +162,7 @@ export default async function PressPage({ params }: PageProps) {
 
                     {fm.tagline && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">Tagline &amp; headlines</h2>
+                            <h2 className="text-xl font-bold">{i18n.pressTaglineHeadlines}</h2>
                             <Card className="gap-1 p-6">
                                 <p className="text-lg font-bold text-n-1">{fm.tagline}</p>
                                 {fm.secondary_line && <p className="text-sm text-grey-1">{fm.secondary_line}</p>}
@@ -173,7 +183,7 @@ export default async function PressPage({ params }: PageProps) {
 
                     {fm.brand_assets && fm.brand_assets.length > 0 && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">Brand assets</h2>
+                            <h2 className="text-xl font-bold">{i18n.pressBrandAssets}</h2>
                             <div className="grid gap-4 md:grid-cols-2">
                                 {fm.brand_assets.map((group) => (
                                     <Card key={group.label} className="gap-3 p-6">
@@ -205,7 +215,7 @@ export default async function PressPage({ params }: PageProps) {
 
                     {members.length > 0 && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">Team</h2>
+                            <h2 className="text-xl font-bold">{i18n.pressTeam}</h2>
                             <div className="grid gap-6 md:grid-cols-2">
                                 {members.map((member) => (
                                     <Card key={member.slug} className="gap-3 p-6">
@@ -242,7 +252,7 @@ export default async function PressPage({ params }: PageProps) {
 
                     {fm.company_facts && fm.company_facts.length > 0 && (
                         <section className="flex flex-col gap-2">
-                            <h2 className="text-xl font-bold">Company</h2>
+                            <h2 className="text-xl font-bold">{i18n.pressCompany}</h2>
                             {fm.company_facts.map((fact) => (
                                 <p key={fact} className="text-sm text-grey-1">
                                     {fact}
@@ -253,7 +263,7 @@ export default async function PressPage({ params }: PageProps) {
 
                     {fm.media_contact && (
                         <section className="flex flex-col gap-2">
-                            <h2 className="text-xl font-bold">Media contact</h2>
+                            <h2 className="text-xl font-bold">{i18n.pressMediaContact}</h2>
                             <a href={`mailto:${fm.media_contact}`} className="w-fit text-sm text-black underline">
                                 {fm.media_contact}
                             </a>

@@ -1,0 +1,230 @@
+{
+    "common": {
+        "cancel": "Cancelar",
+        "continue": "Continuar",
+        "back": "Atrás",
+        "done": "Listo",
+        "save": "Guardar",
+        "confirm": "Confirmar",
+        "retry": "Reintentar",
+        "close": "Cerrar",
+        "loading": "Cargando...",
+        "somethingWentWrong": "Algo salió mal",
+        "genericError": "Algo salió mal. Intenta de nuevo o contacta soporte.",
+        "copiedToClipboard": "Copiado al portapapeles",
+        "maybeLater": "Quizás más tarde",
+        "tryAgain": "Intentar de nuevo",
+        "skipForNow": "Omitir por ahora",
+        "gotIt": "Entendido",
+        "contactSupport": "Contactar soporte",
+        "peanutFee": "Comisión de Peanut",
+        "sponsoredByPeanut": "¡Patrocinada por Peanut!",
+        "pending": "Pendiente",
+        "comingSoon": "Próximamente",
+        "or": "o",
+        "comment": "Comentario",
+        "goToHome": "Ir al inicio",
+        "reset": "Restablecer",
+        "next": "Siguiente",
+        "notFound": "No encontrado",
+        "countryNotFound": "País no encontrado",
+        "regions": {
+            "europe": "Europa",
+            "north-america": "América del Norte",
+            "latam": "Latinoamérica",
+            "rest-of-the-world": "Resto del mundo",
+            "argentina": "Argentina",
+            "brazil": "Brasil",
+            "mexico": "México",
+            "descriptions": {
+                "argentina": "Solo pagos con QR de Mercado Pago",
+                "brazil": "Solo pagos con QR Pix"
+            }
+        },
+        "tryDifferentCountry": "Prueba con otro país.",
+        "status": {
+            "completed": "Completado",
+            "pending": "Pendiente",
+            "processing": "Procesando",
+            "failed": "Fallido",
+            "cancelled": "Cancelado",
+            "refunded": "Reembolsado",
+            "soon": "¡Pronto!",
+            "closed": "Cerrado",
+            "custom": "Personalizado",
+            "unknown": "Desconocido"
+        },
+        "exchangeRate": "Tipo de cambio"
+    },
+    "errors": {
+        "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agrega fondos para continuar.",
+        "insufficientFunds": "No tienes fondos suficientes.",
+        "userRejectedTransaction": "Confirma la transacción en tu billetera.",
+        "notDeployedOnChain": "Bulk no está disponible en esta red, prueba con otra red.",
+        "userRejectedRequest": "Confirma la solicitud en tu billetera.",
+        "networkError": "Ocurrió un error de red. Actualiza la página e inténtalo de nuevo.",
+        "nonceExpired": "El nonce expiró, inténtalo de nuevo.",
+        "walletNotConnected": "Asegúrate de que tu billetera esté conectada.",
+        "gasExceedsAllowance": "El gas requerido supera tu saldo. Confirma que tienes fondos suficientes.",
+        "gasFeesNativeToken": "La transacción falló. Asegúrate de tener suficiente token nativo en esta red para cubrir las comisiones de gas.",
+        "tokenPriceFetch": "Algo salió mal al obtener el precio del token. Cambia la denominación de entrada e inténtalo de nuevo.",
+        "tokenChainUndefined": "Asegúrate de que el token y la red correctos estén definidos.",
+        "insufficientTokenBalance": "Asegúrate de tener saldo suficiente del token que intentas enviar, incluidas las comisiones de gas.",
+        "minimumSendAmount": "El monto mínimo para enviar es 0.0001.",
+        "linkDetailsError": "Error al obtener los detalles del enlace.",
+        "passwordGenerationError": "Error al generar la contraseña.",
+        "gaslessDepositPayloadError": "Error al crear el payload del depósito sin gas.",
+        "prepareTransactionError": "Error al preparar la(s) transacción(es).",
+        "switchNetworkError": "Error al cambiar de red.",
+        "signDataError": "Error al firmar los datos en la billetera.",
+        "gaslessDepositApiError": "Error al realizar el depósito sin gas a través de la API de Peanut.",
+        "sendTransactionError": "Error al enviar la transacción.",
+        "transferAmountExceedsBalance": "No tienes saldo suficiente para completar la transacción.",
+        "chainMismatch": "No se pudo cambiar de red. Intenta cambiar a la red correcta manualmente.",
+        "insufficientBalance": "No tienes saldo suficiente.",
+        "operationTimedOut": "Confirma la transacción.",
+        "passkeyNotCompleted": "Tu dispositivo no completó la confirmación con passkey. Inténtalo de nuevo; si sigue fallando, desbloquea tu gestor de contraseñas (por ejemplo, 1Password) o reinicia tu dispositivo.",
+        "claimLinkFailed": "No se pudo reclamar el enlace, actualiza la página. Si el problema persiste, confirma el enlace con quien lo envió.",
+        "sendLinkAlreadyClaimed": "El enlace de envío ya fue reclamado.",
+        "lowLiquidity": "Baja liquidez. Prueba con un monto menor o una ruta diferente.",
+        "networkBusyTimeout": "La red está congestionada y tu solicitud expiró. Inténtalo de nuevo en un momento.",
+        "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
+        "connectionTimeout": "Peanut está tardando demasiado en responder. Revisa tu conexión e inténtalo de nuevo.",
+        "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte.",
+        "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
+        "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",
+        "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
+        "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
+        "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
+        "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
+        "cardApprovalCancelled": "Aprobación cancelada: puedes volver a intentarlo cuando quieras.",
+        "cardApprovalFailed": "No se pudo aprobar la tarjeta. Inténtalo de nuevo.",
+        "logoutFailed": "No pudimos cerrar tu sesión. Inténtalo de nuevo.",
+        "loginIncomplete": "No se completó el inicio de sesión. Inténtalo de nuevo."
+    },
+    "migration": {
+        "downloadPrompt": {
+            "earlyTitle": "¡La app de Peanut ya está aquí!",
+            "earlyDescription": "Peanut ya vive en el App Store y Google Play. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va contigo, sin configurar nada.",
+            "maybeLater": "La descargo más tarde",
+            "title": "Peanut será solo app",
+            "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descárgala ahora y continúa justo donde quedaste. Tu cuenta y tu dinero se mudan contigo automáticamente.",
+            "remindLater": "Recordarme más tarde"
+        },
+        "sunset": {
+            "heading": "Peanut ahora es solo app",
+            "sub": "Descarga la app y continúa justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí.",
+            "supportLink": "¿Problemas para descargar la app? Habla con nuestro soporte"
+        },
+        "qr": {
+            "title": "Descarga la app de Peanut",
+            "scanHint": "Escanea con la cámara de tu celular para descargar."
+        },
+        "banner": {
+            "title": "¡La app de Peanut ya está aquí!",
+            "description": "Más rápida, más fluida y te avisa cuando llega tu dinero."
+        },
+        "review": {
+            "title": "¿Te está gustando Peanut?",
+            "description": "Una calificación rápida ayuda a que otros nos encuentren.",
+            "loveIt": "Me encanta",
+            "meh": "Podría mejorar",
+            "supportPrefill": "Tengo comentarios sobre la app, esto es lo que podría mejorar: "
+        },
+        "downloadNow": "Descargar ahora",
+        "smartLink": {
+            "redirecting": "Te llevamos a la tienda…",
+            "pickStore": "Elige tu tienda y descarga la app."
+        }
+    },
+    "shhhhh": {
+        "hero": {
+            "wordmark": "shhhhh.",
+            "tagline": "La tarjeta de Peanut ya salió. Para ti. Quizás.",
+            "body": "Una tarjeta aceptada en más de 150 millones de comercios que aceptan Visa. Vamos dejando entrar a los usuarios beta de a poco: <counter></counter> por semana. Si tienes la insignia correcta, te saltas la fila por completo.",
+            "onlyCount": "solo {count}",
+            "tryTheDoor": "PRUEBA LA PUERTA",
+            "orJoinWaitlist": "o únete a la lista de espera →",
+            "disclaimer": "Verificación requerida para todos los titulares de tarjeta. Sin cuotas mensuales ni anuales. Se aplican tarifas y límites estándar según los términos del titular. Programa beta.",
+            "joinError": "No pudimos sumarte a la lista de espera. Prueba la puerta de nuevo."
+        },
+        "waitlist": {
+            "joined": "✓ Estás en la lista de espera",
+            "joinedWithPosition": "✓ Estás en la lista de espera · #{position}",
+            "holler": "Te avisamos cuando llegue tu turno."
+        },
+        "marquee": {
+            "iykyk": "IYKYK",
+            "wordTravels": "SE CORRE LA VOZ",
+            "closedBeta": "BETA CERRADA",
+            "shhhh": "SHHHH",
+            "peanutClub": "PEANUT CLUB"
+        },
+        "whatItDoes": {
+            "titleLine1": "Es una tarjeta.",
+            "titleLine2": "Ese es todo el truco.",
+            "body": "Carga la tarjeta como ya mueves tu plata: transferencia bancaria, retiro de un exchange o stablecoins (USDC, USDT). Tu saldo es tuyo. Sin custodia. Sin comisiones mensuales. Sin comisiones anuales.",
+            "statMerchants": "comercios que aceptan Visa",
+            "statBalance": "saldo",
+            "statCard": "tarjeta",
+            "statMiddlemen": "intermediarios"
+        },
+        "whoItsFor": {
+            "title": "Si vives en más de un país, esto es para ti.",
+            "body": "Construimos peanut para quienes no encajan. Nómadas digitales que rebotan en la verificación de cada neobanco apenas cruzan una frontera. Expatriados que pagan 4% en cada envío a casa. Personas que ganan en una moneda y gastan en otra."
+        },
+        "howToGetIn": {
+            "title": "Cómo entrar.",
+            "subtitle": "Chequeo de credenciales. La insignia salta la fila.",
+            "badgeTitle": "Tienes una insignia.",
+            "badgeBody": "Te saltas la fila. Estamos habilitando a quienes tengan:",
+            "badgeFooter": "Inicia sesión, revisamos las insignias de tu cuenta y pasas directo a la verificación. ¿Todavía no tienes cuenta de peanut? Regístrate primero: toma un minuto.",
+            "badgeShowMore": "+{count} más →",
+            "badgeShowLess": "ver menos",
+            "noBadgeTitle": "Sin insignia.",
+            "noBadgeBody": "Únete a la lista de espera. Dejamos entrar a 50 personas por semana.",
+            "noBadgeFooter": "Anota tu nombre en la lista y te avisamos cuando llegue tu turno."
+        },
+        "notForYou": {
+            "title": "Probablemente no es para ti.",
+            "body1": "Si tu plata vive en un solo país y una sola moneda, la tarjeta de tu banco ya te sirve. Quédatela.",
+            "body2": "Si tu plata vive en otro lado —cruzando fronteras, en dólares, en autocustodia—, la tarjeta de peanut se construyó para ti."
+        },
+        "faq": {
+            "title": "PREGUNTAS FRECUENTES.",
+            "q1": {
+                "question": "¿QUÉ ES LA TARJETA DE PEANUT?",
+                "answer": "Una tarjeta sin custodia. Cárgala con stablecoins y úsala para tus gastos diarios donde acepten Visa."
+            },
+            "q2": {
+                "question": "¿DÓNDE FUNCIONA?",
+                "answer": "Se acepta donde acepten Visa: unos 150 millones de comercios. En línea, en tiendas y en cajeros."
+            },
+            "q3": {
+                "question": "¿MI PLATA ESTÁ SEGURA?",
+                "answer": "Es tuya. Sin custodia: tus stablecoins se quedan en tu billetera hasta el momento en que usas la tarjeta. No tenemos la custodia. No la prestamos."
+            },
+            "q5": {
+                "question": "¿CUÁNTO DURA LA LISTA DE ESPERA?",
+                "answer": "Durante la beta cerrada dejamos entrar a unas 50 personas por semana. El orden importa. Las insignias saltan la fila por completo."
+            },
+            "q6": {
+                "question": "¿PUEDO USARLA DONDE VIVO?",
+                "answer": "Es una tarjeta Visa: se acepta donde acepten Visa, en tiendas, en línea y en cajeros. Inicia sesión y prueba la puerta para ver qué sigue en tu cuenta."
+            },
+            "q7": {
+                "question": "¿HAY COMISIONES?",
+                "answer": "Sin comisiones mensuales. Sin comisiones anuales. Aplican las comisiones y los límites estándar según los términos del titular de la tarjeta."
+            },
+            "q8": {
+                "question": "¿POR QUÉ \"SHHHHH\"?",
+                "answer": "Preferimos prometer poco y cumplir de más con un grupo chico antes que gritarle a todo internet el primer día. La voz se corre."
+            }
+        },
+        "ready": {
+            "title": "¿todo listo?",
+            "subtitle": "Prueba la puerta."
+        }
+    }
+}

@@ -106,7 +106,7 @@ const SumsubWebSdkModal = ({
 
         const handleLoaded = () => setSdkLoaded(true)
         const handleError = () => {
-            console.error('[sumsub] failed to load websdk script')
+            console.error(new Error('[sumsub] failed to load websdk script'))
             setSdkLoadError(true)
         }
 

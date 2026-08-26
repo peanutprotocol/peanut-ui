@@ -7,7 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { APP_LOCALES, LOCALE_LABELS, type AppLocale } from '@/i18n/app/config'
-import { useAppLocale } from '@/i18n/app/AppIntlProvider'
+import { useAppLocale } from '@/i18n/app/locale-context'
 
 const positionFor = (index: number) => (index === 0 ? 'first' : index === APP_LOCALES.length - 1 ? 'last' : 'middle')
 

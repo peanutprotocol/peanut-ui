@@ -53,6 +53,10 @@ jest.mock('@/redux/slices/setup-slice', () => ({
     },
 }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
+jest.mock('@/components/0_Bruddle/Toast', () => ({
+    ...jest.requireActual('@/components/0_Bruddle/Toast'),
+    useToast: () => ({ error: jest.fn(), success: jest.fn() }),
+}))
 jest.mock('@/hooks/useGuestStoreHandoff', () => ({
     useGuestStoreHandoff: (opts: { trackImpressionWhenGuest?: boolean }) => {
         mockUseGuestStoreHandoff(opts)

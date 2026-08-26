@@ -1,5 +1,8 @@
 import { Suspense } from 'react'
 import { LandingPageClient } from './LandingPageClient'
+import { FAQs } from './faq'
+import { SupportedRailsFaqAnswer } from './SupportedRailsFaqAnswer'
+import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import Manteca from './Manteca'
 import { RegulatedRails } from './RegulatedRails'
 import { YourMoney } from './yourMoney'
@@ -25,6 +28,30 @@ const MANTECA_BG_COLOR = '#90A8ED'
 export function LandingPageContent({ locale }: { locale: Locale }) {
     const { heroConfig, faqData, marqueeMessages } = getLandingContent(locale)
     const strings = landingStrings(getTranslations(locale))
+
+    /*
+     * The FAQ is static copy, so it is assembled here and passed in as a slot
+     * rather than built inside the client component.
+     *
+     * Only some answers have a single article worth linking: the first has no
+     * one article behind it, and the second already links the help centre in its
+     * own answer.
+     */
+    const learnMoreHrefs: Record<string, string> = {
+        '1': `/${locale}/help/what-are-digital-dollars`,
+        '2': `/${locale}/help/verification`,
+        '3': `/${locale}/help/passkeys`,
+        '4': `/${locale}/help/security-custody`,
+        '5': `/${locale}/help/fees-pricing`,
+        [SUPPORTED_RAILS_FAQ_ID]: `/${locale}/help/supported-geographies`,
+    }
+    const faqQuestions = faqData.questions.map((question) => ({
+        ...question,
+        ...(question.id === SUPPORTED_RAILS_FAQ_ID
+            ? { answerContent: <SupportedRailsFaqAnswer strings={strings.supportedRails} /> }
+            : {}),
+        ...(learnMoreHrefs[question.id] ? { learnMoreHref: learnMoreHrefs[question.id] } : {}),
+    }))
     // inLanguage reflects the language the FAQ prose actually resolved to —
     // until mono ships landing translations, that's English on every locale.
     const faqJsonLd = faqSchema(
@@ -41,7 +68,6 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
             <Suspense>
                 <LandingPageClient
                     heroConfig={heroConfig}
-                    faqData={faqData}
                     marqueeMessages={marqueeMessages}
                     locale={locale}
                     strings={strings}
@@ -52,6 +78,14 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     securitySlot={<SecurityBuiltIn locale={locale} />}
                     sendInSecondsSlot={<SendInSeconds locale={locale} />}
                     footerSlot={<Footer locale={locale} />}
+                    faqSlot={
+                        <FAQs
+                            heading={faqData.heading}
+                            questions={faqQuestions}
+                            learnMoreLabel={strings.learnMore}
+                            marquee={faqData.marquee}
+                        />
+                    }
                 />
             </Suspense>
         </div>

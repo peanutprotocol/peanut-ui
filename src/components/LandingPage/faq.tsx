@@ -1,5 +1,3 @@
-'use client'
-
 import Eyes from '@/assets/illustrations/eyes.svg'
 import PeanutsBG from '@/assets/illustrations/peanuts-bg.svg'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
