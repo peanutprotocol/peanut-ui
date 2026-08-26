@@ -1,0 +1,144 @@
+'use client'
+import React, { createContext, useState, useCallback, useEffect, useMemo } from 'react'
+
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens'
+import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
+import { useTokenPrice } from '@/hooks/useTokenPrice'
+import { type ITokenPriceData } from '@/interfaces/interfaces'
+import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
+
+export const tokenSelectorContext = createContext({
+    selectedTokenAddress: '',
+    selectedChainID: '',
+    devconnectTokenAddress: '',
+    devconnectChainId: '',
+    devconnectRecipientAddress: '',
+    setDevconnectTokenAddress: (_address: string) => {},
+    setDevconnectChainId: (_chainId: string) => {},
+    setDevconnectRecipientAddress: (_address: string) => {},
+    setSelectedTokenAddress: (_address: string) => {},
+    setSelectedChainID: (_chainID: string) => {},
+    updateSelectedChainID: (_chainID: string) => {},
+    refetchXchainRoute: false as boolean,
+    setRefetchXchainRoute: (_value: boolean) => {},
+    resetTokenContextProvider: () => {},
+    isXChain: false as boolean,
+    setIsXChain: (_value: boolean) => {},
+    selectedTokenData: undefined as ITokenPriceData | null | undefined,
+    isFetchingTokenData: false as boolean,
+    supportedChainsAndTokens: {} as Record<string, ChainWithTokens>,
+    selectedTokenBalance: undefined as string | undefined,
+    setSelectedTokenBalance: (_balance: string | undefined) => {},
+})
+
+/**
+ * Context provider to manage the selected token and chain ID set in the tokenSelector. Token price is fetched here and input denomination can be set here too.
+ * It handles fetching token prices, updating context values, and resetting the provider based on user preferences and wallet connection status.
+ */
+export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
+    const { isConnected: isPeanutWallet } = useWallet()
+
+    const emptyTokenData = {
+        address: '',
+        chainId: '',
+        decimals: undefined,
+    }
+
+    const [selectedTokenAddress, setSelectedTokenAddress] = useState(PEANUT_WALLET_TOKEN)
+    const [selectedChainID, setSelectedChainID] = useState(PEANUT_WALLET_CHAIN.id.toString())
+    const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
+    const [isXChain, setIsXChain] = useState<boolean>(false)
+    const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | undefined>(undefined)
+    const [devconnectTokenAddress, setDevconnectTokenAddress] = useState<string>('')
+    const [devconnectChainId, setDevconnectChainId] = useState<string>('')
+    const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
+
+    // Fetch supported chains and tokens (cached for 24 hours - static data)
+    const { data: fetchedChainsAndTokens = {} } = useSupportedChainsAndTokens()
+
+    // Merge the synthetic non-EVM withdraw destinations (Solana/Tron) here —
+    // the ONE record every selector surface AND the price hook read, so
+    // selectedTokenData resolves for them (stablecoin $1 branch) and no
+    // consumer needs its own merge/fallback. They stay invisible outside the
+    // withdraw flow: every network list is gated by allowedChainIds (the
+    // wagmi id set everywhere except withdraw), and URL parsing/validation
+    // read the server action, not this context.
+    const supportedChainsAndTokens = useMemo(
+        () => ({ ...fetchedChainsAndTokens, ...NON_EVM_WITHDRAW_CHAINS }),
+        [fetchedChainsAndTokens]
+    )
+
+    // Fetch token price using TanStack Query (replaces manual useEffect + state)
+    const {
+        data: tokenPriceData,
+        isLoading: isFetchingTokenData,
+        isFetching,
+    } = useTokenPrice({
+        tokenAddress: selectedTokenAddress,
+        chainId: selectedChainID,
+        supportedChainsAndTokens,
+        isPeanutWallet,
+    })
+
+    // Derive selectedTokenData from query (single source of truth)
+    const selectedTokenData = tokenPriceData
+
+    // Trigger xchain route refetch when token data changes
+    // This preserves the original behavior where setRefetchXchainRoute(true) was called
+    useEffect(() => {
+        if (isFetching) {
+            setRefetchXchainRoute(true)
+        }
+    }, [isFetching])
+
+    const updateSelectedChainID = (chainID: string) => {
+        setSelectedTokenAddress(NATIVE_TOKEN_ADDRESS)
+        setSelectedChainID(chainID)
+    }
+
+    const resetTokenContextProvider = useCallback(() => {
+        const tokenData = isPeanutWallet
+            ? {
+                  address: PEANUT_WALLET_TOKEN,
+                  chainId: PEANUT_WALLET_CHAIN.id.toString(),
+              }
+            : emptyTokenData
+
+        setSelectedChainID(tokenData.chainId)
+        setSelectedTokenAddress(tokenData.address)
+        // Note: decimals, price, and data are now automatically managed by useTokenPrice hook
+    }, [isPeanutWallet])
+
+    return (
+        <tokenSelectorContext.Provider
+            value={{
+                selectedTokenAddress,
+                setSelectedTokenAddress,
+                selectedChainID,
+                setSelectedChainID: setSelectedChainID,
+                updateSelectedChainID,
+                refetchXchainRoute,
+                setRefetchXchainRoute,
+                resetTokenContextProvider,
+                isXChain,
+                setIsXChain,
+                selectedTokenData,
+                isFetchingTokenData,
+                supportedChainsAndTokens,
+                selectedTokenBalance,
+                setSelectedTokenBalance,
+                devconnectTokenAddress,
+                setDevconnectTokenAddress,
+                devconnectChainId,
+                setDevconnectChainId,
+                devconnectRecipientAddress,
+                setDevconnectRecipientAddress,
+            }}
+        >
+            {children}
+        </tokenSelectorContext.Provider>
+    )
+}

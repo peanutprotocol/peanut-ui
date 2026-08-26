@@ -1,0 +1,1064 @@
+diff --git a/src/app/(mobile-ui)/withdraw/crypto/__tests__/crypto-withdraw-confirm.test.tsx b/src/app/(mobile-ui)/withdraw/crypto/__tests__/crypto-withdraw-confirm.test.tsx
+index 952d095c5..8c4411e6d 100644
+--- a/src/app/(mobile-ui)/withdraw/crypto/__tests__/crypto-withdraw-confirm.test.tsx
++++ b/src/app/(mobile-ui)/withdraw/crypto/__tests__/crypto-withdraw-confirm.test.tsx
+@@ -248,6 +248,17 @@ jest.mock('@/features/payments/shared/hooks/usePaymentRecorder', () => ({
+         reset: jest.fn(),
+     }),
+ }))
++// address book: react-query backed; these tests pin the charge-completion paths only
++jest.mock('@/hooks/useSavedAddresses', () => ({
++    useSavedAddresses: () => ({
++        savedAddresses: [],
++        isLoading: false,
++        findSaved: () => undefined,
++        save: { mutate: jest.fn() },
++        rename: { mutateAsync: jest.fn() },
++        remove: { mutateAsync: jest.fn() },
++    }),
++}))
+ 
+ import WithdrawCryptoPage from '../page'
+ 
+diff --git a/src/app/(mobile-ui)/withdraw/crypto/page.tsx b/src/app/(mobile-ui)/withdraw/crypto/page.tsx
+index 1853f97eb..95c0805fc 100644
+--- a/src/app/(mobile-ui)/withdraw/crypto/page.tsx
++++ b/src/app/(mobile-ui)/withdraw/crypto/page.tsx
+@@ -42,6 +42,9 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+ import { useTranslations } from 'next-intl'
+ import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+ import { toError } from '@/utils/to-error'
++import { useSavedAddresses } from '@/hooks/useSavedAddresses'
++import SaveAddressPrompt from '@/components/Withdraw/AddressBook/SaveAddressPrompt'
++import { savedAddressLabel } from '@/utils/saved-address.utils'
+ 
+ export default function WithdrawCryptoPage() {
+     const router = useRouter()
+@@ -115,6 +118,14 @@ export default function WithdrawCryptoPage() {
+ 
+     // local state for transaction execution
+     const [isSendingTx, setIsSendingTx] = useState(false)
++    // crypto address book: prompt to save the destination on review, label it when already saved
++    const { findSaved, save: saveAddress } = useSavedAddresses()
++    const [saveToBook, setSaveToBook] = useState(false)
++    const [bookNickname, setBookNickname] = useState('')
++    const existingSaved = withdrawData ? findSaved(withdrawData.chain.chainId, withdrawData.address) : undefined
++    const trimmedBookNickname = bookNickname.trim()
++    // success screen: the saved nickname, or the one just chosen at submit
++    const successNickname = existingSaved?.nickname ?? (saveToBook && trimmedBookNickname ? trimmedBookNickname : null)
+ 
+     // combined processing state
+     const isProcessing = useMemo(() => isSendingTx || isRecording, [isSendingTx, isRecording])
+@@ -191,6 +202,9 @@ export default function WithdrawCryptoPage() {
+ 
+     const handleSetupReview = useCallback(
+         async (data: Omit<WithdrawData, 'amount'>) => {
++            // fresh review → fresh save prompt (a previous destination's nickname must not carry over)
++            setSaveToBook(false)
++            setBookNickname('')
+             if (!amountToWithdraw) {
+                 console.error('Amount to withdraw is not set or not available from context')
+                 setError(t('errors.amountMissing'))
+@@ -343,6 +357,15 @@ export default function WithdrawCryptoPage() {
+         clearErrors()
+         setIsSendingTx(true)
+ 
++        // save-at-submit: fire alongside the on-chain leg; a failure here must not block the withdraw
++        if (!existingSaved && saveToBook && trimmedBookNickname) {
++            saveAddress.mutate({
++                address: withdrawData.address,
++                chainId: withdrawData.chain.chainId,
++                nickname: trimmedBookNickname,
++            })
++        }
++
+         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
+             amount_usd: usdAmount,
+             method_type: 'crypto',
+@@ -527,6 +550,10 @@ export default function WithdrawCryptoPage() {
+         triggerHaptic,
+         t,
+         toFriendlyError,
++        existingSaved,
++        saveToBook,
++        trimmedBookNickname,
++        saveAddress,
+     ])
+ 
+     const handleBackFromConfirm = useCallback(() => {
+@@ -638,6 +665,17 @@ export default function WithdrawCryptoPage() {
+                     insufficientBalance={insufficientForFee}
+                     belowMinimumMessage={belowMinimumMessage}
+                     isFromSendFlow={isFromSendFlow}
++                    toNickname={existingSaved?.nickname}
++                    saveAddressPrompt={
++                        !existingSaved && (
++                            <SaveAddressPrompt
++                                checked={saveToBook}
++                                nickname={bookNickname}
++                                onCheckedChange={setSaveToBook}
++                                onNicknameChange={setBookNickname}
++                            />
++                        )
++                    }
+                 />
+             )}
+ 
+@@ -659,10 +697,16 @@ export default function WithdrawCryptoPage() {
+                         paymentDetails={paymentDetails}
+                         usdAmount={usdAmount}
+                         message={
+-                            <AddressLink
+-                                className="text-sm font-normal text-grey-1 no-underline"
+-                                address={withdrawData.address}
+-                            />
++                            successNickname ? (
++                                <span className="text-sm font-normal text-grey-1">
++                                    {savedAddressLabel(successNickname, withdrawData.address)}
++                                </span>
++                            ) : (
++                                <AddressLink
++                                    className="text-sm font-normal text-grey-1 no-underline"
++                                    address={withdrawData.address}
++                                />
++                            )
+                         }
+                     />
+                 </>
+diff --git a/src/components/AddWithdraw/AddWithdrawRouterView.tsx b/src/components/AddWithdraw/AddWithdrawRouterView.tsx
+index 2979192db..bf9bf8c3f 100644
+--- a/src/components/AddWithdraw/AddWithdrawRouterView.tsx
++++ b/src/components/AddWithdraw/AddWithdrawRouterView.tsx
+@@ -11,7 +11,7 @@ import {
+ import { useRouter, useSearchParams } from 'next/navigation'
+ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
+ import { addMoneyCountryUrl, withdrawCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
+-import { type FC, useEffect, useRef, useState, useTransition, useCallback } from 'react'
++import { type FC, useEffect, useRef, useState, useTransition, useCallback, useContext } from 'react'
+ import { useUserStore } from '@/redux/hooks'
+ import { AccountType, type Account } from '@/interfaces/interfaces'
+ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+@@ -26,6 +26,10 @@ import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmat
+ import posthog from 'posthog-js'
+ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+ import { useTranslations } from 'next-intl'
++import { useSavedAddresses } from '@/hooks/useSavedAddresses'
++import SavedAddressEditDrawer from '@/components/Withdraw/AddressBook/SavedAddressEditDrawer'
++import { tokenSelectorContext } from '@/context/tokenSelector.context'
++import type { SavedAddress } from '@/interfaces/interfaces'
+ 
+ interface AddWithdrawRouterViewProps {
+     flow: 'add' | 'withdraw'
+@@ -68,8 +72,18 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
+     const t = useTranslations('withdraw')
+     const tAddMoney = useTranslations('addMoney')
+     const tCommon = useTranslations('common')
+-    const { setSelectedBankAccount, showAllWithdrawMethods, setShowAllWithdrawMethods, setSelectedMethod } =
+-        useWithdrawFlow()
++    const {
++        setSelectedBankAccount,
++        showAllWithdrawMethods,
++        setShowAllWithdrawMethods,
++        setSelectedMethod,
++        setRecipient,
++        setIsValidRecipient,
++    } = useWithdrawFlow()
++    // crypto address book — only meaningful on the withdraw flow, hook is cheap otherwise
++    const { savedAddresses, rename: renameSavedAddress, remove: removeSavedAddress } = useSavedAddresses()
++    const { setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
++    const [editingSavedAddress, setEditingSavedAddress] = useState<SavedAddress | null>(null)
+     const onrampFlowContext = useOnrampFlow()
+     const { setFromBankSelected } = onrampFlowContext
+     const [recentMethodsState, setRecentMethodsState] = useState<RecentMethod[]>([])
+@@ -190,6 +204,18 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
+ 
+     const defaultBackNavigation = () => router.push('/home')
+ 
++    // address-book tap: preselect chain + USDC on it, prefill the destination, then
++    // pick the crypto method exactly like the "Crypto" tile (no navigation — the
++    // withdraw page owns the amount step and pushes /withdraw/crypto after Continue)
++    const handleSavedAddressClick = (saved: SavedAddress) => {
++        const usdc = supportedChainsAndTokens?.[saved.chainId]?.tokens.find((t) => t.symbol.toUpperCase() === 'USDC')
++        setSelectedChainID(saved.chainId)
++        setSelectedTokenAddress(usdc?.address ?? '')
++        setRecipient({ name: undefined, address: saved.address })
++        setIsValidRecipient(true)
++        handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
++    }
++
+     // check if we're coming from request fulfillment or similar flow
+     const fromRequestFulfillment = typeof window !== 'undefined' && getFromLocalStorage('fromRequestFulfillment')
+ 
+@@ -201,7 +227,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
+         )
+     }
+ 
+-    if (flow === 'withdraw' && savedAccounts.length === 0 && !shouldShowAllMethods) {
++    if (flow === 'withdraw' && savedAccounts.length === 0 && savedAddresses.length === 0 && !shouldShowAllMethods) {
+         return (
+             <div className="flex min-h-[inherit] flex-col justify-start gap-8">
+                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
+@@ -224,30 +250,41 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
+     }
+ 
+     // Render saved accounts for withdraw flow if they exist and we're not in 'showAll' mode
+-    if (flow === 'withdraw' && !shouldShowAllMethods && savedAccounts.length > 0) {
++    if (flow === 'withdraw' && !shouldShowAllMethods && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
+         return (
+-            <SavedAccountsView
+-                pageTitle={pageTitle}
+-                onPrev={onBackClick || defaultBackNavigation}
+-                savedAccounts={savedAccounts}
+-                onAccountClick={(account, path) => {
+-                    setSelectedBankAccount(account)
+-                    const countryPath = account.details?.countryName || path || ''
+-                    setSelectedMethod({
+-                        type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
+-                        countryPath,
+-                        title: 'To Bank',
+-                    })
+-                    if (account.type === AccountType.MANTECA) {
+-                        // preserve method param if coming from send flow
+-                        const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
+-                        router.push(
+-                            `/withdraw/manteca?country=${encodeURIComponent(countryPath)}&destination=${encodeURIComponent(account.identifier)}&isSavedAccount=true${additionalParams}`
+-                        )
+-                    }
+-                }}
+-                onSelectNewMethodClick={() => setShouldShowAllMethods(true)}
+-            />
++            <>
++                <SavedAddressEditDrawer
++                    saved={editingSavedAddress}
++                    onClose={() => setEditingSavedAddress(null)}
++                    onRename={(id, nickname) => renameSavedAddress.mutateAsync({ id, nickname })}
++                    onDelete={(id) => removeSavedAddress.mutateAsync(id)}
++                />
++                <SavedAccountsView
++                    pageTitle={pageTitle}
++                    onPrev={onBackClick || defaultBackNavigation}
++                    savedAccounts={savedAccounts}
++                    onAccountClick={(account, path) => {
++                        setSelectedBankAccount(account)
++                        const countryPath = account.details?.countryName || path || ''
++                        setSelectedMethod({
++                            type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
++                            countryPath,
++                            title: 'To Bank',
++                        })
++                        if (account.type === AccountType.MANTECA) {
++                            // preserve method param if coming from send flow
++                            const additionalParams = isBankFromSend ? `&method=${methodParam}` : ''
++                            router.push(
++                                `/withdraw/manteca?country=${encodeURIComponent(countryPath)}&destination=${encodeURIComponent(account.identifier)}&isSavedAccount=true${additionalParams}`
++                            )
++                        }
++                    }}
++                    onSelectNewMethodClick={() => setShouldShowAllMethods(true)}
++                    savedAddresses={savedAddresses}
++                    onSavedAddressClick={handleSavedAddressClick}
++                    onSavedAddressEdit={setEditingSavedAddress}
++                />
++            </>
+         )
+     }
+ 
+diff --git a/src/components/AddWithdraw/__tests__/AddWithdrawRouterView.test.tsx b/src/components/AddWithdraw/__tests__/AddWithdrawRouterView.test.tsx
+index 4617dabf2..54d692650 100644
+--- a/src/components/AddWithdraw/__tests__/AddWithdrawRouterView.test.tsx
++++ b/src/components/AddWithdraw/__tests__/AddWithdrawRouterView.test.tsx
+@@ -114,6 +114,20 @@ jest.mock('../../Global/TokenAndNetworkConfirmationModal', () => ({
+     __esModule: true,
+     default: () => null,
+ }))
++// address book is react-query backed; this file pins the bank-account paths only
++jest.mock('@/hooks/useSavedAddresses', () => ({
++    useSavedAddresses: () => ({
++        savedAddresses: [],
++        isLoading: false,
++        findSaved: () => undefined,
++        rename: { mutateAsync: jest.fn() },
++        remove: { mutateAsync: jest.fn() },
++    }),
++}))
++jest.mock('../../Withdraw/AddressBook/SavedAddressEditDrawer', () => ({
++    __esModule: true,
++    default: () => null,
++}))
+ 
+ import { AddWithdrawRouterView } from '../AddWithdrawRouterView'
+ import { WithdrawFlowContextProvider, useWithdrawFlow } from '@/context/WithdrawFlowContext'
+diff --git a/src/components/Common/SavedAccountsView.tsx b/src/components/Common/SavedAccountsView.tsx
+index 9a70784c4..04128c08d 100644
+--- a/src/components/Common/SavedAccountsView.tsx
++++ b/src/components/Common/SavedAccountsView.tsx
+@@ -1,7 +1,8 @@
+ 'use client'
+ import { countryData as ALL_METHODS_DATA, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
+ import { formatIban } from '@/utils/general.utils'
+-import { AccountType, type Account } from '@/interfaces/interfaces'
++import { AccountType, type Account, type SavedAddress } from '@/interfaces/interfaces'
++import SavedAddressesList from '@/components/Withdraw/AddressBook/SavedAddressesList'
+ import Image from 'next/image'
+ import { useTranslations } from 'next-intl'
+ import { Icon } from '@/components/Global/Icons/Icon'
+@@ -18,6 +19,10 @@ interface SavedAccountListProps {
+     savedAccounts: Account[]
+     onAccountClick: (account: Account, path: string) => void
+     onSelectNewMethodClick: () => void
++    /** Crypto address book — rendered as its own list under the bank accounts. */
++    savedAddresses?: SavedAddress[]
++    onSavedAddressClick?: (saved: SavedAddress) => void
++    onSavedAddressEdit?: (saved: SavedAddress) => void
+ }
+ 
+ /**
+@@ -36,6 +41,9 @@ export default function SavedAccountsView({
+     savedAccounts,
+     onAccountClick,
+     onSelectNewMethodClick,
++    savedAddresses = [],
++    onSavedAddressClick,
++    onSavedAddressEdit,
+ }: SavedAccountListProps) {
+     const t = useTranslations('global')
+     const tCommon = useTranslations('common')
+@@ -43,10 +51,22 @@ export default function SavedAccountsView({
+         <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+             <NavHeader title={pageTitle} onPrev={onPrev} />
+             <div className="space-y-4">
+-                <div className="flex h-full flex-col justify-center space-y-2">
+-                    <h2 className="text-base font-bold">{t('savedAccounts.title')}</h2>
+-                    <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
+-                </div>
++                {savedAccounts.length > 0 && (
++                    <div className="flex h-full flex-col justify-center space-y-2">
++                        <h2 className="text-base font-bold">{t('savedAccounts.title')}</h2>
++                        <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
++                    </div>
++                )}
++                {savedAddresses.length > 0 && onSavedAddressClick && onSavedAddressEdit && (
++                    <div className="flex h-full flex-col justify-center space-y-2">
++                        <h2 className="text-base font-bold">{t('savedAddresses.title')}</h2>
++                        <SavedAddressesList
++                            savedAddresses={savedAddresses}
++                            onSelect={onSavedAddressClick}
++                            onEdit={onSavedAddressEdit}
++                        />
++                    </div>
++                )}
+                 <Divider textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" text={tCommon('or')} />
+                 <Button icon="plus" onClick={onSelectNewMethodClick} shadowSize="4">
+                     {t('savedAccounts.selectNewMethod')}
+diff --git a/src/components/TransactionDetails/strategies/intent/crypto.ts b/src/components/TransactionDetails/strategies/intent/crypto.ts
+index c32fa8433..a280796e3 100644
+--- a/src/components/TransactionDetails/strategies/intent/crypto.ts
++++ b/src/components/TransactionDetails/strategies/intent/crypto.ts
+@@ -1,6 +1,7 @@
+ import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
+ import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
+ import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
++import { savedAddressLabel } from '@/utils/saved-address.utils'
+ 
+ export const cryptoDeposit: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => ({
+     direction: 'add',
+@@ -33,7 +34,12 @@ export const cryptoWithdraw: TransactionStrategy = (entry: HistoryEntry): Transa
+     return {
+         direction: 'withdraw',
+         transactionCardType: 'withdraw',
+-        nameForDetails: entry.recipientAccount?.identifier || 'External Account',
++        // Address-book nickname rides on extraData.savedAddressNickname → "Binance · …aec9"
++        nameForDetails: entry.recipientAccount?.identifier
++            ? entry.extraData?.savedAddressNickname
++                ? savedAddressLabel(entry.extraData.savedAddressNickname, entry.recipientAccount.identifier)
++                : entry.recipientAccount.identifier
++            : 'External Account',
+         nameKey: entry.recipientAccount?.identifier ? undefined : TRANSACTION_NAME_KEYS.externalAccount,
+         isPeerActuallyUser: false,
+         isLinkTx: false,
+diff --git a/src/components/Withdraw/AddressBook/LastUsedPill.tsx b/src/components/Withdraw/AddressBook/LastUsedPill.tsx
+new file mode 100644
+index 000000000..cb3489d1c
+--- /dev/null
++++ b/src/components/Withdraw/AddressBook/LastUsedPill.tsx
+@@ -0,0 +1,27 @@
++import { useTranslations } from 'next-intl'
++import { twMerge } from 'tailwind-merge'
++import { daysSince, lastUsedTone, type LastUsedTone } from '@/utils/saved-address.utils'
++
++const TONE_CLASS: Record<LastUsedTone, string> = {
++    recent: 'bg-green-1 text-black',
++    aging: 'bg-orange-1 text-black',
++    stale: 'bg-orange-2 text-white',
++}
++
++/** "Used today / 3 days ago" pill; colour = how long since the last withdraw to this address. */
++export default function LastUsedPill({ lastUsedAt, className }: { lastUsedAt: string; className?: string }) {
++    const t = useTranslations('global')
++    const days = daysSince(lastUsedAt)
++    return (
++        <span
++            data-tone={lastUsedTone(days)}
++            className={twMerge(
++                'inline-block rounded-sm border border-n-1 px-1.5 py-0.5 text-[10px] font-bold leading-tight',
++                TONE_CLASS[lastUsedTone(days)],
++                className
++            )}
++        >
++            {t('savedAddresses.lastUsed', { days })}
++        </span>
++    )
++}
+diff --git a/src/components/Withdraw/AddressBook/SaveAddressPrompt.tsx b/src/components/Withdraw/AddressBook/SaveAddressPrompt.tsx
+new file mode 100644
+index 000000000..a1ec4d625
+--- /dev/null
++++ b/src/components/Withdraw/AddressBook/SaveAddressPrompt.tsx
+@@ -0,0 +1,46 @@
++'use client'
++import { useTranslations } from 'next-intl'
++import BaseInput from '@/components/0_Bruddle/BaseInput'
++import Checkbox from '@/components/0_Bruddle/Checkbox'
++import Card from '@/components/Global/Card'
++import { SAVED_ADDRESS_NICKNAME_MAX } from '@/utils/saved-address.utils'
++
++interface SaveAddressPromptProps {
++    checked: boolean
++    nickname: string
++    onCheckedChange: (checked: boolean) => void
++    onNicknameChange: (nickname: string) => void
++}
++
++/** Review-screen prompt: "Save to address book" + nickname (≤15 chars). */
++export default function SaveAddressPrompt({
++    checked,
++    nickname,
++    onCheckedChange,
++    onNicknameChange,
++}: SaveAddressPromptProps) {
++    const t = useTranslations('global')
++    return (
++        <Card className="flex flex-col gap-3 p-4">
++            <Checkbox
++                label={t('savedAddresses.savePrompt')}
++                value={checked}
++                onChange={(e) => onCheckedChange(e.target.checked)}
++            />
++            {checked && (
++                <BaseInput
++                    autoFocus
++                    value={nickname}
++                    maxLength={SAVED_ADDRESS_NICKNAME_MAX}
++                    onChange={(e) => onNicknameChange(e.target.value)}
++                    placeholder={t('savedAddresses.nicknamePlaceholder')}
++                    rightContent={
++                        <span className="text-xs text-grey-1">
++                            {nickname.length}/{SAVED_ADDRESS_NICKNAME_MAX}
++                        </span>
++                    }
++                />
++            )}
++        </Card>
++    )
++}
+diff --git a/src/components/Withdraw/AddressBook/SavedAddressEditDrawer.tsx b/src/components/Withdraw/AddressBook/SavedAddressEditDrawer.tsx
+new file mode 100644
+index 000000000..228cb9998
+--- /dev/null
++++ b/src/components/Withdraw/AddressBook/SavedAddressEditDrawer.tsx
+@@ -0,0 +1,91 @@
++'use client'
++import { useEffect, useState } from 'react'
++import { useTranslations } from 'next-intl'
++import { Button } from '@/components/0_Bruddle/Button'
++import BaseInput from '@/components/0_Bruddle/BaseInput'
++import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
++import type { SavedAddress } from '@/interfaces/interfaces'
++import { SAVED_ADDRESS_NICKNAME_MAX, shortSavedAddress } from '@/utils/saved-address.utils'
++
++interface SavedAddressEditDrawerProps {
++    saved: SavedAddress | null
++    onClose: () => void
++    onRename: (id: string, nickname: string) => Promise<unknown>
++    onDelete: (id: string) => Promise<unknown>
++}
++
++/** Rename or delete one address-book entry. */
++export default function SavedAddressEditDrawer({ saved, onClose, onRename, onDelete }: SavedAddressEditDrawerProps) {
++    const t = useTranslations('global')
++    const tCommon = useTranslations('common')
++    const [nickname, setNickname] = useState('')
++    const [busy, setBusy] = useState<'rename' | 'delete' | null>(null)
++
++    useEffect(() => {
++        if (saved) setNickname(saved.nickname)
++    }, [saved])
++
++    const trimmed = nickname.trim()
++    const canSave = !!saved && trimmed.length > 0 && trimmed !== saved.nickname
++
++    const run = async (kind: 'rename' | 'delete', fn: () => Promise<unknown>) => {
++        setBusy(kind)
++        try {
++            await fn()
++            onClose()
++        } finally {
++            setBusy(null)
++        }
++    }
++
++    return (
++        <Drawer open={!!saved} dismissible={!busy} onOpenChange={(open) => !open && !busy && onClose()}>
++            <DrawerContent>
++                <div className="flex flex-col gap-4 px-5 pb-6 pt-1">
++                    <DrawerHeader className="w-full gap-1 p-0 text-left sm:text-left">
++                        <DrawerTitle className="text-base font-bold text-black">
++                            {t('savedAddresses.editTitle')}
++                        </DrawerTitle>
++                        <DrawerDescription className="text-sm text-grey-1">
++                            {saved ? shortSavedAddress(saved.address) : ''}
++                        </DrawerDescription>
++                    </DrawerHeader>
++                    <label className="flex flex-col gap-1">
++                        <span className="text-xs font-bold">{t('savedAddresses.nicknameLabel')}</span>
++                        <BaseInput
++                            value={nickname}
++                            maxLength={SAVED_ADDRESS_NICKNAME_MAX}
++                            onChange={(e) => setNickname(e.target.value)}
++                            placeholder={t('savedAddresses.nicknamePlaceholder')}
++                            rightContent={
++                                <span className="text-xs text-grey-1">
++                                    {nickname.length}/{SAVED_ADDRESS_NICKNAME_MAX}
++                                </span>
++                            }
++                        />
++                    </label>
++                    <Button
++                        variant="purple"
++                        shadowSize="4"
++                        className="w-full"
++                        disabled={!canSave || !!busy}
++                        loading={busy === 'rename'}
++                        onClick={() => saved && run('rename', () => onRename(saved.id, trimmed))}
++                    >
++                        {tCommon('save')}
++                    </Button>
++                    <Button
++                        variant="stroke"
++                        className="w-full"
++                        icon="trash"
++                        disabled={!!busy}
++                        loading={busy === 'delete'}
++                        onClick={() => saved && run('delete', () => onDelete(saved.id))}
++                    >
++                        {t('savedAddresses.deleteCta')}
++                    </Button>
++                </div>
++            </DrawerContent>
++        </Drawer>
++    )
++}
+diff --git a/src/components/Withdraw/AddressBook/SavedAddressesList.tsx b/src/components/Withdraw/AddressBook/SavedAddressesList.tsx
+new file mode 100644
+index 000000000..b4b074c83
+--- /dev/null
++++ b/src/components/Withdraw/AddressBook/SavedAddressesList.tsx
+@@ -0,0 +1,82 @@
++'use client'
++import { useContext } from 'react'
++import { useTranslations } from 'next-intl'
++import { ActionListCard } from '@/components/ActionListCard'
++import DisplayIcon from '@/components/Global/DisplayIcon'
++import { Icon } from '@/components/Global/Icons/Icon'
++import { tokenSelectorContext } from '@/context/tokenSelector.context'
++import type { SavedAddress } from '@/interfaces/interfaces'
++import { getChainName } from '@/utils/general.utils'
++import { shortSavedAddress } from '@/utils/saved-address.utils'
++import LastUsedPill from './LastUsedPill'
++
++interface SavedAddressesListProps {
++    savedAddresses: SavedAddress[]
++    onSelect: (saved: SavedAddress) => void
++    onEdit: (saved: SavedAddress) => void
++}
++
++/** Crypto address book rows: nickname, short address on chain, last-used pill, edit affordance. */
++export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }: SavedAddressesListProps) {
++    const t = useTranslations('global')
++    const { supportedChainsAndTokens } = useContext(tokenSelectorContext)
++
++    return (
++        <div className="flex flex-col">
++            {savedAddresses.map((saved, index) => {
++                const chain = supportedChainsAndTokens?.[saved.chainId]
++                const chainName = chain?.networkName || getChainName(saved.chainId) || saved.chainId
++                const position =
++                    savedAddresses.length === 1
++                        ? 'single'
++                        : index === 0
++                          ? 'first'
++                          : index === savedAddresses.length - 1
++                            ? 'last'
++                            : 'middle'
++                return (
++                    <ActionListCard
++                        key={saved.id}
++                        position={position}
++                        className="p-4 py-2.5"
++                        onClick={() => onSelect(saved)}
++                        title={
++                            <span className="flex items-center gap-2">
++                                <span className="truncate">{saved.nickname}</span>
++                                <LastUsedPill lastUsedAt={saved.lastUsedAt} />
++                            </span>
++                        }
++                        description={`${shortSavedAddress(saved.address)} · ${chainName}`}
++                        leftIcon={
++                            <div className="relative h-8 w-8">
++                                <DisplayIcon
++                                    iconUrl={chain?.chainIconURI}
++                                    altText={chainName}
++                                    fallbackName={chainName}
++                                    sizeClass="h-8 w-8"
++                                    className="rounded-full"
++                                />
++                                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 p-1">
++                                    <Icon size={12} name="wallet" className="text-black" />
++                                </div>
++                            </div>
++                        }
++                        rightContent={
++                            <button
++                                type="button"
++                                aria-label={t('savedAddresses.editAria', { nickname: saved.nickname })}
++                                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-grey-4"
++                                onClick={(e) => {
++                                    e.stopPropagation()
++                                    onEdit(saved)
++                                }}
++                            >
++                                <Icon name="more-horizontal" size={18} />
++                            </button>
++                        }
++                    />
++                )
++            })}
++        </div>
++    )
++}
+diff --git a/src/components/Withdraw/AddressBook/__tests__/SavedAddressesList.test.tsx b/src/components/Withdraw/AddressBook/__tests__/SavedAddressesList.test.tsx
+new file mode 100644
+index 000000000..d8c0b89ad
+--- /dev/null
++++ b/src/components/Withdraw/AddressBook/__tests__/SavedAddressesList.test.tsx
+@@ -0,0 +1,55 @@
++/**
++ * SavedAddressesList — the crypto address book rows.
++ * Pins: nickname + 4+4 address + chain, the last-used tone, tap → onSelect,
++ * and that the edit affordance does NOT also fire onSelect (a tap on "…"
++ * that started a withdraw would be a nasty surprise).
++ */
++import React from 'react'
++import { fireEvent, render, screen } from '@testing-library/react'
++import { IntlWrapper } from '@/test-utils/intl'
++import SavedAddressesList from '../SavedAddressesList'
++import type { SavedAddress } from '@/interfaces/interfaces'
++
++jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
++jest.mock('@/components/Global/DisplayIcon', () => ({
++    __esModule: true,
++    default: (props: { altText: string }) => <div data-testid="chain-icon">{props.altText}</div>,
++}))
++
++const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString()
++const row = (over: Partial<SavedAddress>): SavedAddress => ({
++    id: 'id-1',
++    address: '0xab5801a7d398351b8be11c439e05c5b3259aec9b',
++    chainId: '42161',
++    nickname: 'Binance',
++    lastUsedAt: daysAgo(1),
++    createdAt: daysAgo(1),
++    ...over,
++})
++
++describe('SavedAddressesList', () => {
++    it('renders nickname, short address, and the last-used pill tone', () => {
++        const rows = [row({}), row({ id: 'id-2', nickname: 'Cold', lastUsedAt: daysAgo(45) })]
++        render(<SavedAddressesList savedAddresses={rows} onSelect={jest.fn()} onEdit={jest.fn()} />, {
++            wrapper: IntlWrapper,
++        })
++        expect(screen.getByText('Binance')).toBeInTheDocument()
++        expect(screen.getAllByText(/0xab58…ec9b/)).toHaveLength(2)
++        expect(screen.getByText('Used yesterday')).toHaveAttribute('data-tone', 'recent')
++        expect(screen.getByText('Used 45 days ago')).toHaveAttribute('data-tone', 'stale')
++    })
++
++    it('tap selects; the edit button edits without selecting', () => {
++        const onSelect = jest.fn()
++        const onEdit = jest.fn()
++        const saved = row({})
++        render(<SavedAddressesList savedAddresses={[saved]} onSelect={onSelect} onEdit={onEdit} />, {
++            wrapper: IntlWrapper,
++        })
++        fireEvent.click(screen.getByLabelText('Edit Binance'))
++        expect(onEdit).toHaveBeenCalledWith(saved)
++        expect(onSelect).not.toHaveBeenCalled()
++        fireEvent.click(screen.getByText('Binance'))
++        expect(onSelect).toHaveBeenCalledWith(saved)
++    })
++})
+diff --git a/src/components/Withdraw/views/Confirm.withdraw.view.tsx b/src/components/Withdraw/views/Confirm.withdraw.view.tsx
+index c32362309..28c50b018 100644
+--- a/src/components/Withdraw/views/Confirm.withdraw.view.tsx
++++ b/src/components/Withdraw/views/Confirm.withdraw.view.tsx
+@@ -16,6 +16,7 @@ import type { ChainWithTokens } from '@/interfaces/chain-meta'
+ import { useMemo } from 'react'
+ import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
+ import { useTranslations } from 'next-intl'
++import { savedAddressLabel } from '@/utils/saved-address.utils'
+ 
+ interface WithdrawConfirmViewProps {
+     amount: string
+@@ -64,6 +65,10 @@ interface WithdrawConfirmViewProps {
+     belowMinimumMessage?: string | null
+     /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
+     isFromSendFlow?: boolean
++    /** Address-book nickname when the destination is already saved — "To" renders "Nickname · …abcd". */
++    toNickname?: string | null
++    /** "Save to address book" prompt, rendered under the details card (only when not yet saved). */
++    saveAddressPrompt?: React.ReactNode
+ }
+ 
+ export default function ConfirmWithdrawView({
+@@ -85,6 +90,8 @@ export default function ConfirmWithdrawView({
+     insufficientBalance = false,
+     belowMinimumMessage = null,
+     isFromSendFlow = false,
++    toNickname = null,
++    saveAddressPrompt = null,
+ }: WithdrawConfirmViewProps) {
+     const t = useTranslations('withdraw')
+     const tNav = useTranslations('navigation')
+@@ -184,7 +191,13 @@ export default function ConfirmWithdrawView({
+                     />
+                     <PaymentInfoRow
+                         label={t('confirm.to')}
+-                        value={<AddressLink isLink={false} address={toAddress} className="text-black no-underline" />}
++                        value={
++                            toNickname ? (
++                                <span className="text-black">{savedAddressLabel(toNickname, toAddress)}</span>
++                            ) : (
++                                <AddressLink isLink={false} address={toAddress} className="text-black no-underline" />
++                            )
++                        }
+                     />
+                     <PaymentInfoRow
+                         label={t('confirm.networkFee')}
+@@ -198,6 +211,8 @@ export default function ConfirmWithdrawView({
+                     <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value={`$${peanutFee}`} />
+                 </Card>
+ 
++                {saveAddressPrompt}
++
+                 {showHighFeeWarning && (
+                     <InfoCard variant="info" icon="info" description={t('confirm.highFeeWarning')} />
+                 )}
+diff --git a/src/constants/query.consts.ts b/src/constants/query.consts.ts
+index 01588e103..9105a84dd 100644
+--- a/src/constants/query.consts.ts
++++ b/src/constants/query.consts.ts
+@@ -1,6 +1,7 @@
+ export const USER = 'user'
+ export const TRANSACTIONS = 'transactions'
+ export const CONTACTS = 'contacts'
++export const SAVED_ADDRESSES = 'saved-addresses'
+ export const CLAIM_LINK = 'claimLink'
+ export const CLAIM_LINK_XCHAIN = 'claimLinkXChain'
+ export const LIMITS = 'limits'
+diff --git a/src/hooks/useSavedAddresses.ts b/src/hooks/useSavedAddresses.ts
+new file mode 100644
+index 000000000..1d6a1487c
+--- /dev/null
++++ b/src/hooks/useSavedAddresses.ts
+@@ -0,0 +1,42 @@
++'use client'
++import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
++import { SAVED_ADDRESSES } from '@/constants/query.consts'
++import { savedAddressesApi, type SaveAddressInput } from '@/services/saved-addresses'
++import { useUserStore } from '@/redux/hooks'
++import type { SavedAddress } from '@/interfaces/interfaces'
++import { savedAddressKey } from '@/utils/saved-address.utils'
++
++/** The user's crypto address book, plus save / rename / remove. Every mutation refetches the list. */
++export function useSavedAddresses() {
++    const { user } = useUserStore()
++    const queryClient = useQueryClient()
++    const invalidate = () => queryClient.invalidateQueries({ queryKey: [SAVED_ADDRESSES] })
++
++    const query = useQuery({
++        queryKey: [SAVED_ADDRESSES],
++        queryFn: savedAddressesApi.list,
++        enabled: !!user,
++        staleTime: 5 * 60 * 1000,
++    })
++
++    const save = useMutation({
++        mutationFn: (input: SaveAddressInput) => savedAddressesApi.save(input),
++        onSuccess: invalidate,
++    })
++    const rename = useMutation({
++        mutationFn: ({ id, nickname }: { id: string; nickname: string }) => savedAddressesApi.rename(id, nickname),
++        onSuccess: invalidate,
++    })
++    const remove = useMutation({
++        mutationFn: (id: string) => savedAddressesApi.remove(id),
++        onSuccess: invalidate,
++    })
++
++    const savedAddresses = query.data ?? []
++    const findSaved = (chainId: string | number, address: string): SavedAddress | undefined => {
++        const key = savedAddressKey(chainId, address)
++        return savedAddresses.find((s) => savedAddressKey(s.chainId, s.address) === key)
++    }
++
++    return { savedAddresses, isLoading: query.isLoading, findSaved, save, rename, remove }
++}
+diff --git a/src/i18n/app/messages/en.json b/src/i18n/app/messages/en.json
+index 70ad28a3f..a768d0873 100644
+--- a/src/i18n/app/messages/en.json
++++ b/src/i18n/app/messages/en.json
+@@ -3072,6 +3072,16 @@
+             "flagAlt": "{country} flag",
+             "flagAltGeneric": "Country flag"
+         },
++        "savedAddresses": {
++            "title": "Crypto address book",
++            "lastUsed": "{days, plural, =0 {Used today} =1 {Used yesterday} other {Used # days ago}}",
++            "editTitle": "Edit address",
++            "editAria": "Edit {nickname}",
++            "nicknameLabel": "Nickname",
++            "nicknamePlaceholder": "e.g. Binance",
++            "deleteCta": "Delete address",
++            "savePrompt": "Save to address book"
++        },
+         "forceIosPwaInstall": {
+             "videoUnsupported": "Your browser does not support the video tag.",
+             "title": "Get the full experience",
+diff --git a/src/i18n/app/messages/es-419.json b/src/i18n/app/messages/es-419.json
+index 16a6df215..e9cca0163 100644
+--- a/src/i18n/app/messages/es-419.json
++++ b/src/i18n/app/messages/es-419.json
+@@ -3072,6 +3072,16 @@
+             "flagAlt": "Bandera de {country}",
+             "flagAltGeneric": "Bandera del país"
+         },
++        "savedAddresses": {
++            "title": "Libreta de direcciones cripto",
++            "lastUsed": "{days, plural, =0 {Usada hoy} =1 {Usada ayer} other {Usada hace # días}}",
++            "editTitle": "Editar dirección",
++            "editAria": "Editar {nickname}",
++            "nicknameLabel": "Apodo",
++            "nicknamePlaceholder": "p. ej. Binance",
++            "deleteCta": "Eliminar dirección",
++            "savePrompt": "Guardar en la libreta"
++        },
+         "forceIosPwaInstall": {
+             "videoUnsupported": "Tu navegador no admite la etiqueta de video.",
+             "title": "Vive la experiencia completa",
+diff --git a/src/i18n/app/messages/pt-BR.json b/src/i18n/app/messages/pt-BR.json
+index 9be2cea35..c813d614f 100644
+--- a/src/i18n/app/messages/pt-BR.json
++++ b/src/i18n/app/messages/pt-BR.json
+@@ -3072,6 +3072,16 @@
+             "flagAlt": "Bandeira de {country}",
+             "flagAltGeneric": "Bandeira do país"
+         },
++        "savedAddresses": {
++            "title": "Agenda de endereços cripto",
++            "lastUsed": "{days, plural, =0 {Usado hoje} =1 {Usado ontem} other {Usado há # dias}}",
++            "editTitle": "Editar endereço",
++            "editAria": "Editar {nickname}",
++            "nicknameLabel": "Apelido",
++            "nicknamePlaceholder": "ex.: Binance",
++            "deleteCta": "Excluir endereço",
++            "savePrompt": "Salvar na agenda"
++        },
+         "forceIosPwaInstall": {
+             "videoUnsupported": "Seu navegador não suporta a tag de vídeo.",
+             "title": "Tenha a experiência completa",
+diff --git a/src/interfaces/interfaces.ts b/src/interfaces/interfaces.ts
+index 966b3328e..7c038c04d 100644
+--- a/src/interfaces/interfaces.ts
++++ b/src/interfaces/interfaces.ts
+@@ -314,6 +314,18 @@ export interface Contact {
+     transactionCount: number
+ }
+ 
++/** Crypto address book entry (GET /users/saved-addresses). */
++export interface SavedAddress {
++    id: string
++    /** Storage form: lowercase hex, verbatim base58 (Tron/Solana). */
++    address: string
++    /** As the withdraw flow stores it: numeric id for EVM, chain name for non-EVM ('tron', 'solana'). */
++    chainId: string
++    nickname: string
++    lastUsedAt: string
++    createdAt: string
++}
++
+ export interface ContactsResponse {
+     contacts: Contact[]
+     total: number
+diff --git a/src/services/saved-addresses.ts b/src/services/saved-addresses.ts
+new file mode 100644
+index 000000000..549911f2a
+--- /dev/null
++++ b/src/services/saved-addresses.ts
+@@ -0,0 +1,40 @@
++import { apiFetch } from '@/utils/api-fetch'
++import { apiErrorFromResponse } from './api-error'
++import type { SavedAddress } from '@/interfaces/interfaces'
++
++export interface SaveAddressInput {
++    address: string
++    chainId: string
++    nickname: string
++}
++
++export const savedAddressesApi = {
++    list: async (): Promise<SavedAddress[]> => {
++        const response = await apiFetch('/users/saved-addresses', { method: 'GET' })
++        if (!response.ok) throw await apiErrorFromResponse(response, 'Failed to load saved addresses')
++        const body = (await response.json()) as { savedAddresses: SavedAddress[] }
++        return body.savedAddresses
++    },
++
++    save: async (input: SaveAddressInput): Promise<SavedAddress> => {
++        const response = await apiFetch('/users/saved-addresses', { method: 'POST', body: JSON.stringify(input) })
++        if (!response.ok) throw await apiErrorFromResponse(response, 'Failed to save address')
++        const body = (await response.json()) as { savedAddress: SavedAddress }
++        return body.savedAddress
++    },
++
++    rename: async (id: string, nickname: string): Promise<SavedAddress> => {
++        const response = await apiFetch(`/users/saved-addresses/${id}`, {
++            method: 'PATCH',
++            body: JSON.stringify({ nickname }),
++        })
++        if (!response.ok) throw await apiErrorFromResponse(response, 'Failed to rename address')
++        const body = (await response.json()) as { savedAddress: SavedAddress }
++        return body.savedAddress
++    },
++
++    remove: async (id: string): Promise<void> => {
++        const response = await apiFetch(`/users/saved-addresses/${id}`, { method: 'DELETE' })
++        if (!response.ok) throw await apiErrorFromResponse(response, 'Failed to delete address')
++    },
++}
+diff --git a/src/utils/__tests__/saved-address.utils.test.ts b/src/utils/__tests__/saved-address.utils.test.ts
+new file mode 100644
+index 000000000..1a0e04d6b
+--- /dev/null
++++ b/src/utils/__tests__/saved-address.utils.test.ts
+@@ -0,0 +1,40 @@
++import {
++    daysSince,
++    lastUsedTone,
++    normalizeSavedAddress,
++    savedAddressKey,
++    savedAddressLabel,
++    shortSavedAddress,
++} from '../saved-address.utils'
++
++const HEX = '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B'
++const TRON = 'TN3W4H6rK2ce4vX9YnFQHwKENnHjoxb3m9'
++
++describe('saved-address.utils', () => {
++    it('keys match the BE canon: lowercase hex, verbatim base58, lowercase chain', () => {
++        expect(savedAddressKey('42161', HEX)).toBe(`42161:${HEX.toLowerCase()}`)
++        expect(savedAddressKey('TRON', ` ${TRON} `)).toBe(`tron:${TRON}`)
++        expect(normalizeSavedAddress('0XABC')).toBe('0xabc')
++        expect(savedAddressKey(42161, HEX)).toBe(savedAddressKey('42161', HEX))
++    })
++
++    it('label = nickname + last 4 chars', () => {
++        expect(savedAddressLabel('Binance', HEX)).toBe('Binance · …eC9B')
++    })
++
++    it('short form keeps 6+4 for hex, 4+4 for base58', () => {
++        expect(shortSavedAddress(HEX)).toBe('0xAb58…eC9B')
++        expect(shortSavedAddress(TRON)).toBe('TN3W…b3m9')
++        expect(shortSavedAddress('short')).toBe('short')
++    })
++
++    it('tone: <7d recent, 7–30d aging, 30+ stale', () => {
++        const now = new Date('2026-08-26T12:00:00Z')
++        expect(daysSince('2026-08-26T01:00:00Z', now)).toBe(0)
++        expect(daysSince('2026-08-20T12:00:00Z', now)).toBe(6)
++        expect(lastUsedTone(6)).toBe('recent')
++        expect(lastUsedTone(7)).toBe('aging')
++        expect(lastUsedTone(30)).toBe('aging')
++        expect(lastUsedTone(31)).toBe('stale')
++    })
++})
+diff --git a/src/utils/history.utils.ts b/src/utils/history.utils.ts
+index 6f0628bfa..7842740c3 100644
+--- a/src/utils/history.utils.ts
++++ b/src/utils/history.utils.ts
+@@ -113,6 +113,9 @@ export interface HistoryEntryExtraData {
+      *  principal — set only for CRYPTO_WITHDRAW that booked a matching FEE
+      *  entry (SDA path). Baked into the displayed amount in the transformer. */
+     networkFeeUsd?: number | null
++    // Crypto address-book nickname for the viewer's CRYPTO_WITHDRAW destination
++    // (BE joins it at read time; absent when the address is not saved).
++    savedAddressNickname?: string
+     haveSentMoneyToUser?: boolean
+     /** Token-transfer block number — `string` from indexer, sometimes `number`
+      *  from on-chain webhooks. Treated as a presence signal, not parsed. */
+diff --git a/src/utils/saved-address.utils.ts b/src/utils/saved-address.utils.ts
+new file mode 100644
+index 000000000..b1abba4d1
+--- /dev/null
++++ b/src/utils/saved-address.utils.ts
+@@ -0,0 +1,41 @@
++import { isAddress } from 'viem'
++
++export const SAVED_ADDRESS_NICKNAME_MAX = 15
++
++/** Mirrors the BE storage canon: lowercase hex, verbatim base58 (Tron/Solana). */
++export function normalizeSavedAddress(address: string): string {
++    const trimmed = address.trim()
++    return trimmed.slice(0, 2).toLowerCase() === '0x' ? trimmed.toLowerCase() : trimmed
++}
++
++/** Lookup key for (chain, address) — same shape the BE uses to join nicknames. */
++export function savedAddressKey(chainId: string | number, address: string): string {
++    // chain ids arrive as strings from the BE but as numbers from some chain
++    // metadata objects — coerce so a numeric 42161 and '42161' share one key
++    return `${String(chainId).trim().toLowerCase()}:${normalizeSavedAddress(address)}`
++}
++
++/** "Binance · …aeC9" — nickname plus the last 4 chars so two entries never look alike. */
++export function savedAddressLabel(nickname: string, address: string): string {
++    return `${nickname} · …${address.slice(-4)}`
++}
++
++/** "0x1234…abcd" — 4+4 so an address-poisoning lookalike is harder to pass off. */
++export function shortSavedAddress(address: string): string {
++    if (address.length <= 12) return address
++    return `${address.slice(0, isAddress(address) ? 6 : 4)}…${address.slice(-4)}`
++}
++
++export type LastUsedTone = 'recent' | 'aging' | 'stale'
++
++export function daysSince(iso: string, now: Date = new Date()): number {
++    const ms = now.getTime() - new Date(iso).getTime()
++    return Math.max(0, Math.floor(ms / 86_400_000))
++}
++
++/** <7d green, 7–30d orange, 30+ red — exchanges rotate deposit addresses. */
++export function lastUsedTone(days: number): LastUsedTone {
++    if (days < 7) return 'recent'
++    if (days <= 30) return 'aging'
++    return 'stale'
++}
