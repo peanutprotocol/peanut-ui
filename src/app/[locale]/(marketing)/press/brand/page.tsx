@@ -72,7 +72,7 @@ export default async function PressBrandPage({ params }: PageProps) {
 
                     {/* ---- the mark ---- */}
                     <section className="flex flex-col gap-4">
-                        <h2 className="text-xl font-bold">{i18n.pressBrandTheMark}</h2>
+                        <h2 className="text-h4">{i18n.pressBrandTheMark}</h2>
                         <Card className="items-center gap-4 p-8">
                             <Image
                                 src="/press/assets/raster/Peanut_Full_Logotype-1200.png"
@@ -104,7 +104,7 @@ export default async function PressBrandPage({ params }: PageProps) {
 
                     {/* ---- downloads ---- */}
                     <section className="flex flex-col gap-4">
-                        <h2 className="text-xl font-bold">{i18n.pressBrandDownloads}</h2>
+                        <h2 className="text-h4">{i18n.pressBrandDownloads}</h2>
                         <div className="grid gap-4 md:grid-cols-2">
                             {BRAND_FILE_GROUPS.map((group) => (
                                 <Card key={group.label} className="gap-3 p-6">
@@ -132,7 +132,7 @@ export default async function PressBrandPage({ params }: PageProps) {
 
                     {/* ---- palette ---- */}
                     <section className="flex flex-col gap-4">
-                        <h2 className="text-xl font-bold">{i18n.pressBrandPalette}</h2>
+                        <h2 className="text-h4">{i18n.pressBrandPalette}</h2>
                         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                             {BRAND_COLORS.map((color) => (
                                 <Card key={color.hex} className="flex-row items-center gap-3 p-4">
@@ -153,7 +153,7 @@ export default async function PressBrandPage({ params }: PageProps) {
 
                     {/* ---- type ---- */}
                     <section className="flex flex-col gap-4">
-                        <h2 className="text-xl font-bold">{i18n.pressBrandTypography}</h2>
+                        <h2 className="text-h4">{i18n.pressBrandTypography}</h2>
                         <div className="grid gap-3 md:grid-cols-3">
                             {BRAND_TYPE.map((role) => (
                                 <Card key={role.role} className="gap-1 p-6">
@@ -167,7 +167,7 @@ export default async function PressBrandPage({ params }: PageProps) {
 
                     {/* ---- screenshots ---- */}
                     <section className="flex flex-col gap-4">
-                        <h2 className="text-xl font-bold">{i18n.pressBrandScreenshots}</h2>
+                        <h2 className="text-h4">{i18n.pressBrandScreenshots}</h2>
                         <p className="text-sm text-grey-1">{i18n.pressBrandScreenshotsNote}</p>
                         {SCREENSHOT_LOCALES.map((shotLocale) => (
                             <div key={shotLocale.dir} className="flex flex-col gap-2">
@@ -201,7 +201,7 @@ export default async function PressBrandPage({ params }: PageProps) {
 
                     {/* ---- mascot ---- */}
                     <section className="flex flex-col gap-4">
-                        <h2 className="text-xl font-bold">{i18n.pressBrandMascot}</h2>
+                        <h2 className="text-h4">{i18n.pressBrandMascot}</h2>
                         <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
                             {MASCOTS.map((mascot) => {
                                 const href = `/press/assets/mascots/${mascot.slug}.webp`

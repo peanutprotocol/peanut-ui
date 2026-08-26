@@ -84,6 +84,12 @@ export interface Translations {
     pressBrandScreenshotsNote: string // "Full resolution, 1080×1920. Click any screenshot to download it."
     pressBrandMascot: string // "Mascot"
     pressBrandLink: string // "Brand & assets →"
+    pressBrandAssetsNote: string // "Previews of the marks. Every format, colour and product screenshot lives on the brand page."
+    pressOneLiner: string // "One-liner"
+    pressBoilerplateShort: string // "Short"
+    pressBoilerplateMedium: string // "Medium"
+    pressBoilerplatePress: string // "Press / Partner"
+    pressTeamPhotoAlt: string // "Peanut team photo"
 
     // Help center
     help: string // "Help"

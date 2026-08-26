@@ -6,6 +6,8 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { PressAssetGroupCard } from '@/components/Marketing/PressAssetGroupCard'
+import { downloadLinkProps, safeHttpUrl, type PressAssetGroup } from '@/components/Marketing/pressAssets'
 import { Card } from '@/components/0_Bruddle/Card'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
@@ -23,27 +25,11 @@ import {
 // only surface for it since /team was removed.
 //
 // brand_assets/team_photos hrefs are author-supplied frontmatter that can be
-// pushed straight to mono main without code review — only emit http(s) URLs
-// so a `javascript:` or `data:` value can't reach a rendered href.
-function safeHttpUrl(url: string | undefined): string | undefined {
-    if (!url) return undefined
-    try {
-        const { protocol } = new URL(url, 'https://peanut.me')
-        return protocol === 'https:' || protocol === 'http:' ? url : undefined
-    } catch {
-        return undefined
-    }
-}
+// pushed straight to mono main without code review — safeHttpUrl (in
+// pressAssets.ts, shared with the asset cards) is what keeps them safe.
 
-interface PressAssetFile {
-    name: string
-    href: string
-}
-
-interface PressAssetGroup {
-    label: string
-    files: PressAssetFile[]
-}
+const JUMP_PILL =
+    'inline-flex min-h-11 items-center rounded-sm border border-n-1 px-3 text-xs font-medium text-n-1 hover:bg-primary-3'
 
 interface PressHeadline {
     text: string
@@ -110,6 +96,13 @@ export default async function PressPage({ params }: PageProps) {
     const team = readSingletonContentLocalized<TeamFrontmatter>('team', locale)
     const members = team?.frontmatter.members ?? []
 
+    const brandAssets = Array.isArray(fm.brand_assets) ? fm.brand_assets : []
+    const teamPhotos = (fm.team_photos ?? []).map(safeHttpUrl).filter((href): href is string => Boolean(href))
+    // fm.tagline and fm.headlines[0].text are the same string in content today.
+    const otherHeadlines = (Array.isArray(fm.headlines) ? fm.headlines : []).filter(
+        (headline) => headline.text !== fm.tagline
+    )
+
     const orgSchema = {
         '@context': 'https://schema.org',
         '@type': 'Organization',
@@ -135,25 +128,40 @@ export default async function PressPage({ params }: PageProps) {
 
             <MarketingShell>
                 <div className="flex flex-col gap-10">
+                    {(brandAssets.length > 0 || fm.media_contact) && (
+                        <nav aria-label={i18n.pressTitle} className="-mt-2 flex flex-wrap gap-2">
+                            {brandAssets.length > 0 && (
+                                <a href="#assets" className={JUMP_PILL}>
+                                    {i18n.pressBrandAssets}
+                                </a>
+                            )}
+                            {fm.media_contact && (
+                                <a href="#contact" className={JUMP_PILL}>
+                                    {i18n.pressMediaContact}
+                                </a>
+                            )}
+                        </nav>
+                    )}
+
                     {fm.boilerplate && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">{i18n.pressCompanyDescription}</h2>
-                            <div className="grid gap-4 md:grid-cols-3">
+                            <h2 className="text-h4">{i18n.pressCompanyDescription}</h2>
+                            <div className="grid items-start gap-4 md:grid-cols-3">
                                 {fm.boilerplate.short && (
                                     <Card className="gap-2 p-6">
-                                        <h3 className="text-sm font-bold text-grey-1">Short</h3>
+                                        <h3 className="text-sm font-bold text-grey-1">{i18n.pressBoilerplateShort}</h3>
                                         <p className="text-sm text-n-1">{fm.boilerplate.short}</p>
                                     </Card>
                                 )}
                                 {fm.boilerplate.medium && (
                                     <Card className="gap-2 p-6">
-                                        <h3 className="text-sm font-bold text-grey-1">Medium</h3>
+                                        <h3 className="text-sm font-bold text-grey-1">{i18n.pressBoilerplateMedium}</h3>
                                         <p className="text-sm text-n-1">{fm.boilerplate.medium}</p>
                                     </Card>
                                 )}
                                 {fm.boilerplate.press && (
                                     <Card className="gap-2 p-6">
-                                        <h3 className="text-sm font-bold text-grey-1">Press / Partner</h3>
+                                        <h3 className="text-sm font-bold text-grey-1">{i18n.pressBoilerplatePress}</h3>
                                         <p className="text-sm text-n-1">{fm.boilerplate.press}</p>
                                     </Card>
                                 )}
@@ -161,68 +169,58 @@ export default async function PressPage({ params }: PageProps) {
                         </section>
                     )}
 
-                    {fm.tagline && (
-                        <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">{i18n.pressTaglineHeadlines}</h2>
-                            <Card className="gap-1 p-6">
-                                <p className="text-lg font-bold text-n-1">{fm.tagline}</p>
-                                {fm.secondary_line && <p className="text-sm text-grey-1">{fm.secondary_line}</p>}
-                            </Card>
-                            {fm.headlines && fm.headlines.length > 0 && (
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {fm.headlines.map((h) => (
-                                        <Card key={h.text} className="gap-1 p-4">
-                                            <p className="text-sm font-bold text-n-1">{h.text}</p>
-                                            <p className="text-xs text-grey-1">{h.context}</p>
-                                        </Card>
-                                    ))}
-                                </div>
-                            )}
-                            {fm.one_liner && <p className="text-sm text-grey-1">{fm.one_liner}</p>}
-                        </section>
-                    )}
-
-                    {fm.brand_assets && fm.brand_assets.length > 0 && (
-                        <section className="flex flex-col gap-4">
-                            <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                <h2 className="text-xl font-bold">{i18n.pressBrandAssets}</h2>
-                                <Link href={`/${locale}/press/brand`} className="text-sm text-n-1 underline">
+                    {brandAssets.length > 0 && (
+                        <section id="assets" className="flex scroll-mt-20 flex-col gap-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h2 className="text-h4">{i18n.pressBrandAssets}</h2>
+                                <Link
+                                    href={`/${locale}/press/brand`}
+                                    className="btn-shadow-primary-4 w-fit rounded-sm border border-n-1 bg-secondary-1 px-4 py-2 text-sm font-bold text-n-1 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                                >
                                     {i18n.pressBrandLink}
                                 </Link>
                             </div>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {fm.brand_assets.map((group) => (
-                                    <Card key={group.label} className="gap-3 p-6">
-                                        <h3 className="text-sm font-bold text-n-1">{group.label}</h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {group.files.map((file) => {
-                                                const href = safeHttpUrl(file.href)
-                                                if (!href) return null
-                                                return (
-                                                    <a
-                                                        key={href}
-                                                        href={href}
-                                                        target={href.startsWith('http') ? '_blank' : undefined}
-                                                        rel={
-                                                            href.startsWith('http') ? 'noopener noreferrer' : undefined
-                                                        }
-                                                        className="rounded-sm border border-n-1 px-3 py-1.5 text-xs font-medium text-n-1 hover:bg-primary-3"
-                                                    >
-                                                        {file.name}
-                                                    </a>
-                                                )
-                                            })}
-                                        </div>
-                                    </Card>
+                            <p className="text-sm text-grey-1">{i18n.pressBrandAssetsNote}</p>
+                            <div className="grid items-start gap-4 md:grid-cols-2">
+                                {brandAssets.map((group) => (
+                                    <PressAssetGroupCard key={group.label} group={group} />
                                 ))}
                             </div>
                         </section>
                     )}
 
+                    {fm.tagline && (
+                        <section className="flex flex-col gap-4">
+                            <h2 className="text-h4">{i18n.pressTaglineHeadlines}</h2>
+                            <Card className="gap-1 p-6">
+                                <p className="text-lg font-bold text-n-1">{fm.tagline}</p>
+                                {fm.secondary_line && <p className="text-sm text-grey-1">{fm.secondary_line}</p>}
+                                {fm.one_liner && (
+                                    <>
+                                        <p className="mt-3 text-xs font-bold uppercase text-grey-1">
+                                            {i18n.pressOneLiner}
+                                        </p>
+                                        <p className="text-sm text-n-1">{fm.one_liner}</p>
+                                    </>
+                                )}
+                            </Card>
+                            {otherHeadlines.length > 0 && (
+                                <div className="grid items-start gap-3 md:grid-cols-2">
+                                    {otherHeadlines.map((headline) => (
+                                        <Card key={headline.text} className="gap-1 p-4">
+                                            <p className="text-sm font-bold text-n-1">{headline.text}</p>
+                                            <p className="text-xs text-grey-1">{headline.context}</p>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                    )}
+
                     {members.length > 0 && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">{i18n.pressTeam}</h2>
-                            <div className="grid gap-6 md:grid-cols-2">
+                            <h2 className="text-h4">{i18n.pressTeam}</h2>
+                            <div className="grid items-start gap-6 md:grid-cols-2">
                                 {members.map((member) => (
                                     <Card key={member.slug} className="gap-3 p-6">
                                         <div>
@@ -233,48 +231,56 @@ export default async function PressPage({ params }: PageProps) {
                                     </Card>
                                 ))}
                             </div>
-                            {fm.team_photos && fm.team_photos.length > 0 && (
-                                <div className="grid grid-cols-4 gap-2">
-                                    {fm.team_photos.map((src) => {
-                                        const href = safeHttpUrl(src)
-                                        if (!href) return null
-                                        return (
-                                            <a
-                                                key={href}
-                                                href={href}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="relative aspect-square overflow-hidden rounded-sm border border-n-1 hover:opacity-80"
-                                            >
-                                                <Image src={href} alt="Peanut team" fill className="object-cover" />
-                                            </a>
-                                        )
-                                    })}
+                            {fm.team_photos_note && <p className="text-xs text-grey-1">{fm.team_photos_note}</p>}
+                            {teamPhotos.length > 0 && (
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                    {teamPhotos.map((href, index) => (
+                                        <a
+                                            key={href}
+                                            href={href}
+                                            {...downloadLinkProps(href)}
+                                            className="relative aspect-square overflow-hidden rounded-sm border border-n-1 hover:opacity-80"
+                                        >
+                                            <Image
+                                                src={href}
+                                                alt={`${i18n.pressTeamPhotoAlt} ${index + 1}`}
+                                                fill
+                                                sizes="(max-width: 640px) 50vw, 172px"
+                                                className="object-cover"
+                                            />
+                                        </a>
+                                    ))}
                                 </div>
                             )}
-                            {fm.team_photos_note && <p className="text-xs text-grey-1">{fm.team_photos_note}</p>}
                         </section>
                     )}
 
-                    {fm.company_facts && fm.company_facts.length > 0 && (
-                        <section className="flex flex-col gap-2">
-                            <h2 className="text-xl font-bold">{i18n.pressCompany}</h2>
-                            {fm.company_facts.map((fact) => (
-                                <p key={fact} className="text-sm text-grey-1">
-                                    {fact}
-                                </p>
-                            ))}
-                        </section>
-                    )}
+                    <div className="grid items-start gap-6 md:grid-cols-2">
+                        {fm.company_facts && fm.company_facts.length > 0 && (
+                            <section className="flex flex-col gap-2">
+                                <h2 className="text-h4">{i18n.pressCompany}</h2>
+                                {fm.company_facts.map((fact, index) => (
+                                    <p key={index} className="text-sm text-grey-1">
+                                        {fact}
+                                    </p>
+                                ))}
+                            </section>
+                        )}
 
-                    {fm.media_contact && (
-                        <section className="flex flex-col gap-2">
-                            <h2 className="text-xl font-bold">{i18n.pressMediaContact}</h2>
-                            <a href={`mailto:${fm.media_contact}`} className="w-fit text-sm text-black underline">
-                                {fm.media_contact}
-                            </a>
-                        </section>
-                    )}
+                        {fm.media_contact && (
+                            <section id="contact" className="scroll-mt-20">
+                                <Card shadowSize="4" className="gap-2 bg-primary-1 p-6 dark:bg-primary-1">
+                                    <h2 className="text-h4">{i18n.pressMediaContact}</h2>
+                                    <a
+                                        href={`mailto:${fm.media_contact}`}
+                                        className="inline-flex min-h-11 w-fit items-center text-lg font-bold text-n-1 underline"
+                                    >
+                                        {fm.media_contact}
+                                    </a>
+                                </Card>
+                            </section>
+                        )}
+                    </div>
                 </div>
             </MarketingShell>
         </>
