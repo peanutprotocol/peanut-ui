@@ -36,6 +36,17 @@ function setNavigatorLanguage(value: string): void {
     Object.defineProperty(navigator, 'language', { value, configurable: true })
 }
 
+const realLocalStorage = Object.getOwnPropertyDescriptor(window, 'localStorage')!
+
+function stubLocalStorage(get: () => Storage | null): void {
+    Object.defineProperty(window, 'localStorage', { get, configurable: true })
+}
+
+afterEach(() => {
+    Object.defineProperty(window, 'localStorage', realLocalStorage)
+    window.localStorage.clear()
+})
+
 type LocaleStore = typeof import('../locale-store')
 
 function freshStore(): LocaleStore {
@@ -144,5 +155,32 @@ describe('emitDeviceContextToAnalytics', () => {
         // guard is set only on success, so the next call retries instead of no-op
         await store.emitDeviceContextToAnalytics()
         expect(store.currentDeviceContext()).toEqual({ device_language: 'en-us', platform: 'web' })
+    })
+})
+
+describe('localeReady', () => {
+    it('falls back to the browser language when localStorage is null', async () => {
+        // some Android in-app browsers (Sentry PEANUT-UI-STC) expose it as null,
+        // which `typeof localStorage !== 'undefined'` happily waves through
+        stubLocalStorage(() => null)
+        setNavigatorLanguage('pt-BR')
+        const store = freshStore()
+        await expect(store.localeReady()).resolves.toBe('pt-BR')
+    })
+
+    it('still prefers a stored locale over the browser language', async () => {
+        window.localStorage.setItem('app-locale', 'pt-BR')
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        await expect(store.localeReady()).resolves.toBe('pt-BR')
+    })
+
+    it('memoizes a usable locale rather than a rejection every later awaiter would inherit', async () => {
+        stubLocalStorage(() => null)
+        setNavigatorLanguage('es-419')
+        const store = freshStore()
+        const first = store.localeReady()
+        expect(store.localeReady()).toBe(first)
+        await expect(first).resolves.toBe('es-419')
     })
 })
