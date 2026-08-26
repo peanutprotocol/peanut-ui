@@ -18,6 +18,17 @@ jest.mock('posthog-js', () => ({
     },
 }))
 
+// module-level so it applies to every isolateModules registry freshStore builds
+const mockCookiesGet = jest.fn()
+
+jest.mock('js-cookie', () => ({
+    __esModule: true,
+    default: {
+        get: (...args: unknown[]) => mockCookiesGet(...args),
+        set: jest.fn(),
+    },
+}))
+
 const mockIsCapacitor = jest.fn()
 const mockGetPlatform = jest.fn()
 
@@ -173,6 +184,21 @@ describe('localeReady', () => {
         setNavigatorLanguage('en-US')
         const store = freshStore()
         await expect(store.localeReady()).resolves.toBe('pt-BR')
+    })
+
+    it('warns when resolution fails so the fallback is not silent', async () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        // document.cookie throws in a sandboxed/opaque-origin document
+        mockCookiesGet.mockImplementation(() => {
+            throw new DOMException('The operation is insecure.', 'SecurityError')
+        })
+        setNavigatorLanguage('pt-BR')
+
+        const store = freshStore()
+        await expect(store.localeReady()).resolves.toBe('pt-BR')
+        expect(warn).toHaveBeenCalled()
+
+        warn.mockRestore()
     })
 
     it('memoizes a usable locale rather than a rejection every later awaiter would inherit', async () => {

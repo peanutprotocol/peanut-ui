@@ -125,7 +125,14 @@ async function resolveStartupLocale(): Promise<AppLocale> {
  * handler for.
  */
 export function localeReady(): Promise<AppLocale> {
-    if (!resolution) resolution = resolveStartupLocale().catch(() => navigatorLocale())
+    if (!resolution)
+        resolution = resolveStartupLocale().catch((err) => {
+            // the unhandled rejection was the only signal that startup locale
+            // resolution had failed (PEANUT-UI-STC); neither caller handles it,
+            // so warn to keep captureConsoleIntegration reporting the next one
+            console.warn('Startup locale resolution failed; falling back to the browser language', err)
+            return navigatorLocale()
+        })
     return resolution
 }
 
@@ -136,7 +143,13 @@ export function persistLocale(locale: AppLocale): void {
             .catch(() => {})
         return
     }
-    Cookies.set(LOCALE_KEY, locale, { expires: 365, path: '/' })
+    try {
+        // document.cookie throws in a sandboxed/opaque-origin document, and this
+        // runs straight off a LocaleSwitcher onClick with no handler upstream
+        Cookies.set(LOCALE_KEY, locale, { expires: 365, path: '/' })
+    } catch {
+        // storage below is the only remaining mirror
+    }
     // storage may be unavailable (private mode); cookie is authoritative
     writeStoredValue(LOCALE_KEY, locale)
 }
