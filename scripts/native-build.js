@@ -495,10 +495,16 @@ const REQUIRED_NATIVE_ENV = [
 ]
 
 // Value of a `KEY=value` line, or '' when the key has no line of its own or the
-// line carries no value (`KEY=`). Anchoring per line also skips comments.
+// line carries no value (`KEY=`, `KEY=""`, `KEY='  '` — dotenv unwraps matching
+// quotes, so a quoted-empty value bakes '' exactly like a bare one). Anchoring
+// per line also skips comments.
 function nativeEnvValue(envContent, key) {
     const match = envContent.match(new RegExp(`^${key}=(.*)$`, 'm'))
-    return match ? match[1].trim() : ''
+    if (!match) return ''
+    return match[1]
+        .trim()
+        .replace(/^(["'])(.*)\1$/, '$2')
+        .trim()
 }
 
 function missingNativeEnv(envContent) {

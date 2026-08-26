@@ -37,6 +37,17 @@ describe('missingNativeEnv', () => {
         expect(missingNativeEnv(env).sort()).toEqual(['NEXT_PUBLIC_BASE_URL', 'NEXT_PUBLIC_SENTRY_DSN'])
     })
 
+    // dotenv unwraps matching quotes: `KEY=""` and `KEY='  '` bake '' just like `KEY=`
+    it('treats a quoted-empty or quoted-whitespace value as missing, and a quoted value as set', () => {
+        const withQuotes = (key) => {
+            if (key === 'NEXT_PUBLIC_BASE_URL') return `${key}=""`
+            if (key === 'NEXT_PUBLIC_SENTRY_DSN') return `${key}='   '`
+            return `${key}="set"`
+        }
+        const env = REQUIRED_NATIVE_ENV.map(withQuotes).join('\n')
+        expect(missingNativeEnv(env).sort()).toEqual(['NEXT_PUBLIC_BASE_URL', 'NEXT_PUBLIC_SENTRY_DSN'])
+    })
+
     it('ignores comments and blank lines, so a commented-out key still counts as missing', () => {
         const env = [
             '# written by capgo-deploy.yml',
