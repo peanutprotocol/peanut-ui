@@ -41,11 +41,17 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
 let mockIdentity: { status: string; submittedAt?: string } = { status: 'not_started' }
+let mockRegionRestricted = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
         identity: mockIdentity,
         isProcessing: mockIdentity.status === 'processing',
+        isRegionRestricted: mockRegionRestricted,
     }),
+}))
+jest.mock('@/components/Kyc/modals/KycRegionRestrictedModal', () => ({
+    KycRegionRestrictedModal: ({ visible }: { visible: boolean }) =>
+        visible ? <div>region-restricted-modal</div> : null,
 }))
 let mockKycDegraded = false
 jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockKycDegraded }))
@@ -102,6 +108,7 @@ describe('UnlockPayments', () => {
         mockRestrictions = { banking: false, card: false }
         mockUser = null
         mockIdentity = { status: 'not_started' }
+        mockRegionRestricted = false
         mockKycDegraded = false
     })
 
@@ -133,6 +140,15 @@ describe('UnlockPayments', () => {
         expect(headers[0]).toHaveTextContent('Everywhere')
         expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
         expect(screen.getByText('Always on')).toBeInTheDocument()
+    })
+
+    it('a region-restricted user gets the region screen instead of an unlock offer', () => {
+        mockRegionRestricted = true
+        render()
+        fireEvent.click(screen.getByText('SEPA transfers'))
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+        expect(screen.getByText('region-restricted-modal')).toBeInTheDocument()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
     it('a bank-method tap opens the method-worded unlock modal and NEVER routes to /card', () => {

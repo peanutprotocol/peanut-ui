@@ -1,9 +1,7 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
-import { countryData } from '@/components/AddMoney/consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { SUPPLEMENTAL_RESIDENCE_OPTIONS } from '@/constants/residence.consts'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -11,15 +9,17 @@ import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { isValidEmail } from '@/utils/format.utils'
 import { residenceAvailability } from '@/utils/residence-availability'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import posthog from 'posthog-js'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 
 type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial'
 type PartialRestriction = 'card' | 'banking'
 
 const ResidenceStep = () => {
     const t = useTranslations('setup')
+    const locale = useLocale()
     const dispatch = useAppDispatch()
     const { residenceCountry, secondResidenceCountry } = useSetupStore()
     const { handleNext, isLoading } = useSetupFlow()
@@ -35,16 +35,7 @@ const ResidenceStep = () => {
     // whether the current selection came from the geo suggestion, untouched
     const wasPrefilledRef = useRef(false)
 
-    const countryOptions = useMemo(() => {
-        const options = countryData
-            .filter((c) => c.type === 'country' && !!c.iso2)
-            .map((c) => ({ label: c.title, value: c.iso2!.toUpperCase() }))
-        const present = new Set(options.map((o) => o.value))
-        for (const extra of SUPPLEMENTAL_RESIDENCE_OPTIONS) {
-            if (!present.has(extra.iso2)) options.push({ label: extra.title, value: extra.iso2 })
-        }
-        return options.sort((a, b) => a.label.localeCompare(b.label))
-    }, [])
+    const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
 
     // Geo is a suggestion only: preselect the dropdown when nothing is chosen
     // yet, never auto-advance, and never trigger the restricted screen from it.
