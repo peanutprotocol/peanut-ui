@@ -316,23 +316,23 @@ const PaymentSuccessView = ({
                     </div>
 
                     <div className="space-y-1">
-                        <h1 className="text-sm font-normal text-grey-1">
+                        <h1 className="text-body-s font-normal text-foreground-secondary">
                             {getTitle()}
                             {!isExternalWalletFlow &&
                                 !isWithdrawFlow &&
                                 type !== 'DEPOSIT' &&
                                 (recipientType !== 'USERNAME' ? (
                                     <AddressLink
-                                        className="text-sm font-normal text-grey-1 no-underline"
+                                        className="text-body-s font-normal text-foreground-secondary no-underline"
                                         address={recipientName}
                                     />
                                 ) : (
                                     recipientName
                                 ))}
                         </h1>
-                        <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
+                        <h2 className="text-heading-s">{displayAmount}</h2>
                         {message && (
-                            <p className="text-sm font-medium text-grey-1">
+                            <p className="text-body-s text-foreground-secondary">
                                 {isWithdrawFlow ? t('success.toPrefix') : t('success.forPrefix')} {message}
                             </p>
                         )}

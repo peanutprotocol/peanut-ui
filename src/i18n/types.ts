@@ -61,12 +61,16 @@ export interface Translations {
     receiveMoneyFromDesc: string // "Get money sent to you from {country}. Fast and secure."
 
     // Team
-    teamTitle: string // "Our Team"
-    teamSubtitle: string // "The people behind Peanut."
 
     // Press
     pressTitle: string // "Press & Brand Kit"
     pressSubtitle: string // "Everything you need to write or design about Peanut."
+    pressCompanyDescription: string // "Company description"
+    pressTaglineHeadlines: string // "Tagline & headlines"
+    pressBrandAssets: string // "Brand assets"
+    pressTeam: string // "Team"
+    pressCompany: string // "Company"
+    pressMediaContact: string // "Media contact"
 
     // Help center
     help: string // "Help"
@@ -101,7 +105,6 @@ export interface Translations {
     landingPayLocalHeading: string
     landingPayLocalSubheading: string
     landingPayLocalBody: string
-    landingPayLocalSettles: string
     landingMercadoPagoAria: string
     landingPixAria: string
 
@@ -153,6 +156,22 @@ export interface Translations {
     landingSupportedRailsFaqQuestion: string
     landingSupportedRailsFaqAnswer: string // "… {evmCount} … ({evmList}), plus {otherList} … {railList} …"
     listJoinAnd: string // conjunction used when joining name lists ("Solana and Tron")
+    // …and the rich chip body of the same FAQ item (SupportedRailsFaqAnswer).
+    // The plain-text answer above is one sentence; this is its headings.
+    landingSupportedRailsCrypto: string // "… {evmCount} … {otherList}:"
+    landingSupportedRailsTokens: string
+    landingSupportedRailsTokenNote: string
+    landingSupportedRailsBanks: string
+    landingSupportedRailsFree: string
+
+    // Landing page — problem fold (three named cards, icons drawn by the component)
+    landingProblemHeading: string
+    landingProblemCrossBorderTitle: string
+    landingProblemCrossBorderBody: string
+    landingProblemSendHomeTitle: string
+    landingProblemSendHomeBody: string
+    landingProblemPaidAbroadTitle: string
+    landingProblemPaidAbroadBody: string
 
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
     legalHeroSubtitlePrivacy: string
@@ -177,7 +196,7 @@ export interface Translations {
     footerTerms: string
     footerPrivacy: string
     footerSecurity: string
-    footerJobs: string
+    footerCareers: string
 
     // MDX component headings
     faqTitle: string
@@ -212,7 +231,12 @@ export interface Translations {
     footerSiteDirectory: string
     footerCompare: string
     footerLearnMoreSection: string
-    footerResources: string
+    footerLegalSection: string
+    footerCardTermsUs: string
+    footerCardTermsInternational: string
+    footerCardEsign: string
+    footerCardPrivacy: string
+    footerCardProhibitedActivities: string
     footerSendTo: string // "Send to {name}"
     footerSendFrom: string // "Send from {name}"
     footerPeanutVs: string // "Peanut vs {name}"

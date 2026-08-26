@@ -66,14 +66,18 @@
             "surpriseDescriptionNext": "Mirá tus recompensas y cómo ganar más.",
             "shareAndEarn": "Compartí y ganá",
             "inviteFriendsToEarnMore": "Invitá amigos para ganar más",
-            "holdToUnwrap": "Mantené presionado para abrir tu recompensa"
+            "holdToUnwrap": "Mantené presionado para abrir tu recompensa",
+            "iosCopy": {
+                "surpriseDescriptionFirst": "Mirá tu cashback y cómo ganar más.",
+                "surpriseDescriptionNext": "Mirá tu cashback y cómo ganar más.",
+                "holdToUnwrap": "Mantené presionado para abrir tu cashback"
+            }
         },
         "carousel": {
             "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
             "tapToClaim": "Tocá para reclamar tu recompensa.",
             "card": {
-                "title": "Conseguí tu <b>Peanut Card</b>",
-                "description": "Beta cerrada. <b>Las insignias saltan la fila.</b> Desbloqueá $10 con tu primer gasto de $100."
+                "title": "Conseguí tu <b>Peanut Card</b>"
             },
             "invite": {
                 "title": "Invitá amigos. Ganá recompensas",
@@ -107,6 +111,21 @@
             "kyc": {
                 "title": "Desbloqueá <b>pagos con QR</b>",
                 "description": "Confirmá tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>PIX</b>"
+            },
+            "iosCopy": {
+                "usedPeanutTapToClaim": "<name>{inviteeName}</name> pagó con Peanut. Tocá para reclamar.",
+                "tapToClaim": "Tocá para reclamar tu cashback.",
+                "invite": {
+                    "title": "Invitá amigos. Ganá cashback",
+                    "description": "Ganá cashback cada vez que tus amigos pagan con Peanut."
+                },
+                "latamInvite": {
+                    "title": "Ganá <b>cashback</b> en pagos QR",
+                    "description": "Invitá amigos para <b>ganar más cashback</b>. ¡Cuanto más pagan, más ganás!"
+                },
+                "qrPay": {
+                    "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>cashback</b>."
+                }
             }
         }
     },
@@ -115,14 +134,6 @@
             "inviteFriends": "Invitá amigos a Peanut"
         },
         "edit": {
-            "placeholders": {
-                "name": "Agregá tu nombre",
-                "surname": "Agregá tu apellido",
-                "bio": "Agregá una bio",
-                "email": "Agregá tu email",
-                "phone": "Agregá tu número",
-                "website": "Agregá tu sitio web"
-            },
             "errors": {
                 "nameRequired": "Por favor ingresá tu nombre."
             }
@@ -414,6 +425,10 @@
             "line1": "Reclamá solo a una dirección que admita la red y el token seleccionados.",
             "claimToPeanut": "¿No estás seguro? Reclamá en Peanut"
         },
+        "guestVerification": {
+            "senderUnverifiedDescription": "Quien envió todavía no puede enviar a un banco. Podés reclamar con otro método, o crear una cuenta y verificar tu identidad para recibirlo en tu banco.",
+            "accountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Creá una y verificá tu identidad, y tus fondos se depositarán en tu banco."
+        },
         "actions": {
             "invitedBy": "¡{username} te invitó, tenés acceso anticipado!"
         },
@@ -476,6 +491,20 @@
             "putItAnywhere": "¡Pegalo donde quieras!",
             "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación y sumar a tus puntos para siempre.",
             "shareText": "¡Escaneá mi código QR para conectar conmigo en Peanut!"
+        },
+        "iosCopy": {
+            "success": {
+                "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para abrir tu cashback.",
+                "holdToClaim": "¡Ganaste cashback! Mantené presionado para abrirlo.",
+                "earnedInviteFriends": "¡Ganaste ${amount}! Invitá amigos para ganar aún más cashback.",
+                "inviteFriends": "Invitá amigos para ganar aún más cashback."
+            },
+            "claim": {
+                "inviteQrDescription": "Compartilo donde sea. Cualquiera que lo escanee puede unirse a Peanut con vos."
+            },
+            "claimSuccess": {
+                "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación."
+            }
         }
     },
     "card": {
@@ -729,6 +758,14 @@
         "enjoyPeanut": "¡Disfrutá Peanut!",
         "cardRows": {
             "settlementAdjustedNotice": "El monto final fue {amount} mayor que la retención inicial. Es común con propinas y totales actualizados. ¿No lo reconocés? Contactá al comercio."
+        },
+        "iosCopy": {
+            "perk": {
+                "subtitle": "Ganá cashback cada vez que tus amigos pagan con Peanut."
+            },
+            "actions": {
+                "inviteFriends": "Invitá amigos y ganá más cashback"
+            }
         }
     },
     "history": {
@@ -742,7 +779,17 @@
         "lifetimeRewards": "Recompensas totales: {amount}. Para ganar más, invitá a tus amigos.",
         "earnWhenFriendsUse": "¡Ganás recompensas cada vez que tus amigos usan Peanut!",
         "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más recompensas",
-        "contactSupport": "Por favor contactá a Soporte."
+        "contactSupport": "Por favor contactá a Soporte.",
+        "howItWorks": {
+            "step1": "Invitá a tus amigos a Peanut.",
+            "step4": "Hacé cualquier pago para reclamarlo."
+        },
+        "iosCopy": {
+            "noPendingRewards": "No tenés cashback pendiente por ahora.",
+            "earnWhenFriendsUse": "¡Ganás cashback cada vez que tus amigos pagan con Peanut!",
+            "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más cashback",
+            "howItWorks": {}
+        }
     },
     "invites": {
         "invalidCodeMessage": "El código de invitación que intentás usar no es válido. Revisá la URL e intentalo de nuevo.",
@@ -771,9 +818,6 @@
         "toastTapToView": "— tocá para ver"
     },
     "notifications": {
-        "loadFailed": "No pudimos cargar las notificaciones. Intentalo de nuevo.",
-        "loadMoreFailed": "No pudimos cargar más notificaciones. Tocá para reintentar.",
-        "emptyTitle": "¡Aún no tenés notificaciones!",
         "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
     },
     "kyc": {
@@ -826,7 +870,8 @@
             "sepaDescription": "Para habilitar las transferencias bancarias en EUR (SEPA) y GBP (Faster Payments), debés aceptar los términos de servicio actualizados de nuestro socio de pagos.",
             "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Podés aceptar los términos más tarde desde tu historial de actividad.",
-            "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo."
+            "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo.",
+            "notAcceptedYet": "Parece que todavía no aceptaste los términos. Intentalo de nuevo."
         },
         "reverificationPending": {
             "description": "Tu verificación está en revisión — normalmente toma unos minutos. Te avisaremos apenas puedas continuar. Podés esperar aquí o volver al inicio."
@@ -1155,6 +1200,11 @@
         "userCard": {
             "payWhatYouWant": "Pagá lo que quieras",
             "sendExactAmount": "¡Enviá el monto exacto!"
+        },
+        "iosCopy": {
+            "inviteFriendsModal": {
+                "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás cashback."
+            }
         }
     },
     "errors": {
@@ -1219,6 +1269,7 @@
             "body": "Una tarjeta aceptada en más de 150 millones de comercios que aceptan Visa. Vamos dejando entrar a los usuarios beta de a poco: <counter></counter> por semana. Si tenés la insignia correcta, te saltás la fila por completo.",
             "tryTheDoor": "PROBÁ LA PUERTA",
             "orJoinWaitlist": "o sumate a la lista de espera →",
+            "disclaimer": "Verificación requerida para todos los titulares de tarjeta. Sin cuotas mensuales ni anuales. Se aplican tarifas y límites estándar según los términos del titular. Programa beta.",
             "joinError": "No pudimos sumarte a la lista de espera. Probá la puerta de nuevo."
         },
         "whatItDoes": {
@@ -1231,7 +1282,7 @@
             "badgeTitle": "Tenés una insignia.",
             "badgeBody": "Te saltás la fila. Estamos habilitando a quienes tengan:",
             "badgeFooter": "Iniciá sesión, revisamos las insignias de tu cuenta y pasás directo a la verificación. ¿Todavía no tenés cuenta de peanut? Registrate primero: toma un minuto.",
-            "noBadgeBody": "Sumate a la lista de espera. Dejamos entrar a 20 personas por semana.",
+            "noBadgeBody": "Sumate a la lista de espera. Dejamos entrar a 50 personas por semana.",
             "noBadgeFooter": "Anotá tu nombre en la lista y te avisamos cuando llegue tu turno."
         },
         "notForYou": {
@@ -1246,8 +1297,8 @@
             "q3": {
                 "answer": "Es tuya. Sin custodia: tus stablecoins se quedan en tu billetera hasta el momento en que usás la tarjeta. No tenemos la custodia. No la prestamos."
             },
-            "q4": {
-                "answer": "Una recompensa de bienvenida. Completá la verificación + $100 de gasto con la tarjeta → se desbloquean $10 en tu saldo. Aplica igual si te registraste por tu cuenta o si te refirieron. Si vos referís a alguien, también podés recibir $10 cuando esa persona active su tarjeta. Sujeto a elegibilidad y a los términos del programa."
+            "q6": {
+                "answer": "Es una tarjeta Visa: se acepta donde acepten Visa, en tiendas, en línea y en cajeros. Iniciá sesión y probá la puerta para ver qué sigue en tu cuenta."
             }
         },
         "ready": {

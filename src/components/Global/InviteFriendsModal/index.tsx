@@ -5,10 +5,9 @@ import ShareButton from '@/components/Global/ShareButton'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 interface InviteFriendsModalProps {
     visible: boolean
@@ -25,7 +24,7 @@ interface InviteFriendsModalProps {
  * Used in: CardSuccessScreen, Profile, PointsPage
  */
 export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
-    const t = useTranslations('global')
+    const t = useAppTranslations('global')
     const { inviteLink } = generateInviteCodeLink(username)
 
     const hasTrackedShow = useRef(false)
@@ -52,11 +51,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
             visible={visible}
             onClose={handleClose}
             title={t('inviteFriendsModal.title')}
-            // Inviting is fine under guideline 3.1.5(ii); promising payment for it
-            // is not. iOS gets the same share flow minus the earnings claim.
-            description={t(
-                isReferralRewardsHidden() ? 'inviteFriendsModal.descriptionNoRewards' : 'inviteFriendsModal.description'
-            )}
+            description={t('inviteFriendsModal.description')}
             icon="user-plus"
             content={
                 <>

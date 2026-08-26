@@ -41,7 +41,6 @@ export const DEDICATED_ROUTES = [
     'qr-pay',
     'badges',
     'limits',
-    'notifications',
     'recover-funds',
     'card-recovery',
     'recover-wallet',
@@ -215,4 +214,17 @@ export function isPublicRoute(path: string, isDev = false): boolean {
         return true
     }
     return false
+}
+
+/**
+ * Whether `pathName` is the route `href` points at, for nav active states.
+ *
+ * The native build sets `trailingSlash: true` (next.config.native.js), so
+ * `usePathname()` there returns `/home/` while nav hrefs are written `/home`.
+ * A bare `===` silently loses every active state in the app.
+ */
+export function isSameRoute(pathName: string | null | undefined, href: string): boolean {
+    const strip = (path: string) => (path.length > 1 ? path.replace(/\/+$/, '') : path)
+    if (!pathName) return false
+    return strip(pathName) === strip(href)
 }

@@ -48,7 +48,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
                 <Button
                     icon={<Users />}
                     variant="transparent"
-                    className="h-5 w-fit self-start p-0 text-xs font-normal underline underline-offset-2 active:translate-x-0"
+                    className="h-5 w-fit self-start p-0 text-body-xs font-normal underline underline-offset-2 active:translate-x-0"
                 >
                     {t('contributors.seeAll')}
                 </Button>

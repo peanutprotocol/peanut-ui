@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { type ReactNode } from 'react'
-import { ReceiptRow } from '@/components/TransactionDetails/ReceiptRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { type DisputeStatus, type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { declineReasonCode, type DeclineReasonCode } from '@/utils/cardDeclineReason'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -262,7 +262,7 @@ export function CardPaymentRows({ transaction }: { transaction: TransactionDetai
     return (
         <>
             {subRows.map((row) => (
-                <ReceiptRow key={row.key} label={row.label} value={row.value} />
+                <DataRow key={row.key} label={row.label} value={row.value} />
             ))}
         </>
     )

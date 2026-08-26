@@ -14,7 +14,7 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 
 const SignTestTransaction = () => {

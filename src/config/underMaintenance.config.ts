@@ -33,9 +33,9 @@
  *
  * 6. disableCardPioneers: hides the card pioneers waitlist feature entirely
  *    - /card page redirects to /home
- *    - /lp/card marketing page redirects to /
- *    - card pioneers section hidden from landing page
+ *    - /lp/card redirects to /shhhhh (redirects.json) — the marketing page itself is gone
  *    - card pioneer modal, carousel cta, and perk rewards hidden from home
+ *    - the landing-page card section it used to hide was removed in 2026-08; use disableLandingCardFold for the new one
  *    - set to false to enable the feature
  *
  * 7. pixBrazilOnrampMaintenance: warn-only flag for the BRL-via-PIX onramp (Manteca Brazil deposit)
@@ -54,6 +54,11 @@
  *    - Manteca currencies are ARS (Argentina) and BRL (Brazil); empty array = all Manteca transfers enabled
  *    - use during a partial Manteca outage so recovered currencies (e.g. ARS) come back while others stay blocked
  *    - does NOT touch QR payments (Manteca QR / Brazil PIX-over-QR stay open) — that is disabledPaymentProviders
+ *
+ * 10. disableLandingCardFold: hides the "shhhhh" card fold on the landing page
+ *    - removes the black door fold and the closed-beta marquee strip under it
+ *    - /shhhhh and the rest of the card flow stay reachable — this only mutes the homepage pitch
+ *    - use if the closed beta fills up or the card goes down
  *
  * note: if either mode is enabled, the maintenance banner will show everywhere
  *
@@ -75,6 +80,7 @@ interface MaintenanceConfig {
     disableXchainSend: boolean
     disableCardPioneers: boolean
     disableCardLaunchCTA: boolean
+    disableLandingCardFold: boolean
     pixBrazilOnrampMaintenance: boolean
     /** Manteca fiat currencies still down (e.g. ['BRL']); currencies not listed stay live. Empty = all enabled. */
     disabledMantecaCurrencies: MantecaCurrency[]
@@ -106,6 +112,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableXchainSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
     disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
     disableCardLaunchCTA: false, // kill-switch for the in-app "shhh" card CTA (funnel card step + activated home splash). Set true to mute it (dial down in-app load); /card flow + /shhhhh + waitlist stay reachable regardless.
+    disableLandingCardFold: false, // set to true to hide the landing-page card fold (black door fold + the closed-beta strip under it)
     pixBrazilOnrampMaintenance: false, // BRL deposits restored via dynamic PIX QR (2026-07-02). Set true if the onramp degrades again.
     disabledMantecaCurrencies: [], // Manteca restored (ARS + BRL live). Add a currency here to block it during a future outage.
 }

@@ -32,15 +32,6 @@ jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic }),
 }))
 
-jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
-    useTransactionDetailsDrawer: () => ({
-        selectedTxId: null,
-        isTransactionSelected: () => false,
-        openTransactionDetails,
-        closeTransactionDetails: jest.fn(),
-    }),
-}))
-
 jest.mock('@/hooks/usePrimaryNameServer', () => ({
     usePrimaryNameServer: () => ({ primaryName: undefined }),
 }))
@@ -85,7 +76,16 @@ function eligibleTx(transactionCardType: 'send' | 'bank_request_fulfillment' = '
 
 function renderCard(transaction: TransactionDetails, type: 'send' | 'bank_request_fulfillment' = 'send') {
     return render(
-        <TransactionCard type={type} name="natalia" amount={10} status="completed" transaction={transaction} />
+        <TransactionCard
+            type={type}
+            name="natalia"
+            amount={10}
+            status="completed"
+            transaction={transaction}
+            isSelected={false}
+            onOpen={openTransactionDetails}
+            onClose={jest.fn()}
+        />
     )
 }
 
@@ -181,7 +181,16 @@ describe('TransactionCard — failed strike-through and the refund carve-out', (
     function renderFailed(tx: TransactionDetails) {
         const failedTx = { ...tx, status: 'failed' } as TransactionDetails
         return render(
-            <TransactionCard type="card_pay" name="natalia" amount={10} status="failed" transaction={failedTx} />
+            <TransactionCard
+                type="card_pay"
+                name="natalia"
+                amount={10}
+                status="failed"
+                transaction={failedTx}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
         )
     }
 

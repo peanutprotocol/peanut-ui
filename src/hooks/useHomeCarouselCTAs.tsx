@@ -3,6 +3,7 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useNotifications } from './useNotifications'
@@ -19,7 +20,6 @@ import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUTMAN_MOBILE, PeanutWavingHello } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -81,7 +81,7 @@ const getDismissedCTAs = (userId: string | undefined): Map<string, Date> => {
 }
 
 export const useHomeCarouselCTAs = () => {
-    const t = useTranslations('home.carousel')
+    const t = useAppTranslations('home.carousel')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
     const flagEnabled = useFeatureFlags()
@@ -212,7 +212,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'card-pioneer',
                 title: <span>{t.rich('card.title', { b })}</span>,
                 description: <span>{t.rich('card.description', { b })}</span>,
-                iconContainerClassName: 'bg-purple-1',
+                iconContainerClassName: 'bg-action-primary',
                 icon: 'credit-card',
                 onClick: () => {
                     router.push('/shhhhh')
@@ -222,7 +222,7 @@ export const useHomeCarouselCTAs = () => {
         }
 
         // Generic invite CTA for non-LATAM activated users who haven't invited yet.
-        if (!isLatamUser && isActivated && !hasSentInvites && !isReferralRewardsHidden()) {
+        if (!isLatamUser && isActivated && !hasSentInvites) {
             _carouselCTAs.push({
                 id: 'invite-friends',
                 title: t('invite.title'),
@@ -282,7 +282,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'ios-pwa-install',
                 title: t('iosPwa.title'),
                 description: t('iosPwa.description'),
-                iconContainerClassName: 'bg-secondary-1',
+                iconContainerClassName: 'bg-action-secondary',
                 icon: 'mobile-install',
                 onClick: () => {
                     setIsIosPwaInstallModalOpen(true)
@@ -298,7 +298,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'qr-payment',
                 title: <span>{t.rich('qrPay.title', { b })}</span>,
                 description: <span>{t.rich('qrPay.description', { b })}</span>,
-                iconContainerClassName: 'bg-secondary-1',
+                iconContainerClassName: 'bg-action-secondary',
                 icon: 'qr-code',
                 onClick: () => {
                     setIsQRScannerOpen(true)
@@ -310,12 +310,12 @@ export const useHomeCarouselCTAs = () => {
         // ------------------------------------------------------------------------------------------------
         // LATAM rewards CTA - show to activated users in Argentina or Brazil who haven't
         // invited anyone yet. Encourages first-invite; we hide once they've sent at least one.
-        if (isLatamUser && isActivated && !hasSentInvites && !isReferralRewardsHidden()) {
+        if (isLatamUser && isActivated && !hasSentInvites) {
             _carouselCTAs.push({
                 id: 'latam-cashback-invite',
                 title: <span>{t.rich('latamInvite.title', { b })}</span>,
                 description: <span>{t.rich('latamInvite.description', { b })}</span>,
-                iconContainerClassName: 'bg-secondary-1',
+                iconContainerClassName: 'bg-action-secondary',
                 icon: 'gift',
                 onClick: () => {
                     router.push('/rewards')
@@ -334,7 +334,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'bug-bounty',
                 title: <span>{t.rich('bugBounty.title', { b })}</span>,
                 description: t('bugBounty.description'),
-                iconContainerClassName: 'bg-primary-1',
+                iconContainerClassName: 'bg-action-primary',
                 icon: 'bug',
                 iconSize: 20,
                 // (mobile-ui) routes don't load the Crisp script directly —
@@ -356,7 +356,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
                 description: <span>{t.rich('kyc.description', { b })}</span>,
-                iconContainerClassName: 'bg-secondary-1',
+                iconContainerClassName: 'bg-action-secondary',
                 icon: 'qr-code',
                 iconSize: 16,
                 onClick: () => {

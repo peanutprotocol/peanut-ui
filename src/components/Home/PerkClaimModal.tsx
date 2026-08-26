@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useQueryClient } from '@tanstack/react-query'
 import { perksApi, type PendingPerk } from '@/services/perks'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -20,7 +21,6 @@ import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils
 import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 type ClaimPhase = 'idle' | 'holding' | 'opening' | 'revealed' | 'exiting'
 
@@ -176,7 +176,7 @@ interface SuccessModalProps {
  * Uses icon/title/description props for standard vertical centered layout.
  */
 function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProps) {
-    const t = useTranslations('home.perk')
+    const t = useAppTranslations('home.perk')
     const tCommon = useTranslations('common')
     const inviteeName = perk.inviteeName ?? extractInviteeName(perk.reason)
     const { triggerHaptic } = useAppHaptic()
@@ -185,7 +185,6 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
     const [canDismiss, setCanDismiss] = useState(false)
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const isExiting = claimPhase === 'exiting'
-    const hideReferralRewards = isReferralRewardsHidden()
 
     // Surprise moment claim count: read synchronously so first render has correct copy.
     // 0=first surprise, 1=second, 2+=normal referral claim.
@@ -206,9 +205,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
         return () => clearTimeout(dismissTimer)
     }, []) // eslint-disable-line react-hooks/exhaustive-deps -- triggerHaptic is stable
 
-    // The surprise-moment treatment is pure reward messaging ("You just earned
-    // $X", "share & earn"), so iOS falls through to the plain claimed state.
-    const isSurpriseMoment = claimCount < 2 && !hideReferralRewards
+    const isSurpriseMoment = claimCount < 2
 
     return (
         <>
@@ -223,19 +220,19 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                 title=""
                 description={
                     <div className={isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}>
-                        <p className="text-3xl font-extrabold text-black">+${perk.amountUsd}</p>
+                        <p className="text-heading-m text-black">+${perk.amountUsd}</p>
                         {isSurpriseMoment ? (
                             <>
                                 {/* Approved copy — see notion: notifs-copy-33083811757980638a27effc79a033f3 */}
-                                <p className="mt-2 text-center text-base font-semibold text-n-1">
+                                <p className="mt-2 text-center text-body-m-semibold text-foreground-primary">
                                     {t('surpriseTitle', { amount: perk.amountUsd })}
                                 </p>
-                                <p className="mt-1 text-center text-sm text-grey-1">
+                                <p className="mt-1 text-center text-body-s text-foreground-secondary">
                                     {claimCount === 0 ? t('surpriseDescriptionFirst') : t('surpriseDescriptionNext')}
                                 </p>
                             </>
                         ) : inviteeName ? (
-                            <p className="mt-1 flex items-center justify-center gap-1 text-sm text-grey-1">
+                            <p className="mt-1 flex items-center justify-center gap-1 text-body-s text-foreground-secondary">
                                 <Icon name="invite-heart" size={14} />
                                 {t.rich('usedPeanut', {
                                     inviteeName,
@@ -243,7 +240,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                 })}
                             </p>
                         ) : (
-                            <p className="mt-1 text-sm text-grey-1">{t('rewardClaimed')}</p>
+                            <p className="mt-1 text-body-s text-foreground-secondary">{t('rewardClaimed')}</p>
                         )}
                     </div>
                 }
@@ -268,7 +265,10 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                         >
                                             {t('shareAndEarn')}
                                         </Button>
-                                        <button className="text-sm text-grey-1 underline" onClick={onDismiss}>
+                                        <button
+                                            className="text-body-s text-foreground-secondary underline"
+                                            onClick={onDismiss}
+                                        >
                                             {tCommon('maybeLater')}
                                         </button>
                                     </>
@@ -277,17 +277,15 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onDismiss}>
                                             {tCommon('done')}
                                         </Button>
-                                        {!hideReferralRewards && (
-                                            <p
-                                                className="cursor-pointer text-center text-sm text-grey-1 underline"
-                                                onClick={() => {
-                                                    onDismiss()
-                                                    router.push('/rewards')
-                                                }}
-                                            >
-                                                {t('inviteFriendsToEarnMore')}
-                                            </p>
-                                        )}
+                                        <p
+                                            className="cursor-pointer text-center text-body-s text-foreground-secondary underline"
+                                            onClick={() => {
+                                                onDismiss()
+                                                router.push('/rewards')
+                                            }}
+                                        >
+                                            {t('inviteFriendsToEarnMore')}
+                                        </p>
                                     </>
                                 )}
                             </div>
@@ -317,7 +315,7 @@ interface GiftBoxContentProps {
  * Gift box with hold-to-claim interaction
  */
 function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProps) {
-    const t = useTranslations('home.perk')
+    const t = useAppTranslations('home.perk')
     const { holdProgress, isShaking, shakeIntensity, buttonProps } = useHoldToClaim({
         onComplete: onHoldComplete,
         disabled: claimPhase !== 'idle',
@@ -346,7 +344,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
     return (
         <div className="flex flex-col items-center">
             {/* Title */}
-            <p className="mb-6 text-center text-sm text-grey-1">
+            <p className="mb-6 text-center text-body-s text-foreground-secondary">
                 <Icon name="invite-heart" size={14} className="mr-1 inline" />
                 {t.rich('usedPeanut', {
                     inviteeName: inviteeName ?? '',
@@ -358,7 +356,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
             <div className={`relative ${getAnimationClass()}`}>
                 {/* Glow effect behind gift */}
                 <div
-                    className="pointer-events-none absolute inset-0 -m-6 rounded-3xl bg-primary-1 blur-2xl transition-opacity"
+                    className="pointer-events-none absolute inset-0 -m-6 rounded-3xl bg-action-primary blur-2xl transition-opacity"
                     style={{ opacity: (holdProgress / 100) * 0.3 }}
                 />
 
@@ -366,13 +364,13 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                 <div {...buttonProps} className="relative cursor-pointer touch-none select-none">
                     {/* Gift box */}
                     <div
-                        className={`gift-box-shine relative h-32 w-44 overflow-hidden rounded-xl border-4 border-primary-1 bg-gradient-to-br from-primary-1/20 via-white to-primary-2/20 shadow-xl transition-transform ${holdProgress > 0 ? 'scale-[0.98]' : ''}`}
+                        className={`gift-box-shine relative h-32 w-44 overflow-hidden rounded-xl border-4 border-action-primary bg-gradient-to-br from-action-primary/20 via-white to-action-primary/20 shadow-xl transition-transform ${holdProgress > 0 ? 'scale-[0.98]' : ''}`}
                     >
                         {/* Vertical ribbon */}
-                        <div className="absolute top-0 bottom-0 left-1/2 w-5 -translate-x-1/2 bg-gradient-to-r from-primary-1/50 via-primary-1/70 to-primary-1/50" />
+                        <div className="absolute top-0 bottom-0 left-1/2 w-5 -translate-x-1/2 bg-gradient-to-r from-action-primary/50 via-action-primary/70 to-action-primary/50" />
 
                         {/* Horizontal ribbon */}
-                        <div className="absolute top-1/2 right-0 left-0 h-5 -translate-y-1/2 bg-gradient-to-b from-primary-1/50 via-primary-1/70 to-primary-1/50" />
+                        <div className="absolute top-1/2 right-0 left-0 h-5 -translate-y-1/2 bg-gradient-to-b from-action-primary/50 via-action-primary/70 to-action-primary/50" />
 
                         {/* Light rays from center */}
                         <div
@@ -384,19 +382,19 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
 
                         {/* Cracks appearing with progress */}
                         {holdProgress > 20 && (
-                            <div className="absolute top-4 left-4 h-8 w-0.5 rotate-45 bg-primary-1/40" />
+                            <div className="absolute top-4 left-4 h-8 w-0.5 rotate-45 bg-action-primary/40" />
                         )}
                         {holdProgress > 40 && (
-                            <div className="absolute right-6 bottom-6 h-10 w-0.5 -rotate-[30deg] bg-primary-1/40" />
+                            <div className="absolute right-6 bottom-6 h-10 w-0.5 -rotate-[30deg] bg-action-primary/40" />
                         )}
                         {holdProgress > 60 && (
-                            <div className="absolute bottom-4 left-8 h-6 w-0.5 rotate-12 bg-primary-1/40" />
+                            <div className="absolute bottom-4 left-8 h-6 w-0.5 rotate-12 bg-action-primary/40" />
                         )}
 
                         {/* Gift icon */}
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div
-                                className={`rounded-full bg-primary-1 p-3 shadow-lg transition-transform ${holdProgress > 30 ? 'animate-bounce' : ''}`}
+                                className={`rounded-full bg-action-primary p-3 shadow-lg transition-transform ${holdProgress > 30 ? 'animate-bounce' : ''}`}
                             >
                                 <Icon name="gift" size={24} className="text-white" />
                             </div>
@@ -408,7 +406,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                         <div className="relative">
                             {/* Left ribbon tail */}
                             <div
-                                className="absolute top-2 left-1/2 h-4 w-2 -translate-x-[10px] bg-primary-1 transition-transform"
+                                className="absolute top-2 left-1/2 h-4 w-2 -translate-x-[10px] bg-action-primary transition-transform"
                                 style={{
                                     transform: `translateX(-10px) rotate(${-20 - ribbonSpread * 0.5}deg)`,
                                     borderRadius: '0 0 2px 2px',
@@ -416,7 +414,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                             />
                             {/* Right ribbon tail */}
                             <div
-                                className="absolute top-2 left-1/2 h-4 w-2 translate-x-[2px] bg-primary-1 transition-transform"
+                                className="absolute top-2 left-1/2 h-4 w-2 translate-x-[2px] bg-action-primary transition-transform"
                                 style={{
                                     transform: `translateX(2px) rotate(${20 + ribbonSpread * 0.5}deg)`,
                                     borderRadius: '0 0 2px 2px',
@@ -424,16 +422,16 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                             />
                             {/* Left loop */}
                             <div
-                                className="absolute -top-1 -left-5 h-4 w-6 rounded-full bg-primary-1 shadow-sm transition-transform"
+                                className="absolute -top-1 -left-5 h-4 w-6 rounded-full bg-action-primary shadow-sm transition-transform"
                                 style={{ transform: `rotate(${-25 - ribbonSpread}deg)` }}
                             />
                             {/* Right loop */}
                             <div
-                                className="absolute -top-1 -right-5 h-4 w-6 rounded-full bg-primary-1 shadow-sm transition-transform"
+                                className="absolute -top-1 -right-5 h-4 w-6 rounded-full bg-action-primary shadow-sm transition-transform"
                                 style={{ transform: `rotate(${25 + ribbonSpread}deg)` }}
                             />
                             {/* Center knot */}
-                            <div className="relative z-10 h-4 w-4 rounded-sm bg-primary-1 shadow-md" />
+                            <div className="relative z-10 h-4 w-4 rounded-sm bg-action-primary shadow-md" />
                         </div>
                     </div>
 
@@ -441,13 +439,13 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                     {holdProgress > 30 && (
                         <>
                             <div
-                                className="absolute top-2 -right-4 animate-ping text-lg"
+                                className="absolute top-2 -right-4 animate-ping text-body-l"
                                 style={{ animationDuration: '1s' }}
                             >
                                 ✨
                             </div>
                             <div
-                                className="absolute bottom-4 -left-4 animate-ping text-lg"
+                                className="absolute bottom-4 -left-4 animate-ping text-body-l"
                                 style={{ animationDuration: '1.2s', animationDelay: '0.2s' }}
                             >
                                 ✨
@@ -457,13 +455,13 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                     {holdProgress > 60 && (
                         <>
                             <div
-                                className="absolute -top-2 right-2 animate-ping text-sm"
+                                className="absolute -top-2 right-2 animate-ping text-body-s"
                                 style={{ animationDuration: '0.8s', animationDelay: '0.3s' }}
                             >
                                 ⭐
                             </div>
                             <div
-                                className="absolute -bottom-2 left-2 animate-ping text-sm"
+                                className="absolute -bottom-2 left-2 animate-ping text-body-s"
                                 style={{ animationDuration: '1s', animationDelay: '0.1s' }}
                             >
                                 ⭐
@@ -474,7 +472,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
             </div>
 
             {/* Instructions */}
-            <p className="mt-6 text-center text-sm text-grey-1">{t('holdToUnwrap')}</p>
+            <p className="mt-6 text-center text-body-s text-foreground-secondary">{t('holdToUnwrap')}</p>
         </div>
     )
 }

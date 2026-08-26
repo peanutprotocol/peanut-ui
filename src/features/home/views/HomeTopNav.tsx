@@ -4,7 +4,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
@@ -18,7 +18,7 @@ interface HomeTopNavProps {
  * rewards link top-right. The link keeps a 44px hit area via after: inset.
  */
 export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
-    const t = useTranslations('home')
+    const t = useAppTranslations('home')
     const { triggerHaptic } = useAppHaptic()
 
     return (
@@ -46,7 +46,12 @@ export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
                 />
             </Link>
             {showRewards && (
-                <Link href="/rewards" onClick={() => triggerHaptic()} className="flex items-center gap-1">
+                <Link
+                    href="/rewards"
+                    onClick={() => triggerHaptic()}
+                    // 20px visual — extend the pressable area to 44px (touch-target law)
+                    className="relative flex items-center gap-1 after:absolute after:-inset-3"
+                >
                     <InvitesIcon />
                     <span className="text-button-m whitespace-nowrap text-foreground-primary">{t('rewards')}</span>
                     <Icon name="chevron-right" size={20} className="text-foreground-primary" />

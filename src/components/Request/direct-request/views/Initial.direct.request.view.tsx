@@ -1,5 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
@@ -197,7 +198,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     <div className="text-center text-heading-xs md:hidden">{tNav('request')}</div>
                 )}
 
-                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                <PageStack.Center className="gap-4">
                     <PaymentSuccessView
                         user={recipientUser}
                         amount={formatAmount(currentInputValue)}
@@ -205,7 +206,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         type="REQUEST"
                         redirectTo="/request"
                     />
-                </div>
+                </PageStack.Center>
             </div>
         )
     }
@@ -218,7 +219,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 <div className="text-center text-heading-xs md:hidden">{tNav('request')}</div>
             )}
 
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 <UserCard
                     type="request"
                     recipientType={'USERNAME'}
@@ -303,7 +304,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
 
                     {errorState.errorMessage && <Notification priority="error">{errorState.errorMessage}</Notification>}
                 </div>
-            </div>
+            </PageStack.Center>
         </div>
     )
 }

@@ -1,5 +1,6 @@
 'use client'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import posthog from 'posthog-js'
@@ -86,7 +87,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
 
     if (mode === 'set') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-6">
+            <PageStack gap="6">
                 <NavHeader
                     title={t('setNavTitle')}
                     onPrev={() => {
@@ -101,13 +102,13 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         void setMode(null)
                     }}
                 />
-            </div>
+            </PageStack>
         )
     }
 
     if (pinUnset) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-6">
+            <PageStack gap="6">
                 <NavHeader title={t('navTitle')} onPrev={onPrev} />
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-2">
@@ -118,12 +119,12 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         {t('setPin')}
                     </Button>
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
             <div className="flex flex-col gap-6">
                 <p className="text-body-s text-foreground-secondary">{t('hiddenNote')}</p>
@@ -168,7 +169,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                     position="single"
                 />
             </div>
-        </div>
+        </PageStack>
     )
 }
 

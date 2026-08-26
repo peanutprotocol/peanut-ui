@@ -1,6 +1,7 @@
 'use client'
 
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
@@ -109,6 +110,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         flowStep: claimBankFlowStep,
         showVerificationModal,
         setShowVerificationModal,
+        verificationPromptReason,
+        setVerificationPromptReason,
         setClaimToExternalWallet,
         resetFlow: resetClaimBankFlow,
         claimToMercadoPago,
@@ -934,9 +937,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     useEffect(() => {
         if (claimToMercadoPago && !user) {
+            // regional claim without an account: the sender's verification is
+            // irrelevant here, so don't render copy that blames them
+            setVerificationPromptReason('account-required')
             setShowVerificationModal(true)
         }
-    }, [claimToMercadoPago, user, setShowVerificationModal])
+    }, [claimToMercadoPago, user, setShowVerificationModal, setVerificationPromptReason])
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
@@ -978,7 +984,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     <div className="pb-1 text-center text-heading-s">{t('receive')}</div>
                 </div>
             )}
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"
                     transactionType="CLAIM_LINK"
@@ -1077,7 +1083,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         />
                     )}
                 </div>
-            </div>
+            </PageStack.Center>
             <ActionModal
                 visible={showConfirmationModal}
                 onClose={() => setShowConfirmationModal(false)}
@@ -1089,7 +1095,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     </div>
                 }
                 icon="alert"
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName="bg-action-secondary"
                 footer={
                     <div className="space-y-3 w-full">
                         <SlideToConfirm
@@ -1127,7 +1133,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     removeParamStep()
                     setShowVerificationModal(false)
                 }}
-                description={t('guestVerification.description')}
+                description={
+                    verificationPromptReason === 'sender-unverified'
+                        ? t('guestVerification.senderUnverifiedDescription')
+                        : t('guestVerification.accountRequiredDescription')
+                }
                 inviterUsername={claimLinkData?.sender?.username}
             />
         </div>

@@ -84,13 +84,14 @@ export default function SendLinkActionList({
         setClaimToExternalWallet,
         setFlowStep: setClaimBankFlowStep,
         setShowVerificationModal,
+        setVerificationPromptReason,
         setClaimToMercadoPago,
         setRegionalMethodType,
         setHideTokenSelector,
     } = useClaimBankFlow()
     const [showMinAmountError, setShowMinAmountError] = useState(false)
     const [minAmountErrorInfo, setMinAmountErrorInfo] = useState<{ title: string; amount: number } | null>(null)
-    const { claimType } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
+    const { claimType, senderCanReceiveBankOfframp } = useDetermineBankClaimType(claimLinkData?.sender?.userId ?? '')
     const savedAccounts = useSavedAccounts()
     const { addParamStep } = useClaimLink()
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
@@ -150,6 +151,12 @@ export default function SendLinkActionList({
             case 'bank':
                 if (claimType === BankClaimType.GuestKycNeeded) {
                     addParamStep('bank')
+                    // GuestKycNeeded covers three different situations; only one of
+                    // them is actually about the sender. Say so only when the
+                    // lookup came back with a definite no.
+                    setVerificationPromptReason(
+                        senderCanReceiveBankOfframp === false ? 'sender-unverified' : 'account-required'
+                    )
                     setShowVerificationModal(true)
                 } else {
                     if (savedAccounts.length) {
@@ -166,6 +173,9 @@ export default function SendLinkActionList({
                     // remounts the flow, and Initial.view restores it from the
                     // `method` param when it re-enters via step=regional-claim.
                     addParamStep('regional-claim', { method: method.id })
+                    // the blocker is the missing account, not the sender —
+                    // mercadopago/pix never consult the sender's rails at all
+                    setVerificationPromptReason('account-required')
                     setShowVerificationModal(true)
                     return
                 }
@@ -318,7 +328,7 @@ export default function SendLinkActionList({
                         onClick: () => setShowMinAmountError(false),
                     },
                 ]}
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />

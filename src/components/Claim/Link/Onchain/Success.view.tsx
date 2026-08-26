@@ -178,15 +178,13 @@ export const SuccessClaimLinkView = ({
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
-            <div className="md:hidden">
-                <NavHeader
-                    icon="cancel"
-                    title={navHeaderTitle}
-                    onPrev={() => {
-                        router.push('/home')
-                    }}
-                />
-            </div>
+            <NavHeader
+                icon="cancel"
+                title={navHeaderTitle}
+                onPrev={() => {
+                    router.push('/home')
+                }}
+            />
             <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
                 <Image
                     src={PeanutCheering.src}

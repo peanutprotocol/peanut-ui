@@ -244,6 +244,16 @@ must be unique, and re-tagging is cheaper than a package.json bump.
 Not `v*`: that prefix belongs to `ios-release.yml` / `android-release.yml` for native
 store builds, and the two must not trigger each other.
 
+One deliberate exception to "opt-in per release": a **native release auto-publishes a
+matching production bundle** when its versionName is ahead of the newest production
+bundle. Capgo refuses on-device any bundle sorting below the installed native version
+(`disable_auto_update_under_native`), so a binary that outruns the bundles strands its
+whole fleet with green CI — that was TASK-21793 (102 devices refused OTA for a month
+because internal builds shipped 1.0.53 while the newest bundle was 1.0.51). The release
+workflows check the floor before building (`scripts/semver-newer.mjs` against
+`channel currentBundle production`) and, after the store upload, publish the release's
+own `out/` under the binary's versionName, then assert the channel serves it.
+
 - **The `production` channel** must exist in the Capgo dashboard and be bound to the prod
   app. It does — bundle 1.0.48 shipped to it on 2026-08-06.
 - **No second approver yet.** The job declares the `Production` environment, but that

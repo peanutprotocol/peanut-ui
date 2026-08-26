@@ -12,7 +12,6 @@ import {
     isCardPaymentEntry,
     isPerkReward,
 } from '@/components/TransactionDetails/transaction-predicates'
-import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { useTranslations } from 'next-intl'
 import {
     formatNumberForDisplay,
@@ -29,11 +28,11 @@ import {
     STRUCK_AMOUNT_STATUSES,
 } from '@/utils/history.utils'
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import { isAddress } from 'viem'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
-import { normalizeEnsName } from '@/utils/ens.utils'
+import { normalizeEnsName } from '@/utils/ens-name.utils'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { PerkIcon } from './PerkIcon'
@@ -64,6 +63,12 @@ interface TransactionCardProps {
     isPending?: boolean
     haveSentMoneyToUser?: boolean
     hideTxnAmount?: boolean
+    /** whether this row's receipt drawer is open — computed by the LIST from
+     *  useTransactionDetailsDrawer, so N rows don't each subscribe to `?tx=` */
+    isSelected: boolean
+    /** the list's (stable) useTransactionDetailsDrawer callbacks */
+    onOpen: (transaction: TransactionDetails) => void
+    onClose: () => void
 }
 
 /**
@@ -82,11 +87,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     isPending = false,
     haveSentMoneyToUser = false,
     hideTxnAmount = false,
+    isSelected,
+    onOpen,
+    onClose,
 }) => {
-    // drawer selection lives in the url (`?tx=<id>`) — an open receipt
-    // survives refresh and deep-links (states/receipt boards, url-as-state).
-    const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
-    const isSelected = isTransactionSelected(transaction.id)
     // mount the (lazy, vaul) drawer only once this row has been selected —
     // keeps N history rows from each carrying a mounted dialog, while the
     // ref keeps it mounted through the close animation. Written in an effect
@@ -101,7 +105,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     const handleClick = () => {
         triggerHaptic()
-        openTransactionDetails(transaction)
+        onOpen(transaction)
     }
 
     const canNavigateToProfile = hasUserProfile(transaction)
@@ -319,7 +323,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <Suspense fallback={null}>
                     <TransactionDetailsDrawer
                         isOpen={isSelected}
-                        onClose={closeTransactionDetails}
+                        onClose={onClose}
                         transaction={isSelected || hasBeenSelectedRef.current ? transaction : null}
                         transactionAmount={displayAmount}
                         avatarUrl={avatarUrl}
@@ -396,4 +400,6 @@ function getActionLabelKey(type: TransactionType, status?: StatusPillType) {
     return TYPE_LABEL_KEYS[status === 'refunded' ? 'refund' : type]
 }
 
-export default TransactionCard
+// memo: history is an unvirtualized infinite list — without this, any
+// drawer open/close re-rendered every loaded row (each row read `?tx=`).
+export default React.memo(TransactionCard)

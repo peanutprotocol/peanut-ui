@@ -13,6 +13,7 @@
  */
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -79,7 +80,7 @@ export function ContributePotInputView() {
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 {/* recipient card with pot info */}
                 {recipient && (
                     <UserCard
@@ -128,7 +129,7 @@ export function ContributePotInputView() {
                     isExternalWalletLoading={isExternalWalletLoading}
                     onPayWithExternalWallet={handleOpenExternalWalletFlow}
                 />
-            </div>
+            </PageStack.Center>
 
             {/* support cta */}
             {!isFetchingUser && <SupportCTA />}

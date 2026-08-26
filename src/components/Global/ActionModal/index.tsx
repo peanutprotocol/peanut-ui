@@ -3,7 +3,7 @@ import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/compon
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export interface ActionModalButtonProps extends ButtonProps {
     text: string
@@ -73,7 +73,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     hideOverlay,
 }) => {
     const defaultModalPanelClasses = 'max-w-[85%]'
-    const defaultIconContainerClassName = 'bg-primary-1' // default pink background
+    const defaultIconContainerClassName = 'bg-action-primary' // default pink background
     const defaultIconPropsClassName = 'text-black' // default black icon color
 
     const renderIconContent = () => {
@@ -116,26 +116,33 @@ const ActionModal: React.FC<ActionModalProps> = ({
             classOverlay={classOverlay}
             hideOverlay={hideOverlay}
         >
-            <div className={twMerge('flex flex-col items-center gap-4 p-6 text-center', contentContainerClassName)}>
-                {iconContent && (
-                    <div
-                        className={twMerge(
-                            'flex size-8 items-center justify-center rounded-full',
-                            customIconContainerClassName || defaultIconContainerClassName
-                        )}
-                    >
-                        {iconContent}
-                    </div>
-                )}
-
-                <div className="space-y-2 w-full">
-                    {/* board head: Heading XS + Body S */}
-                    <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>{title}</h3>
-                    {description && (
-                        <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
-                            {typeof description === 'string' ? <p>{description}</p> : description}
+            {/* anatomy 17800:57224: p = XL/24, and the stack is nested — the icon
+                and the head sit L/16 apart inside a "Top" group, the head's own
+                title and description XS/4 apart, and the whole group is XL/24
+                from the ctas. It used to be one flat gap-4, so the description
+                sat as far from its title as the ctas did from the head. */}
+            <div className={twMerge('flex flex-col items-center gap-6 p-6 text-center', contentContainerClassName)}>
+                <div className="flex w-full flex-col items-center gap-4">
+                    {iconContent && (
+                        <div
+                            className={twMerge(
+                                'flex size-8 items-center justify-center rounded-full',
+                                customIconContainerClassName || defaultIconContainerClassName
+                            )}
+                        >
+                            {iconContent}
                         </div>
                     )}
+
+                    <div className="flex w-full flex-col gap-1">
+                        {/* board head: Heading XS + Body S */}
+                        <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>{title}</h3>
+                        {description && (
+                            <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
+                                {typeof description === 'string' ? <p>{description}</p> : description}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {content}
@@ -144,11 +151,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     <div className="space-y-4 w-full">
                         {checkbox && (
                             <div className={twMerge('self-start text-left', checkbox.className)}>
-                                <label className="space-x-2 flex cursor-pointer items-center justify-center text-sm dark:text-white">
+                                <label className="space-x-2 flex cursor-pointer items-center justify-center text-body-s dark:text-white">
                                     <input
                                         type="checkbox"
                                         className={twMerge(
-                                            'border-gray-300 dark:border-gray-600 h-4 w-4 rounded text-primary-1 shadow-sm focus:border-primary-3 focus:ring focus:ring-primary-2/50 dark:bg-n-2 dark:ring-offset-n-1 dark:checked:bg-primary-1 dark:focus:ring-primary-1/50',
+                                            'h-4 w-4 rounded text-action-primary shadow-sm focus:border-purple-200 focus:ring focus:ring-action-focus/50 dark:bg-gray-900 dark:ring-offset-black dark:checked:bg-action-primary dark:focus:ring-action-primary/50',
                                             checkbox.inputClassName
                                         )}
                                         checked={checkbox.checked}

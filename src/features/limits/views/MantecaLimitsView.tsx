@@ -31,16 +31,16 @@ const MantecaLimitsView = () => {
     const t = useTranslations('limits.provider')
     const tPeriod = useTranslations('limits.period')
     const onBack = useSafeBack('/limits')
-    const { mantecaLimits, isLoading, error } = useLimits()
+    const { mantecaLimits, isLoading, error, refetch, isRefetching } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
 
     return (
         <div className="space-y-6 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={onBack} />
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
 
-            {error && <LimitsError />}
+            {error && <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />}
 
             {!isLoading && !error && mantecaLimits && mantecaLimits.length > 0 && (
                 <>

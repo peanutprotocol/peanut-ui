@@ -21,7 +21,7 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: false,
         showSkipButton: false,
         imageClassName: 'w-[50%] md:w-[30%] h-auto',
-        titleClassName: 'text-2xl',
+        titleClassName: 'text-heading-s',
         contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
     {

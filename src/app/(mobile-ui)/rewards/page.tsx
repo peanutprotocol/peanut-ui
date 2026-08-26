@@ -34,12 +34,12 @@ import { profileUrl } from '@/utils/native-routes'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { isIOSNative } from '@/utils/capacitor'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
 
 const PointsPage = () => {
-    const t = useTranslations('rewards')
+    const t = useAppTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/home')
     const { user, fetchUser } = useAuth()
@@ -96,14 +96,6 @@ const PointsPage = () => {
         enabled: !!tierInfo?.data,
     })
 
-    // Guideline 3.1.5(ii): the referral programme is unreachable in the iOS app,
-    // including by deep link — hiding only the entry points would leave /rewards
-    // one URL away.
-    const hideReferralRewards = isReferralRewardsHidden()
-    useEffect(() => {
-        if (hideReferralRewards) router.replace('/home')
-    }, [hideReferralRewards, router])
-
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.POINTS_PAGE_VIEWED)
     }, [])
@@ -112,8 +104,6 @@ const PointsPage = () => {
         // re-fetch user to get the latest invitees list for showing heart icon
         fetchUser()
     }, [])
-
-    if (hideReferralRewards) return null
 
     if (isLoading || isTierInfoLoading || !tierInfo?.data) {
         return <Loading variant="mascot" />
@@ -241,12 +231,31 @@ const PointsPage = () => {
                     </div>
                 </Card>
 
+                {/* iOS presents the programme as cashback (see useAppTranslations);
+                    the explainer is part of that framing, so web and Android skip it */}
+                {isIOSNative() && (
+                    <Card className="flex flex-col gap-3 p-6">
+                        <h2 className="text-body-m font-black">{t('howItWorks.title')}</h2>
+                        <ol className="flex flex-col gap-2">
+                            {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
+                                <li key={step} className="flex items-start gap-3 text-body-s">
+                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-action-secondary text-body-xs font-black">
+                                        {i + 1}
+                                    </span>
+                                    <span>{t(`howItWorks.${step}`)}</span>
+                                </li>
+                            ))}
+                        </ol>
+                    </Card>
+                )}
+
                 {/* invite graph with consolidated explanation */}
                 {myGraphResult?.data && (
                     <>
-                        {/* only render the graph when there are people to show — an
-                            empty graph renders as a blank box (demo / no invites yet) */}
-                        {myGraphResult.data.nodes?.length > 0 && (
+                        {/* only render the graph when there are people to show — a
+                            single node is just the user themselves and renders as a
+                            giant lone blob (no invites yet) */}
+                        {myGraphResult.data.nodes?.length > 1 && (
                             <Card className="!mt-8 overflow-hidden p-0">
                                 <InvitesGraph
                                     minimal
@@ -333,25 +342,24 @@ const PointsPage = () => {
                     </>
                 ) : (
                     <>
-                        {/* if user has no invites: show empty state with modal button */}
-                        <Card className="!mt-8 flex flex-col items-center justify-center gap-4 py-4">
-                            <div className="flex items-center justify-center rounded-full bg-action-primary p-2">
-                                <Icon name="trophy" />
-                            </div>
-                            <h2 className="text-body-m font-medium text-foreground-primary">{t('noInvitesYet')}</h2>
-
-                            <p className="text-center text-body-s text-foreground-secondary">
-                                {t('shareInviteLinkPrompt')}
-                            </p>
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                onClick={() => setIsInviteModalOpen(true)}
-                                className="w-full"
-                            >
-                                {t('shareInviteLink')}
-                            </Button>
-                        </Card>
+                        {/* if user has no invites: canonical empty state with modal button */}
+                        <EmptyState
+                            icon="trophy"
+                            title={t('noInvitesYet')}
+                            description={t('shareInviteLinkPrompt')}
+                            containerClassName="!mt-8"
+                            cta={
+                                <Button
+                                    variant="purple"
+                                    shadowSize="4"
+                                    size="small"
+                                    className="mt-2"
+                                    onClick={() => setIsInviteModalOpen(true)}
+                                >
+                                    {t('shareInviteLink')}
+                                </Button>
+                            }
+                        />
                     </>
                 )}
 

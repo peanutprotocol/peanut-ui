@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useContext, useMemo } from 'react'
-import { type Address, type Hash } from 'viem'
+import { type Address } from 'viem'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
@@ -27,6 +27,8 @@ import { captureException } from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { isDemoMode } from '@/utils/demo'
 
 export function useDirectSendFlow() {
     const t = useTranslations('payment')
@@ -135,6 +137,7 @@ export function useDirectSendFlow() {
         let chargeId: string | undefined
 
         try {
+            const t0 = Date.now()
             // step 1: create charge
             const chargeResult = await createCharge({
                 tokenAmount: amount,
@@ -152,6 +155,7 @@ export function useDirectSendFlow() {
 
             setCharge(chargeResult)
             chargeId = chargeResult.uuid
+            const tChargeCreated = Date.now()
             failedStep = 'send-money'
 
             // step 2: send money via peanut wallet
@@ -163,11 +167,8 @@ export function useDirectSendFlow() {
                 // through the same trusted-completion path.
                 chargeId: chargeResult.uuid,
             })
-            // For the collateral-only strategy useSpendBundle returns only
-            // `txHash` (Rain coordinator submits the on-chain tx; no UserOp
-            // hash + no receipt land here). Fall back to it so users with
-            // card collateral can pay without smart-account balance.
-            const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
+            const { hash, source: txHashSource } = resolveSettledTxHash(txResult, 'direct-send')
+            const tMoneySent = Date.now()
 
             setTxHash(hash)
             failedStep = 'record-payment'
@@ -184,6 +185,25 @@ export function useDirectSendFlow() {
             setPayment(paymentResult)
             setIsSuccess(true)
             setCurrentView('STATUS')
+
+            // Client-leg latency split. Prod DB timing only sees intent
+            // creation → POST /payments as one opaque 7.9s-median block
+            // (TASK-21147) — this attributes it. Guarded: a capture throw must
+            // never route an already-successful payment into the error catch.
+            try {
+                if (!isDemoMode()) {
+                    posthog.capture(ANALYTICS_EVENTS.SEND_LATENCY_BREAKDOWN, {
+                        charge_id: chargeResult.uuid,
+                        charge_create_ms: tChargeCreated - t0,
+                        send_money_ms: tMoneySent - tChargeCreated,
+                        record_payment_ms: Date.now() - tMoneySent,
+                        total_ms: Date.now() - t0,
+                        tx_hash_source: txHashSource,
+                    })
+                }
+            } catch {
+                // analytics only — never user-visible
+            }
         } catch (err) {
             const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })

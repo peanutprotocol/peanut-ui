@@ -27,7 +27,7 @@ export default function NotFound() {
             <div className="flex min-h-[100dvh] flex-col md:h-[100dvh] md:flex-row">
                 <div
                     aria-hidden="true"
-                    className="relative h-[55dvh] w-full overflow-hidden bg-purple-1 md:h-full md:w-7/12"
+                    className="relative h-[55dvh] w-full overflow-hidden bg-action-primary md:h-full md:w-7/12"
                 >
                     {PeanutRagdoll && <PeanutRagdoll />}
                 </div>
@@ -35,8 +35,8 @@ export default function NotFound() {
                 <div className="flex flex-grow flex-col justify-center overflow-y-auto bg-white px-6 py-8 md:px-12">
                     <div className="mx-auto space-y-8 w-full max-w-md">
                         <div className="space-y-3">
-                            <h1 className="text-3xl font-extrabold">Hmm, we can&apos;t find that page.</h1>
-                            <p className="text-base text-grey-1">
+                            <h1 className="text-heading-m">Hmm, we can&apos;t find that page.</h1>
+                            <p className="text-body-m text-foreground-secondary">
                                 If we&apos;ve sent you here, please{' '}
                                 <button type="button" onClick={openSupport} className="text-black underline">
                                     let support know

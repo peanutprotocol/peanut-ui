@@ -44,6 +44,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
 
     const stories = slugs
         .map((slug) => {
+            if (slug === 'index') return null // legacy stories/index/ directory
             const content = readPageContentLocalized<ContentFrontmatter>('stories', slug, locale)
             if (!content || content.frontmatter.published === false) return null
             return {
@@ -72,7 +73,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                             <Link
                                 key={story.slug}
                                 href={`/${locale}/stories/${encodeURIComponent(story.slug)}`}
-                                className="hover:bg-gray-50 flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors"
+                                className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-100"
                             >
                                 <span className="text-sm font-medium text-n-1">{story.title}</span>
                                 <span className="line-clamp-2 text-xs text-grey-1">{story.description}</span>

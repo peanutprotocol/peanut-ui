@@ -32,7 +32,7 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
 import { withdrawBankUrl } from '@/utils/native-routes'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
@@ -333,9 +333,13 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }
 
+        // `label`, not `placeholder`: these strings were always field names
+        // ("Account Owner Name", "BIC", "Sort Code"), so as placeholders they
+        // vanished the moment the user typed and left six identical grey boxes
+        // with no way to tell IBAN from BIC on review.
         const renderInput = <TName extends FieldPath<IBankAccountDetails>>(
             name: TName,
-            placeholder: string,
+            label: string,
             rules: RegisterOptions<IBankAccountDetails, TName>,
             type: string = 'text',
             rightAdornment?: React.ReactNode,
@@ -345,7 +349,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         ) => {
             const smartPasteKind = smartPasteKindFor(name)
             return (
-                <div className="w-full">
+                <div className="flex w-full flex-col gap-2">
+                    <label htmlFor={`bank-${name}`} className="text-label-l text-foreground-primary">
+                        {label}
+                    </label>
                     <div className="relative">
                         <Controller
                             name={name}
@@ -354,8 +361,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             render={({ field }) => (
                                 <BaseInput
                                     {...field}
+                                    id={`bank-${name}`}
                                     type={type}
-                                    placeholder={placeholder}
                                     onPaste={
                                         smartPasteKind
                                             ? createSmartPasteHandler(smartPasteKind, field.onChange)
@@ -387,22 +394,25 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             )}
                         />
                     </div>
-                    <div className="mt-2 w-fit text-start">
-                        {errors[name] && touchedFields[name] && (
+                    {errors[name] && touchedFields[name] && (
+                        <div className="w-fit text-start">
                             <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             )
         }
 
         const renderSelect = (
             name: keyof IBankAccountDetails,
+            label: string,
             placeholder: string,
             options: BaseSelectOption[],
             rules: RegisterOptions<IBankAccountDetails>
         ) => (
-            <div className="w-full">
+            <div className="flex w-full flex-col gap-2">
+                {/* the trigger is a button, so htmlFor cannot name it — aria-label does */}
+                <label className="text-label-l text-foreground-primary">{label}</label>
                 <Controller
                     name={name}
                     control={control}
@@ -410,6 +420,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     render={({ field }) => (
                         <BaseSelect
                             options={options}
+                            aria-label={label}
                             placeholder={placeholder}
                             value={field.value}
                             onValueChange={field.onChange}
@@ -422,11 +433,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         />
                     )}
                 />
-                <div className="mt-2 w-fit text-start">
-                    {errors[name] && touchedFields[name] && (
+                {errors[name] && touchedFields[name] && (
+                    <div className="w-fit text-start">
                         <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         )
 
@@ -435,7 +446,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         }, [country])
 
         return (
-            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
+            <div className="my-auto flex h-full w-full flex-col justify-center gap-4 pb-4">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"
@@ -450,18 +461,18 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     isFromSendFlow={framedAsSend}
                 />
 
-                <div className="space-y-4">
+                <div className="flex flex-col gap-4">
                     <h3 className="text-heading-card text-foreground-primary">{t('heading')}</h3>
                     <form
                         onSubmit={(e) => {
                             e.preventDefault()
                             handleSubmit(onSubmit)()
                         }}
-                        className="space-y-4"
+                        className="flex flex-col gap-4"
                     >
                         {/* CLAIM FLOW: show name field for guest users or logged-in users without fullName */}
                         {flow === 'claim' && !user?.user.userId && (
-                            <div className="space-y-4 w-full">
+                            <div className="w-full">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
                                     validate: (value: string | undefined) => {
@@ -476,7 +487,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             </div>
                         )}
                         {flow === 'claim' && user?.user.userId && !user.user.fullName && (
-                            <div className="space-y-4 w-full">
+                            <div className="w-full">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
                                     validate: (value: string | undefined) => {
@@ -500,7 +511,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                         {/* WITHDRAW FLOW: always show account owner's name field (empty by default) */}
                         {flow !== 'claim' && (
-                            <div className="space-y-4 w-full">
+                            <div className="w-full">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
                                     validate: (value: string | undefined) => {
@@ -625,10 +636,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             })}
 
                         {!isIban && !isUk && (
-                            <>
+                            /* address group: pt-2 on top of the 16px gap makes
+                               the 24px section step without a new heading */
+                            <div className="flex flex-col gap-4 pt-2">
                                 {renderInput(
                                     'street',
-                                    t('street'),
+                                    t('streetLabel'),
                                     {
                                         required: t('streetRequired'),
                                         maxLength: {
@@ -644,10 +657,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     STREET_ADDRESS_MAX_LENGTH
                                 )}
 
-                                {renderInput('city', t('city'), { required: t('cityRequired') })}
+                                {renderInput('city', t('cityLabel'), { required: t('cityRequired') })}
 
                                 {renderSelect(
                                     'state',
+                                    t('stateLabel'),
                                     t('state'),
                                     (isMx ? MX_STATES : US_STATES).map((state) => ({
                                         label: state.name,
@@ -658,16 +672,16 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     }
                                 )}
 
-                                {renderInput('postalCode', t('postalCode'), {
+                                {renderInput('postalCode', t('postalCodeLabel'), {
                                     required: t('postalCodeRequired'),
                                 })}
-                            </>
+                            </div>
                         )}
                         <Button
                             type="submit"
                             variant="purple"
                             shadowSize="4"
-                            className="!mt-4 w-full"
+                            className="w-full"
                             loading={isSubmitting || isCheckingBICValid || isValidating}
                             disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
                         >

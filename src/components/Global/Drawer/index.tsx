@@ -1,11 +1,21 @@
 'use client'
 
 import * as React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Drawer as DrawerPrimitive } from 'vaul'
 
-const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
-    return <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} snapToSequentialPoint {...props} />
+type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {
+    /**
+     * Set on a drawer opened from inside another drawer. Vaul's NestedRoot stacks
+     * the two and scales the parent instead of the page; a plain Root nested in a
+     * Root double-applies the background scale and fights over the scroll lock.
+     */
+    nested?: boolean
+}
+
+const Drawer = ({ shouldScaleBackground = true, nested = false, ...props }: DrawerProps) => {
+    const Root = nested ? DrawerPrimitive.NestedRoot : DrawerPrimitive.Root
+    return <Root shouldScaleBackground={shouldScaleBackground} snapToSequentialPoint {...props} />
 }
 Drawer.displayName = 'Drawer'
 
@@ -80,7 +90,14 @@ const DrawerTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <DrawerPrimitive.Title
         ref={ref}
-        className={twMerge('text-lg leading-none font-semibold tracking-tight', className)}
+        // Heading/Card (18/700/24) as a token, not the vaul-boilerplate trio it
+        // replaces. `font-semibold` and `leading-none` fill --tw-font-weight and
+        // --tw-leading, which is where a type token reads ITS weight and line
+        // height from — so the three callers passing `text-heading-s` got the
+        // 24px size and kept this component's 600 weight and 1.0 line height.
+        // A token in the same conflict group loses to the caller cleanly.
+        // `tracking-tight` also went: every board style is letterSpacing 0.
+        className={twMerge('text-heading-card', className)}
         {...props}
     />
 ))
@@ -90,7 +107,11 @@ const DrawerDescription = React.forwardRef<
     React.ElementRef<typeof DrawerPrimitive.Description>,
     React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
 >(({ className, ...props }, ref) => (
-    <DrawerPrimitive.Description ref={ref} className={twMerge('text-sm text-grey-1', className)} {...props} />
+    <DrawerPrimitive.Description
+        ref={ref}
+        className={twMerge('text-body-s text-foreground-secondary', className)}
+        {...props}
+    />
 ))
 DrawerDescription.displayName = DrawerPrimitive.Description.displayName
 

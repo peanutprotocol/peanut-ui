@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ReceiptRow } from '@/components/TransactionDetails/ReceiptRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import MoreInfo from '@/components/Global/MoreInfo'
@@ -30,7 +30,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
 
     return (
         <>
-            <ReceiptRow
+            <DataRow
                 label={
                     <div className="flex items-center gap-1">
                         <span>{t('bridge.depositMessage')}</span>
@@ -69,12 +69,12 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
             {showBankDetails && (
                 <>
                     {/* resolveBridgeAccountHolderName maps Bridge's stale/absent legal entity name to the current one (Sp. Z.o.o. -> S.A.) */}
-                    <ReceiptRow
+                    <DataRow
                         label={t('bridge.accountHolderName')}
                         value={resolveBridgeAccountHolderName(instructions.account_holder_name)}
                         allowCopy
                     />
-                    <ReceiptRow
+                    <DataRow
                         label={t('bridge.bankName')}
                         value={
                             <div className="flex items-center gap-2">
@@ -83,7 +83,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                             </div>
                         }
                     />
-                    <ReceiptRow
+                    <DataRow
                         label={t('bridge.bankAddress')}
                         value={
                             <div className="flex items-center gap-2">
@@ -96,7 +96,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                     {instructions.clabe ? (
                         // Mexican format (SPEI) — CLABE is the canonical 18-digit
                         // bank reference; account/routing aren't applicable.
-                        <ReceiptRow
+                        <DataRow
                             label="CLABE"
                             value={
                                 <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                     ) : instructions.iban && instructions.bic ? (
                         // European format (IBAN/BIC)
                         <>
-                            <ReceiptRow
+                            <DataRow
                                 label="IBAN"
                                 value={
                                     <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                     </div>
                                 }
                             />
-                            <ReceiptRow
+                            <DataRow
                                 label="BIC"
                                 value={
                                     <div className="flex items-center gap-2">
@@ -131,8 +131,8 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                     ) : instructions.sort_code && instructions.account_number ? (
                         // UK faster_payments format (Sort Code/Account Number)
                         <>
-                            <ReceiptRow label={t('bridge.sortCode')} value={instructions.sort_code} allowCopy />
-                            <ReceiptRow label={t('rows.accountNumber')} value={instructions.account_number} allowCopy />
+                            <DataRow label={t('bridge.sortCode')} value={instructions.sort_code} allowCopy />
+                            <DataRow label={t('rows.accountNumber')} value={instructions.account_number} allowCopy />
                         </>
                     ) : (
                         // US format (Account Number/Routing Number + optional beneficiary).
@@ -142,7 +142,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                         // renders or copies `undefined`.
                         <>
                             {instructions.bank_account_number && (
-                                <ReceiptRow
+                                <DataRow
                                     label={t('rows.accountNumber')}
                                     value={
                                         <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                 />
                             )}
                             {instructions.bank_routing_number && (
-                                <ReceiptRow
+                                <DataRow
                                     label={t('bridge.routingNumber')}
                                     value={
                                         <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                 />
                             )}
                             {instructions.bank_beneficiary_name && (
-                                <ReceiptRow
+                                <DataRow
                                     label={t('bridge.beneficiaryName')}
                                     value={
                                         <div className="flex items-center gap-2">
@@ -184,7 +184,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                 />
                             )}
                             {instructions.bank_beneficiary_address && (
-                                <ReceiptRow
+                                <DataRow
                                     label={t('bridge.beneficiaryAddress')}
                                     value={
                                         <div className="flex items-center gap-2">

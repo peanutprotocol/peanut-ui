@@ -36,7 +36,7 @@ const DisplayIcon: React.FC<DisplayIconProps> = ({
 
     // Fallback to AvatarWithBadge
     return (
-        <div className={`${sizeClass} bg-gray-200 flex items-center justify-center rounded-full ${className}`.trim()}>
+        <div className={`${sizeClass} flex items-center justify-center rounded-full ${className}`.trim()}>
             <AvatarWithBadge name={fallbackName} size={badgeSize} className={sizeClass} />
         </div>
     )

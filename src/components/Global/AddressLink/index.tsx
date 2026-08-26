@@ -1,9 +1,9 @@
 import { printableAddress, isCryptoAddress } from '@/utils/general.utils'
-import { normalizeEnsName } from '@/utils/ens.utils'
+import { normalizeEnsName } from '@/utils/ens-name.utils'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { isAddress } from 'viem'
 
 interface AddressLinkProps {
@@ -39,7 +39,11 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
     const url = `/${urlAddress}`
 
     return isLink ? (
-        <Link className={twMerge('cursor-pointer text-xs text-grey-1 underline', className)} href={url} target="_blank">
+        <Link
+            className={twMerge('cursor-pointer text-body-xs text-foreground-secondary underline', className)}
+            href={url}
+            target="_blank"
+        >
             {displayAddress}
         </Link>
     ) : (

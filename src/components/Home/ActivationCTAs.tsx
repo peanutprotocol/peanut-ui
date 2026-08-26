@@ -135,7 +135,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         () => ({
             verify: {
                 icon: 'globe-lock',
-                iconBg: 'bg-primary-1',
+                iconBg: 'bg-action-primary',
                 title: t('steps.verify.title'),
                 description: t('steps.verify.description'),
                 ctaLabel: t('steps.verify.cta'),
@@ -143,7 +143,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             deposit: {
                 icon: 'arrow-down',
-                iconBg: 'bg-primary-1',
+                iconBg: 'bg-action-primary',
                 title: t('steps.deposit.title'),
                 description: t('steps.deposit.description'),
                 ctaLabel: t('steps.deposit.cta'),
@@ -151,7 +151,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             card: {
                 icon: 'credit-card',
-                iconBg: 'bg-yellow-1',
+                iconBg: 'bg-action-secondary',
                 title: t('steps.card.title'),
                 description: t('steps.card.description'),
                 ctaLabel: t('steps.card.cta'),
@@ -160,7 +160,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             outbound: {
                 icon: 'qr-code',
-                iconBg: 'bg-primary-1',
+                iconBg: 'bg-action-primary',
                 title: t('steps.outbound.title'),
                 description: t('steps.outbound.description'),
                 ctaLabel: t('steps.outbound.cta'),
@@ -201,11 +201,20 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
 
     // provider rejection overrides the step copy when user is past the verify step
     // (sumsub approved but provider rejected — deposit/outbound CTAs are useless),
-    // UNLESS they can already transact via card / another rail (see above).
+    // UNLESS they can already transact via card / another rail (see above), or
+    // they have a card PATH: a card-eligible user without a card doesn't need
+    // the rejected bank rail to progress (crypto deposit → card), so nagging
+    // them with "Contact support" over a rail the old region-picker detour
+    // auto-enrolled would replace their useful deposit CTA with a dead end.
+    // (This preserves the shielding the pre-2026-08-20 card-first step gave
+    // this exact cohort; a fixable RFI still surfaces in the /add-money bank
+    // flow, in context.)
+    const hasCardPath = hasCardAccess === true
     const hasProviderRejection =
         activationStep !== 'verify' &&
         activationStep !== 'card' &&
         !canAlreadyTransact &&
+        !hasCardPath &&
         (hasFixableRejection || hasBlockedRejection)
 
     const step: StepConfig | null = useMemo(() => {
@@ -225,7 +234,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             if (isEmailBlocked) {
                 return {
                     icon: 'globe-lock',
-                    iconBg: 'bg-primary-1',
+                    iconBg: 'bg-action-primary',
                     title: t('addEmail.title'),
                     description: localizedRejectionMessage || t('addEmail.description'),
                     ctaLabel: t('addEmail.cta'),
@@ -235,7 +244,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             if (hasFixableRejection) {
                 return {
                     icon: 'globe-lock',
-                    iconBg: 'bg-primary-1',
+                    iconBg: 'bg-action-primary',
                     title: t('completeSetup.title'),
                     description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
@@ -245,7 +254,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             // blocked
             return {
                 icon: 'globe-lock',
-                iconBg: 'bg-primary-1',
+                iconBg: 'bg-action-primary',
                 title: t('verificationIssue.title'),
                 description: t('verificationIssue.description'),
                 ctaLabel: t('verificationIssue.cta'),
@@ -306,8 +315,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     <Icon name={step.icon} size={24} />
                 </div>
                 <div className="w-full text-center">
-                    <div className="text-lg font-bold">{step.title}</div>
-                    <div className="text-sm text-grey-1">{step.description}</div>
+                    <div className="text-heading-card">{step.title}</div>
+                    <div className="text-body-s text-foreground-secondary">{step.description}</div>
                 </div>
                 <Button
                     variant="purple"
@@ -344,7 +353,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     {step.ctaLabel}
                 </Button>
                 {step.dismissable && onDismissCard && (
-                    <button type="button" onClick={onDismissCard} className="text-sm font-medium text-black underline">
+                    <button type="button" onClick={onDismissCard} className="text-body-s text-black underline">
                         {tCommon('maybeLater')}
                     </button>
                 )}

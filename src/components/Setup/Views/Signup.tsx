@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 
 const SignupStep = () => {
@@ -135,7 +135,10 @@ const SignupStep = () => {
                             isInputChanging={isChanging}
                             className={twMerge(
                                 !isValid && !isChanging && !!username && 'border-error dark:border-error',
-                                isValid && !isChanging && !!username && 'border-secondary-8 dark:border-secondary-8',
+                                isValid &&
+                                    !isChanging &&
+                                    !!username &&
+                                    'border-border-accent dark:border-border-accent',
                                 'rounded-sm'
                             )}
                         />

@@ -14,7 +14,7 @@ import { formatAmountWithSignificantDigits, formatAmount } from '@/utils/general
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import React, { useContext, useMemo, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../../Icons/Icon'
 
 interface TokenListItemProps {
@@ -60,7 +60,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
         <div
             className={twMerge(
                 'cursor-pointer rounded-sm shadow-sm',
-                isSelected && 'bg-primary-3',
+                isSelected && 'bg-purple-200',
                 !isEnabled && 'cursor-not-allowed opacity-70',
                 className
             )}
@@ -70,7 +70,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                 position={position}
                 className={twMerge(
                     '!overflow-visible border border-border-default p-4 shadow-4',
-                    isSelected ? 'bg-primary-3' : 'bg-background-default',
+                    isSelected ? 'bg-purple-200' : 'bg-background-default',
                     !isEnabled && 'bg-background-disabled'
                 )}
                 border={true}
@@ -94,7 +94,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                 />
                             )}
                             {chainDetails.iconURI && !chainLogoPlaceholder && !chainImageError && (
-                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black dark:bg-grey-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black dark:bg-gray-600">
                                     <Image
                                         src={chainDetails.iconURI}
                                         alt={`${chainDetails.name} logo`}

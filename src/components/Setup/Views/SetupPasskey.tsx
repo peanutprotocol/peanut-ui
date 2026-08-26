@@ -110,7 +110,8 @@ const SetupPasskey = () => {
             // success - useEffect below will handle navigation
         } catch (error) {
             const err = error as Error
-            console.error('[SetupPasskey] registration failed:', err.name, err.message)
+            // the Error itself, not its name/message — captureConsole only attaches a stack when an arg is an Error
+            console.error('[SetupPasskey] registration failed:', err)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,
@@ -210,7 +211,7 @@ const SetupPasskey = () => {
                     >
                         {t('passkey.setItUp')}
                     </Button>
-                    {preflightWarning && <p className="text-body-s font-bold text-orange-1">{preflightWarning}</p>}
+                    {preflightWarning && <p className="text-body-s font-bold text-orange-400">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
                             <Notification priority="error">{t('passkey.usernameTaken')}</Notification>

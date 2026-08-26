@@ -1,5 +1,5 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 
@@ -145,7 +145,7 @@ export const TooltipContent = ({
     }, [coords, finalPosition, isPositioned])
 
     const getArrowClasses = useCallback(() => {
-        const base = 'absolute h-2 w-2 rotate-45 border-n-1 bg-white'
+        const base = 'absolute h-2 w-2 rotate-45 border-border-default bg-white'
         switch (finalPosition) {
             case 'top':
                 return twMerge(base, 'bottom-[-5px] left-1/2 -translate-x-1/2 border-b border-r')
@@ -161,7 +161,7 @@ export const TooltipContent = ({
     const tooltipClasses: HTMLDivElement['className'] = useMemo(
         () =>
             twMerge(
-                'relative z-50 w-max max-w-[230px] rounded-md border border-n-1 bg-white px-3 py-2 text-sm font-medium text-black shadow-sm',
+                'relative z-50 w-max max-w-[230px] rounded-md border border-border-default bg-white px-3 py-2 text-body-s text-black shadow-sm',
                 contentClassName
             ),
         [contentClassName]

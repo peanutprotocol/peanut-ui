@@ -32,7 +32,7 @@ export const GuestVerificationModal = ({
             title={t('guestVerificationModal.title')}
             description={description}
             icon="alert"
-            iconContainerClassName="bg-yellow-400"
+            iconContainerClassName="bg-action-secondary"
             ctaClassName="md:flex-col gap-4"
             ctas={[
                 {
@@ -55,7 +55,7 @@ export const GuestVerificationModal = ({
                 {
                     text: secondaryCtaLabel,
                     variant: 'transparent',
-                    className: 'w-full h-auto underline font-semibold text-sm underline-offset-2',
+                    className: 'w-full h-auto underline font-semibold text-body-s underline-offset-2',
                     onClick: () => {
                         onClose()
                     },

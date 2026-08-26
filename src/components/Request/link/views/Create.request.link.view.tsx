@@ -388,8 +388,11 @@ export const CreateRequestLinkView = () => {
                     <Notification priority="helper">{t('leaveEmptyHint')}</Notification>
                 )}
 
+                {/* Before a request exists the QR already encodes the profile
+                    payment link for the entered amount, so it only stays
+                    blurred while there's neither a request nor an amount. */}
                 <QRCodeWrapper
-                    isBlurred={!requestId}
+                    isBlurred={!requestId && !(parseFloat(tokenValue) > 0)}
                     url={qrCodeLink}
                     isLoading={isCreatingLink || isUpdatingRequest}
                 />
@@ -429,7 +432,9 @@ export const CreateRequestLinkView = () => {
 
                 {errorState.showError && (
                     <div className="text-start">
-                        <label className="text-h8 font-normal text-foreground-error">{errorState.errorMessage}</label>
+                        <label className="text-body-s font-normal text-foreground-error">
+                            {errorState.errorMessage}
+                        </label>
                     </div>
                 )}
             </div>

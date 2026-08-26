@@ -16,8 +16,4 @@ export function getTranslations(locale: Locale): Translations {
     return messages[locale] ?? messages.en
 }
 
-/** Simple template interpolation: replaces {key} with values */
-export function t(template: string, vars?: Record<string, string>): string {
-    if (!vars) return template
-    return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`)
-}
+export { t } from './interpolate'

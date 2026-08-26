@@ -34,7 +34,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
      * each). State + effect (not a render-time platform check) so the static
      * export's prerendered HTML hydrates cleanly.
      */
-    const [bottomInsetFill, setBottomInsetFill] = useState('bg-secondary-3')
+    const [bottomInsetFill, setBottomInsetFill] = useState('bg-blue-300')
     useEffect(() => {
         if (isCapacitor() || deviceType === DeviceType.IOS) setBottomInsetFill('bg-white')
     }, [deviceType])

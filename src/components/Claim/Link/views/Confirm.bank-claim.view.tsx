@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
@@ -67,11 +68,11 @@ export function ConfirmBankClaimView({
     )?.currencyCode
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+        <PageStack className="justify-between md:min-h-fit">
             <div>
                 <NavHeader title={t('receive')} onPrev={onBack} />
             </div>
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"
@@ -133,7 +134,7 @@ export function ConfirmBankClaimView({
 
                     {error && <Notification priority="error">{error}</Notification>}
                 </div>
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

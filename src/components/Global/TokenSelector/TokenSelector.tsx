@@ -12,7 +12,7 @@
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import React, { type ReactNode, useCallback, useContext, useMemo, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 import { Button } from '@/components/0_Bruddle/Button'
 import Divider from '@/components/0_Bruddle/Divider'
@@ -60,7 +60,7 @@ const Section: React.FC<SectionProps> = ({ title, icon, children, className, tit
     <div className={twMerge('space-y-2', className)}>
         <div className="flex items-center gap-2">
             {icon && <Icon name={icon} size={16} className="text-foreground-secondary" />}
-            <h2 className={`text-body-m ${twMerge('font-bold text-foreground-primary', titleClassName)}`}>{title}</h2>
+            <h2 className={twMerge('text-body-m font-bold text-foreground-primary', titleClassName)}>{title}</h2>
         </div>
         {children}
     </div>
@@ -434,7 +434,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 <Icon name="plus" size={24} />
                             )}
                             {buttonChainLogoURI && buttonLogoURI && (
-                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black dark:bg-grey-1">
+                                <div className="absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-background-disabled dark:border-black dark:bg-gray-600">
                                     <Image
                                         src={buttonChainLogoURI}
                                         alt={`Chain logo`}

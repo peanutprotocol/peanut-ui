@@ -58,9 +58,9 @@ function read(): Reading {
 
 function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
     return (
-        <div className="flex items-baseline justify-between gap-4 border-b border-n-1/10 py-1.5 last:border-b-0">
-            <span className={`text-xs ${muted ? 'text-grey-1' : ''}`}>{label}</span>
-            <span className="font-mono text-xs font-bold">{value}</span>
+        <div className="flex items-baseline justify-between gap-4 border-b border-border-default/10 py-1.5 last:border-b-0">
+            <span className={`text-body-xs ${muted ? 'text-foreground-secondary' : ''}`}>{label}</span>
+            <span className="font-mono text-label-m">{value}</span>
         </div>
     )
 }
@@ -89,7 +89,7 @@ export default function DevSafeAreaPage() {
             </div>
 
             <div className="space-y-4 flex h-full flex-col px-4 pb-8">
-                <p className="text-sm text-grey-1">
+                <p className="text-body-s text-foreground-secondary">
                     What the app actually reserves for the status bar and system bars on this device. On Android 15+
                     Capacitor measures the insets natively — max(system bars, display cutout) — and overwrites the
                     variables; everywhere else they fall back to env(). A gap between the two columns is the bug.
@@ -102,7 +102,7 @@ export default function DevSafeAreaPage() {
                 {reading && (
                     <>
                         <Card className="p-4">
-                            <h2 className="mb-2 text-sm font-bold">Insets</h2>
+                            <h2 className="mb-2 text-label-l">Insets</h2>
                             {EDGES.map((edge) => (
                                 <Row
                                     key={edge}
@@ -113,7 +113,7 @@ export default function DevSafeAreaPage() {
                         </Card>
 
                         <Card className="p-4">
-                            <h2 className="mb-2 text-sm font-bold">Source</h2>
+                            <h2 className="mb-2 text-label-l">Source</h2>
                             <Row
                                 label="natively injected"
                                 value={reading.injected ? 'yes' : 'no (env fallback)'}
@@ -128,18 +128,18 @@ export default function DevSafeAreaPage() {
                         </Card>
 
                         <Card className="p-4">
-                            <h2 className="mb-2 text-sm font-bold">Top inset, drawn</h2>
+                            <h2 className="mb-2 text-label-l">Top inset, drawn</h2>
                             <div className="space-y-2">
                                 <div>
-                                    <span className="text-xs text-grey-1">env()</span>
+                                    <span className="text-body-xs text-foreground-secondary">env()</span>
                                     <div
-                                        className="w-full bg-primary-1"
+                                        className="w-full bg-action-primary"
                                         style={{ height: 'env(safe-area-inset-top)' }}
                                     />
                                 </div>
                                 <div>
-                                    <span className="text-xs text-grey-1">var(--safe-top)</span>
-                                    <div className="h-safe-top w-full bg-secondary-3" />
+                                    <span className="text-body-xs text-foreground-secondary">var(--safe-top)</span>
+                                    <div className="h-safe-top w-full bg-blue-300" />
                                 </div>
                             </div>
                         </Card>

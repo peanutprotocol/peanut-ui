@@ -1,6 +1,7 @@
 'use client'
 
 import { type CardPosition } from '@/components/Global/Card/card.utils'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
@@ -9,7 +10,9 @@ import { KycStatusItem } from '@/components/Kyc/KycStatusItem'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { useUserStore } from '@/redux/hooks'
+import { getUserPreferences } from '@/utils/general.utils'
 import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem, type KycHistoryEntry } from '@/components/Kyc/KycStatusItem'
@@ -34,7 +37,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import type { HistoryEntry, HistoryResponse } from '@/hooks/useTransactionHistory'
 import { AccountType } from '@/interfaces/interfaces'
 import { completeHistoryEntry, dedupeHistoryEntriesByUuid } from '@/utils/history.utils'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 
@@ -46,10 +49,15 @@ const HistoryPage = () => {
     const format = useFormatter()
     const { user } = useUserStore()
     const queryClient = useQueryClient()
+    // one `?tx=` subscription for the whole list — rows are memo'd and get
+    // isSelected/open/close as props (see useTransactionDetailsDrawer)
+    const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { fetchUser } = useAuth()
     // Synthetic card-unlock row inputs — same cached queries HomeHistory uses.
     const { cardInfo } = useCardInfo()
     const { overview: rainOverview } = useRainCardOverview()
+    const userId = user?.user.userId
+    const hideTxnAmount = useMemo(() => getUserPreferences(userId)?.balanceHidden ?? false, [userId])
 
     const {
         data: historyData,
@@ -268,7 +276,7 @@ const HistoryPage = () => {
     const today = new Date()
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('title')} />
             <div className="h-full w-full">
                 {combinedAndSortedEntries.map((item, index) => {
@@ -333,6 +341,10 @@ const HistoryPage = () => {
                                             transaction={transactionDetails}
                                             position={position}
                                             haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
+                                            hideTxnAmount={hideTxnAmount}
+                                            isSelected={isTransactionSelected(transactionDetails.id)}
+                                            onOpen={openTransactionDetails}
+                                            onClose={closeTransactionDetails}
                                         />
                                     )
                                 })()
@@ -345,7 +357,7 @@ const HistoryPage = () => {
                     {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
                 </div>
             </div>
-        </div>
+        </PageStack>
     )
 }
 

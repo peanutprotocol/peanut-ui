@@ -1,11 +1,23 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import LandingCountries from '@/assets/illustrations/landing-countries.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { linkTerms, type LinkedTerm } from './landingLinks.utils'
+
+// The three cities named in landingGlobalCashBody, each pointing at its country
+// page. Aliases cover every spelling the catalogs use, so the line stays one
+// translated string per locale.
+const cityTerms = (locale: Locale): LinkedTerm[] => [
+    { aliases: ['New York', 'Nueva York', 'Nova York'], href: `/${locale}/united-states` },
+    { aliases: ['Madrid', 'Madri'], href: `/${locale}/spain` },
+    { aliases: ['Mexico City', 'Ciudad de México', 'Cidade do México'], href: `/${locale}/mexico` },
+]
 
 export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
+    const bodyParts = linkTerms(i18n.landingGlobalCashBody, cityTerms(locale))
 
     return (
         <section id="global-cash" className="bg-secondary-1 px-4 py-12 text-n-1 md:py-16">
@@ -21,7 +33,20 @@ export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
                     </h2>
 
                     <p className="font-roboto-flex text-left text-xl font-light md:text-4xl md:font-normal">
-                        {i18n.landingGlobalCashBody}
+                        {bodyParts.map((part, index) =>
+                            part.href ? (
+                                <Link
+                                    prefetch={false}
+                                    key={index}
+                                    href={part.href}
+                                    className="underline-offset-4 hover:underline"
+                                >
+                                    {part.text}
+                                </Link>
+                            ) : (
+                                part.text
+                            )
+                        )}
                     </p>
                 </div>
 

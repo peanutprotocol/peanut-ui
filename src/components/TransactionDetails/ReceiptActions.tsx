@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { Button } from '@/components/0_Bruddle/Button'
-import CancelSendLinkModal from '@/components/Global/CancelSendLinkModal'
+import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
 import { PasskeyDocsLink } from '@/components/Setup/Views/SignTestTransaction'
@@ -57,21 +57,21 @@ export function ReceiptActions({
     onClose?: () => void
     setIsModalOpen?: (isModalOpen: boolean) => void
 }) {
-    const t = useTranslations('transaction')
+    const t = useAppTranslations('transaction')
     const router = useRouter()
     const { user } = useUserStore()
     const { isActivated } = useActivationStatus()
     const { closeRequest, rejectRequest, cancelSendLink } = useReceiptActions(transaction)
     const { isPendingBankRequest, isPendingRequestee, isPendingRequester, isPendingSentLink } = vm
 
-    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
+    const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
     const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
 
-    // Sync modal state to parent if callback is provided — the drawer keeps
-    // itself open while the confirm modal is up.
+    // Sync drawer state to parent if callback is provided — the details drawer
+    // keeps itself open while the confirm drawer is up.
     useEffect(() => {
-        setIsModalOpen?.(showCancelLinkModal)
-    }, [showCancelLinkModal, setIsModalOpen])
+        setIsModalOpen?.(showCancelLinkDrawer)
+    }, [showCancelLinkDrawer, setIsModalOpen])
 
     // `shouldShowShareReceipt` alone is TRUE for card spends (the txHash
     // short-circuit in useReceiptViewModel); `getReceiptUrl` returning undefined
@@ -119,7 +119,7 @@ export function ReceiptActions({
             setCancelLinkState('idle')
             return
         }
-        setShowCancelLinkModal(false)
+        setShowCancelLinkDrawer(false)
         setCancelLinkState('cancelled')
         // Brief delay for toast visibility before the drawer closes.
         await new Promise((resolve) => setTimeout(resolve, 1500))
@@ -141,7 +141,7 @@ export function ReceiptActions({
                         onClose && (
                             <Button
                                 disabled={isLoading || cancelLinkState === 'cancelled'}
-                                onClick={() => setShowCancelLinkModal(true)}
+                                onClick={() => setShowCancelLinkDrawer(true)}
                                 loading={isLoading}
                                 variant="stroke"
                                 className="flex w-full items-center gap-1"
@@ -207,7 +207,7 @@ export function ReceiptActions({
             {showSplitCta && (
                 <Button
                     onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
-                    icon="split"
+                    icon="users"
                     shadowSize="4"
                 >
                     {t('actions.splitBill')}
@@ -246,11 +246,14 @@ export function ReceiptActions({
                 <ReceiptSupportLink />
             )}
 
-            {/* Cancel Link Modal */}
+            {/* Cancel Link Drawer */}
             {setIsLoading && onClose && (
-                <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal}
-                    setshowCancelLinkModal={setShowCancelLinkModal}
+                <CancelSendLinkDrawer
+                    // Rendered inside the transaction details drawer whenever that
+                    // drawer owns the close handler — vaul needs a NestedRoot there.
+                    nested={!!setIsModalOpen}
+                    showCancelLinkDrawer={showCancelLinkDrawer}
+                    setShowCancelLinkDrawer={setShowCancelLinkDrawer}
                     amount={amountDisplay}
                     isLoading={isLoading}
                     onClick={handleCancelSendLink}

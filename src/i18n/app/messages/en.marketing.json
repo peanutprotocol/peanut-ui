@@ -1,0 +1,231 @@
+{
+    "common": {
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "back": "Back",
+        "done": "Done",
+        "save": "Save",
+        "confirm": "Confirm",
+        "retry": "Retry",
+        "close": "Close",
+        "loading": "Loading...",
+        "somethingWentWrong": "Something went wrong",
+        "genericError": "Something went wrong. Please try again or contact support.",
+        "copiedToClipboard": "Copied to clipboard",
+        "maybeLater": "Maybe later",
+        "tryAgain": "Try again",
+        "skipForNow": "Skip for now",
+        "gotIt": "Got it",
+        "contactSupport": "Contact support",
+        "peanutFee": "Peanut fee",
+        "sponsoredByPeanut": "Sponsored by Peanut!",
+        "pending": "Pending",
+        "comingSoon": "Coming soon",
+        "or": "or",
+        "comment": "Comment",
+        "goToHome": "Go to Home",
+        "reset": "Reset",
+        "next": "Next",
+        "notFound": "Not Found",
+        "countryNotFound": "Country not found",
+        "regions": {
+            "europe": "Europe",
+            "north-america": "North America",
+            "latam": "LATAM",
+            "rest-of-the-world": "Rest of the world",
+            "argentina": "Argentina",
+            "brazil": "Brazil",
+            "mexico": "Mexico",
+            "descriptions": {
+                "argentina": "Only Mercado Pago QR payments",
+                "brazil": "Only PIX QR payments"
+            }
+        },
+        "tryDifferentCountry": "Please try a different country.",
+        "status": {
+            "completed": "Completed",
+            "pending": "Pending",
+            "processing": "Processing",
+            "failed": "Failed",
+            "cancelled": "Cancelled",
+            "refunded": "Refunded",
+            "soon": "Soon!",
+            "closed": "Closed",
+            "custom": "Custom",
+            "unknown": "Unknown"
+        },
+        "exchangeRate": "Exchange rate",
+        "slideToProceed": "Slide to Proceed"
+    },
+    "errors": {
+        "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
+        "notEnoughBalanceAddFunds": "Not enough balance. Add funds to continue.",
+        "insufficientFunds": "You don't have enough funds.",
+        "userRejectedTransaction": "Please confirm the transaction in your wallet.",
+        "notDeployedOnChain": "Bulk is not able on this chain, please try another chain.",
+        "userRejectedRequest": "Please confirm the request in your wallet.",
+        "networkError": "A network error occured. Please refresh and try again.",
+        "nonceExpired": "Nonce expired, please try again.",
+        "walletNotConnected": "Please make sure your wallet is connected.",
+        "gasExceedsAllowance": "Gas required exceeds balance. Please confirm you have enough funds.",
+        "gasFeesNativeToken": "Transaction failed, please make sure you have enough native token on this network to cover gas fees.",
+        "tokenPriceFetch": "Something went wrong while fetching the token price. Please change the input denomination and try again.",
+        "tokenChainUndefined": "Please ensure that the correct token and chain are defined.",
+        "insufficientTokenBalance": "Please ensure that you have sufficient balance of the token you are trying to send, including gas fees.",
+        "minimumSendAmount": "The minimum amount to send is 0.0001.",
+        "linkDetailsError": "Error getting the linkDetails.",
+        "passwordGenerationError": "Error generating the password.",
+        "gaslessDepositPayloadError": "Error making the gasless deposit payload.",
+        "prepareTransactionError": "Error preparing the transaction(s).",
+        "switchNetworkError": "Error switching network.",
+        "signDataError": "Error signing the data in the wallet.",
+        "gaslessDepositApiError": "Error making the gasless deposit through the peanut api.",
+        "sendTransactionError": "Error sending the transaction.",
+        "transferAmountExceedsBalance": "You do not have enough balance to complete the transaction.",
+        "chainMismatch": "Failed to switch network. Try switching to the correct network manually.",
+        "insufficientBalance": "You don't have enough balance.",
+        "operationTimedOut": "Please confirm the transaction.",
+        "passkeyNotCompleted": "Your device didn't complete the passkey confirmation. Try again — if it keeps failing, unlock your password manager (e.g. 1Password) or restart your device.",
+        "claimLinkFailed": "Could not claim link, please refresh page. If problem persist confirm link with sender",
+        "sendLinkAlreadyClaimed": "Send link already claimed",
+        "lowLiquidity": "Low liquidity. Please try a smaller amount or different route.",
+        "networkBusyTimeout": "The network is busy and your request timed out. Please try again in a moment.",
+        "sessionExpired": "Your session has expired. Please log in again.",
+        "connectionTimeout": "Peanut is taking too long to respond — check your connection and try again.",
+        "genericSupport": "There was an issue with your request. Please contact support.",
+        "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
+        "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
+        "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
+        "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
+        "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
+        "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again.",
+        "cardApprovalCancelled": "Approval cancelled — you can retry anytime.",
+        "cardApprovalFailed": "Card approval failed — please try again.",
+        "logoutFailed": "Couldn’t log out. Please try again.",
+        "loginIncomplete": "Login didn’t complete. Please try again."
+    },
+    "migration": {
+        "downloadPrompt": {
+            "earlyTitle": "The Peanut app is here!",
+            "earlyDescription": "Peanut now lives on the App Store and Google Play. Faster, smoother, and it pings you the moment money lands. Your account comes with you, nothing to set up.",
+            "maybeLater": "I'll download it later",
+            "title": "Peanut is going app-only",
+            "description": "In {days, plural, one {# day} other {# days}} Peanut moves fully to the app. Download it now and pick up right where you left off. Your account and money move with you automatically.",
+            "remindLater": "Remind me later"
+        },
+        "sunset": {
+            "heading": "Peanut is now app-only",
+            "sub": "Download the app to pick up right where you left off. Your account and money are already there waiting for you.",
+            "supportLink": "Having trouble downloading the app? Chat with our support"
+        },
+        "qr": {
+            "title": "Get the Peanut app",
+            "scanHint": "Scan with your phone camera to download."
+        },
+        "banner": {
+            "title": "The Peanut app is here!",
+            "description": "Faster, smoother, and it pings you when money lands."
+        },
+        "review": {
+            "title": "Loving Peanut so far?",
+            "description": "A quick rating helps other people find us.",
+            "loveIt": "Love it",
+            "meh": "Could be better",
+            "supportPrefill": "I have some feedback about the app, here's what could be better: "
+        },
+        "downloadNow": "Download now",
+        "smartLink": {
+            "redirecting": "Taking you to the store…",
+            "pickStore": "Global cash, local feel. Pick your store to download."
+        }
+    },
+    "shhhhh": {
+        "hero": {
+            "wordmark": "shhhhh.",
+            "tagline": "The peanut card is out. For you. Maybe.",
+            "body": "A card accepted at over 150 million Visa-accepting merchants. We're letting beta users in slowly — <counter></counter> a week. If you've got the right badge, you skip the line entirely.",
+            "onlyCount": "only {count}",
+            "tryTheDoor": "TRY THE DOOR",
+            "orJoinWaitlist": "or join the waitlist →",
+            "disclaimer": "Verification required for all cardholders. No monthly or annual fees. Standard fees and limits apply per the cardholder terms. Beta programme.",
+            "joinError": "Couldn't join the waitlist — try the door again."
+        },
+        "waitlist": {
+            "joined": "✓ You're on the waitlist",
+            "joinedWithPosition": "✓ You're on the waitlist · #{position}",
+            "holler": "We'll holler when your turn comes up."
+        },
+        "marquee": {
+            "iykyk": "IYKYK",
+            "wordTravels": "WORD TRAVELS",
+            "closedBeta": "CLOSED BETA",
+            "shhhh": "SHHHH",
+            "peanutClub": "PEANUT CLUB"
+        },
+        "whatItDoes": {
+            "titleLine1": "It's a card.",
+            "titleLine2": "That's the whole trick.",
+            "body": "Fund the card however you already move money: bank transfer, exchange withdrawal, or stablecoins (USDC, USDT). Your balance is yours. Non-custodial. No monthly fees. No annual fees.",
+            "statMerchants": "Visa-accepting merchants",
+            "statBalance": "balance",
+            "statCard": "card",
+            "statMiddlemen": "middlemen"
+        },
+        "whoItsFor": {
+            "title": "If you live in more than one country, this is for you.",
+            "body": "We built peanut for people who don't fit. Digital nomads who get bounced by every neobank's verification the moment they cross a border. Expats who pay 4% on every transaction home. Cross-border users who earn in one currency and spend in another."
+        },
+        "howToGetIn": {
+            "title": "How to get in.",
+            "subtitle": "Cred check. Badge skips the queue.",
+            "badgeTitle": "Got a badge.",
+            "badgeBody": "You skip the line. We're whitelisting holders of:",
+            "badgeFooter": "Sign in, we check the badges on your account, you go straight to verification. No peanut account yet? Sign up first — takes a minute.",
+            "badgeShowMore": "+{count} more →",
+            "badgeShowLess": "show less",
+            "noBadgeTitle": "No badge.",
+            "noBadgeBody": "Join the waitlist. We let people in 50 a week.",
+            "noBadgeFooter": "Put your name on the list and we'll holler when your turn comes up."
+        },
+        "notForYou": {
+            "title": "Probably not for you.",
+            "body1": "If your money lives in one country and one currency, your bank card already works. Keep it.",
+            "body2": "If your money lives elsewhere — across borders, in dollars, in self-custody — the peanut card was built for you."
+        },
+        "faq": {
+            "title": "FAQ.",
+            "q1": {
+                "question": "WHAT'S THE PEANUT CARD?",
+                "answer": "A non-custodial card. Top up with stablecoins, then use the card for everyday spending wherever Visa is accepted."
+            },
+            "q2": {
+                "question": "WHERE DOES IT WORK?",
+                "answer": "Accepted wherever Visa is accepted — about 150 million merchants. Online, in-store, ATMs."
+            },
+            "q3": {
+                "question": "IS MY MONEY SAFE?",
+                "answer": "It's yours. Non-custodial — your stablecoins stay in your wallet until the moment you use the card. We don't hold custody. We don't lend it out."
+            },
+            "q5": {
+                "question": "HOW LONG IS THE WAITLIST?",
+                "answer": "We're letting in about 50 people a week during closed beta. Order matters. Badges skip the line entirely."
+            },
+            "q6": {
+                "question": "CAN I USE IT WHERE I LIVE?",
+                "answer": "It's a Visa card — accepted wherever Visa is accepted, in shops, online and at ATMs. Sign in and try the door to see what's next for your account."
+            },
+            "q7": {
+                "question": "ANY FEES?",
+                "answer": "No monthly fees. No annual fees. Standard fees and limits apply per the cardholder terms."
+            },
+            "q8": {
+                "question": "WHY \"SHHHHH\"?",
+                "answer": "We'd rather under-promise and over-deliver to a small group than blast the whole internet on day one. Word travels."
+            }
+        },
+        "ready": {
+            "title": "ready?",
+            "subtitle": "Try the door."
+        }
+    }
+}

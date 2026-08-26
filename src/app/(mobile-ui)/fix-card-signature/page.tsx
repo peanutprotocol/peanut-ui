@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -60,9 +61,9 @@ export default function FixCardSignaturePage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('fixSignature.navTitle')} />
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 <p className="text-body-s text-foreground-secondary">{t('fixSignature.intro')}</p>
 
                 {(isDiagnosing || (!address && !diagnosis)) && (
@@ -152,7 +153,7 @@ export default function FixCardSignaturePage() {
                         })}
                     </p>
                 )}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

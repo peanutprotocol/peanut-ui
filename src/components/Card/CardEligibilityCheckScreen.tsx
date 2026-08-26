@@ -16,6 +16,7 @@
  */
 
 import { type FC, useEffect, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
 import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
@@ -66,7 +67,7 @@ const CardEligibilityCheckScreen: FC<Props> = ({ onComplete, onPrev, username })
                 <ScaledPixelatedCardFace last4="????" blurAll />
             </div>
 
-            <div className="mt-auto flex flex-col gap-2">
+            <PageStack.Footer className="gap-2">
                 <HoldToClaimButton
                     onComplete={handleComplete}
                     onShakeChange={(on, intensity) => setShake({ on, intensity })}
@@ -74,7 +75,7 @@ const CardEligibilityCheckScreen: FC<Props> = ({ onComplete, onPrev, username })
                 >
                     {t('eligibility.cta')}
                 </HoldToClaimButton>
-            </div>
+            </PageStack.Footer>
         </div>
     )
 }

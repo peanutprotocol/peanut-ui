@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import starImage from '@/assets/icons/star.png'
 
@@ -15,7 +15,7 @@ export default function MigrationHero({ className }: { className?: string }) {
     return (
         <section
             className={twMerge(
-                'relative flex w-full items-center justify-center overflow-hidden bg-secondary-3 px-6',
+                'relative flex w-full items-center justify-center overflow-hidden bg-blue-300 px-6',
                 className
             )}
             style={{ paddingTop: 'env(safe-area-inset-top)' }}

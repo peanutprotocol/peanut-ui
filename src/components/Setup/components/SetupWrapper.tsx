@@ -14,7 +14,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * props interface for the SetupWrapper component
@@ -99,7 +99,7 @@ const Navigation = memo(function Navigation({
             <div className="flex items-center gap-3">
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-grey-1">{t('skip')}</span>
+                        <span className="text-foreground-secondary">{t('skip')}</span>
                     </Button>
                 )}
                 {showLogoutButton && (
@@ -145,7 +145,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -180,8 +180,8 @@ const ImageSection = ({
         <div
             className={classNames(
                 containerClass,
-                'flex w-full flex-row items-center justify-center bg-secondary-3/100 md:h-[100dvh] md:w-7/12',
-                screenId === 'success' && 'bg-secondary-1/15'
+                'flex w-full flex-row items-center justify-center bg-blue-300/100 md:h-[100dvh] md:w-7/12',
+                screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
             <Image
@@ -295,7 +295,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                         {headingTitle && (
                             <h1
                                 className={twMerge(
-                                    'w-full text-left text-xl leading-tight font-extrabold',
+                                    'w-full text-left text-heading-xs leading-tight',
                                     sunsetLanding && 'md:text-center',
                                     titleClassName
                                 )}
@@ -304,12 +304,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             </h1>
                         )}
                         {headingDescription && (
-                            <p
-                                className={twMerge(
-                                    'text-base font-medium text-black',
-                                    sunsetLanding && 'md:text-center'
-                                )}
-                            >
+                            <p className={twMerge('text-body-m text-black', sunsetLanding && 'md:text-center')}>
                                 {headingDescription}
                             </p>
                         )}

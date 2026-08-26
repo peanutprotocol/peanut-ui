@@ -4,7 +4,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import { useCallback, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 interface CopyFieldProps {
     text: string

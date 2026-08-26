@@ -1,6 +1,8 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Section } from '@/components/0_Bruddle/Section'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
@@ -26,7 +28,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 const BridgeLimitsView = () => {
     const t = useTranslations('limits.provider')
     const onBack = useSafeBack('/limits')
-    const { bridgeLimits, isLoading, error, hasMantecaLimits } = useLimits()
+    const { bridgeLimits, isLoading, error, hasMantecaLimits, refetch, isRefetching } = useLimits()
 
     // url state for source region (where user came from)
     const [region] = useQueryState(
@@ -47,19 +49,18 @@ const BridgeLimitsView = () => {
     const showBankTransferLimits = (BANK_TRANSFER_REGIONS as readonly string[]).includes(region)
 
     return (
-        <div className="space-y-6 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+        <PageStack gap="6">
+            <NavHeader title={t('title')} onPrev={onBack} />
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
 
-            {error && <LimitsError />}
+            {error && <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />}
 
             {!isLoading && !error && bridgeLimits && (
                 <>
                     {/* main limits card - only for bank transfer regions */}
                     {showBankTransferLimits && (
-                        <div className="space-y-2">
-                            <h3 className="font-bold">{t('fiatLimits')}</h3>
+                        <Section title={t('fiatLimits')}>
                             <Card position="single" className="space-y-2 p-4">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
@@ -88,13 +89,12 @@ const BridgeLimitsView = () => {
                                     </div>
                                 </div>
                             </Card>
-                        </div>
+                        </Section>
                     )}
 
                     {/* qr payment limits accordion - for bridge users without manteca kyc */}
                     {!hasMantecaLimits && (
-                        <div className="space-y-2">
-                            <h3 className="font-bold">{t('qrPaymentLimits')}</h3>
+                        <Section title={t('qrPaymentLimits')}>
                             <Accordion
                                 type="single"
                                 collapsible
@@ -128,7 +128,7 @@ const BridgeLimitsView = () => {
                                     </Accordion.Item>
                                 ))}
                             </Accordion>
-                        </div>
+                        </Section>
                     )}
 
                     <LimitsDocsLink />
@@ -136,7 +136,7 @@ const BridgeLimitsView = () => {
             )}
 
             {!isLoading && !error && !bridgeLimits && <EmptyState title={t('noData')} icon="meter" />}
-        </div>
+        </PageStack>
     )
 }
 

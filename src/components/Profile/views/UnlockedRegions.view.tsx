@@ -15,6 +15,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { deriveRegionAccess, getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { useRegionLabel } from '@/hooks/useRegionLabel'
+import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
@@ -26,9 +27,6 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
-import { useCardInfo } from '@/hooks/useCardInfo'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { findActiveCard } from '@/components/Card/cardState.utils'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
 
@@ -71,18 +69,11 @@ const UnlockedRegions = () => {
     const tIdentity = useTranslations('identity')
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
-    // Card-priority guard: an eligible user (skip badge / admin grant →
-    // hasCardAccess) without an active card is steered to /card from the region
-    // picker (see handleStartKyc), regardless of region. `hasActiveCard` excludes
-    // users who already hold a card so they can still unlock bank regions here.
-    const { hasCardAccess } = useCardInfo()
-    const { overview } = useRainCardOverview()
-    // Tri-state: undefined while the overview is still loading, so a card-holder
-    // isn't briefly treated as "no card" and bounced to /card before it resolves.
-    const hasActiveCard = useMemo<boolean | undefined>(() => {
-        if (!overview) return undefined
-        return !!findActiveCard(overview)
-    }, [overview])
+    // The card redirect in handleStartKyc keys on the ONE funnel resolver:
+    // activationStep === 'card' means funded + eligible + no card. While its
+    // queries load the step resolves to a non-card value, so the redirect
+    // fails toward region KYC (the trunk), never toward /card.
+    const { activationStep } = useActivationStatus()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     // MIGRATION-REVIEW: unlockedRegions/lockedRegions previously came from
     // `useIdentityVerification` (raw rails + Sumsub flags). Now derived from the
@@ -179,12 +170,16 @@ const UnlockedRegions = () => {
     }, [])
 
     const handleStartKyc = useCallback(async () => {
-        // Card takes priority for eligible users: if the user has card access but
-        // no active card yet, send them to /card (KYC on rain-requirements — no
-        // regionIntent, no Bridge/Manteca rail enrollment) instead of starting
-        // region KYC, for ANY region they picked. Card-holders fall through and
-        // can still unlock bank regions here.
-        if (hasCardAccess === true && hasActiveCard === false) {
+        // Card redirect ONLY when the funnel resolver says card is the step
+        // (funded, eligible, no card): send them to /card (KYC on
+        // rain-requirements — no regionIntent, no rail enrollment) instead of
+        // region KYC. Everyone else — including UNFUNDED card-eligible users —
+        // proceeds into region KYC: the trunk is verify → deposit → card
+        // (2026-08-20), and the old unconditional redirect both blocked the
+        // Brazil cohort from Manteca/PIX verification entirely and failed open
+        // toward /card while the card queries were still loading. Keying on
+        // activationStep keeps this screen and the home funnel on ONE resolver.
+        if (activationStep === 'card') {
             setSelectedRegion(null)
             router.push('/card')
             return
@@ -203,7 +198,7 @@ const UnlockedRegions = () => {
         // Fresh-KYC safe: the BE's cross-region branches all require an
         // APPROVED verification, so for first-time users the flag is a no-op.
         await flow.handleInitiateKyc(intent, undefined, true)
-    }, [flow.handleInitiateKyc, selectedRegion, hasCardAccess, hasActiveCard, router])
+    }, [flow.handleInitiateKyc, selectedRegion, activationStep, router])
 
     // ROW (rest-of-world) regions have no provider/rail, so an initiate there is a
     // terminal "not available in your region yet" — not a transient failure. Only
@@ -212,7 +207,7 @@ const UnlockedRegions = () => {
 
     return (
         <div className="space-y-8 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto">
                 <h1 className="font-bold">{t('title')}</h1>
                 <p className="mt-2 text-body-s">{t('description')}</p>
@@ -291,7 +286,7 @@ const UnlockedRegions = () => {
                           : t('providerRejection.unavailableDescription')
                 }
                 icon="alert"
-                iconContainerClassName="bg-yellow-1"
+                iconContainerClassName="bg-action-secondary"
                 ctas={[
                     providerRejectionForRegion.state === 'fixable'
                         ? {
@@ -331,7 +326,7 @@ const UnlockedRegions = () => {
                 title={failedRegionRetriable ? t('initError.retriableTitle') : t('initError.notAvailableTitle')}
                 description={flow.error || tCommon('genericError')}
                 icon="alert"
-                iconContainerClassName="bg-yellow-1"
+                iconContainerClassName="bg-action-secondary"
                 ctas={
                     failedRegionRetriable
                         ? [

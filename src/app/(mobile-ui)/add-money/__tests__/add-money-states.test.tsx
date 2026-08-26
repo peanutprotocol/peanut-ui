@@ -329,6 +329,10 @@ jest.mock('@/utils/general.utils', () => ({
     formatCurrency: jest.fn((v: any) => v?.toString() ?? '0'),
     checkIfInternalNavigation: jest.fn(() => false),
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    // real implementation: same-origin paths pass, everything else is rejected
+    sanitizeRedirectURL: jest.fn((url: string) =>
+        url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
+    ),
 }))
 
 jest.mock('@/utils/currency', () => ({
@@ -1075,6 +1079,35 @@ describe('GROUP 1: Landing / Method Selection', () => {
 
         fireEvent.click(screen.getByTestId('nav-header'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    // Entering add-money from the exchange-rate widget's "Try it!" CTA used to
+    // strand the user: back reset to /home instead of the screen they came from.
+    test('back honours ?returnTo when the flow was entered from another screen', () => {
+        mockSearchParams.set('returnTo', '/profile/exchange-rate?from=USD&to=EUR')
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
+        expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+    })
+
+    test('back ignores an off-origin ?returnTo and still resets to /home', () => {
+        mockSearchParams.set('returnTo', 'https://evil.example/phish')
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    test('back on the country list still collapses to method selection first', () => {
+        mockSearchParams.set('returnTo', '/profile/exchange-rate')
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockSetQueryState).toHaveBeenCalledWith({ method: null })
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 })
 

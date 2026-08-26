@@ -113,7 +113,7 @@ export function SemanticRequestReceiptView() {
             <div className="flex min-h-[inherit] flex-col gap-4">
                 <NavHeader title={t('headers.receipt')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <p className="text-sm text-grey-1">{t('receipt.unableToLoad')}</p>
+                    <p className="text-body-s text-foreground-secondary">{t('receipt.unableToLoad')}</p>
                 </div>
             </div>
         )

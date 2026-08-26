@@ -13,11 +13,11 @@ interface UserRankCardProps {
 export function UserRankCard({ metric, username, isCurrency = false, backgroundColor = 'white' }: UserRankCardProps) {
     const bgColorClass =
         backgroundColor === 'purple'
-            ? 'bg-purple-200'
+            ? ''
             : backgroundColor === 'pink'
-              ? 'bg-pink-100'
+              ? 'bg-pink-200'
               : backgroundColor === 'blue'
-                ? 'bg-blue-100'
+                ? 'bg-blue-200'
                 : 'bg-white'
 
     return (
@@ -30,14 +30,14 @@ export function UserRankCard({ metric, username, isCurrency = false, backgroundC
             <div className="flex items-center gap-2 md:gap-3">
                 {/* Rank Badge - Question Mark for User */}
                 <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center md:h-8 md:w-8">
-                    <span className="text-gray-400 text-xl font-bold md:text-2xl">?</span>
+                    <span className="text-xl font-bold md:text-2xl">?</span>
                 </div>
 
                 {/* Username */}
                 <div className="flex min-w-0 flex-col">
                     <div className="flex items-center gap-1.5 md:gap-2">
-                        <span className="text-gray-900 truncate text-sm font-bold md:text-base">{username}</span>
-                        <span className="flex-shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 md:px-2 md:text-xs">
+                        <span className="truncate text-sm font-bold md:text-base">{username}</span>
+                        <span className="flex-shrink-0 rounded-full bg-blue-200 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600 md:px-2 md:text-xs">
                             YOU
                         </span>
                     </div>

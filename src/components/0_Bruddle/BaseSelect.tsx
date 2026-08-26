@@ -13,7 +13,7 @@ import {
     ItemText,
     ItemIndicator,
 } from '@radix-ui/react-select'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 export interface BaseSelectOption {
@@ -30,10 +30,25 @@ interface BaseSelectProps {
     className?: string
     disabled?: boolean
     error?: boolean
+    /** accessible name — the trigger is a button, so a sibling <label htmlFor> cannot name it */
+    'aria-label'?: string
 }
 
 const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
-    ({ options, placeholder = 'Select...', value, onValueChange, onBlur, className, disabled, error }, ref) => {
+    (
+        {
+            options,
+            placeholder = 'Select...',
+            value,
+            onValueChange,
+            onBlur,
+            className,
+            disabled,
+            error,
+            'aria-label': ariaLabel,
+        },
+        ref
+    ) => {
         return (
             <Root
                 value={value}
@@ -48,24 +63,28 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
             >
                 <Trigger
                     ref={ref}
+                    aria-label={ariaLabel}
                     className={twMerge(
-                        'flex h-12 w-full items-center justify-between rounded-sm border border-n-1 bg-white px-4 text-sm font-bold text-n-1 transition-colors outline-none placeholder:text-n-3',
+                        'flex h-12 w-full items-center justify-between rounded-sm border border-border-default bg-white px-4 text-label-l text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary',
                         'disabled:cursor-not-allowed disabled:opacity-50',
-                        'focus:border-primary-1',
+                        'focus:border-action-primary',
                         error && 'border-error',
                         className
                     )}
                 >
-                    <Value placeholder={placeholder} className="text-n-1 data-[placeholder]:text-n-3" />
+                    <Value
+                        placeholder={placeholder}
+                        className="text-foreground-primary data-[placeholder]:text-foreground-secondary"
+                    />
                     <SelectIcon>
-                        <Icon name="chevron-down" className="size-4 text-n-1" />
+                        <Icon name="chevron-down" className="size-4 text-foreground-primary" />
                     </SelectIcon>
                 </Trigger>
 
                 <Portal>
                     <Content
                         className={twMerge(
-                            'relative z-50 max-h-80 overflow-hidden rounded-sm border border-n-1 bg-white shadow-lg'
+                            'relative z-50 max-h-80 overflow-hidden rounded-sm border border-border-default bg-white shadow-lg'
                         )}
                         position="popper"
                         sideOffset={4}
@@ -78,13 +97,13 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                                     key={option.value}
                                     value={option.value}
                                     className={twMerge(
-                                        'relative flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-sm font-bold outline-none select-none',
+                                        'relative flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-label-l outline-none select-none',
                                         'transition-colors',
-                                        'hover:bg-grey-2 focus:bg-grey-2',
-                                        'data-[state=checked]:bg-primary-1 data-[state=checked]:font-bold data-[state=checked]:text-white'
+                                        'hover:bg-gray-200 focus:bg-gray-200',
+                                        'data-[state=checked]:bg-action-primary data-[state=checked]:font-bold data-[state=checked]:text-white'
                                     )}
                                 >
-                                    <ItemText className="text-sm font-bold">{option.label}</ItemText>
+                                    <ItemText className="text-label-l">{option.label}</ItemText>
                                     <ItemIndicator className="ml-auto">
                                         <Icon name="check" className="size-4" />
                                     </ItemIndicator>

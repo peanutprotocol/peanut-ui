@@ -165,7 +165,7 @@ export default function ConfirmWithdrawView({
                                                     altText={resolvedChainName || t('confirm.chainAlt')}
                                                     fallbackName={resolvedChainName || 'C'}
                                                     sizeClass="h-3.5 w-3.5"
-                                                    className="rounded-full border-2 border-white dark:border-grey-4"
+                                                    className="rounded-full border-2 border-white dark:border-gray-100"
                                                 />
                                             </div>
                                         )}
