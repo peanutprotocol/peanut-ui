@@ -28,7 +28,7 @@ export const UserHeader = ({ username }: UserHeaderProps) => {
                 shadowSize="3"
                 size="small"
             >
-                <DotFaceAvatar username={username} className="h-5 w-5 md:h-6 md:w-6" />
+                <DotFaceAvatar username={username} className="h-6 w-6 md:h-7 md:w-7" />
                 <span className="whitespace-nowrap text-xs font-semibold md:text-sm">{username}</span>
             </Button>
         </Link>

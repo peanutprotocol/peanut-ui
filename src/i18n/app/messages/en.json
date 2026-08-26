@@ -282,7 +282,8 @@
             "showMyFullName": "Show my full name",
             "backup": "Backup",
             "exchangeRatesAndFees": "Exchange rates and fees",
-            "starAlt": "star"
+            "starAlt": "star",
+            "about": "About Peanut"
         },
         "logOut": "Log out",
         "edit": {
@@ -510,6 +511,12 @@
             "menu": {
                 "points": "Cashback"
             }
+        },
+        "about": {
+            "title": "About Peanut",
+            "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
+            "policiesHeading": "Policies",
+            "version": "Version {version}"
         }
     },
     "settings": {

@@ -10,11 +10,16 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
+import ShowNameToggle from '../components/ShowNameToggle'
+import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
+import Card from '@/components/Global/Card'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const ProfileEditView = () => {
     const t = useTranslations('profile.edit')
+    const tMenu = useTranslations('profile.menu')
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack('/profile')
@@ -202,6 +207,22 @@ export const ProfileEditView = () => {
                     disabled
                 />
 
+                {/* Name visibility belongs with the name itself; only shown
+                    once there is a name to show or hide. */}
+                {!!user?.user.fullName?.trim() && (
+                    <Card className="px-4 py-3">
+                        <div className="flex items-center justify-between py-1">
+                            <div className="flex items-center gap-2">
+                                <Icon name="eye" size={20} fill="black" />
+                                <span className="text-base font-medium">{tMenu('showMyFullName')}</span>
+                            </div>
+                            <div className="flex items-center">
+                                <ShowNameToggle />
+                            </div>
+                        </div>
+                    </Card>
+                )}
+
                 <div className="space-y-5 pb-10">
                     <Button
                         disabled={isLoading}
@@ -214,6 +235,8 @@ export const ProfileEditView = () => {
                     </Button>
 
                     {errorMessage && <ErrorAlert description={errorMessage} />}
+
+                    <DeleteAccountButton />
                 </div>
             </div>
         </div>

@@ -66,7 +66,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 {/* Own profile gets the generated dot face; someone else's
                     public profile keeps initials (letters identify others). */}
                 {isSelfProfile ? (
-                    <DotFaceAvatar username={username} size={64} />
+                    <DotFaceAvatar username={username} size={88} />
                 ) : (
                     <AvatarWithBadge name={name || username} />
                 )}
