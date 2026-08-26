@@ -180,6 +180,43 @@ describe('SumsubKycWrapper', () => {
         expect(onComplete).not.toHaveBeenCalled()
     })
 
+    // After a submit the SDK sits on "documents submitted" and the only way out
+    // is the X — that close must be marked `submitted: true` so the flow hooks
+    // consume the deferred ACTION_REQUIRED instead of replaying it as a bogus
+    // rejection. Pre-submit, the X opens the stop-verification confirm instead.
+    it('marks a post-submit manual close with submitted: true', async () => {
+        const onClose = jest.fn()
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="tok_abc"
+                onClose={onClose}
+                onComplete={jest.fn()}
+                onSubmitted={jest.fn()}
+                onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
+                isMultiLevel
+            />
+        )
+        await waitFor(() => expect(launch).toHaveBeenCalled())
+        const closeButton = screen.getAllByRole('button')[1]
+
+        // pre-submit: X routes to the confirm dialog, not onClose
+        act(() => {
+            closeButton.click()
+        })
+        expect(onClose).not.toHaveBeenCalled()
+
+        act(() => {
+            sdkHandlers['onApplicantSubmitted']?.()
+        })
+        act(() => {
+            closeButton.click()
+        })
+
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(onClose).toHaveBeenCalledWith({ submitted: true })
+    })
+
     // Single-level keeps its original contract: submit closes via onComplete,
     // and onSubmitted stays silent (no double analytics signal).
     it('single-level submit fires onComplete, not onSubmitted', async () => {
