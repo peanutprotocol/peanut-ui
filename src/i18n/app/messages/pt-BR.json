@@ -282,7 +282,8 @@
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
             "exchangeRatesAndFees": "Câmbio e taxas",
-            "starAlt": "estrela"
+            "starAlt": "estrela",
+            "about": "Sobre o Peanut"
         },
         "logOut": "Sair",
         "edit": {
@@ -510,6 +511,12 @@
             "menu": {
                 "points": "Cashback"
             }
+        },
+        "about": {
+            "title": "Sobre o Peanut",
+            "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
+            "policiesHeading": "Políticas",
+            "version": "Versão {version}"
         }
     },
     "settings": {

@@ -146,7 +146,8 @@
     "profile": {
         "menu": {
             "inviteFriends": "Invitá amigos a Peanut",
-            "unlockedRegions": "Desbloqueá pagos"
+            "unlockedRegions": "Desbloqueá pagos",
+            "about": "Acerca de Peanut"
         },
         "edit": {
             "placeholders": {
@@ -315,6 +316,12 @@
             "joinCta": "Reclamá tu invitación",
             "begShareText": "Bro… estoy de rodillas. Peanut es solo por invitación y me quedé afuera. Salvame la vida y mandame tu invitación",
             "activityPrivateNote": "La actividad solo es visible para vos, no es pública."
+        },
+        "about": {
+            "title": "Acerca de Peanut",
+            "intro": "Peanut hace fáciles los dólares: guardá tu saldo, enviá a cualquier @usuario y mové dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
+            "policiesHeading": "Políticas",
+            "version": "Versión {version}"
         }
     },
     "settings": {

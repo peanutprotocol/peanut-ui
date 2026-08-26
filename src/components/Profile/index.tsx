@@ -15,9 +15,6 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import Card from '../Global/Card'
-import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
-import ShowNameToggle from './components/ShowNameToggle'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
@@ -126,18 +123,6 @@ export const Profile = () => {
                             position="middle"
                         />
 
-                        <Card className="px-4 py-3" position="middle">
-                            <div className="flex items-center justify-between py-1">
-                                <div className="flex items-center gap-2">
-                                    <Icon name={'eye'} size={20} fill="black" />
-                                    <span className="text-base font-medium">{t('menu.showMyFullName')}</span>
-                                </div>
-
-                                <div className="flex items-center">
-                                    <ShowNameToggle />
-                                </div>
-                            </div>
-                        </Card>
                         <ProfileMenuItem
                             icon="upload-cloud"
                             label={t('menu.backup')}
@@ -155,13 +140,16 @@ export const Profile = () => {
                         /> */}
                     </div>
                     {/* Menu Items - Second Group */}
-                    <ProfileMenuItem
-                        icon="exchange"
-                        label={t('menu.exchangeRatesAndFees')}
-                        href="/profile/exchange-rate"
-                        position="single"
-                        iconClassName="size-4"
-                    />
+                    <div>
+                        <ProfileMenuItem
+                            icon="exchange"
+                            label={t('menu.exchangeRatesAndFees')}
+                            href="/profile/exchange-rate"
+                            position="first"
+                            iconClassName="size-4"
+                        />
+                        <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" position="last" />
+                    </div>
                     {/* Logout + Delete account */}
                     <div className="w-full space-y-6 pb-10">
                         <Button
@@ -175,7 +163,6 @@ export const Profile = () => {
                             <Icon name="logout" size={20} fill="black" />
                             <span className="font-bold">{t('logOut')}</span>
                         </Button>
-                        <DeleteAccountButton />
                     </div>
                 </div>
             </div>
