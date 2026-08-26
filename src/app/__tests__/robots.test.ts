@@ -11,6 +11,9 @@ type RobotsRule = {
     crawlDelay?: number
 }
 
+// robots() derives production-ness from the RAW env at call time (fail-closed,
+// shared with layout.tsx via isProductionDomain) — pin it for the policy suite.
+process.env.NEXT_PUBLIC_BASE_URL = 'https://peanut.me'
 const rules = robots().rules as RobotsRule[]
 
 function ruleFor(userAgent: string): RobotsRule {
@@ -43,5 +46,32 @@ describe('production robots policy', () => {
 
     it('keeps Twitterbot unrestricted for shared-link previews', () => {
         expect(ruleFor('Twitterbot')).toMatchObject({ allow: ['/api/og'], disallow: [] })
+    })
+})
+
+// The old derivation compared BASE_URL, whose production fallback made an
+// UNSET environment indexable. The check must fail closed on the raw env.
+describe('non-production robots policy fails closed', () => {
+    const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
+
+    afterEach(() => {
+        if (ORIGINAL_BASE_URL === undefined) delete process.env.NEXT_PUBLIC_BASE_URL
+        else process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL
+    })
+
+    it.each([undefined, '', 'https://staging.peanut.me', 'https://peanut.me.evil.example'])(
+        'blocks all crawling when the production origin is not explicit (%s)',
+        (baseUrl) => {
+            if (baseUrl === undefined) delete process.env.NEXT_PUBLIC_BASE_URL
+            else process.env.NEXT_PUBLIC_BASE_URL = baseUrl
+
+            expect(robots().rules).toEqual([{ userAgent: '*', disallow: ['/'] }])
+        }
+    )
+
+    it('tolerates a trailing slash on the configured production origin', () => {
+        process.env.NEXT_PUBLIC_BASE_URL = 'https://peanut.me/'
+
+        expect(robots().rules).not.toEqual([{ userAgent: '*', disallow: ['/'] }])
     })
 })
