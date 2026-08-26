@@ -99,6 +99,17 @@ describe('resolveContentHref', () => {
         )
     })
 
+    it('localizes en-authored absolute URLs without a content owner, like their relative form', () => {
+        expect(resolveContentHref('https://peanut.me/en/help', 'es-ar')).toBe('https://peanut.me/es-ar/help')
+        expect(resolveContentHref('https://peanut.me/en/content#guides', 'es-419')).toBe(
+            'https://peanut.me/es-419/content#guides'
+        )
+    })
+
+    it('resolves owners for percent-encoded content segments', () => {
+        expect(resolveContentHref('/en/help/pass%6beys', 'es-ar')).toBe('/es-419/help/pass%6beys')
+    })
+
     it('resolves exact production-origin content URLs while preserving their absolute form and suffix', () => {
         const fallbackUrl = 'https://peanut.me/es-419/card-terms-international?from=fees#terms'
         const ownerUrl = 'https://peanut.me/en/card-terms-international?from=fees#terms'

@@ -15,7 +15,8 @@ import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { EN_LANDING_CONTENT_HREFS, type LandingContentHrefs, type LandingContentHrefKey } from './landingContentHrefs'
+import type { LandingContentHrefKey } from './landingContentHrefs'
+import { contentHrefsFor } from './landingContentHrefs.server'
 
 const bgColor = '#F9F4F0'
 
@@ -55,14 +56,9 @@ const regulatedRailsClouds = [
     { top: '60%', width: 220, speed: '34s', direction: 'rtl' as const },
 ]
 
-export function RegulatedRails({
-    locale = DEFAULT_LOCALE,
-    contentHrefs = EN_LANDING_CONTENT_HREFS,
-}: {
-    locale?: Locale
-    contentHrefs?: LandingContentHrefs
-}) {
+export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
+    const contentHrefs = contentHrefsFor(locale)
 
     return (
         <section

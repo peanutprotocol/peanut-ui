@@ -5,12 +5,7 @@ import { getTranslations } from '@/i18n'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
-import {
-    readPageContentLocalized,
-    listPublishedSlugs,
-    resolveContentHref,
-    type ContentFrontmatter,
-} from '@/lib/content'
+import { readPageContentLocalizedResolved, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
 import Link from 'next/link'
 
 interface PageProps {
@@ -50,15 +45,17 @@ export default async function StoriesIndexPage({ params }: PageProps) {
     const stories = slugs
         .map((slug) => {
             if (slug === 'index') return null // legacy stories/index/ directory
-            const content = readPageContentLocalized<ContentFrontmatter>('stories', slug, locale)
-            if (!content || content.frontmatter.published === false) return null
+            const resolved = readPageContentLocalizedResolved<ContentFrontmatter>('stories', slug, locale)
+            if (!resolved || resolved.content.frontmatter.published === false) return null
             return {
                 slug,
-                title: content.frontmatter.title,
-                description: content.frontmatter.description,
+                // The serving locale owns the prose, so link it directly.
+                href: `/${resolved.lang}/stories/${encodeURIComponent(slug)}`,
+                title: resolved.content.frontmatter.title,
+                description: resolved.content.frontmatter.description,
             }
         })
-        .filter(Boolean) as Array<{ slug: string; title: string; description: string }>
+        .filter(Boolean) as Array<{ slug: string; href: string; title: string; description: string }>
 
     return (
         <ContentPage
@@ -77,7 +74,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                         {stories.map((story) => (
                             <Link
                                 key={story.slug}
-                                href={resolveContentHref(`/en/stories/${encodeURIComponent(story.slug)}`, locale)}
+                                href={story.href}
                                 className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-50"
                             >
                                 <span className="text-sm font-medium text-n-1">{story.title}</span>

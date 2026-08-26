@@ -1,11 +1,6 @@
 import { resolveContentHref } from '@/lib/content'
-import { EN_LANDING_CONTENT_HREFS, type LandingContentHrefKey, type LandingContentHrefs } from '../landingContentHrefs'
-
-function resolveHomepageHrefs(locale: 'en' | 'es-ar'): LandingContentHrefs {
-    return Object.fromEntries(
-        Object.entries(EN_LANDING_CONTENT_HREFS).map(([key, href]) => [key, resolveContentHref(href, locale)])
-    ) as unknown as LandingContentHrefs
-}
+import { EN_LANDING_CONTENT_HREFS, type LandingContentHrefKey } from '../landingContentHrefs'
+import { contentHrefsFor } from '../landingContentHrefs.server'
 
 describe('landing content href overrides', () => {
     it('provides canonical English defaults for client-only consumers', () => {
@@ -16,7 +11,7 @@ describe('landing content href overrides', () => {
     })
 
     it('resolves every es-ar homepage content link to its exact owner', () => {
-        const hrefs = resolveHomepageHrefs('es-ar')
+        const hrefs = contentHrefsFor('es-ar')
         const expected: Record<LandingContentHrefKey, string> = {
             pricing: '/es-419/pricing',
             whatAreDigitalDollars: '/es-419/help/what-are-digital-dollars',

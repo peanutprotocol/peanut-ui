@@ -15,18 +15,16 @@ import { useAuth } from '@/context/authContext'
 import { twMerge } from 'tailwind-merge'
 import { ContextualLinks } from './ContextualLinks'
 import type { LandingStrings } from './landingStrings'
-import type { Locale } from '@/i18n/types'
-import { EN_LANDING_CONTENT_HREFS, type LandingContentHrefs } from './landingContentHrefs'
+import type { LandingContentHrefs } from './landingContentHrefs'
 
 export function NoFees({
     className,
     strings,
-    contentHrefs = EN_LANDING_CONTENT_HREFS,
+    contentHrefs,
 }: {
     className?: string
-    locale: Locale
     strings: LandingStrings
-    contentHrefs?: LandingContentHrefs
+    contentHrefs: LandingContentHrefs
 }) {
     const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const router = useRouter()

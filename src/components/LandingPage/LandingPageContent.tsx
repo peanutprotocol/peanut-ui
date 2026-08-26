@@ -8,23 +8,17 @@ import { SendInSeconds } from './sendInSeconds'
 import { ProblemFold } from './ProblemFold'
 import Footer from './Footer'
 import { faqSchema } from '@/lib/seo/schemas'
-import { resolveContentHref, singletonLocaleFor } from '@/lib/content'
+import { singletonLocaleFor } from '@/lib/content'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { getLandingContent } from '@/lib/landingContent'
 import { getTranslations } from '@/i18n'
 import { landingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
-import { EN_LANDING_CONTENT_HREFS, type LandingContentHrefs } from './landingContentHrefs'
+import { contentHrefsFor } from './landingContentHrefs.server'
 
 // Blue, not Manteca's default cream: on the homepage it follows RegulatedRails,
 // which is cream already.
 const MANTECA_BG_COLOR = '#90A8ED'
-
-function contentHrefsFor(locale: Locale): LandingContentHrefs {
-    return Object.fromEntries(
-        Object.entries(EN_LANDING_CONTENT_HREFS).map(([key, href]) => [key, resolveContentHref(href, locale)])
-    ) as unknown as LandingContentHrefs
-}
 
 // Shared body of the landing page, rendered by / (en) and by each per-locale
 // landing route. Reads the filesystem via getLandingContent, so this must stay
@@ -56,9 +50,9 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     contentHrefs={contentHrefs}
                     problemSlot={<ProblemFold strings={strings} />}
                     mantecaSlot={<Manteca locale={locale} backgroundColor={MANTECA_BG_COLOR} />}
-                    regulatedRailsSlot={<RegulatedRails locale={locale} contentHrefs={contentHrefs} />}
-                    yourMoneySlot={<YourMoney locale={locale} contentHrefs={contentHrefs} />}
-                    securitySlot={<SecurityBuiltIn locale={locale} contentHrefs={contentHrefs} />}
+                    regulatedRailsSlot={<RegulatedRails locale={locale} />}
+                    yourMoneySlot={<YourMoney locale={locale} />}
+                    securitySlot={<SecurityBuiltIn locale={locale} />}
                     sendInSecondsSlot={<SendInSeconds locale={locale} />}
                     footerSlot={<Footer locale={locale} />}
                 />

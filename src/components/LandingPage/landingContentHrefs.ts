@@ -1,36 +1,10 @@
 /**
- * Canonical English defaults for homepage content links. Client-reachable
- * landing components use these when rendered outside the server-composed
- * homepage (currently /quests). LandingPageContent replaces every value with
- * the exact locale owner before passing the map across the server boundary.
+ * Canonical English homepage content links. Server components resolve these to
+ * their locale owner via contentHrefsFor (landingContentHrefs.server.ts);
+ * client-reachable consumers receive the resolved map as a prop, or this map
+ * verbatim on English-only pages (currently /quests).
  */
-export interface LandingContentHrefs {
-    pricing: string
-    whatAreDigitalDollars: string
-    verification: string
-    passkeys: string
-    securityCustody: string
-    feesPricing: string
-    supportedGeographies: string
-    sendEurosArgentina: string
-    stablecoinBalanceVisaMerchants: string
-    help: string
-    depositBank: string
-    revolutComparison: string
-    mercadoPagoQr: string
-    brazil: string
-    wiseComparison: string
-    unitedStates: string
-    spain: string
-    mexico: string
-    paypalComparison: string
-    westernUnionComparison: string
-    securityDisclosure: string
-}
-
-export type LandingContentHrefKey = keyof LandingContentHrefs
-
-export const EN_LANDING_CONTENT_HREFS: LandingContentHrefs = {
+export const EN_LANDING_CONTENT_HREFS = {
     pricing: '/en/pricing',
     whatAreDigitalDollars: '/en/help/what-are-digital-dollars',
     verification: '/en/help/verification',
@@ -53,3 +27,7 @@ export const EN_LANDING_CONTENT_HREFS: LandingContentHrefs = {
     westernUnionComparison: '/en/compare/peanut-vs-western-union',
     securityDisclosure: '/en/help/security-disclosure',
 }
+
+export type LandingContentHrefs = Record<keyof typeof EN_LANDING_CONTENT_HREFS, string>
+
+export type LandingContentHrefKey = keyof LandingContentHrefs

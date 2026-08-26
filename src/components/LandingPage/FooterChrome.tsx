@@ -11,7 +11,6 @@ import handMiddleFinger from '@/assets/illustrations/hand-middle-finger.svg'
 import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { EN_LANDING_CONTENT_HREFS } from './landingContentHrefs'
 
 const NAV_LINK = 'text-xl font-bold text-white'
 
@@ -56,10 +55,10 @@ const SocialLinks = () => (
 
 export const FooterChrome = ({
     locale = DEFAULT_LOCALE,
-    securityDisclosureHref = EN_LANDING_CONTENT_HREFS.securityDisclosure,
+    securityDisclosureHref,
 }: {
     locale?: Locale
-    securityDisclosureHref?: string
+    securityDisclosureHref: string
 }) => {
     const i18n = getTranslations(locale)
 

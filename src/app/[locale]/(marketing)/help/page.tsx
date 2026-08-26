@@ -3,7 +3,7 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, isValidLocale, getAlternates } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
-import { readPageContentLocalized, listContentSlugs, resolveContentHref } from '@/lib/content'
+import { readPageContentLocalizedResolved, listContentSlugs } from '@/lib/content'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
@@ -91,11 +91,13 @@ export default async function HelpPage({ params }: PageProps) {
     const slugs = listContentSlugs('help')
     const articles = slugs
         .map((slug) => {
-            const content = readPageContentLocalized<HelpFrontmatter>('help', slug, locale)
-            if (!content || content.frontmatter.published === false) return null
+            const resolved = readPageContentLocalizedResolved<HelpFrontmatter>('help', slug, locale)
+            if (!resolved || resolved.content.frontmatter.published === false) return null
+            const { content, lang } = resolved
             return {
                 slug,
-                href: resolveContentHref(`/en/help/${encodeURIComponent(slug)}`, locale),
+                // The serving locale owns the prose, so link it directly.
+                href: `/${lang}/help/${encodeURIComponent(slug)}`,
                 title: content.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, ''),
                 description: content.frontmatter.description,
                 category: content.frontmatter.category ?? 'General',

@@ -1,8 +1,7 @@
 import { SEOFooter } from './SEOFooter'
 import { FooterChrome } from './FooterChrome'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { resolveContentHref } from '@/lib/content'
-import { EN_LANDING_CONTENT_HREFS } from './landingContentHrefs'
+import { contentHrefsFor } from './landingContentHrefs.server'
 
 const Footer = ({
     showSiteDirectory = true,
@@ -13,10 +12,7 @@ const Footer = ({
 }) => {
     return (
         <>
-            <FooterChrome
-                locale={locale}
-                securityDisclosureHref={resolveContentHref(EN_LANDING_CONTENT_HREFS.securityDisclosure, locale)}
-            />
+            <FooterChrome locale={locale} securityDisclosureHref={contentHrefsFor(locale).securityDisclosure} />
             {showSiteDirectory && <SEOFooter locale={locale} />}
         </>
     )

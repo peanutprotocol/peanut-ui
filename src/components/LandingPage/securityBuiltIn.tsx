@@ -9,7 +9,8 @@ import selfCustodialDesign from '@/assets/illustrations/self-custodial-design.sv
 import kycOnlyWhenRequired from '@/assets/illustrations/kyc-only-when-required.svg'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
-import { EN_LANDING_CONTENT_HREFS, type LandingContentHrefs } from './landingContentHrefs'
+import type { LandingContentHrefs } from './landingContentHrefs'
+import { contentHrefsFor } from './landingContentHrefs.server'
 
 interface Feature {
     id: number
@@ -52,15 +53,9 @@ function buildFeatures(i18n: Translations, contentHrefs: LandingContentHrefs): F
     ]
 }
 
-export function SecurityBuiltIn({
-    locale = DEFAULT_LOCALE,
-    contentHrefs = EN_LANDING_CONTENT_HREFS,
-}: {
-    locale?: Locale
-    contentHrefs?: LandingContentHrefs
-}) {
+export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
-    const features = buildFeatures(i18n, contentHrefs)
+    const features = buildFeatures(i18n, contentHrefsFor(locale))
 
     return (
         <section id="security" className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">

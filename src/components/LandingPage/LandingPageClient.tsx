@@ -18,7 +18,7 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
 import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
-import { EN_LANDING_CONTENT_HREFS, type LandingContentHrefs } from './landingContentHrefs'
+import type { LandingContentHrefs } from './landingContentHrefs'
 
 // Split out: the carousel drags the whole testimonials manifest (~64 KB of
 // JSON) into whatever chunk imports it, and it renders far below the fold.
@@ -44,7 +44,7 @@ type LandingPageClientProps = {
     marqueeMessages: string[]
     locale: Locale
     strings: LandingStrings
-    contentHrefs?: LandingContentHrefs
+    contentHrefs: LandingContentHrefs
     // Server-rendered slots
     problemSlot: ReactNode
     mantecaSlot: ReactNode
@@ -61,7 +61,7 @@ export function LandingPageClient({
     marqueeMessages,
     locale,
     strings,
-    contentHrefs = EN_LANDING_CONTENT_HREFS,
+    contentHrefs,
     problemSlot,
     mantecaSlot,
     regulatedRailsSlot,
@@ -335,7 +335,7 @@ export function LandingPageClient({
                Without this boundary, the entire LandingPageClient suspends during SSR,
                sending an empty HTML shell to crawlers and killing SEO. */}
             <Suspense>
-                <NoFees locale={locale} strings={strings} contentHrefs={contentHrefs} />
+                <NoFees strings={strings} contentHrefs={contentHrefs} />
             </Suspense>
             <Marquee {...marqueeProps} />
             {yourMoneySlot}
