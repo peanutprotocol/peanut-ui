@@ -9,7 +9,7 @@ import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
 import { type UserCapabilities } from '@/types/capabilities'
-import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -275,6 +275,7 @@ export const useMultiPhaseKycFlow = ({
 
     // refresh user store when kyc status transitions to a non-success state
     // so the drawer/status item reads the updated verification record
+    const prevCapturedStatusRef = useRef<SumsubKycStatus | undefined>(undefined)
     useEffect(() => {
         // Same defer guard as the transition effect in useSumsubKycFlow: while a
         // multi-level SDK session is open, ACTION_REQUIRED is the routine "the
@@ -283,8 +284,17 @@ export const useMultiPhaseKycFlow = ({
         // submitted). Acting on it here would log a bogus KYC_REJECTED for every
         // succeeding EEA applicant and flip the user store to action_required
         // under the open SDK. The effect re-runs when the SDK closes, so an
-        // abandoned session still gets the capture and the store refresh.
+        // abandoned session still gets the capture and the store refresh —
+        // unless the close was a submission, which consumes the deferral
+        // (handleSdkComplete / handleSdkClose advance the ref below).
         if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
+        // Edge-triggered like that sibling effect: the other deps also change
+        // during a resubmit round (setShowWrapper toggles while the status is a
+        // stale REJECTED/ACTION_REQUIRED), which used to fire duplicate
+        // KYC_REJECTED captures and redundant fetchUser calls.
+        const prevStatus = prevCapturedStatusRef.current
+        prevCapturedStatusRef.current = liveKycStatus
+        if (liveKycStatus === prevStatus) return
         if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
             if (reportedRejectionRef.current === liveKycStatus) return
             reportedRejectionRef.current = liveKycStatus
@@ -310,13 +320,28 @@ export const useMultiPhaseKycFlow = ({
         reportedRejectionRef.current = null
         posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
         isRealtimeFlowRef.current = true
+        // consume a deferred ACTION_REQUIRED for this hook's capture effect too —
+        // originalHandleSdkComplete does the same for the sibling's transition effect
+        if (liveKycStatus === 'ACTION_REQUIRED') prevCapturedStatusRef.current = 'ACTION_REQUIRED'
         originalHandleSdkComplete()
         // for action flows (manteca, self-heal), the base status is already APPROVED
         // and won't transition — directly start the preparing/tracking phase
         if (isActionFlow) {
             handleSumsubApproved()
         }
-    }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent])
+    }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent, liveKycStatus])
+
+    // SDK manual close. A submitted close (see SumsubSdkProps.onClose) consumes
+    // the deferred ACTION_REQUIRED so the capture effect above doesn't replay a
+    // bogus rejection; an abandoned close keeps the replay.
+    const handleSdkClose = useCallback(
+        (opts?: { submitted?: boolean }) => {
+            if (opts?.submitted && liveKycStatus === 'ACTION_REQUIRED')
+                prevCapturedStatusRef.current = 'ACTION_REQUIRED'
+            handleClose(opts)
+        },
+        [handleClose, liveKycStatus]
+    )
 
     // true only while a PWA-reload resume drives handleInitiateKyc, so the
     // analytics event can distinguish a resume from a genuine new initiation
@@ -533,7 +558,7 @@ export const useMultiPhaseKycFlow = ({
         // SDK wrapper
         showWrapper,
         accessToken,
-        handleSdkClose: handleClose,
+        handleSdkClose,
         handleSdkComplete,
         handleSdkSubmitted,
         refreshToken,

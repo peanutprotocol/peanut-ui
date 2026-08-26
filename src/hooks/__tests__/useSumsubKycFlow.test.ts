@@ -494,6 +494,27 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
         expect(result.current.isVerificationProgressModalOpen).toBe(true)
     })
 
+    // A manual close can ALSO be a submission: after the level-2 submit the SDK
+    // sits on "documents submitted" and never runs onComplete, so tapping X is
+    // how the user leaves. The wrapper marks that close `submitted: true` and it
+    // must consume the deferred transition like handleSdkComplete — replaying it
+    // would report a stale rejection for documents the user just submitted.
+    it('a submitted manual close consumes the deferred transition — no replay', async () => {
+        const { result } = await openSdkOverProgressModal('EU')
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+
+        act(() => {
+            result.current.handleClose({ submitted: true })
+        })
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+    })
+
     // Boundary: the suppression is scoped to an OPEN SDK. Once the user is out of
     // the SDK, ACTION_REQUIRED is a real drawer state and must close the modal.
     it('still closes once the SDK is closed', async () => {
