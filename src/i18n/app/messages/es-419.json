@@ -382,7 +382,7 @@
             },
             "changeModal": {
                 "title": "Cambiar tu residencia",
-                "description": "Elige el país de tu ciudadanía o permiso de residencia: el que muestra tu documento.",
+                "description": "Elige el país donde vives legalmente: el que muestran tus documentos.",
                 "countryPlaceholder": "Selecciona tu país",
                 "verifiedMismatchNote": "Tus métodos de pago actuales siguen funcionando. Para que este sea tu país de residencia verificado, deberás verificarte de nuevo con documentos de ese país.",
                 "fullRestrictionNote": "Atención: las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de este país.",
@@ -645,7 +645,7 @@
             },
             "residence": {
                 "title": "¿Dónde eres residente?",
-                "description": "El país de tu ciudadanía o permiso de residencia: el que muestra tu documento, no donde estás de viaje ahora. Define qué métodos de pago podemos activar para ti."
+                "description": "El país donde vives legalmente: el que muestran tus documentos, no donde estás de viaje ahora. Define qué métodos de pago podemos activar para ti."
             },
             "passkey-permission": {
                 "title": "Configuremos tu passkey",

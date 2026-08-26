@@ -382,7 +382,7 @@
             },
             "changeModal": {
                 "title": "Change your residence",
-                "description": "Pick the country of your citizenship or residence permit: the one your ID shows.",
+                "description": "Pick the country where you legally live: the one your documents show.",
                 "countryPlaceholder": "Select your country",
                 "verifiedMismatchNote": "Your current payment methods keep working. To make this your verified residence, you'll verify again with documents from that country.",
                 "fullRestrictionNote": "Heads up: bank transfers and card issuing aren't available for residents of this country.",
@@ -645,7 +645,7 @@
             },
             "residence": {
                 "title": "Where are you a resident?",
-                "description": "The country of your citizenship or residence permit: the one your ID shows, not where you're travelling right now. It decides which payment methods we can turn on for you."
+                "description": "The country where you legally live: the one your documents show, not where you're travelling right now. It decides which payment methods we can turn on for you."
             },
             "passkey-permission": {
                 "title": "Let's set up your passkey",
