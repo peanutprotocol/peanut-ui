@@ -490,15 +490,19 @@ const REQUIRED_NATIVE_ENV = [
     'NEXT_PUBLIC_POSTHOG_KEY',
     'NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL',
     'NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL',
+    // the native OneSignal adapter throws at init without it — push dead on every device
+    'NEXT_PUBLIC_ONESIGNAL_APP_ID',
 ]
 
-// A key is missing when it has no line of its own, or its line carries no value
-// (`KEY=`). Anchoring per line also skips comments and blank lines.
+// Value of a `KEY=value` line, or '' when the key has no line of its own or the
+// line carries no value (`KEY=`). Anchoring per line also skips comments.
+function nativeEnvValue(envContent, key) {
+    const match = envContent.match(new RegExp(`^${key}=(.*)$`, 'm'))
+    return match ? match[1].trim() : ''
+}
+
 function missingNativeEnv(envContent) {
-    return REQUIRED_NATIVE_ENV.filter((key) => {
-        const match = envContent.match(new RegExp(`^${key}=(.*)$`, 'm'))
-        return !match || !match[1].trim()
-    })
+    return REQUIRED_NATIVE_ENV.filter((key) => !nativeEnvValue(envContent, key))
 }
 
 async function main() {
@@ -519,26 +523,21 @@ async function main() {
         const envFile = path.join(__dirname, '..', '.env.production.local')
         if (fs.existsSync(envFile)) {
             const envContent = fs.readFileSync(envFile, 'utf-8')
-            const rpIdMatch = envContent.match(/NEXT_PUBLIC_NATIVE_RP_ID=(.+)/)
-            if (!rpIdMatch || !rpIdMatch[1].trim()) {
-                throw new Error('NEXT_PUBLIC_NATIVE_RP_ID is not set in .env.production.local — passkeys will fail')
-            }
-            console.log(`✅ NEXT_PUBLIC_NATIVE_RP_ID=${rpIdMatch[1].trim()}`)
-
-            // app id is inlined into the bundle at build time; without it the native
-            // OneSignal SDK can't initialize and push notifications silently no-op.
-            const appIdMatch = envContent.match(/NEXT_PUBLIC_ONESIGNAL_APP_ID=(.+)/)
-            if (!appIdMatch || !appIdMatch[1].trim()) {
-                console.warn('⚠️  NEXT_PUBLIC_ONESIGNAL_APP_ID is not set — native push notifications will be disabled')
-            } else {
-                console.log('✅ NEXT_PUBLIC_ONESIGNAL_APP_ID is set')
-            }
-
             const missing = missingNativeEnv(envContent)
             if (missing.length) {
                 const message = `.env.production.local has no value for: ${missing.join(', ')}`
-                if (strict) throw new Error(message)
+                // rpId is fatal everywhere (passkeys break); the rest fail closed in CI only
+                if (strict || missing.includes('NEXT_PUBLIC_NATIVE_RP_ID')) throw new Error(message)
                 console.warn(`⚠️  ${message}`)
+            }
+            for (const key of REQUIRED_NATIVE_ENV) {
+                if (missing.includes(key)) continue
+                // rpId is printed in full — it must read peanut.me (passkeys + assetlinks/AASA)
+                console.log(
+                    key === 'NEXT_PUBLIC_NATIVE_RP_ID'
+                        ? `✅ ${key}=${nativeEnvValue(envContent, key)}`
+                        : `✅ ${key} is set`
+                )
             }
         } else if (strict) {
             throw new Error(
