@@ -317,6 +317,37 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(result.current.isActionFlow).toBe(true)
         expect(result.current.isMultiLevel).toBe(false)
     })
+
+    // Cross-region EU uplift is NOT an applicant action: the backend moves the
+    // applicant to bridge-requirements, whose EEA branch is the
+    // bridge-eea-uplift questionnaire — the SDK must hold open through it.
+    it('cross-region EU uplift (bridge-uplift) stays multi-level', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'bridge-uplift' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU', undefined, true, 'DE')
+        })
+
+        expect(result.current.isActionFlow).toBe(false)
+        expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    it('bridge-uplift toward NA keeps NA single-level', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'bridge-uplift' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('NA', undefined, true, 'US')
+        })
+
+        expect(result.current.isActionFlow).toBe(false)
+        expect(result.current.isMultiLevel).toBe(false)
+    })
 })
 
 // The companion backend change maps the follow-up level's `init` state to

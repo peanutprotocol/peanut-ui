@@ -1,4 +1,4 @@
-export type KycActionType = 'manteca' | 'bridge-direct' | 'unsupported-region'
+export type KycActionType = 'manteca' | 'bridge-direct' | 'bridge-uplift' | 'unsupported-region'
 
 export interface InitiateSumsubKycResponse {
     token: string | null // null when user is already APPROVED or bridge-direct
