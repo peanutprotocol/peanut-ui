@@ -26,8 +26,14 @@ function activate(name: string): void {
     } catch {}
     // The frontend only checks that a jwt-token cookie EXISTS (proxy.ts,
     // auth-token.ts). Every API answer is faked, so an opaque value is enough —
-    // no real JWT, no login call.
-    document.cookie = `${JWT_COOKIE}=fixture; path=/`
+    // no real JWT, no login call. Only set it when absent: the cookie is
+    // origin-wide, so overwriting would destroy a real session in every tab.
+    if (jwtCookieValue() === null) document.cookie = `${JWT_COOKIE}=fixture; path=/`
+}
+
+function jwtCookieValue(): string | null {
+    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${JWT_COOKIE}=([^;]*)`))
+    return match ? match[1] : null
 }
 
 /** Drops the fixture and the fake session, so the tab behaves normally again. */
@@ -36,7 +42,12 @@ export function clearFixture(): void {
     try {
         window.sessionStorage.removeItem(STORAGE_KEY)
     } catch {}
-    document.cookie = `${JWT_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`
+    // only remove the cookie this module wrote — ensureActiveFixture runs on
+    // every API call, so while ?__fixture=off sits in the URL an unguarded
+    // delete would keep destroying a freshly created real session.
+    if (jwtCookieValue() === 'fixture') {
+        document.cookie = `${JWT_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`
+    }
 }
 
 /**

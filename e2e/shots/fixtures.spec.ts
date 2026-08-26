@@ -18,7 +18,9 @@ const OUT_DIR = process.env.SHOTS_OUT ?? 'e2e/__shots__/current'
 // A frozen date keeps anything derived from "now" — relative times, greetings,
 // expiry countdowns — identical between a baseline taken last week and a
 // capture taken today. setFixedTime freezes Date only; timers still run.
-const FROZEN_NOW = new Date('2026-06-15T12:00:00.000Z')
+// Must stay LATER than every timestamp in the fixture registry (newest:
+// 2026-08-01), or relative times render as nonsense like "in 2 months".
+const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
 // The two things the app shows while it waits: the mascot from
 // components/Global/Loading (variant="mascot") and the grey `animate-pulse`
