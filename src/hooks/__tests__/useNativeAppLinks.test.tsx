@@ -17,6 +17,9 @@ jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => true),
     getPlatform: jest.fn(() => 'android-native'),
+    openExternalUrl: jest.fn(() => Promise.resolve()),
+    closeInAppBrowser: jest.fn(() => Promise.resolve()),
+    markInAppBrowserClosed: jest.fn(),
 }))
 
 jest.mock('@/services/onesignal', () => ({

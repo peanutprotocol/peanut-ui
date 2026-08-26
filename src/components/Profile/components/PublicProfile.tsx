@@ -16,6 +16,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { invitesApi } from '@/services/invites'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
+import { isCapacitor } from '@/utils/capacitor'
 import { requestUrl } from '@/utils/native-routes'
 import Card from '@/components/Global/Card'
 import { checkIfInternalNavigation, saveToCookie, toInviteCode } from '@/utils/general.utils'
@@ -110,8 +111,12 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 link_type: resolvedToOwner ? 'invite_code' : 'none',
             })
             if (intercepted) return
-            // Unresolvable and mismatched codes still navigate — /invite owns the messaging.
-            router.push(`/invite?code=${code}`)
+            // Unresolvable and mismatched codes still navigate — /invite owns the
+            // messaging. Native strips /invite; /setup?step=signup is its stand-in
+            // (the cookie above already carries the code, and ONLY when it resolved
+            // to the owner — don't route through inviteFlowUrl, which writes it
+            // unconditionally and would revert the resolvedToOwner guard).
+            router.push(isCapacitor() ? '/setup?step=signup' : `/invite?code=${code}`)
         } finally {
             setIsJoining(false)
         }

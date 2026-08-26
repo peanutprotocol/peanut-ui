@@ -132,9 +132,9 @@ describe('native-routes', () => {
                 expect(rewriteMethodPath('/withdraw/crypto')).toBe('/withdraw/crypto')
             })
 
-            it('should rewrite /add-money/crypto as dynamic (no static exception for add-money)', () => {
-                // note: add-money does NOT have a static route exception for crypto
-                expect(rewriteMethodPath('/add-money/crypto')).toBe('/add-money?country=crypto')
+            it('should not rewrite /add-money/crypto or /add-money/us (static routes)', () => {
+                expect(rewriteMethodPath('/add-money/crypto')).toBe('/add-money/crypto')
+                expect(rewriteMethodPath('/add-money/us')).toBe('/add-money/us')
             })
 
             it('should append extraParams to rewritten add-money path', () => {
@@ -494,6 +494,133 @@ describe('native-routes', () => {
                     '/claim?c=42161&v=v4.2&i=99#p=s3cr3t'
                 )
             })
+        })
+    })
+
+    // 2026-08 native-links review coverage: the "My QR" payload, the legacy
+    // /request/pay shape, bare-origin push links, static add-money subroutes,
+    // and web-only roots.
+    describe('deepLinkToNativePath — review additions', () => {
+        describe('capacitor mode', () => {
+            beforeEach(() => {
+                mockIsCapacitor.mockReturnValue(true)
+            })
+
+            it('maps /pay/<user> — the "My QR" payload — onto the send dispatcher', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send?recipient=alice')
+            })
+
+            it('maps legacy /request/pay?id=<chargeUuid> as a CHARGE, not user "pay"', () => {
+                expect(deepLinkToNativePath('https://peanut.me/request/pay?id=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('still maps /request/<user> to the request screen', () => {
+                expect(deepLinkToNativePath('https://peanut.me/request/alice')).toBe('/request?recipient=alice')
+            })
+
+            it('maps the bare-origin shapes legacy pushes and inbox rows carry', () => {
+                expect(deepLinkToNativePath('https://peanut.me?id=req-123')).toBe('/pay-request?id=req-123')
+                expect(deepLinkToNativePath('https://peanut.me/?chargeId=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('drops the truly bare origin', () => {
+                expect(deepLinkToNativePath('https://peanut.me')).toBeNull()
+            })
+
+            it('keeps the static add-money subroutes instead of rewriting them to ?country=', () => {
+                expect(deepLinkToNativePath('/add-money/crypto')).toBe('/add-money/crypto')
+                expect(deepLinkToNativePath('/add-money/us')).toBe('/add-money/us')
+            })
+
+            it('returns null for web-only roots so the caller opens them in the in-app browser', () => {
+                expect(deepLinkToNativePath('https://peanut.me/help')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/blog/some-post')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/terms')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/es-419/pricing')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/foodie')).toBeNull()
+            })
+
+            it('keeps roots the native export ships', () => {
+                expect(deepLinkToNativePath('https://peanut.me/home')).toBe('/home')
+                expect(deepLinkToNativePath('https://peanut.me/card')).toBe('/card')
+                expect(deepLinkToNativePath('https://peanut.me/pay-request?chargeId=x')).toBe('/pay-request?chargeId=x')
+            })
+        })
+
+        describe('web mode', () => {
+            beforeEach(() => {
+                mockIsCapacitor.mockReturnValue(false)
+            })
+
+            it('maps /pay/<user> to the send route (mirror of the web page redirect)', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send/alice')
+            })
+
+            it('maps legacy /request/pay?id= to pay-request on web too', () => {
+                expect(deepLinkToNativePath('https://peanut.me/request/pay?id=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('keeps web-only roots as-is', () => {
+                expect(deepLinkToNativePath('https://peanut.me/help')).toBe('/help')
+            })
+
+            it('maps the bare-origin id shape to pay-request', () => {
+                expect(deepLinkToNativePath('https://peanut.me?id=req-123')).toBe('/pay-request?id=req-123')
+            })
+        })
+    })
+
+    /*
+     * AASA drift guard: every path root claimed for the app in
+     * public/.well-known/apple-app-site-association must map to a native page
+     * (directly or via a rewrite). A root added to the AASA without a mapper
+     * branch ships an App Link that cold-boots the app to /home — the exact
+     * class of bug the 2026-08 native-links review closed. The Android
+     * intent-filter list mirrors the AASA, so this guards both platforms.
+     */
+    describe('AASA path list maps into the native export', () => {
+        beforeEach(() => {
+            mockIsCapacitor.mockReturnValue(true)
+        })
+
+        // extension-less JSON — require() won't parse it
+        const { readFileSync } = require('fs')
+        const { join } = require('path')
+        const aasa = JSON.parse(
+            readFileSync(join(process.cwd(), 'public/.well-known/apple-app-site-association'), 'utf8')
+        )
+        const roots = new Set<string>(
+            aasa.applinks.details
+                .flatMap((d: { paths: string[] }) => d.paths)
+                .map((p: string) => p.split('/').filter(Boolean)[0])
+                .filter(Boolean)
+        )
+
+        // A representative deep link per claimed root — dynamic roots get a
+        // realistic sample; static roots are tested bare.
+        const SAMPLE_BY_ROOT: Record<string, string> = {
+            claim: '/claim?c=42161&v=v4.2&i=99#p=pw',
+            pay: '/pay/alice',
+            'pay-request': '/pay-request?chargeId=x',
+            send: '/send/alice',
+            request: '/request/alice',
+            qr: '/qr/CODE123',
+            'add-money': '/add-money/belgium/bank',
+            withdraw: '/withdraw/be/bank',
+            receipt: '/receipt/intent-1?kind=ONRAMP',
+            profile: '/profile',
+            invite: '/invite?code=alice',
+        }
+
+        it.each([...roots])('claimed root %s resolves to a native path', (root) => {
+            const sample = SAMPLE_BY_ROOT[root] ?? `/${root}`
+            expect(deepLinkToNativePath(`https://peanut.me${sample}`)).not.toBeNull()
         })
     })
 })
