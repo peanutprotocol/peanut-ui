@@ -1568,10 +1568,14 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 if (node.externalType === 'WALLET') {
                     // Wallet → Arbiscan
-                    openExternalUrl(`https://arbiscan.io/address/${externalId}`)
+                    openExternalUrl(`https://arbiscan.io/address/${externalId}`).catch((e) =>
+                        console.warn('failed to open explorer link:', e)
+                    )
                 } else if (node.externalType === 'MERCHANT') {
                     // Merchant → Google search
-                    openExternalUrl(`https://www.google.com/search?q=${encodeURIComponent(node.label)}`)
+                    openExternalUrl(`https://www.google.com/search?q=${encodeURIComponent(node.label)}`).catch((e) =>
+                        console.warn('failed to open search link:', e)
+                    )
                 }
                 // BANK → Do nothing (no useful URL for IBAN/CLABE/ACH)
                 return

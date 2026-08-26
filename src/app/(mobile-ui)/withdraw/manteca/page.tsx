@@ -255,7 +255,17 @@ function MantecaBankWithdrawFlow() {
      */
     const handleOnboardingError = useCallback(
         (error: string): boolean => {
-            const onboardingErrorPatterns = ['fund origin', 'profile incomplete', 'onboarding required']
+            // 'manteca kyc' / 'manteca_kyc_required' cover the API's
+            // MANTECA_KYC_REQUIRED responses ("User needs to do manteca KYC
+            // first") — the service layer strips the `code` field, so the text
+            // is all this screen ever sees.
+            const onboardingErrorPatterns = [
+                'fund origin',
+                'profile incomplete',
+                'onboarding required',
+                'manteca kyc',
+                'manteca_kyc_required',
+            ]
             const normalizedError = error.toLowerCase()
             const isOnboardingError = onboardingErrorPatterns.some((pattern) => normalizedError.includes(pattern))
             if (!isOnboardingError) return false

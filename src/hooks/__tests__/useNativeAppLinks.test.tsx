@@ -5,6 +5,7 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useNativeAppLinks } from '../useNativeAppLinks'
 import { restoreDeferredContext } from '@/utils/deferred-link'
+import { resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 import { getOneSignalAdapter } from '@/services/onesignal'
 
 const push = jest.fn()
@@ -44,6 +45,10 @@ const mockRestore = restoreDeferredContext as jest.MockedFunction<typeof restore
 beforeEach(() => {
     jest.clearAllMocks()
     launchUrl = undefined
+    // Module state + the launch-url guard outlive a test: without these resets
+    // an earlier test's navigation suppresses the next test's launch dispatch.
+    resetDeepLinkStateForTests()
+    sessionStorage.clear()
 })
 
 describe('useNativeAppLinks deferred restore wiring', () => {

@@ -15,3 +15,8 @@ export function markDeepLinkNavigated(): void {
 export function hasDeepLinkNavigated(): boolean {
     return deepLinkNavigated
 }
+
+// Module state outlives a jest test; production code must never call this.
+export function resetDeepLinkStateForTests(): void {
+    deepLinkNavigated = false
+}

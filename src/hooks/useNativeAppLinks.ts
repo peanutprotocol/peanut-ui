@@ -7,7 +7,7 @@ import posthog from 'posthog-js'
 import { captureMessage } from '@/utils/sentry-lazy'
 import { isCapacitor, openExternalUrl, closeInAppBrowser, markInAppBrowserClosed } from '@/utils/capacitor'
 import { deepLinkToNativePath } from '@/utils/native-routes'
-import { markDeepLinkNavigated } from '@/utils/deep-link-state'
+import { hasDeepLinkNavigated, markDeepLinkNavigated } from '@/utils/deep-link-state'
 import { sanitizeRedirectURL, saveToCookie } from '@/utils/cookie-url.utils'
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
@@ -124,13 +124,18 @@ export function useNativeAppLinks() {
             // this push on cold start and must yield to it.
             anyDeepLinkNavigated = true
             markDeepLinkNavigated()
-            // A deep link arriving while our in-app browser sheet is up (the
-            // Persona/Bridge KYC return leg) must dismiss it or the nav happens
-            // underneath a full-screen browser. Fire-and-forget: close is fast
-            // and the push must not wait on it.
-            void closeInAppBrowser()
-            router.push(safe)
-            captureLink(source, url, safe, 'navigated')
+            /*
+             * A deep link arriving while our in-app browser sheet is up (the
+             * Persona/Bridge KYC return leg) must dismiss it or the nav happens
+             * underneath a full-screen browser. Sequence the push after the
+             * close, but cap the wait: a wedged Browser.close (the silent-
+             * native-failure class) must degrade to navigating behind the
+             * sheet, never to an eaten tap.
+             */
+            void Promise.race([closeInAppBrowser(), new Promise((r) => setTimeout(r, 500))]).finally(() => {
+                router.push(safe)
+                captureLink(source, url, safe, 'navigated')
+            })
             return true
         }
 
@@ -165,8 +170,11 @@ export function useNativeAppLinks() {
                 // process, so it is dispatched at most once per launch URL —
                 // without the sessionStorage guard every webview reload (logout,
                 // hard-nav fallback) replayed a stale claim/pay link.
+                // hasDeepLinkNavigated(): RootRedirect may already have routed
+                // this same launch URL (a full-document load recovers it from
+                // location) — dispatching it again would double-navigate.
                 const launch = await App.getLaunchUrl()
-                if (launch?.url) {
+                if (launch?.url && !hasDeepLinkNavigated()) {
                     let alreadyHandled = false
                     try {
                         alreadyHandled = sessionStorage.getItem(HANDLED_LAUNCH_URL_KEY) === launch.url
