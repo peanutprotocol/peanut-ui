@@ -8,6 +8,7 @@
  */
 
 const { execSync } = require('child_process')
+const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
 
@@ -494,21 +495,20 @@ const REQUIRED_NATIVE_ENV = [
     'NEXT_PUBLIC_ONESIGNAL_APP_ID',
 ]
 
-// Value of a `KEY=value` line, or '' when the key has no line of its own or the
-// line carries no value (`KEY=`, `KEY=""`, `KEY='  '` — dotenv unwraps matching
-// quotes, so a quoted-empty value bakes '' exactly like a bare one). Anchoring
-// per line also skips comments.
-function nativeEnvValue(envContent, key) {
-    const match = envContent.match(new RegExp(`^${key}=(.*)$`, 'm'))
-    if (!match) return ''
-    return match[1]
-        .trim()
-        .replace(/^(["'])(.*)\1$/, '$2')
-        .trim()
+// Read the file with the same parser that bakes it: Next loads .env.production.local
+// through @next/env, which is dotenv. A per-key regex disagrees with dotenv in ways
+// that all end in a bundle the check called healthy — a repeated key (dotenv keeps
+// the LAST, so a trailing `KEY=` wins), an inline `# comment` (dotenv strips it, so
+// `KEY= # todo` bakes ''), and an `export ` prefix (dotenv accepts it).
+// Trimmed because a quoted-whitespace value (`KEY='  '`) is as dead as an empty one.
+function nativeEnvValues(envContent) {
+    const parsed = dotenv.parse(envContent)
+    return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, value.trim()]))
 }
 
 function missingNativeEnv(envContent) {
-    return REQUIRED_NATIVE_ENV.filter((key) => !nativeEnvValue(envContent, key))
+    const values = nativeEnvValues(envContent)
+    return REQUIRED_NATIVE_ENV.filter((key) => !values[key])
 }
 
 async function main() {
@@ -529,6 +529,7 @@ async function main() {
         const envFile = path.join(__dirname, '..', '.env.production.local')
         if (fs.existsSync(envFile)) {
             const envContent = fs.readFileSync(envFile, 'utf-8')
+            const envValues = nativeEnvValues(envContent)
             const missing = missingNativeEnv(envContent)
             if (missing.length) {
                 const message = `.env.production.local has no value for: ${missing.join(', ')}`
@@ -539,11 +540,7 @@ async function main() {
             for (const key of REQUIRED_NATIVE_ENV) {
                 if (missing.includes(key)) continue
                 // rpId is printed in full — it must read peanut.me (passkeys + assetlinks/AASA)
-                console.log(
-                    key === 'NEXT_PUBLIC_NATIVE_RP_ID'
-                        ? `✅ ${key}=${nativeEnvValue(envContent, key)}`
-                        : `✅ ${key} is set`
-                )
+                console.log(key === 'NEXT_PUBLIC_NATIVE_RP_ID' ? `✅ ${key}=${envValues[key]}` : `✅ ${key} is set`)
             }
         } else if (strict) {
             throw new Error(

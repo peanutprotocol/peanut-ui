@@ -48,6 +48,29 @@ describe('missingNativeEnv', () => {
         expect(missingNativeEnv(env).sort()).toEqual(['NEXT_PUBLIC_BASE_URL', 'NEXT_PUBLIC_SENTRY_DSN'])
     })
 
+    // The three ways a per-key regex used to disagree with dotenv — each one passed
+    // the check while the bundle baked something else.
+
+    // dotenv keeps the LAST assignment, so a trailing `KEY=` wins over an earlier value.
+    it('judges a repeated key by its last assignment', () => {
+        const env = [...REQUIRED_NATIVE_ENV.map((key) => `${key}=set`), 'NEXT_PUBLIC_SENTRY_DSN='].join('\n')
+        expect(missingNativeEnv(env)).toEqual(['NEXT_PUBLIC_SENTRY_DSN'])
+    })
+
+    // dotenv strips an unquoted trailing comment, so `KEY= # todo` bakes '' — not '# todo'.
+    it('strips an inline comment before judging the value', () => {
+        const env = REQUIRED_NATIVE_ENV.map((key) =>
+            key === 'NEXT_PUBLIC_BASE_URL' ? `${key}= # todo` : `${key}=set # baked by CI`
+        ).join('\n')
+        expect(missingNativeEnv(env)).toEqual(['NEXT_PUBLIC_BASE_URL'])
+    })
+
+    // dotenv accepts `export KEY=value`, so a source-able local file must not fail the check.
+    it('accepts an export prefix', () => {
+        const env = REQUIRED_NATIVE_ENV.map((key) => `export ${key}=set`).join('\n')
+        expect(missingNativeEnv(env)).toEqual([])
+    })
+
     it('ignores comments and blank lines, so a commented-out key still counts as missing', () => {
         const env = [
             '# written by capgo-deploy.yml',
