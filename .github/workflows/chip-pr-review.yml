@@ -2,86 +2,86 @@
 name: Chip PR review
 
 on:
-  pull_request_target:
-    branches: [main, dev]
-    types: [opened, reopened, synchronize, ready_for_review]
-  issue_comment:
-    types: [created]
-  pull_request_review:
-    types: [submitted]
+    pull_request_target:
+        branches: [main, dev]
+        types: [opened, reopened, synchronize, ready_for_review]
+    issue_comment:
+        types: [created]
+    pull_request_review:
+        types: [submitted]
 
 permissions: {}
 
 jobs:
-  review:
-    if: >-
-      github.event_name == 'pull_request_target' &&
-      contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev","chip-peanut-bot[bot]"]'), github.event.pull_request.user.login)
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Dispatch trusted PR head
-        env:
-          SSH_KEY: ${{ secrets.CHIP_PR_REVIEW_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.CHIP_PR_REVIEW_KNOWN_HOSTS }}
-          REPOSITORY: ${{ github.event.repository.name }}
-          PULL_REQUEST: ${{ github.event.pull_request.number }}
-          ACTION: ${{ github.event.action }}
-          SOURCE_ID: ${{ github.run_id }}
-        run: |
-          umask 077
-          printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/chip-pr-review"
-          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
-          ssh -i "$RUNNER_TEMP/chip-pr-review" \
-            -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
-            chip@195.201.2.135 "review $REPOSITORY $PULL_REQUEST $ACTION $SOURCE_ID"
+    review:
+        if: >-
+            github.event_name == 'pull_request_target' &&
+            contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev","chip-peanut-bot[bot]"]'), github.event.pull_request.user.login)
+        runs-on: ubuntu-latest
+        timeout-minutes: 2
+        steps:
+            - name: Dispatch trusted PR head
+              env:
+                  SSH_KEY: ${{ secrets.CHIP_PR_REVIEW_SSH_KEY }}
+                  KNOWN_HOSTS: ${{ secrets.CHIP_PR_REVIEW_KNOWN_HOSTS }}
+                  REPOSITORY: ${{ github.event.repository.name }}
+                  PULL_REQUEST: ${{ github.event.pull_request.number }}
+                  ACTION: ${{ github.event.action }}
+                  SOURCE_ID: ${{ github.run_id }}
+              run: |
+                  umask 077
+                  printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/chip-pr-review"
+                  printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+                  ssh -i "$RUNNER_TEMP/chip-pr-review" \
+                    -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
+                    chip@195.201.2.135 "review $REPOSITORY $PULL_REQUEST $ACTION $SOURCE_ID"
 
-  manual:
-    if: >-
-      github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request &&
-      contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev"]'), github.event.comment.user.login) &&
-      contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev","chip-peanut-bot[bot]"]'), github.event.issue.user.login) &&
-      (contains(github.event.comment.body, '/chip review') || contains(github.event.comment.body, '@chip-peanut-bot review'))
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Dispatch trusted manual review
-        env:
-          SSH_KEY: ${{ secrets.CHIP_PR_REVIEW_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.CHIP_PR_REVIEW_KNOWN_HOSTS }}
-          REPOSITORY: ${{ github.event.repository.name }}
-          PULL_REQUEST: ${{ github.event.issue.number }}
-          COMMENT_ID: ${{ github.event.comment.id }}
-          SOURCE_ID: ${{ github.run_id }}
-        run: |
-          umask 077
-          printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/chip-pr-review"
-          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
-          ssh -i "$RUNNER_TEMP/chip-pr-review" \
-            -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
-            chip@195.201.2.135 "manual $REPOSITORY $PULL_REQUEST $COMMENT_ID $SOURCE_ID"
+    manual:
+        if: >-
+            github.event_name == 'issue_comment' &&
+            github.event.issue.pull_request &&
+            contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev"]'), github.event.comment.user.login) &&
+            contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev","chip-peanut-bot[bot]"]'), github.event.issue.user.login) &&
+            (contains(github.event.comment.body, '/chip review') || contains(github.event.comment.body, '@chip-peanut-bot review'))
+        runs-on: ubuntu-latest
+        timeout-minutes: 2
+        steps:
+            - name: Dispatch trusted manual review
+              env:
+                  SSH_KEY: ${{ secrets.CHIP_PR_REVIEW_SSH_KEY }}
+                  KNOWN_HOSTS: ${{ secrets.CHIP_PR_REVIEW_KNOWN_HOSTS }}
+                  REPOSITORY: ${{ github.event.repository.name }}
+                  PULL_REQUEST: ${{ github.event.issue.number }}
+                  COMMENT_ID: ${{ github.event.comment.id }}
+                  SOURCE_ID: ${{ github.run_id }}
+              run: |
+                  umask 077
+                  printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/chip-pr-review"
+                  printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+                  ssh -i "$RUNNER_TEMP/chip-pr-review" \
+                    -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
+                    chip@195.201.2.135 "manual $REPOSITORY $PULL_REQUEST $COMMENT_ID $SOURCE_ID"
 
-  human-review:
-    if: >-
-      github.event_name == 'pull_request_review' &&
-      contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev"]'), github.event.review.user.login) &&
-      contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev","chip-peanut-bot[bot]"]'), github.event.pull_request.user.login)
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Notify trusted human review
-        env:
-          SSH_KEY: ${{ secrets.CHIP_PR_REVIEW_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.CHIP_PR_REVIEW_KNOWN_HOSTS }}
-          REPOSITORY: ${{ github.event.repository.name }}
-          PULL_REQUEST: ${{ github.event.pull_request.number }}
-          REVIEW_ID: ${{ github.event.review.id }}
-          SOURCE_ID: ${{ github.run_id }}
-        run: |
-          umask 077
-          printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/chip-pr-review"
-          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
-          ssh -i "$RUNNER_TEMP/chip-pr-review" \
-            -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
-            chip@195.201.2.135 "human-review $REPOSITORY $PULL_REQUEST $REVIEW_ID $SOURCE_ID"
+    human-review:
+        if: >-
+            github.event_name == 'pull_request_review' &&
+            contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev"]'), github.event.review.user.login) &&
+            contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev","chip-peanut-bot[bot]"]'), github.event.pull_request.user.login)
+        runs-on: ubuntu-latest
+        timeout-minutes: 2
+        steps:
+            - name: Notify trusted human review
+              env:
+                  SSH_KEY: ${{ secrets.CHIP_PR_REVIEW_SSH_KEY }}
+                  KNOWN_HOSTS: ${{ secrets.CHIP_PR_REVIEW_KNOWN_HOSTS }}
+                  REPOSITORY: ${{ github.event.repository.name }}
+                  PULL_REQUEST: ${{ github.event.pull_request.number }}
+                  REVIEW_ID: ${{ github.event.review.id }}
+                  SOURCE_ID: ${{ github.run_id }}
+              run: |
+                  umask 077
+                  printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/chip-pr-review"
+                  printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+                  ssh -i "$RUNNER_TEMP/chip-pr-review" \
+                    -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
+                    chip@195.201.2.135 "human-review $REPOSITORY $PULL_REQUEST $REVIEW_ID $SOURCE_ID"
