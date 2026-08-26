@@ -791,10 +791,12 @@ export function slugify(text: string): string {
  * Canonical invite-code shape: a bare, lowercased username (e.g. `alice`).
  *
  * Single source of truth — use this anywhere an invite code is built for
- * `/invite?code=…` or `acceptInvite`. The legacy `ALICEINVITESYOU610` /
- * `ALICEINVITESYOU` shapes are no longer emitted, but stay fully supported on
- * the backend (peanut-api-ts `extractUsernameFromInvite` uppercases the input
- * and matches the old suffixes), so existing shared links keep working.
+ * `/invite?invited_by=…` or `acceptInvite`. Links now emit `invited_by`; the
+ * `code` param stays supported as a read-side alias (inviteCodeFromParams),
+ * and the legacy `ALICEINVITESYOU610` / `ALICEINVITESYOU` shapes are no longer
+ * emitted but stay fully supported on the backend (peanut-api-ts
+ * `extractUsernameFromInvite` uppercases the input and matches the old
+ * suffixes), so existing shared links keep working.
  *
  * Also tolerates hand-typed input ("Who invited you?" asks for a username, so
  * people paste `@alice ` or ` Alice`): trims whitespace and strips a leading @.
@@ -810,14 +812,14 @@ export { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirect
  * cookie on native, never call it during render.
  */
 export const inviteFlowUrl = (inviteCode: string, redirectUri: string): string => {
-    if (!isCapacitor()) return `/invite?code=${inviteCode}&redirect_uri=${redirectUri}`
+    if (!isCapacitor()) return `/invite?invited_by=${inviteCode}&redirect_uri=${redirectUri}`
     saveToCookie('inviteCode', inviteCode)
     return `/setup?step=signup&redirect_uri=${redirectUri}`
 }
 
 export const generateInviteCodeLink = (username: string) => {
     const inviteCode = toInviteCode(username)
-    const inviteLink = shareableUrl(`/invite?code=${inviteCode}`)
+    const inviteLink = shareableUrl(`/invite?invited_by=${inviteCode}`)
     return { inviteLink, inviteCode }
 }
 

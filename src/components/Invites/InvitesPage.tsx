@@ -14,6 +14,7 @@ import { setupActions } from '@/redux/slices/setup-slice'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import { getValidRedirectUrl, saveRedirectUrl, saveToCookie } from '@/utils/general.utils'
+import { inviteCodeFromParams } from '@/utils/invite-code.utils'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useLogin } from '@/hooks/useLogin'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -42,7 +43,7 @@ function InvitePageContent() {
     const toast = useToast()
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
-    const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
+    const inviteCode = inviteCodeFromParams(searchParams)?.toLowerCase().replace(/\?+$/, '')
     const redirectUri = searchParams.get('redirect_uri')
     const safeRedirectUri = redirectUri ? getValidRedirectUrl(redirectUri, '') : ''
     const { user, isFetchingUser, fetchUser } = useAuth()

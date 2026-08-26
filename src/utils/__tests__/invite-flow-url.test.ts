@@ -17,7 +17,7 @@ beforeEach(() => {
 
 describe('inviteFlowUrl', () => {
     it('web routes to the invite landing page and writes no cookie', () => {
-        expect(inviteFlowUrl('alice', '%2Fclaim%2FX')).toBe('/invite?code=alice&redirect_uri=%2Fclaim%2FX')
+        expect(inviteFlowUrl('alice', '%2Fclaim%2FX')).toBe('/invite?invited_by=alice&redirect_uri=%2Fclaim%2FX')
         expect(getFromCookie('inviteCode')).toBeFalsy()
     })
 

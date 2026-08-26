@@ -488,13 +488,13 @@ describe('General Utilities', () => {
         it('emits a username-only invite code (no INVITESYOU, no suffix)', () => {
             const { inviteCode, inviteLink } = generateInviteCodeLink('alice')
             expect(inviteCode).toBe('alice')
-            expect(inviteLink).toBe('https://peanut.example.org/invite?code=alice')
+            expect(inviteLink).toBe('https://peanut.example.org/invite?invited_by=alice')
         })
 
         it('lowercases mixed-case usernames', () => {
             const { inviteCode, inviteLink } = generateInviteCodeLink('Alice')
             expect(inviteCode).toBe('alice')
-            expect(inviteLink).toBe('https://peanut.example.org/invite?code=alice')
+            expect(inviteLink).toBe('https://peanut.example.org/invite?invited_by=alice')
         })
     })
 

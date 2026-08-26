@@ -128,9 +128,10 @@ function mapDeepLinkPath(parsed: URL): string | null {
         return rewriteMethodPath(path, extraParams || undefined)
     }
     /*
-     * `/invite?code=X` — the invite landing page is stripped from the native
-     * export (scripts/native-build.js), so route to the signup flow with the
-     * params riding along; the setup page persists ?code= as the session
+     * `/invite?invited_by=X` (legacy alias `?code=X`) — the invite landing
+     * page is stripped from the native export (scripts/native-build.js), so
+     * route to the signup flow with the params riding along; the setup page
+     * persists the inviter param as the session
      * inviteCode cookie (same mechanism as the deferred-install hand-off, and
      * openDeepLink writes the same cookie as a belt-and-suspenders), and a
      * logged-in session on /setup bounces itself home.

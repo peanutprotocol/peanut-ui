@@ -340,7 +340,8 @@ export const MODAL_TYPES = {
  * INVITE_LINK_SHARED events.
  *
  * Referral events also carry a `link_type` property so PostHog can compare
- * which link shape converts: 'invite_code' (/invite?code=<u>, credits the
+ * which link shape converts: 'invite_code' (/invite?invited_by=<u>, or the
+ * legacy ?code=<u> alias, credits the
  * inviter at signup), 'profile' (peanut.me/<u>, credits via the guest-profile
  * door), or 'none' (share carried no link, e.g. anti-dox card shares).
  */

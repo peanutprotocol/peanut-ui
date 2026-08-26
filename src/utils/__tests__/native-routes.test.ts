@@ -339,6 +339,12 @@ describe('native-routes', () => {
             // The invite landing page is stripped from the native export — an
             // /invite App Link must land on signup with the code riding along.
             it('maps an invite link onto the signup flow, code preserved', () => {
+                expect(deepLinkToNativePath('https://peanut.me/invite?invited_by=alice')).toBe(
+                    '/setup?step=signup&invited_by=alice'
+                )
+            })
+
+            it('maps a legacy ?code= invite link the same way — old shared links keep working', () => {
                 expect(deepLinkToNativePath('https://peanut.me/invite?code=alice')).toBe(
                     '/setup?step=signup&code=alice'
                 )
