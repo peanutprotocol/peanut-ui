@@ -100,17 +100,16 @@ export const Profile = () => {
                             icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}
                             label={t('menu.points')}
                             href="/rewards"
-                            position="last"
+                            position="middle"
                         />
-                    </div>
-                    <div>
                         <ProfileMenuItem
                             icon="user"
                             label={t('menu.personalDetails')}
                             href="/profile/edit"
-                            position="first"
+                            position="last"
                         />
-
+                    </div>
+                    <div>
                         {/* Payment limits merged into Unlock payments (inline
                             usage + the all-limits link there); /limits stays
                             routable for deep links. */}
@@ -120,7 +119,7 @@ export const Profile = () => {
                             label={t('language')}
                             endText={LOCALE_LABELS[locale]}
                             href="/settings/language"
-                            position="middle"
+                            position="first"
                         />
 
                         <ProfileMenuItem
