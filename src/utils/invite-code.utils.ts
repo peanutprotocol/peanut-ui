@@ -16,7 +16,8 @@ export const toInviteCode = (username: string): string => username.trim().replac
  * (it names what the value is — the inviter's username); `code` is the alias
  * every previously shared link carries and stays supported forever. When both
  * are present the legacy `code` wins, so a pre-existing link keeps its exact
- * behavior even with the new param appended to it.
+ * behavior even with the new param appended to it. An empty `code=` falls
+ * through to `invited_by` instead of masking it.
  */
 export const inviteCodeFromParams = (params: { get(name: string): string | null }): string | null =>
-    params.get('code') ?? params.get('invited_by')
+    params.get('code') || params.get('invited_by') || null

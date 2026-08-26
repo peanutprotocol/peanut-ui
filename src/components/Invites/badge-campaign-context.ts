@@ -9,7 +9,8 @@ import {
 /**
  * Badge campaigns are opaque backend-owned identities. The UI may transport them,
  * but it must never translate them into badge codes or derive them from an
- * inviter. In particular, `?code=juanacervio` carries no NITA campaign unless
+ * inviter. In particular, `?invited_by=juanacervio` (or legacy `?code=`)
+ * carries no NITA campaign unless
  * `?badge_campaign=nita` is also present.
  */
 /** Published storage key retained for old bundles. Do not rename the string value. */

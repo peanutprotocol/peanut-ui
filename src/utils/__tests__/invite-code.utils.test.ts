@@ -17,6 +17,10 @@ describe('inviteCodeFromParams', () => {
         expect(inviteCodeFromParams(new URLSearchParams('code=offramp&invited_by=alice'))).toBe('offramp')
     })
 
+    it('falls through an empty legacy code to invited_by', () => {
+        expect(inviteCodeFromParams(new URLSearchParams('code=&invited_by=alice'))).toBe('alice')
+    })
+
     it('returns null when neither is present', () => {
         expect(inviteCodeFromParams(new URLSearchParams('redirect_uri=%2Fhome'))).toBeNull()
     })

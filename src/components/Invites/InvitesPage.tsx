@@ -245,7 +245,7 @@ function InvitePageContent() {
 
     // A bare link that resolves to nothing claimable — unknown ?campaign= value,
     // a stray tracking param swept up by the root-domain redirect, an empty
-    // ?code= — gets the landing page, not the invalid-invite error. That screen
+    // ?invited_by= / ?code= — gets the landing page, not the invalid-invite error. That screen
     // is reserved for links that actually carried an invite code. Safe from a
     // redirect loop: the root redirect only fires when the params are present,
     // and we replace with a bare '/'.
