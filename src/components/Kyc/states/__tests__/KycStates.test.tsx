@@ -73,9 +73,13 @@ describe('KYC state cards', () => {
         // backend prose must never render (it would be English in every locale).
         render(<KycActionRequired onResume={jest.fn()} actionMessage="Some backend prose." rejectLabels={[]} />)
 
-        expect(screen.getByText(/resubmit your documents/i)).toBeInTheDocument()
+        expect(screen.getByText(/tap below to continue/i)).toBeInTheDocument()
         expect(screen.queryByText('Some backend prose.')).not.toBeInTheDocument()
         expect(screen.queryByTestId('reject-labels-list')).not.toBeInTheDocument()
+        // The CTA must match the copy: the required action can be a follow-up
+        // questionnaire, so this branch says "continue", not "re-submit".
+        expect(screen.getByText('Continue')).toBeInTheDocument()
+        expect(screen.queryByText('Re-submit verification')).not.toBeInTheDocument()
     })
 
     it('does not pass the click event to failed retry', () => {

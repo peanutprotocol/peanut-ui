@@ -1,10 +1,8 @@
 import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 
-// The page itself is a client component, so its metadata has to live here.
-// Without it the route inherits the root layout's `canonical: '/'` and declares
-// the homepage as its canonical while serving `index, follow` — on a route
-// robots.ts already disallows.
+// The page itself is a client component, so its route-specific canonical and
+// noindex metadata have to live here. robots.ts also disallows this app route.
 export const metadata: Metadata = {
     ...metadataHelper({
         title: 'Maintenance | Peanut',

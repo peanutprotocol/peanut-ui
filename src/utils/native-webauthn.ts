@@ -3,6 +3,8 @@
 
 import { keccak256, type Hex, type SignableMessage, encodeAbiParameters } from 'viem'
 import { bytesToBigInt, hexToBytes } from 'viem'
+import { isCapacitor } from './capacitor'
+import { raceCeremonyTimeout, waitForPasskeyShim } from './passkeyCeremony.utils'
 // @noble/curves/p256 was the public path in v1.9.7; v2 removed it. Pin documented in package.json.
 import { p256 } from '@noble/curves/p256'
 
@@ -172,10 +174,16 @@ export function createNativeSignMessageCallback(rpId: string, pinnedCredentialId
             timeout: 60000,
         }
 
-        // uses navigator.credentials.get() which is shimmed by @capgo/capacitor-passkey
-        const cred = (await navigator.credentials.get({
-            publicKey: assertionOptions,
-        })) as PublicKeyCredential
+        // uses navigator.credentials.get() which is shimmed by @capgo/capacitor-passkey.
+        // Same guard class as login (TASK-21782): a signature racing the async
+        // shim install would run the webview's raw WebAuthn, which silently
+        // hangs in Capacitor — gate on the shim and bound the ceremony.
+        if (isCapacitor()) await waitForPasskeyShim()
+        const cred = (await raceCeremonyTimeout(
+            navigator.credentials.get({
+                publicKey: assertionOptions,
+            })
+        )) as PublicKeyCredential
 
         if (!cred || !cred.response) {
             throw new Error('native signing failed — no credential returned')

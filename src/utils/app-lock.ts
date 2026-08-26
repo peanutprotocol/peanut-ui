@@ -13,6 +13,8 @@
 // gaps the guarded mode closes.
 
 import { base64URLToBytes } from './native-webauthn'
+import { isCapacitor } from './capacitor'
+import { raceCeremonyTimeout, waitForPasskeyShim } from './passkeyCeremony.utils'
 
 /** How long the app may sit in the background before it relocks. */
 export const LOCK_AFTER_BACKGROUND_MS = 5 * 60 * 1000
@@ -40,16 +42,23 @@ export async function requestLocalUserPresence(credentialId?: string): Promise<U
     crypto.getRandomValues(challenge)
 
     try {
-        const assertion = await navigator.credentials.get({
-            publicKey: {
-                challenge,
-                // Copy into a fresh buffer: BufferSource wants Uint8Array<ArrayBuffer>,
-                // and base64URLToBytes is typed over the wider ArrayBufferLike.
-                allowCredentials: [{ id: new Uint8Array(base64URLToBytes(credentialId)), type: 'public-key' }],
-                userVerification: 'required',
-                timeout: 60_000,
-            },
-        })
+        // Fires at app open — the exact window where autoShimWebAuthn is still
+        // installing on native. Gate on the shim and bound the ceremony (same
+        // guard class as login, TASK-21782): an un-shimmed webview get() hangs
+        // silently and would strand the user behind the lock with no retry.
+        if (isCapacitor()) await waitForPasskeyShim()
+        const assertion = await raceCeremonyTimeout(
+            navigator.credentials.get({
+                publicKey: {
+                    challenge,
+                    // Copy into a fresh buffer: BufferSource wants Uint8Array<ArrayBuffer>,
+                    // and base64URLToBytes is typed over the wider ArrayBufferLike.
+                    allowCredentials: [{ id: new Uint8Array(base64URLToBytes(credentialId)), type: 'public-key' }],
+                    userVerification: 'required',
+                    timeout: 60_000,
+                },
+            })
+        )
         return assertion ? 'unlocked' : 'dismissed'
     } catch (error) {
         // A cancelled prompt and a genuinely broken authenticator are
@@ -57,7 +66,10 @@ export async function requestLocalUserPresence(credentialId?: string): Promise<U
         // is the safe direction. NotSupportedError is the exception: it fails
         // open (like the pre-flight checks), since it means this device cannot
         // complete the ceremony at all and retrying would strand the user.
-        if (error instanceof Error && error.name === 'NotSupportedError') return 'unsupported'
+        // PasskeyShimFailedError joins it: the install is dead for this session,
+        // so no retry can ever succeed — a lock we can't lift must not engage.
+        if (error instanceof Error && (error.name === 'NotSupportedError' || error.name === 'PasskeyShimFailedError'))
+            return 'unsupported'
         return 'dismissed'
     }
 }

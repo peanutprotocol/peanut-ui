@@ -40,12 +40,19 @@ jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () 
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
 
 const launch = jest.fn()
+// event name → registered handler, so a test can fire SDK events (e.g.
+// onApplicantSubmitted) against the mounted wrapper.
+const sdkHandlers: Record<string, (payload?: unknown) => void> = {}
 
 function installSdk() {
+    Object.keys(sdkHandlers).forEach((key) => delete sdkHandlers[key])
     const builder: Record<string, unknown> = {}
     builder.withConf = () => builder
     builder.withOptions = () => builder
-    builder.on = () => builder
+    builder.on = (event: string, handler: (payload?: unknown) => void) => {
+        sdkHandlers[event] = handler
+        return builder
+    }
     builder.build = () => ({ launch, destroy: jest.fn() })
     ;(window as unknown as { snsWebSdk: unknown }).snsWebSdk = { init: () => builder }
 }
@@ -141,6 +148,61 @@ describe('SumsubKycWrapper', () => {
         )
         await new Promise((r) => setTimeout(r, 0))
         expect(launch).not.toHaveBeenCalled()
+    })
+
+    // A multi-level session never runs onComplete on the happy path — the SDK
+    // stays open through the follow-up level and the APPROVED websocket closes
+    // it — so the Level-1 submit must be reported through onSubmitted. Without
+    // it the whole session emits no submit signal (KYC_SUBMITTED blackout).
+    it('multi-level Level-1 submit fires onSubmitted once and does not close (no onComplete)', async () => {
+        const onComplete = jest.fn()
+        const onSubmitted = jest.fn()
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="tok_abc"
+                onClose={jest.fn()}
+                onComplete={onComplete}
+                onSubmitted={onSubmitted}
+                onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
+                isMultiLevel
+            />
+        )
+        await waitFor(() => expect(launch).toHaveBeenCalled())
+
+        act(() => {
+            sdkHandlers['onApplicantSubmitted']?.()
+            // some SDK versions replay the idCheck-prefixed twin — one signal only
+            sdkHandlers['idCheck.onApplicantSubmitted']?.()
+        })
+
+        expect(onSubmitted).toHaveBeenCalledTimes(1)
+        expect(onComplete).not.toHaveBeenCalled()
+    })
+
+    // Single-level keeps its original contract: submit closes via onComplete,
+    // and onSubmitted stays silent (no double analytics signal).
+    it('single-level submit fires onComplete, not onSubmitted', async () => {
+        const onComplete = jest.fn()
+        const onSubmitted = jest.fn()
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="tok_abc"
+                onClose={jest.fn()}
+                onComplete={onComplete}
+                onSubmitted={onSubmitted}
+                onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
+            />
+        )
+        await waitFor(() => expect(launch).toHaveBeenCalled())
+
+        act(() => {
+            sdkHandlers['onApplicantSubmitted']?.()
+        })
+
+        expect(onComplete).toHaveBeenCalledTimes(1)
+        expect(onSubmitted).not.toHaveBeenCalled()
     })
 
     describe('launch watchdog', () => {
