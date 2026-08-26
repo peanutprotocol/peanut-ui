@@ -31,8 +31,8 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             setNativeAvailable(false)
             return
         }
-        void getPushProvisioningAvailability(card.last4).then(({ available }) => {
-            if (!cancelled) setNativeAvailable(available)
+        void getPushProvisioningAvailability(card.last4).then(({ available, alreadyInWallet }) => {
+            if (!cancelled) setNativeAvailable(available && !alreadyInWallet)
         })
         return () => {
             cancelled = true
