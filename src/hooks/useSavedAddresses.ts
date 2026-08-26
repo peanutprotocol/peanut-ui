@@ -13,8 +13,11 @@ export function useSavedAddresses({ enabled = true }: { enabled?: boolean } = {}
     const queryClient = useQueryClient()
     const invalidate = () => queryClient.invalidateQueries({ queryKey: [SAVED_ADDRESSES] })
 
+    // user-scoped key: the QueryClient outlives a passive logout, so a shared key
+    // could hand the next login the previous user's book; [SAVED_ADDRESSES] stays
+    // the invalidation prefix
     const query = useQuery({
-        queryKey: [SAVED_ADDRESSES],
+        queryKey: [SAVED_ADDRESSES, user?.user.userId],
         queryFn: savedAddressesApi.list,
         enabled: enabled && !!user,
         staleTime: 5 * 60 * 1000,
