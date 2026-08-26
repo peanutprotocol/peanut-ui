@@ -176,12 +176,12 @@ function IncidentList({
 }) {
     if (incidents.length === 0) return null
     return (
-        <ul className="mt-3 space-y-2 border-l-2 border-grey-2 pl-3">
+        <ul className="space-y-2 mt-3 border-l-2 border-grey-2 pl-3">
             {incidents.map((incident) => (
                 <li key={incident.id} className="text-xs">
                     <div className="flex flex-wrap items-center gap-2">
                         <span
-                            className={`rounded px-1.5 py-0.5 font-bold uppercase tracking-wide ${
+                            className={`rounded px-1.5 py-0.5 font-bold tracking-wide uppercase ${
                                 incident.resolvedAt ? 'bg-grey-4 text-grey-1' : 'bg-error-1 text-error'
                             }`}
                         >
@@ -244,8 +244,8 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
 
                 {STATUS_GROUPS.map((group) => (
                     <section key={group.label(i18n)} className="mt-10 first:mt-0">
-                        <h2 className="text-xs font-bold uppercase tracking-wide text-grey-1">{group.label(i18n)}</h2>
-                        <div className="mt-3 space-y-6">
+                        <h2 className="text-xs font-bold tracking-wide text-grey-1 uppercase">{group.label(i18n)}</h2>
+                        <div className="space-y-6 mt-3">
                             {group.services.map((service) => {
                                 const provider = byKey.get(service.key)
                                 if (!provider) return null

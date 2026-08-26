@@ -67,7 +67,7 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
             <>
                 <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} />
                 <div className="mx-auto w-full max-w-3xl px-6 pb-12">
-                    <p className="rounded-md border border-secondary-2 bg-secondary-4 p-4 text-sm">
+                    <p className="border-secondary-2 rounded-md border bg-secondary-4 p-4 text-sm">
                         {i18n.statusFetchFailed}
                     </p>
                 </div>
