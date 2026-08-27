@@ -2707,7 +2707,8 @@
     },
     "global": {
         "amountInput": {
-            "balance": "Balance:"
+            "balance": "Balance:",
+            "useFullBalance": "Use full balance: {balance}"
         },
         "tokenSelector": {
             "selectAToken": "Select a token",

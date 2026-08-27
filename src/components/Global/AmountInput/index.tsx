@@ -25,6 +25,11 @@ interface AmountInputProps {
     secondaryDenomination?: { symbol: string; price: number; decimals: number }
     setCurrentDenomination?: (denomination: string) => void
     walletBalance?: string
+    /**
+     * Exact amount, in the primary denomination, that tapping the balance row
+     * fills in. Omit to keep the balance row plain text.
+     */
+    balanceFillAmount?: number
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
     infoContent?: React.ReactNode
@@ -50,6 +55,7 @@ const AmountInput = ({
     secondaryDenomination,
     setCurrentDenomination,
     walletBalance,
+    balanceFillAmount,
     hideCurrencyToggle,
     hideBalance,
     infoContent,
@@ -240,6 +246,30 @@ const AmountInput = ({
         }
     }, [defaultSliderSuggestedAmount])
 
+    // What tapping the balance row fills in, or undefined when the row stays
+    // plain text. The value comes from the number the parent validates against,
+    // never from the formatted label — that label rounds to two decimals, so
+    // parsing it would either leave dust behind or ask for more than the wallet
+    // holds (TASK-21899). forInput truncates to the denomination's decimals, so
+    // the filled amount never rounds up past the balance.
+    const fillValue = useMemo(() => {
+        if (disabled || !balanceFillAmount || balanceFillAmount <= 0) return undefined
+        // The amount is denominated in the primary unit, so it must not be
+        // filled into a field the user toggled to the secondary one.
+        if (displaySymbol !== primaryDenomination.symbol) return undefined
+        const formatted = formatTokenAmount(String(balanceFillAmount), denominations[displaySymbol]?.decimals, true)
+        // A balance below the input's precision formats to "0"/"" — leave the
+        // row inert rather than offering an amount that can't be used.
+        return formatted && Number(formatted) ? formatted : undefined
+    }, [disabled, balanceFillAmount, displaySymbol, primaryDenomination.symbol, denominations])
+
+    const fillBalance = useCallback(() => {
+        if (!fillValue) return
+        isEditingRef.current = true
+        setDisplayValue(fillValue)
+        setExactValue(Number(fillValue) * 10 ** DECIMAL_SCALE)
+    }, [fillValue])
+
     const inputRef = useRef<HTMLInputElement>(null)
     // set input width based on display value length
     // add extra space for decimal numbers to prevent cutoff
@@ -319,12 +349,23 @@ const AmountInput = ({
                 )}
 
                 {/* Balance */}
-                {walletBalance && !hideBalance && (
-                    <div className="text-center text-grey-1">
-                        {t('amountInput.balance')} {secondaryDenomination ? 'USD ' : '$ '}
-                        {walletBalance}
-                    </div>
-                )}
+                {walletBalance &&
+                    !hideBalance &&
+                    (() => {
+                        const balanceAmount = `${secondaryDenomination ? 'USD ' : '$ '}${walletBalance}`
+                        const label = `${t('amountInput.balance')} ${balanceAmount}`
+                        if (!fillValue) return <div className="text-center text-grey-1">{label}</div>
+                        return (
+                            <button
+                                type="button"
+                                onClick={fillBalance}
+                                aria-label={t('amountInput.useFullBalance', { balance: balanceAmount })}
+                                className="min-h-11 px-2 text-center text-grey-1 underline underline-offset-4"
+                            >
+                                {label}
+                            </button>
+                        )
+                    })()}
             </div>
             {/* Conversion toggle */}
             {showConversion && (

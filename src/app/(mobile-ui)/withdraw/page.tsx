@@ -439,6 +439,7 @@ export default function WithdrawPage() {
                             decimals: 6, // we want USDC decimals to be able to pay exactly
                         }}
                         walletBalance={peanutWalletBalance}
+                        balanceFillAmount={maxDecimalAmount}
                         hideCurrencyToggle
                     />
 
