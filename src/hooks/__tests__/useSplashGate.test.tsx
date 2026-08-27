@@ -14,7 +14,7 @@ const hide = jest.fn(() => Promise.resolve())
 jest.mock('@capacitor/splash-screen', () => ({ SplashScreen: { hide: () => hide() } }))
 
 let isActive = true
-const removeListener = jest.fn()
+const removeListener = jest.fn(() => Promise.resolve())
 let emitState: ((state: { isActive: boolean }) => void) | undefined
 jest.mock('@capacitor/app', () => ({
     App: {
@@ -26,11 +26,18 @@ jest.mock('@capacitor/app', () => ({
     },
 }))
 
+let warn: jest.SpyInstance
+
 beforeEach(() => {
     jest.clearAllMocks()
     resetSplashGateForTests()
     isActive = true
     emitState = undefined
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+})
+
+afterEach(() => {
+    warn.mockRestore()
 })
 
 describe('useSplashGate', () => {
@@ -38,6 +45,7 @@ describe('useSplashGate', () => {
         renderHook(() => useSplashGate())
 
         await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
+        expect(warn).not.toHaveBeenCalled()
     })
 
     it('defers the hide while the app is backgrounded and fires it on resume', async () => {
@@ -59,6 +67,7 @@ describe('useSplashGate', () => {
         })
         await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
         expect(removeListener).toHaveBeenCalledTimes(1)
+        expect(warn).not.toHaveBeenCalled()
     })
 
     // The listener has to be live before the state is read: appStateChange is
@@ -81,6 +90,7 @@ describe('useSplashGate', () => {
 
         await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
         expect(removeListener).toHaveBeenCalledTimes(1)
+        expect(warn).not.toHaveBeenCalled()
     })
 
     it('gives up on the wait when the listener cannot be registered', async () => {
