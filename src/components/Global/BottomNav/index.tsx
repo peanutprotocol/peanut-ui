@@ -217,10 +217,9 @@ export const BottomNav = () => {
                         e.stopPropagation()
                     }
                 }}
-                // solid bar + soft elevation shadow (ruled 2026-08-27, replaces
-                // the blur/dissolve experiments). no DS token carries a soft
-                // .35-alpha shadow — arbitrary value on purpose.
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-[0_10px_22px_-6px_rgb(0_0_0/0.35)]"
+                // solid bar, no shadow — the AppShell nav wrapper carries a
+                // bottom-to-top background-page fade instead (ruled 2026-08-27)
+                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page"
             >
                 <Link
                     href="/home"
