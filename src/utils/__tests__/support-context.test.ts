@@ -224,11 +224,10 @@ describe('normalizeSupportRoute', () => {
 
 describe('redactSupportText', () => {
     /*
-     * The blocking case: ClaimErrorView hands support `window.location.href`,
-     * and on a claim page the fragment is the bearer password for the funds —
-     * it derives the private claim key. The app publishes the topic to Crisp on
-     * open, before the user has decided to send anything, so an unclaimed link
-     * would be disclosed by a transient error screen.
+     * The fragment is a bearer credential: on a claim page it derives the
+     * private claim key, so whoever holds it can take the funds. ClaimErrorView
+     * hands support `window.location.href`, and the app publishes the topic to
+     * Crisp on open — before the user has decided to send anything.
      */
     it('strips the claim password while keeping what identifies the link', () => {
         const redacted = redactSupportText(
@@ -241,11 +240,30 @@ describe('redactSupportText', () => {
         expect(redacted).toContain('?c=42161&v=v4.3&i=17')
     })
 
+    /*
+     * The query is the other place a credential hides — `?code=` on an OAuth
+     * callback, `?token=` on a magic link. Dropping it everywhere except the
+     * paths known to identify rather than authorize means an unlisted page
+     * loses context, never a secret.
+     */
+    it('drops the query on any path not known to need it', () => {
+        expect(redactSupportText('https://peanut.me/auth/callback?code=oauth_secret')).toBe(
+            'https://peanut.me/auth/callback'
+        )
+        expect(redactSupportText('https://peanut.me/login?token=magic_link_token')).toBe('https://peanut.me/login')
+    })
+
     it('redacts every link in a message, not just the first', () => {
         const redacted = redactSupportText('tried https://peanut.me/claim#p=one then https://peanut.me/claim#p=two')
 
         expect(redacted).not.toContain('p=one')
         expect(redacted).not.toContain('p=two')
+    })
+
+    it('keeps the claim query behind a locale prefix too', () => {
+        expect(redactSupportText('https://peanut.me/es-419/claim?i=17#p=secret')).toBe(
+            'https://peanut.me/es-419/claim?i=17'
+        )
     })
 
     it('leaves ordinary support messages alone', () => {

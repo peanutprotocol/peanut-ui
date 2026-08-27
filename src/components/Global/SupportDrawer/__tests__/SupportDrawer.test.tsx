@@ -82,6 +82,39 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
         mockUseCrispUserData.mockReset()
         mockUseCrispTokenId.mockReset()
         mockIsCapacitor.mockReset().mockReturnValue(false)
+        modalsState.isSupportModalOpen = true
+    })
+
+    /*
+     * The privacy policy says the account snapshot is shared only when the user
+     * opens support chat. The proxy iframe stays mounted after the first open,
+     * so an ungated update effect would post a fresh balance, card and
+     * verification snapshot to Crisp with the chat closed — making that sentence
+     * untrue. The gate is the promise, not an optimisation.
+     */
+    it('does not push the snapshot to Crisp after support closes', async () => {
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com', balance: 'wallet $1.00' })
+
+        // open once, so the proxy iframe mounts and then STAYS mounted
+        const view = render(<SupportDrawer />)
+        const iframe = supportIframe() as HTMLIFrameElement
+        expect(iframe).toBeInTheDocument()
+        const postMessage = jest.spyOn(iframe.contentWindow!, 'postMessage')
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+        postMessage.mockClear()
+
+        // a balance lands while the chat is closed
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com', balance: 'wallet $500.00' })
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        expect(postMessage).not.toHaveBeenCalled()
     })
 
     it('does NOT mount the proxy iframe while a logged-in user’s token is still resolving', () => {

@@ -312,27 +312,45 @@ export function normalizeSupportRoute(pathname: string | undefined): string | un
 }
 
 /*
- * URLs in a support message, with the fragment removed.
+ * URLs in a support message, reduced to what an agent needs and nothing else.
  *
- * A claim link is `/claim?c=…&v=…&i=…#p=<password>` (history.utils). The query
- * identifies the deposit and is what lets an agent find it; the fragment IS the
- * bearer credential — whoever holds it can claim the funds, and it derives the
- * private claim key. `ClaimErrorView` hands `window.location.href` to support,
- * so without this the password reaches Crisp the moment the drawer opens,
- * before the user has decided to send anything.
+ * Two kinds of secret ride in a URL here. The fragment is one: a claim link is
+ * `/claim?c=…&v=…&i=…#p=<password>` (history.utils), and that password is a
+ * bearer credential — it derives the private claim key, so whoever holds it can
+ * take the funds. The query is the other: an OAuth callback carries `?code=`,
+ * a magic link carries `?token=`, and not-found.tsx already sends a bare
+ * pathname for exactly that reason.
  *
- * Stripping the fragment rather than the whole query is deliberate: it removes
- * every secret this app puts in a URL while keeping the part support actually
- * works from. Call sites needing more than this still do it themselves — see
- * not-found.tsx, which sends a bare pathname because arbitrary pages can carry
- * magic-link and OAuth tokens in the query too.
+ * So the default is to drop both, and the query is kept only where it is known
+ * to identify rather than authorize. `/claim` is that case: `c`, `v` and `i`
+ * locate the deposit on-chain and are what let an agent find the link at all.
+ *
+ * Deny-lists were the alternative and were rejected: a list of secret-looking
+ * parameter names has to be right about every page that exists now and every
+ * one added later. This is wrong in the safe direction — an unlisted page loses
+ * context, never a credential.
+ *
+ * Call sites hand over `window.location.href` (ClaimErrorView,
+ * Error.validation.view), and `ModalsContext` runs every prefill through this
+ * before storing it, so the composer and the `support_topic` row are both
+ * covered — including call sites nobody has written yet.
  */
 const URL_IN_TEXT = /https?:\/\/\S+/g
+
+/** Paths whose query identifies a thing rather than authorizing access to it. */
+const QUERY_BEARING_PATHS = ['/claim']
 
 export function redactSupportText(text: string): string {
     if (!text) return text
     return text.replace(URL_IN_TEXT, (raw) => {
-        const hashAt = raw.indexOf('#')
-        return hashAt === -1 ? raw : raw.slice(0, hashAt)
+        let url: URL
+        try {
+            url = new URL(raw)
+        } catch {
+            // Not parseable as a URL, so nothing can be reasoned about it.
+            return '[link removed]'
+        }
+        const keepsQuery = QUERY_BEARING_PATHS.some((path) => url.pathname === path || url.pathname.endsWith(path))
+        return `${url.origin}${url.pathname}${keepsQuery ? url.search : ''}`
     })
 }

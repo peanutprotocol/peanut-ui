@@ -70,17 +70,28 @@ const SupportDrawer = () => {
         latestPayloadRef.current = latestPayload
     })
 
-    // The handshake pull happens once at iframe boot; later changes (email/name
-    // resolving mid-session, a new prefill) are pushed over the same channel so
-    // Crisp never keeps a stale identity. Token/locale changes remount the iframe
-    // via its key instead — those need a session re-bind, not a data update.
+    /*
+     * The handshake pull happens once at iframe boot; later changes (email/name
+     * resolving mid-session, a new prefill) are pushed over the same channel so
+     * Crisp never keeps a stale identity. Token/locale changes remount the iframe
+     * via its key instead — those need a session re-bind, not a data update.
+     *
+     * Gated on the drawer being OPEN, and that gate is the privacy promise, not
+     * an optimisation. The iframe stays mounted after the first open, so without
+     * it a connectivity flip or an auth re-render would post a fresh balance,
+     * card and verification snapshot to Crisp with the chat closed — while the
+     * privacy policy says the snapshot is shared only when the user opens
+     * support chat. The last push of a cycle stands until the next open replaces
+     * it, which is the conversation's own context and correct to leave.
+     */
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
     useEffect(() => {
+        if (!isSupportModalOpen) return
         iframeRef.current?.contentWindow?.postMessage(
             { type: CRISP_PROXY_INIT_MSG, payload: latestPayloadRef.current },
             window.location.origin
         )
-    }, [userData, prefilledMessage])
+    }, [isSupportModalOpen, userData, prefilledMessage])
 
     // Crisp's composer sits at the very bottom of the iframe, so the panel's bottom
     // edge is the thing the iOS keyboard covers. Only measured while the drawer is
