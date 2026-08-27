@@ -28,9 +28,25 @@ describe('server and edge payment explorer Sentry guard', () => {
         const normalTransaction = { transaction: 'GET /home', request: { url: 'https://peanut.me/home' } }
         expect(beforeSendRouteAwareTransaction(privateTransaction)).toBeNull()
         expect(beforeSendRouteAwareTransaction(normalTransaction)).toBe(normalTransaction)
+        // jsdom exposes navigator.onLine, so the kept event gains the ambient
+        // browser connectivity tag; the server/edge shape is the case below.
         expect(beforeSendRouteAwareHandler({ message: 'real error' } as ErrorEvent)).toEqual({
             message: 'real error',
+            tags: { net_online: 'true' },
         })
+    })
+
+    it('leaves kept events untagged when the runtime has no navigator.onLine (server/edge)', () => {
+        // Node and the Vercel edge runtime expose a navigator without onLine —
+        // model that by shadowing jsdom's prototype getter with undefined.
+        Object.defineProperty(navigator, 'onLine', { configurable: true, value: undefined })
+        try {
+            expect(beforeSendRouteAwareHandler({ message: 'real error' } as ErrorEvent)).toEqual({
+                message: 'real error',
+            })
+        } finally {
+            delete (navigator as { onLine?: boolean }).onLine
+        }
     })
 
     it.each(['sentry.server.config', 'sentry.edge.config'])('wires both route-aware hooks in %s', (moduleName) => {
