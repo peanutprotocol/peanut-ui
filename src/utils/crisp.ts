@@ -119,11 +119,20 @@ export function setCrispUserData(
     // Session metadata for support agents - must be 3 levels of nested arrays
     crispInstance.push(['set', 'session:data', [supportSessionFields(userData)]])
 
-    // Segments carry the boolean half (platform, kyc-*, zero-balance, offline…).
-    // They're what the inbox filters and routes on, and keeping them out of
-    // session:data is what stops the sidebar becoming a wall of yes/no rows.
+    /*
+     * Segments carry the boolean half (platform, kyc-*, zero-balance, offline…).
+     * They're what the inbox filters and routes on, and keeping them out of
+     * session:data is what stops the sidebar becoming a wall of yes/no rows.
+     *
+     * The `true` is the overwrite flag, and it is load-bearing: Crisp APPENDS
+     * segments by default, so a user who was briefly offline would keep routing
+     * as `offline` forever, and `kyc-pending` would outlive their approval. This
+     * push runs on every snapshot change, so the set has to REPLACE — an
+     * accumulated segment list is worse than none, because it routes on state
+     * the user has already left.
+     */
     if (segments?.length) {
-        crispInstance.push(['set', 'session:segments', [segments]])
+        crispInstance.push(['set', 'session:segments', [segments, true]])
     }
 
     if (prefilledMessage) {
