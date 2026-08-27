@@ -67,6 +67,37 @@ const BANK_ACCOUNTS = [
     },
 ]
 
+// Crypto address book (PR #2837): one row per last-used tone. Dates are
+// computed relative to now because the tone derives from daysSince(lastUsedAt)
+// — a static ISO string would drift from recent to stale over time.
+const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString()
+const SAVED_ADDRESSES = [
+    {
+        id: 'fixture-saved-1',
+        address: '0x52ea4d40cbb2ba8e6952dd4d27d29b0ae1f22f9e',
+        chainId: '42161',
+        nickname: 'Ledger cold',
+        lastUsedAt: daysAgo(2),
+        createdAt: '2026-01-01T00:00:00.000Z',
+    },
+    {
+        id: 'fixture-saved-2',
+        address: '0x2c68d1b7b1ff934bb69912a1c9c4a3e11f8ea0b3',
+        chainId: '1',
+        nickname: 'Binance deposit',
+        lastUsedAt: daysAgo(14),
+        createdAt: '2026-01-01T00:00:00.000Z',
+    },
+    {
+        id: 'fixture-saved-3',
+        address: '0x8ba1f109551bd432803012645ac136ddd64dba72',
+        chainId: '10',
+        nickname: 'Old hot wallet',
+        lastUsedAt: daysAgo(90),
+        createdAt: '2026-01-01T00:00:00.000Z',
+    },
+]
+
 // The activity list is not only transactions: it also injects a row per badge
 // in `user.badges` and one identity-verification row. An empty state needs all
 // three cleared, or "no transactions" still renders four rows.
@@ -162,6 +193,14 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/withdraw',
         about: 'Withdraw with two saved bank accounts (a Spanish IBAN and a US account).',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
+    'withdraw-address-book': {
+        route: '/withdraw',
+        about: 'Withdraw with one saved bank account and three saved crypto addresses — one per last-used tone.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, BANK_ACCOUNTS[0]] },
+            'GET /users/saved-addresses': { savedAddresses: SAVED_ADDRESSES },
+        },
     },
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
     send: { route: '/send', about: 'Send: the method picker — link, contacts, bank or Mercado Pago.' },
