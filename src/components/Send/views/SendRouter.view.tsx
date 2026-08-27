@@ -1,6 +1,5 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
 import PIX from '@/assets/payment-apps/pix.svg'
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
 import NavHeader from '@/components/Global/NavHeader'
@@ -38,7 +37,6 @@ export const SendRouterView = () => {
     const t = useTranslations('send')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
-    const tWithdraw = useTranslations('withdraw')
     const router = useRouter()
     const searchParams = useSearchParams()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
@@ -91,11 +89,6 @@ export const SendRouterView = () => {
                 resetWithdrawFlow()
                 router.push('/withdraw?method=crypto')
                 break
-            case 'mercadopago':
-                // navigate to mercado pago send flow
-                resetWithdrawFlow()
-                router.push('/withdraw/manteca?method=mercado-pago&country=argentina')
-                break
             case 'pix':
                 // navigate to pix send flow
                 resetWithdrawFlow()
@@ -107,9 +100,12 @@ export const SendRouterView = () => {
     }
 
     // extend ACTION_METHODS with component-specific identifier icons
-    // (leading bubbles per the SendLink board 17832:79996)
+    // (leading bubbles per the SendLink board 17832:79996).
+    // Mercado Pago is excluded here: it is a withdraw-to-OWN-account rail
+    // (Manteca), so it does not belong in the send-to-others list (PR #2813
+    // review). It stays available in the /withdraw flow.
     const extendedActionMethods = useMemo(() => {
-        return ACTION_METHODS.map((method) => {
+        return ACTION_METHODS.filter((method) => method.id !== 'mercadopago').map((method) => {
             // add identifier icon based on method id
             switch (method.id) {
                 case 'bank':
@@ -126,14 +122,6 @@ export const SendRouterView = () => {
                         description: t('methods.exchangeOrWalletDescription'),
                         identifierIcon: <IconBubble icon="credit-card" size="s" color="yellow" />,
                     }
-                case 'mercadopago':
-                    return {
-                        ...method,
-                        // own-accounts-only constraint stays visible at the choice
-                        // point (the old YOUR ACCOUNTS ONLY badge is gone per board)
-                        description: tWithdraw('mercadoPagoDescription'),
-                        identifierIcon: <Image src={MERCADO_PAGO} alt="Mercado Pago" className="size-8 min-w-8" />,
-                    }
                 case 'pix':
                     return {
                         ...method,
@@ -144,7 +132,7 @@ export const SendRouterView = () => {
                     return method
             }
         })
-    }, [t, tWithdraw])
+    }, [t])
 
     // filter send options based on geolocation
     const { filteredMethods: geoFilteredMethods } = useGeoFilteredPaymentOptions({

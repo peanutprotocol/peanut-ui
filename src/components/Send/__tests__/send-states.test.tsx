@@ -77,6 +77,9 @@ jest.mock('@/utils/general.utils', () => ({
 jest.mock('@/constants/actionlist.consts', () => ({
     ACTION_METHODS: [
         { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false },
+        // present in the catalog but must NOT surface in the send list —
+        // withdraw-to-own-account rail (see the exclusion test below)
+        { id: 'mercadopago', title: 'Mercado Pago', description: 'Instant transfers', icons: [], soon: false },
         {
             id: 'exchange-or-wallet',
             title: 'Exchange or Wallet',
@@ -260,6 +263,16 @@ describe('GROUP 1: Initial State', () => {
         expect(screen.getByTestId('action-card-Exchange or Wallet')).toBeInTheDocument()
     })
 
+    test('Excludes Mercado Pago from the send list (withdraw-to-own-account rail — PR #2813 review)', () => {
+        renderSend()
+
+        // the mocked catalog above contains mercadopago; SendRouterView must
+        // drop it before geo-filtering, so the hook never sees it
+        const methodsPassedToGeoFilter = mockUseGeoFilteredPaymentOptions.mock.calls[0][0].methods
+        expect(methodsPassedToGeoFilter.map((m: { id: string }) => m.id)).not.toContain('mercadopago')
+        expect(screen.queryByTestId('action-card-Mercado Pago')).not.toBeInTheDocument()
+    })
+
     test('No contacts shows fallback avatar initials', () => {
         mockUseContacts.mockReturnValue({
             contacts: [],
@@ -342,27 +355,17 @@ describe('GROUP 4: Method Selection', () => {
         )
     })
 
-    test('Mercado Pago and Pix also reset the withdraw flow before navigating', () => {
+    test('Pix also resets the withdraw flow before navigating', () => {
         mockUseGeoFilteredPaymentOptions.mockReturnValue({
-            filteredMethods: [
-                { id: 'mercadopago', title: 'Mercado Pago', description: '', icons: [], soon: false },
-                { id: 'pix', title: 'Pix', description: '', icons: [], soon: false },
-            ],
+            filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
         })
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Mercado Pago'))
+        fireEvent.click(screen.getByTestId('action-card-Pix'))
         expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=mercado-pago&country=argentina')
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
         expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
             mockRouterPush.mock.invocationCallOrder[0]
-        )
-
-        fireEvent.click(screen.getByTestId('action-card-Pix'))
-        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(2)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
-        expect(mockResetWithdrawFlow.mock.invocationCallOrder[1]).toBeLessThan(
-            mockRouterPush.mock.invocationCallOrder[1]
         )
     })
 
