@@ -1,0 +1,3 @@
+# Workflow files gate the human-authors policy. A PR that edits them needs a
+# code-owner review, so the gate cannot be removed by a PR nobody reads.
+/.github/workflows/ @Hugo0
