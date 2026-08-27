@@ -114,7 +114,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         // (reliable on the first render after the hard-nav); persist it so later
         // navigations that drop the hash stay in demo mode.
         if (isDemoMode()) enableDemoMode()
-        if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current && !isDemoMode()) {
+        // no user has two causes. the user query returns null for a 401, and throws
+        // for a 5xx or a network failure. so an error here means the backend is
+        // down, not that the person is logged out. leave them on the error screen
+        // below — a bounce to signup reads as "you are logged out" during an outage.
+        if (
+            !isPublicPath &&
+            isReady &&
+            !isFetchingUser &&
+            !user &&
+            !userFetchError &&
+            !isRedirecting.current &&
+            !isDemoMode()
+        ) {
             isRedirecting.current = true
             // Keep the target: a logged-out tap on a protected deep link
             // (/pay-request, /card, /receipt, every push) used to be dropped
@@ -129,7 +141,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             return () => clearTimeout(fallback)
         }
         return undefined
-    }, [user, isFetchingUser, isReady, isPublicPath, router])
+    }, [user, isFetchingUser, isReady, isPublicPath, userFetchError, router])
 
     // redirect logged-in users without peanut wallet account to complete setup
     const { needsRedirect, isCheckingAccount } = useAccountSetupRedirect()
