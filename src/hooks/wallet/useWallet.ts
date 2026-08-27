@@ -25,7 +25,7 @@ import { useSpendBundle } from './useSpendBundle'
 import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
 import { isDemoMode } from '@/utils/demo'
-import { ensureActiveFixture } from '@/dev/fixtures/active'
+import { peekActiveFixture } from '@/dev/fixtures/active'
 import { useDemoBalanceUnits } from '@/utils/demo-balance'
 import { readLastKnownSpendable, writeLastKnownSpendable } from './lastKnownSpendable'
 
@@ -211,7 +211,9 @@ export const useWallet = () => {
     // Dev fixtures ride the same overlay: there is no kernel client to read a
     // real balance with, so the alternative is a balance skeleton that never
     // resolves.
-    const demoMode = isDemoMode() || !!ensureActiveFixture()
+    // peek, not ensure: this runs in the render body, and ensureActiveFixture
+    // writes (sessionStorage + cookie). api-fetch does the promotion write.
+    const demoMode = isDemoMode() || !!peekActiveFixture()
     const demoBalanceUnits = useDemoBalanceUnits()
 
     // Use balance from query if available, otherwise fall back to Redux

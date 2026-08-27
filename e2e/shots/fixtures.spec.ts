@@ -8,9 +8,10 @@
  * Run through playwright.shots.config.ts — see the header there.
  */
 
-import { test, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { FIXTURE_PARAM, FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
 
 const OUT_DIR = process.env.SHOTS_OUT ?? 'e2e/__shots__/current'
@@ -24,8 +25,8 @@ const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
 // The two things the app shows while it waits: the mascot from
 // components/Global/Loading (variant="mascot") and the grey `animate-pulse`
-// skeleton rows. A run that captures 152 loaders looks exactly like a run that
-// captured 152 screens, so the wait below fails the test instead of shooting
+// skeleton rows. A run that captures 120 loaders looks exactly like a run that
+// captured 120 screens, so the wait below fails the test instead of shooting
 // one.
 //
 // Only loaders inside the viewport count. Home keeps a mascot far below the
@@ -109,8 +110,19 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         await page.clock.setFixedTime(FROZEN_NOW)
         await page.addInitScript(seenOnceModals)
 
-        await page.goto(`${fixture.route}?__fixture=${name}`, { waitUntil: 'domcontentloaded' })
+        await page.goto(`${fixture.route}?${FIXTURE_PARAM}=${name}`, { waitUntil: 'domcontentloaded' })
         await settle(page)
+
+        // A build without NEXT_PUBLIC_VERCEL_ENV=preview ignores the param and
+        // bounces every protected route to /setup — which settles fine, so the
+        // run would happily write 120 screenshots of /setup under fixture
+        // filenames. Prove fixture mode really engaged: the app promotes the
+        // URL param into sessionStorage on its first faked API call.
+        await expect
+            .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), FIXTURE_STORAGE_KEY), {
+                message: `fixture mode never engaged — is this a NEXT_PUBLIC_VERCEL_ENV=preview build?`,
+            })
+            .toBe(name)
 
         await mkdir(OUT_DIR, { recursive: true })
         await page.screenshot({

@@ -50,7 +50,10 @@ export default defineConfig({
     webServer: {
         command: `npx next start -p ${PORT}`,
         url: BASE,
-        reuseExistingServer: true,
+        // Locally, adopting a running server is the fast path. In CI it would
+        // silently adopt a stale `next start` from an earlier step and run
+        // against the wrong build.
+        reuseExistingServer: !process.env.CI,
         timeout: 120_000,
     },
 })

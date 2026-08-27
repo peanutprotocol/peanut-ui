@@ -6,10 +6,15 @@ on:
     # concurrency groups, so neither cancelled the other).
     # content-publish-automerge's merge-on-green requires "at least one and
     # ALL green" ci-success check runs per SHA, so one run per SHA satisfies it.
+    # feat/design-system is in both lists for the DS release train: PRs based
+    # on it need the suite (and ds-shots), and pushes to it write the ds-shots
+    # baseline a based PR can restore — Actions cache scoping only lets a PR
+    # read caches from its own ref, its base branch, and the default branch.
+    # Remove it from all three allowlists once the DS branch merges to dev.
     push:
-        branches: [main, dev]
+        branches: [main, dev, feat/design-system]
     pull_request:
-        branches: [main, dev, develop]
+        branches: [main, dev, develop, feat/design-system]
     workflow_dispatch:
 
 # Cancel in-progress runs on the same PR / branch when a newer commit lands.
@@ -228,7 +233,10 @@ jobs:
                   # Everything a fixture screen is built from. src/ is most of
                   # it; the config files decide how src/ compiles, and the lock
                   # file decides which version of every dependency renders.
-                  KEEP='^(src/|e2e/shots/|scripts/visual-(diff|comment)\.mjs$|playwright\.shots\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
+                  # e2e/flows/ and the regression config are here because the
+                  # behaviour specs run inside ds-shots — without them a PR
+                  # touching only those files would skip the job that runs them.
+                  KEEP='^(src/|e2e/(shots|flows)/|scripts/visual-(diff|comment)\.mjs$|playwright\.(shots|regression)\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
                   # Inside the set above but never on camera. src/content is the
                   # blog and SEO submodule, and no fixture renders those pages.
                   DROP='(^src/content(/|$)|/__tests__/|/__mocks__/|\.test\.tsx?$|\.md$)'
@@ -245,15 +253,16 @@ jobs:
                   echo 'Files that can move a pixel:'
                   printf '%s\n' "$HITS"
 
-    # Visual diff over src/dev/fixtures/registry.ts — 33 fixtures at four phone
-    # widths, 132 PNGs. No API, no database, no provider key and no secret: a
+    # Visual diff over src/dev/fixtures/registry.ts — 30 fixtures at four phone
+    # widths, 120 PNGs. No API, no database, no provider key and no secret: a
     # fixture answers every request the app makes.
     #
     # ADVISORY. It is deliberately NOT in `ci-success.needs`, so it can never
     # block a merge. It is a review aid.
     #
     # Two roles, one set of steps, because the capture half is the same work:
-    #   • push to dev or main → capture that commit and cache it as a baseline.
+    #   • push to dev, main or feat/design-system (the DS release train) →
+    #     capture that commit and cache it as a baseline.
     #     The cache has to be written from the base branch: an entry written by
     #     a PR run is scoped to that PR, and no sibling PR can read it. Written
     #     from dev, ten PRs on that base restore it instead of building it.
@@ -266,7 +275,7 @@ jobs:
         # `needs` would otherwise skip this job too.
         if: >-
             always() &&
-            ((github.event_name == 'push' && contains(fromJSON('["dev","main"]'), github.ref_name))
+            ((github.event_name == 'push' && contains(fromJSON('["dev","main","feat/design-system"]'), github.ref_name))
             || needs.ds-shots-filter.outputs.render == 'true')
         runs-on: ubuntu-latest
         # Build ~4m + capture ~2m on a runner, plus install. A hang past this is
