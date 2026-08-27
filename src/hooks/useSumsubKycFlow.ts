@@ -44,7 +44,11 @@ const KYC_POLL_SCHEDULE: ReadonlyArray<{ untilMs: number; delayMs: number }> = [
 const KYC_POLL_MAX_DELAY_MS = 60_000
 
 /** `code` from a sumsub action's canned English fallback → kyc.* catalog key.
- *  Backend prose arrives without a code and renders as-is (#2554). */
+ *  Backend prose arrives without a code and renders as-is (#2554).
+ *
+ *  Partial on purpose: a code with no catalog entry keeps the backend's own
+ *  message, which is what we want for refusals the backend explains better
+ *  than a generic string could (an unsupported country names the country). */
 const ACTION_ERROR_KEYS = {
     initiate_failed: 'errorInitiateFailed',
     restart_failed: 'errorRestartFailed',
@@ -52,7 +56,7 @@ const ACTION_ERROR_KEYS = {
     start_action_failed: 'errorStartActionFailed',
     invalid_response: 'errorInvalidResponse',
     unexpected: 'unexpectedError',
-} as const satisfies Record<SumsubActionErrorCode, string>
+} as const satisfies Partial<Record<SumsubActionErrorCode, string>>
 
 const getKycPollDelayMs = (elapsedMs: number): number => {
     for (const { untilMs, delayMs } of KYC_POLL_SCHEDULE) {
@@ -70,7 +74,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // codeless results keep the backend's display-ready prose.
     const actionErrorMessage = useCallback(
         (result: { error?: string; code?: SumsubActionErrorCode }): string | null =>
-            result.code ? t(ACTION_ERROR_KEYS[result.code]) : (result.error ?? null),
+            (result.code && result.code in ACTION_ERROR_KEYS
+                ? t(ACTION_ERROR_KEYS[result.code as keyof typeof ACTION_ERROR_KEYS])
+                : result.error) ?? null,
         [t]
     )
 
@@ -275,6 +281,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     crossRegion,
                     targetCountry,
                 })
+
+                // A refusal we cannot act on from here: the regions screen offers
+                // LATAM as one bucket, so it has no country to send, and the
+                // backend has already tried the user's residence. Retrying sends
+                // the identical request — mark it terminal so the modal offers
+                // support instead of a button that cannot work.
+                if (response.code === 'target_country_required' || response.code === 'unsupported_target_country') {
+                    userInitiatedRef.current = false
+                    setIsTerminalError(true)
+                    setError(response.error || t('errorInitiateFailed'))
+                    return false
+                }
 
                 if (response.error) {
                     // same race the unsupported-region branch closes below: restoring

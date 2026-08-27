@@ -9,6 +9,10 @@ import { serverFetch } from '@/utils/api-fetch'
  * and stays untranslated (#2554: keep BE prose as fallback where no code exists).
  */
 export type SumsubActionErrorCode =
+    // Terminal for this entry point: no supported country could be resolved, so
+    // a retry sends the identical request and gets the identical refusal.
+    | 'target_country_required'
+    | 'unsupported_target_country'
     | 'initiate_failed'
     | 'restart_failed'
     | 'resubmit_failed'
@@ -26,8 +30,12 @@ const backendOrFallback = (
     fallback: string,
     code: SumsubActionErrorCode
 ): SumsubActionError => {
+    // Always carry the code, even when the backend supplied its own message.
+    // It used to be dropped in that case, which meant a caller could never tell
+    // a terminal refusal from a transient failure whenever the backend was
+    // helpful enough to explain itself.
     const backendMessage = responseJson.userMessage || responseJson.error
-    return backendMessage ? { error: backendMessage } : { error: fallback, code }
+    return { error: backendMessage || fallback, code }
 }
 
 const caughtError = (e: unknown): SumsubActionError =>
@@ -56,7 +64,14 @@ export const initiateSumsubKyc = async (params?: {
         const responseJson = await response.json()
 
         if (!response.ok) {
-            return backendOrFallback(responseJson, 'Failed to initiate identity verification', 'initiate_failed')
+            // Preserve the backend's own code when it names one — the hook needs
+            // it to tell a terminal refusal from a transient failure.
+            const backendCode = responseJson?.error as SumsubActionErrorCode | undefined
+            const fallbackCode: SumsubActionErrorCode =
+                backendCode === 'target_country_required' || backendCode === 'unsupported_target_country'
+                    ? backendCode
+                    : 'initiate_failed'
+            return backendOrFallback(responseJson, 'Failed to initiate identity verification', fallbackCode)
         }
 
         return {

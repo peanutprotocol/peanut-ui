@@ -87,6 +87,30 @@ describe('useSumsubKycFlow — cross-region routing', () => {
         await waitFor(() => expect(onKycSuccess).not.toHaveBeenCalled())
     })
 
+    // The paired backend refuses a LATAM action it cannot name a country for —
+    // and the regions screen offers LATAM as one bucket, so it has none to send
+    // and the backend has already tried the user's residence. Retrying repeats
+    // the identical request, so it must not look retriable.
+    it('target_country_required is terminal, not a retry loop', async () => {
+        mockInitiate.mockResolvedValue({
+            error: 'Bank transfers are not available for your country yet.',
+            code: 'target_country_required',
+        })
+        const onKycSuccess = jest.fn()
+
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM', undefined, true)
+        })
+
+        expect(result.current.isTerminalError).toBe(true)
+        // the backend's own message survives — it names the actual problem
+        expect(result.current.error).toMatch(/not available for your country/i)
+        expect(result.current.showWrapper).toBe(false)
+        await waitFor(() => expect(onKycSuccess).not.toHaveBeenCalled())
+    })
+
     // The other side of the same branch: a genuinely finished user must still be
     // treated as finished, or the fix above turns every approval into an error.
     it('approved with no token and no actionType is still success', async () => {
