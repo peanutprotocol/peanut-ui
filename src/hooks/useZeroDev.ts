@@ -11,6 +11,7 @@ import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } fro
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -81,16 +82,18 @@ export const useZeroDev = () => {
 
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
-            const webAuthnKey = await toWebAuthnKey({
-                passkeyName: _getPasskeyName(username),
-                passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                mode: WebAuthnMode.Register,
-                // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
-                // register/verify request body, so the terms+privacy versions the
-                // signup screen displayed ride in a header the backend ledgers.
-                passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
-                rpID: rpId,
-            })
+            const webAuthnKey = await withCeremonyPurpose('registration', () =>
+                toWebAuthnKey({
+                    passkeyName: _getPasskeyName(username),
+                    passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                    mode: WebAuthnMode.Register,
+                    // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
+                    // register/verify request body, so the terms+privacy versions the
+                    // signup screen displayed ride in a header the backend ledgers.
+                    passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
+                    rpID: rpId,
+                })
+            )
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
 
@@ -260,13 +263,15 @@ export const useZeroDev = () => {
 
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
 
-            const webAuthnKey = await toWebAuthnKey({
-                passkeyName: '[]',
-                passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                mode: WebAuthnMode.Login,
-                passkeyServerHeaders,
-                rpID: rpId,
-            })
+            const webAuthnKey = await withCeremonyPurpose('login', () =>
+                toWebAuthnKey({
+                    passkeyName: '[]',
+                    passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                    mode: WebAuthnMode.Login,
+                    passkeyServerHeaders,
+                    rpID: rpId,
+                })
+            )
 
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
@@ -319,10 +324,12 @@ export const useZeroDev = () => {
 
             let userOpHash: Hash
             try {
-                userOpHash = await client.sendUserOperation({
-                    account: client.account,
-                    callData: await client.account!.encodeCalls(calls),
-                })
+                userOpHash = await withCeremonyPurpose('user_op', async () =>
+                    client.sendUserOperation({
+                        account: client.account,
+                        callData: await client.account!.encodeCalls(calls),
+                    })
+                )
             } catch (error) {
                 console.error('Error sending UserOp:', error)
                 capturePasskeySignFailure(error, 'send-user-op')

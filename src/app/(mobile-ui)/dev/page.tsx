@@ -103,6 +103,13 @@ export default function DevToolsPage() {
             icon: 'info',
         },
         {
+            name: 'WebAuthn ceremony log',
+            description:
+                'Every passkey sheet this app session requested, tagged with the call path that asked — for diagnosing repeat prompts on a device.',
+            path: '/dev/ceremony-log',
+            icon: 'info',
+        },
+        {
             name: 'Card session approve',
             description:
                 'Grants the combined Rain session-key permission (auto-balancer + withdraw policies) in one passkey tap.',

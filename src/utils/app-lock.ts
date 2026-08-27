@@ -13,6 +13,7 @@
 // gaps the guarded mode closes.
 
 import { base64URLToBytes } from './native-webauthn'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 
 /** How long the app may sit in the background before it relocks. */
 export const LOCK_AFTER_BACKGROUND_MS = 5 * 60 * 1000
@@ -40,16 +41,18 @@ export async function requestLocalUserPresence(credentialId?: string): Promise<U
     crypto.getRandomValues(challenge)
 
     try {
-        const assertion = await navigator.credentials.get({
-            publicKey: {
-                challenge,
-                // Copy into a fresh buffer: BufferSource wants Uint8Array<ArrayBuffer>,
-                // and base64URLToBytes is typed over the wider ArrayBufferLike.
-                allowCredentials: [{ id: new Uint8Array(base64URLToBytes(credentialId)), type: 'public-key' }],
-                userVerification: 'required',
-                timeout: 60_000,
-            },
-        })
+        const assertion = await withCeremonyPurpose('app_lock', () =>
+            navigator.credentials.get({
+                publicKey: {
+                    challenge,
+                    // Copy into a fresh buffer: BufferSource wants Uint8Array<ArrayBuffer>,
+                    // and base64URLToBytes is typed over the wider ArrayBufferLike.
+                    allowCredentials: [{ id: new Uint8Array(base64URLToBytes(credentialId)), type: 'public-key' }],
+                    userVerification: 'required',
+                    timeout: 60_000,
+                },
+            })
+        )
         return assertion ? 'unlocked' : 'dismissed'
     } catch (error) {
         // A cancelled prompt and a genuinely broken authenticator are

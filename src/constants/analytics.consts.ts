@@ -295,6 +295,14 @@ export const ANALYTICS_EVENTS = {
     // refused/wedged, e.g. 1Password on iOS), `context` is the signing call site.
     PASSKEY_SIGN_FAILED: 'passkey_sign_failed',
 
+    // One event per WebAuthn ceremony our code requests, tagged with the purpose
+    // stack (`kernel_migration>user_op`, `admin_eip712`, …) and the flow it ran
+    // in. `webauthn_ceremony_flow` closes a flow with the total count — that
+    // count is what says whether a 2–3 prompt report is our call sites, a retry,
+    // or the native shim presenting extra sheets on its own.
+    WEBAUTHN_CEREMONY: 'webauthn_ceremony',
+    WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
+
     // Rain withdrawal-signature cooldown tripped during a spend. Handled
     // gracefully in-flow (no captureException), so this is the only telemetry.
     RAIN_COOLDOWN_HIT: 'rain_cooldown_hit',
