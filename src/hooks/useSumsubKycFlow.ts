@@ -8,6 +8,7 @@ import {
     initiateSelfHealResubmission,
     restartIdentityVerification,
     startKycAction,
+    isTerminalActionCode,
     type SumsubActionErrorCode,
 } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
@@ -44,7 +45,11 @@ const KYC_POLL_SCHEDULE: ReadonlyArray<{ untilMs: number; delayMs: number }> = [
 const KYC_POLL_MAX_DELAY_MS = 60_000
 
 /** `code` from a sumsub action's canned English fallback → kyc.* catalog key.
- *  Backend prose arrives without a code and renders as-is (#2554). */
+ *  Backend prose arrives without a code and renders as-is (#2554).
+ *
+ *  Partial on purpose: a code with no catalog entry keeps the backend's own
+ *  message, which is what we want for refusals the backend explains better
+ *  than a generic string could (an unsupported country names the country). */
 const ACTION_ERROR_KEYS = {
     initiate_failed: 'errorInitiateFailed',
     restart_failed: 'errorRestartFailed',
@@ -52,7 +57,7 @@ const ACTION_ERROR_KEYS = {
     start_action_failed: 'errorStartActionFailed',
     invalid_response: 'errorInvalidResponse',
     unexpected: 'unexpectedError',
-} as const satisfies Record<SumsubActionErrorCode, string>
+} as const satisfies Partial<Record<SumsubActionErrorCode, string>>
 
 const getKycPollDelayMs = (elapsedMs: number): number => {
     for (const { untilMs, delayMs } of KYC_POLL_SCHEDULE) {
@@ -70,7 +75,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // codeless results keep the backend's display-ready prose.
     const actionErrorMessage = useCallback(
         (result: { error?: string; code?: SumsubActionErrorCode }): string | null =>
-            result.code ? t(ACTION_ERROR_KEYS[result.code]) : (result.error ?? null),
+            (result.code && result.code in ACTION_ERROR_KEYS
+                ? t(ACTION_ERROR_KEYS[result.code as keyof typeof ACTION_ERROR_KEYS])
+                : result.error) ?? null,
         [t]
     )
 
@@ -78,6 +85,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // Some initiate failures are terminal: the user has no action that could
+    // change the outcome, so offering a retry is worse than offering nothing.
+    // Callers must suppress their retry CTA on this rather than inferring
+    // retriability from the region, which cannot tell the two apart.
+    const [isTerminalError, setIsTerminalError] = useState(false)
     const [isVerificationProgressModalOpen, setIsVerificationProgressModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
     const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
@@ -253,6 +265,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             actionKeyRef.current = null
             setIsLoading(true)
             setError(null)
+            setIsTerminalError(false)
 
             // for cross-region: pre-set prevStatusRef to APPROVED so the fetchCurrentStatus
             // effect (which also fires when regionIntent changes) doesn't trigger onKycSuccess
@@ -269,6 +282,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     crossRegion,
                     targetCountry,
                 })
+
+                // A refusal no retry can change — no resolvable country for this
+                // entry point, or a permanent restriction like Manteca's
+                // US-nationality rule. Retrying sends the identical request and
+                // gets the identical answer, so mark it terminal and let the
+                // modal offer support instead of a button that cannot work.
+                if (isTerminalActionCode(response.code)) {
+                    userInitiatedRef.current = false
+                    setIsTerminalError(true)
+                    setError(response.error || t('errorInitiateFailed'))
+                    return false
+                }
 
                 if (response.error) {
                     // same race the unsupported-region branch closes below: restoring
@@ -293,7 +318,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 // terminal error (the user is approved but has no rail — NOT a success).
                 if (response.data?.actionType === 'unsupported-region') {
                     userInitiatedRef.current = false
+                    setIsTerminalError(true)
                     setError(t('unsupportedRegionError'))
+                    setIsTerminalError(true)
                     return false
                 }
 
@@ -319,6 +346,21 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setIsActionFlow(false)
                     setIsVerificationProgressModalOpen(true)
                     onKycSuccess?.()
+                    return false
+                }
+
+                // approved, but every rail for this region is dead — a payload-build
+                // failure can mark all four Bridge rails FAILED at once, and nothing
+                // in the product re-enables them. Identical on the wire to "you're
+                // done" until the backend started saying so, which is why a stranded
+                // user pressed Verify, saw no SDK, no error and nothing at all, and
+                // support told them to press it again (TASK-21882). Same shape as
+                // 'unsupported-region' above: bail terminally, before the status sync.
+                if (response.data?.actionType === 'rails-unavailable') {
+                    userInitiatedRef.current = false
+                    setIsTerminalError(true)
+                    setError(t('railsUnavailableError'))
+                    setIsTerminalError(true)
                     return false
                 }
 
@@ -422,6 +464,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [router])
 
     const resetError = useCallback(() => {
+        setIsTerminalError(false)
         setError(null)
     }, [])
 
@@ -432,6 +475,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleRestartIdentity = useCallback(async () => {
         setIsLoading(true)
         setError(null)
+        setIsTerminalError(false)
         userInitiatedRef.current = true
         // Clear any prior self-heal context so refreshToken (below) doesn't
         // mistakenly hit the self-heal endpoint after a restart-identity flow
@@ -561,6 +605,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     return {
         isLoading,
         error,
+        isTerminalError,
         showWrapper,
         accessToken,
         liveKycStatus,

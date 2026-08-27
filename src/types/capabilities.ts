@@ -194,6 +194,13 @@ export interface IdentityVerification {
     actionMessage?: string
     /** normalized rejection labels for specific guidance (action_required / failed). */
     rejectLabels?: string[]
+    /** structured reason, when the backend can name one (e.g. region_restricted). */
+    reason?: { code: string; userMessage?: string }
+    /** `failed` only — whether re-submitting can change the outcome. The backend
+     *  owns this decision (a region restriction forces false whatever the stored
+     *  status says); never re-derive it from `status`, which is too coarse to
+     *  tell a retryable rejection from a terminal one. */
+    canRetry?: boolean
     /** ISO timestamp the user submitted their verification. */
     submittedAt?: string
     /** ISO timestamp the decision landed. */

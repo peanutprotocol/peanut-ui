@@ -245,6 +245,7 @@ export const useMultiPhaseKycFlow = ({
     const {
         isLoading,
         error,
+        isTerminalError,
         showWrapper,
         accessToken,
         liveKycStatus,
@@ -501,6 +502,9 @@ export const useMultiPhaseKycFlow = ({
         handleFixableRejection,
         isLoading,
         error,
+        // terminal = the user has no action that changes the outcome; consumers
+        // must suppress their retry CTA on it (TASK-21882)
+        isTerminalError,
         liveKycStatus,
 
         // SDK wrapper

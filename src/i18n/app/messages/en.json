@@ -2309,6 +2309,7 @@
         "processingTitle": "Setting up your account…",
         "processingDescription": "We're confirming your ID. This usually takes less than a minute.",
         "unsupportedRegionError": "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live.",
+        "railsUnavailableError": "Your ID is verified, but we can't set up payments for your region right now. Contact support and we'll sort it out.",
         "unexpectedError": "An unexpected error occurred",
         "processingStatusValue": "We're reviewing your documents. This usually takes 5-10 min.",
         "errorSdkUnavailable": "KYC SDK not available. Please update the app.",

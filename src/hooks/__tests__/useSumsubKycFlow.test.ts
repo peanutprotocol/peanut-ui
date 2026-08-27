@@ -11,6 +11,11 @@ import { initiateSumsubKyc, initiateSelfHealResubmission, startKycAction } from 
 
 const mockWs: { handler?: (status: string, labels?: string[]) => void } = {}
 jest.mock('@/app/actions/sumsub', () => ({
+    ...jest.requireActual('@/app/actions/sumsub'),
+    // Only the network-touching actions are stubbed. Pure helpers like
+    // isTerminalActionCode come from the real module: they encode which
+    // refusals are permanent, and a stub would let the hook's terminal
+    // branch pass a test while doing nothing in production.
     initiateSumsubKyc: jest.fn(),
     initiateSelfHealResubmission: jest.fn(),
     restartIdentityVerification: jest.fn(),
@@ -58,6 +63,92 @@ describe('useSumsubKycFlow — cross-region routing', () => {
         expect(result.current.showWrapper).toBe(false)
         // give any queued status-transition effect a chance to (wrongly) fire.
         await waitFor(() => expect(onKycSuccess).not.toHaveBeenCalled())
+    })
+
+    // The P1 soft-lock. One payload-build failure marks all four Bridge rails
+    // FAILED at once, and nothing in the product re-enables them. The BE used to
+    // answer with a bare approved+null-token body — identical on the wire to
+    // "you're done" — so the hook fired onKycSuccess and the user saw nothing at
+    // all when they pressed Verify. Support then told them to press it again
+    // (TASK-21882).
+    it('rails-unavailable → surfaces an error and does NOT fire onKycSuccess', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: null, applicantId: 'app_1', status: 'APPROVED', actionType: 'rails-unavailable' },
+        })
+        const onKycSuccess = jest.fn()
+
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU', undefined, true)
+        })
+
+        expect(result.current.error).toBeTruthy()
+        expect(result.current.showWrapper).toBe(false)
+        // The flag consumers gate their retry CTA on. Without it UnlockedRegions
+        // decides retriability from the region alone — and EU/NA both HAVE a
+        // provider, so the futile "Try again" came straight back.
+        expect(result.current.isTerminalError).toBe(true)
+        await waitFor(() => expect(onKycSuccess).not.toHaveBeenCalled())
+    })
+
+    // A backend refusal that explains itself must reach the user intact. The
+    // generic catalog copy would say "verification couldn't start" over the top
+    // of "not available for US citizens", which is strictly less useful and
+    // makes a permanent restriction look like a transient hiccup.
+    it('a backend explanation survives instead of being replaced by generic retry copy', async () => {
+        mockInitiate.mockResolvedValue({
+            error: 'Payments from this country are not available for US citizens at this time.',
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM', undefined, true)
+        })
+
+        expect(result.current.error).toMatch(/US citizens/i)
+    })
+
+    // The paired backend refuses a LATAM action it cannot name a country for —
+    // and the regions screen offers LATAM as one bucket, so it has none to send
+    // and the backend has already tried the user's residence. Retrying repeats
+    // the identical request, so it must not look retriable.
+    it('target_country_required is terminal, not a retry loop', async () => {
+        mockInitiate.mockResolvedValue({
+            error: 'Bank transfers are not available for your country yet.',
+            code: 'target_country_required',
+        })
+        const onKycSuccess = jest.fn()
+
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM', undefined, true)
+        })
+
+        expect(result.current.isTerminalError).toBe(true)
+        // the backend's own message survives — it names the actual problem
+        expect(result.current.error).toMatch(/not available for your country/i)
+        expect(result.current.showWrapper).toBe(false)
+        await waitFor(() => expect(onKycSuccess).not.toHaveBeenCalled())
+    })
+
+    // The other side of the same branch: a genuinely finished user must still be
+    // treated as finished, or the fix above turns every approval into an error.
+    it('approved with no token and no actionType is still success', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: null, applicantId: 'app_1', status: 'APPROVED' },
+        })
+        const onKycSuccess = jest.fn()
+
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU', undefined, true)
+        })
+
+        expect(result.current.error).toBeFalsy()
+        await waitFor(() => expect(onKycSuccess).toHaveBeenCalled())
     })
 
     // The race the loop-fix has to survive: the user is already APPROVED, so a stale /
