@@ -1732,6 +1732,17 @@
     },
     "transaction": {
         "drawerTitle": "Detalhes da transação",
+        "officialReceipt": {
+            "issuedBy": "Emitido pela Peanut",
+            "reference": "Referência do recibo",
+            "issuedOn": "Emitido em"
+        },
+        "receiptUnavailable": {
+            "title": "Este link de recibo não está mais disponível",
+            "description": "A transação pode ainda existir, mas este link compartilhado não pode mais exibi-la.",
+            "loadFailedTitle": "Não foi possível carregar este recibo",
+            "loadFailedDescription": "Tente novamente em instantes."
+        },
         "noGoalSet": "Sem meta definida",
         "amountCollected": "${amount} arrecadados",
         "contributors": "Contribuidores ({count})",
@@ -3127,6 +3138,7 @@
         "notDeployedOnChain": "O Bulk não está disponível nesta rede, tente outra rede.",
         "userRejectedRequest": "Confirme a solicitação na sua carteira.",
         "networkError": "Ocorreu um erro de rede. Atualize a página e tente novamente.",
+        "connectionLost": "Conexão perdida. Verifique sua conexão com a internet e tente novamente.",
         "nonceExpired": "O nonce expirou, tente novamente.",
         "walletNotConnected": "Verifique se a sua carteira está conectada.",
         "gasExceedsAllowance": "O gas necessário excede o seu saldo. Confirme se você tem fundos suficientes.",

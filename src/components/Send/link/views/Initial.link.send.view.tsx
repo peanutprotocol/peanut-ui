@@ -12,8 +12,9 @@ import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
-import { isAmountWithinBalance } from '@/utils/balance.utils'
-import { captureException } from '@sentry/nextjs'
+import { isAmountWithinBalance, isValidSendAmount } from '@/utils/balance.utils'
+import { captureNetworkTriagedFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
@@ -38,6 +39,7 @@ const LinkSendInitialView = () => {
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const tErrors = useTranslations('errors')
+    const tWithdraw = useTranslations('withdraw')
     const toFriendlyError = useFriendlyError()
     const {
         attachmentOptions,
@@ -71,7 +73,18 @@ const LinkSendInitialView = () => {
 
     const handleOnNext = useCallback(async () => {
         try {
-            if (isLoading || !tokenValue) return
+            if (isLoading) return
+
+            // Numeric gate, not string truthiness — "0"/"0.00" are truthy and
+            // used to reach createLink as a real zero-value on-chain link.
+            if (!tokenValue || !isValidSendAmount(tokenValue)) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: tWithdraw('errors.invalidAmount'),
+                    errorCode: 'invalidAmount',
+                })
+                return
+            }
 
             // Re-check affordability at submit too: the Retry button isn't disabled
             // on a balance error (unlike the other flows), so without this a blocked
@@ -129,24 +142,41 @@ const LinkSendInitialView = () => {
                 } catch (error) {
                     // we want to capture any errors here because we are already in the background
                     console.error(error)
-                    captureException(error)
+                    void captureNetworkTriagedFailure(error, {
+                        tags: { ...criticalFlowTags('send-link'), send_link_step: 'persist' },
+                    })
                 }
             }, 0)
         } catch (error) {
             // handle errors
             const errorString = toFriendlyError(error)
             setErrorState({ showError: true, errorMessage: errorString })
-            posthog.capture(ANALYTICS_EVENTS.SEND_LINK_FAILED, {
-                amount: tokenValue,
-                error_message: errorString,
+            // Tagged, or the noise filters drop it: a send link that dies on a
+            // failed fetch matched `networkIssues` in sentry.utils.ts and was
+            // silently discarded (TASK-21956). Fire-and-forget: the triage
+            // probes may take up to 2.5s and must not hold up `finally`.
+            // `error_message` is the LOCALIZED copy the user saw, so it can't be
+            // grouped on — error_name/error_raw carry the raw class alongside.
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('send-link'), send_link_step: 'create' },
+                extra: { amount: tokenValue, hasAttachment: !!attachmentOptions?.rawFile },
+                analytics: {
+                    event: ANALYTICS_EVENTS.SEND_LINK_FAILED,
+                    props: {
+                        amount: tokenValue,
+                        error_message: errorString,
+                        error_name: error instanceof Error ? error.name : 'unknown',
+                        error_raw: error instanceof Error ? error.message : String(error),
+                    },
+                },
             })
-            captureException(error)
         } finally {
             setLoadingState('Idle')
         }
     }, [
         isLoading,
         tokenValue,
+        tWithdraw,
         createLink,
         fetchBalance,
         queryClient,
@@ -261,7 +291,7 @@ const LinkSendInitialView = () => {
                         shadowSize="4"
                         onClick={handleOnNext}
                         loading={isLoading}
-                        disabled={isLoading || !tokenValue || !!errorState?.showError}
+                        disabled={isLoading || !isValidSendAmount(tokenValue) || !!errorState?.showError}
                     >
                         {isLoading ? tLoading('creatingLink') : t('link.createLink')}
                     </Button>

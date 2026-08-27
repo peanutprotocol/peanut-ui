@@ -9,7 +9,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { mantecaApi } from '@/services/manteca'
 import type { QrPayment, QrPaymentLock } from '@/services/manteca'
 import NavHeader from '@/components/Global/NavHeader'
@@ -1097,7 +1097,7 @@ export default function QRPayPage() {
                                       }),
                                   variant: 'purple' as const,
                                   shadowSize: '4' as const,
-                                  icon: 'upload',
+                                  icon: 'upload-cloud' satisfies IconName,
                               }
                             : isRestartIdentity
                               ? {
@@ -1105,7 +1105,7 @@ export default function QRPayPage() {
                                     onClick: () => sumsubFlow.handleRestartIdentity(),
                                     variant: 'purple' as const,
                                     shadowSize: '4' as const,
-                                    icon: 'upload',
+                                    icon: 'upload-cloud' satisfies IconName,
                                 }
                               : {
                                     text: tCommon('contactSupport'),

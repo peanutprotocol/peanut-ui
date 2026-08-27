@@ -64,6 +64,7 @@
         "notDeployedOnChain": "O Bulk não está disponível nesta rede, tente outra rede.",
         "userRejectedRequest": "Confirme a solicitação na sua carteira.",
         "networkError": "Ocorreu um erro de rede. Atualize a página e tente novamente.",
+        "connectionLost": "Conexão perdida. Verifique sua conexão com a internet e tente novamente.",
         "nonceExpired": "O nonce expirou, tente novamente.",
         "walletNotConnected": "Verifique se a sua carteira está conectada.",
         "gasExceedsAllowance": "O gas necessário excede o seu saldo. Confirme se você tem fundos suficientes.",

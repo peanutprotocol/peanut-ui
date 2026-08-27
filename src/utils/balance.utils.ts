@@ -20,6 +20,18 @@ export const parseUsdAmountToUnits = (amountUsd: string | number): bigint | null
 }
 
 /**
+ * Is the entered amount a real, spendable value (> 0)? String truthiness is not
+ * enough — "0" and "0.00" are truthy and would create a zero-value on-chain
+ * link/spend. Parses exactly like the spend does (parseUsdAmountToUnits), so
+ * anything parseUnits would reject fails here first.
+ */
+export const isValidSendAmount = (amountUsd: string | number | null | undefined): boolean => {
+    if (amountUsd == null) return false
+    const units = parseUsdAmountToUnits(amountUsd)
+    return units !== null && units > 0n
+}
+
+/**
  * Balance at or above which self-service account deletion is refused (see
  * `DeleteAccountButton`). Deletion is irreversible — login is blocked forever
  * and there is no reactivation path — so anything left behind is unreachable.
