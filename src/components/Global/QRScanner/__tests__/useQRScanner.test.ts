@@ -372,7 +372,14 @@ describe('permission still pending at the deadline (TASK-21927)', () => {
         expect(result.current.isCameraReady).toBe(true)
     })
 
-    it('a denial that lands after the deadline stays on the permission modal', async () => {
+    /*
+     * The rejection value is qr-scanner's real one, not a DOMException:
+     * _getCameraStream swallows every getUserMedia DOMException in a bare catch
+     * and then throws the bare string 'Camera not found.', whatever actually
+     * went wrong. Anything richer here would be testing a contract the pinned
+     * library never honours.
+     */
+    it('a failure that lands after the deadline leaves the user on the permission modal', async () => {
         const { result, videoRef } = await mountPendingStart()
 
         await act(async () => {
@@ -380,27 +387,12 @@ describe('permission still pending at the deadline (TASK-21927)', () => {
         })
         unmountVideo(videoRef)
         await act(async () => {
-            settleStart.reject(new DOMException('Permission denied', 'NotAllowedError'))
+            settleStart.reject('Camera not found.')
         })
 
         expect(result.current.isPermissionDenied).toBe(true)
         expect(result.current.error).toBe('qrScanner.cameraPermissionDenied')
         expect(result.current.isCameraReady).toBe(false)
-    })
-
-    it('a hardware failure that lands after the deadline reports the hardware error', async () => {
-        const { result, videoRef } = await mountPendingStart()
-
-        await act(async () => {
-            jest.advanceTimersByTime(CAMERA_START_TIMEOUT_MS)
-        })
-        unmountVideo(videoRef)
-        await act(async () => {
-            settleStart.reject(new DOMException('Camera not found.', 'NotFoundError'))
-        })
-
-        expect(result.current.isPermissionDenied).toBe(false)
-        expect(result.current.error).toBe('qrScanner.cameraNotFound')
     })
 
     it('native keeps waiting on the OS dialog with no deadline at all', async () => {

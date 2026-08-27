@@ -273,13 +273,18 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     if (document.hidden) return
                     void startCameraRef.current?.(preferredCamera)
                 })
-                .catch((err: unknown) => {
+                .catch(() => {
+                    /*
+                     * No classification is possible here. qr-scanner 1.4.2
+                     * swallows every getUserMedia DOMException in _getCameraStream
+                     * and rejects start() with the bare string 'Camera not found.',
+                     * so denial, missing hardware and a busy camera are one
+                     * indistinguishable failure by the time it reaches us. The
+                     * modal is already up and is the one state that offers both
+                     * retry and paste, so leave the user on it.
+                     */
                     if (stale()) return
                     cleanup()
-                    const errName = err instanceof Error ? err.name : ''
-                    const isHardware = errName === CAMERA_ERRORS.NOT_FOUND || errName === CAMERA_ERRORS.NOT_READABLE
-                    setIsPermissionDenied(!isHardware)
-                    setError(getErrorMessage(errName, retryCountRef.current))
                 })
 
             setIsPermissionDenied(true)
