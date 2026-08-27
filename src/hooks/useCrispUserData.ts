@@ -4,12 +4,6 @@ import { AccountType } from '@/interfaces/interfaces'
 import { useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
-    ARBISCAN_ADDRESS_BASE_URL,
-    POSTHOG_PERSON_BASE_URL,
-    BRIDGE_DASHBOARD_BASE_URL,
-    SENTRY_USER_ISSUES_BASE_URL,
-} from '@/constants/support'
-import {
     readCachedLimits,
     readCachedRainOverview,
     readCachedSmartBalance,
@@ -17,11 +11,13 @@ import {
 } from '@/utils/support-cache'
 import {
     buildAccountStats,
+    buildAppContext,
     buildBalanceSummary,
     buildCardSummary,
     buildLatestActivity,
     buildLimitsSummary,
     buildLinkedAccounts,
+    buildSupportLinks,
     buildSupportSegments,
 } from '@/utils/support-context'
 import { isRainBalanceKnown } from '@/utils/balance.utils'
@@ -127,10 +123,8 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
     // This ensures we always show the user's wallet address in support metadata,
     // even if ZeroDev client isn't initialized yet. useWallet().address could be
     // undefined during initialization, but we want persistent data for support agents.
-    const walletAddressLink = walletAddress ? `${ARBISCAN_ADDRESS_BASE_URL}/${walletAddress}` : undefined
+    const links = buildSupportLinks(userId, walletAddress, user?.user?.bridgeCustomerId || undefined)
 
-    const bridgeCustomerId = user?.user?.bridgeCustomerId || undefined
-    const bridgeCustomerLink = bridgeCustomerId ? `${BRIDGE_DASHBOARD_BASE_URL}/${bridgeCustomerId}` : undefined
     // DATA GAP (flagged): the Manteca providerUserId used to come from the now-removed
     // raw `user.kycVerifications` field. Neither read-model carries it — `capabilities`
     // is provider-blind, `identityVerification` has no provider metadata. This was only
@@ -138,9 +132,6 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
     // it degrades to undefined until the backend exposes a provider-account id. Do NOT
     // fabricate it from capabilities.
     const mantecaUserId = undefined
-
-    const posthogPersonLink = userId ? `${POSTHOG_PERSON_BASE_URL}/${userId}` : undefined
-    const sentryIssuesLink = userId ? `${SENTRY_USER_ISSUES_BASE_URL}:${userId}` : undefined
 
     const email = user?.user?.email || undefined
     const verification = user
@@ -150,17 +141,6 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
     const balance = user ? buildBalanceSummary(smartBalance, rainOverview) : undefined
     const balanceKnown = smartBalance !== undefined && isRainBalanceKnown(rainOverview)
 
-    const appContext = [
-        client.platform,
-        client.appBuild,
-        `locale:${client.locale}`,
-        client.routeOnOpen ? `route:${client.routeOnOpen}` : undefined,
-        client.isOffline ? 'offline' : client.isApiUnreachable ? 'api-unreachable' : 'online',
-        `notif:${client.notificationPermission}`,
-    ]
-        .filter(Boolean)
-        .join(' · ')
-
     return {
         username,
         userId,
@@ -168,11 +148,8 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
         fullName: user?.user?.fullName,
         avatar: user?.user?.profile_picture || undefined,
         walletAddress,
-        walletAddressLink,
-        bridgeCustomerLink,
+        ...links,
         mantecaUserId,
-        posthogPersonLink,
-        sentryIssuesLink,
         identityStatus: verification?.identityStatus,
         emailOnFile: verification?.emailOnFile,
         verificationGates: verification?.gates,
@@ -185,7 +162,7 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
         limitsRemaining: buildLimitsSummary(limits),
         card: buildCardSummary(rainOverview),
         linkedAccounts: buildLinkedAccounts(user?.accounts),
-        appContext,
+        appContext: buildAppContext(client),
         segments: buildSupportSegments({
             isLoggedIn: Boolean(userId),
             platform: client.platform,

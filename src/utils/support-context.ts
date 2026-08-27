@@ -19,6 +19,12 @@ import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { computeDisplaySpendable, isRainBalanceKnown, rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { formatCurrency } from '@/utils/general.utils'
+import {
+    ARBISCAN_ADDRESS_BASE_URL,
+    BRIDGE_DASHBOARD_BASE_URL,
+    POSTHOG_PERSON_BASE_URL,
+    SENTRY_USER_ISSUES_BASE_URL,
+} from '@/constants/support'
 import { type Account, AccountType, type IUserProfile, type UserLimitsResponse } from '@/interfaces/interfaces'
 import type { RainCardOverview } from '@/services/rain'
 import type { HistoryEntry } from '@/utils/history.utils'
@@ -252,4 +258,47 @@ export function primarySupportSegment(segments: string[] | undefined): string | 
         if (segments.includes(candidate)) return candidate
     }
     return segments.find((segment) => segment.startsWith('kyc-')) ?? segments[0]
+}
+
+export interface SupportLinks {
+    walletAddressLink: string | undefined
+    bridgeCustomerLink: string | undefined
+    posthogPersonLink: string | undefined
+    sentryIssuesLink: string | undefined
+}
+
+/** The dashboards an agent opens in another tab, built from ids the client holds. */
+export function buildSupportLinks(
+    userId: string | undefined,
+    walletAddress: string | undefined,
+    bridgeCustomerId: string | undefined
+): SupportLinks {
+    return {
+        walletAddressLink: walletAddress ? `${ARBISCAN_ADDRESS_BASE_URL}/${walletAddress}` : undefined,
+        bridgeCustomerLink: bridgeCustomerId ? `${BRIDGE_DASHBOARD_BASE_URL}/${bridgeCustomerId}` : undefined,
+        posthogPersonLink: userId ? `${POSTHOG_PERSON_BASE_URL}/${userId}` : undefined,
+        sentryIssuesLink: userId ? `${SENTRY_USER_ISSUES_BASE_URL}:${userId}` : undefined,
+    }
+}
+
+/** Platform, build, locale, route and connectivity as one row. */
+export function buildAppContext(client: {
+    platform: string
+    appBuild: string
+    locale: string
+    routeOnOpen: string | undefined
+    isOffline: boolean
+    isApiUnreachable: boolean
+    notificationPermission: string
+}): string {
+    return [
+        client.platform,
+        client.appBuild,
+        `locale:${client.locale}`,
+        client.routeOnOpen ? `route:${client.routeOnOpen}` : undefined,
+        client.isOffline ? 'offline' : client.isApiUnreachable ? 'api-unreachable' : 'online',
+        `notif:${client.notificationPermission}`,
+    ]
+        .filter(Boolean)
+        .join(' · ')
 }
