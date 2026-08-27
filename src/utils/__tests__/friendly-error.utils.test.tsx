@@ -193,6 +193,14 @@ describe('unmatched backend messages (genericSupport fallback)', () => {
         expect(friendlyError(err)).toEqual({ kind: 'text', text: 'Withdrawals to this bank are temporarily paused' })
     })
 
+    test('decimal amounts and abbreviations are not mistaken for domains', () => {
+        const err = apiError('Amount is below the 5.00 USD minimum, e.g. try a larger transfer')
+        expect(friendlyError(err)).toEqual({
+            kind: 'text',
+            text: 'Amount is below the 5.00 USD minimum, e.g. try a larger transfer',
+        })
+    })
+
     test('an unmapped plain Error keeps the support fallback — only our ApiError passes through', () => {
         expect(friendlyError(new Error('Withdrawals to this bank are temporarily paused'))).toEqual({
             kind: 'code',
@@ -204,6 +212,9 @@ describe('unmatched backend messages (genericSupport fallback)', () => {
         ['empty', '   '],
         ['multi-line dump', 'Request failed\n    at withdraw (bank.ts:12)'],
         ['URL dump', 'GET https://api.peanut.me/bridge/transfers failed'],
+        ['schemeless www link', 'visit www.evil.com to unlock withdrawals'],
+        ['bare domain', 'Payout paused — see status.peanut-verify.example.com'],
+        ['domain with path', 'complete verification at evil.co/kyc first'],
         ['JSON body', '{"error":"boom"}'],
         ['our own fetch fallback', 'Failed to create charge'],
         ['over-long prose', 'x'.repeat(201)],

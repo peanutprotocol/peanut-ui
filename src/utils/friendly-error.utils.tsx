@@ -160,7 +160,9 @@ const displayableApiErrorMessage = (error: unknown): string | null => {
     if (typeof message !== 'string') return null
     const trimmed = message.trim()
     if (!trimmed || trimmed.length > 200 || trimmed.includes('\n')) return null
+    // no links, scheme-prefixed or bare (www.evil.com / evil.com/path)
     if (/https?:\/\//i.test(trimmed)) return null
+    if (/(?:^|[\s(["'])(?:[a-z0-9][a-z0-9-]*\.)+[a-z]{2,}(?=$|[\s)\]"'.,!?:;/])/i.test(trimmed)) return null
     if (trimmed.startsWith('{') || trimmed.startsWith('<')) return null
     if (/^failed to /i.test(trimmed)) return null
     return trimmed

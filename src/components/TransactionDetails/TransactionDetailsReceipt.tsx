@@ -769,9 +769,10 @@ export const TransactionDetailsReceipt = ({
                             label={t('officialReceipt.reference')}
                             value={
                                 <div className="flex items-center gap-2">
-                                    <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
+                                    {/* uppercase is display-only: the raw id is a case-sensitive lookup key */}
+                                    <span className="uppercase">{shortenAddress(transaction.id, 20)}</span>
                                     <span className="print:hidden">
-                                        <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
+                                        <CopyToClipboard textToCopy={transaction.id} iconSize="4" />
                                     </span>
                                 </div>
                             }
