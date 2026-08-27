@@ -54,4 +54,16 @@ describe('native build server-route scan', () => {
         const offenders = detectUncoveredServerRoutes().filter((o) => transformed.has(toPosix(o.rel)))
         expect(offenders).toEqual([])
     })
+
+    // This is the actual anti-rot check: it runs the same scan the native build
+    // guard does, against the real app tree, on every PR — not just on push to
+    // dev via the Capgo deploy workflow. A route added to src/app with `export
+    // const dynamic = 'force-dynamic'` (or a bare route.ts) and missing from
+    // ITEMS_TO_DISABLE fails here instead of silently breaking every native/OTA
+    // build until someone notices dev is red.
+    it('has no server-only route left uncovered by ITEMS_TO_DISABLE or P0_TRANSFORMS', () => {
+        const offenders = detectUncoveredServerRoutes()
+        const describe = offenders.map((o) => `${toPosix(o.rel)} (${o.reason})`).join('\n')
+        expect(describe).toBe('')
+    })
 })
