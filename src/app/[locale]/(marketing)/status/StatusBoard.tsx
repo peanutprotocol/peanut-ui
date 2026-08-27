@@ -17,7 +17,7 @@ import {
 const BAR_COLORS: Record<BucketState, string> = {
     operational: 'bg-success-1',
     degraded: 'bg-secondary-1',
-    down: 'bg-error-5',
+    down: 'bg-red-400',
     unknown: 'bg-grey-2',
 }
 
@@ -33,7 +33,7 @@ const SHOW_SUMMARY_CARD: boolean = false
 const RING_STROKES: Record<BucketState, string> = {
     operational: 'stroke-success-1',
     degraded: 'stroke-secondary-1',
-    down: 'stroke-error-5',
+    down: 'stroke-red-400',
     unknown: 'stroke-grey-2',
 }
 
@@ -178,7 +178,7 @@ function IncidentList({
     return (
         <ul className="space-y-2 mt-3 border-l-2 border-grey-2 pl-3">
             {incidents.map((incident) => (
-                <li key={incident.id} className="text-xs">
+                <li key={incident.id} className="text-body-xs">
                     <div className="flex flex-wrap items-center gap-2">
                         <span
                             className={`rounded px-1.5 py-0.5 font-bold tracking-wide uppercase ${
@@ -231,8 +231,8 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                             label={ratioLabel}
                         />
                         <div>
-                            <p className="text-lg font-bold">{headline(summary.state, i18n)}</p>
-                            <p className="mt-1 text-sm text-grey-1">
+                            <p className="text-body-l font-bold">{headline(summary.state, i18n)}</p>
+                            <p className="mt-1 text-body-s text-grey-1">
                                 {t(i18n.statusServicesOperationalCount, {
                                     operational: String(operationalCount),
                                     total: String(summary.providers.length),
@@ -244,7 +244,9 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
 
                 {STATUS_GROUPS.map((group) => (
                     <section key={group.label(i18n)} className="mt-10 first:mt-0">
-                        <h2 className="text-xs font-bold tracking-wide text-grey-1 uppercase">{group.label(i18n)}</h2>
+                        <h2 className="text-body-xs font-bold tracking-wide text-grey-1 uppercase">
+                            {group.label(i18n)}
+                        </h2>
                         <div className="space-y-6 mt-3">
                             {group.services.map((service) => {
                                 const provider = byKey.get(service.key)
@@ -252,14 +254,14 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                                 return (
                                     <div key={service.key}>
                                         <div className="flex items-baseline justify-between gap-4">
-                                            <span className="flex items-center gap-2 text-sm font-bold">
+                                            <span className="flex items-center gap-2 text-body-s font-bold">
                                                 <span
                                                     className={`h-2 w-2 shrink-0 rounded-full ${DOT_COLORS[provider.state]}`}
                                                 />
                                                 {service.label(i18n)}
                                             </span>
                                             {provider.uptimePct !== null && (
-                                                <span className="text-xs text-grey-1">
+                                                <span className="text-body-xs text-grey-1">
                                                     {provider.uptimePct.toFixed(2)}% {i18n.statusUptimeLabel}
                                                 </span>
                                             )}

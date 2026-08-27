@@ -32,7 +32,6 @@
     --color-orange-*: initial;
 
     --color-primary-1: #ff90e8;
-    --color-primary-2: #cc73ba;
     --color-primary-3: #efe4ff;
     --color-primary-4: #ba8bff;
 
@@ -41,7 +40,6 @@
     --color-secondary-4: #fff4cc;
     --color-secondary-6: #e9eefb;
     --color-secondary-7: #5883ff;
-    --color-secondary-8: #d4b6ff;
 
     --color-grey-1: #5f646d;
     --color-grey-2: #e7e8e9;
@@ -54,8 +52,6 @@
     --color-yellow-1: #ffc900;
     --color-yellow-7: #ffe6b3;
     --color-yellow-8: #fae184;
-    --color-yellow-9: #fde047;
-    --color-yellow-11: #ca8a04;
 
     --color-green-1: #98e9ab;
 
@@ -68,21 +64,14 @@
 
     --color-n-1: #000000;
     --color-n-2: #161616;
-    --color-n-3: #5f646d;
-    --color-n-4: #e7e8e9;
 
     --color-violet-3: #6340df;
-
-    --color-orange-1: #fe8e3e;
-    --color-orange-2: #ff5656;
 
     --color-success-1: #16b413;
     --color-success-2: #c7f9c6;
     --color-success-3: #29cc6a;
     --color-success-4: #1c6a50;
     --color-success-5: #88d987;
-    --color-success-6: #ecffe9;
-    --color-success-7: #4b8a17;
 
     --color-white: #ffffff;
     --color-red: #ff0000;
@@ -94,10 +83,7 @@
     --color-error: #b3261e;
     --color-error-1: #ffd8d8;
     --color-error-2: #ea8282;
-    --color-error-3: #ff4a4a;
     --color-error-4: #fc5555;
-    --color-error-5: #ff3b30;
-    --color-error-6: #ffe9e9;
 
     /* ───────────────────────────────────────────────────────────────────────
        SEMANTIC TOKENS — 1:1 with vlad's figma variables (Peanut-UI file
@@ -151,7 +137,7 @@
     --color-border-subtle: #9ca3af;
     --color-border-button: #000000;
     --color-border-button-secondary: #000000;
-    --color-border-accent: #ae7aff;
+    --color-border-brand: #ff90e8; /* figma border.brand (renamed+recolored from border.accent purple) */
     --color-border-error: #ff3b30;
     --color-border-disabled: #e7e8e9;
 

@@ -2,12 +2,14 @@
     "rawHex": 65,
     "rawHexFiles": 41,
     "inlineStyle": 167,
-    "stockTextSize": 372,
+    "stockTextSize": 365,
     "dsTextScale": 13,
     "nonDsClassesInViews": 160,
     "useSearchParamsFiles": 49,
     "nuqsFiles": 18,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
+    "deadLegacyTokens": 0,
+    "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 313
 }

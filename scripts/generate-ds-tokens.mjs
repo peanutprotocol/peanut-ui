@@ -63,9 +63,15 @@ export function parseThemeTokens(css) {
     const block = css.slice(start, end)
 
     const sections = SECTION_BANNERS.map(([name, banner]) => {
-        const offset = block.indexOf(banner)
-        if (offset === -1) throw new Error(`section banner "${banner}" not found in @theme — update SECTION_BANNERS`)
-        return { name, offset }
+        // indexOf alone can be hijacked by the banner phrase appearing in an
+        // ordinary comment above the real banner (F-17) — require uniqueness
+        const first = block.indexOf(banner)
+        if (first === -1) throw new Error(`section banner "${banner}" not found in @theme — update SECTION_BANNERS`)
+        if (block.indexOf(banner, first + 1) !== -1)
+            throw new Error(
+                `section banner "${banner}" appears more than once in @theme — banner phrases must be unique so tokens classify deterministically`
+            )
+        return { name, offset: first }
     }).sort((a, b) => a.offset - b.offset)
     const sectionAt = (offset) => {
         if (offset < sections[0].offset)
