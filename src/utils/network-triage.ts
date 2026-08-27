@@ -46,11 +46,14 @@ export interface NetworkTriage {
      * failures is not a connectivity story). Read alongside `errorClass` — for
      * a `timeout`, `api_reachable` means "edge up, endpoint slow", saying
      * nothing about CORS.
-     * - `api_reachable`: the edge answered the probe after the request failed
+     * - `api_reachable`: the edge answered a CORS-valid response
+     * - `api_cors_blocked`: something answered for the edge, but not readably
+     *   — a WAF/bot challenge or a CORS-less error page. The direct evidence
+     *   for the failure mode this whole diagnostic exists to find.
      * - `edge_unreachable`: the internet answered, our edge did not
      * - `offline`: nothing answered
      */
-    observed: 'api_reachable' | 'edge_unreachable' | 'offline'
+    observed: 'api_reachable' | 'api_cors_blocked' | 'edge_unreachable' | 'offline'
     errorClass: NetworkErrorClass
     online: boolean
     effectiveType?: string
@@ -59,11 +62,27 @@ export interface NetworkTriage {
 
 const PROBE_TIMEOUT_MS = 2500
 
-async function probe(url: string): Promise<boolean> {
+/*
+ * Two probes at the API, because each is blind where the other sees.
+ *
+ * `cors` resolves ONLY on a response carrying valid CORS headers, so it is the
+ * honest "the edge answered us properly" signal — and unlike the no-cors probe
+ * it is untouched by Cross-Origin-Resource-Policy, which browsers apply to
+ * no-cors requests only. That matters because `/healthz` serves CORP
+ * `same-site` until api-ts#1456 deploys, which would block the no-cors probe
+ * from the native app's cross-site `https://localhost` origin and make a
+ * healthy edge read as unreachable.
+ *
+ * `noCors` resolves on ANY completed transaction — including the challenge and
+ * error pages that carry no CORS headers at all. So cors-fails-while-no-cors-
+ * succeeds is precisely "something answered but the browser wouldn't let the
+ * app read it", the shape a WAF challenge or CORS-less 5xx takes.
+ */
+async function probe(url: string, mode: 'cors' | 'no-cors'): Promise<boolean> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS)
     try {
-        await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal: controller.signal })
+        await fetch(url, { method: 'HEAD', mode, cache: 'no-store', signal: controller.signal })
         return true
     } catch {
         return false
@@ -78,15 +97,23 @@ export async function triageNetworkFailure(error: unknown): Promise<NetworkTriag
     if (!errorClass) return null
     const online = navigator.onLine
     const started = Date.now()
+    const healthz = `${PEANUT_API_URL}/healthz`
     // gstatic's generate_204 is Android's own captive-portal check — the most
     // dependable "is the internet there at all" endpoint a WebView can reach.
-    const [apiReachable, internetReachable] = await Promise.all([
-        probe(`${PEANUT_API_URL}/healthz`),
-        probe('https://www.gstatic.com/generate_204'),
+    const [apiCorsOk, apiAnswered, internetReachable] = await Promise.all([
+        probe(healthz, 'cors'),
+        probe(healthz, 'no-cors'),
+        probe('https://www.gstatic.com/generate_204', 'no-cors'),
     ])
     const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection
     return {
-        observed: apiReachable ? 'api_reachable' : internetReachable ? 'edge_unreachable' : 'offline',
+        observed: apiCorsOk
+            ? 'api_reachable'
+            : apiAnswered
+              ? 'api_cors_blocked'
+              : internetReachable
+                ? 'edge_unreachable'
+                : 'offline',
         errorClass,
         online,
         effectiveType: connection?.effectiveType,
