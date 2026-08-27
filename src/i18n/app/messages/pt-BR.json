@@ -1566,7 +1566,6 @@
             "minimumDeposit": "O depósito mínimo é {amount}.",
             "selectCountryFirst": "Primeiro selecione um país.",
             "onrampDetails": "Não conseguimos obter os dados para adicionar dinheiro. Tente de novo.",
-            "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes.",
             "bankAccountFailed": "Não foi possível processar a conta bancária. Tente de novo ou fale com o suporte.",
             "bankAccountSettingUp": "Sua conta bancária ainda está sendo configurada. Tente de novo em instantes."
         },
@@ -3155,7 +3154,8 @@
         "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
         "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
-        "loginIncomplete": "O login não foi concluído. Tente novamente."
+        "loginIncomplete": "O login não foi concluído. Tente novamente.",
+        "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes."
     },
     "appLock": {
         "title": "Olá de novo!",

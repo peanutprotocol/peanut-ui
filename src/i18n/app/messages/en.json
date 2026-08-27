@@ -1566,7 +1566,6 @@
             "minimumDeposit": "Minimum deposit is {amount}.",
             "selectCountryFirst": "Please select a country first.",
             "onrampDetails": "Could not get onramp details. Please try again.",
-            "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
             "bankAccountFailed": "Failed to process bank account. Please try again or contact support.",
             "bankAccountSettingUp": "Your bank account is still being set up. Please try again in a moment."
         },
@@ -3155,7 +3154,8 @@
         "cardApprovalCancelled": "Approval cancelled — you can retry anytime.",
         "cardApprovalFailed": "Card approval failed — please try again.",
         "logoutFailed": "Couldn’t log out. Please try again.",
-        "loginIncomplete": "Login didn’t complete. Please try again."
+        "loginIncomplete": "Login didn’t complete. Please try again.",
+        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment."
     },
     "appLock": {
         "title": "Welcome back!",
