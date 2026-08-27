@@ -8,11 +8,12 @@ import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { useClaimSuccessPolling } from './useClaimSuccessPolling'
+import { captureMessage } from '@sentry/nextjs'
 import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
@@ -42,6 +43,8 @@ export const SuccessClaimLinkView = ({
         user: claimLinkData.sender,
         address: claimLinkData.senderAddress,
     })
+    // claim polling reached a non-success end (failed / gave up) — stop polling
+    const [isClaimPollingSettled, setIsClaimPollingSettled] = useState(false)
 
     // @dev: Claimers don't earn points (only senders do), so we don't call calculatePoints
     // Points will show in activity history once the sender's transaction is processed
@@ -65,18 +68,32 @@ export const SuccessClaimLinkView = ({
         [queryClient, fetchUser, setTransactionHash]
     )
 
-    const handleClaimFailed = useCallback(
-        (reason?: string) => {
-            // Claim failed after optimistic return
-            console.error('Claim failed:', reason || 'Unknown error')
-            // TODO: Show error UI to user instead of silent failure
-            // For now, setting txHash to 'FAILED' to stop showing loading state
-            setTransactionHash('FAILED')
-        },
-        [setTransactionHash]
-    )
+    /*
+     * Both non-success outcomes only settle polling — the optimistic success
+     * card stays, matching the pre-existing behavior (dev never had a failure
+     * UI here; its TODO to add one still stands). A local flag stops the
+     * polling instead of dev's 'FAILED' sentinel string, which lived in the
+     * flow-level transactionHash where a future consumer could mistake a
+     * truthy non-hash for a real one.
+     */
+    const handleClaimFailed = useCallback((reason?: string) => {
+        // TODO: Show error UI to user instead of silent failure
+        console.error('Claim failed:', reason || 'Unknown error')
+        setIsClaimPollingSettled(true)
+    }, [])
 
-    useClaimSuccessPolling(claimLinkData.link, !transactionHash, handleClaimConfirmed, handleClaimFailed)
+    const handleClaimUnconfirmed = useCallback(() => {
+        captureMessage('Claim confirmation polling gave up without a terminal status', 'warning')
+        setIsClaimPollingSettled(true)
+    }, [])
+
+    useClaimSuccessPolling(
+        claimLinkData.link,
+        !transactionHash && !isClaimPollingSettled,
+        handleClaimConfirmed,
+        handleClaimFailed,
+        handleClaimUnconfirmed
+    )
 
     const tokenDetails = useMemo(() => {
         if (!claimLinkData) return null
