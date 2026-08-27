@@ -4,6 +4,9 @@ import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } f
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
+import { getTokenDetails } from '@/utils/general.utils'
+import type { ChargeEntry } from '@/services/services.types'
+import { formatUnits, type Address } from 'viem'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_HISTORY_ENTRIES } from '@/constants/demo-data'
 import { getDemoTransactions } from '@/utils/demo-transactions'
@@ -30,15 +33,11 @@ type UseTransactionHistoryOptions = {
     filterMutualTxs?: boolean
 }
 
-/** Consecutive pages that contribute zero new unique rows before latest mode
- *  gives up. Counting BARREN pages (not total pages) is what lets a pot with
- *  dozens of contributions page past itself: those pages keep collapsing into
- *  the same rollup uuid, but each one advances the window toward the older
- *  transactions behind it. */
-const MAX_BARREN_LATEST_PAGES = 3
-
-/** Absolute ceiling on requests per latest-mode load. Generous — it only
- *  catches a pathological feed that keeps yielding a trickle of new rows. */
+/** Absolute ceiling on requests per latest-mode load — the sole bounded-work
+ *  safety net. A page that yields no NEW unique row is not a reason to stop:
+ *  a pot with dozens of contributions collapses many consecutive pages into
+ *  its own rollup uuid while each one still advances the cursor toward the
+ *  older activity behind it. */
 const MAX_LATEST_PAGES = 10
 
 /** The API applies its limit to raw intents BEFORE the pot rollup, so asking
@@ -52,74 +51,109 @@ export function latestPageSize(limit: number): number {
 }
 
 /**
+ * A pot's collected total, summed from its deduplicated charge union.
+ *
+ * Mirrors the BE's authoritative rule (peanut-api-ts src/charge/collected.ts):
+ * only SUCCESSFUL payments count; a paid charge contributes the sum of its
+ * settled `paidAmountInRequestedToken` (base units of the REQUESTED token),
+ * falling back to the requested `tokenAmount` when a paid charge has no
+ * settled figure yet. Charges with no successful payment contribute nothing.
+ *
+ * Returns undefined when the sum can't be trusted: no charges shipped, or the
+ * link's token isn't in the token list (the rollup's charge projection omits
+ * tokenDecimals, so base units can't be scaled without it).
+ */
+function sumCollectedFromCharges(entry: HistoryEntry, charges: ChargeEntry[]): number | undefined {
+    if (!charges.length || !entry.tokenAddress || !entry.chainId) return undefined
+    const decimals = getTokenDetails({ tokenAddress: entry.tokenAddress as Address, chainId: entry.chainId })?.decimals
+    if (decimals === undefined) return undefined
+
+    let total = 0
+    for (const charge of charges) {
+        const successful = (charge.payments ?? []).filter((payment) => payment.status === 'SUCCESSFUL')
+        if (!successful.length) continue
+        let settled = 0n
+        try {
+            settled = successful.reduce((sum, p) => sum + BigInt(p.paidAmountInRequestedToken ?? 0), 0n)
+        } catch {
+            return undefined
+        }
+        total += settled > 0n ? Number(formatUnits(settled, decimals)) : Number(charge.tokenAmount || 0)
+    }
+    return total
+}
+
+/**
  * Merges two copies of the same request-pot rollup row.
  *
- * Every page holding any of a pot's charges re-emits the rollup under the
- * link uuid, and each copy aggregates ONLY its own page window (BE:
- * mapRequestLinkRollup over that page's potCharges) — so no single copy is
- * authoritative. Rule: take the greater `totalAmountCollected` and the later
- * `timestamp`, union the `charges` by uuid, and keep the earlier (page-0)
- * copy for everything else — the link-level fields (amount/goal, status,
- * recipient) are identical across copies, and page 0 is the freshest for a
- * websocket-prepended row. Greater-not-sum because the windows overlap at
- * page boundaries; summing would double-count the repeated charges.
+ * Every page holding any of a pot's charges re-emits the rollup under the link
+ * uuid, and each copy aggregates ONLY its own page window (BE:
+ * mapRequestLinkRollup over that page's potCharges) — so no single page's
+ * precomputed `totalAmountCollected` is authoritative, and the windows can be
+ * disjoint (page 1 sums $10, page 2 sums a different $2 of the same $12 goal).
+ * Picking one page's figure loses the rest; adding them double-counts the
+ * charges that repeat at a page boundary.
+ *
+ * Rule: union the `charges` by uuid and re-derive the total from that union,
+ * take the later `timestamp`, and keep the earlier (page-0) copy for
+ * everything else — the link-level fields (amount/goal, status, recipient) are
+ * identical across copies, and page 0 is the freshest for a
+ * websocket-prepended row. When no page shipped a charges array (or the token
+ * is unknown) the re-derivation isn't possible, so the greater precomputed
+ * page total is used instead; it also floors the re-derived value so a page
+ * reporting more than its own charges account for can never lose ground.
  */
 function mergeRepeatedEntry(existing: HistoryEntry, incoming: HistoryEntry): HistoryEntry {
-    const collected = Math.max(existing.totalAmountCollected ?? 0, incoming.totalAmountCollected ?? 0)
-    if (collected === (existing.totalAmountCollected ?? 0) && !incoming.charges?.length) return existing
-
     const chargesByUuid = new Map((existing.charges ?? []).map((c) => [c.uuid, c]))
     for (const charge of incoming.charges ?? []) {
         if (!chargesByUuid.has(charge.uuid)) chargesByUuid.set(charge.uuid, charge)
     }
+    const charges = [...chargesByUuid.values()]
+
+    const greatestPageTotal = Math.max(existing.totalAmountCollected ?? 0, incoming.totalAmountCollected ?? 0)
+    const fromCharges = sumCollectedFromCharges(existing, charges)
     const newer = new Date(incoming.timestamp).getTime() > new Date(existing.timestamp).getTime()
 
     return {
         ...existing,
         timestamp: newer ? incoming.timestamp : existing.timestamp,
-        totalAmountCollected: collected,
-        charges: chargesByUuid.size ? [...chargesByUuid.values()] : existing.charges,
+        totalAmountCollected: fromCharges !== undefined ? Math.max(fromCharges, greatestPageTotal) : greatestPageTotal,
+        charges: charges.length ? charges : existing.charges,
     }
 }
 
 /**
  * Follows the history cursor until `limit` UNIQUE rows are collected, the
- * feed is exhausted, the pages stop yielding new rows, or the absolute page
- * ceiling is hit.
+ * feed is exhausted, or the cursor stops advancing — with `maxPages` as the
+ * bounded-work ceiling.
  *
  * Needed because the API applies its limit to raw transaction intents BEFORE
  * collapsing a request pot's contributions into one rollup row — a page whose
  * newest intents are all contributions to the same pot comes back as a single
  * row with hasMore:true, so one fetch (any fixed limit) can't guarantee the
- * requested number of distinct rows.
+ * requested number of distinct rows. A page that adds no new uuid is still
+ * progress as long as its cursor advanced; only an unmoved cursor means the
+ * window is stuck. `hasMore` is reported from the last page fetched, so a
+ * caller can tell the ceiling stopped it short of an exhausted feed.
  */
 export async function collectLatestEntries(
     fetchPage: (cursor?: string) => Promise<HistoryResponse>,
     limit: number,
-    maxBarrenPages: number = MAX_BARREN_LATEST_PAGES,
     maxPages: number = MAX_LATEST_PAGES
 ): Promise<HistoryResponse> {
     const byUuid = new Map<string, HistoryEntry>()
     let cursor: string | undefined
     let hasMore = false
-    let barrenPages = 0
 
     for (let page = 0; page < maxPages; page++) {
         const res = await fetchPage(cursor)
-        let addedNewRow = false
         for (const entry of res.entries) {
             const existing = byUuid.get(entry.uuid)
-            if (existing) {
-                byUuid.set(entry.uuid, mergeRepeatedEntry(existing, entry))
-            } else {
-                byUuid.set(entry.uuid, entry)
-                addedNewRow = true
-            }
+            byUuid.set(entry.uuid, existing ? mergeRepeatedEntry(existing, entry) : entry)
         }
-        barrenPages = addedNewRow ? 0 : barrenPages + 1
         hasMore = res.hasMore
 
-        if (!hasMore || byUuid.size >= limit || barrenPages >= maxBarrenPages) break
+        if (!hasMore || byUuid.size >= limit) break
         // an unchanged or missing cursor cannot advance the window — stop
         // instead of refetching the same page (mirrors getNextPageParam below)
         if (!res.cursor || res.cursor === cursor) break
