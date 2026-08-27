@@ -46,8 +46,23 @@ const MAX_LATEST_PAGES = 10
 const LATEST_PAGE_SIZE_MULTIPLIER = 5
 const MAX_LATEST_PAGE_SIZE = 50
 
+/** Page size for the infinite history list. */
+const DEFAULT_INFINITE_PAGE_SIZE = 50
+
+/** Unique ROWS latest mode collects when the caller names no limit. Its own
+ *  constant, deliberately not the infinite page size: latest mode spends this
+ *  number as a row target the cursor loop fills toward, not as a page size. */
+const DEFAULT_LATEST_UNIQUE_ROWS = 10
+
+/** A caller-supplied limit, or the mode's default when it is absent or not a
+ *  usable positive number. */
+function resolveLimit(limit: number | undefined, fallback: number): number {
+    return typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? Math.ceil(limit) : fallback
+}
+
 export function latestPageSize(limit: number): number {
-    return Math.min(Math.max(limit * LATEST_PAGE_SIZE_MULTIPLIER, limit), MAX_LATEST_PAGE_SIZE)
+    const rows = resolveLimit(limit, DEFAULT_LATEST_UNIQUE_ROWS)
+    return Math.min(Math.max(rows * LATEST_PAGE_SIZE_MULTIPLIER, rows), MAX_LATEST_PAGE_SIZE)
 }
 
 /**
@@ -184,11 +199,17 @@ export function useTransactionHistory(options: {
  */
 export function useTransactionHistory({
     mode = 'infinite',
-    limit = 50,
+    limit,
     enabled = true,
     username,
     filterMutualTxs,
 }: UseTransactionHistoryOptions): LatestHistoryResult | InfiniteHistoryResult {
+    // Defaulted per mode rather than once at destructuring: the same number
+    // means a page size to the infinite list and a unique-row target to the
+    // latest cursor loop, so one shared default would have latest mode chase
+    // a page's worth of distinct rows and bottom out on the page ceiling.
+    const infiniteLimit = resolveLimit(limit, DEFAULT_INFINITE_PAGE_SIZE)
+    const latestLimit = resolveLimit(limit, DEFAULT_LATEST_UNIQUE_ROWS)
     const fetchHistory = async ({ cursor, limit }: { cursor?: string; limit: number }): Promise<HistoryResponse> => {
         // demo mode: transactions made this session (utils/demo-transactions.ts)
         // prepended to the static seed. Run through completeHistoryEntry (same as
@@ -234,8 +255,13 @@ export function useTransactionHistory({
     // one page suffices for typical feeds, so this rarely refetches.
     // Cached only in TQ memory (30s stale); the HTTP response is no-store end to end.
     const latestQuery = useQuery({
-        queryKey: [TRANSACTIONS, 'latest', { limit, targetUsername: filterMutualTxs ? username : undefined }],
-        queryFn: () => collectLatestEntries((cursor) => fetchHistory({ cursor, limit: latestPageSize(limit) }), limit),
+        queryKey: [
+            TRANSACTIONS,
+            'latest',
+            { limit: latestLimit, targetUsername: filterMutualTxs ? username : undefined },
+        ],
+        queryFn: () =>
+            collectLatestEntries((cursor) => fetchHistory({ cursor, limit: latestPageSize(latestLimit) }), latestLimit),
         enabled: mode === 'latest' && enabled,
         staleTime: 30 * 1000,
         gcTime: 5 * 60 * 1000,
@@ -245,8 +271,8 @@ export function useTransactionHistory({
 
     // Infinite scrolling (main history page).
     const infiniteQuery = useInfiniteQuery({
-        queryKey: [TRANSACTIONS, 'infinite', { limit }],
-        queryFn: ({ pageParam }) => fetchHistory({ cursor: pageParam, limit }),
+        queryKey: [TRANSACTIONS, 'infinite', { limit: infiniteLimit }],
+        queryFn: ({ pageParam }) => fetchHistory({ cursor: pageParam, limit: infiniteLimit }),
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (lastPage, _allPages, lastPageParam) => {
             if (!lastPage.hasMore) return undefined

@@ -352,12 +352,64 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
 // The API limit counts raw intents, pre-rollup, so latest mode asks for
 // several intents per wanted row — a bigger page collapses to more unique rows.
 describe('latestPageSize', () => {
+    it('falls back to the default row target for a missing or unusable limit', () => {
+        // guards the queryFn against ever issuing `limit=NaN` on the wire
+        expect(latestPageSize(undefined as unknown as number)).toBe(50)
+        expect(latestPageSize(NaN)).toBe(50)
+        expect(latestPageSize(0)).toBe(50)
+        expect(latestPageSize(-5)).toBe(50)
+    })
+
     it('over-requests intents per wanted row, capped at the API page size', () => {
         expect(latestPageSize(5)).toBe(25)
         expect(latestPageSize(10)).toBe(50)
         expect(latestPageSize(50)).toBe(50)
         // never asks for fewer rows than the caller wants
         expect(latestPageSize(80)).toBeGreaterThanOrEqual(50)
+    })
+})
+
+describe('useTransactionHistory latest mode with no explicit limit', () => {
+    // `limit` is optional on the latest-mode overload. Without a latest-specific
+    // default it inherited the infinite list's page size as its unique-ROW
+    // target, so the loop chased 50 distinct rows and bottomed out on the page
+    // ceiling instead of stopping once the widget had enough.
+    it('uses the default page size and stops on the default unique-row count', async () => {
+        const historyRow = (uuid: string) => ({
+            uuid,
+            amount: '1',
+            timestamp: '2026-08-01T00:00:00Z',
+            tokenSymbol: 'USDC',
+        })
+        const requestedUrls: string[] = []
+        const { serverFetch } = jest.requireMock('@/utils/api-fetch')
+        serverFetch.mockClear()
+        serverFetch.mockImplementation((url: string) => {
+            requestedUrls.push(url)
+            return Promise.resolve({
+                ok: true,
+                statusText: 'OK',
+                // 12 distinct rows — more than the default row target of 10
+                json: () =>
+                    Promise.resolve({
+                        entries: Array.from({ length: 12 }, (_, i) => historyRow(`tx-${i}`)),
+                        cursor: 'c1',
+                        hasMore: true,
+                    }),
+            })
+        })
+
+        const wrapper = makeWrapper()
+        const { result } = renderHook(() => useTransactionHistory({ mode: 'latest' }), { wrapper })
+
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+        // a finite, defaulted page size on the wire — never `limit=NaN`
+        expect(requestedUrls[0]).toContain('limit=50')
+        expect(requestedUrls[0]).not.toContain('NaN')
+        // the unique-row target engaged: one page sufficed, capped at 10 rows
+        expect(serverFetch).toHaveBeenCalledTimes(1)
+        expect(result.current.data?.entries).toHaveLength(10)
     })
 })
 
