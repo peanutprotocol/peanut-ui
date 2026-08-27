@@ -384,14 +384,7 @@ const JoinWaitlistPage = () => {
                                     }}
                                     isSetupFlow
                                     isInputChanging={isChanging}
-                                    className={twMerge(
-                                        !isValid && !isChanging && !!inviteCode && 'border-error dark:border-error',
-                                        isValid &&
-                                            !isChanging &&
-                                            !!inviteCode &&
-                                            'border-border-accent dark:border-border-accent',
-                                        'rounded-sm'
-                                    )}
+                                    className="rounded-sm"
                                 />
 
                                 <Button

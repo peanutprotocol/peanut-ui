@@ -37,7 +37,7 @@ const ProgressBar = ({ value, trackClassName, fillClassName, markers, className 
             />
             <div
                 className={twMerge(
-                    'absolute left-0 h-full rounded-full bg-success-3 transition-all duration-moderate ease-in-out',
+                    'absolute left-0 h-full rounded-full bg-green-500 transition-all duration-moderate ease-in-out',
                     fillClassName
                 )}
                 style={{ width: `${clamped}%` }}

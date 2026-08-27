@@ -1334,7 +1334,7 @@ export default function QRPayPage() {
                             <div className="flex items-center gap-3">
                                 <div
                                     className={
-                                        'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                                        'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
                                     }
                                 >
                                     <Icon name="check" size={24} />

@@ -16,7 +16,7 @@ export function DoDont({ doExample, doLabel = 'Do', dontExample, dontLabel = "Do
                     <div className="flex size-5 items-center justify-center rounded-full bg-green-1">
                         <Icon name="check" size={12} className="text-white" />
                     </div>
-                    <span className="text-sm font-bold">{doLabel}</span>
+                    <span className="text-body-s font-bold">{doLabel}</span>
                 </div>
             </div>
             <div>
@@ -25,7 +25,7 @@ export function DoDont({ doExample, doLabel = 'Do', dontExample, dontLabel = "Do
                     <div className="flex size-5 items-center justify-center rounded-full bg-error-1">
                         <Icon name="cancel" size={12} className="text-white" />
                     </div>
-                    <span className="text-sm font-bold">{dontLabel}</span>
+                    <span className="text-body-s font-bold">{dontLabel}</span>
                 </div>
             </div>
         </div>

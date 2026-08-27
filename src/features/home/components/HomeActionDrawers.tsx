@@ -8,16 +8,20 @@ import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
 import { useRouter } from 'next/navigation'
 import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { useAuth } from '@/context/authContext'
+import { OFFRAMP_MIGRATION_ROUTE } from '@/services/acquisition-navigation'
 
 type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts'
 type HomeDrawerBodyKey = 'sendToFriendsDescription' | 'withdrawToOwnAccountsDescription'
-type AddMethodKey = 'bankTransfer' | 'crypto'
+type AddMethodKey = 'bankTransfer' | 'crypto' | 'migrateFromOfframp' | 'migrateFromOfframpDescription'
 
 interface DrawerOption {
     key: string
     /** i18n namespace + key — 'drawers' = home.drawers, 'methods' = addMoney.methods */
     titleKey: ['drawers', HomeDrawerKey] | ['methods', AddMethodKey]
     bodyKey?: HomeDrawerBodyKey
+    /** body text living in addMoney.methods instead of home.drawers */
+    methodsBodyKey?: AddMethodKey
     icon: IconName
     href: string
 }
@@ -58,6 +62,10 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
  */
 export function HomeActionDrawers() {
     const [drawer, setDrawer] = useHomeDrawer()
+    const { user } = useAuth()
+    // parity with /add-money (F-23): an OFFRAMP_USER who taps Add on home must
+    // see the same migration entry the add-money method list grants them
+    const hasOfframpMigrationEntry = user?.user?.badges?.some((badge) => badge.code === 'OFFRAMP_USER') ?? false
     const t = useTranslations('home.drawers')
     const tMethods = useTranslations('addMoney.methods')
     const tNav = useTranslations('navigation')
@@ -85,7 +93,19 @@ export function HomeActionDrawers() {
                             {tNav(content)}
                         </DrawerTitle>
                         <div className="flex flex-col">
-                            {DRAWER_OPTIONS[content].map((option, index, all) => (
+                            {(content === 'add' && hasOfframpMigrationEntry
+                                ? [
+                                      {
+                                          key: 'offramp-migration',
+                                          titleKey: ['methods', 'migrateFromOfframp'],
+                                          methodsBodyKey: 'migrateFromOfframpDescription',
+                                          icon: 'wallet-outline',
+                                          href: OFFRAMP_MIGRATION_ROUTE,
+                                      } as DrawerOption,
+                                      ...DRAWER_OPTIONS.add,
+                                  ]
+                                : DRAWER_OPTIONS[content]
+                            ).map((option, index, all) => (
                                 <ListItem
                                     key={option.key}
                                     position={getCardPosition(index, all.length)}
@@ -95,7 +115,13 @@ export function HomeActionDrawers() {
                                             ? tMethods(option.titleKey[1] as AddMethodKey)
                                             : t(option.titleKey[1] as HomeDrawerKey)
                                     }
-                                    body={option.bodyKey ? t(option.bodyKey) : undefined}
+                                    body={
+                                        option.methodsBodyKey
+                                            ? tMethods(option.methodsBodyKey)
+                                            : option.bodyKey
+                                              ? t(option.bodyKey)
+                                              : undefined
+                                    }
                                     chevron
                                     onClick={() => navigate(option.href)}
                                     data-testid={`home-drawer-${content}-${option.key}`}

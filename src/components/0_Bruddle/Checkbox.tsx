@@ -1,4 +1,5 @@
 import { Icon } from '../Global/Icons/Icon'
+import { twMerge } from '@/utils/tw'
 
 type CheckboxProps = {
     className?: string
@@ -20,7 +21,10 @@ const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
         {/* no figma checkbox board exists yet (form board 17802:61539 has no
             checkbox rows) — styled with semantic tokens, flagged for design */}
         <span
-            className={`relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-border-default bg-background-default transition-colors duration-instant ${value ? 'bg-action-primary' : ''}`}
+            className={twMerge(
+                'relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-border-default bg-background-default transition-colors duration-instant',
+                value && 'bg-action-primary'
+            )}
         >
             <Icon
                 name="check"

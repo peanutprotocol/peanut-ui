@@ -72,6 +72,16 @@ export const twMerge = extendTailwindMerge<
             // font-bold and coexists with families.
             'font-weight': [{ font: ['extraBlack'] }],
             rounded: [{ rounded: [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
+            // side/corner radius groups need the same DS-token registration or
+            // `rounded-t-round` conflicts with nothing (F-16; latent, 0 uses)
+            'rounded-t': [{ 'rounded-t': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
+            'rounded-b': [{ 'rounded-b': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
+            'rounded-l': [{ 'rounded-l': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
+            'rounded-r': [{ 'rounded-r': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
+            'rounded-tl': [{ 'rounded-tl': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
+            'rounded-tr': [{ 'rounded-tr': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
+            'rounded-bl': [{ 'rounded-bl': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
+            'rounded-br': [{ 'rounded-br': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
             duration: [{ duration: DS_DURATION_TOKENS }],
             // component classes whose tailwind-shaped names land in color/bg
             // groups by default, so a colour class deleted them: text-link lost

@@ -25,13 +25,16 @@ const StatusPill = ({ status }: StatusPillProps) => {
         failed: 'bg-background-badge-error',
     }
 
+    // badge board type=icon glyphs (17312:137472-480, 18072:25494/25504/25520):
+    // processing = refresh arrow, soon = triangle, cancelled = ban — distinct
+    // from failed's x (the old map rendered cancelled and failed identically)
     const iconClasses: Record<StatusPillType, IconName> = {
         completed: 'success',
         failed: 'cancel',
-        processing: 'pending',
-        soon: 'pending',
+        processing: 'retry',
+        soon: 'alert',
         pending: 'pending',
-        cancelled: 'cancel',
+        cancelled: 'ban',
         refunded: 'undo',
         closed: 'success',
     }

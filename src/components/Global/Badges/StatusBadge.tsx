@@ -46,19 +46,19 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
             case 'completed':
             case 'closed':
             case 'refunded':
-                return 'bg-background-badge-success text-foreground-primary'
+                return 'bg-background-badge-success text-foreground-over-color-secondary'
             case 'pending':
-                return 'bg-background-badge-attention text-foreground-primary'
+                return 'bg-background-badge-attention text-foreground-over-color-secondary'
             case 'processing':
-                return 'bg-background-badge-info text-foreground-primary'
+                return 'bg-background-badge-info text-foreground-over-color-secondary'
             case 'failed':
             case 'cancelled':
-                return 'bg-background-badge-error text-foreground-primary'
+                return 'bg-background-badge-error text-foreground-over-color-secondary'
             case 'soon':
             case 'custom':
-                return 'bg-background-badge-accent text-foreground-primary'
+                return 'bg-background-badge-accent text-foreground-over-color-secondary'
             default:
-                return 'bg-background-badge-helper text-foreground-primary'
+                return 'bg-background-badge-helper text-foreground-over-color-secondary'
         }
     }
 

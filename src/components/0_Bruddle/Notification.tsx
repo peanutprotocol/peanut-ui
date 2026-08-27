@@ -16,6 +16,8 @@ interface NotificationCta {
 interface NotificationProps {
     /** Sets the tone, background, and leading icon. */
     priority?: NotificationPriority
+    /** suppress the leading priority icon (self-designed content, e.g. badge toasts) */
+    hideIcon?: boolean
     /** Optional bold first line. Body renders indented under it. */
     title?: string
     /** Body text. Ignored when `items` is set. */
@@ -35,7 +37,7 @@ const PRIORITY_STYLES: Record<NotificationPriority, { icon: IconName; bg: string
     success: { icon: 'check', bg: 'bg-background-badge-success' },
     attention: { icon: 'alert', bg: 'bg-background-badge-attention' },
     helper: { icon: 'info', bg: 'bg-background-badge-helper' },
-    error: { icon: 'error', bg: 'bg-background-badge-error' },
+    error: { icon: 'ban', bg: 'bg-background-badge-error' }, // board error glyph is the ban circle, not alert-circle,
 }
 
 const CTA_VARIANTS = ['purple', 'stroke'] as const
@@ -56,6 +58,7 @@ const CTA_VARIANTS = ['purple', 'stroke'] as const
  */
 export const Notification = ({
     priority = 'info',
+    hideIcon = false,
     title,
     children,
     items,
@@ -87,7 +90,7 @@ export const Notification = ({
           )
         : children
     // a checklist carries its own check marks — no leading priority icon
-    const showIcon = !items
+    const showIcon = !items && !hideIcon
     // the title body and the ctas line up under the title, which the leading
     // icon pushes in by 28px. Without the icon there is nothing to clear.
     const indent = showIcon ? 'pl-7' : ''
@@ -123,10 +126,10 @@ export const Notification = ({
                         {title ? (
                             <span className="text-body-m-semibold">{title}</span>
                         ) : (
-                            <div className="min-w-0 flex-1 text-body-m">{body}</div>
+                            <div className="min-w-0 flex-1 text-body-m break-words">{body}</div>
                         )}
                     </div>
-                    {title && <div className={twMerge('text-body-m', indent)}>{body}</div>}
+                    {title && <div className={twMerge('text-body-m break-words', indent)}>{body}</div>}
                 </div>
                 {!!ctas?.length && (
                     <div className={twMerge('flex flex-wrap gap-2', indent)}>

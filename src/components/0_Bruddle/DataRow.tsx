@@ -4,7 +4,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import { Tooltip } from '@/components/Tooltip'
 
-export interface DataRowProps {
+interface DataRowProps {
     label: React.ReactNode
     value: React.ReactNode
     moreInfoText?: string

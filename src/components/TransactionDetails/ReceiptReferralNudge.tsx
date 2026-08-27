@@ -65,7 +65,7 @@ export function ReceiptReferralNudge({
             variant="transparent"
             showIcon={false}
             onSuccess={captureInviteShared}
-            className="h-auto gap-2 p-0 text-body-s text-foreground-secondary underline shadow-none hover:text-foreground-primary active:translate-x-0 active:translate-y-0"
+            className="relative h-auto gap-2 p-0 text-body-s text-foreground-secondary underline shadow-none after:absolute after:inset-x-0 after:-inset-y-3.5 hover:text-foreground-primary active:translate-x-0 active:translate-y-0 active:text-foreground-primary"
         >
             <Icon name="invite-heart" size={16} className="text-foreground-secondary" />
             {label}

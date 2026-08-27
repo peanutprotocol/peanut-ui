@@ -173,8 +173,10 @@ const ValidatedInput = ({
         <div className="w-full">
             <div
                 className={twMerge(
-                    'relative w-full rounded-sm border border-border-default bg-background-default focus:border-action-primary',
-                    value && !isValidating && !isValid && debouncedValue === value ? 'border-error' : '',
+                    // the composed box IS the input chrome: DS states only, callers
+                    // pass layout classes at most (input board has no valid state)
+                    'relative w-full rounded-sm border border-border-default bg-background-default focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
+                    value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
                     className
                 )}
                 translate="no"
@@ -203,7 +205,7 @@ const ValidatedInput = ({
                                 : undefined
                         }
                         className={twMerge(
-                            `notranslate h-12 w-full border-0 bg-background-default pr-1 text-body-s font-medium outline-none focus:outline-none active:bg-background-default`,
+                            `notranslate w-full border-0 bg-background-default pr-1 text-body-s font-medium outline-none focus:outline-none focus-visible:outline-none active:bg-background-default`,
                             !!infoText ? 'pl-0' : 'pl-4'
                         )}
                         placeholder={placeholder}
@@ -235,7 +237,7 @@ const ValidatedInput = ({
                                     <Icon size={20} className="text-error" name="error" />
                                 </div>
                             ) : !!isSetupFlow && !!isValid && !isInputChanging ? (
-                                <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-success-3">
+                                <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green">
                                     <Icon size={12} className="rounded-full p-0 text-white" name="check" />
                                 </div>
                             ) : (

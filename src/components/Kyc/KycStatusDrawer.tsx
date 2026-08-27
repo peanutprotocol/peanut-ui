@@ -3,7 +3,7 @@ import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
 import { KycProcessing } from './states/KycProcessing'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
-import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
+import { Drawer, DrawerContent } from '../Global/Drawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useCallback } from 'react'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -85,8 +85,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="p-4 pb-12">
-                    <DrawerTitle className="sr-only">{t('statusDrawerTitle')}</DrawerTitle>
+                <DrawerContent accessibleTitle={t('statusDrawerTitle')} className="p-4 pb-12">
                     {renderContent()}
                     {sumsubFlow.error && <p className="mt-3 text-center text-body-s text-error">{sumsubFlow.error}</p>}
                 </DrawerContent>

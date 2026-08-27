@@ -12,7 +12,6 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useState } from 'react'
-import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 
 const SignupStep = () => {
@@ -133,14 +132,7 @@ const SignupStep = () => {
                             onUpdate={handleInputUpdate}
                             isSetupFlow
                             isInputChanging={isChanging}
-                            className={twMerge(
-                                !isValid && !isChanging && !!username && 'border-error dark:border-error',
-                                isValid &&
-                                    !isChanging &&
-                                    !!username &&
-                                    'border-border-accent dark:border-border-accent',
-                                'rounded-sm'
-                            )}
+                            className="rounded-sm"
                         />
                         <Button
                             className="h-12 w-4/12"
@@ -152,11 +144,11 @@ const SignupStep = () => {
                             {t('next')}
                         </Button>
                     </div>
-                    {error && (
-                        <div className="pb-1">
-                            <Notification priority="error">{error}</Notification>
-                        </div>
-                    )}
+                    {/* slot space is always reserved so the error mounting doesn't
+                        re-center the vertically-centered step block (F-5) */}
+                    <div className="min-h-14 pb-1">
+                        {error && <Notification priority="error">{error}</Notification>}
+                    </div>
                 </div>
                 <div>
                     <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">

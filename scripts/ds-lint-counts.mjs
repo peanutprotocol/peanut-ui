@@ -43,7 +43,7 @@ const HEX_ALLOW = [
     'LandingPage/PioneerCard3D', // canvas 3d card
 ]
 
-const HEX_RE = /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g
+const HEX_RE = /#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g
 const INLINE_STYLE_RE = /style=\{\{/g
 // stock tailwind text sizes that the text-h* scale replaces
 const STOCK_TEXT_RE = /\btext-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl)\b/g
@@ -108,7 +108,7 @@ counts.nuqsFiles = files.filter((f) => /from ['"]nuqs['"]/.test(f.text)).length
 // are the legacy palette; 50+ are the figma primitive ramp (gray-200 etc.),
 // which is the design system, not debt.
 const LEGACY_PALETTE_RE =
-    /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(?:n|grey|gray|primary|purple|yellow|green|secondary|teal|violet|cyan|orange)-(?:[1-9]|1[01])\b/g
+    /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(?:n|grey|gray|primary|purple|yellow|green|secondary|teal|violet|cyan|orange|success|error|blue|pink|red)-(?:[1-9]|1[01])\b/g
 const LEGACY_ALLOW = [
     'components/LandingPage/',
     'components/Marketing/',
@@ -150,6 +150,78 @@ counts.offRampPalette = files
         return sum + n
     }, 0)
 
+// dead-token metric, both directions (F-10 + Jota's inverse class):
+// 1) deadLegacyTokens — a legacy-family --color token defined in globals.css
+//    with zero class consumers anywhere in src. must stay 0: zero-consumer
+//    shims get deleted, they cannot pile back up while marketing migrates.
+// 2) consumedUndefinedTokens — a color-suffixed utility class whose token is
+//    NOT in globals.css. in tailwind v4 an undefined token generates no
+//    utility: the class silently vanishes from the compiled css (the
+//    border-secondary-2 status-page bug). must stay 0, app-wide, no allowlist
+//    — an invisible style is broken on marketing pages too.
+const GLOBALS_CSS = readFileSync(join(SRC, 'styles', 'globals.css'), 'utf8')
+const DEFINED_COLOR_TOKENS = new Set([...GLOBALS_CSS.matchAll(/--color-([a-z0-9-]+)\s*:/g)].map((m) => m[1]))
+// families the theme owns (legacy palette + replaced-not-extended v4 scales);
+// any <family>-<index> class outside DEFINED_COLOR_TOKENS is undefined.
+const OWNED_FAMILIES = [
+    'n',
+    'grey',
+    'gray',
+    'primary',
+    'secondary',
+    'purple',
+    'yellow',
+    'green',
+    'red',
+    'blue',
+    'pink',
+    'orange',
+    'teal',
+    'violet',
+    'cyan',
+    'success',
+    'error',
+]
+const LEGACY_FAMILIES = [
+    'n',
+    'grey',
+    'primary',
+    'secondary',
+    'purple',
+    'yellow',
+    'green',
+    'success',
+    'error',
+    'orange',
+    'teal',
+    'violet',
+    'cyan',
+]
+const COLOR_CLASS_RE = new RegExp(
+    '\\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(' +
+        OWNED_FAMILIES.join('|') +
+        ')-([0-9]{1,3})\\b',
+    'g'
+)
+// @apply rules inside globals.css consume tokens too (dark:bg-n-2 on body,
+// bg-purple-3 etc.) — strip the --color definitions so they don't self-count.
+const cssMinusDefs = GLOBALS_CSS.replace(/--color-[a-z0-9-]+\s*:[^;]+;/g, '')
+const allSrcText = files.map((f) => f.text).join('\n') + '\n' + cssMinusDefs
+const consumedBodies = new Set()
+for (const m of allSrcText.matchAll(COLOR_CLASS_RE)) consumedBodies.add(`${m[1]}-${m[2]}`)
+counts.deadLegacyTokens = [...DEFINED_COLOR_TOKENS].filter((t) => {
+    const m = t.match(/^([a-z]+)-([1-9]|1[01])$/)
+    return m && LEGACY_FAMILIES.includes(m[1]) && !consumedBodies.has(t)
+}).length
+const consumedOutsideAuditData = new Set()
+for (const f of files) {
+    // dev/ds/audit data files quote historical class names as strings — prose, not styling
+    if (f.path.includes('dev/ds/audit/')) continue
+    for (const m of f.text.matchAll(COLOR_CLASS_RE)) consumedOutsideAuditData.add(`${m[1]}-${m[2]}`)
+}
+for (const m of cssMinusDefs.matchAll(COLOR_CLASS_RE)) consumedOutsideAuditData.add(`${m[1]}-${m[2]}`)
+counts.consumedUndefinedTokens = [...consumedOutsideAuditData].filter((b) => !DEFINED_COLOR_TOKENS.has(b)).length
+
 // className sites in (mobile-ui) page.tsx files — pages should compose
 // recipes/views, not respell utility strings. goes down as pages de-inline.
 counts.classNameSitesInPages = files
@@ -168,12 +240,34 @@ const DEBT_KEYS = [
     'legacyColorClasses',
     'offRampPalette',
     'classNameSitesInPages',
+    'deadLegacyTokens',
+    'consumedUndefinedTokens',
 ]
 
 const mode = process.argv[2] ?? ''
 if (mode === '--json') {
     console.log(JSON.stringify(counts, null, 2))
 } else if (mode === '--write-baseline') {
+    // a regen that RAISES a debt metric needs an explicit, visible reason —
+    // this branch is how baseline bumps stopped being silent (F-14). CI only
+    // ever runs --check, so the flag cannot be abused there.
+    const allowIdx = process.argv.indexOf('--allow-increase')
+    const allowReason = allowIdx !== -1 ? process.argv[allowIdx + 1] : null
+    try {
+        const prev = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'))
+        const raised = DEBT_KEYS.filter((k) => typeof prev[k] === 'number' && counts[k] > prev[k])
+        if (raised.length && !allowReason) {
+            console.error(
+                `--write-baseline would RAISE ${raised.map((k) => `${k} (${prev[k]} -> ${counts[k]})`).join(', ')}.`
+            )
+            console.error('debt only goes down. if this increase is reviewed and intentional, rerun with:')
+            console.error('  --write-baseline --allow-increase "<why>"')
+            process.exit(1)
+        }
+        if (raised.length) console.log(`baseline increase allowed: ${allowReason}`)
+    } catch (e) {
+        if (e.code !== 'ENOENT') throw e // no previous baseline: first write is free
+    }
     // 4-space indent matches prettier (tabWidth 4) so a regen never fails the format gate
     writeFileSync(BASELINE_PATH, JSON.stringify(counts, null, 4) + '\n')
     console.log(`baseline written to ${relative(ROOT, BASELINE_PATH)}`)

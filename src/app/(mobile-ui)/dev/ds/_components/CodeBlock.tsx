@@ -23,8 +23,12 @@ export function CodeBlock({ code, label, language = 'tsx' }: CodeBlockProps) {
     return (
         <div>
             <div className="flex items-center justify-between">
-                {label && <span className="text-xs font-bold tracking-wider text-grey-1 uppercase">{label}</span>}
-                <button onClick={handleCopy} className="ml-auto text-grey-1 opacity-40 hover:opacity-100">
+                {label && (
+                    <span className="text-body-xs font-bold tracking-wider text-foreground-secondary uppercase">
+                        {label}
+                    </span>
+                )}
+                <button onClick={handleCopy} className="ml-auto text-foreground-secondary opacity-40 hover:opacity-100">
                     {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
                 </button>
             </div>

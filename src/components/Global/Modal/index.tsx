@@ -108,15 +108,19 @@ const Modal = ({
                                     children
                                 )}
 
+                                {/* board 17800:57256 / 17829:74079: 40px circular close
+                                    button, black border + 4px hard shadow, overlapping
+                                    the panel's top-right corner */}
                                 <button
                                     className={twMerge(
-                                        `absolute top-2 right-2 p-2 text-0 hover:fill-action-primary dark:fill-white dark:hover:fill-action-primary ${
-                                            video ? 'absolute top-3 right-3 h-14 w-14 fill-white' : ''
-                                        } ${classButtonClose}`
+                                        video
+                                            ? 'absolute top-3 right-3 h-14 w-14 fill-white p-2 text-0'
+                                            : 'absolute -top-5 -right-5 z-10 flex size-10 items-center justify-center rounded-round border border-border-button bg-background-default text-0 shadow-4 hover:bg-background-disabled',
+                                        classButtonClose
                                     )}
                                     onClick={onClose}
                                 >
-                                    <Icon name="cancel" size={24} className="transition-colors" />
+                                    <Icon name="cancel" size={video ? 24 : 20} className="transition-colors" />
                                 </button>
                             </>
                         ) : (

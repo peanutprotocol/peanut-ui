@@ -80,7 +80,7 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
 
     const bgColorClass =
         questConfig.backgroundColor === 'purple'
-            ? ''
+            ? 'bg-purple-200'
             : questConfig.backgroundColor === 'pink'
               ? 'bg-pink-200'
               : 'bg-blue-200'

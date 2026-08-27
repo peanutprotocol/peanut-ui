@@ -18,13 +18,13 @@ export function QuestLeaderboard({ entries, badgeColor, isCurrency = false }: Qu
     const getBadgeColorClasses = (color: string) => {
         switch (color) {
             case 'YELLOW':
-                return ''
+                return 'bg-yellow-200 text-foreground-primary'
             case 'PINK':
                 return 'bg-pink-200 text-pink-700'
             case 'BLUE':
                 return 'bg-blue-200 text-blue-600'
             default:
-                return ''
+                return 'bg-gray-100 text-gray-700'
         }
     }
 

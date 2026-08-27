@@ -17,10 +17,10 @@ export const ContactsListSkeleton = ({ count = 10 }: { count?: number }) => {
                     return (
                         <ListItem
                             key={index}
-                            title={<div className="h-4 w-32 animate-pulse rounded" />}
+                            title={<div className="h-4 w-32 animate-pulse rounded bg-gray-200" />}
                             position={position}
                             chevron
-                            leading={<div className="h-8 w-8 animate-pulse rounded-full" />}
+                            leading={<div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />}
                         />
                     )
                 })}

@@ -399,7 +399,7 @@ const RegionsList = ({ regions, isLocked, onRegionClick }: RegionsListProps) => 
                         }}
                         disabled={!isLocked}
                         body={<div className="text-body-xs">{label.description}</div>}
-                        trailing={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
+                        trailing={!isLocked ? <Icon name="check" className="size-4 text-green-500" /> : null}
                         chevron={isLocked}
                     />
                 )

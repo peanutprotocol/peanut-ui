@@ -1,4 +1,5 @@
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
@@ -24,7 +25,7 @@ export interface ActionModalProps {
     onClose: () => void
     title: string | React.ReactNode
     description?: string | React.ReactNode
-    icon?: IconName | React.ReactNode
+    icon?: IconName | React.ReactElement
     iconProps?: Partial<Omit<GlobalIconProps, 'name'>>
     iconContainerClassName?: string
     isLoadingIcon?: boolean
@@ -76,9 +77,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
     const defaultIconContainerClassName = 'bg-action-primary' // default pink background
     const defaultIconPropsClassName = 'text-black' // default black icon color
 
+    // board bubble is the 48px icon bubble with a 24px icon (17800:57255,
+    // 17829:74078) — was a hand-rolled 32px circle with a 16px icon
     const renderIconContent = () => {
         if (isLoadingIcon) {
-            return <Loading className={twMerge('size-4', defaultIconPropsClassName, iconProps?.className)} />
+            return <Loading className={twMerge('size-6', defaultIconPropsClassName, iconProps?.className)} />
         }
         if (typeof icon === 'string') {
             return (
@@ -86,7 +89,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     name={icon as IconName}
                     fill="currentColor"
                     {...iconProps}
-                    className={twMerge('size-4', defaultIconPropsClassName, iconProps?.className)}
+                    className={twMerge('size-6', defaultIconPropsClassName, iconProps?.className)}
                 />
             )
         }
@@ -108,8 +111,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
             className={twMerge('items-center justify-center md:mx-auto md:max-w-md', modalClassName)}
             classButtonClose={hideModalCloseButton ? '!hidden' : ''}
             classWrap={twMerge(
-                // board 17800:57216 panel: white, border-default, sharp 2px corners
-                'sm:m-auto sm:self-center self-center m-4 bg-background-default rounded-sm border border-border-default z-50',
+                // board 17800:57216 panel: white, border-default, 4px corners
+                // (17800:57252 + 17829:74075 both use --xs,4px — one step softer
+                // than card/list; the earlier "2px" comment misread the board)
+                'sm:m-auto sm:self-center self-center m-4 bg-background-default rounded border border-border-default z-50',
                 defaultModalPanelClasses,
                 modalPanelClassName
             )}
@@ -124,14 +129,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
             <div className={twMerge('flex flex-col items-center gap-6 p-6 text-center', contentContainerClassName)}>
                 <div className="flex w-full flex-col items-center gap-4">
                     {iconContent && (
-                        <div
-                            className={twMerge(
-                                'flex size-8 items-center justify-center rounded-full',
-                                customIconContainerClassName || defaultIconContainerClassName
-                            )}
-                        >
-                            {iconContent}
-                        </div>
+                        <IconBubble
+                            size="m"
+                            icon={iconContent}
+                            className={customIconContainerClassName || defaultIconContainerClassName}
+                        />
                     )}
 
                     <div className="flex w-full flex-col gap-1">

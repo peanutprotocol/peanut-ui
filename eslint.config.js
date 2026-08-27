@@ -27,6 +27,16 @@ const RESTRICTED_IMPORT_PATHS = BANNED_BARREL_PATHS.map((path) => ({
 // useQueryStates, never manually parse/set query params with router.push or
 // URLSearchParams. Existing offenders are allowlisted below (ratchet — remove
 // entries as files migrate); only NEW files are blocked from the pattern.
+// tw.ts wraps tailwind-merge with the DS token groups registered; a raw import
+// (e.g. a copy-pasted shadcn cn() helper) reintroduces the silent class-deletion
+// bug tw.ts exists to fix — unrecognised DS tokens get treated as conflicting
+// colors and dropped. Only src/utils/tw.ts itself may import the package.
+const TAILWIND_MERGE_IMPORT_RESTRICTION = {
+    name: 'tailwind-merge',
+    message:
+        "Import { twMerge } from '@/utils/tw' — raw tailwind-merge doesn't know the DS token groups and silently deletes DS classes.",
+}
+
 const USE_SEARCH_PARAMS_IMPORT_RESTRICTION = {
     name: 'next/navigation',
     importNames: ['useSearchParams'],
@@ -200,7 +210,11 @@ module.exports = [
             'no-restricted-imports': [
                 'error',
                 {
-                    paths: [...RESTRICTED_IMPORT_PATHS, USE_SEARCH_PARAMS_IMPORT_RESTRICTION],
+                    paths: [
+                        ...RESTRICTED_IMPORT_PATHS,
+                        USE_SEARCH_PARAMS_IMPORT_RESTRICTION,
+                        TAILWIND_MERGE_IMPORT_RESTRICTION,
+                    ],
                 },
             ],
 
@@ -228,6 +242,12 @@ module.exports = [
         // fallback behind the haptics helpers everything else must use.
         files: ['src/utils/haptics.ts'],
         rules: { 'no-restricted-syntax': 'off' },
+    },
+    {
+        // The wrapper itself (and its census test) are the only legal raw
+        // tailwind-merge importers.
+        files: ['src/utils/tw.ts', 'src/utils/__tests__/tw.test.ts'],
+        rules: { 'no-restricted-imports': 'off' },
     },
     {
         // Capacitor hardware back: different bug class (canGoBack + minimizeApp).

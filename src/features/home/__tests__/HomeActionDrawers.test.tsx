@@ -1,18 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { HomeActionDrawers } from '../components/HomeActionDrawers'
 
-// url-backed drawer state — controlled per test
-let mockDrawer: string | null = null
-// deferred like the real nuqs setter (returns a promise) so the ordering
-// assertion below actually exercises navigate's await
-const mockSetDrawer = jest.fn(async (value: string | null) => {
-    mockDrawer = value
-    await Promise.resolve()
-})
-jest.mock('nuqs', () => ({
-    useQueryState: () => [mockDrawer, mockSetDrawer],
-    parseAsStringEnum: () => ({ withDefault: jest.fn() }),
-}))
+// F-28: the real nuqs pipeline runs (parser, enum validation, url writes) via
+// the official testing adapter — the old suite mocked all of nuqs, so the
+// ?drawer= URL contract was asserted nowhere.
 
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -25,6 +17,11 @@ jest.mock('next-intl', () => ({
 
 jest.mock('@/hooks/useAppHaptic', () => ({
     useAppHaptic: () => ({ triggerHaptic: jest.fn() }),
+}))
+
+let mockBadges: Array<{ code: string }> = []
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { badges: mockBadges } } }),
 }))
 
 beforeAll(() => {
@@ -45,31 +42,39 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockDrawer = null
+    mockBadges = []
 })
+
+const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
+    render(<HomeActionDrawers />, {
+        wrapper: withNuqsTestingAdapter({ searchParams: search, onUrlUpdate }),
+    })
 
 describe('HomeActionDrawers', () => {
     it('renders nothing when no drawer param is set', () => {
-        render(<HomeActionDrawers />)
+        renderWithUrl('')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    it('opens the send drawer with its two options and routes on click', async () => {
-        mockDrawer = 'send'
-        render(<HomeActionDrawers />)
+    it('URL contract: the key is `drawer` and values outside the enum read as closed', () => {
+        renderWithUrl('?drawer=nonsense')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('opens the send drawer from ?drawer=send and routes on click after clearing the param', async () => {
+        const urlUpdates: UrlUpdateEvent[] = []
+        renderWithUrl('?drawer=send', (e) => urlUpdates.push(e))
 
         expect(screen.getByText('sendToFriends')).toBeInTheDocument()
-        const withdraw = screen.getByTestId('home-drawer-send-withdraw')
-        fireEvent.click(withdraw)
-        expect(mockSetDrawer).toHaveBeenCalledWith(null)
+        fireEvent.click(screen.getByTestId('home-drawer-send-withdraw'))
         // push must wait for the queued url reset (coderabbit #2780)
-        expect(mockPush).not.toHaveBeenCalled()
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/withdraw'))
+        // the drawer param was cleared from the URL before routing
+        expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
     })
 
     it('opens the add drawer with bank and crypto options only', async () => {
-        mockDrawer = 'add'
-        render(<HomeActionDrawers />)
+        renderWithUrl('?drawer=add')
 
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
@@ -79,5 +84,15 @@ describe('HomeActionDrawers', () => {
 
         // withdraw is reachable via the SEND drawer only (product ruling)
         expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
+        // no offramp migration row without the badge
+        expect(screen.queryByTestId('home-drawer-add-offramp-migration')).not.toBeInTheDocument()
+    })
+
+    it('shows the offramp migration row for OFFRAMP_USER badge holders (parity with /add-money)', async () => {
+        mockBadges = [{ code: 'OFFRAMP_USER' }]
+        renderWithUrl('?drawer=add')
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-offramp-migration'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp'))
     })
 })

@@ -14,6 +14,20 @@ describe('Notification', () => {
         expect(screen.getByRole('alert')).toBeInTheDocument()
     })
 
+    test('attention renders role=alert too (the branch every warning toast rides)', () => {
+        render(<Notification priority="attention">Careful now</Notification>)
+        expect(screen.getByRole('alert')).toHaveTextContent('Careful now')
+    })
+
+    test('hideIcon suppresses the leading priority icon for self-designed content', () => {
+        const { container } = render(
+            <Notification priority="success" hideIcon>
+                badge content
+            </Notification>
+        )
+        expect(container.querySelector('svg')).not.toBeInTheDocument()
+    })
+
     test('title + body renders both, no dismiss button unless onDismiss is set', () => {
         render(
             <Notification priority="attention" title="Heads up">

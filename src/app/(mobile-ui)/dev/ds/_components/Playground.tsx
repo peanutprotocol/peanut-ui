@@ -28,13 +28,13 @@ export function Playground({ importPath, defaults, controls, render, codeTemplat
         <div className="space-y-4">
             {/* Preview */}
             <div className="rounded-sm border border-gray-3 bg-white p-6">
-                <div className="mb-3 text-xs font-bold tracking-wider text-gray-2 uppercase">Preview</div>
+                <div className="mb-3 text-body-xs font-bold tracking-wider text-gray-2 uppercase">Preview</div>
                 <div className="flex items-center justify-center rounded-sm bg-gray-3/30 py-8">{render(props)}</div>
             </div>
 
             {/* Controls */}
             <div className="rounded-sm border border-gray-3 bg-gray-3/20 p-4">
-                <div className="mb-3 text-xs font-bold tracking-wider text-gray-2 uppercase">Controls</div>
+                <div className="mb-3 text-body-xs font-bold tracking-wider text-gray-2 uppercase">Controls</div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {controls.map((control) => (
                         <ControlField
@@ -67,11 +67,13 @@ function ControlField({
         case 'select':
             return (
                 <div>
-                    <label className="mb-1 block text-xs font-bold text-grey-1">{control.label}</label>
+                    <label className="mb-1 block text-body-xs font-bold text-foreground-secondary">
+                        {control.label}
+                    </label>
                     <select
                         value={value ?? ''}
                         onChange={(e) => onChange(e.target.value || undefined)}
-                        className="w-full rounded-sm border border-n-1/30 bg-white px-2 py-1.5 text-xs font-bold"
+                        className="w-full rounded-sm border border-n-1/30 bg-white px-2 py-1.5 text-body-xs font-bold"
                     >
                         <option value="">(none)</option>
                         {control.options.map((opt) => (
@@ -91,19 +93,21 @@ function ControlField({
                         onChange={(e) => onChange(e.target.checked)}
                         className="size-4 rounded-sm border border-n-1"
                     />
-                    <label className="text-xs font-bold text-grey-1">{control.label}</label>
+                    <label className="text-body-xs font-bold text-foreground-secondary">{control.label}</label>
                 </div>
             )
         case 'text':
             return (
                 <div>
-                    <label className="mb-1 block text-xs font-bold text-grey-1">{control.label}</label>
+                    <label className="mb-1 block text-body-xs font-bold text-foreground-secondary">
+                        {control.label}
+                    </label>
                     <input
                         type="text"
                         value={value ?? ''}
                         onChange={(e) => onChange(e.target.value || undefined)}
                         placeholder={control.placeholder}
-                        className="w-full rounded-sm border border-n-1/30 bg-white px-2 py-1.5 text-xs"
+                        className="w-full rounded-sm border border-n-1/30 bg-white px-2 py-1.5 text-body-xs"
                     />
                 </div>
             )

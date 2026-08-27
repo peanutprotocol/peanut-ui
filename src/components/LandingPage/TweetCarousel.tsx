@@ -146,7 +146,7 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
                     <PlayOverlay />
                 </div>
             ) : (
-                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-n-1 bg-gradient-to-br to-amber-100">
+                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-n-1 bg-gradient-to-br from-secondary-4 to-amber-100">
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute -top-4 -left-4 text-7xl">🥜</div>
                         <div className="absolute -right-4 -bottom-4 text-7xl">🥜</div>

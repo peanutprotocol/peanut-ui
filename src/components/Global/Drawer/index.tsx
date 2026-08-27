@@ -49,7 +49,8 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 className={twMerge(
                     // chrome per the TX Details board (17490:115877): page background,
                     // no border, handle 32x5 sitting 8px from the top with 24px below.
-                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-[10px] bg-background-page',
+                    // tx-details board 17835:84492: 16px top corners (was a hardcoded 10px)
+                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-2xl bg-background-page',
                     className
                 )}
                 aria-describedby={undefined}

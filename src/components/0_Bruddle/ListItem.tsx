@@ -29,8 +29,8 @@ interface ListItemProps {
  * trailing slot / chevron. Grouping via position (top/middle/bottom/solo),
  * pressed = disabled-background fill, disabled (board 17785:14606) =
  * background/disabled fill + border/subtle + secondary title, content at full
- * opacity so badges and checkmarks keep their contrast. 56px tall at default
- * padding — over the 44px touch-target floor.
+ * opacity so badges and checkmarks keep their contrast. Rows compute to
+ * >=48px (32px leading slot + p-4) — over the 44px touch-target floor.
  */
 export const ListItem = ({
     title,

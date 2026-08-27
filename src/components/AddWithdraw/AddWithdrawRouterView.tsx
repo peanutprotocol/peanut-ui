@@ -266,7 +266,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                                   method_type: 'manteca',
                                   country: 'argentina',
                               })
-                              router.push('/withdraw/manteca?method=mercado-pago&country=argentina')
+                              router.push('/withdraw/manteca?method=mercadopago&country=argentina')
                           }
                         : undefined
                 }

@@ -25,6 +25,7 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
     message,
     content,
     className,
+    hideIcon,
     onDismiss,
 }) => {
     return (
@@ -35,7 +36,12 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             className="max-w-[calc(100vw_-_2rem)] md:max-w-md"
         >
-            <Notification priority={TOAST_PRIORITY[type]} onDismiss={onDismiss} className={className}>
+            <Notification
+                priority={TOAST_PRIORITY[type]}
+                onDismiss={onDismiss}
+                className={className}
+                hideIcon={hideIcon}
+            >
                 {content ?? message}
             </Notification>
         </motion.div>

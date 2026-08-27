@@ -9,14 +9,14 @@ export const CountryListSkeleton = () => {
     return (
         <div className="flex-1 overflow-y-auto">
             {Array.from({ length: 10 }).map((_, index) => {
-                const position = getCardPosition(index, 5)
+                const position = getCardPosition(index, 10)
                 return (
                     <ListItem
                         key={index}
-                        title={<div className="h-4 w-24 animate-pulse rounded" />}
+                        title={<div className="h-4 w-24 animate-pulse rounded bg-gray-200" />}
                         position={position}
                         chevron
-                        leading={<div className="h-8 w-8 animate-pulse rounded-full" />}
+                        leading={<div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />}
                     />
                 )
             })}

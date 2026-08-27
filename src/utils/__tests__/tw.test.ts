@@ -102,6 +102,10 @@ describe('twMerge (DS-configured)', () => {
         test('keeps the corner-specific radii working', () => {
             expect(twMerge('rounded-round rounded-t-sm')).toBe('rounded-round rounded-t-sm')
             expect(twMerge('rounded-t-sm rounded-round')).toBe('rounded-round')
+            // side-specific DS tokens merge within their own side group (F-16)
+            expect(twMerge('rounded-t-round rounded-t-sm')).toBe('rounded-t-sm')
+            expect(twMerge('rounded-t-sm rounded-t-round')).toBe('rounded-t-round')
+            expect(twMerge('rounded-br-round rounded-br-sm')).toBe('rounded-br-sm')
         })
     })
 
