@@ -61,6 +61,38 @@ describe('useSplashGate', () => {
         expect(removeListener).toHaveBeenCalledTimes(1)
     })
 
+    // The listener has to be live before the state is read: appStateChange is
+    // never replayed, so a resume in that gap would park the splash forever
+    // (splashHidden is already set, so the hard timeout cannot retry).
+    it('does not miss a resume that lands while the state read is in flight', async () => {
+        const { App } = jest.requireMock('@capacitor/app')
+        let releaseState!: (state: { isActive: boolean }) => void
+        App.getState.mockImplementationOnce(
+            () => new Promise<{ isActive: boolean }>((resolve) => (releaseState = resolve))
+        )
+
+        renderHook(() => useSplashGate())
+
+        await waitFor(() => expect(emitState).toBeDefined())
+        await act(async () => {
+            emitState!({ isActive: true })
+            releaseState({ isActive: false })
+        })
+
+        await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
+        expect(removeListener).toHaveBeenCalledTimes(1)
+    })
+
+    it('gives up on the wait when the listener cannot be registered', async () => {
+        isActive = false
+        const { App } = jest.requireMock('@capacitor/app')
+        App.addListener.mockRejectedValueOnce(new Error('not implemented'))
+
+        renderHook(() => useSplashGate())
+
+        await waitFor(() => expect(hide).toHaveBeenCalledTimes(1))
+    })
+
     it('still hides when the app plugin is unavailable', async () => {
         const { App } = jest.requireMock('@capacitor/app')
         App.getState.mockRejectedValueOnce(new Error('not implemented'))

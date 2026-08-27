@@ -33,14 +33,24 @@ let hardTimeoutArmed = false
  */
 async function whenActive(): Promise<void> {
     const { App } = await import('@capacitor/app')
-    if ((await App.getState()).isActive) return
-    await new Promise<void>((resolve) => {
-        const handle = App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
-            if (!isActive) return
-            void handle.then((listener) => listener.remove())
-            resolve()
-        })
+
+    let resumed!: () => void
+    const nextResume = new Promise<void>((resolve) => {
+        resumed = resolve
     })
+
+    // Listener first, state read second: appStateChange is never replayed, so a
+    // resume landing between a false read and the registration would park the
+    // splash for the rest of the launch.
+    const listener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+        if (isActive) resumed()
+    })
+    try {
+        if ((await App.getState()).isActive) return
+        await nextResume
+    } finally {
+        await listener.remove().catch(() => {})
+    }
 }
 
 async function hideSplash() {
@@ -59,12 +69,12 @@ async function hideSplash() {
     }
 }
 
-export function resetSplashGateForTests() {
+export function resetSplashGateForTests(): void {
     splashHidden = false
     hardTimeoutArmed = false
 }
 
-export function useSplashGate() {
+export function useSplashGate(): void {
     const pathname = usePathname()
 
     useEffect(() => {
