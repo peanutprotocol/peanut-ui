@@ -73,6 +73,16 @@ const config: CapacitorConfig = {
              * effect on the next store release, not via OTA.
              */
             launchAutoHide: false,
+            /*
+             * 0 disables the plugin's fade-out, which is what stops it calling
+             * setOnExitAnimationListener. That listener makes Android hand the
+             * system starting window over to our process, and a background/
+             * resume mid-launch leaves the handoff with a released leash —
+             * SurfaceControl.Transaction.hide(null) crashes the app on the next
+             * frame (PEANUT-UI-SVN). Without it the system tears its own splash
+             * down. Android-only key; iOS ignores it.
+             */
+            launchFadeOutDuration: 0,
         },
     },
 }
