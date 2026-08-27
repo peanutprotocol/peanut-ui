@@ -71,6 +71,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'FieldError',
+            icon: 'alert',
+            href: '/dev/ds/primitives/field-error',
+            description: 'Inline field-level error (Body/XS, foreground-error) — flow errors stay Notification',
+            status: 'production',
+        },
+        {
             label: 'BaseSelect',
             icon: 'clip',
             href: '/dev/ds/primitives/base-select',
