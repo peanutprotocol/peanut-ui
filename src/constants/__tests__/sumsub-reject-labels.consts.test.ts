@@ -1,4 +1,3 @@
-import { describe, expect, it } from '@jest/globals'
 import { isTerminalRejection } from '../sumsub-reject-labels.consts'
 
 /**
