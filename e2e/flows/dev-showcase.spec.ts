@@ -28,6 +28,14 @@ const SANDBOX_ERROR_ALLOW = [
     /429/, // public RPC rate limits in the sandbox
     /ERR_NETWORK|Failed to fetch|NetworkError|net::ERR/i, // providers absent in sandbox
     /favicon/i,
+    // the regression harness serves a static `next start` with no backend:
+    // service-worker registration fails there, and API-bound resource loads
+    // come back 401/403. both are environment, not the showcase.
+    /SW registration failed/,
+    /the server responded with a status of 40[13]/,
+    // public RPCs refuse CORS from the harness's 127.0.0.1 origin — external
+    // target + local origin only, so an app-own CORS bug still fails.
+    /Access to fetch at 'https:\/\/[^']+' from origin 'http:\/\/127\.0\.0\.1/,
 ]
 const assertNoConsoleErrors = (entries: Array<{ type: string; text: string }>, where: string) => {
     const errors = getConsoleErrors(entries).filter((e) => !SANDBOX_ERROR_ALLOW.some((p) => p.test(e.text)))
