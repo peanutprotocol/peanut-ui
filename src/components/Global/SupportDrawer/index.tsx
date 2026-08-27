@@ -42,21 +42,33 @@ const SupportDrawer = () => {
     const locale = useLocale() as AppLocale
     const crispLocale = CRISP_LOCALE_BY_APP_LOCALE[locale] ?? 'en'
 
-    // The proxy iframe pulls this via the postMessage handshake — user data and the
-    // Crisp token never appear in its URL (postmortem F5: a query string leaks into
-    // Vercel logs, browser history, Referer headers, and analytics $current_url).
-    // A ref keeps the reply current without re-registering the message listener;
-    // written in an effect, not during render, so a discarded render can't leak
-    // an uncommitted identity to the proxy.
-    const initPayload: CrispInitPayload = {
+    /*
+     * The latest committed payload, read by both Crisp sinks.
+     *
+     * The proxy iframe pulls it via the postMessage handshake — user data and the
+     * Crisp token never appear in its URL (postmortem F5: a query string leaks into
+     * Vercel logs, browser history, Referer headers, and analytics $current_url).
+     * A ref keeps the reply current without re-registering the message listener.
+     *
+     * The native open chain reads it AFTER its awaits, because the snapshot is
+     * live: a balance can land, or verification can resolve, while Crisp
+     * configuration and the camera permission are still pending. The effect
+     * closure holds the payload from when the effect ran, so publishing that
+     * would push a balance the user no longer has — and a `balance-unavailable`
+     * segment that would route them wrongly — to the agent.
+     *
+     * Written in an effect, not during render, so a discarded render can't leak
+     * an uncommitted identity to either sink.
+     */
+    const latestPayload: CrispInitPayload = {
         locale: crispLocale,
         tokenId: crispTokenId,
         userData,
         prefilledMessage,
     }
-    const initPayloadRef = useRef<CrispInitPayload>(initPayload)
+    const latestPayloadRef = useRef<CrispInitPayload>(latestPayload)
     useEffect(() => {
-        initPayloadRef.current = initPayload
+        latestPayloadRef.current = latestPayload
     })
 
     // The handshake pull happens once at iframe boot; later changes (email/name
@@ -66,7 +78,7 @@ const SupportDrawer = () => {
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
     useEffect(() => {
         iframeRef.current?.contentWindow?.postMessage(
-            { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
+            { type: CRISP_PROXY_INIT_MSG, payload: latestPayloadRef.current },
             window.location.origin
         )
     }, [userData, prefilledMessage])
@@ -192,16 +204,32 @@ const SupportDrawer = () => {
                  * Result deliberately ignored: a denied camera must not block chat.
                  */
                 await ensureNativeCameraPermission()
+
+                /*
+                 * Read the payload AFTER the awaits, never from the effect
+                 * closure. The latch below keeps this chain to one run per open
+                 * cycle, so a snapshot that lands during setup gets no second
+                 * chance to publish — the closure's copy would freeze whatever
+                 * was true when support was tapped, and an agent would read a
+                 * balance the user no longer has.
+                 */
+                const latest = latestPayloadRef.current
+                // `userData` is optional only on the proxy wire shape; this ref is
+                // always seeded with the current one, so the fallback is unreachable.
+                const snapshot = latest.userData ?? userData
+                const tokenId = latest.tokenId
+                const prefill = latest.prefilledMessage
+
                 // set user data before opening
-                if (userData.email || userData.fullName) {
+                if (snapshot.email || snapshot.fullName) {
                     CapacitorCrisp.setUser({
-                        email: userData.email || undefined,
-                        nickname: userData.fullName || userData.username || undefined,
-                        avatar: userData.avatar || undefined,
+                        email: snapshot.email || undefined,
+                        nickname: snapshot.fullName || snapshot.username || undefined,
+                        avatar: snapshot.avatar || undefined,
                     })
                 }
-                if (crispTokenId) {
-                    CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
+                if (tokenId) {
+                    CapacitorCrisp.setTokenID({ tokenID: tokenId })
                 }
                 /*
                  * Custom data for support agents. Every key is written
@@ -212,18 +240,18 @@ const SupportDrawer = () => {
                  * agents (i.e. agents helping app users) with less than the
                  * agents helping web users.
                  */
-                for (const [key, value] of nativeCrispFields(userData)) {
+                for (const [key, value] of nativeCrispFields(snapshot)) {
                     CapacitorCrisp.setString({ key, value })
                 }
                 // Native holds exactly one segment — the assignment overwrites,
                 // so the list rides in the data row above and only the most
                 // actionable one goes here. See primarySupportSegment.
-                const primarySegment = primarySupportSegment(userData.segments)
+                const primarySegment = primarySupportSegment(snapshot.segments)
                 if (primarySegment) {
                     CapacitorCrisp.setSegment({ segment: primarySegment })
                 }
-                if (prefilledMessage) {
-                    CapacitorCrisp.sendMessage({ value: prefilledMessage })
+                if (prefill) {
+                    CapacitorCrisp.sendMessage({ value: prefill })
                 }
 
                 CapacitorCrisp.openMessenger()
@@ -289,7 +317,7 @@ const SupportDrawer = () => {
                 // mounted iframe (not any same-origin frame), and directly to it,
                 // never broadcast
                 ;(event.source as Window | null)?.postMessage(
-                    { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
+                    { type: CRISP_PROXY_INIT_MSG, payload: latestPayloadRef.current },
                     window.location.origin
                 )
             } else if (event.data?.type === 'CRISP_READY') {

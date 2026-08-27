@@ -31,6 +31,7 @@ const nativeCrisp = {
     setUser: jest.fn(),
     setTokenID: jest.fn(),
     setString: jest.fn(),
+    setSegment: jest.fn(),
     sendMessage: jest.fn(),
     openMessenger: jest.fn(),
 }
@@ -438,6 +439,44 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
         await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
         expect(nativeCrisp.sendMessage).toHaveBeenCalledTimes(1)
         expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1)
+    })
+
+    /*
+     * The other half of the same window. Gating the chain to one run means the
+     * snapshot that lands during setup gets no second chance to publish, so the
+     * chain must read the payload after its awaits rather than from the effect
+     * closure. Otherwise an agent opens the sidebar on a balance the user no
+     * longer has — and routes on a `balance-unavailable` segment they left.
+     */
+    it('publishes the snapshot as of open, not the one captured before setup', async () => {
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({
+            userId: 'user-abc',
+            email: 'a@b.com',
+            balance: 'wallet unavailable',
+            segments: ['ios-native', 'balance-unavailable'],
+        })
+
+        const view = render(<SupportDrawer />)
+
+        mockUseCrispUserData.mockReturnValue({
+            userId: 'user-abc',
+            email: 'a@b.com',
+            balance: '$100.00 spendable',
+            segments: ['ios-native', 'kyc-verified'],
+        })
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+
+        const written = Object.fromEntries(
+            nativeCrisp.setString.mock.calls.map(([{ key, value }]: [{ key: string; value: string }]) => [key, value])
+        )
+        expect(written.balance).toBe('$100.00 spendable')
+        expect(nativeCrisp.setSegment).toHaveBeenCalledWith({ segment: 'kyc-verified' })
+        expect(nativeCrisp.setSegment).not.toHaveBeenCalledWith({ segment: 'balance-unavailable' })
     })
 
     it('still opens once the token resolves, rather than latching the waiting cycle shut', async () => {
