@@ -35,14 +35,14 @@ export default function SaveAddressPrompt({
                     onChange={(e) => onNicknameChange(e.target.value)}
                     placeholder={t('savedAddresses.nicknamePlaceholder')}
                     rightContent={
-                        <span className="text-xs text-grey-1">
+                        <span className="text-body-xs text-foreground-secondary">
                             {nickname.length}/{SAVED_ADDRESS_NICKNAME_MAX}
                         </span>
                     }
                 />
             )}
             {checked && !nickname.trim() && (
-                <p className="text-xs text-grey-1">{t('savedAddresses.nicknameRequired')}</p>
+                <p className="text-body-xs text-foreground-secondary">{t('savedAddresses.nicknameRequired')}</p>
             )}
         </Card>
     )

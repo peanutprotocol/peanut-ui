@@ -699,10 +699,10 @@ export default function WithdrawCryptoPage() {
                         paymentDetails={paymentDetails}
                         usdAmount={usdAmount}
                         message={
+                            // bare string on purpose: PaymentSuccessView already styles the
+                            // message line (text-body-s text-foreground-secondary)
                             successNickname ? (
-                                <span className="text-body-s font-normal text-foreground-secondary">
-                                    {savedAddressLabel(successNickname, withdrawData.address)}
-                                </span>
+                                savedAddressLabel(successNickname, withdrawData.address)
                             ) : (
                                 <AddressLink
                                     className="text-body-s font-normal text-foreground-secondary no-underline"

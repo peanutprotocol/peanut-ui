@@ -1,7 +1,8 @@
 'use client'
 import { useContext } from 'react'
 import { useTranslations } from 'next-intl'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
@@ -26,19 +27,10 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
             {savedAddresses.map((saved, index) => {
                 const chain = supportedChainsAndTokens?.[saved.chainId]
                 const chainName = chain?.networkName || getChainName(saved.chainId) || saved.chainId
-                const position =
-                    savedAddresses.length === 1
-                        ? 'single'
-                        : index === 0
-                          ? 'first'
-                          : index === savedAddresses.length - 1
-                            ? 'last'
-                            : 'middle'
                 return (
-                    <ActionListCard
+                    <ListItem
                         key={saved.id}
-                        position={position}
-                        className="p-4 py-2.5"
+                        position={getCardPosition(index, savedAddresses.length)}
                         onClick={() => onSelect(saved)}
                         title={
                             <span className="flex items-center gap-2">
@@ -46,32 +38,33 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                                 <LastUsedPill lastUsedAt={saved.lastUsedAt} />
                             </span>
                         }
-                        description={`${shortSavedAddress(saved.address)} · ${chainName}`}
-                        leftIcon={
+                        body={`${shortSavedAddress(saved.address)} · ${chainName}`}
+                        leading={
                             <div className="relative h-8 w-8">
                                 <DisplayIcon
                                     iconUrl={chain?.chainIconURI}
                                     altText={chainName}
                                     fallbackName={chainName}
                                     sizeClass="h-8 w-8"
-                                    className="rounded-full"
+                                    className="rounded-round"
                                 />
-                                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 p-1">
-                                    <Icon size={12} name="wallet" className="text-black" />
+                                <div className="absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-round bg-background-icon-bubble-yellow p-1">
+                                    <Icon size={12} name="wallet" className="text-foreground-primary" />
                                 </div>
                             </div>
                         }
-                        rightContent={
+                        trailing={
                             <button
                                 type="button"
                                 aria-label={t('savedAddresses.editAria', { nickname: saved.nickname })}
-                                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-grey-4"
+                                // 32px visual, pseudo-element brings the hit area to 44px (touch law)
+                                className="relative flex h-8 w-8 items-center justify-center rounded-round transition-colors duration-instant after:absolute after:-inset-1.5 hover:bg-background-disabled focus-visible:outline-[3px] focus-visible:outline-action-focus"
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     onEdit(saved)
                                 }}
                             >
-                                <Icon name="more-horizontal" size={18} />
+                                <Icon name="more-horizontal" size={20} className="text-foreground-primary" />
                             </button>
                         }
                     />

@@ -5,12 +5,11 @@ import { daysSince, lastUsedTone, type LastUsedTone } from '@/utils/saved-addres
 // Recency → DS badge semantics: recent = success, aging = attention. Stale is
 // GREY, not error — red reads as "something is wrong", grey as "not
 // necessarily current" (exchanges rotate deposit addresses). StatusBadge has
-// no grey status, so stale overrides to the helper grey (DS
-// `background-badge-helper`; `bg-grey-2` until feat/design-system lands).
+// no grey status, so stale overrides to the helper grey.
 const TONE_BADGE: Record<LastUsedTone, { status: StatusType; className?: string }> = {
     recent: { status: 'completed' },
     aging: { status: 'pending' },
-    stale: { status: 'custom', className: 'bg-grey-2 text-grey-1' },
+    stale: { status: 'custom', className: 'bg-background-badge-helper' },
 }
 
 /** "Used today / 3 days ago" pill; tone = how long since the last withdraw to this address. */
