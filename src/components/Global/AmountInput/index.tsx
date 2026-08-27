@@ -359,7 +359,13 @@ const AmountInput = ({
                         return (
                             <button
                                 type="button"
-                                onClick={fillBalance}
+                                // The form wrapper focuses the amount field on any
+                                // click inside it. Let this one bubble and the mobile
+                                // keyboard opens over the CTA the user is heading for.
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    fillBalance()
+                                }}
                                 aria-label={t('amountInput.useFullBalance', { balance: balanceAmount })}
                                 className="min-h-11 px-2 text-center text-grey-1 underline underline-offset-4"
                             >

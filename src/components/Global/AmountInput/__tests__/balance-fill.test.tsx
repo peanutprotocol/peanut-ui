@@ -98,6 +98,18 @@ describe('AmountInput full-balance fill', () => {
         expect(lastReported()).toBe('12.345678')
     })
 
+    it('does not open the keyboard over the CTA when filling', () => {
+        // The form wrapper focuses the field on any click inside it; the fill
+        // button must not ride that path.
+        const { field, useFullBalance } = setup()
+        field.blur()
+
+        fireEvent.click(useFullBalance()!)
+
+        expect(document.activeElement).not.toBe(field)
+        expect(field.value).toBe('12.345678')
+    })
+
     it('does not offer the fill while the input is disabled', () => {
         const { useFullBalance } = setup({ disabled: true })
 
