@@ -58,9 +58,9 @@ test.describe('Icon rendering regression', () => {
         // The dev icons page puts every icon in a grid card — not inside <button> tags.
         // Use the DS playground's button showcase which renders buttons with icons in them.
         await page.goto('/dev/ds/primitives/button?__fixture=home', { waitUntil: 'domcontentloaded' })
-        await page.waitForSelector('button svg.lucide', { timeout: 60_000 }).catch(() => {
-            // Fallback: if button-showcase doesn't have icons, try the icons page itself.
-        })
+        // no catch: a swallowed timeout here let this test pass green against
+        // a 404 page (zero icons found → empty loop → pass).
+        await page.waitForSelector('button svg.lucide', { state: 'attached', timeout: 60_000 })
 
         // Check every lucide SVG currently on the page (whether inside button or not).
         const all = await page.$$eval('svg.lucide', (nodes) =>

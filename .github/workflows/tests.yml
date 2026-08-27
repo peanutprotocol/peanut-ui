@@ -365,6 +365,11 @@ jobs:
                   # NEXT_PUBLIC_ value, so it must be set on the build, not on
                   # the capture — Next inlines it into the bundle here.
                   NEXT_PUBLIC_VERCEL_ENV: preview
+                  # BASE_URL falls back to https://peanut.me when unset, which
+                  # flips the dev layout's prod gate and notFound()s every
+                  # /dev page the regression specs drive. Locally .env sets
+                  # it; CI has no .env, so set it here.
+                  NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
               run: pnpm build
 
             # The capture fails a shot that still has a spinner on camera, on
