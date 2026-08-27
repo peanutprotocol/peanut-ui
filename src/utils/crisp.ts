@@ -35,6 +35,55 @@ export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeC
 }
 
 /**
+ * The support-agent sidebar, as ordered key/value rows.
+ *
+ * ONE definition feeds every sink — the web widget's `session:data`, the proxy
+ * iframe (which receives the whole `CrispUserData` object and calls
+ * `setCrispUserData`), and the native `setString` loop. They used to be written
+ * out by hand per sink and had already drifted: native sent two keys where web
+ * sent seven, so the agents helping *app* users saw the least.
+ *
+ * Values are always present, empty string when absent, so a previous user's
+ * value can never linger on a device-local Crisp session.
+ */
+export function supportSessionFields(userData: CrispUserData): Array<[string, string]> {
+    const { emailOnFile } = userData
+    return [
+        ['username', userData.username || ''],
+        ['user_id', userData.userId || ''],
+        ['full_name', userData.fullName || ''],
+        ['wallet_address', userData.walletAddressLink || ''],
+        ['bridge_user_id', userData.bridgeCustomerLink || ''],
+        ['manteca_user_id', userData.mantecaUserId || ''],
+        ['posthog_person', userData.posthogPersonLink || ''],
+        ['sentry_issues', userData.sentryIssuesLink || ''],
+        ['identity_status', userData.identityStatus || ''],
+        ['email_on_file', emailOnFile === undefined ? '' : emailOnFile ? 'yes' : 'no'],
+        ['verification_gates', userData.verificationGates || ''],
+        ['verification_rails', userData.verificationRails || ''],
+        ['failure_reason', userData.failureReason || ''],
+        ['pending_actions', userData.pendingActions || ''],
+        ['balance', userData.balance || ''],
+        ['account_stats', userData.accountStats || ''],
+        ['latest_activity', userData.latestActivity || ''],
+        ['limits_remaining', userData.limitsRemaining || ''],
+        ['card', userData.card || ''],
+        ['linked_accounts', userData.linkedAccounts || ''],
+        ['app_context', userData.appContext || ''],
+        ['segments', (userData.segments ?? []).join(' ')],
+    ]
+}
+
+/**
+ * Same rows, for the native SDK's one-key-at-a-time `setString`.
+ *
+ * `segments` is a data row on native rather than real segments: the native SDK
+ * holds a single segment (assignment, not append), so the list would collapse
+ * to whichever call ran last. The primary one is set separately by the caller.
+ */
+export const nativeCrispFields = supportSessionFields
+
+/**
  * Sets Crisp user identification and session metadata on a $crisp instance
  *
  * This is used for the main window Crisp widget (not iframe).
@@ -52,23 +101,7 @@ export function setCrispUserData(
 ): void {
     if (!crispInstance) return
 
-    const {
-        username,
-        userId,
-        email,
-        fullName,
-        avatar,
-        walletAddressLink,
-        bridgeCustomerLink,
-        mantecaUserId,
-        posthogPersonLink,
-        identityStatus,
-        emailOnFile,
-        verificationGates,
-        verificationRails,
-        failureReason,
-        pendingActions,
-    } = userData
+    const { username, email, fullName, avatar, segments } = userData
 
     if (email) {
         crispInstance.push(['set', 'user:email', [email]])
@@ -84,27 +117,14 @@ export function setCrispUserData(
     }
 
     // Session metadata for support agents - must be 3 levels of nested arrays
-    crispInstance.push([
-        'set',
-        'session:data',
-        [
-            [
-                ['username', username || ''],
-                ['user_id', userId || ''],
-                ['full_name', fullName || ''],
-                ['wallet_address', walletAddressLink || ''],
-                ['bridge_user_id', bridgeCustomerLink || ''],
-                ['manteca_user_id', mantecaUserId || ''],
-                ['posthog_person', posthogPersonLink || ''],
-                ['identity_status', identityStatus || ''],
-                ['email_on_file', emailOnFile === undefined ? '' : emailOnFile ? 'yes' : 'no'],
-                ['verification_gates', verificationGates || ''],
-                ['verification_rails', verificationRails || ''],
-                ['failure_reason', failureReason || ''],
-                ['pending_actions', pendingActions || ''],
-            ],
-        ],
-    ])
+    crispInstance.push(['set', 'session:data', [supportSessionFields(userData)]])
+
+    // Segments carry the boolean half (platform, kyc-*, zero-balance, offline…).
+    // They're what the inbox filters and routes on, and keeping them out of
+    // session:data is what stops the sidebar becoming a wall of yes/no rows.
+    if (segments?.length) {
+        crispInstance.push(['set', 'session:segments', [segments]])
+    }
 
     if (prefilledMessage) {
         crispInstance.push(['set', 'message:text', [prefilledMessage]])

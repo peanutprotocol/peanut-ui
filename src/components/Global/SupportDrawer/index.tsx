@@ -19,7 +19,8 @@ import type { AppLocale } from '@/i18n/app/config'
 import { notificationsApi } from '@/services/notifications'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCameraPermission } from '@/utils/camera-permission'
-import { ensureNativeCrispConfigured } from '@/utils/crisp'
+import { ensureNativeCrispConfigured, nativeCrispFields } from '@/utils/crisp'
+import { primarySupportSegment } from '@/utils/support-context'
 
 const DISMISS_THRESHOLD = 100
 
@@ -180,25 +181,25 @@ const SupportDrawer = () => {
                 if (crispTokenId) {
                     CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
                 }
-                // set custom data for support agents
-                if (userData.walletAddress) {
-                    CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
+                /*
+                 * Custom data for support agents. Every key is written
+                 * unconditionally (empty string when absent) so a previous
+                 * user's values can't linger on the device-local Crisp session,
+                 * and so this list stays a mirror of the web/proxy sink — it had
+                 * drifted to two keys while web sent seven, which left native
+                 * agents (i.e. agents helping app users) with less than the
+                 * agents helping web users.
+                 */
+                for (const [key, value] of nativeCrispFields(userData)) {
+                    CapacitorCrisp.setString({ key, value })
                 }
-                if (userData.userId) {
-                    CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
+                // Native holds exactly one segment — the assignment overwrites,
+                // so the list rides in the data row above and only the most
+                // actionable one goes here. See primarySupportSegment.
+                const primarySegment = primarySupportSegment(userData.segments)
+                if (primarySegment) {
+                    CapacitorCrisp.setSegment({ segment: primarySegment })
                 }
-                // live verification state so agents stop guessing (#2360). Always
-                // write (empty string when absent) so a prior user's values can't
-                // linger on the device-local Crisp session — matching web/proxy.
-                CapacitorCrisp.setString({ key: 'identity_status', value: userData.identityStatus || '' })
-                CapacitorCrisp.setString({
-                    key: 'email_on_file',
-                    value: userData.emailOnFile === undefined ? '' : userData.emailOnFile ? 'yes' : 'no',
-                })
-                CapacitorCrisp.setString({ key: 'verification_gates', value: userData.verificationGates || '' })
-                CapacitorCrisp.setString({ key: 'verification_rails', value: userData.verificationRails || '' })
-                CapacitorCrisp.setString({ key: 'failure_reason', value: userData.failureReason || '' })
-                CapacitorCrisp.setString({ key: 'pending_actions', value: userData.pendingActions || '' })
                 if (prefilledMessage) {
                     CapacitorCrisp.sendMessage({ value: prefilledMessage })
                 }
