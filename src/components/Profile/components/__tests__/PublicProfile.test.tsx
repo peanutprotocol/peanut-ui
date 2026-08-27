@@ -4,18 +4,24 @@ import posthog from 'posthog-js'
 import PublicProfile from '../PublicProfile'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 import en from '@/i18n/app/messages/en.json'
 
 const mockPush = jest.fn()
+const mockBack = jest.fn()
 const mockSaveToCookie = jest.fn()
 const mockGetByUsername = jest.fn()
 const mockValidateInviteCode = jest.fn()
 const mockInterceptGuestCta = jest.fn(() => false)
+const mockUseUserInteractions = jest.fn()
 let mockAuth: { user: null | { user: { username: string; hasAppAccess: boolean } }; isFetchingUser: boolean }
 
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, back: jest.fn() }) }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, back: mockBack }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/services/users', () => ({ usersApi: { getByUsername: (u: string) => mockGetByUsername(u) } }))
+jest.mock('@/hooks/useUserInteractions', () => ({
+    useUserInteractions: (ids: string[]) => mockUseUserInteractions(ids),
+}))
 jest.mock('@/services/invites', () => ({
     invitesApi: { validateInviteCode: (c: string) => mockValidateInviteCode(c) },
 }))
@@ -31,11 +37,21 @@ jest.mock('@/utils/general.utils', () => {
 })
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
-// Stubbed neighbours — this suite is about the guest door, not the page furniture.
-jest.mock('../ProfileHeader', () => ({ __esModule: true, default: () => null }))
+// Stubbed neighbours — this suite is about the guest door, back navigation and
+// the prior-transfer indicator, not the page furniture.
+jest.mock('../ProfileHeader', () => ({
+    __esModule: true,
+    default: ({ haveSentMoneyToUser }: { haveSentMoneyToUser?: boolean }) => (
+        <div data-testid="profile-header" data-sent-money={String(!!haveSentMoneyToUser)} />
+    ),
+}))
 jest.mock('@/components/Badges/BadgesRow', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Home/HomeHistory', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/NavHeader', () => ({
+    __esModule: true,
+    default: ({ onPrev }: { onPrev?: () => void }) =>
+        onPrev ? <button data-testid="nav-back" onClick={onPrev} /> : null,
+}))
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
     // Renders description + content when visible so the guest Request-gate
@@ -90,9 +106,11 @@ const deferValidation = () => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    safeBackTesting.reset()
     mockAuth = { user: null, isFetchingUser: false }
     mockInterceptGuestCta.mockReturnValue(false)
     mockGetByUsername.mockResolvedValue(null)
+    mockUseUserInteractions.mockReturnValue({ interactions: {}, isLoading: false, isError: false })
     // the door validates before persisting; default = resolvable inviter
     mockValidateInviteCode.mockResolvedValue({
         success: true,
@@ -219,4 +237,65 @@ describe('PublicProfile guest door', () => {
             })
         }
     )
+})
+
+// The "sent money before" badge comes from the interaction-status endpoint (the
+// complete source — send-link claims included), never from the profile payload's
+// narrow received-from-you sum (TASK-21929).
+describe('PublicProfile prior-transfer indicator', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1' })
+    })
+
+    it('shows the indicator when interaction status reports a prior transfer', async () => {
+        mockUseUserInteractions.mockReturnValue({
+            interactions: { 'user-1': true },
+            isLoading: false,
+            isError: false,
+        })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() => expect(screen.getByTestId('profile-header')).toHaveAttribute('data-sent-money', 'true'))
+        expect(mockUseUserInteractions).toHaveBeenLastCalledWith(['user-1'])
+    })
+
+    it('stays neutral while the interaction query is loading', async () => {
+        mockUseUserInteractions.mockReturnValue({ interactions: {}, isLoading: true, isError: false })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() => expect(mockUseUserInteractions).toHaveBeenLastCalledWith(['user-1']))
+        expect(screen.getByTestId('profile-header')).toHaveAttribute('data-sent-money', 'false')
+    })
+
+    it('never queries interaction status for guests', async () => {
+        mockAuth = { user: null, isFetchingUser: false }
+        renderWithIntl(<PublicProfile username="satoshi" />)
+
+        await screen.findByRole('button', { name: JOIN_CTA })
+        expect(mockUseUserInteractions).toHaveBeenLastCalledWith([])
+    })
+})
+
+describe('PublicProfile back navigation', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('falls back to /home on a cold deep-link (no in-app history)', async () => {
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        fireEvent.click(await screen.findByTestId('nav-back'))
+        expect(mockPush).toHaveBeenCalledWith('/home')
+        expect(mockBack).not.toHaveBeenCalled()
+    })
+
+    it('returns through in-app history when it exists (Rewards → profile → back)', async () => {
+        window.history.pushState({}, '', '/satoshi')
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        fireEvent.click(await screen.findByTestId('nav-back'))
+        expect(mockBack).toHaveBeenCalledTimes(1)
+        expect(mockPush).not.toHaveBeenCalled()
+    })
 })

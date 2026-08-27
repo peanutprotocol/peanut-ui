@@ -3145,6 +3145,7 @@
         "notDeployedOnChain": "Bulk no está disponible en esta red, prueba con otra red.",
         "userRejectedRequest": "Confirma la solicitud en tu billetera.",
         "networkError": "Ocurrió un error de red. Actualiza la página e inténtalo de nuevo.",
+        "connectionLost": "Se perdió la conexión. Revisa tu conexión a internet e inténtalo de nuevo.",
         "nonceExpired": "El nonce expiró, inténtalo de nuevo.",
         "walletNotConnected": "Asegúrate de que tu billetera esté conectada.",
         "gasExceedsAllowance": "El gas requerido supera tu saldo. Confirma que tienes fondos suficientes.",

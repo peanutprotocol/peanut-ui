@@ -5,6 +5,7 @@ import QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCameraPermission } from '@/utils/camera-permission'
+import { CAMERA_ERRORS, classifyCameraFailure } from '@/utils/camera-failure'
 import { reportQrScanError } from './utils'
 import { toError } from '@/utils/to-error'
 
@@ -16,8 +17,9 @@ const CONFIG = {
     CAMERA_RETRY_DELAY_MS: 1000,
     MAX_CAMERA_RETRIES: 3,
     IOS_CAMERA_DELAY_MS: 200,
-    // in iOS PWA (WKWebView), getUserMedia can hang forever after denial
-    // instead of rejecting. timeout ensures the permission modal still shows.
+    // How long a web/PWA start() may run before the permission modal takes over
+    // the screen. Not an expiry: the attempt keeps running behind the modal, so
+    // this is only how long the user waits for actionable UI.
     CAMERA_START_TIMEOUT_MS: 5000,
     /*
      * A ceiling, not a fixed rate. qr-scanner drives its loop from
@@ -39,12 +41,6 @@ const CONFIG = {
     SCANNER_CLOSE_DELAY_MS: 300,
     VIDEO_ELEMENT_RETRY_DELAY_MS: 100,
     MAX_VIDEO_ELEMENT_RETRIES: 2,
-} as const
-
-const CAMERA_ERRORS = {
-    NOT_ALLOWED: 'NotAllowedError',
-    NOT_READABLE: 'NotReadableError',
-    NOT_FOUND: 'NotFoundError',
 } as const
 
 /**
@@ -81,6 +77,25 @@ const SCANNER_OPTIONS = {
 // This is outside React's lifecycle so it's synchronously checked before any re-renders
 let lastScan: { data: string; timestamp: number } | null = null
 const SCAN_DEBOUNCE_MS = 1000
+
+/**
+ * Waits on a start attempt without taking ownership of it: 'started' when the
+ * camera came up in time, 'pending' when the deadline won and the attempt is
+ * still outstanding. Rejects with whatever start() rejected with.
+ */
+async function raceStartDeadline(started: Promise<void>): Promise<'started' | 'pending'> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    try {
+        return await Promise.race([
+            started.then(() => 'started' as const),
+            new Promise<'pending'>((resolve) => {
+                timeoutId = setTimeout(resolve, CONFIG.CAMERA_START_TIMEOUT_MS, 'pending')
+            }),
+        ])
+    } finally {
+        clearTimeout(timeoutId)
+    }
+}
 
 // ============================================================================
 // Types
@@ -227,6 +242,54 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
         [t]
     )
 
+    /*
+     * Owns a getUserMedia call that outlived its deadline. The permission modal
+     * goes up so the user is never stranded on a spinner (and keeps the retry
+     * and paste fallbacks), while the attempt keeps running underneath: a user
+     * who was still reading the OS prompt gets the camera the moment they
+     * allow it. The scanner is deliberately NOT torn down here — destroying it
+     * is what threw the pending grant away.
+     *
+     * Recovery restarts rather than adopting the resolved stream: the modal
+     * unmounts the <video> the pending scanner is bound to, so the element the
+     * user would see is a fresh one that needs its own start.
+     */
+    const adoptPendingStart = useCallback(
+        (started: Promise<void>, superseded: () => boolean, preferredCamera: FacingMode) => {
+            const stale = () => superseded() || !isScanningRef.current
+
+            started
+                .then(() => {
+                    if (stale()) return
+                    // qr-scanner resolves start() without a stream while the
+                    // document is hidden, so a rebuild here would swap the
+                    // modal for a false "camera start failed" — the visibility
+                    // listener already owns recovery on the way back
+                    if (document.hidden) return
+                    void startCameraRef.current?.(preferredCamera)
+                })
+                .catch(async (err: unknown) => {
+                    if (stale()) return
+                    cleanup()
+
+                    // the modal went up guessing "denied", which is right for the
+                    // common case but wrong for a camera that is absent or busy
+                    const errName = await classifyCameraFailure(err)
+                    if (stale()) return
+
+                    const isHardware = errName === CAMERA_ERRORS.NOT_FOUND || errName === CAMERA_ERRORS.NOT_READABLE
+                    setIsPermissionDenied(!isHardware)
+                    // no retry follows a start that already outlived its deadline,
+                    // so ask for the copy that does not promise one
+                    setError(getErrorMessage(errName, CONFIG.MAX_CAMERA_RETRIES))
+                })
+
+            setIsPermissionDenied(true)
+            setError(getErrorMessage(CAMERA_ERRORS.NOT_ALLOWED, 0))
+        },
+        [cleanup, getErrorMessage]
+    )
+
     const startCamera = useCallback(
         async (preferredCamera: FacingMode = facingMode) => {
             setError(null)
@@ -253,7 +316,6 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             const generation = ++startGenRef.current
             const superseded = () => generation !== startGenRef.current
 
-            let startTimeoutId: ReturnType<typeof setTimeout> | undefined
             try {
                 cleanup()
 
@@ -307,19 +369,21 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     // prompt look like a failure (false "Camera start timed out" → retry).
                     await scanner.start()
                 } else {
-                    // iOS PWA (WKWebView) getUserMedia can hang forever after the user
-                    // denies permission instead of rejecting — race a timeout so the
-                    // permission modal still shows.
-                    await Promise.race([
-                        scanner.start(),
-                        new Promise<never>((_, reject) => {
-                            startTimeoutId = setTimeout(
-                                () => reject(new DOMException('Camera start timed out', 'NotAllowedError')),
-                                CONFIG.CAMERA_START_TIMEOUT_MS
-                            )
-                        }),
-                    ])
-                    clearTimeout(startTimeoutId)
+                    /*
+                     * iOS PWA (WKWebView) getUserMedia can hang forever after the user
+                     * denies permission instead of rejecting, so a deadline is still
+                     * what puts the permission modal on screen. But that hang is
+                     * indistinguishable from a prompt the user simply has not answered
+                     * yet, and rejecting at five seconds tore down a camera that
+                     * arrived moments later (TASK-21927). So the deadline no longer
+                     * ends the attempt: it hands the still-pending start() to
+                     * adoptPendingStart and lets the permission modal cover the wait.
+                     */
+                    const started = scanner.start()
+                    if ((await raceStartDeadline(started)) === 'pending') {
+                        adoptPendingStart(started, superseded, preferredCamera)
+                        return
+                    }
                 }
 
                 if (superseded() || !isScanningRef.current) return
@@ -355,16 +419,21 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 setIsCameraReady(true)
                 retryCountRef.current = 0
             } catch (err) {
-                clearTimeout(startTimeoutId)
                 cleanup()
                 console.error('Error accessing camera:', toError(err))
 
-                const errName = err instanceof Error ? err.name : ''
+                /*
+                 * qr-scanner discards the browser's DOMException and rejects with a
+                 * bare string, so the reason has to be recovered from the browser
+                 * itself. That costs an await, which a newer start can slip past.
+                 */
+                const errName = await classifyCameraFailure(err)
+                if (superseded() || !isScanningRef.current) return
+
                 const shouldRetry =
                     errName === CAMERA_ERRORS.NOT_READABLE && retryCountRef.current < CONFIG.MAX_CAMERA_RETRIES
 
                 // treat any non-retryable, non-hardware error as permission denied.
-                // the qr-scanner library may wrap or rename the browser's NotAllowedError.
                 // exclude NOT_READABLE (camera busy) — it has its own "remains busy" error path.
                 if (!shouldRetry && errName !== CAMERA_ERRORS.NOT_FOUND && errName !== CAMERA_ERRORS.NOT_READABLE) {
                     setIsPermissionDenied(true)
@@ -375,14 +444,17 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 if (shouldRetry) {
                     retryCountRef.current++
                     setTimeout(() => {
-                        if (isScanningRef.current) startCamera(preferredCamera)
+                        // a manual Retry that recovered in the meantime owns the
+                        // camera now; restarting would tear down a working scanner
+                        if (superseded() || !isScanningRef.current) return
+                        startCamera(preferredCamera)
                     }, CONFIG.CAMERA_RETRY_DELAY_MS)
                 } else {
                     retryCountRef.current = 0
                 }
             }
         },
-        [facingMode, deviceType, cleanup, handleQRScan, getErrorMessage, t]
+        [facingMode, deviceType, cleanup, handleQRScan, getErrorMessage, adoptPendingStart, t]
     )
 
     const toggleCamera = useCallback(async () => {

@@ -8,6 +8,8 @@
  * /api/csp-report collector, instead of alongside the other Sentry filters.
  */
 
+import { isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+
 /**
  * Legacy `report-uri` payload (`application/csp-report`). Still what Firefox
  * and Safari send today. Kept as the canonical internal shape because it is
@@ -68,7 +70,14 @@ function isUnfixableOrigin(value: unknown): boolean {
  * exactly what has to be driven to zero before the policy can be enforced.
  */
 export function shouldIgnoreCspReport(report: CspReport): boolean {
-    return isUnfixableOrigin(report['blocked-uri']) || isUnfixableOrigin(report['source-file'])
+    if (isUnfixableOrigin(report['blocked-uri']) || isUnfixableOrigin(report['source-file'])) return true
+    const documentUri = report['document-uri']
+    if (typeof documentUri !== 'string') return false
+    try {
+        return isPaymentNetworkExplorerPath(new URL(documentUri, 'https://peanut.invalid').pathname)
+    } catch {
+        return false
+    }
 }
 
 /** Reporting-API body (camelCase) → the legacy hyphenated shape. */

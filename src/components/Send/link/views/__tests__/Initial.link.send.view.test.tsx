@@ -71,8 +71,12 @@ jest.mock('@/components/Global/FileUploadInput', () => ({
 
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: ({ setPrimaryAmount }: { setPrimaryAmount: (value: string) => void }) => (
-        <input data-testid="amount-input" onChange={(e) => setPrimaryAmount(e.target.value)} />
+    default: ({ setPrimaryAmount, onSubmit }: { setPrimaryAmount: (value: string) => void; onSubmit?: () => void }) => (
+        <input
+            data-testid="amount-input"
+            onChange={(e) => setPrimaryAmount(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && onSubmit?.()}
+        />
     ),
 }))
 
@@ -252,5 +256,30 @@ describe('LinkSendInitialView sub-minimum fiat-claim warning', () => {
         // diverged: revisit the warning copy (and its Math.min gate) before
         // shipping the constant change.
         expect(new Set(Object.values(CLAIM_RAIL_MINIMUMS)).size).toBe(1)
+    })
+})
+
+// TASK-21669: "0"/"0.00" are truthy strings — they used to pass the string-
+// truthiness guard and create a real zero-value on-chain link.
+describe('LinkSendInitialView zero-amount gate', () => {
+    test.each(['0', '0.00'])('amount %s disables Create link and submit is blocked with the error', async (amount) => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView(amount)
+        await waitFor(() => expect(screen.getByText('Create link')).toBeDisabled())
+
+        // Enter in the amount input still reaches handleOnNext — the guard must hold
+        fireEvent.keyDown(screen.getByTestId('amount-input'), { key: 'Enter' })
+        await waitFor(() =>
+            expect(screen.getByTestId('error-alert')).toHaveTextContent(en.withdraw.errors.invalidAmount)
+        )
+        expect(mockCreateLink).not.toHaveBeenCalled()
+    })
+
+    test('a positive amount keeps Create link enabled', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView('20')
+        await waitFor(() => expect(screen.getByText('Create link')).toBeEnabled())
     })
 })
