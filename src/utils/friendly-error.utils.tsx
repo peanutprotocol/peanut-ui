@@ -286,10 +286,19 @@ export const friendlyError = (error: unknown): FriendlyError => {
     // "contact support" — the one failure whose real advice is "you're offline,
     // try again" (TASK-21956). Last before the fallback so it can never shadow
     // a more specific classification.
+    //
+    // Matched on the native `TypeError` name AND the engine message EXACTLY,
+    // never as a substring: 21 of our own services throw
+    // `Failed to fetch <thing>: <status>` (e.g. chargesApi.get on a 500) for a
+    // response that very much DID arrive, and those carry no `status` to be
+    // caught by the ApiError branch above. A substring match would tell a user
+    // whose connection is fine that they are offline — the same mislabelling
+    // this whole change exists to remove, pointed the other way.
     if (
-        text.includes('Failed to fetch') ||
-        text.includes('Load failed') ||
-        text.includes('NetworkError when attempting to fetch resource')
+        name === 'TypeError' &&
+        (message === 'Failed to fetch' ||
+            message === 'Load failed' ||
+            message === 'NetworkError when attempting to fetch resource.')
     )
         return code('connectionLost')
     return code('genericSupport')

@@ -309,4 +309,22 @@ describe('browser-native fetch rejection (TASK-21956)', () => {
         const wrapped = Object.assign(new Error('Failed to fetch'), { name: 'ServiceUnavailableError' })
         expect(friendlyError(wrapped)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
     })
+
+    // 21 services throw `Failed to fetch <thing>: <status>` for a response that
+    // DID arrive and carry no `status` for the ApiError branch to catch. A
+    // substring match would tell those users their connection is down.
+    test.each([
+        ['chargesApi.get on a 500', new Error('Failed to fetch charge: Internal Server Error')],
+        ['useLimits on a 503', new Error('Failed to fetch limits: Service Unavailable')],
+        ['quests leaderboard', new Error('Failed to fetch leaderboards')],
+    ])('%s is a server error, not lost connectivity', (_case, error) => {
+        expect(friendlyError(error)).toEqual({ kind: 'code', code: 'genericSupport' })
+    })
+
+    test('a TypeError whose message merely CONTAINS the engine copy is not claimed', () => {
+        expect(friendlyError(new TypeError('Failed to fetch charge: Internal Server Error'))).toEqual({
+            kind: 'code',
+            code: 'genericSupport',
+        })
+    })
 })
