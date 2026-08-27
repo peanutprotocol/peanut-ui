@@ -85,7 +85,7 @@ export const AppShell = ({
             {/* transparent on purpose: the pill and qr button float over the
                 page content, no strip behind them (they carry their own fills) */}
             {nav && (
-                <div className="fixed inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background-page from-40% via-background-page/80 to-background-page/0 pt-16 pb-safe-bottom">
+                <div className="fixed inset-x-0 bottom-0 z-10 pb-safe-bottom">
                     <div className="mx-auto w-full max-w-md">{nav}</div>
                 </div>
             )}
