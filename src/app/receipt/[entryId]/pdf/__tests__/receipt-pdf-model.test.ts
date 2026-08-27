@@ -46,6 +46,18 @@ const row = (model: ReturnType<typeof buildReceiptPdfModel>, label: string) =>
 describe('buildReceiptPdfModel — completed bank withdraw', () => {
     const model = buildReceiptPdfModel(baseTx, t, 'en')
 
+    // The filename lands in a quoted Content-Disposition header, and ids are
+    // arbitrary backend strings — a quote would inject header tokens and a
+    // CR/LF would make the Headers constructor throw (a 500 per receipt).
+    test('sanitizes the download filename without touching the reference', () => {
+        const nasty = { ...baseTx, id: 'ab"cd\r\nX-Injected: 1' }
+        const m = buildReceiptPdfModel(nasty, t, 'en')
+        expect(m.fileName).toBe('peanut-receipt-abcdX-Injected1.pdf')
+        expect(m.fileName).not.toMatch(/["\r\n]/)
+        // the human-facing reference still carries the id verbatim
+        expect(m.reference).toBe('ab"cd\r\nX-Injected: 1')
+    })
+
     // Manteca synthetic ids are case-sensitive lookup keys: a reference that
     // was uppercased could not be used to find the entry it belongs to.
     test('keeps a mixed-case receipt id verbatim in both PDF fields', () => {

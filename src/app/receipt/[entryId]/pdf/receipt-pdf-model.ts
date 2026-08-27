@@ -88,6 +88,19 @@ function convertedAmount(transaction: TransactionDetails): string | undefined {
  * document can never disagree with the page. Pure — trivially unit-testable
  * and free of react-pdf imports.
  */
+/**
+ * Ids reach us from the backend and are not UUID-constrained (Manteca
+ * synthetics are arbitrary strings), and this value lands in a quoted
+ * Content-Disposition filename: a double quote would break out of the quoted
+ * string and inject disposition tokens, and a CR/LF would make the Headers
+ * constructor throw and turn the receipt into a 500. Keep only characters that
+ * are safe unquoted, and bound the length.
+ */
+function safeFileNamePart(id: string): string {
+    const cleaned = id.replace(/[^A-Za-z0-9._-]/g, '')
+    return cleaned.slice(0, 64) || 'receipt'
+}
+
 export function buildReceiptPdfModel(
     transaction: TransactionDetails,
     t: PdfTranslate,
@@ -217,6 +230,6 @@ export function buildReceiptPdfModel(
         reference: transaction.id,
         issuedOnLabel: t('transaction.officialReceipt.issuedOn'),
         issuedOn: formatDate(issuedAtSource, locale),
-        fileName: `peanut-receipt-${transaction.id}.pdf`,
+        fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,
     }
 }

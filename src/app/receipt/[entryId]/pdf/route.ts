@@ -12,6 +12,39 @@ import { renderReceiptPdf } from './ReceiptPdfDocument'
 
 export const runtime = 'nodejs'
 
+// A full react-pdf render (font shaping, layout, deflate) on a PUBLIC route is
+// expensive, and a CDN keys on the whole query string — so `?…&_=1`, `&_=2`, …
+// each miss the shared cache and would force a fresh render every time. Collapse
+// that: identical receipts render once per short window per instance, so
+// cache-busted or uncacheable (cookie-locale, non-final) requests cost a map
+// lookup instead of a render. Bounded so a wide spread of ids cannot grow it.
+const RENDER_CACHE_MAX = 32
+const FINAL_TTL_MS = 60_000
+const PENDING_TTL_MS = 10_000
+const renderCache = new Map<string, { bytes: Buffer; expiresAt: number }>()
+
+function readRenderCache(key: string): Buffer | undefined {
+    const hit = renderCache.get(key)
+    if (!hit) return undefined
+    if (hit.expiresAt <= Date.now()) {
+        renderCache.delete(key)
+        return undefined
+    }
+    // refresh recency for the bounded eviction below
+    renderCache.delete(key)
+    renderCache.set(key, hit)
+    return hit.bytes
+}
+
+function writeRenderCache(key: string, bytes: Buffer, ttlMs: number): void {
+    renderCache.set(key, { bytes, expiresAt: Date.now() + ttlMs })
+    while (renderCache.size > RENDER_CACHE_MAX) {
+        const oldest = renderCache.keys().next().value
+        if (oldest === undefined) break
+        renderCache.delete(oldest)
+    }
+}
+
 const notFound = () => new NextResponse('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } })
 
 /**
@@ -53,7 +86,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const messages = await loadMessages(locale)
         const t = createTranslator({ locale, messages }) as PdfTranslate
         const model = buildReceiptPdfModel(transactionDetails, t, locale)
-        const pdf = await renderReceiptPdf(model)
+        const isFinal = isFinalState(entry)
+        const cacheKey = `${entryId}|${kind}|${locale}`
+        let pdf = readRenderCache(cacheKey)
+        if (!pdf) {
+            pdf = await renderReceiptPdf(model)
+            writeRenderCache(cacheKey, pdf, isFinal ? FINAL_TTL_MS : PENDING_TTL_MS)
+        }
 
         return new NextResponse(new Uint8Array(pdf), {
             headers: {
@@ -62,7 +101,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                 // saves under a sensible name (the page's anchor adds
                 // `download` to force the save on web).
                 'Content-Disposition': `inline; filename="${model.fileName}"`,
-                'Cache-Control': paramLocale && isFinalState(entry) ? 'public, s-maxage=3600' : 'no-store',
+                'Cache-Control': paramLocale && isFinal ? 'public, s-maxage=3600' : 'no-store',
             },
         })
     } catch (error) {
