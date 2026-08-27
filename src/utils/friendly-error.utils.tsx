@@ -152,10 +152,49 @@ const cooldownMinutes = (error: unknown): number | null => {
     return Math.max(1, Math.ceil(sec / 60))
 }
 
+/** A backend-authored ApiError message worth showing verbatim: short single-line
+ *  prose, not a technical dump (URL, JSON/HTML body, stack) and not one of our
+ *  own "Failed to …" fetch fallbacks. */
+const displayableApiErrorMessage = (error: unknown): string | null => {
+    if (apiErrorStatus(error) === undefined) return null
+    const message = (error as { message?: unknown }).message
+    if (typeof message !== 'string') return null
+    const trimmed = message.trim()
+    if (!trimmed || trimmed.length > 200 || trimmed.includes('\n')) return null
+    // no links, scheme-prefixed or bare (www.evil.com / evil.com/path)
+    if (/https?:\/\//i.test(trimmed)) return null
+    if (/(?:^|[\s(["'])(?:[a-z0-9][a-z0-9-]*\.)+[a-z]{2,}(?=$|[\s)\]"'.,!?:;/])/i.test(trimmed)) return null
+    if (trimmed.startsWith('{') || trimmed.startsWith('<')) return null
+    if (/^failed to /i.test(trimmed)) return null
+    return trimmed
+}
+
+const isGenericSupport = (result: FriendlyError): boolean => result.kind === 'code' && result.code === 'genericSupport'
+
 /** UI-friendly error classifier. Matches substrings on common wallet / viem /
  *  Peanut API error messages and returns a display code (or verbatim backend
- *  text). Preserves the exact precedence of the original `ErrorHandler`. */
+ *  text). Preserves the exact precedence of the original `ErrorHandler`.
+ *
+ *  When nothing matches, before giving up on `genericSupport` it re-runs the
+ *  matchers on ONE level of `.cause` (fetch wrappers rethrow with the real
+ *  failure attached there), then surfaces a displayable backend-authored
+ *  ApiError message verbatim rather than discarding the actual reason. */
 export const friendlyError = (error: unknown): FriendlyError => {
+    const classified = classifyError(error)
+    if (!isGenericSupport(classified)) return classified
+
+    const cause = error && typeof error === 'object' ? (error as { cause?: unknown }).cause : undefined
+    if (cause !== undefined && cause !== null) {
+        const fromCause = classifyError(cause)
+        if (!isGenericSupport(fromCause)) return fromCause
+    }
+
+    const backendMessage = displayableApiErrorMessage(error) ?? displayableApiErrorMessage(cause)
+    if (backendMessage) return passthrough(backendMessage)
+    return code('genericSupport')
+}
+
+const classifyError = (error: unknown): FriendlyError => {
     const { text, message, name } = extractErrorParts(error)
 
     // Wire code first: it's locale-independent and immune to backend copy

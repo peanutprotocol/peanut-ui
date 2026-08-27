@@ -82,7 +82,7 @@ export const InitiateKycModal = ({
         return t('initiate.descriptionDefault')
     }
 
-    const getCta = () => {
+    const getCta = (): { text: string; onClick: () => void; icon?: IconName } => {
         if (error || isBlocked) {
             return {
                 text: tCommon('contactSupport'),
@@ -102,14 +102,14 @@ export const InitiateKycModal = ({
             return {
                 text: isLoading ? tCommon('loading') : t('initiate.titleRestartIdentity'),
                 onClick: onVerify,
-                icon: 'upload' as IconName,
+                icon: 'upload-cloud',
             }
         }
         if (isProviderRejection) {
             return {
                 text: isLoading ? tCommon('loading') : t('initiate.ctaUploadDocument'),
                 onClick: onVerify,
-                icon: 'upload' as IconName,
+                icon: 'upload-cloud',
             }
         }
         if (isCrossRegion) {
@@ -121,7 +121,7 @@ export const InitiateKycModal = ({
         return {
             text: isLoading ? tCommon('loading') : t('initiate.ctaUnlockNow'),
             onClick: onVerify,
-            icon: 'check-circle' as IconName,
+            icon: 'check-circle',
         }
     }
 

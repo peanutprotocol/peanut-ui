@@ -53,11 +53,18 @@ export async function initCapgoUpdater(
     // The check itself is deferred past first paint so its network round-trip
     // and bundle download don't contend with app startup (notifyAppReady above
     // stays immediate — it must land within appReadyTimeout).
+    let updateCheckTimer: ReturnType<typeof setTimeout> | undefined
     if (!isDemoMode()) {
-        setTimeout(() => void checkAndStageUpdate(onUpdateAvailable, onUpdateFailed), UPDATE_CHECK_DELAY_MS)
+        updateCheckTimer = setTimeout(
+            () => void checkAndStageUpdate(onUpdateAvailable, onUpdateFailed),
+            UPDATE_CHECK_DELAY_MS
+        )
     }
 
-    return () => listeners.forEach((l) => l.remove())
+    return () => {
+        clearTimeout(updateCheckTimer)
+        listeners.forEach((l) => l.remove())
+    }
 }
 
 const UPDATE_CHECK_DELAY_MS = 5_000

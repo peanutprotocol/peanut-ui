@@ -1732,6 +1732,17 @@
     },
     "transaction": {
         "drawerTitle": "Transaction Details",
+        "officialReceipt": {
+            "issuedBy": "Issued by Peanut",
+            "reference": "Receipt reference",
+            "issuedOn": "Issued on"
+        },
+        "receiptUnavailable": {
+            "title": "This receipt link is no longer available",
+            "description": "The transaction may still exist, but this shared link can't display it anymore.",
+            "loadFailedTitle": "We couldn't load this receipt",
+            "loadFailedDescription": "Please try again in a moment."
+        },
         "noGoalSet": "No goal set",
         "amountCollected": "${amount} collected",
         "contributors": "Contributors ({count})",
