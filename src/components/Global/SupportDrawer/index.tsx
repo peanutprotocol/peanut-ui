@@ -170,39 +170,26 @@ const SupportDrawer = () => {
     // surfaces the previous user's conversation. The effect re-runs and opens
     // once crispTokenId resolves (it's in the deps).
     /*
-     * One open chain per open cycle, identified by generation rather than a
-     * boolean.
+     * Opening native Crisp is a one-shot action, so this effect depends only on
+     * what defines an open cycle: the drawer being open, and the token being
+     * ready.
      *
-     * `userData` is a dependency below and it is a snapshot of live state, so a
-     * balance landing from the cache changes its identity mid-chain; without a
-     * gate a second chain reaches sendMessage/openMessenger and the user's
-     * prefilled message is sent twice.
+     * It used to depend on `userData`, `crispTokenId` and `prefilledMessage`
+     * too — the data it publishes. That is what made it hard: the snapshot is
+     * live, so a balance landing mid-chain re-ran an effect whose tail sends a
+     * message and opens a window, and each guard against that produced the next
+     * defect (a duplicate prefill, then a stale payload, then a duplicate again
+     * across close/reopen). The data is read from `latestPayloadRef` when the
+     * chain actually publishes, so it does not belong in the deps at all.
      *
-     * A boolean is not enough, because the chain outlives the cycle that
-     * started it. Close the drawer while it is parked on the camera-permission
-     * await and reopen: the flag has been cleared, a second chain starts, and
-     * both finish — the duplicate is back. The same gap lets a chain from a
-     * dismissed cycle open the messenger and post the prefill after the user
-     * walked away. So the cycle carries an id: closing increments it, the chain
-     * captures it at the start, and everything the chain does after its awaits
-     * is conditional on that id still being current.
+     * With the deps trimmed, one open cycle runs the chain exactly once and
+     * React's own cleanup handles the rest: closing or reopening tears down the
+     * previous run, and `cancelled` stops a chain from a cycle the user has
+     * left from opening a messenger they walked away from.
      */
-    const openGenerationRef = useRef(0)
-    const activeGenerationRef = useRef<number | null>(null)
-
     useEffect(() => {
-        if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) {
-            // Still waiting on the token must stay retryable — the effect
-            // deliberately re-runs and opens once it resolves.
-            if (!isSupportModalOpen) {
-                openGenerationRef.current += 1
-                activeGenerationRef.current = null
-            }
-            return
-        }
-        if (activeGenerationRef.current === openGenerationRef.current) return
-        const generation = openGenerationRef.current
-        activeGenerationRef.current = generation
+        if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
+        let cancelled = false
 
         ensureNativeCrispConfigured()
             .then(async ({ CapacitorCrisp }) => {
@@ -215,28 +202,21 @@ const SupportDrawer = () => {
                  */
                 await ensureNativeCameraPermission()
 
-                /*
-                 * Read the payload AFTER the awaits, never from the effect
-                 * closure. The latch below keeps this chain to one run per open
-                 * cycle, so a snapshot that lands during setup gets no second
-                 * chance to publish — the closure's copy would freeze whatever
-                 * was true when support was tapped, and an agent would read a
-                 * balance the user no longer has.
-                 */
-                /*
-                 * The user may have dismissed support (or reopened it, starting
-                 * a newer chain) while we awaited. Publishing now would push the
-                 * prefill into a conversation they walked away from, and racing
-                 * the newer chain reintroduces the duplicate open.
-                 */
-                if (generation !== openGenerationRef.current) return
+                // The user dismissed support while we awaited. Publishing now
+                // would push the prefill into a conversation they walked away from.
+                if (cancelled) return
 
-                const latest = latestPayloadRef.current
-                // `userData` is optional only on the proxy wire shape; this ref is
-                // always seeded with the current one, so the fallback is unreachable.
-                const snapshot = latest.userData ?? userData
-                const tokenId = latest.tokenId
-                const prefill = latest.prefilledMessage
+                /*
+                 * Read the payload here, not from the effect closure. The chain
+                 * runs once per open cycle, so a snapshot that lands during
+                 * setup gets no second chance to publish — the closure's copy
+                 * would freeze whatever was true when support was tapped, and an
+                 * agent would read a balance the user no longer has.
+                 */
+                const { userData: snapshot, tokenId, prefilledMessage: prefill } = latestPayloadRef.current
+                // Optional only on the proxy wire shape — this ref is always
+                // seeded with the current snapshot, so this never returns.
+                if (!snapshot) return
 
                 // set user data before opening
                 if (snapshot.email || snapshot.fullName) {
@@ -282,20 +262,16 @@ const SupportDrawer = () => {
                 setIsSupportModalOpen(false)
             })
             .catch((err: unknown) => {
-                // Let this cycle try again — a transient configure/permission
-                // failure must not strand support shut until the user reopens.
-                if (activeGenerationRef.current === generation) activeGenerationRef.current = null
+                // ensureNativeCrispConfigured clears its own memo on failure, so
+                // reopening support genuinely re-configures rather than replaying
+                // a rejected promise.
                 console.warn('[SupportDrawer] native crisp open failed:', err)
             })
-    }, [
-        isSupportModalOpen,
-        isAwaitingToken,
-        userData,
-        crispTokenId,
-        prefilledMessage,
-        setIsSupportModalOpen,
-        clearSupportBadge,
-    ])
+
+        return () => {
+            cancelled = true
+        }
+    }, [isSupportModalOpen, isAwaitingToken, setIsSupportModalOpen, clearSupportBadge])
 
     // drag-to-dismiss state
     const panelRef = useRef<HTMLDivElement>(null)
