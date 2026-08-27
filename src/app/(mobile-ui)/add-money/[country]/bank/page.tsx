@@ -469,7 +469,7 @@ function BridgeBankOnrampPage() {
                             (localCurrency !== 'USD' && (isRateLoading || isRateError))
                         }
                         className="w-full"
-                        loading={isCreatingOnramp}
+                        loading={isCreatingOnramp || (localCurrency !== 'USD' && isRateLoading)}
                     >
                         {tCommon('continue')}
                     </Button>

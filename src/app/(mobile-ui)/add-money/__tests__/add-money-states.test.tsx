@@ -1953,6 +1953,30 @@ describe('GROUP 8: InputAmountStep Component', () => {
         expect(refetch).toHaveBeenCalledTimes(1)
     })
 
+    // The rate block disables Continue, so hiding its retry behind `error` or a
+    // blocking limits card leaves the user stuck with no way to clear it.
+    test('rate retry stays available even when another error is showing', () => {
+        const refetch = jest.fn()
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="100"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error="Something else went wrong"
+                setCurrencyAmount={jest.fn()}
+                currencyData={{ isLoading: false, isError: true, symbol: null, price: null, refetch }}
+                limitsValidation={{ isBlocking: true, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        fireEvent.click(screen.getByText('Retry'))
+
+        expect(refetch).toHaveBeenCalledTimes(1)
+    })
+
     // A slow rate fetch can hold this screen for tens of seconds on a bad mobile
     // connection. The header has to stay mounted or the page reads as frozen.
     test('currency data loading keeps the back button available', () => {

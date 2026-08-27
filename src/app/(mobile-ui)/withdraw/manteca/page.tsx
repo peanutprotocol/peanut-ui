@@ -553,21 +553,21 @@ function MantecaBankWithdrawFlow() {
         }
     }, [countryFromUrl, selectedCountry, router])
 
-    // A failed rate fetch leaves `currencyPrice` null with `isCurrencyLoading`
-    // false. Falling through to the loader below would spin forever with no way
-    // out — the frozen withdraw screen in #1848.
-    if (!isCurrencyLoading && !currencyPrice && selectedCountry && countryConfig) {
+    // Both rate states keep the header mounted so back always works: a failed
+    // fetch used to fall through to a bare loader that spun forever with no way
+    // out, and a retry that stalls would land in the same place (#1848).
+    if (selectedCountry && countryConfig && (isCurrencyLoading || !currencyPrice)) {
         return (
             <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title={tNav('withdraw')} onPrev={onBack} />
                 <div className="my-auto flex flex-col justify-center">
-                    <RateUnavailable onRetry={refetchCurrency} />
+                    {isCurrencyLoading ? <PeanutLoading /> : <RateUnavailable onRetry={refetchCurrency} />}
                 </div>
             </div>
         )
     }
 
-    if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
+    if (!selectedCountry || !countryConfig) {
         return <PeanutLoading />
     }
 

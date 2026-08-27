@@ -133,9 +133,9 @@ const InputAmountStep = ({
                 </Button>
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                 {error && !limitsValidation?.isBlocking && <ErrorAlert description={error} />}
-                {rateUnavailable && !error && !limitsValidation?.isBlocking && (
-                    <RateUnavailable onRetry={() => currencyData?.refetch()} />
-                )}
+                {/* not gated on `error`/limits like the alert above: the retry is the only
+                    way to clear the rate block that disables Continue */}
+                {rateUnavailable && <RateUnavailable onRetry={() => currencyData?.refetch()} />}
             </div>
         </div>
     )
