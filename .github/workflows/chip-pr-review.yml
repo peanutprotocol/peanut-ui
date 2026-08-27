@@ -67,7 +67,9 @@ jobs:
         if: >-
             github.event_name == 'issue_comment' &&
             github.event.issue.pull_request &&
-            (contains(github.event.comment.body, '/chip review') || contains(github.event.comment.body, '@chip-peanut-bot review'))
+            contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.comment.author_association) &&
+            (contains(github.event.comment.body, '/chip review') || contains(github.event.comment.body, '@chip-peanut-bot review')
+            || contains(github.event.comment.body, '/chip quiet') || contains(github.event.comment.body, '/chip loud'))
         runs-on: ubuntu-latest
         timeout-minutes: 2
         steps:
