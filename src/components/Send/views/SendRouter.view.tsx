@@ -59,6 +59,9 @@ export const SendRouterView = () => {
     const recipientUsername = recipientFromQuery || recipientFromPath || null
     const { resetWithdrawFlow } = useWithdrawFlow()
     const goBack = useSafeBack('/home')
+    // replace, not push: a pushed fallback would mint a history entry that the
+    // base view's own safe-back then walks right back into the subview (loop)
+    const goBackToBase = useSafeBack('/send', { replace: true })
     // only fetch 3 contacts for avatar display
     const { contacts, isLoading: isFetchingContacts } = useContacts({ limit: 3 })
 
@@ -113,10 +116,10 @@ export const SendRouterView = () => {
     }
 
     const handlePrev = () => {
-        // when in sub-views (link or contacts), go back to base send page
-        // otherwise, back through in-app history (fallback: home)
+        // sub-views (link or contacts) go back to the base send page; the base
+        // view goes back through in-app history (fallback: home)
         if (isSendingByLink || isSendingToContacts) {
-            router.push('/send')
+            goBackToBase()
         } else {
             goBack()
         }

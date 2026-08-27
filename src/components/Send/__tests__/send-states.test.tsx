@@ -17,6 +17,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -25,7 +26,7 @@ jest.mock('next/navigation', () => ({
     }),
     useRouter: () => ({
         push: mockRouterPush,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
         back: mockRouterBack,
     }),
@@ -168,7 +169,14 @@ jest.mock('../link/LinkSendFlowManager', () => ({
 
 jest.mock('../views/Contacts.view', () => ({
     __esModule: true,
-    default: () => <div data-testid="contacts-view">Contacts View</div>,
+    default: (props: any) => (
+        <div data-testid="contacts-view">
+            <button data-testid="contacts-back" onClick={props.onPrev}>
+                Back
+            </button>
+            Contacts View
+        </div>
+    ),
 }))
 
 // withdraw-flow context — SendRouterView resets it when a click enters the withdraw flow
@@ -304,11 +312,25 @@ describe('GROUP 2: Send by Link', () => {
         expect(screen.getByTestId('link-send-flow-manager')).toBeInTheDocument()
     })
 
-    test('Back from link view navigates to /send', () => {
+    test('Back from a cold deep-link into link view replaces to /send without minting history', () => {
         renderSend({ view: 'link' })
 
         fireEvent.click(screen.getByTestId('link-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        // replace, not push — a pushed entry would let the base view's safe-back
+        // walk right back into the subview
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterBack).not.toHaveBeenCalled()
+    })
+
+    test('Back from an in-app-entered link view pops history instead of pushing', () => {
+        window.history.pushState({}, '', '/send?view=link')
+        renderSend({ view: 'link' })
+
+        fireEvent.click(screen.getByTestId('link-back'))
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 })
 
@@ -321,6 +343,39 @@ describe('GROUP 3: Contacts View', () => {
 
         expect(screen.getByTestId('contacts-view')).toBeInTheDocument()
         expect(screen.queryByText('Send money with a link')).not.toBeInTheDocument()
+    })
+
+    test('Back from a cold deep-link into contacts replaces to /send without minting history', () => {
+        renderSend({ view: 'contacts' })
+
+        fireEvent.click(screen.getByTestId('contacts-back'))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterBack).not.toHaveBeenCalled()
+    })
+
+    // Regression: the subview branch used to router.push('/send'), minting a
+    // history entry that made the base view's safe-back re-open the subview —
+    // Back looped between Contacts and base Send forever.
+    test('cold /send → open contacts → back → back leaves Send, not re-enters contacts', () => {
+        // cold /send: user opens contacts (real in-app push, as the contacts card does)
+        window.history.pushState({}, '', '/send?view=contacts')
+        const contactsView = renderSend({ view: 'contacts' })
+
+        // Back from contacts pops the pushed entry instead of pushing a new one
+        fireEvent.click(screen.getByTestId('contacts-back'))
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+
+        // the browser pops the subview entry in response to router.back()
+        window.dispatchEvent(new PopStateEvent('popstate'))
+        contactsView.unmount()
+
+        // back at base /send: Back must fall back to /home, never into contacts
+        renderSend()
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
     })
 })
 
