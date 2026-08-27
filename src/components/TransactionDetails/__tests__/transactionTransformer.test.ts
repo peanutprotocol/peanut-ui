@@ -562,30 +562,44 @@ describe('mapTransactionDataForDrawer', () => {
     describe('request-link OPEN status (TASK-20560)', () => {
         // BE forwards the raw link.status (OPEN|CLOSED) for request-link rows.
         // OPEN used to fall to the default 'pending' arm → a paid request kept
-        // the hourglass pill forever.
-        const openRequest = (totalAmountCollected: number) =>
+        // the hourglass pill forever. Completed requires the collected total to
+        // reach the positive goal (`entry.amount`) — a partial or goal-less pot
+        // is still awaiting payment.
+        const openRequest = (amount: string, totalAmountCollected: number) =>
             baseEntry({
                 userRole: EHistoryUserRole.RECIPIENT,
                 status: EHistoryStatus.OPEN,
                 extraData: { kind: 'P2P_REQUEST_FULFILL' },
                 isRequestLink: true,
+                amount,
                 totalAmountCollected,
             })
 
-        it('a paid open request maps to completed, with the inbound sign', () => {
-            const result = mapTransactionDataForDrawer(openRequest(25)).transactionDetails
+        it('a fully-paid open request maps to completed, with the inbound sign', () => {
+            const result = mapTransactionDataForDrawer(openRequest('25.00', 25)).transactionDetails
             expect(result.status).toBe('completed')
             expect(result.direction).toBe('request_received')
             expect(getTransactionSign(result)).toBe('+')
         })
 
-        it('a partially-paid open request also drops the hourglass', () => {
-            const result = mapTransactionDataForDrawer(openRequest(0.5)).transactionDetails
+        it('float noise in the collected sum cannot leave a fully-paid request pending', () => {
+            // three $0.10 contributions: 0.1 + 0.1 + 0.1 === 0.30000000000000004
+            const result = mapTransactionDataForDrawer(openRequest('0.30', 0.1 + 0.1 + 0.1)).transactionDetails
             expect(result.status).toBe('completed')
         })
 
+        it('a partially-paid open pot stays pending ($1 of $100)', () => {
+            const result = mapTransactionDataForDrawer(openRequest('100', 1)).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+
+        it('a goal-less open pot stays pending even with contributions', () => {
+            const result = mapTransactionDataForDrawer(openRequest('0', 12)).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+
         it('an unpaid open request stays pending', () => {
-            const result = mapTransactionDataForDrawer(openRequest(0)).transactionDetails
+            const result = mapTransactionDataForDrawer(openRequest('100', 0)).transactionDetails
             expect(result.status).toBe('pending')
         })
     })
