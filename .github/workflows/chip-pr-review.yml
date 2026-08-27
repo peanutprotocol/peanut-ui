@@ -8,10 +8,18 @@
 #
 # The job filter is a cheap ABUSE GUARD, not the trust boundary. peanut-ui is
 # public with forks, so without it every drive-by PR would open an SSH session
-# to the box. author_association comes from the event payload, needs no token,
-# and covers any org member or repo collaborator -- a new teammate is reviewed
-# with no edit here. The real gate is server side: the dispatcher re-checks
-# live repository write permission before Codex reads anything.
+# to the box. The review job requires the PR head to live in this repository,
+# which only somebody with push access can arrange -- it covers every teammate
+# with no list to maintain, and excludes fork PRs.
+#
+# Do NOT filter on author_association. It reports MEMBER only when the person
+# made their org membership PUBLIC, so it read CONTRIBUTOR for an org admin
+# with private membership and silently skipped their reviews (verified live,
+# 2026-08-27). issue_comment carries no head-repo field, so the manual job
+# matches the command only and leans entirely on the server-side check.
+#
+# The real gate is server side: the dispatcher re-checks live repository write
+# permission before Codex reads anything.
 #
 # Only pull_request_target and issue_comment may live here. Both resolve their
 # workflow file from a branch a PR author cannot write. pull_request_review
@@ -35,8 +43,7 @@ jobs:
     review:
         if: >-
             github.event_name == 'pull_request_target' &&
-            (contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
-            || github.event.pull_request.user.login == 'chip-peanut-bot[bot]')
+            github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
         timeout-minutes: 2
         steps:
@@ -60,9 +67,6 @@ jobs:
         if: >-
             github.event_name == 'issue_comment' &&
             github.event.issue.pull_request &&
-            contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
-            (contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
-            || github.event.issue.user.login == 'chip-peanut-bot[bot]') &&
             (contains(github.event.comment.body, '/chip review') || contains(github.event.comment.body, '@chip-peanut-bot review'))
         runs-on: ubuntu-latest
         timeout-minutes: 2
