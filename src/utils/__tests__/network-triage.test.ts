@@ -51,28 +51,39 @@ describe('triageNetworkFailure', () => {
         expect(global.fetch).not.toHaveBeenCalled()
     })
 
-    test('api probe succeeding means the failure was NOT connectivity', async () => {
+    test('api probe succeeding is recorded as an observation, with the error class alongside', async () => {
         mockProbes({ api: true, internet: true })
         const triage = await triageNetworkFailure(fetchRejection)
-        expect(triage?.verdict).toBe('api_reachable')
+        expect(triage?.observed).toBe('api_reachable')
+        expect(triage?.errorClass).toBe('fetch_rejection')
     })
 
     test('internet up but edge down → edge_unreachable', async () => {
         mockProbes({ api: false, internet: true })
         const triage = await triageNetworkFailure(fetchRejection)
-        expect(triage?.verdict).toBe('edge_unreachable')
+        expect(triage?.observed).toBe('edge_unreachable')
     })
 
     test('nothing reachable → offline', async () => {
         mockProbes({ api: false, internet: false })
         const triage = await triageNetworkFailure(fetchRejection)
-        expect(triage?.verdict).toBe('offline')
+        expect(triage?.observed).toBe('offline')
     })
 
     test('also triages fetchWithSentry-wrapped failures by their rethrown name', async () => {
         mockProbes({ api: true, internet: true })
         const triage = await triageNetworkFailure(wrappedRejection)
-        expect(triage?.verdict).toBe('api_reachable')
+        expect(triage?.observed).toBe('api_reachable')
+        expect(triage?.errorClass).toBe('service_unavailable')
+    })
+
+    test('a timeout carries its own error class so api_reachable cannot read as CORS evidence', async () => {
+        mockProbes({ api: true, internet: true })
+        const timeout = Object.assign(new Error('Peanut is taking too long to respond'), {
+            name: 'ConnectionTimeoutError',
+        })
+        const triage = await triageNetworkFailure(timeout)
+        expect(triage?.errorClass).toBe('timeout')
     })
 
     test('probes with no-cors so an opaque (even non-2xx) response still counts as reachable', async () => {
@@ -88,9 +99,20 @@ describe('triageNetworkFailure', () => {
 
 describe('networkTriageTags', () => {
     test('flattens the triage for use as Sentry tags / analytics props', () => {
-        expect(networkTriageTags({ verdict: 'api_reachable', online: true, effectiveType: '4g', probeMs: 12 })).toEqual(
-            { net_triage: 'api_reachable', net_online: 'true', net_effective_type: '4g' }
-        )
+        expect(
+            networkTriageTags({
+                observed: 'api_reachable',
+                errorClass: 'fetch_rejection',
+                online: true,
+                effectiveType: '4g',
+                probeMs: 12,
+            })
+        ).toEqual({
+            net_probe: 'api_reachable',
+            net_error_class: 'fetch_rejection',
+            net_online: 'true',
+            net_effective_type: '4g',
+        })
     })
 
     test('is empty when triage was inapplicable', () => {
@@ -99,7 +121,7 @@ describe('networkTriageTags', () => {
 })
 
 describe('captureNetworkTriagedFailure', () => {
-    test('rides the verdict on BOTH the Sentry event and the analytics event', async () => {
+    test('rides the observation on BOTH the Sentry event and the analytics event', async () => {
         mockProbes({ api: true, internet: true })
         await captureNetworkTriagedFailure(fetchRejection, {
             tags: { critical_flow: 'send-link', send_link_step: 'create' },
@@ -108,15 +130,21 @@ describe('captureNetworkTriagedFailure', () => {
         })
         expect(posthog.capture).toHaveBeenCalledWith(
             'send_link_failed',
-            expect.objectContaining({ error_name: 'TypeError', net_triage: 'api_reachable' })
+            expect.objectContaining({
+                error_name: 'TypeError',
+                net_probe: 'api_reachable',
+                net_error_class: 'fetch_rejection',
+                net_probe_ms: expect.any(Number),
+            })
         )
         expect(captureException).toHaveBeenCalledWith(fetchRejection, {
             tags: expect.objectContaining({
                 critical_flow: 'send-link',
                 send_link_step: 'create',
-                net_triage: 'api_reachable',
+                net_probe: 'api_reachable',
+                net_error_class: 'fetch_rejection',
             }),
-            extra: { amount: '9' },
+            extra: { amount: '9', net_probe_ms: expect.any(Number) },
         })
     })
 

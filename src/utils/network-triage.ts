@@ -25,22 +25,33 @@ export function isNativeFetchRejection(name: string | undefined, message: string
     return name === 'TypeError' && message !== undefined && NATIVE_FETCH_REJECTION_MESSAGES.includes(message)
 }
 
+type NetworkErrorClass = 'fetch_rejection' | 'timeout' | 'service_unavailable'
+
 // fetchWithSentry rethrows its network-layer failures under these names, so a
 // flow-level catch only sees the raw TypeError for calls that bypassed it.
-function isNetworkLayerFailure(error: unknown): boolean {
-    if (!(error instanceof Error)) return false
-    if (isNativeFetchRejection(error.name, error.message)) return true
-    return error.name === 'ServiceUnavailableError' || error.name === 'ConnectionTimeoutError'
+function classifyNetworkFailure(error: unknown): NetworkErrorClass | null {
+    if (!(error instanceof Error)) return null
+    if (isNativeFetchRejection(error.name, error.message)) return 'fetch_rejection'
+    if (error.name === 'ConnectionTimeoutError') return 'timeout'
+    if (error.name === 'ServiceUnavailableError') return 'service_unavailable'
+    return null
 }
 
 export interface NetworkTriage {
     /**
-     * - `api_reachable`: the edge answered the probe while the real request
-     *   failed → CORS-layer / WAF / edge-error-page problem, NOT connectivity.
-     * - `edge_unreachable`: internet is up but our edge isn't answering.
-     * - `offline`: nothing reachable — the device really is offline.
+     * What the probes OBSERVED in the seconds after the failure — not proof of
+     * what caused it: a transient radio drop can recover inside that gap and
+     * still read `api_reachable`. Per event this is a hint; the causal signal
+     * is the distribution (a population of `api_reachable` + `net_online:true`
+     * failures is not a connectivity story). Read alongside `errorClass` — for
+     * a `timeout`, `api_reachable` means "edge up, endpoint slow", saying
+     * nothing about CORS.
+     * - `api_reachable`: the edge answered the probe after the request failed
+     * - `edge_unreachable`: the internet answered, our edge did not
+     * - `offline`: nothing answered
      */
-    verdict: 'api_reachable' | 'edge_unreachable' | 'offline'
+    observed: 'api_reachable' | 'edge_unreachable' | 'offline'
+    errorClass: NetworkErrorClass
     online: boolean
     effectiveType?: string
     probeMs: number
@@ -63,7 +74,9 @@ async function probe(url: string): Promise<boolean> {
 
 export async function triageNetworkFailure(error: unknown): Promise<NetworkTriage | null> {
     if (typeof navigator === 'undefined' || typeof fetch === 'undefined') return null
-    if (!isNetworkLayerFailure(error)) return null
+    const errorClass = classifyNetworkFailure(error)
+    if (!errorClass) return null
+    const online = navigator.onLine
     const started = Date.now()
     // gstatic's generate_204 is Android's own captive-portal check — the most
     // dependable "is the internet there at all" endpoint a WebView can reach.
@@ -73,8 +86,9 @@ export async function triageNetworkFailure(error: unknown): Promise<NetworkTriag
     ])
     const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection
     return {
-        verdict: apiReachable ? 'api_reachable' : internetReachable ? 'edge_unreachable' : 'offline',
-        online: navigator.onLine,
+        observed: apiReachable ? 'api_reachable' : internetReachable ? 'edge_unreachable' : 'offline',
+        errorClass,
+        online,
         effectiveType: connection?.effectiveType,
         probeMs: Date.now() - started,
     }
@@ -83,7 +97,8 @@ export async function triageNetworkFailure(error: unknown): Promise<NetworkTriag
 export function networkTriageTags(triage: NetworkTriage | null): Record<string, string> {
     if (!triage) return {}
     return {
-        net_triage: triage.verdict,
+        net_probe: triage.observed,
+        net_error_class: triage.errorClass,
         net_online: String(triage.online),
         ...(triage.effectiveType ? { net_effective_type: triage.effectiveType } : {}),
     }
@@ -113,8 +128,12 @@ export async function captureNetworkTriagedFailure(
         // diagnostics must never mask the failure being reported
     }
     const triageTags = networkTriageTags(triage)
+    // probeMs rides in extra/props, not tags — millisecond values would blow
+    // up tag cardinality while still mattering for reading a single event
+    // (how stale the observation is relative to the failure).
+    const timing = triage ? { net_probe_ms: triage.probeMs } : {}
     if (analytics) {
-        posthog.capture(analytics.event, { ...analytics.props, ...triageTags })
+        posthog.capture(analytics.event, { ...analytics.props, ...triageTags, ...timing })
     }
-    captureException(error, { tags: { ...tags, ...triageTags }, extra })
+    captureException(error, { tags: { ...tags, ...triageTags }, extra: triage ? { ...extra, ...timing } : extra })
 }
