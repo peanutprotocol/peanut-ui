@@ -60,7 +60,7 @@
     "navigation": {
         "home": "Inicio",
         "send": "Enviar",
-        "request": "Solicitar",
+        "request": "Recibir",
         "add": "Agregar",
         "withdraw": "Retirar",
         "history": "Historial",
@@ -483,6 +483,11 @@
             "monthly": "Mensual",
             "yearly": "Anual",
             "selectAriaLabel": "Seleccionar período"
+        },
+        "capNudge": {
+            "description": "Alcanzaste tu límite mensual. Verifica tus ingresos para solicitar uno más alto.",
+            "cta": "Verificar ingresos",
+            "underReview": "Recibimos la verificación de tus ingresos: nuestro equipo está revisando tu límite."
         },
         "increase": {
             "cta": "Aumentar mis límites",

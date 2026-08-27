@@ -32,6 +32,7 @@ const GLOBAL_ALLOW = [
     'dev/components/',
     'dev/devices/',
     'dev/fixtures/', // fixture tooling incl. the on-camera banner — dev-only, DEV_TOOLS_ENABLED-gated
+    'features/payment-network-explorer/', // team-gated /dev/payment-graph tool (same class as InvitesGraph) — not product UI
 ]
 
 // extra allowlist for raw-hex only: canvas/D3/mermaid surfaces paint

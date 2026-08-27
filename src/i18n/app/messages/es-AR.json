@@ -223,6 +223,9 @@
         }
     },
     "limits": {
+        "capNudge": {
+            "description": "Alcanzaste tu límite mensual. Verificá tus ingresos para solicitar uno más alto."
+        },
         "pageDescription": "Los límites de pago controlan cuánto podés enviar y recibir. Varían según la región y se reinician cada mes o cada año.",
         "fiatLocked": {
             "title": "Desbloqueá pagos fiat",

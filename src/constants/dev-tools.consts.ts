@@ -16,10 +16,12 @@ export const DEV_TOOLS_ENABLED =
 export const DEV_ROUTES_ENABLED =
     DEV_TOOLS_ENABLED || (process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me') !== 'https://peanut.me'
 
-// The /dev routes that stay reachable on peanut.me. full-graph and payment-graph
-// are the activity visualisations shown at events. safe-area reads device insets
-// and must run on the production native build, where the bad insets are.
-const PROD_ALLOWED_DEV_ROUTES = ['/dev/full-graph', '/dev/payment-graph', '/dev/safe-area']
+// The /dev routes that stay reachable on peanut.me. payment-graph is the
+// activity visualisation shown at events. full-graph is deliberately absent:
+// the legacy page loads the same team-gated dataset without the explorer's
+// telemetry suppression. safe-area reads device insets and must run on the
+// production native build, where the bad insets are.
+const PROD_ALLOWED_DEV_ROUTES = ['/dev/payment-graph', '/dev/safe-area']
 
 // True for any /dev path that must not answer on peanut.me. One check for both
 // route groups — `src/app/dev/*` and `src/app/(mobile-ui)/dev/*`.

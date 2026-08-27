@@ -123,9 +123,10 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
  * Matches paths that don't require authentication
  *
  * Note: Most dev tools routes are NOT public - they require both authentication and specific user authorization
- * Exception: /dev/payment-graph is public (uses API key instead of user auth)
+ * Production dev tools require a signed-in Peanut user. Each tool applies its
+ * own server-enforced role check after the normal app session gate.
  */
-export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view|dev\/payment-graph)/
+export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view)/
 
 /**
  * Regex for dev-only public routes: ALL /dev pages (index + every tool/preview).

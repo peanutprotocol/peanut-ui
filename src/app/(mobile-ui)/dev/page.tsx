@@ -17,8 +17,8 @@ export default function DevToolsPage() {
             icon: 'globe-lock',
         },
         {
-            name: 'Payment Graph',
-            description: 'P2P payment flow visualization',
+            name: 'Payment Network Explorer',
+            description: 'Live P2P payment relationships — team-gated, shows real usernames, points and KYC regions',
             path: '/dev/payment-graph',
             icon: 'dollar',
         },

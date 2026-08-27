@@ -20,10 +20,11 @@ function routesUnder(dir: string, base = ''): string[] {
 
 const DEV_ROUTES = routesUnder(path.join(process.cwd(), 'src/app')).filter((route) => route.startsWith('/dev'))
 
-// Only these three answer on peanut.me. Widening this list is a deliberate act:
-// full-graph and payment-graph are the event visualisations, safe-area reads
-// device insets on the production native build.
-const ALLOWED_ON_PROD = ['/dev/full-graph', '/dev/payment-graph', '/dev/safe-area']
+// Only these two answer on peanut.me. Widening this list is a deliberate act:
+// payment-graph is the event visualisation (full-graph was dropped — the legacy
+// page loads the same team-gated dataset without the explorer's telemetry
+// suppression), safe-area reads device insets on the production native build.
+const ALLOWED_ON_PROD = ['/dev/payment-graph', '/dev/safe-area']
 
 const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
 
@@ -47,7 +48,7 @@ describe('dev routes on peanut.me', () => {
         expect(DEV_ROUTES).toEqual(expect.arrayContaining(['/dev', '/dev/debug', '/dev/ds', ...ALLOWED_ON_PROD]))
     })
 
-    it('404s every dev page except the three allowed ones', async () => {
+    it('404s every dev page except the allowed ones', async () => {
         const { proxy } = await loadProdBuild()
 
         // every route goes through the proxy — so the allowlist is asserted
