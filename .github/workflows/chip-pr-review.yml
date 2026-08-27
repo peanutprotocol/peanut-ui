@@ -1,4 +1,12 @@
 # Trusted event bridge. It never checks out PR code or forwards PR text.
+#
+# Only pull_request_target and issue_comment may live here. Both resolve their
+# workflow file from a branch a PR author cannot write: the PR base, and the
+# repository default branch. pull_request_review does NOT -- GitHub runs it
+# from the PR head, so any branch could execute its own workflow with
+# CHIP_PR_REVIEW_SSH_KEY in scope, and CodeRabbit raises that event on every
+# PR. Do not add pull_request_review, workflow_run, or any other trigger
+# without confirming which ref supplies the file.
 name: Chip PR review
 
 on:
@@ -7,8 +15,6 @@ on:
         types: [opened, reopened, synchronize, ready_for_review]
     issue_comment:
         types: [created]
-    pull_request_review:
-        types: [submitted]
 
 permissions: {}
 
@@ -61,27 +67,3 @@ jobs:
                   ssh -i "$RUNNER_TEMP/chip-pr-review" \
                     -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
                     chip@195.201.2.135 "manual $REPOSITORY $PULL_REQUEST $COMMENT_ID $SOURCE_ID"
-
-    notify-human-review:
-        if: >-
-            github.event_name == 'pull_request_review' &&
-            contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev"]'), github.event.review.user.login) &&
-            contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev","chip-peanut-bot[bot]"]'), github.event.pull_request.user.login)
-        runs-on: ubuntu-latest
-        timeout-minutes: 2
-        steps:
-            - name: Notify the author that a human reviewed
-              env:
-                  SSH_KEY: ${{ secrets.CHIP_PR_REVIEW_SSH_KEY }}
-                  KNOWN_HOSTS: ${{ secrets.CHIP_PR_REVIEW_KNOWN_HOSTS }}
-                  REPOSITORY: ${{ github.event.repository.name }}
-                  PULL_REQUEST: ${{ github.event.pull_request.number }}
-                  REVIEW_ID: ${{ github.event.review.id }}
-                  SOURCE_ID: ${{ github.run_id }}
-              run: |
-                  umask 077
-                  printf '%s\n' "$SSH_KEY" > "$RUNNER_TEMP/chip-pr-review"
-                  printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
-                  ssh -i "$RUNNER_TEMP/chip-pr-review" \
-                    -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
-                    chip@195.201.2.135 "human-review $REPOSITORY $PULL_REQUEST $REVIEW_ID $SOURCE_ID"
