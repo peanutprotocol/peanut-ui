@@ -5,13 +5,12 @@ import Layout from '@/components/Global/Layout'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import borderCloud from '@/assets/illustrations/border-cloud.svg'
-import Star from '@/assets/illustrations/star.svg'
-import { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { QuestLeaderboard } from '../components/QuestLeaderboard'
 import { UserRankCard } from '../components/UserRankCard'
 import { QUEST_CONFIG, getQuestStatus, type QuestId } from '../constants'
+import { QuestHeroDecoration } from '../components/QuestHeroDecoration'
+import { QuestArrowCta } from '../components/QuestArrowCta'
 import { useQuestLeaderboard } from '../hooks/useQuests'
 import Loading from '@/components/Global/Loading'
 import { useAuth } from '@/context/authContext'
@@ -26,38 +25,9 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
     const searchParams = useSearchParams()
     const { userId, username } = useAuth()
     const useTestTimePeriod = searchParams?.get('useTestTimePeriod') === 'true'
-    const [screenWidth, setScreenWidth] = useState(1080)
     const questStatus = getQuestStatus()
     const questId = params.questId as QuestId
     const { data: questData, isLoading } = useQuestLeaderboard(questId, 10, useTestTimePeriod)
-
-    useEffect(() => {
-        const handleResize = () => {
-            setScreenWidth(window.innerWidth)
-        }
-
-        handleResize()
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
-    }, [])
-
-    const createCloudAnimation = useCallback(
-        (side: 'left' | 'right', width: number, speed: number) => {
-            const vpWidth = screenWidth || 1080
-            const totalDistance = vpWidth + width
-
-            return {
-                initial: { x: side === 'left' ? -width : vpWidth },
-                animate: { x: side === 'left' ? vpWidth : -width },
-                transition: {
-                    ease: 'linear',
-                    duration: totalDistance / speed,
-                    repeat: Infinity,
-                },
-            }
-        },
-        [screenWidth]
-    )
 
     const questConfig = QUEST_CONFIG[questId]
 
@@ -88,50 +58,7 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
             <section className="relative min-h-screen overflow-hidden bg-[#FFC900] px-4 py-16 md:py-24">
-                {/* Animated Clouds - Reduced for performance */}
-                <div className="absolute top-0 left-0 h-full w-full overflow-hidden">
-                    <motion.img
-                        src={borderCloud.src}
-                        alt=""
-                        className="absolute left-0"
-                        style={{ top: '15%', width: 180 }}
-                        {...createCloudAnimation('left', 180, 35)}
-                    />
-                    <motion.img
-                        src={borderCloud.src}
-                        alt=""
-                        className="absolute right-0"
-                        style={{ top: '40%', width: 200 }}
-                        {...createCloudAnimation('right', 200, 40)}
-                    />
-                    <motion.img
-                        src={borderCloud.src}
-                        alt=""
-                        className="absolute left-0"
-                        style={{ top: '70%', width: 190 }}
-                        {...createCloudAnimation('left', 190, 38)}
-                    />
-                </div>
-
-                {/* Stars */}
-                <motion.img
-                    initial={{ opacity: 0, translateY: 20, translateX: 5 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 5 }}
-                    src={Star.src}
-                    alt=""
-                    className="absolute hidden md:block"
-                    style={{ top: '20%', left: '15%', width: 35 }}
-                />
-                <motion.img
-                    initial={{ opacity: 0, translateY: 28, translateX: -5 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 5 }}
-                    src={Star.src}
-                    alt=""
-                    className="absolute hidden md:block"
-                    style={{ top: '60%', right: '20%', width: 40 }}
-                />
+                <QuestHeroDecoration />
 
                 {/* Content */}
                 <div className="relative z-10 mx-auto max-w-4xl">
@@ -226,55 +153,12 @@ export default function QuestDetailPage(props: QuestDetailPageProps) {
                     </motion.div>
 
                     {/* Main CTA - Like Landing Page */}
-                    <motion.div
-                        className="relative z-20 mx-auto mt-16 mb-12 flex w-fit flex-col items-center justify-center"
-                        initial={{ opacity: 0, translateY: 4, translateX: 0, rotate: 0.75 }}
-                        animate={{ opacity: 1, translateY: 0, translateX: 0, rotate: 0, scale: 1 }}
-                        whileHover={{ translateY: 6, translateX: 0, rotate: 0.75 }}
-                        transition={{ type: 'spring', damping: 15 }}
+                    <QuestArrowCta
+                        label="SIGN UP NOW"
                         onClick={() => router.push('/setup')}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <Button
-                            shadowSize="4"
-                            className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
-                        >
-                            SIGN UP NOW
-                        </Button>
-                        {/* Arrows like landing page */}
-                        <Image
-                            src="/arrows/small-arrow.svg"
-                            alt="Arrow"
-                            width={32}
-                            height={16}
-                            className="absolute -top-5 -left-8 block -translate-y-1/2 transform md:hidden"
-                            style={{ rotate: '8deg' }}
-                        />
-                        <Image
-                            src="/arrows/small-arrow.svg"
-                            alt="Arrow"
-                            width={32}
-                            height={16}
-                            className="absolute -top-5 -right-8 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
-                            style={{ rotate: '-8deg' }}
-                        />
-                        <Image
-                            src="/arrows/small-arrow.svg"
-                            alt="Arrow"
-                            width={40}
-                            height={20}
-                            className="absolute -top-6 -left-10 hidden -translate-y-1/2 transform md:block"
-                            style={{ rotate: '8deg' }}
-                        />
-                        <Image
-                            src="/arrows/small-arrow.svg"
-                            alt="Arrow"
-                            width={40}
-                            height={20}
-                            className="absolute -top-6 -right-10 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
-                            style={{ rotate: '-8deg' }}
-                        />
-                    </motion.div>
+                        className="mt-16 mb-12"
+                        buttonClassName="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
+                    />
                 </div>
             </section>
         </Layout>

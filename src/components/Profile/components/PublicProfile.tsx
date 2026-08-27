@@ -253,8 +253,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             )}
                         </Card>
                         {/* <div
-                            className="absolute left-0 top-0 flex w-full justify-center"
-                            style={{ transform: 'translateY(-15%)' }}
+                            className="absolute top-0 left-0 flex w-full -translate-y-[15%] justify-center"
                         >
                             <div className="relative h-42 w-[65%] md:h-44 md:w-[45%]">
                                 <Image

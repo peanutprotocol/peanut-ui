@@ -37,12 +37,8 @@ export default function CyclingLoading() {
                 <span>{word}</span>
                 <span className="ml-px inline-block">
                     <span className="animate-cycling-blink">.</span>
-                    <span className="animate-cycling-blink" style={{ animationDelay: '0.2s' }}>
-                        .
-                    </span>
-                    <span className="animate-cycling-blink" style={{ animationDelay: '0.4s' }}>
-                        .
-                    </span>
+                    <span className="animate-cycling-blink [animation-delay:0.2s]">.</span>
+                    <span className="animate-cycling-blink [animation-delay:0.4s]">.</span>
                 </span>
             </div>
         </div>

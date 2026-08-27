@@ -56,7 +56,7 @@ const QRCodeWrapper = ({
                         <QRCode
                             value={url}
                             size={256}
-                            style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                            className="h-auto w-full max-w-full"
                             viewBox={`0 0 256 256`}
                             level="H" // Highest error correction level to allow for logo
                         />

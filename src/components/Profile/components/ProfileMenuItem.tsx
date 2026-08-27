@@ -47,9 +47,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                 {typeof icon === 'string' ? (
                     <Icon name={icon as IconName} size={20} fill="black" className={iconClassName} />
                 ) : (
-                    <div className="flex items-center justify-center" style={{ width: 20, height: 20 }}>
-                        {icon}
-                    </div>
+                    <div className="flex size-5 items-center justify-center">{icon}</div>
                 )}
                 <label className="text-body-m text-foreground-primary">{label}</label>
                 {badge && <StatusBadge status="custom" customText={badge} />}

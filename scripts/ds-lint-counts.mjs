@@ -35,6 +35,27 @@ const HEX_ALLOW = [
     'LandingPage/PioneerCard3D', // canvas 3d card
 ]
 
+// extra allowlist for inline-style only (F-12 taxonomy). canvas/D3/mermaid
+// surfaces compute pixel styles programmatically; dev tooling pages are not
+// product UI; the per-file keepers each hold a property tailwind has no
+// utility for. everything NOT listed here is either a css-var/motion dynamic
+// site (allowed to exist, still counted — the baseline is the floor) or debt.
+const INLINE_STYLE_ALLOW = [
+    'share-asset/', // canvas card renderer
+    'Global/InvitesGraph/', // d3 force graph
+    'dev/kyc-flows/', // mermaid theming
+    'dev/journey/', // dev tooling
+    'dev/full-graph/', // dev tooling
+    'dev/payment-graph/', // dev tooling
+    'dev/share-builder/', // dev tooling
+    'dev/rejection-builder/', // dev tooling
+    'dev/loading-words/', // dev tooling
+    'app/layout.tsx', // colorScheme on <html> — must be a style prop
+    '0_Bruddle/BaseSelect.tsx', // width from radix var(--radix-select-trigger-width)
+    'qr-pay/page.tsx', // -webkit-touch-callout on the hold button — no utility
+    'Global/ValidatedInput/', // -webkit tap-highlight/text-fill — no utility
+]
+
 const HEX_RE = /#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g
 const INLINE_STYLE_RE = /style=\{\{/g
 // stock tailwind text sizes that the text-h* scale replaces
@@ -79,7 +100,7 @@ counts.rawHex = files
     }, 0)
 counts.rawHexFiles = rawHexFiles
 counts.inlineStyle = files
-    .filter((f) => isTsx(f) && !allowed(f.path))
+    .filter((f) => isTsx(f) && !allowed(f.path, INLINE_STYLE_ALLOW))
     .reduce((sum, f) => sum + countMatches(f.text, INLINE_STYLE_RE), 0)
 counts.stockTextSize = files
     .filter((f) => isTsx(f) && !allowed(f.path))

@@ -1,10 +1,10 @@
 {
     "rawHex": 65,
     "rawHexFiles": 41,
-    "inlineStyle": 167,
+    "inlineStyle": 50,
     "stockTextSize": 365,
-    "dsTextScale": 13,
-    "nonDsClassesInViews": 160,
+    "dsTextScale": 9,
+    "nonDsClassesInViews": 156,
     "useSearchParamsFiles": 49,
     "nuqsFiles": 18,
     "legacyColorClasses": 0,
