@@ -8,6 +8,7 @@ import {
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
 import {
+    hasReceiptPage,
     hasShareableReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
@@ -65,6 +66,11 @@ export interface ReceiptViewModel {
 
     /** Whether the share-receipt button should render at all. */
     shouldShowShareReceipt: boolean
+
+    /** Whether the Download-PDF affordance should render — the share gate's
+     *  conditions, narrowed to kinds the /receipt/[entryId]/pdf route serves,
+     *  and allowed on the public receipt (where sharing is moot). */
+    shouldShowDownloadPdf: boolean
 
     /** Request-pot contributor list — empty array when not a request pot. */
     requestPotContributors: ReturnType<typeof getContributorsFromCharge>
@@ -282,14 +288,23 @@ export function useReceiptViewModel(
         }
     }, [lastVisibleInGroups, shouldHideBorder])
 
-    const shouldShowShareReceipt = useMemo(() => {
-        if (isPublic) return false
+    // The share conditions without the isPublic suppression, so the PDF gate
+    // below can reuse them on the public receipt.
+    const meetsShareConditions = useMemo(() => {
         if (!transaction || isPendingSentLink || isPendingRequester || isPendingRequestee) return false
         if (transaction.txHash && transaction.direction !== 'receive' && transaction.direction !== 'request_sent') {
             return true
         }
         return hasShareableReceipt(transaction)
-    }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee])
+    }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
+
+    const shouldShowShareReceipt = !isPublic && meetsShareConditions
+
+    const shouldShowDownloadPdf = useMemo(() => {
+        if (!transaction || !hasReceiptPage(transaction)) return false
+        if (isPendingSentLink || isPendingRequester || isPendingRequestee) return false
+        return isPublic || meetsShareConditions
+    }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee, meetsShareConditions])
 
     const requestPotContributors = useMemo(() => {
         if (!transaction?.requestPotPayments) return []
@@ -314,6 +329,7 @@ export function useReceiptViewModel(
         shouldHideBorder,
         shouldHideGroupBorder,
         shouldShowShareReceipt,
+        shouldShowDownloadPdf,
         requestPotContributors,
         formattedTotalAmountCollected,
     }

@@ -1735,7 +1735,13 @@
         "officialReceipt": {
             "issuedBy": "Emitido por Peanut",
             "reference": "Referencia del recibo",
-            "issuedOn": "Fecha de emisión"
+            "issuedOn": "Fecha de emisión",
+            "pdf": {
+                "title": "Comprobante de pago",
+                "type": "Tipo",
+                "status": "Estado",
+                "from": "De"
+            }
         },
         "receiptUnavailable": {
             "title": "Este enlace de recibo ya no está disponible",
@@ -1867,6 +1873,7 @@
             "rejectRequest": "Rechazar solicitud",
             "splitBill": "Dividir esta cuenta",
             "shareReceipt": "Compartir comprobante",
+            "downloadPdf": "Descargar PDF",
             "inviteFriends": "Invita amigos y gana más recompensas",
             "reportIssue": "¿Problemas con esta transacción?",
             "cancelDeposit": "Cancelar depósito",

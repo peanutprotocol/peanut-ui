@@ -1,0 +1,109 @@
+/** @jest-environment node */
+// Wiring-only route test (the exchange-rate route precedent): data layer,
+// transformer, and PDF renderer are mocked — the real render pipeline is
+// covered by receipt-pdf-render.test.ts, the model by receipt-pdf-model.test.ts.
+import { GET } from '../route'
+import { getHistoryEntry } from '@/app/actions/history'
+import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
+import { renderReceiptPdf } from '../ReceiptPdfDocument'
+import { buildReceiptPdfModel } from '../receipt-pdf-model'
+import { captureException } from '@sentry/nextjs'
+import type { NextRequest } from 'next/server'
+
+jest.mock('@/app/actions/history', () => ({ getHistoryEntry: jest.fn() }))
+jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
+    mapTransactionDataForDrawer: jest.fn(),
+}))
+jest.mock('../ReceiptPdfDocument', () => ({ renderReceiptPdf: jest.fn() }))
+jest.mock('../receipt-pdf-model', () => ({ buildReceiptPdfModel: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
+// The registry/history.utils graph reaches @/app/actions/clients, whose
+// module-scope ranked fallback transport pings every Arbitrum RPC on import
+// and re-ranks on a 60s interval — jest never exits. Cut both edges here.
+jest.mock('@/app/actions/currency', () => ({ getCachedCurrencyPrice: jest.fn() }))
+jest.mock('@/app/actions/clients', () => ({ getPublicClient: jest.fn(), PUBLIC_CLIENTS_BY_CHAIN: {} }))
+jest.mock('@/i18n/app/messages', () => ({ loadMessages: jest.fn().mockResolvedValue({}) }))
+jest.mock('next-intl', () => ({ createTranslator: () => (key: string) => key }))
+
+const mockGetHistoryEntry = getHistoryEntry as jest.Mock
+const mockMap = mapTransactionDataForDrawer as jest.Mock
+const mockRender = renderReceiptPdf as jest.Mock
+const mockBuildModel = buildReceiptPdfModel as jest.Mock
+
+const get = async (entryId: string, query: string) => {
+    const request = {
+        nextUrl: new URL(`http://localhost/receipt/${entryId}/pdf?${query}`),
+        cookies: { get: () => undefined },
+    } as unknown as NextRequest
+    return GET(request, { params: Promise.resolve({ entryId }) })
+}
+
+describe('GET /receipt/[entryId]/pdf', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockMap.mockReturnValue({ transactionDetails: { id: 'entry-1' } })
+        mockBuildModel.mockReturnValue({ fileName: 'peanut-receipt-entry-1.pdf' })
+        mockRender.mockResolvedValue(Buffer.from('%PDF-1.7 fake-pdf-bytes'))
+    })
+
+    test('renders the PDF for a resolvable entry with the page/document headers', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
+
+        const response = await get('entry-1', 'kind=OFFRAMP')
+
+        expect(response.status).toBe(200)
+        expect(response.headers.get('Content-Type')).toBe('application/pdf')
+        expect(response.headers.get('Content-Disposition')).toBe('inline; filename="peanut-receipt-entry-1.pdf"')
+        expect(
+            Buffer.from(await response.arrayBuffer())
+                .subarray(0, 5)
+                .toString()
+        ).toBe('%PDF-')
+        // same data path as the page
+        expect(mockGetHistoryEntry).toHaveBeenCalledWith('entry-1', 'OFFRAMP')
+        expect(mockMap).toHaveBeenCalledWith({ status: 'COMPLETED' })
+    })
+
+    test('404s without a resolvable kind (unresolvable legacy ?t= links included)', async () => {
+        const response = await get('entry-1', 't=nonsense')
+        expect(response.status).toBe(404)
+        expect(mockGetHistoryEntry).not.toHaveBeenCalled()
+    })
+
+    test('accepts a legacy ?t= index that still resolves', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
+        const response = await get('entry-1', 't=3')
+        expect(response.status).toBe(200)
+        expect(mockGetHistoryEntry).toHaveBeenCalledWith('entry-1', 'SEND_LINK')
+    })
+
+    test('404s for an unknown entry', async () => {
+        mockGetHistoryEntry.mockResolvedValue(null)
+        const response = await get('nope', 'kind=OFFRAMP')
+        expect(response.status).toBe(404)
+        expect(mockRender).not.toHaveBeenCalled()
+    })
+
+    test('502s and reports when the backend fetch fails', async () => {
+        mockGetHistoryEntry.mockRejectedValue(new Error('BE down'))
+        const response = await get('entry-1', 'kind=OFFRAMP')
+        expect(response.status).toBe(502)
+        expect(captureException).toHaveBeenCalledTimes(1)
+    })
+
+    test('500s and reports when rendering fails', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
+        mockRender.mockRejectedValue(new Error('font exploded'))
+        const response = await get('entry-1', 'kind=OFFRAMP')
+        expect(response.status).toBe(500)
+        expect(captureException).toHaveBeenCalledTimes(1)
+    })
+
+    test('caches only final states', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
+        expect((await get('entry-1', 'kind=OFFRAMP')).headers.get('Cache-Control')).toBe('public, s-maxage=3600')
+
+        mockGetHistoryEntry.mockResolvedValue({ status: 'PENDING' })
+        expect((await get('entry-1', 'kind=OFFRAMP')).headers.get('Cache-Control')).toBe('no-store')
+    })
+})

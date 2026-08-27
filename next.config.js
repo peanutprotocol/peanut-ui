@@ -265,6 +265,16 @@ let nextConfig = {
     // Transpile packages for better compatibility
     transpilePackages: ['@squirrel-labs/peanut-sdk'],
 
+    // react-pdf's ESM graph (yoga wasm, pdfkit) breaks when webpack bundles it
+    // into the server build — load it from node_modules at runtime instead.
+    serverExternalPackages: ['@react-pdf/renderer'],
+
+    // Font.register reads these paths inside react-pdf, invisible to the
+    // file tracer — include them for the deployed serverless function.
+    outputFileTracingIncludes: {
+        '/receipt/[entryId]/pdf': ['./src/assets/fonts/*.ttf'],
+    },
+
     // Experimental features for optimization
     experimental: {
         // Note: turbopackFileSystemCacheForDev is enabled by default in Next.js 16+
