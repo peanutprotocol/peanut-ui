@@ -77,6 +77,7 @@ export default function CeremonyLogPage() {
                                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                                     <span className="font-bold">
                                         #{record.seq} {record.purpose}
+                                        {record.overlapped && ' ⚠️'}
                                     </span>
                                     <span>{record.outcome === 'ok' ? '✅ ok' : `❌ ${record.errorName}`}</span>
                                 </div>
@@ -94,8 +95,9 @@ export default function CeremonyLogPage() {
             )}
 
             <p className="text-xs text-grey-1">
-                These are the ceremonies our JavaScript asked for. More sheets on screen than rows here means the extra
-                prompts come from @capgo/capacitor-passkey or the OS credential manager, not from our call sites.
+                ⚠️ marks a ceremony that overlapped another one — its purpose is a guess, not evidence. These are the
+                ceremonies our JavaScript asked for. More sheets on screen than rows here means the extra prompts come
+                from @capgo/capacitor-passkey or the OS credential manager, not from our call sites.
             </p>
         </DevPageShell>
     )

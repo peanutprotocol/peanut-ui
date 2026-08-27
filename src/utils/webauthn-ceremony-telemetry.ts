@@ -18,6 +18,12 @@ import { classifyPasskeyError } from '@/utils/webauthn.utils'
  * The count here is the number of ceremonies OUR CODE requested. If a device
  * shows more sheets than this log has entries, the extra ones come from the
  * native plugin or the OS, not from us — which is itself the answer.
+ *
+ * Attribution is ambient (a module-level purpose/flow stack), which is exact
+ * while ceremonies stay serialized — as the OS enforces for the sheet itself.
+ * Two genuinely overlapping flows (app-lock racing a spend) can cross the
+ * stacks, so every record carries `overlapped` / `openFlows`: when `overlapped`
+ * is true, read that row's purpose as a guess, not as evidence.
  */
 
 export type CeremonyPurpose =
@@ -28,6 +34,7 @@ export type CeremonyPurpose =
     | 'login'
     | 'registration'
     | 'app_lock'
+    | 'ephemeral_enable'
 
 export type CeremonyRecord = {
     seq: number
@@ -46,6 +53,9 @@ export type CeremonyRecord = {
     allowCredentials?: number
     rpId?: string
     native: boolean
+    /** True when another ceremony was already in flight — attribution is unreliable for this row. */
+    overlapped: boolean
+    openFlows: number
 }
 
 type FlowFrame = { id: string; name: string; startedAt: number; fromSeq: number }
@@ -54,12 +64,37 @@ const LOG_LIMIT = 40
 const STORAGE_KEY = '__webauthn_ceremony_log'
 
 let installed = false
+let hydrated = false
+let inFlight = 0
 let seq = 0
 let flowCounter = 0
 let lastEndedAt: number | null = null
 const purposeStack: CeremonyPurpose[] = []
 const flowStack: FlowFrame[] = []
 let log: CeremonyRecord[] = []
+
+/**
+ * A hard reload resets module state while sessionStorage still holds the
+ * tester's earlier ceremonies. Without this, the first ceremony after a reload
+ * appends to an empty array and persists it, erasing the reproduction we asked
+ * them to capture.
+ */
+function hydrate(): void {
+    if (hydrated) return
+    hydrated = true
+    try {
+        const stored = window.sessionStorage.getItem(STORAGE_KEY)
+        if (!stored) return
+        const parsed = JSON.parse(stored) as CeremonyRecord[]
+        if (!Array.isArray(parsed) || parsed.length === 0) return
+        log = parsed
+        seq = parsed.reduce((max, record) => Math.max(max, record.seq ?? 0), 0)
+        const newest = parsed[parsed.length - 1]
+        lastEndedAt = newest.startedAt + newest.durationMs
+    } catch {
+        // an unreadable mirror just means this session starts clean
+    }
+}
 
 function persist(): void {
     try {
@@ -70,18 +105,12 @@ function persist(): void {
 }
 
 export function getCeremonyLog(): CeremonyRecord[] {
-    if (log.length === 0) {
-        try {
-            const stored = window.sessionStorage.getItem(STORAGE_KEY)
-            if (stored) log = JSON.parse(stored) as CeremonyRecord[]
-        } catch {
-            // ignore — an unreadable mirror just means an empty log
-        }
-    }
+    hydrate()
     return [...log]
 }
 
 export function clearCeremonyLog(): void {
+    hydrated = true
     log = []
     seq = 0
     lastEndedAt = null
@@ -97,32 +126,66 @@ function describeOptions(kind: 'get' | 'create', options?: CredentialCreationOpt
     return { rpId: publicKey?.rp?.id, allowCredentials: undefined }
 }
 
+/**
+ * Nothing in here may throw: this runs inside the `navigator.credentials`
+ * wrapper, so an exception would turn a successful ceremony into a failed one
+ * (or mask the real NotAllowedError on the error path).
+ */
 function commit(record: CeremonyRecord): void {
-    lastEndedAt = record.startedAt + record.durationMs
-    log.push(record)
-    if (log.length > LOG_LIMIT) log = log.slice(-LOG_LIMIT)
-    persist()
+    try {
+        lastEndedAt = record.startedAt + record.durationMs
+        log.push(record)
+        if (log.length > LOG_LIMIT) log = log.slice(-LOG_LIMIT)
+        persist()
+        capture(ANALYTICS_EVENTS.WEBAUTHN_CEREMONY, {
+            seq: record.seq,
+            kind: record.kind,
+            purpose: record.purpose,
+            flow: record.flow,
+            flow_id: record.flowId,
+            duration_ms: record.durationMs,
+            gap_ms: record.gapMs,
+            outcome: record.outcome,
+            error_name: record.errorName,
+            error_code: record.errorCode,
+            allow_credentials: record.allowCredentials,
+            overlapped: record.overlapped,
+            open_flows: record.openFlows,
+            native: record.native,
+        })
+        Sentry.addBreadcrumb({
+            category: 'webauthn.ceremony',
+            level: record.outcome === 'ok' ? 'info' : 'warning',
+            message: `#${record.seq} ${record.purpose} (${record.outcome})`,
+            data: { ...record },
+        })
+    } catch {
+        // telemetry never gets to break the ceremony it is measuring
+    }
+}
 
-    posthog.capture(ANALYTICS_EVENTS.WEBAUTHN_CEREMONY, {
-        seq: record.seq,
-        kind: record.kind,
-        purpose: record.purpose,
-        flow: record.flow,
-        flow_id: record.flowId,
-        duration_ms: record.durationMs,
-        gap_ms: record.gapMs,
-        outcome: record.outcome,
-        error_name: record.errorName,
-        error_code: record.errorCode,
-        allow_credentials: record.allowCredentials,
-        native: record.native,
-    })
-    Sentry.addBreadcrumb({
-        category: 'webauthn.ceremony',
-        level: record.outcome === 'ok' ? 'info' : 'warning',
-        message: `#${record.seq} ${record.purpose} (${record.outcome})`,
-        data: { ...record },
-    })
+function capture(event: string, properties: Record<string, unknown>): void {
+    try {
+        posthog.capture(event, properties)
+    } catch {
+        // posthog may not be initialised yet; the local log still has the record
+    }
+}
+
+function safeErrorCode(error: unknown): string | undefined {
+    try {
+        return classifyPasskeyError(error)?.code
+    } catch {
+        return undefined
+    }
+}
+
+function safeExtra(extra?: () => Record<string, unknown>): Record<string, unknown> {
+    try {
+        return extra?.() ?? {}
+    } catch {
+        return {}
+    }
 }
 
 async function trace<T>(
@@ -130,8 +193,10 @@ async function trace<T>(
     options: CredentialCreationOptions | CredentialRequestOptions | undefined,
     run: () => Promise<T>
 ): Promise<T> {
+    hydrate()
     const startedAt = Date.now()
     const flow = flowStack[flowStack.length - 1]
+    inFlight += 1
     const base = {
         seq: ++seq,
         kind,
@@ -141,6 +206,8 @@ async function trace<T>(
         startedAt,
         gapMs: lastEndedAt === null ? null : startedAt - lastEndedAt,
         native: isCapacitor(),
+        overlapped: inFlight > 1,
+        openFlows: flowStack.length,
         ...describeOptions(kind, options),
     }
 
@@ -154,9 +221,11 @@ async function trace<T>(
             durationMs: Date.now() - startedAt,
             outcome: 'error',
             errorName: error instanceof Error ? error.name : 'unknown',
-            errorCode: classifyPasskeyError(error).code,
+            errorCode: safeErrorCode(error),
         })
         throw error
+    } finally {
+        inFlight -= 1
     }
 }
 
@@ -170,6 +239,7 @@ export function installCeremonyTelemetry(): void {
     if (installed) return
     if (typeof navigator === 'undefined' || !navigator.credentials) return
     installed = true
+    hydrate()
 
     const credentials = navigator.credentials
     const originalGet = credentials.get.bind(credentials)
@@ -193,7 +263,7 @@ export function endCeremonyFlow(id: string, extra: Record<string, unknown> = {})
     const [frame] = flowStack.splice(index, 1)
     const ceremonies = log.filter((record) => record.seq > frame.fromSeq && record.startedAt >= frame.startedAt)
 
-    posthog.capture(ANALYTICS_EVENTS.WEBAUTHN_CEREMONY_FLOW, {
+    capture(ANALYTICS_EVENTS.WEBAUTHN_CEREMONY_FLOW, {
         flow: frame.name,
         flow_id: frame.id,
         ceremony_count: ceremonies.length,
@@ -213,13 +283,13 @@ export async function withCeremonyFlow<T>(
     const id = beginCeremonyFlow(name)
     try {
         const result = await fn()
-        endCeremonyFlow(id, { outcome: 'ok', ...extra?.() })
+        endCeremonyFlow(id, { outcome: 'ok', ...safeExtra(extra) })
         return result
     } catch (error) {
         endCeremonyFlow(id, {
             outcome: 'error',
             error_name: error instanceof Error ? error.name : 'unknown',
-            ...extra?.(),
+            ...safeExtra(extra),
         })
         throw error
     }
