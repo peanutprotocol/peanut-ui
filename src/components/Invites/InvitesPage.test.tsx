@@ -408,7 +408,8 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/claim?step=claim&id=payment-1'))
-        expect(mockPush).not.toHaveBeenCalledWith('/home')
+        // exactly one navigation: campaign and inviter destinations must not fire
+        expect(mockPush).toHaveBeenCalledTimes(1)
     })
 
     it('shows Invalid Invite only for an invalid code with no independent campaign', async () => {
