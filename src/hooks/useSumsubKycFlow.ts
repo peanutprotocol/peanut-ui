@@ -78,6 +78,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // Some initiate failures are terminal: the user has no action that could
+    // change the outcome, so offering a retry is worse than offering nothing.
+    // Callers must suppress their retry CTA on this rather than inferring
+    // retriability from the region, which cannot tell the two apart.
+    const [isTerminalError, setIsTerminalError] = useState(false)
     const [isVerificationProgressModalOpen, setIsVerificationProgressModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
     const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
@@ -253,6 +258,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             actionKeyRef.current = null
             setIsLoading(true)
             setError(null)
+            setIsTerminalError(false)
 
             // for cross-region: pre-set prevStatusRef to APPROVED so the fetchCurrentStatus
             // effect (which also fires when regionIntent changes) doesn't trigger onKycSuccess
@@ -293,7 +299,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 // terminal error (the user is approved but has no rail — NOT a success).
                 if (response.data?.actionType === 'unsupported-region') {
                     userInitiatedRef.current = false
+                    setIsTerminalError(true)
                     setError(t('unsupportedRegionError'))
+                    setIsTerminalError(true)
                     return false
                 }
 
@@ -331,7 +339,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 // 'unsupported-region' above: bail terminally, before the status sync.
                 if (response.data?.actionType === 'rails-unavailable') {
                     userInitiatedRef.current = false
+                    setIsTerminalError(true)
                     setError(t('railsUnavailableError'))
+                    setIsTerminalError(true)
                     return false
                 }
 
@@ -435,6 +445,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [router])
 
     const resetError = useCallback(() => {
+        setIsTerminalError(false)
         setError(null)
     }, [])
 
@@ -445,6 +456,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleRestartIdentity = useCallback(async () => {
         setIsLoading(true)
         setError(null)
+        setIsTerminalError(false)
         userInitiatedRef.current = true
         // Clear any prior self-heal context so refreshToken (below) doesn't
         // mistakenly hit the self-heal endpoint after a restart-identity flow
@@ -574,6 +586,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     return {
         isLoading,
         error,
+        isTerminalError,
         showWrapper,
         accessToken,
         liveKycStatus,

@@ -80,6 +80,10 @@ describe('useSumsubKycFlow — cross-region routing', () => {
 
         expect(result.current.error).toBeTruthy()
         expect(result.current.showWrapper).toBe(false)
+        // The flag consumers gate their retry CTA on. Without it UnlockedRegions
+        // decides retriability from the region alone — and EU/NA both HAVE a
+        // provider, so the futile "Try again" came straight back.
+        expect(result.current.isTerminalError).toBe(true)
         await waitFor(() => expect(onKycSuccess).not.toHaveBeenCalled())
     })
 

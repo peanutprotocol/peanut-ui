@@ -101,7 +101,6 @@ const UnlockedRegions = () => {
     // staring at a screen where "verify now" appeared to do nothing.
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
 
-    // MIGRATION-REVIEW + CONTRACT GAP: KycFailedModal's terminal-rejection heuristic used
     // Real rejection detail from the identity read-model, not placeholders. These
     // were hardcoded null because the view had no per-verification Sumsub history —
     // but `identityVerification` carries exactly that, and nulling them made
@@ -109,8 +108,13 @@ const UnlockedRegions = () => {
     // rejected user was shown "Let's try that again", and the retry called an
     // endpoint that could not help them (TASK-21882).
     const sumsubRejectLabels: string[] | null = identity.rejectLabels ?? null
+    // `canRetry` straight from the read-model, NOT derived from `status`: the
+    // backend already decides this (and forces false for a region restriction),
+    // while `status: 'failed'` covers both a retryable unreadable-document
+    // rejection and a terminal one. Re-deriving would mark the retryable half
+    // FINAL and hide the retry from exactly the users a retry exists for.
     const sumsubRejectType: 'RETRY' | 'FINAL' | null =
-        identity.status === 'failed' ? 'FINAL' : identity.status === 'action_required' ? 'RETRY' : null
+        identity.canRetry === undefined ? null : identity.canRetry ? 'RETRY' : 'FINAL'
     const sumsubFailureCount: number | undefined = undefined
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
@@ -205,7 +209,12 @@ const UnlockedRegions = () => {
     // ROW (rest-of-world) regions have no provider/rail, so an initiate there is a
     // terminal "not available in your region yet" — not a transient failure. Only
     // offer "Try again" for regions that can actually succeed on a retry.
-    const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
+    //
+    // The region alone is not enough, though: EU and NA both HAVE providers, so an
+    // approved user whose rails are all dead looked retriable and got a "Try again"
+    // that replayed the identical futile request. The hook now says outright when a
+    // failure is terminal, and that overrides the regional guess (TASK-21882).
+    const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null && !flow.isTerminalError
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
