@@ -178,6 +178,33 @@ describe('useCrispUserData', () => {
     })
 
     /*
+     * The handoff between the smart account and Rain collateral: the funds are
+     * in neither bucket, and only `inTransitToCollateralCents` accounts for
+     * them. Reading the two halves directly would flag `zero-balance` beside a
+     * balance row that reads as funded.
+     */
+    it('does not flag zero while funds are in transit to collateral', () => {
+        client.setQueryData(['balance', WALLET], 0n)
+        client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
+            status: { hasApplication: true },
+            balance: {
+                creditLimit: 0,
+                spendingPower: 0,
+                pendingCharges: 0,
+                postedCharges: 0,
+                balanceDue: 0,
+                inTransitToCollateralCents: 2_500,
+            },
+            cards: [],
+        })
+
+        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
+
+        expect(result.current.balance).toContain('$25.00 spendable')
+        expect(result.current.segments).not.toContain('zero-balance')
+    })
+
+    /*
      * The snapshot reports only what it can attribute. `[limits]` and
      * `[transactions]` carry no user id in their keys, so a warm entry cannot be
      * proved to belong to the person support is open for — after a passive

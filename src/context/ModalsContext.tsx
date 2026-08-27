@@ -46,8 +46,19 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
     const [isGetAppModalOpen, setIsGetAppModalOpen] = useState(false)
 
     // Support Drawer
-    const [isSupportModalOpen, setIsSupportModalOpen] = useState(false)
+    const [isSupportModalOpen, setIsSupportModalOpenState] = useState(false)
     const [supportPrefilledMessage, setSupportPrefilledMessage] = useState('')
+
+    /*
+     * A prefill belongs to the open cycle that set it. Nothing used to clear it,
+     * so after one "contact support about X" entry point every later open — the
+     * nav button included — reopened with X still in the composer, and the
+     * support sidebar reported X as the topic.
+     */
+    const setIsSupportModalOpen = useCallback((open: boolean) => {
+        setIsSupportModalOpenState(open)
+        if (!open) setSupportPrefilledMessage('')
+    }, [])
 
     // QR Scanner
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
@@ -57,7 +68,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
 
     const openSupportWithMessage = useCallback((message: string) => {
         setSupportPrefilledMessage(message)
-        setIsSupportModalOpen(true)
+        setIsSupportModalOpenState(true)
     }, [])
 
     const value = useMemo(
@@ -94,6 +105,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             isSignInModalOpen,
             isGetAppModalOpen,
             isSupportModalOpen,
+            setIsSupportModalOpen,
             supportPrefilledMessage,
             openSupportWithMessage,
             isQRScannerOpen,

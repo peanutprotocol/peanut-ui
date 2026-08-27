@@ -15,7 +15,7 @@ import {
     buildSupportLinks,
     buildSupportSegments,
 } from '@/utils/support-context'
-import { isRainBalanceKnown } from '@/utils/balance.utils'
+import { computeDisplaySpendable, isRainBalanceKnown } from '@/utils/balance.utils'
 import { useSupportClientContext } from '@/hooks/useSupportClientContext'
 
 export interface CrispUserData {
@@ -171,6 +171,19 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
 
     const balance = user ? buildBalanceSummary(smartBalance, rainOverview) : undefined
     const balanceKnown = smartBalance !== undefined && isRainBalanceKnown(rainOverview)
+    /*
+     * Zero is decided by the SAME total the balance row prints. During the
+     * smart-to-collateral handoff the funds are in neither bucket, and only
+     * `inTransitToCollateralCents` accounts for them — reading the two halves
+     * directly would show a funded balance beside a `zero-balance` flag.
+     */
+    const displaySpendable = balanceKnown
+        ? computeDisplaySpendable(
+              smartBalance as bigint,
+              rainOverview?.balance?.spendingPower,
+              rainOverview?.balance?.inTransitToCollateralCents
+          )
+        : undefined
 
     return {
         username,
@@ -200,7 +213,7 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
             emailOnFile: verification?.emailOnFile,
             hasCard: Boolean(rainOverview?.status?.hasApplication),
             balanceKnown,
-            isZeroBalance: balanceKnown && smartBalance === 0n && !rainOverview?.balance?.spendingPower,
+            isZeroBalance: displaySpendable === 0n,
             isOffline: client.isOffline,
             isApiUnreachable: client.isApiUnreachable,
         }),

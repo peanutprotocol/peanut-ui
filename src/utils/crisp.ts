@@ -107,7 +107,15 @@ export const nativeCrispFields = supportSessionFields
 export function setCrispUserData(
     crispInstance: CrispInstance,
     userData: CrispUserData,
-    prefilledMessage?: string
+    prefilledMessage?: string,
+    /*
+     * The topic as metadata, separate from the composer text above it.
+     * A routine metadata refresh deliberately omits `prefilledMessage` so it
+     * cannot overwrite what the user is typing — but the sidebar row must
+     * survive that refresh, or a balance update erases the reason they opened
+     * support. Defaults to the composer value for callers that have only one.
+     */
+    supportTopic: string | undefined = prefilledMessage
 ): void {
     if (!crispInstance) return
 
@@ -127,7 +135,7 @@ export function setCrispUserData(
     }
 
     // Session metadata for support agents - must be 3 levels of nested arrays
-    crispInstance.push(['set', 'session:data', [supportSessionFields(userData, prefilledMessage)]])
+    crispInstance.push(['set', 'session:data', [supportSessionFields(userData, supportTopic)]])
 
     /*
      * The app does NOT write Crisp segments. Deliberate — do not add it back.

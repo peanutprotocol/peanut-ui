@@ -35,7 +35,8 @@ function applyUserData(payload: CrispInitPayload | null, withPrefill: boolean) {
     const prefill = withPrefill ? payload?.prefilledMessage : undefined
     // skip the all-empty push for anonymous visitors — nothing to show agents
     if (payload?.userData && Object.values(payload.userData).some(Boolean)) {
-        setCrispUserData(window.$crisp, payload.userData, prefill)
+        // `prefill` is guarded (composer); the topic is not (metadata) — see setCrispUserData.
+        setCrispUserData(window.$crisp, payload.userData, prefill, payload?.prefilledMessage)
     } else if (prefill) {
         window.$crisp.push(['set', 'message:text', [prefill]])
     }

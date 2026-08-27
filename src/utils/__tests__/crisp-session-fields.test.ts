@@ -103,6 +103,20 @@ describe('setCrispUserData segments', () => {
         expect(segmentPushes(crisp.calls)).toHaveLength(0)
     })
 
+    /*
+     * A routine metadata refresh omits the composer prefill on purpose — pushing
+     * it again would overwrite what the user is typing. The topic must survive
+     * that anyway, or a balance update erases the reason they opened support.
+     */
+    it('keeps the support topic through a refresh that must not touch the composer', () => {
+        const crisp = push()
+        setCrispUserData(crisp as never, userData(), undefined, 'my withdrawal is stuck')
+
+        const dataPush = crisp.calls.find(([, key]) => key === 'session:data') as [string, string, unknown[][]]
+        expect(Object.fromEntries(dataPush[2][0] as [string, string][]).support_topic).toBe('my withdrawal is stuck')
+        expect(crisp.calls.filter(([, key]) => key === 'message:text')).toHaveLength(0)
+    })
+
     it('still gives the agent the flags, as a data row', () => {
         const crisp = push()
         setCrispUserData(crisp as never, userData({ segments: ['web', 'kyc-verified'] }))

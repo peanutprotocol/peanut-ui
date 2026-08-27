@@ -149,6 +149,17 @@ describe('buildSupportSegments', () => {
         expect(buildSupportSegments({ ...base, isLoggedIn: false })).toEqual(['ios-native', 'guest'])
     })
 
+    /*
+     * Zero must be decided by the displayed total. During the smart-to-collateral
+     * handoff the funds sit in neither bucket and only the in-transit figure
+     * accounts for them, so reading the halves directly puts a `zero-balance`
+     * flag next to a funded balance row.
+     */
+    it('does not call an in-transit balance zero', () => {
+        expect(buildSupportSegments({ ...base, isZeroBalance: false })).not.toContain('zero-balance')
+        expect(buildSupportSegments({ ...base, isZeroBalance: true })).toContain('zero-balance')
+    })
+
     it('prefers balance-unavailable over zero-balance', () => {
         const segments = buildSupportSegments({ ...base, balanceKnown: false, isZeroBalance: true })
         expect(segments).toContain('balance-unavailable')
