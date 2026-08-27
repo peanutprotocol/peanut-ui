@@ -474,6 +474,33 @@ jobs:
                         memberCache.set(login, ok);
                         return ok;
                       }
+                      // A commit already reachable from `main` or `dev` is permanent: every ref
+                      // carries non_fast_forward + required_signatures with no bypass actors, so it
+                      // can never be rewritten. Judging it a second time only wedges the back-merge
+                      // that carries it — the PR goes red with no branch shape that can clear it.
+                      // Gate new work; the PR that first proposed the commit is where this bites.
+                      const landedCache = new Map();
+                      async function alreadyLanded(sha) {
+                        if (landedCache.has(sha)) return landedCache.get(sha);
+                        let landed = false;
+                        for (const branch of ['main', 'dev']) {
+                          try {
+                            const { data } = await github.rest.repos.compareCommitsWithBasehead({
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              basehead: `${branch}...${sha}`,
+                            });
+                            if (data.status === 'identical' || data.status === 'behind') {
+                              landed = true;
+                              break;
+                            }
+                          } catch (e) {
+                            // Missing branch or unrelated history — not an exemption.
+                          }
+                        }
+                        landedCache.set(sha, landed);
+                        return landed;
+                      }
                       const commits = await github.paginate(github.rest.pulls.listCommits, {
                         owner: context.repo.owner,
                         repo: context.repo.repo,
@@ -481,17 +508,28 @@ jobs:
                         per_page: 100,
                       });
                       const bad = [];
+                      const landed = [];
                       for (const c of commits) {
                         const sha = c.sha.slice(0, 7);
                         const login = c.author && c.author.login;
                         const email = (c.commit.author && c.commit.author.email) || 'unknown';
+                        let problem = null;
                         if (!login) {
-                          bad.push(`${sha}: author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`);
+                          problem = `author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`;
                         } else if (login.endsWith('[bot]')) {
-                          bad.push(`${sha}: authored by ${login} — bot-authored commits are not allowed; commit as yourself`);
+                          problem = `authored by ${login} — bot-authored commits are not allowed; commit as yourself`;
                         } else if (!(await hasWriteAccess(login))) {
-                          bad.push(`${sha}: authored by ${login}, who has no write access to this repo`);
+                          problem = `authored by ${login}, who has no write access to this repo`;
                         }
+                        if (!problem) continue;
+                        if (await alreadyLanded(c.sha)) {
+                          landed.push(`${sha}: ${problem}`);
+                          continue;
+                        }
+                        bad.push(`${sha}: ${problem}`);
+                      }
+                      if (landed.length) {
+                        core.warning(`Already merged to main/dev, so not judged again:\n${landed.join('\n')}`);
                       }
                       if (bad.length) {
                         core.setFailed(`Commits must be authored by a team member:\n${bad.join('\n')}`);
