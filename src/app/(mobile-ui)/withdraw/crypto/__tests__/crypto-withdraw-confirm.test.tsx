@@ -82,6 +82,9 @@ jest.mock('@/utils/balance.utils', () => ({
 
 jest.mock('@/utils/withdraw.utils', () => ({
     isBelowRhinoMinDeposit: () => false,
+    // real behaviour, covered by src/utils/__tests__/withdraw.utils.test.ts —
+    // these suites drive the non-max path, where it returns the amount as-is
+    resolveWithdrawAmount: jest.requireActual('@/utils/withdraw.utils').resolveWithdrawAmount,
 }))
 
 jest.mock('@/utils/general.utils', () => ({

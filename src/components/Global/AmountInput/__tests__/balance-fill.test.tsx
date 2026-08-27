@@ -150,6 +150,18 @@ describe('AmountInput full-balance fill', () => {
         expect(field.value).toBe('12.34')
     })
 
+    it('reports the fill separately, so the parent can tell it from typing', () => {
+        const onBalanceFilled = jest.fn()
+        const { field, useFullBalance } = setup({ onBalanceFilled })
+
+        fireEvent.click(useFullBalance()!)
+        expect(onBalanceFilled).toHaveBeenCalledWith('12.34')
+
+        onBalanceFilled.mockClear()
+        fireEvent.change(field, { target: { value: '5' } })
+        expect(onBalanceFilled).not.toHaveBeenCalled()
+    })
+
     it('does not offer the fill while the input is disabled', () => {
         const { useFullBalance } = setup({ disabled: true })
 

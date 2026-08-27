@@ -30,6 +30,8 @@ interface AmountInputProps {
      * fills in. Omit to keep the balance row plain text.
      */
     balanceFillAmount?: number
+    /** Called with the amount actually filled when the balance row is tapped. */
+    onBalanceFilled?: (value: string) => void
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
     infoContent?: React.ReactNode
@@ -56,6 +58,7 @@ const AmountInput = ({
     setCurrentDenomination,
     walletBalance,
     balanceFillAmount,
+    onBalanceFilled,
     hideCurrencyToggle,
     hideBalance,
     infoContent,
@@ -274,7 +277,11 @@ const AmountInput = ({
         isEditingRef.current = true
         setDisplayValue(fillValue)
         setExactValue(Number(fillValue) * 10 ** DECIMAL_SCALE)
-    }, [fillValue])
+        // Reported separately from setPrimaryAmount, which cannot tell a filled
+        // amount from a typed one — the withdraw screen needs that distinction
+        // to know the user asked for "everything".
+        onBalanceFilled?.(fillValue)
+    }, [fillValue, onBalanceFilled])
 
     const inputRef = useRef<HTMLInputElement>(null)
     // set input width based on display value length

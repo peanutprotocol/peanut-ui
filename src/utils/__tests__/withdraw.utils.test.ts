@@ -9,7 +9,9 @@ import {
     getCountryCodeForWithdraw,
     getCountryFromIban,
     isBelowRhinoMinDeposit,
+    resolveWithdrawAmount,
 } from '@/utils/withdraw.utils'
+import { parseUnits } from 'viem'
 
 jest.mock('@/assets', () => ({}))
 
@@ -426,5 +428,49 @@ describe('Withdraw Utilities', () => {
             expect(isBelowRhinoMinDeposit('0.50', undefined)).toBe(false)
             expect(isBelowRhinoMinDeposit('not-a-number', 5)).toBe(false)
         })
+    })
+})
+
+describe('resolveWithdrawAmount', () => {
+    const USDC = 6
+    const balance = (v: string) => parseUnits(v, USDC)
+
+    it('returns the typed amount untouched when the user did not tap the balance', () => {
+        expect(resolveWithdrawAmount('10.12', balance('10.126123'), false, USDC)).toBe('10.12')
+    })
+
+    it('settles the sub-cent remainder after a full-balance tap', () => {
+        // the point of the flag: the wallet reaches a true zero instead of
+        // stranding 0.006123 that displays as $0.00 and can never be withdrawn
+        expect(resolveWithdrawAmount('10.12', balance('10.126123'), true, USDC)).toBe('10.126123')
+    })
+
+    it('ignores a deposit that lands between the tap and the confirm', () => {
+        // the user agreed to withdraw 10.12, not the 50 that just arrived
+        expect(resolveWithdrawAmount('10.12', balance('50.00'), true, USDC)).toBe('10.12')
+    })
+
+    it('never overdraws when the balance dropped after the tap', () => {
+        expect(resolveWithdrawAmount('10.12', balance('3.00'), true, USDC)).toBe('10.12')
+    })
+
+    it('holds the line when the balance moved by a sub-cent amount', () => {
+        // still floors to 10.12, so the remainder is the user's to take
+        expect(resolveWithdrawAmount('10.12', balance('10.129999'), true, USDC)).toBe('10.129999')
+        // dropped below the cent the user saw — fall back rather than guess
+        expect(resolveWithdrawAmount('10.12', balance('10.119999'), true, USDC)).toBe('10.12')
+    })
+
+    it('is a no-op on an exact-cent balance', () => {
+        expect(resolveWithdrawAmount('10.12', balance('10.12'), true, USDC)).toBe('10.12')
+    })
+
+    it('falls back while the balance is still loading', () => {
+        expect(resolveWithdrawAmount('10.12', undefined, true, USDC)).toBe('10.12')
+    })
+
+    it('falls back on an empty or unparseable amount', () => {
+        expect(resolveWithdrawAmount('', balance('10.126123'), true, USDC)).toBe('')
+        expect(resolveWithdrawAmount('abc', balance('10.126123'), true, USDC)).toBe('abc')
     })
 })
