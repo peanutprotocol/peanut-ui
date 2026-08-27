@@ -35,11 +35,12 @@ const nativeCrisp = {
     openMessenger: jest.fn(),
 }
 
+const modalsState: { supportPrefilledMessage: string | undefined } = { supportPrefilledMessage: undefined }
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
         isSupportModalOpen: true,
         setIsSupportModalOpen: jest.fn(),
-        supportPrefilledMessage: undefined,
+        supportPrefilledMessage: modalsState.supportPrefilledMessage,
     }),
 }))
 // Opening the drawer clears the support unread badge. That call is not what
@@ -402,5 +403,56 @@ describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
 
         await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
         expect(nativeCrisp.setTokenID).not.toHaveBeenCalled()
+    })
+})
+
+/*
+ * The support snapshot is live state — a balance landing from the cache, or the
+ * route latch firing on open, changes `userData`'s identity. `userData` is a
+ * dependency of the native open effect, so a change while the effect's async
+ * chain is still awaiting camera permission used to start a SECOND chain, and
+ * the user's prefilled message reached the agent twice.
+ */
+describe('SupportDrawer — native open runs once per open cycle', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset()
+        mockUseCrispTokenId.mockReset()
+        mockIsCapacitor.mockReset().mockReturnValue(true)
+        Object.values(nativeCrisp).forEach((fn) => fn.mockReset())
+        modalsState.supportPrefilledMessage = undefined
+    })
+
+    it('sends a prefilled message once even when the snapshot changes mid-open', async () => {
+        modalsState.supportPrefilledMessage = 'my withdrawal is stuck'
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com', balance: 'wallet unavailable' })
+
+        const view = render(<SupportDrawer />)
+
+        // A fresh snapshot object lands while the open chain is still awaiting.
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com', balance: '$100.00 spendable' })
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+        expect(nativeCrisp.sendMessage).toHaveBeenCalledTimes(1)
+        expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1)
+    })
+
+    it('still opens once the token resolves, rather than latching the waiting cycle shut', async () => {
+        mockUseCrispTokenId.mockReturnValue(undefined)
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+
+        const view = render(<SupportDrawer />)
+        expect(nativeCrisp.openMessenger).not.toHaveBeenCalled()
+
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1))
+        expect(nativeCrisp.setTokenID).toHaveBeenCalledWith({ tokenID: 'token-abc' })
     })
 })

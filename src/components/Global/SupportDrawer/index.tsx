@@ -157,8 +157,30 @@ const SupportDrawer = () => {
     // falls back to the device-local Crisp session, which on a shared device
     // surfaces the previous user's conversation. The effect re-runs and opens
     // once crispTokenId resolves (it's in the deps).
+    /*
+     * One open chain per open cycle.
+     *
+     * `userData` is a dependency below and it is a snapshot of live state — a
+     * balance landing from the cache, or the route latch, changes its identity.
+     * When that happens while the async chain is still awaiting camera
+     * permission, a second chain reaches sendMessage/openMessenger and the
+     * user's prefilled message is sent twice. The ref closes that window for
+     * every cause, not just the one we know about.
+     *
+     * Reset on close and on failure, so the next open — or a retry after a
+     * failed one — still runs.
+     */
+    const nativeOpenStartedRef = useRef(false)
+
     useEffect(() => {
-        if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
+        if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) {
+            // Still waiting on the token must stay retryable — the effect
+            // deliberately re-runs and opens once it resolves.
+            if (!isSupportModalOpen) nativeOpenStartedRef.current = false
+            return
+        }
+        if (nativeOpenStartedRef.current) return
+        nativeOpenStartedRef.current = true
 
         ensureNativeCrispConfigured()
             .then(async ({ CapacitorCrisp }) => {
@@ -214,6 +236,7 @@ const SupportDrawer = () => {
                 setIsSupportModalOpen(false)
             })
             .catch((err: unknown) => {
+                nativeOpenStartedRef.current = false
                 console.warn('[SupportDrawer] native crisp open failed:', err)
             })
     }, [

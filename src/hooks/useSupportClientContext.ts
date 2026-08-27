@@ -86,12 +86,22 @@ export function useSupportClientContext(): SupportClientContext {
      * churn the whole snapshot's identity on every navigation — and the question
      * an agent is asking ("where were they when this went wrong?") is answered by
      * the screen the user left, not the one they wandered to while waiting.
+     *
+     * Latched DURING RENDER, not in an effect. An effect would set it after the
+     * commit that opened support, and on native that commit has already started
+     * SupportDrawer's async open chain. The extra render rebuilds `userData`,
+     * which is a dependency of that effect, so the chain would run again and
+     * send a prefilled message twice. Adjusting state during render re-runs this
+     * component before anything commits, so the first snapshot support ever sees
+     * already carries the route.
      */
-    const [routeOnOpen, setRouteOnOpen] = useState<string | undefined>(undefined)
-    useEffect(() => {
-        if (isSupportModalOpen) setRouteOnOpen(pathname)
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- latch at open; tracking `pathname` would defeat the point
-    }, [isSupportModalOpen])
+    const [latch, setLatch] = useState<{ open: boolean; route: string | undefined }>({
+        open: false,
+        route: undefined,
+    })
+    if (latch.open !== isSupportModalOpen) {
+        setLatch({ open: isSupportModalOpen, route: isSupportModalOpen ? pathname : latch.route })
+    }
 
     const buildParts = [webBuild() ? `web:${webBuild()}` : undefined, nativeBuild].filter(Boolean)
 
@@ -99,7 +109,7 @@ export function useSupportClientContext(): SupportClientContext {
         platform: getPlatform(),
         appBuild: buildParts.length ? buildParts.join(' · ') : 'unknown',
         locale,
-        routeOnOpen,
+        routeOnOpen: latch.route,
         isOffline,
         isApiUnreachable,
         notificationPermission: getNotificationPermissionSnapshot(),
