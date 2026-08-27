@@ -45,7 +45,7 @@ const Loading = ({ className, variant = 'spinner', coverFullScreen = false, mess
 
     return (
         <div
-            className={`text-surface inline-block aspect-square animate-spin rounded-full border-2 border-solid border-current border-e-transparent align-middle ${className ?? 'h-4 w-4'}`}
+            className={`inline-block aspect-square animate-spin rounded-full border-2 border-solid border-current border-e-transparent align-middle ${className ?? 'h-4 w-4'}`}
             role="status"
         >
             <span className="sr-only">Loading...</span>

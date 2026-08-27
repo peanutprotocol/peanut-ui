@@ -35,7 +35,7 @@ const PRIORITY_STYLES: Record<NotificationPriority, { icon: IconName; bg: string
     success: { icon: 'check', bg: 'bg-background-badge-success' },
     attention: { icon: 'alert', bg: 'bg-background-badge-attention' },
     helper: { icon: 'info', bg: 'bg-background-badge-helper' },
-    error: { icon: 'error', bg: 'bg-background-badge-error' },
+    error: { icon: 'ban', bg: 'bg-background-badge-error' }, // board error glyph is the ban circle, not alert-circle,
 }
 
 const CTA_VARIANTS = ['purple', 'stroke'] as const

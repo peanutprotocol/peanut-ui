@@ -2,7 +2,7 @@ import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 
 type IconBubbleSize = 'xs' | 's' | 'm' | 'l'
-type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue'
+type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'logo'
 
 interface IconBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
     icon: IconName | React.ReactNode
@@ -34,6 +34,9 @@ const bubbleColors: Record<IconBubbleColor, string> = {
     yellow: 'bg-background-icon-bubble-yellow',
     gray: 'bg-background-icon-bubble-gray',
     blue: 'bg-background-icon-bubble-blue',
+    // board icon.bubble.color.logo (17370:154707): brand/payment mark fills the
+    // bubble — no colored background, content clipped round
+    logo: 'overflow-hidden',
 }
 
 /**

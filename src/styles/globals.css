@@ -848,13 +848,14 @@
         @apply border-transparent fill-foreground-primary text-foreground-primary hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
     }
     .btn-purple {
-        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+        /* board 17311:135055: hover drops the offset shadow (flat) */
+        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover hover:shadow-none active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-dark {
         @apply bg-n-1 fill-white text-white hover:bg-n-1/80;
     }
     .btn-stroke {
-        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:shadow-none active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-shadow {
         @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
@@ -953,10 +954,10 @@
         @apply relative mx-auto flex w-11/12 max-w-[27rem] flex-col items-center justify-center border border-n-1 bg-white px-4 py-6 lg:w-2/3 xl:w-1/2 dark:border-white dark:bg-n-1;
     }
     .card-head {
-        @apply flex min-h-[4rem] flex-col items-start justify-between border-b border-n-1 px-3 py-3 sm:px-5 dark:border-white;
+        @apply flex min-h-[4rem] flex-col items-start justify-between border-b border-border-default px-3 py-3 sm:px-5;
     }
     .card-content {
-        @apply border-n-1 px-3 py-3 sm:px-5 dark:border-white;
+        @apply px-3 py-3 sm:px-5;
     }
     .card-title {
         @apply border-b border-n-1 p-5 text-h6 dark:border-white;

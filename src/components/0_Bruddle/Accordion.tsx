@@ -38,7 +38,7 @@ const AccordionTrigger = ({
             className={
                 'text-body-s ' +
                 twMerge(
-                    'group flex w-full items-center justify-between gap-2 p-4 text-left text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus data-[disabled]:text-foreground-secondary',
+                    'group flex w-full items-center justify-between gap-2 p-4 text-left text-foreground-primary focus-visible:outline-[3px] focus-visible:outline-action-focus data-[disabled]:text-foreground-secondary',
                     className
                 )
             }

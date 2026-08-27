@@ -45,7 +45,7 @@ export const LinkButton = ({
             // after: pseudo-element extends the 16px text row to a 44px hit area.
             // that hit area extends 14px past each edge — keep stacked LinkButtons
             // at least ~28px apart so hit areas do not overlap.
-            'relative inline-flex items-center gap-1 rounded-sm text-foreground-secondary underline transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3.5 hover:text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus',
+            'relative inline-flex items-center gap-1 rounded text-foreground-secondary underline transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3.5 hover:text-foreground-primary active:text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus',
             disabled && 'pointer-events-none opacity-40',
             className
         )

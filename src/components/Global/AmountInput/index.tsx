@@ -261,7 +261,10 @@ const AmountInput = ({
 
     return (
         <form
-            className={`relative cursor-text rounded-sm border border-border-default bg-background-default p-4 dark:border-white ${className}`}
+            // board 17360:4451: the amount component is borderless bare text
+            // (only focus draws a border) — the old permanent box + dead dark:
+            // variant were pre-DS residue
+            className={`relative cursor-text rounded-sm bg-background-default p-4 ${className}`}
             action=""
             onClick={() => inputRef.current?.focus()}
         >
@@ -276,7 +279,7 @@ const AmountInput = ({
                     {/* Input with fake caret */}
                     <div className="relative">
                         <input
-                            className={`h-12 max-w-80 bg-transparent text-heading-big-input text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-foreground-secondary focus:border-action-primary disabled:opacity-100 disabled:[-webkit-text-fill-color:black]`}
+                            className={`h-12 max-w-80 bg-transparent text-heading-big-input text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-foreground-secondary disabled:text-foreground-secondary disabled:opacity-100 disabled:[-webkit-text-fill-color:var(--color-foreground-secondary)]`}
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 isEditingRef.current = true
