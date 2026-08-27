@@ -39,7 +39,7 @@
 
 import * as Sentry from '@sentry/nextjs'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { isCapacitor } from './capacitor'
+import { isNativeBridge } from './capacitor'
 import { getUnderlyingFetch } from './native-auth-capture'
 import { nativeHttpRequest } from './native-http'
 
@@ -158,8 +158,16 @@ export async function runCanary(): Promise<void> {
     })
 }
 
+/*
+ * isNativeBridge, NOT isCapacitor: the latter is true for
+ * NEXT_PUBLIC_CAPACITOR_BUILD Vercel previews, which have no bridge at all.
+ * Running there would drive the CapacitorHttp probe through a plugin that
+ * cannot work and file the result as native transport evidence, under
+ * appVersion 'unknown' — fabricated data in the one dataset this exists to
+ * keep clean.
+ */
 export function scheduleTransportCanary(delayMs: number = 4_000): void {
-    if (!isCapacitor() || scheduled || typeof window === 'undefined') return
+    if (!isNativeBridge() || scheduled || typeof window === 'undefined') return
     scheduled = true
     setTimeout(() => {
         void runCanary().catch(() => {

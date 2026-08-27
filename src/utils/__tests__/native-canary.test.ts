@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/nextjs'
-import { runCanary } from '../native-canary'
+import { runCanary, scheduleTransportCanary } from '../native-canary'
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
-jest.mock('../capacitor', () => ({ isCapacitor: () => true }))
+jest.mock('../capacitor', () => ({ isNativeBridge: jest.fn(() => true) }))
 jest.mock('../native-auth-capture', () => ({ getUnderlyingFetch: () => null }))
 jest.mock('../native-http', () => ({ nativeHttpRequest: jest.fn() }))
 jest.mock('@capacitor/app', () => ({ App: { getInfo: async () => ({ version: '1.0.57', build: '412' }) } }), {
@@ -10,6 +10,7 @@ jest.mock('@capacitor/app', () => ({ App: { getInfo: async () => ({ version: '1.
 })
 
 const { nativeHttpRequest } = jest.requireMock('../native-http') as { nativeHttpRequest: jest.Mock }
+const { isNativeBridge } = jest.requireMock('../capacitor') as { isNativeBridge: jest.Mock }
 const captureMessage = Sentry.captureMessage as jest.Mock
 
 const ok = (status = 200) => ({ status }) as Response
@@ -99,5 +100,22 @@ describe('transport canary', () => {
         expect(modes).toHaveLength(2)
         expect(modes.every((m) => m === undefined)).toBe(true)
         expect(nativeHttpRequest).toHaveBeenCalledTimes(1)
+    })
+
+    /*
+     * isCapacitor() is true for NEXT_PUBLIC_CAPACITOR_BUILD Vercel previews
+     * that have no bridge; probing there files web-fallback results as native
+     * transport evidence under appVersion 'unknown'.
+     */
+    it('does not schedule on a capacitor-flavoured build with no native bridge', () => {
+        jest.useFakeTimers()
+        isNativeBridge.mockReturnValue(false)
+
+        scheduleTransportCanary(0)
+        jest.runAllTimers()
+
+        expect(global.fetch).not.toHaveBeenCalled()
+        expect(nativeHttpRequest).not.toHaveBeenCalled()
+        jest.useRealTimers()
     })
 })
