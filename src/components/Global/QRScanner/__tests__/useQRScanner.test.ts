@@ -71,6 +71,34 @@ jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 HTMLMediaElement.prototype.pause = jest.fn()
 HTMLMediaElement.prototype.load = jest.fn()
 
+/*
+ * The real classifyCameraFailure runs against this. qr-scanner rejects start()
+ * with the bare string 'Camera not found.' whatever went wrong, so the reason a
+ * camera failed is only recoverable by asking the browser again — which means
+ * these tests have to model the browser, not a rejection shape the library
+ * cannot produce.
+ */
+const browserCamera = {
+    // no camera attached by default, which is what the failure tests below assert
+    devices: [] as Array<{ kind: string }>,
+    probe: (): Promise<MediaStream> => Promise.reject(new DOMException('Device in use', 'NotReadableError')),
+}
+Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: {
+        enumerateDevices: async () => browserCamera.devices,
+        getUserMedia: () => browserCamera.probe(),
+    },
+})
+
+const resetBrowserCamera = () => {
+    browserCamera.devices = []
+    browserCamera.probe = () => Promise.reject(new DOMException('Device in use', 'NotReadableError'))
+}
+
+// what qr-scanner really rejects with — see src/utils/camera-failure.ts
+const QR_SCANNER_REJECTION = 'Camera not found.'
+
 const PIX_PAYLOAD = '00020101021226' + '0014br.gov.bcb.pix' + 'y'.repeat(68)
 
 // Every mount schedules a 100ms element-retry before the <video> exists. Left on
@@ -157,7 +185,7 @@ describe('resume after backgrounding (TASK-21862)', () => {
         const result = await mountScanning()
 
         await act(async () => setHidden(true))
-        startBehaviour = () => Promise.reject(new DOMException('Camera not found.', 'NotFoundError'))
+        startBehaviour = () => Promise.reject(QR_SCANNER_REJECTION)
         await act(async () => setHidden(false))
 
         expect(result.current.isCameraReady).toBe(false)
@@ -168,7 +196,7 @@ describe('resume after backgrounding (TASK-21862)', () => {
         const result = await mountScanning()
 
         await act(async () => setHidden(true))
-        startBehaviour = () => Promise.reject(new DOMException('Camera not found.', 'NotFoundError'))
+        startBehaviour = () => Promise.reject(QR_SCANNER_REJECTION)
         await act(async () => setHidden(false))
         expect(result.current.error).toBe('qrScanner.cameraNotFound')
 
@@ -198,7 +226,7 @@ describe('resume after backgrounding (TASK-21862)', () => {
     it('does not re-enter the camera flow while the error view is up', async () => {
         const result = await mountScanning()
 
-        startBehaviour = () => Promise.reject(new DOMException('nope', 'NotFoundError'))
+        startBehaviour = () => Promise.reject(QR_SCANNER_REJECTION)
         await act(async () => {
             await result.current.retryCamera()
         })
@@ -308,6 +336,7 @@ describe('permission still pending at the deadline (TASK-21927)', () => {
         mockDeviceType = 'web'
         mockCapacitor = false
         startBehaviour = () => Promise.resolve()
+        resetBrowserCamera()
         attachStream = true
     })
 
@@ -376,10 +405,13 @@ describe('permission still pending at the deadline (TASK-21927)', () => {
      * The rejection value is qr-scanner's real one, not a DOMException:
      * _getCameraStream swallows every getUserMedia DOMException in a bare catch
      * and then throws the bare string 'Camera not found.', whatever actually
-     * went wrong. Anything richer here would be testing a contract the pinned
-     * library never honours.
+     * went wrong. The reason is recovered from the browser instead, so what
+     * these two assert on is the browserCamera stub above, not the rejection.
      */
-    it('a failure that lands after the deadline leaves the user on the permission modal', async () => {
+    it('a late denial keeps the permission modal the deadline put up', async () => {
+        browserCamera.devices = [{ kind: 'videoinput' }]
+        browserCamera.probe = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
+
         const { result, videoRef } = await mountPendingStart()
 
         await act(async () => {
@@ -387,12 +419,32 @@ describe('permission still pending at the deadline (TASK-21927)', () => {
         })
         unmountVideo(videoRef)
         await act(async () => {
-            settleStart.reject('Camera not found.')
+            settleStart.reject(QR_SCANNER_REJECTION)
         })
 
         expect(result.current.isPermissionDenied).toBe(true)
         expect(result.current.error).toBe('qrScanner.cameraPermissionDenied')
         expect(result.current.isCameraReady).toBe(false)
+    })
+
+    it('a late failure on a device with no camera walks the guess back', async () => {
+        browserCamera.devices = []
+
+        const { result, videoRef } = await mountPendingStart()
+
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_START_TIMEOUT_MS)
+        })
+        unmountVideo(videoRef)
+        await act(async () => {
+            settleStart.reject(QR_SCANNER_REJECTION)
+        })
+
+        // the deadline guesses "denied" because that is the common case; the
+        // classifier walks it back rather than offering permission help to a
+        // device that has no camera to permit
+        expect(result.current.isPermissionDenied).toBe(false)
+        expect(result.current.error).toBe('qrScanner.cameraNotFound')
     })
 
     it('native keeps waiting on the OS dialog with no deadline at all', async () => {
@@ -410,5 +462,136 @@ describe('permission still pending at the deadline (TASK-21927)', () => {
             settleStart.resolve()
         })
         expect(result.current.isCameraReady).toBe(true)
+    })
+})
+
+/*
+ * Every case here was unreachable before classifyCameraFailure: qr-scanner
+ * rejects start() with a bare string, so `err instanceof Error` was always
+ * false, the name was always empty, and getErrorMessage always fell through to
+ * cameraUnavailable with the permission modal on top — for a missing camera as
+ * readily as for a denial. The NotReadableError retry loop never ran at all.
+ */
+describe('classifying a failure the library discarded', () => {
+    const CAMERA_RETRY_DELAY_MS = 1000
+    const VIDEO_ELEMENT_RETRY_DELAY_MS = 100
+    const MAX_CAMERA_RETRIES = 3
+
+    const CAMERA_PRESENT = [{ kind: 'videoinput' }]
+    const busy = () => Promise.reject(new DOMException('Device in use', 'NotReadableError'))
+
+    async function mountScanning() {
+        const { result } = renderHook(() => useQRScanner(jest.fn(), undefined, true))
+        const videoRef = result.current.videoRef as React.MutableRefObject<HTMLVideoElement | null>
+        videoRef.current = document.createElement('video')
+        await act(async () => {
+            jest.advanceTimersByTime(VIDEO_ELEMENT_RETRY_DELAY_MS)
+        })
+        return result
+    }
+
+    async function failTheCamera(result: Awaited<ReturnType<typeof mountScanning>>) {
+        startBehaviour = () => Promise.reject(QR_SCANNER_REJECTION)
+        await act(async () => {
+            await result.current.retryCamera()
+        })
+    }
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        startCalls = 0
+        attachStream = true
+    })
+
+    afterEach(() => {
+        jest.useRealTimers()
+        startBehaviour = () => Promise.resolve()
+        resetBrowserCamera()
+        attachStream = true
+    })
+
+    it('a denial reaches the permission modal with its own copy', async () => {
+        browserCamera.devices = CAMERA_PRESENT
+        browserCamera.probe = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
+
+        const result = await mountScanning()
+        await failTheCamera(result)
+
+        expect(result.current.isPermissionDenied).toBe(true)
+        expect(result.current.error).toBe('qrScanner.cameraPermissionDenied')
+    })
+
+    it('a missing camera is no longer reported as a denied permission', async () => {
+        browserCamera.devices = []
+
+        const result = await mountScanning()
+        await failTheCamera(result)
+
+        // the permission modal offers "enable camera access" help that cannot
+        // fix a device with no camera in it
+        expect(result.current.isPermissionDenied).toBe(false)
+        expect(result.current.error).toBe('qrScanner.cameraNotFound')
+    })
+
+    it('a busy camera retries, and recovers when the device frees up', async () => {
+        browserCamera.devices = CAMERA_PRESENT
+        browserCamera.probe = busy
+
+        const result = await mountScanning()
+        await failTheCamera(result)
+
+        expect(result.current.isPermissionDenied).toBe(false)
+        expect(result.current.error).toBe('qrScanner.cameraBusyRetrying')
+
+        startBehaviour = () => Promise.resolve()
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_RETRY_DELAY_MS)
+        })
+
+        expect(result.current.error).toBeNull()
+        expect(result.current.isCameraReady).toBe(true)
+    })
+
+    it('a manual retry that recovers first is not torn down by the pending busy retry', async () => {
+        browserCamera.devices = CAMERA_PRESENT
+        browserCamera.probe = busy
+
+        const result = await mountScanning()
+        await failTheCamera(result)
+        expect(result.current.error).toBe('qrScanner.cameraBusyRetrying')
+
+        // the user beats the 1s timer to it
+        startBehaviour = () => Promise.resolve()
+        await act(async () => {
+            await result.current.retryCamera()
+        })
+        expect(result.current.isCameraReady).toBe(true)
+        const afterRecovery = startCalls
+
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_RETRY_DELAY_MS * 2)
+        })
+
+        // the stale callback would cleanup() and reacquire a working scanner
+        expect(startCalls).toBe(afterRecovery)
+        expect(result.current.isCameraReady).toBe(true)
+        expect(result.current.error).toBeNull()
+    })
+
+    it('a camera that stays busy stops retrying and says so', async () => {
+        browserCamera.devices = CAMERA_PRESENT
+        browserCamera.probe = busy
+
+        const result = await mountScanning()
+        await failTheCamera(result)
+
+        for (let attempt = 0; attempt < MAX_CAMERA_RETRIES; attempt++) {
+            await act(async () => {
+                jest.advanceTimersByTime(CAMERA_RETRY_DELAY_MS)
+            })
+        }
+
+        expect(result.current.error).toBe('qrScanner.cameraStillBusy')
+        expect(result.current.isPermissionDenied).toBe(false)
     })
 })
