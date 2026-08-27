@@ -141,6 +141,7 @@ describe('friendly error copy catalog', () => {
         'sendLinkAlreadyClaimed',
         'lowLiquidity',
         'networkBusyTimeout',
+        'connectionLost',
         'sessionExpired',
         'genericSupport',
         'staleCardApproval',
@@ -286,5 +287,26 @@ describe('chain-infrastructure outage on claim', () => {
         // genuinely unclassified 500, must not start advertising a retry
         const unclassified = new Error('An unexpected error occurred. Please try again or contact support.')
         expect(friendlyError(unclassified)).toEqual({ kind: 'code', code: 'genericSupport' })
+    })
+})
+
+describe('browser-native fetch rejection (TASK-21956)', () => {
+    // Hugo lost connectivity mid-send on Android 1.0.53 (OTA ota-1.0.56) and was
+    // told to contact support. `TypeError: Failed to fetch` matched none of the
+    // classifiers — only the ethers-style uppercase `NETWORK_ERROR` was mapped —
+    // so the one error whose real advice is "you're offline" got the fallback.
+    test.each([
+        ['Chromium / Android WebView', new TypeError('Failed to fetch')],
+        ['WebKit', new TypeError('Load failed')],
+        ['Gecko', new TypeError('NetworkError when attempting to fetch resource.')],
+    ])('%s fetch rejection maps to connectionLost, not the support fallback', (_engine, error) => {
+        expect(friendlyError(error)).toEqual({ kind: 'code', code: 'connectionLost' })
+    })
+
+    test('a wrapped fetch failure still prefers the more specific wrapper code', () => {
+        // fetchWithSentry already classifies its own failures; the new matcher
+        // sits last so it can never steal one of those.
+        const wrapped = Object.assign(new Error('Failed to fetch'), { name: 'ServiceUnavailableError' })
+        expect(friendlyError(wrapped)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
     })
 })

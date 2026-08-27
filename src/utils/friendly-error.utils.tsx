@@ -79,6 +79,7 @@ export type FriendlyErrorCode =
     | 'sendLinkAlreadyClaimed'
     | 'lowLiquidity'
     | 'networkBusyTimeout'
+    | 'connectionLost'
     | 'sessionExpired'
     | 'connectionTimeout'
     | 'genericSupport'
@@ -276,5 +277,20 @@ export const friendlyError = (error: unknown): FriendlyError => {
         text.includes('timed out after')
     )
         return code('networkBusyTimeout')
+    // Browser-native fetch rejection — the request never reached a server, so
+    // there is no status and no wire code to key off, only the engine's own
+    // TypeError copy: `Failed to fetch` (Chromium, so every Android WebView),
+    // `Load failed` (WebKit), `NetworkError when attempting to fetch resource.`
+    // (Gecko). None of them match the ethers-style uppercase `NETWORK_ERROR`
+    // above, so a device that simply lost connectivity mid-send dead-ended on
+    // "contact support" — the one failure whose real advice is "you're offline,
+    // try again" (TASK-21956). Last before the fallback so it can never shadow
+    // a more specific classification.
+    if (
+        text.includes('Failed to fetch') ||
+        text.includes('Load failed') ||
+        text.includes('NetworkError when attempting to fetch resource')
+    )
+        return code('connectionLost')
     return code('genericSupport')
 }
