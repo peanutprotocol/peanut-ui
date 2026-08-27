@@ -34,7 +34,8 @@ import { useModalsContext } from '@/context/ModalsContext'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
-import { captureException } from '@sentry/nextjs'
+import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
@@ -331,7 +332,9 @@ function MantecaBankWithdrawFlow() {
                 setStep('review')
             }
         } catch (error) {
-            captureException(error)
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'lock-rate' },
+            })
             setErrorMessage(t('errors.lockRateFailed'))
         } finally {
             setIsLockingPrice(false)
@@ -395,9 +398,21 @@ function MantecaBankWithdrawFlow() {
                     setErrorMessage(t('errors.confirmTransaction'))
                 } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
                     // Keep the flow-specific fallback and the Sentry report.
-                    captureException(error)
+                    void captureNetworkTriagedFailure(error, {
+                        tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'sign' },
+                    })
                     setErrorMessage(t('errors.signFailed'))
                 } else {
+                    // A classified error is normally a deliberate non-report
+                    // (backend wire code, or a user action). Network-layer
+                    // failures are the exception: once `connectionLost` existed
+                    // they classified HERE instead of genericSupport above, which
+                    // silently ended their Sentry reporting (TASK-21956).
+                    if (isNetworkLayerFailure(error)) {
+                        void captureNetworkTriagedFailure(error, {
+                            tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'sign' },
+                        })
+                    }
                     setErrorMessage(toFriendlyError(error), classified.kind === 'text' ? null : classified.code)
                 }
                 setLoadingState('Idle')
@@ -477,9 +492,21 @@ function MantecaBankWithdrawFlow() {
         } catch (error) {
             console.error('Manteca withdraw error:', error)
             if (handleStaleSession(error)) return
-            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
-                method_type: 'manteca',
-                error_message: 'Withdraw failed unexpectedly',
+            // Reported here rather than left to the console-capture integration,
+            // which the noise filters then drop: the money leg of an offramp
+            // dying was leaving no queryable Sentry record at all (TASK-21956).
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'submit' },
+                extra: { amountUsd: usdAmount, country: countryPath },
+                analytics: {
+                    event: ANALYTICS_EVENTS.WITHDRAW_FAILED,
+                    props: {
+                        method_type: 'manteca',
+                        error_message: 'Withdraw failed unexpectedly',
+                        error_name: error instanceof Error ? error.name : 'unknown',
+                        error_raw: error instanceof Error ? error.message : String(error),
+                    },
+                },
             })
             setErrorMessage(t('errors.unexpected'))
             setStep('failure')

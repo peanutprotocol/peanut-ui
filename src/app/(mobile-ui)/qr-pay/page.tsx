@@ -44,7 +44,8 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { captureException } from '@sentry/nextjs'
+import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
@@ -671,7 +672,9 @@ export default function QRPayPage() {
                     // minimum) — actionable copy, not a Sentry-worthy surprise.
                     setErrorMessage(pixMinAmountErrorMessage)
                 } else {
-                    captureException(error)
+                    void captureNetworkTriagedFailure(error, {
+                        tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'initiate' },
+                    })
                     setErrorMessage(t('errors.initiateUnexpected'))
                 }
                 setIsSuccess(false)
@@ -718,9 +721,21 @@ export default function QRPayPage() {
             } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
                 // Keep the flow-specific fallback — "couldn't sign" beats the
                 // generic support copy on a signing failure — and the Sentry report.
-                captureException(error)
+                void captureNetworkTriagedFailure(error, {
+                    tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'sign' },
+                })
                 setErrorMessage(t('errors.signFailed'))
             } else {
+                // A classified error is normally a deliberate non-report (backend
+                // wire code, or a user action). Network-layer failures are the
+                // exception: once `connectionLost` existed they classified HERE
+                // instead of genericSupport above, which silently ended their
+                // Sentry reporting altogether (TASK-21956).
+                if (isNetworkLayerFailure(error)) {
+                    void captureNetworkTriagedFailure(error, {
+                        tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'sign' },
+                    })
+                }
                 setErrorMessage(toFriendlyError(error), classified.kind === 'text' ? null : classified.code)
             }
             setIsSuccess(false)
@@ -790,7 +805,9 @@ export default function QRPayPage() {
             // Wrong-passkey session: backend rejected the signed UserOp with
             // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
             if (handleStaleSession(error)) return
-            captureException(error)
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'submit' },
+            })
             const errorMsg = (error as Error).message || 'Could not complete payment'
 
             // Handle specific error cases

@@ -37,6 +37,15 @@ function classifyNetworkFailure(error: unknown): NetworkErrorClass | null {
     return null
 }
 
+/**
+ * Did this error die at the network layer (rather than being something a
+ * server, or the user, decided)? For call sites that report selectively —
+ * a catch whose other branches are deliberate non-reports.
+ */
+export function isNetworkLayerFailure(error: unknown): boolean {
+    return classifyNetworkFailure(error) !== null
+}
+
 export interface NetworkTriage {
     /**
      * What the probes OBSERVED in the seconds after the failure — not proof of
@@ -51,9 +60,12 @@ export interface NetworkTriage {
      *   — a WAF/bot challenge or a CORS-less error page. The direct evidence
      *   for the failure mode this whole diagnostic exists to find.
      * - `edge_unreachable`: the internet answered, our edge did not
-     * - `offline`: nothing answered
+     * - `offline`: nothing answered AND the device says it is offline
+     * - `unknown`: nothing answered but the device claims to be online. NOT
+     *   reported as `offline`, because the no-cors channel every remaining
+     *   probe depends on is itself unavailable on some platforms — see below.
      */
-    observed: 'api_reachable' | 'api_cors_blocked' | 'edge_unreachable' | 'offline'
+    observed: 'api_reachable' | 'api_cors_blocked' | 'edge_unreachable' | 'offline' | 'unknown'
     errorClass: NetworkErrorClass
     online: boolean
     effectiveType?: string
@@ -77,6 +89,16 @@ const PROBE_TIMEOUT_MS = 2500
  * error pages that carry no CORS headers at all. So cors-fails-while-no-cors-
  * succeeds is precisely "something answered but the browser wouldn't let the
  * app read it", the shape a WAF challenge or CORS-less 5xx takes.
+ *
+ * The no-cors channel is NOT universally available, which is why its failure
+ * can never be read as "the network is down". The retired native canary
+ * (`native-canary.ts` on `main`, probe `get-healthz-nocors`) measured exactly
+ * this over 30 days: on Android it works (681 opaque / 625 network-error),
+ * while on iOS it failed 108/108 — 100% — with every other iOS probe at 100%
+ * success in the same batch. WKWebView's scheme handler simply does not serve
+ * opaque responses. So on iOS BOTH no-cors probes below always fail, and a
+ * verdict that treated that as evidence would label every iOS failure
+ * `offline` — the exact mislabelling this module exists to remove.
  */
 async function probe(url: string, mode: 'cors' | 'no-cors'): Promise<boolean> {
     const controller = new AbortController()
@@ -113,7 +135,12 @@ export async function triageNetworkFailure(error: unknown): Promise<NetworkTriag
               ? 'api_cors_blocked'
               : internetReachable
                 ? 'edge_unreachable'
-                : 'offline',
+                : // Every remaining branch rests on the no-cors channel, which
+                  // iOS does not provide at all. Claim `offline` only when the
+                  // device itself says so; otherwise admit we cannot tell.
+                  online
+                  ? 'unknown'
+                  : 'offline',
         errorClass,
         online,
         effectiveType: connection?.effectiveType,
