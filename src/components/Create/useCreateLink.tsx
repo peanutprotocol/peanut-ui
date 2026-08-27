@@ -87,11 +87,19 @@ export const useCreateLink = () => {
                                 { to: tokenAddress, value: 0n, data: approveData },
                                 { to: contractAddress, value: 0n, data: makeDepositData },
                             ],
-                            { chainId, requiredUsdcAmount: amount, kind: 'LINK_CREATE' }
+                            {
+                                chainId,
+                                requiredUsdcAmount: amount,
+                                kind: 'LINK_CREATE',
+                                // as soon as routing decides, not when it succeeds — a
+                                // cancelled flow still has to be readable by strategy
+                                onStrategyDecided: (decided) => {
+                                    strategy = decided
+                                },
+                            }
                         ),
                     ])
                     const { receipt, intentId } = sendResult
-                    strategy = 'strategy' in sendResult ? sendResult.strategy : undefined
                     let depositIdx: number
                     let txHash: Hash | undefined = undefined
                     if (receipt !== null) {

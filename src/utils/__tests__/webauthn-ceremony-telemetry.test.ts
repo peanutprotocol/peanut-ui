@@ -114,6 +114,24 @@ describe('webauthn ceremony telemetry', () => {
         expect(events('webauthn_ceremony_flow')[0]).toMatchObject({ ceremony_count: 1, outcome: 'error' })
     })
 
+    it('keeps an annotation recorded before the failure — a cancelled mixed link stays segmentable', async () => {
+        get.mockRejectedValueOnce(new Error('NotAllowedError'))
+        let strategy: string | undefined
+
+        await expect(
+            withCeremonyFlow(
+                'link_create',
+                async () => {
+                    strategy = 'mixed'
+                    return withCeremonyPurpose('admin_eip712', () => navigator.credentials.get({}))
+                },
+                () => ({ strategy })
+            )
+        ).rejects.toThrow('NotAllowedError')
+
+        expect(events('webauthn_ceremony_flow')[0]).toMatchObject({ outcome: 'error', strategy: 'mixed' })
+    })
+
     it('measures the gap between back-to-back sheets', async () => {
         await withCeremonyPurpose('user_op', () => navigator.credentials.get({}))
         await withCeremonyPurpose('user_op', () => navigator.credentials.get({}))
