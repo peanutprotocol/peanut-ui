@@ -621,36 +621,20 @@
             "description": "Una sola dirección para todas las redes EVM listadas abajo: enviá desde cualquiera de ellas y tus fondos se enrutarán correctamente."
         },
         "howToDeposit": {
-            "warningOfframp": "Enviá solo USDC en Arbitrum: otros tokens o redes se pueden perder.",
             "default": {
                 "step1": "Copiá tu dirección de depósito de arriba",
                 "step2": "Abrí tu billetera o exchange e iniciá un retiro",
                 "step3": "Pegá la dirección y elegí una de las redes compatibles",
                 "step4": "Confirmá y enviá: los fondos llegan en pocos minutos"
-            },
-            "offramp": {
-                "step1": "Copiá tu dirección de depósito de migración de arriba",
-                "step2": "Abrí tu cuenta de Offramp e iniciá un retiro o envío",
-                "step3": "Elegí USDC en la red Arbitrum y pegá la dirección",
-                "step4": "Confirmá y enviá: tu saldo llega en pocos minutos"
             }
         },
         "crypto": {
-            "sendUsdcOnArbitrum": "Enviá <b>USDC en Arbitrum</b> para migrar tu saldo",
             "sendTokensToAddress": "Enviá tokens a esta dirección de <b>{network}</b>",
             "tooltipEvm": "{count} redes EVM compatibles. Para montos exactos, depositá USDC en Arbitrum. Otras redes/tokens se puentean (±0.1%).",
-            "migrationAddressTooltip": "Usá esta dirección para tu migración desde Offramp. Solo acepta USDC en Arbitrum: no la guardes como dirección general de tu billetera.",
             "selectNetworkType": "Seleccioná el tipo de red",
             "warningTitle": "Enviá solo a redes compatibles",
-            "warningTitleOfframp": "Enviá solo USDC en Arbitrum",
             "bridgingFeeNote": "Se aplica una pequeña comisión de puenteo (~0.1%): recibirás un poco menos de lo que enviás.",
-            "multipleTransfersNote": "¿Vas a mover más del máximo? Envialo en varias transferencias.",
-            "addressErrorDescription": "No se envió nada. Intentalo de nuevo: si el problema sigue, contactá a soporte.",
-            "transferSentBackNote": "Tu dinero volvió a tu cuenta de Offramp: iniciá el retiro de nuevo desde ahí."
-        },
-        "offrampGate": {
-            "description": "Ingresá el usuario o el email de la cuenta de Offramp desde la que estás migrando, para poder vincular tu saldo con tu nueva billetera de Peanut.",
-            "error": "No pudimos guardar tu cuenta de Offramp. Intentalo de nuevo."
+            "addressErrorDescription": "No se envió nada. Intentalo de nuevo: si el problema sigue, contactá a soporte."
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde tu propia cuenta"

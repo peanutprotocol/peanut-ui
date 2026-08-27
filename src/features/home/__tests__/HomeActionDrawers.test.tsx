@@ -19,11 +19,6 @@ jest.mock('@/hooks/useAppHaptic', () => ({
     useAppHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
-let mockBadges: Array<{ code: string }> = []
-jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { badges: mockBadges } } }),
-}))
-
 beforeAll(() => {
     window.matchMedia =
         window.matchMedia ||
@@ -42,7 +37,6 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockBadges = []
 })
 
 const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
@@ -84,15 +78,5 @@ describe('HomeActionDrawers', () => {
 
         // withdraw is reachable via the SEND drawer only (product ruling)
         expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
-        // no offramp migration row without the badge
-        expect(screen.queryByTestId('home-drawer-add-offramp-migration')).not.toBeInTheDocument()
-    })
-
-    it('shows the offramp migration row for OFFRAMP_USER badge holders (parity with /add-money)', async () => {
-        mockBadges = [{ code: 'OFFRAMP_USER' }]
-        renderWithUrl('?drawer=add')
-
-        fireEvent.click(screen.getByTestId('home-drawer-add-offramp-migration'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp'))
     })
 })

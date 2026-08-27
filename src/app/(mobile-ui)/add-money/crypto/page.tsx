@@ -2,8 +2,6 @@
 
 import ChooseNetworkView from '@/components/AddMoney/views/ChooseNetwork.view'
 import CryptoDepositView from '@/components/AddMoney/views/CryptoDeposit.view'
-import OfframpHandleGateView from '@/components/AddMoney/views/OfframpHandleGate.view'
-import Loading from '@/components/Global/Loading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -26,7 +24,7 @@ import { useTranslations } from 'next-intl'
 const DEPOSIT_EXPLORER_BASE_URL = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString())
 
 const AddMoneyCryptoPage = () => {
-    const { user, isFetchingUser } = useAuth()
+    const { user } = useAuth()
     const t = useTranslations('addMoney')
     const onBack = useSafeBack('/add-money')
     const { address: peanutWalletAddress } = useWallet()
@@ -36,23 +34,10 @@ const AddMoneyCryptoPage = () => {
         'network',
         parseAsStringEnum<RhinoChainType>(['EVM', 'SOL', 'TRON'])
     )
-    // offramp migration deep-link: strips the chain/token picker down to arbitrum + usdc
-    const [source] = useQueryState('source', parseAsStringEnum(['offramp']))
-    const isOfframp = source === 'offramp'
-    const needsNetworkChoice = !isOfframp && networkParam === null
-    // The offramp UI is hardwired to Arbitrum copy, so the underlying address
-    // must be EVM no matter what a shared/edited link says — otherwise a
-    // ?network=SOL&source=offramp URL would show a Solana address labeled
-    // "Arbitrum" and instruct the user to send funds to it.
-    const network: RhinoChainType = isOfframp ? 'EVM' : (networkParam ?? 'EVM')
+    const needsNetworkChoice = networkParam === null
+    const network: RhinoChainType = networkParam ?? 'EVM'
     const [showSuccessView, setShowSuccessView] = useState(false)
     const [depositResult, setDepositResult] = useState<DepositAddressStatusResponse | null>(null)
-    // Offramp migrants must self-report their offramp.xyz username/email once
-    // before the deposit address is revealed — Peanut owes the partner a
-    // per-migrant payout, and this handle is what reconciliation keys on.
-    // Local flag bridges the moment between saving and the user refetch.
-    const [offrampHandleSaved, setOfframpHandleSaved] = useState(false)
-    const needsOfframpHandle = isOfframp && !offrampHandleSaved && !user?.user.offrampHandle
 
     const {
         data: depositAddressData,
@@ -72,24 +57,21 @@ const AddMoneyCryptoPage = () => {
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_COMPLETED, {
                 amount,
                 chain_type: network,
-                method_type: isOfframp ? 'offramp_migration' : 'crypto',
+                method_type: 'crypto',
                 acquisition_source: user?.invitedBy ? 'referred' : 'organic',
             })
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },
-        [network, user?.invitedBy, isOfframp]
+        [network, user?.invitedBy]
     )
 
     // build minimal transaction details for the receipt drawer
     const depositTransactionDetails: TransactionDetails | null = useMemo(() => {
         if (!depositResult) return null
         const usdAmount = depositResult.amount?.toString() ?? '0'
-        // offramp migrants were told "USDC on Arbitrum" — when Rhino's status
-        // response omits token/chain, fall back to that promise instead of the
-        // generic USDT/EVM guess (which renders an Ethereum icon on the receipt).
-        const chainName = depositResult.chainIn ?? (isOfframp ? 'ARBITRUM' : NETWORK_LABELS[network])
-        const tokenSymbol = depositResult.tokenSymbol ?? (isOfframp ? 'USDC' : 'USDT')
+        const chainName = depositResult.chainIn ?? NETWORK_LABELS[network]
+        const tokenSymbol = depositResult.tokenSymbol ?? 'USDT'
         const chainIconUrl = CHAIN_LOGOS[chainName as ChainName] ?? CHAIN_LOGOS.ETHEREUM
         const tokenIconUrl = TOKEN_LOGOS[tokenSymbol as TokenName] ?? TOKEN_LOGOS.USDT
         const explorerUrl =
@@ -127,7 +109,7 @@ const AddMoneyCryptoPage = () => {
             currency: { amount: usdAmount, code: 'USD' },
             totalAmountCollected: 0,
         } satisfies TransactionDetails
-    }, [depositResult, network, isOfframp])
+    }, [depositResult, network])
 
     if (needsNetworkChoice && !showSuccessView) {
         return (
@@ -139,20 +121,11 @@ const AddMoneyCryptoPage = () => {
         )
     }
 
-    if (needsOfframpHandle && !showSuccessView) {
-        // wait for the cached user before deciding — otherwise a migrant who
-        // already provided their handle gets a flash of the gate on every visit
-        if (isFetchingUser && !user) {
-            return <Loading variant="mascot" />
-        }
-        return <OfframpHandleGateView onBack={onBack} onDone={() => setOfframpHandleSaved(true)} />
-    }
-
     if (showSuccessView && depositResult) {
         return (
             <PaymentSuccessView
                 type="DEPOSIT"
-                headerTitle={isOfframp ? t('crypto.migrationComplete') : t('crypto.depositedCrypto')}
+                headerTitle={t('crypto.depositedCrypto')}
                 usdAmount={depositResult.amount?.toString()}
                 amount={depositResult.tokenAmount}
                 transactionDetails={depositTransactionDetails}
@@ -174,7 +147,6 @@ const AddMoneyCryptoPage = () => {
             onRetry={() => refetch()}
             onSuccess={handleSuccess}
             onBack={onBack}
-            variant={isOfframp ? 'offramp' : 'default'}
         />
     )
 }

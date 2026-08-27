@@ -65,23 +65,9 @@ jest.mock('@/hooks/useGuestStoreHandoff', () => ({
 }))
 jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: (badgeCampaigns: readonly string[]) => mockClaimBadgeCampaigns(badgeCampaigns),
-    destinationForConfirmedBadgeCampaignAcquisition: (
-        claims: Array<{ outcome: string; acquisition?: { destination: string } }>
-    ) => {
-        const destinations = new Set(
-            claims
-                .filter(
-                    (claim) =>
-                        (claim.outcome === 'awarded' || claim.outcome === 'already_owned') &&
-                        !!claim.acquisition &&
-                        claim.acquisition.destination !== 'normal_app'
-                )
-                .map((claim) => claim.acquisition!.destination)
-        )
-        return destinations.size === 1 && destinations.has('offramp_migration')
-            ? '/add-money/crypto?network=EVM&source=offramp'
-            : '/home'
-    },
+    // every destination maps to /home since the offramp migration surface
+    // was removed (TASK-20535); mirror the real service
+    destinationForConfirmedBadgeCampaignAcquisition: () => '/home',
     isConfirmedBadgeCampaignClaim: (claim: { outcome: string }) =>
         claim.outcome === 'awarded' || claim.outcome === 'already_owned',
     isUnavailableBadgeCampaignClaim: (claim: { outcome: string }) =>
@@ -205,7 +191,7 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         await waitFor(() => expect(mockClaimBadgeCampaigns).toHaveBeenCalledWith(['offramp']))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'))
     })
 
     it('falls back to the normal app when code-only legacy acquisition is unconfirmed', async () => {
@@ -301,7 +287,7 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         await waitFor(() => expect(mockClaimBadgeCampaigns).toHaveBeenCalledWith([badgeCampaign]))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'))
     })
 
     it.each([
@@ -353,7 +339,9 @@ describe('invite and badge campaign routing boundaries', () => {
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/alice'))
     })
 
-    it('lets a confirmed bespoke campaign destination override a personal inviter profile', async () => {
+    // no campaign carries a bespoke destination anymore (offramp migration
+    // surface removed), so the inviter profile keeps navigation
+    it('keeps the personal inviter profile when a confirmed claim resolves the default destination', async () => {
         mockSearch = 'code=alice&badge_campaign=offramp'
         mockQueryResult.data = {
             success: true,
@@ -378,7 +366,7 @@ describe('invite and badge campaign routing boundaries', () => {
 
         render(<InvitesPage />)
 
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/alice'))
     })
 
     it('preserves a safe financial continuation over campaign and inviter navigation', async () => {
@@ -420,7 +408,7 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/claim?step=claim&id=payment-1'))
-        expect(mockPush).not.toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp')
+        expect(mockPush).not.toHaveBeenCalledWith('/home')
     })
 
     it('shows Invalid Invite only for an invalid code with no independent campaign', async () => {

@@ -93,7 +93,6 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_FAILED: 'deposit_failed',
     // offramp.xyz migrants must self-report their Offramp username/email
     // before the migration deposit address is revealed (payout reconciliation)
-    OFFRAMP_HANDLE_SUBMITTED: 'offramp_handle_submitted',
 
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
