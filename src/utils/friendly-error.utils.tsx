@@ -1,4 +1,5 @@
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
+import { isNativeFetchRejection } from '@/utils/network-triage'
 
 /** Safely extract a string-form of an unknown error + its `.message` if any.
  *  Lets the matchers below use `string` methods without unsafe property access
@@ -293,13 +294,8 @@ export const friendlyError = (error: unknown): FriendlyError => {
     // response that very much DID arrive, and those carry no `status` to be
     // caught by the ApiError branch above. A substring match would tell a user
     // whose connection is fine that they are offline — the same mislabelling
-    // this whole change exists to remove, pointed the other way.
-    if (
-        name === 'TypeError' &&
-        (message === 'Failed to fetch' ||
-            message === 'Load failed' ||
-            message === 'NetworkError when attempting to fetch resource.')
-    )
-        return code('connectionLost')
+    // this whole change exists to remove, pointed the other way. The predicate
+    // is shared with network-triage.ts so the copy and the probes can't drift.
+    if (isNativeFetchRejection(name, message)) return code('connectionLost')
     return code('genericSupport')
 }

@@ -126,6 +126,10 @@ function contentSecurityPolicyReportOnly(includeReporting = true) {
             'https://*.analytics.google.com',
             'https://stats.g.doubleclick.net',
             'https://www.googletagmanager.com',
+            // Network-failure triage probe (network-triage.ts): Android's own
+            // captive-portal endpoint, used to tell "device offline" from "our
+            // edge unreachable" when a fetch dies without a status.
+            'https://www.gstatic.com',
             // Every Google country domain, because the remarketing beacon goes
             // to the user's own — see csp-google-domains.js for why this cannot
             // be a wildcard. Supersedes the former lone 'https://www.google.com'

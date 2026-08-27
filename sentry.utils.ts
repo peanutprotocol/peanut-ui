@@ -446,6 +446,11 @@ export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
     }
     collapseNoisyFingerprint(event)
     cleanSensitiveHeaders(event)
+    // Whether the device believed it was online at capture time — the free
+    // half of the TASK-21956 network triage (navigator is absent server-side).
+    if (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean') {
+        event.tags = { net_online: String(navigator.onLine), ...event.tags }
+    }
     return event
 }
 
