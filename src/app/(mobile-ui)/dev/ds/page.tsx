@@ -5,27 +5,29 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { Card } from '@/components/0_Bruddle/Card'
 import { DocPage } from './_components/DocPage'
 
+import { SIDEBAR_CONFIG } from './_components/nav-config'
+
 const sections = [
     {
         title: 'Foundations',
         description: 'Color tokens, typography, spacing, shadows, icons, and borders',
         href: '/dev/ds/foundations',
         icon: 'bulb' as const,
-        count: 6,
+        count: SIDEBAR_CONFIG.foundations.length,
     },
     {
         title: 'Primitives',
         description: 'Bruddle base components: Button, Card, Input, Select, Checkbox, Toast',
         href: '/dev/ds/primitives',
         icon: 'switch' as const,
-        count: 9,
+        count: SIDEBAR_CONFIG.primitives.length,
     },
     {
         title: 'Patterns',
         description: 'Composed components: Modal, Drawer, Navigation, Loading, Feedback, Layouts',
         href: '/dev/ds/patterns',
         icon: 'docs' as const,
-        count: 9,
+        count: SIDEBAR_CONFIG.patterns.length,
     },
     {
         title: 'Audit',
@@ -33,14 +35,14 @@ const sections = [
             'Three lenses: Code Audit (DRY consolidation) · App Divergences (live vs showcase-only vs dead in product) · Big Components (modals, drawers, lists)',
         href: '/dev/ds/audit',
         icon: 'search' as const,
-        count: 3,
+        count: SIDEBAR_CONFIG.audit.length,
     },
     {
         title: 'Playground',
         description: 'Interactive test harnesses: shake & confetti, perk success, share-asset builder',
         href: '/dev/ds/playground',
         icon: 'bulb' as const,
-        count: 3,
+        count: SIDEBAR_CONFIG.playground.length,
     },
 ]
 
