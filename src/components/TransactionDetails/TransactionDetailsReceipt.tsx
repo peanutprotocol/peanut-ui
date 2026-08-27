@@ -32,6 +32,7 @@ import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
 import { PerkIcon } from './PerkIcon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
+import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
@@ -135,6 +136,7 @@ export const TransactionDetailsReceipt = ({
     const { isActivated } = useActivationStatus()
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
+    const tNav = useTranslations('navigation')
     const formatDate = useReceiptDateFormatter()
     const bankAccountLabel = (type: string) => {
         const key = bankAccountLabelKey(type)
@@ -301,6 +303,11 @@ export const TransactionDetailsReceipt = ({
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
+    // Official-receipt issue date: the settlement timestamp when there is one,
+    // else creation. `formatDate` renders an em dash for anything unparsable.
+    const issuedAtSource = transaction.completedAt ?? transaction.claimedAt ?? transaction.createdAt ?? transaction.date
+    const issuedAt = issuedAtSource ? new Date(issuedAtSource) : undefined
+
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
     // kind-keyed predicates so adding a new flow only needs a predicate update.
@@ -372,6 +379,24 @@ export const TransactionDetailsReceipt = ({
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
+            {/* official header — only the shared/public receipt carries branding */}
+            {isPublic && (
+                <div className="flex items-center justify-between">
+                    <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="h-6 w-auto" />
+                    <div className="text-right text-xs text-grey-1">
+                        <p className="font-semibold">{t('officialReceipt.issuedBy')}</p>
+                        <a
+                            href="https://peanut.me"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline print:no-underline"
+                        >
+                            {'peanut.me'}
+                        </a>
+                    </div>
+                </div>
+            )}
+
             {/* show qr code at the top if applicable */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
@@ -449,7 +474,7 @@ export const TransactionDetailsReceipt = ({
                     {rowVisibilityConfig.createdAt && (
                         <PaymentInfoRow
                             label={t('rows.created')}
-                            value={formatDate(new Date(transaction.createdAt!.toString()))}
+                            value={formatDate(transaction.createdAt ? new Date(transaction.createdAt) : undefined)}
                             hideBottomBorder={shouldHideBorder('createdAt')}
                         />
                     )}
@@ -735,6 +760,32 @@ export const TransactionDetailsReceipt = ({
                 </div>
             </Card>
 
+            {/* official footer — reference + issue date so the shared page
+                reads as a document, not an app screen */}
+            {isPublic && (
+                <Card position="single" className="px-4 py-0" border={true}>
+                    <div className="space-y-0 [&>*:last-child]:border-b-0">
+                        <PaymentInfoRow
+                            label={t('officialReceipt.reference')}
+                            value={
+                                <div className="flex items-center gap-2">
+                                    {/* uppercase is display-only: the raw id is a case-sensitive lookup key */}
+                                    <span className="uppercase">{shortenAddress(transaction.id, 20)}</span>
+                                    <span className="print:hidden">
+                                        <CopyToClipboard textToCopy={transaction.id} iconSize="4" />
+                                    </span>
+                                </div>
+                            }
+                        />
+                        <PaymentInfoRow
+                            label={t('officialReceipt.issuedOn')}
+                            value={formatDate(issuedAt)}
+                            hideBottomBorder
+                        />
+                    </div>
+                </Card>
+            )}
+
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse
                 path. First of the notices: it explains THIS receipt's numbers;
@@ -755,7 +806,7 @@ export const TransactionDetailsReceipt = ({
 
             {/* share and cancel buttons section (only if qr is shown) */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
-                <div className="space-y-2 pr-1">
+                <div className="space-y-2 pr-1 print:hidden">
                     {' '}
                     {/* added space-y for button separation */}
                     <ShareButton url={transaction.extraDataForDrawer.link} title={t('actions.shareLinkTitle')}>
@@ -910,7 +961,7 @@ export const TransactionDetailsReceipt = ({
             ) : (
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black print:hidden"
                 >
                     <Icon name="peanut-support" size={16} className="text-grey-1" />
                     {t('actions.reportIssue')}
