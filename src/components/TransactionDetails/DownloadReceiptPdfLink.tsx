@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { shareableUrl } from '@/utils/url.utils'
@@ -12,10 +13,15 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
  * current origin; in Capacitor there are no local API routes (static export),
  * so the click is intercepted and the production URL opens in the system
  * browser sheet via the existing external-open pattern.
+ *
+ * The locale rides the URL, not a cookie: the PDF bytes vary by locale and
+ * final receipts are CDN-cached by URL, and the native path opens an external
+ * browser that has no app cookies at all.
  */
 export function DownloadReceiptPdfLink({ entryId, kind }: { entryId: string; kind: string }) {
     const t = useAppTranslations('transaction')
-    const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}`
+    const locale = useLocale()
+    const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
 
     return (
         <a

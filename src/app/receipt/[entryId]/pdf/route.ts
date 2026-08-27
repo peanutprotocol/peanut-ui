@@ -5,7 +5,7 @@ import { getHistoryEntry } from '@/app/actions/history'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { isFinalState } from '@/utils/history.utils'
-import { resolveLocale } from '@/i18n/app/config'
+import { APP_LOCALES, resolveLocale } from '@/i18n/app/config'
 import { loadMessages } from '@/i18n/app/messages'
 import { buildReceiptPdfModel, type PdfTranslate } from './receipt-pdf-model'
 import { renderReceiptPdf } from './ReceiptPdfDocument'
@@ -42,7 +42,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     try {
         const { transactionDetails } = mapTransactionDataForDrawer(entry)
-        const locale = resolveLocale(request.cookies.get('app-locale')?.value)
+        // The PDF bytes vary by locale, so the locale must be part of the
+        // cache key — i.e. part of the URL. The affordance always passes
+        // ?locale=<AppLocale>; an unknown/missing param falls back to the
+        // app-locale cookie, and those responses stay uncacheable (no Vary
+        // dance) — a cookie-derived body must never be CDN-shared.
+        const localeParam = searchParams.get('locale')
+        const paramLocale = APP_LOCALES.find((l) => l === localeParam)
+        const locale = paramLocale ?? resolveLocale(request.cookies.get('app-locale')?.value)
         const messages = await loadMessages(locale)
         const t = createTranslator({ locale, messages }) as PdfTranslate
         const model = buildReceiptPdfModel(transactionDetails, t, locale)
@@ -55,7 +62,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                 // saves under a sensible name (the page's anchor adds
                 // `download` to force the save on web).
                 'Content-Disposition': `inline; filename="${model.fileName}"`,
-                'Cache-Control': isFinalState(entry) ? 'public, s-maxage=3600' : 'no-store',
+                'Cache-Control': paramLocale && isFinalState(entry) ? 'public, s-maxage=3600' : 'no-store',
             },
         })
     } catch (error) {

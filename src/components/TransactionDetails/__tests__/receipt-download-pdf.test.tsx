@@ -27,14 +27,16 @@ describe('DownloadReceiptPdfLink', () => {
         mockIsCapacitor.mockReturnValue(false)
     })
 
-    test('web: a plain download anchor pointing at the pdf route', () => {
+    test('web: a plain download anchor pointing at the pdf route, locale in the URL', () => {
         render(
             <IntlWrapper>
                 <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" />
             </IntlWrapper>
         )
         const link = screen.getByRole('link', { name: 'Download PDF' })
-        expect(link).toHaveAttribute('href', '/receipt/entry-1/pdf?kind=OFFRAMP')
+        // locale rides the URL: it is the CDN cache key, and the only locale
+        // signal the native external browser ever gets
+        expect(link).toHaveAttribute('href', '/receipt/entry-1/pdf?kind=OFFRAMP&locale=en')
         expect(link).toHaveAttribute('download')
         expect(link).toHaveAttribute('target', '_blank')
         fireEvent.click(link)
@@ -52,7 +54,7 @@ describe('DownloadReceiptPdfLink', () => {
         expect(mockOpenExternalUrl).toHaveBeenCalledTimes(1)
         const opened = mockOpenExternalUrl.mock.calls[0][0] as string
         expect(opened).toMatch(/^https?:\/\//)
-        expect(opened).toContain('/receipt/entry-1/pdf?kind=SEND_LINK')
+        expect(opened).toContain('/receipt/entry-1/pdf?kind=SEND_LINK&locale=en')
     })
 })
 

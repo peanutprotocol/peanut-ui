@@ -8,6 +8,7 @@ import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/tra
 import { renderReceiptPdf } from '../ReceiptPdfDocument'
 import { buildReceiptPdfModel } from '../receipt-pdf-model'
 import { captureException } from '@sentry/nextjs'
+import { loadMessages } from '@/i18n/app/messages'
 import type { NextRequest } from 'next/server'
 
 jest.mock('@/app/actions/history', () => ({ getHistoryEntry: jest.fn() }))
@@ -23,17 +24,18 @@ jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/app/actions/currency', () => ({ getCachedCurrencyPrice: jest.fn() }))
 jest.mock('@/app/actions/clients', () => ({ getPublicClient: jest.fn(), PUBLIC_CLIENTS_BY_CHAIN: {} }))
 jest.mock('@/i18n/app/messages', () => ({ loadMessages: jest.fn().mockResolvedValue({}) }))
-jest.mock('next-intl', () => ({ createTranslator: () => (key: string) => key }))
+jest.mock('next-intl', () => ({ createTranslator: jest.fn(() => (key: string) => key) }))
 
 const mockGetHistoryEntry = getHistoryEntry as jest.Mock
 const mockMap = mapTransactionDataForDrawer as jest.Mock
 const mockRender = renderReceiptPdf as jest.Mock
 const mockBuildModel = buildReceiptPdfModel as jest.Mock
+const mockLoadMessages = loadMessages as jest.Mock
 
-const get = async (entryId: string, query: string) => {
+const get = async (entryId: string, query: string, cookieLocale?: string) => {
     const request = {
         nextUrl: new URL(`http://localhost/receipt/${entryId}/pdf?${query}`),
-        cookies: { get: () => undefined },
+        cookies: { get: () => (cookieLocale ? { value: cookieLocale } : undefined) },
     } as unknown as NextRequest
     return GET(request, { params: Promise.resolve({ entryId }) })
 }
@@ -99,11 +101,34 @@ describe('GET /receipt/[entryId]/pdf', () => {
         expect(captureException).toHaveBeenCalledTimes(1)
     })
 
-    test('caches only final states', async () => {
+    test('honors a valid ?locale= param', async () => {
         mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
-        expect((await get('entry-1', 'kind=OFFRAMP')).headers.get('Cache-Control')).toBe('public, s-maxage=3600')
+        const response = await get('entry-1', 'kind=OFFRAMP&locale=es-419', 'pt-BR')
+        expect(response.status).toBe(200)
+        // the URL param wins over the cookie
+        expect(mockLoadMessages).toHaveBeenCalledWith('es-419')
+    })
+
+    test('unknown ?locale= falls back to the cookie, then the default', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
+
+        await get('entry-1', 'kind=OFFRAMP&locale=xx-XX', 'pt-BR')
+        expect(mockLoadMessages).toHaveBeenLastCalledWith('pt-BR')
+
+        await get('entry-1', 'kind=OFFRAMP&locale=xx-XX')
+        expect(mockLoadMessages).toHaveBeenLastCalledWith('en')
+    })
+
+    test('caches only final states, and only when the locale is in the URL (the cache key)', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
+        expect((await get('entry-1', 'kind=OFFRAMP&locale=en')).headers.get('Cache-Control')).toBe(
+            'public, s-maxage=3600'
+        )
+        // cookie-derived bytes must never be CDN-shared under a locale-less URL
+        expect((await get('entry-1', 'kind=OFFRAMP', 'es-419')).headers.get('Cache-Control')).toBe('no-store')
+        expect((await get('entry-1', 'kind=OFFRAMP&locale=xx-XX')).headers.get('Cache-Control')).toBe('no-store')
 
         mockGetHistoryEntry.mockResolvedValue({ status: 'PENDING' })
-        expect((await get('entry-1', 'kind=OFFRAMP')).headers.get('Cache-Control')).toBe('no-store')
+        expect((await get('entry-1', 'kind=OFFRAMP&locale=en')).headers.get('Cache-Control')).toBe('no-store')
     })
 })
