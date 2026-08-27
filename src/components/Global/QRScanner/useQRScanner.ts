@@ -5,6 +5,7 @@ import QrScannerLib from 'qr-scanner'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCameraPermission } from '@/utils/camera-permission'
+import { CAMERA_ERRORS, classifyCameraFailure } from '@/utils/camera-failure'
 import { reportQrScanError } from './utils'
 import { toError } from '@/utils/to-error'
 
@@ -39,12 +40,6 @@ const CONFIG = {
     SCANNER_CLOSE_DELAY_MS: 300,
     VIDEO_ELEMENT_RETRY_DELAY_MS: 100,
     MAX_VIDEO_ELEMENT_RETRIES: 2,
-} as const
-
-const CAMERA_ERRORS = {
-    NOT_ALLOWED: 'NotAllowedError',
-    NOT_READABLE: 'NotReadableError',
-    NOT_FOUND: 'NotFoundError',
 } as const
 
 /**
@@ -359,12 +354,18 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 cleanup()
                 console.error('Error accessing camera:', toError(err))
 
-                const errName = err instanceof Error ? err.name : ''
+                /*
+                 * qr-scanner discards the browser's DOMException and rejects with a
+                 * bare string, so the reason has to be recovered from the browser
+                 * itself. That costs an await, which a newer start can slip past.
+                 */
+                const errName = await classifyCameraFailure(err)
+                if (superseded() || !isScanningRef.current) return
+
                 const shouldRetry =
                     errName === CAMERA_ERRORS.NOT_READABLE && retryCountRef.current < CONFIG.MAX_CAMERA_RETRIES
 
                 // treat any non-retryable, non-hardware error as permission denied.
-                // the qr-scanner library may wrap or rename the browser's NotAllowedError.
                 // exclude NOT_READABLE (camera busy) — it has its own "remains busy" error path.
                 if (!shouldRetry && errName !== CAMERA_ERRORS.NOT_FOUND && errName !== CAMERA_ERRORS.NOT_READABLE) {
                     setIsPermissionDenied(true)
