@@ -1,6 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { Card } from '@/components/0_Bruddle/Card'
+import { BaseInput } from '@/components/0_Bruddle/BaseInput'
+import { BaseSelect } from '@/components/0_Bruddle/BaseSelect'
+import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { CodeBlock } from './CodeBlock'
 
 export type PlaygroundControl =
@@ -17,6 +21,8 @@ interface PlaygroundProps {
     codeTemplate: (props: Record<string, any>) => string
 }
 
+// dogfood: the playground chrome runs on the primitives it documents —
+// Card panels, BaseSelect / BaseInput / Checkbox controls
 export function Playground({ importPath, defaults, controls, render, codeTemplate }: PlaygroundProps) {
     const [props, setProps] = useState<Record<string, any>>(defaults)
 
@@ -27,15 +33,15 @@ export function Playground({ importPath, defaults, controls, render, codeTemplat
     return (
         <div className="space-y-4">
             {/* Preview */}
-            <div className="rounded-sm border border-border-disabled bg-background-default p-6">
+            <Card className="border-border-disabled p-6">
                 <div className="mb-3 text-label-m text-foreground-secondary uppercase">Preview</div>
                 <div className="flex items-center justify-center rounded-sm bg-background-disabled py-8">
                     {render(props)}
                 </div>
-            </div>
+            </Card>
 
             {/* Controls */}
-            <div className="rounded-sm border border-border-disabled bg-background-page p-4">
+            <Card className="border-border-disabled bg-background-page p-4">
                 <div className="mb-3 text-label-m text-foreground-secondary uppercase">Controls</div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {controls.map((control) => (
@@ -47,7 +53,7 @@ export function Playground({ importPath, defaults, controls, render, codeTemplat
                         />
                     ))}
                 </div>
-            </div>
+            </Card>
 
             {/* Generated code */}
             <CodeBlock code={codeTemplate(props)} label="Code" />
@@ -55,6 +61,9 @@ export function Playground({ importPath, defaults, controls, render, codeTemplat
         </div>
     )
 }
+
+// sentinel: radix Select items may not carry an empty value string
+const NONE = '__none__'
 
 function ControlField({
     control,
@@ -70,42 +79,29 @@ function ControlField({
             return (
                 <div>
                     <label className="mb-1 block text-label-m text-foreground-secondary">{control.label}</label>
-                    <select
-                        value={value ?? ''}
-                        onChange={(e) => onChange(e.target.value || undefined)}
-                        className="w-full rounded-sm border border-border-subtle bg-background-default px-2 py-2 text-body-xs"
-                    >
-                        <option value="">(none)</option>
-                        {control.options.map((opt) => (
-                            <option key={opt} value={opt}>
-                                {opt}
-                            </option>
-                        ))}
-                    </select>
+                    <BaseSelect
+                        aria-label={control.label}
+                        value={value ?? NONE}
+                        onValueChange={(v) => onChange(v === NONE ? undefined : v)}
+                        options={[
+                            { label: '(none)', value: NONE },
+                            ...control.options.map((o) => ({ label: o, value: o })),
+                        ]}
+                    />
                 </div>
             )
         case 'boolean':
-            return (
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        checked={!!value}
-                        onChange={(e) => onChange(e.target.checked)}
-                        className="size-4 rounded-sm border border-border-default"
-                    />
-                    <label className="text-label-m text-foreground-secondary">{control.label}</label>
-                </div>
-            )
+            return <Checkbox label={control.label} value={!!value} onChange={(e) => onChange(e.target.checked)} />
         case 'text':
             return (
                 <div>
                     <label className="mb-1 block text-label-m text-foreground-secondary">{control.label}</label>
-                    <input
-                        type="text"
+                    <BaseInput
+                        variant="sm"
                         value={value ?? ''}
                         onChange={(e) => onChange(e.target.value || undefined)}
                         placeholder={control.placeholder}
-                        className="w-full rounded-sm border border-border-subtle bg-background-default px-2 py-2 text-body-xs"
+                        aria-label={control.label}
                     />
                 </div>
             )

@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { DocPage } from './_components/DocPage'
 
 import { SIDEBAR_CONFIG } from './_components/nav-config'
@@ -49,60 +51,58 @@ const sections = [
 export default function DesignSystemPage() {
     return (
         <DocPage>
-            {/* Hero */}
-            <div className="rounded-sm border border-border-default bg-action-primary p-6">
-                <h1 className="text-heading-l text-foreground-over-color-primary">Peanut Design System</h1>
-                <p className="mt-1 text-body-s text-foreground-over-color-secondary">
-                    Foundations → Primitives → Patterns → Audit → Playground
-                </p>
-            </div>
+            {/* Hero — DS Card + TitleBlock on the brand fill */}
+            <Card className="bg-action-primary p-6">
+                <TitleBlock
+                    size="m"
+                    title={<h1 className="text-foreground-over-color-primary">Peanut Design System</h1>}
+                    description={
+                        <span className="text-foreground-over-color-secondary">
+                            Foundations → Primitives → Patterns → Audit → Playground
+                        </span>
+                    }
+                />
+            </Card>
 
-            {/* Quick stats */}
+            {/* Quick stats — DS Cards (no dedicated stat-tile primitive) */}
             <div className="grid grid-cols-3 gap-2">
                 {[
                     { label: 'Inventoried', value: '428' },
                     { label: 'Flagged dead', value: '68' },
                     { label: 'Merge clusters', value: '104' },
                 ].map((stat) => (
-                    <div key={stat.label} className="rounded-sm border border-border-default p-3 text-center">
+                    <Card key={stat.label} className="p-3 text-center">
                         <p className="text-heading-s font-bold">{stat.value}</p>
                         <p className="text-body-xs text-foreground-secondary">{stat.label}</p>
-                    </div>
+                    </Card>
                 ))}
             </div>
 
-            {/* Section cards */}
-            <div className="space-y-4">
+            {/* Section index — DS ListItem rows (kept as solo cards: each row
+                sits inside its own Link, so ListGroup can't position-cluster them) */}
+            <div className="space-y-2">
                 {sections.map((section) => (
-                    <Link key={section.href} href={section.href}>
-                        <Card
-                            shadowSize="4"
-                            className="cursor-pointer p-4 transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-sm border border-border-default bg-background-badge-accent">
-                                    <Icon name={section.icon} size={20} />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="text-body-m font-bold">{section.title}</h3>
-                                        <span className="rounded-round bg-background-disabled px-2 py-0.5 text-label-m text-foreground-secondary">
-                                            {section.count}
-                                        </span>
-                                    </div>
-                                    <p className="mt-0.5 text-body-s text-foreground-secondary">
-                                        {section.description}
-                                    </p>
-                                </div>
-                                <Icon name="arrow-up-right" size={16} className="text-foreground-secondary" />
-                            </div>
-                        </Card>
+                    <Link key={section.href} href={section.href} className="block">
+                        <ListItem
+                            className="cursor-pointer transition-colors duration-instant hover:bg-background-disabled"
+                            leading={<IconBubble icon={section.icon} size="s" color="yellow" />}
+                            title={
+                                <span className="flex items-center gap-2">
+                                    {section.title}
+                                    <span className="rounded-round bg-background-disabled px-2 py-0.5 text-label-m text-foreground-secondary">
+                                        {section.count}
+                                    </span>
+                                </span>
+                            }
+                            body={section.description}
+                            chevron
+                        />
                     </Link>
                 ))}
             </div>
 
-            {/* Design rules quick reference */}
-            <div className="space-y-4 rounded-sm border border-border-default bg-background-page p-3">
+            {/* Design rules quick reference — DS Card */}
+            <Card className="space-y-4 bg-background-page p-3">
                 <p className="text-body-s font-bold">Quick Rules</p>
                 <ul className="space-y-1 text-body-s text-foreground-secondary">
                     <li>
@@ -128,7 +128,7 @@ export default function DesignSystemPage() {
                         rewards&quot;
                     </li>
                 </ul>
-            </div>
+            </Card>
         </DocPage>
     )
 }

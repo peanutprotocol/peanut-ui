@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { Card } from '@/components/0_Bruddle/Card'
+import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import { DocPage } from './DocPage'
 
 export type UsageStatus = 'live' | 'showcase-only' | 'dead' | 'duplicate' | 'variant' | 'canonical' | 'adhoc'
@@ -127,12 +129,12 @@ export function UsageAudit({
 
     return (
         <DocPage>
-            {/* Hero */}
-            <div className={`rounded-sm border border-border-default p-4 ${heroClass}`}>
+            {/* Hero — DS Card on the lens tint */}
+            <Card className={`p-4 ${heroClass}`}>
                 <p className="text-label-m text-foreground-primary/70 uppercase">{eyebrow}</p>
                 <h1 className="mt-1 text-h4">{title}</h1>
                 <div className="mt-2 text-label-l text-foreground-primary">{intro}</div>
-            </div>
+            </Card>
 
             {/* Stat cards */}
             <div className="grid grid-cols-4 gap-2">
@@ -142,10 +144,10 @@ export function UsageAudit({
                     { label: 'showcase-only', value: counts.showcase },
                     { label: 'dead', value: counts.dead },
                 ].map((s) => (
-                    <div key={s.label} className="rounded-sm border border-border-default p-2 text-center">
+                    <Card key={s.label} className="p-2 text-center">
                         <p className="text-heading-xs">{s.value}</p>
                         <p className="text-body-xs text-foreground-secondary">{s.label}</p>
-                    </div>
+                    </Card>
                 ))}
             </div>
 
@@ -161,11 +163,12 @@ export function UsageAudit({
 
             {/* Filters */}
             <div className="space-y-2">
-                <input
+                <BaseInput
+                    variant="sm"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search name / divergence / file…"
-                    className="w-full rounded-sm border border-border-default bg-background-default px-3 py-2 text-body-s outline-none focus:border-action-focus"
+                    aria-label="Search audit items"
                 />
                 <div className="flex flex-wrap gap-1">
                     {['all', ...catNames].map((c) => (
@@ -213,12 +216,12 @@ export function UsageAudit({
                         {c.items.map((i, idx) => {
                             const isDead = i.status === 'dead' || i.status === 'showcase-only'
                             return (
-                                <div
+                                <Card
                                     key={c.category + i.name + idx}
-                                    className={`rounded-sm border p-3 ${
+                                    className={`p-3 ${
                                         isDead
                                             ? 'border-dashed border-border-subtle bg-background-page'
-                                            : 'border-border-disabled bg-background-default'
+                                            : 'border-border-disabled'
                                     }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
@@ -259,7 +262,7 @@ export function UsageAudit({
                                             used in: {i.usedIn.slice(0, 4).join(' · ')}
                                         </p>
                                     )}
-                                </div>
+                                </Card>
                             )
                         })}
                     </div>
@@ -267,9 +270,9 @@ export function UsageAudit({
             ))}
 
             {footnote && (
-                <div className="rounded-sm border border-dashed border-border-subtle p-3 text-body-xs text-foreground-secondary">
+                <Card className="border-dashed border-border-subtle p-3 text-body-xs text-foreground-secondary">
                     {footnote}
-                </div>
+                </Card>
             )}
         </DocPage>
     )
