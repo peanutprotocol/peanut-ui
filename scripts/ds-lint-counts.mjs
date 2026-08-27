@@ -24,7 +24,15 @@ const BASELINE_PATH = join(ROOT, 'scripts', 'ds-lint-baseline.json')
 // programmatically from values), so raw values there are the feature. the
 // /dev/devices harness sizes its panes from measured pixel values and keeps its
 // chrome deliberately colorless, so the app inside the panes is what you judge.
-const GLOBAL_ALLOW = ['components/og/', 'app/api/og/', 'ImageGeneration/', 'dev/ds/', 'dev/components/', 'dev/devices/']
+const GLOBAL_ALLOW = [
+    'components/og/',
+    'app/api/og/',
+    'ImageGeneration/',
+    'dev/ds/',
+    'dev/components/',
+    'dev/devices/',
+    'dev/fixtures/', // fixture tooling incl. the on-camera banner — dev-only, DEV_TOOLS_ENABLED-gated
+]
 
 // extra allowlist for raw-hex only: canvas/D3/mermaid surfaces paint
 // programmatically.

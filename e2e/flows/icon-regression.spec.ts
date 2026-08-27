@@ -27,7 +27,10 @@ test.describe('Icon rendering regression', () => {
     }) => {
         await page.goto('/dev/ds/foundations/icons?__fixture=home', { waitUntil: 'domcontentloaded' })
 
-        await page.waitForSelector('svg.lucide', { timeout: 60_000 })
+        // 'attached', not 'visible': the assertions below read attributes, and
+        // on a slow CI runner the icon grid can sit at zero size (fonts/layout
+        // pending) long after the SVGs are in the DOM.
+        await page.waitForSelector('svg.lucide', { state: 'attached', timeout: 120_000 })
 
         const attrs = await page.$$eval('svg.lucide', (nodes) =>
             nodes.map((n) => ({

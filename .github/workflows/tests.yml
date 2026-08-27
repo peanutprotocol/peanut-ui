@@ -374,13 +374,6 @@ jobs:
                   SHOTS_OUT: e2e/__shots__/${{ github.event_name == 'push' && 'base' || 'head' }}
               run: pnpm test:visual:capture
 
-            # The four kept behaviour specs (setup reload-loop guard, icon
-            # regression, send-link hydration, share-asset capture) run
-            # nowhere else in CI. This job already has the preview build and
-            # Chromium, so they cost seconds here.
-            - name: Run regression specs
-              run: pnpm test:e2e:regression
-
             - name: Save this commit as the baseline
               if: github.event_name == 'push'
               # A re-run of the same commit finds the key taken. Losing that
@@ -513,6 +506,24 @@ jobs:
                       } else {
                           await github.rest.issues.createComment({ ...target, issue_number: context.issue.number, body })
                       }
+
+            # The four kept behaviour specs (setup reload-loop guard, icon
+            # regression, send-link hydration, share-asset capture) run
+            # nowhere else in CI. Last on purpose: a red spec fails the job
+            # without aborting the baseline/diff/comment steps above.
+            - name: Run regression specs
+              run: pnpm test:e2e:regression
+
+            # The page snapshot in error-context.md is the only way to see
+            # WHAT rendered on the runner when a spec dies in CI but passes
+            # locally. Without this upload the failure is undebuggable.
+            - name: Upload regression artifacts on failure
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: regression-results-${{ github.run_number }}
+                  path: e2e/__results__/
+                  retention-days: 7
 
     # Coverage + test-summary aggregator. Mirrors the pattern from
     # peanut-api-ts/.github/workflows/tests.yaml `report` job.
