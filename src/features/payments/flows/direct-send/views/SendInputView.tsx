@@ -26,7 +26,7 @@ import { PaymentMethodActionList } from '@/features/payments/shared/components/P
 import { useTranslations } from 'next-intl'
 
 export function SendInputView() {
-    const onBack = useSafeBack('/')
+    const onBack = useSafeBack('/home')
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
     const { isFetchingUser } = useAuth()
@@ -59,7 +59,7 @@ export function SendInputView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={onBack} title={t('headers.pay')} />
+            <NavHeader onPrev={onBack} title={t('headers.send')} />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4">
                 {/* recipient card */}

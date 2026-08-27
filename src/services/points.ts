@@ -1,6 +1,15 @@
 import { type CalculatePointsRequest, PointsAction, type TierInfo } from './services.types'
 import { serverFetch } from '@/utils/api-fetch'
 
+// Once per session: repeated previews would otherwise flood the console (and
+// Sentry via captureConsole) with the same failure.
+let calculatePointsFailureLogged = false
+const logCalculatePointsFailureOnce = (detail: unknown) => {
+    if (calculatePointsFailureLogged) return
+    calculatePointsFailureLogged = true
+    console.error('calculatePoints: preview failed, degrading to no points estimate', detail)
+}
+
 /** Qualitative labels for anonymized data */
 export type FrequencyLabel = 'rare' | 'occasional' | 'regular' | 'frequent'
 export type VolumeLabel = 'small' | 'medium' | 'large' | 'whale'
@@ -173,7 +182,9 @@ export const pointsApi = {
         actionType,
         usdAmount,
         otherUserId,
-    }: CalculatePointsRequest): Promise<{ estimatedPoints: number }> => {
+    }: CalculatePointsRequest): Promise<{ estimatedPoints: number } | null> => {
+        // Preview-only endpoint: a failure resolves to null so points UI degrades
+        // silently and can never block a payment flow.
         try {
             const body: { actionType: PointsAction; usdAmount: number; otherUserId?: string } = {
                 actionType,
@@ -190,22 +201,16 @@ export const pointsApi = {
             })
 
             if (!response.ok) {
-                console.error(
-                    'calculatePoints: API request failed',
-                    response.status,
-                    response.statusText,
-                    'for action',
-                    actionType
-                )
-                throw new Error(`Failed to calculate points: ${response.status}`)
+                logCalculatePointsFailureOnce(`API request failed: ${response.status} for action ${actionType}`)
+                return null
             }
 
             const data = await response.json()
 
             return { estimatedPoints: data.estimatedPoints }
         } catch (error) {
-            console.error('calculatePoints: Unexpected error', error)
-            throw error instanceof Error ? error : new Error('Failed to calculate points')
+            logCalculatePointsFailureOnce(error)
+            return null
         }
     },
 

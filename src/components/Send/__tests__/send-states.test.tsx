@@ -16,6 +16,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // next/navigation
 const mockRouterPush = jest.fn()
+const mockRouterBack = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -26,7 +27,7 @@ jest.mock('next/navigation', () => ({
         push: mockRouterPush,
         replace: jest.fn(),
         prefetch: jest.fn(),
-        back: jest.fn(),
+        back: mockRouterBack,
     }),
     usePathname: () => '/send',
 }))
@@ -178,6 +179,7 @@ jest.mock('@/context/WithdrawFlowContext', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import { SendRouterView } from '../views/SendRouter.view'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
 
@@ -240,6 +242,7 @@ function applyDefaults() {
 beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
+    safeBackTesting.reset()
     applyDefaults()
 })
 
@@ -385,10 +388,21 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockResetWithdrawFlow).not.toHaveBeenCalled()
     })
 
-    test('Back from main send navigates to /home', () => {
+    test('Back from main send falls back to /home on a cold deep-link', () => {
         renderSend()
 
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterBack).not.toHaveBeenCalled()
+    })
+
+    test('Back from main send returns through in-app history when it exists', () => {
+        // e.g. Rewards pushed this screen — back must land there, not /home
+        window.history.pushState({}, '', '/send')
+        renderSend()
+
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
     })
 })
