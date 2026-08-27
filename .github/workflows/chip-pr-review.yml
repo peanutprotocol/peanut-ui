@@ -62,7 +62,7 @@ jobs:
                     -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
                     chip@195.201.2.135 "manual $REPOSITORY $PULL_REQUEST $COMMENT_ID $SOURCE_ID"
 
-    human-review:
+    notify-human-review:
         if: >-
             github.event_name == 'pull_request_review' &&
             contains(fromJSON('["Hugo0","jjramirezn","kushagrasarathe","abalinda","0xkkonrad","innolope-dev"]'), github.event.review.user.login) &&
@@ -70,7 +70,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 2
         steps:
-            - name: Notify trusted human review
+            - name: Notify the author that a human reviewed
               env:
                   SSH_KEY: ${{ secrets.CHIP_PR_REVIEW_SSH_KEY }}
                   KNOWN_HOSTS: ${{ secrets.CHIP_PR_REVIEW_KNOWN_HOSTS }}
