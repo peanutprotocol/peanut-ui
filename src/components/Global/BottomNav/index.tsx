@@ -217,11 +217,10 @@ export const BottomNav = () => {
                         e.stopPropagation()
                     }
                 }}
-                // fully transparent on purpose ("content dissolves", ruled
-                // 2026-08-27): the bar paints nothing behind it — the scroll
-                // container fades its own last 96px instead (.dissolve-bottom
-                // on #scrollable-content)
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default"
+                // bg at /70 + blur-xl (24px, mirrors the figma Overlay-Blur 24):
+                // content scrolling behind the bar blurs through it.
+                // experiment: kush decides keep/drop
+                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page/70 backdrop-blur-xl"
             >
                 <Link
                     href="/home"
