@@ -87,6 +87,23 @@ describe('useSumsubKycFlow — cross-region routing', () => {
         await waitFor(() => expect(onKycSuccess).not.toHaveBeenCalled())
     })
 
+    // A backend refusal that explains itself must reach the user intact. The
+    // generic catalog copy would say "verification couldn't start" over the top
+    // of "not available for US citizens", which is strictly less useful and
+    // makes a permanent restriction look like a transient hiccup.
+    it('a backend explanation survives instead of being replaced by generic retry copy', async () => {
+        mockInitiate.mockResolvedValue({
+            error: 'Payments from this country are not available for US citizens at this time.',
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM', undefined, true)
+        })
+
+        expect(result.current.error).toMatch(/US citizens/i)
+    })
+
     // The paired backend refuses a LATAM action it cannot name a country for —
     // and the regions screen offers LATAM as one bucket, so it has none to send
     // and the backend has already tried the user's residence. Retrying repeats

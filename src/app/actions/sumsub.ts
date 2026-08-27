@@ -25,17 +25,24 @@ interface SumsubActionError {
     code?: SumsubActionErrorCode
 }
 
+/** Codes whose ONLY job is to tell the caller a refusal is terminal. They have
+ *  no catalog entry, so attaching one never displaces the backend's message. */
+const TERMINAL_ACTION_CODES = new Set<SumsubActionErrorCode>(['target_country_required', 'unsupported_target_country'])
+
 const backendOrFallback = (
     responseJson: { userMessage?: string; error?: string },
     fallback: string,
     code: SumsubActionErrorCode
 ): SumsubActionError => {
-    // Always carry the code, even when the backend supplied its own message.
-    // It used to be dropped in that case, which meant a caller could never tell
-    // a terminal refusal from a transient failure whenever the backend was
-    // helpful enough to explain itself.
     const backendMessage = responseJson.userMessage || responseJson.error
-    return { error: backendMessage || fallback, code }
+    if (!backendMessage) return { error: fallback, code }
+    // A backend message stays codeless. `actionErrorMessage` prefers a mapped
+    // code over the message, so attaching one here would replace a specific
+    // explanation (Manteca's nationality restriction, say) with generic retry
+    // copy — and leave it looking retriable. The terminal discriminants are the
+    // exception: the caller needs them to suppress the retry, and they carry no
+    // catalog entry, so the prose still wins.
+    return TERMINAL_ACTION_CODES.has(code) ? { error: backendMessage, code } : { error: backendMessage }
 }
 
 const caughtError = (e: unknown): SumsubActionError =>
