@@ -6,6 +6,7 @@ import {
     buildLimitsSummary,
     buildLinkedAccounts,
     buildSupportSegments,
+    normalizeSupportRoute,
     primarySupportSegment,
     relativeAge,
 } from '../support-context'
@@ -122,8 +123,20 @@ describe('buildAccountStats', () => {
 
     it('packs points, streak, tenure and provenance into one row', () => {
         expect(buildAccountStats(profile(), NOW)).toBe(
-            '1240 pts · 5d streak · joined 2d ago · milestone:funded · invited_by:alice · invites_sent:1 · badges:early-user · queue:12/900'
+            '1240 pts · 5d streak · joined 2d ago · milestone:funded · referred:yes · invites_sent:1 · badges:early-user · queue:12/900'
         )
+    })
+
+    /*
+     * `invitedBy` is another person's username. That an agent knows the user was
+     * referred is useful; who referred them is a third party's identifier, and
+     * this module never sends one — same rule that keeps counterparties out of
+     * latest_activity.
+     */
+    it('says the user was referred without naming the inviter', () => {
+        const stats = buildAccountStats(profile({ invitedBy: 'alice' }), NOW) ?? ''
+        expect(stats).toContain('referred:yes')
+        expect(stats).not.toContain('alice')
     })
 
     it('is undefined for a guest', () => {
@@ -242,5 +255,45 @@ describe('relativeAge', () => {
         expect(relativeAge('2026-08-27T09:00:00Z', NOW)).toBe('3h')
         expect(relativeAge('2026-08-20T12:00:00Z', NOW)).toBe('7d')
         expect(relativeAge(undefined, NOW)).toBeUndefined()
+    })
+})
+
+describe('normalizeSupportRoute', () => {
+    /*
+     * The route answers "where were they when it broke", which is worth having.
+     * The identifier inside it names who they were paying, which is the same
+     * counterparty leak the activity row was built to avoid.
+     */
+    it('strips the person out of an identifier-bearing route', () => {
+        expect(normalizeSupportRoute('/pay/bob')).toBe('/pay/:id')
+        expect(normalizeSupportRoute('/send/bob')).toBe('/send/:id')
+        expect(normalizeSupportRoute('/request/bob')).toBe('/request/:id')
+        expect(normalizeSupportRoute('/receipt/abc-123')).toBe('/receipt/:id')
+    })
+
+    /*
+     * The root `[...recipient]` catch-all makes any unlisted single segment a
+     * possible handle, so the default is to redact. Forgetting to list a new
+     * static route costs precision, never privacy.
+     */
+    it('redacts a bare segment that could be a username', () => {
+        expect(normalizeSupportRoute('/glorfindel')).toBe('/:recipient')
+        expect(normalizeSupportRoute('/some-route-nobody-listed')).toBe('/:recipient')
+    })
+
+    it('keeps routes whose segments name a thing, not a person', () => {
+        expect(normalizeSupportRoute('/withdraw/manteca')).toBe('/withdraw/manteca')
+        expect(normalizeSupportRoute('/limits/bridge')).toBe('/limits/bridge')
+        expect(normalizeSupportRoute('/home')).toBe('/home')
+    })
+
+    it('sees through the locale prefix', () => {
+        expect(normalizeSupportRoute('/es-419/pay/bob')).toBe('/pay/:id')
+        expect(normalizeSupportRoute('/pt-br/help')).toBe('/help')
+    })
+
+    it('handles the root and the absent case', () => {
+        expect(normalizeSupportRoute('/')).toBe('/')
+        expect(normalizeSupportRoute(undefined)).toBeUndefined()
     })
 })

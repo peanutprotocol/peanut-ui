@@ -170,29 +170,39 @@ const SupportDrawer = () => {
     // surfaces the previous user's conversation. The effect re-runs and opens
     // once crispTokenId resolves (it's in the deps).
     /*
-     * One open chain per open cycle.
+     * One open chain per open cycle, identified by generation rather than a
+     * boolean.
      *
-     * `userData` is a dependency below and it is a snapshot of live state — a
-     * balance landing from the cache, or the route latch, changes its identity.
-     * When that happens while the async chain is still awaiting camera
-     * permission, a second chain reaches sendMessage/openMessenger and the
-     * user's prefilled message is sent twice. The ref closes that window for
-     * every cause, not just the one we know about.
+     * `userData` is a dependency below and it is a snapshot of live state, so a
+     * balance landing from the cache changes its identity mid-chain; without a
+     * gate a second chain reaches sendMessage/openMessenger and the user's
+     * prefilled message is sent twice.
      *
-     * Reset on close and on failure, so the next open — or a retry after a
-     * failed one — still runs.
+     * A boolean is not enough, because the chain outlives the cycle that
+     * started it. Close the drawer while it is parked on the camera-permission
+     * await and reopen: the flag has been cleared, a second chain starts, and
+     * both finish — the duplicate is back. The same gap lets a chain from a
+     * dismissed cycle open the messenger and post the prefill after the user
+     * walked away. So the cycle carries an id: closing increments it, the chain
+     * captures it at the start, and everything the chain does after its awaits
+     * is conditional on that id still being current.
      */
-    const nativeOpenStartedRef = useRef(false)
+    const openGenerationRef = useRef(0)
+    const activeGenerationRef = useRef<number | null>(null)
 
     useEffect(() => {
         if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) {
             // Still waiting on the token must stay retryable — the effect
             // deliberately re-runs and opens once it resolves.
-            if (!isSupportModalOpen) nativeOpenStartedRef.current = false
+            if (!isSupportModalOpen) {
+                openGenerationRef.current += 1
+                activeGenerationRef.current = null
+            }
             return
         }
-        if (nativeOpenStartedRef.current) return
-        nativeOpenStartedRef.current = true
+        if (activeGenerationRef.current === openGenerationRef.current) return
+        const generation = openGenerationRef.current
+        activeGenerationRef.current = generation
 
         ensureNativeCrispConfigured()
             .then(async ({ CapacitorCrisp }) => {
@@ -213,6 +223,14 @@ const SupportDrawer = () => {
                  * was true when support was tapped, and an agent would read a
                  * balance the user no longer has.
                  */
+                /*
+                 * The user may have dismissed support (or reopened it, starting
+                 * a newer chain) while we awaited. Publishing now would push the
+                 * prefill into a conversation they walked away from, and racing
+                 * the newer chain reintroduces the duplicate open.
+                 */
+                if (generation !== openGenerationRef.current) return
+
                 const latest = latestPayloadRef.current
                 // `userData` is optional only on the proxy wire shape; this ref is
                 // always seeded with the current one, so the fallback is unreachable.
@@ -264,7 +282,9 @@ const SupportDrawer = () => {
                 setIsSupportModalOpen(false)
             })
             .catch((err: unknown) => {
-                nativeOpenStartedRef.current = false
+                // Let this cycle try again — a transient configure/permission
+                // failure must not strand support shut until the user reopens.
+                if (activeGenerationRef.current === generation) activeGenerationRef.current = null
                 console.warn('[SupportDrawer] native crisp open failed:', err)
             })
     }, [

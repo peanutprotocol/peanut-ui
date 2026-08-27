@@ -10,7 +10,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSupportClientContext } from '@/hooks/useSupportClientContext'
@@ -21,6 +21,8 @@ import { AccountType } from '@/interfaces/interfaces'
 
 jest.mock('@/context/authContext', () => ({ useAuth: jest.fn() }))
 jest.mock('@/hooks/useSupportClientContext', () => ({ useSupportClientContext: jest.fn() }))
+const modalsState = { isSupportModalOpen: true }
+jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => modalsState }))
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
 const mockClientContext = useSupportClientContext as jest.MockedFunction<typeof useSupportClientContext>
@@ -37,6 +39,7 @@ describe('useCrispUserData', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        modalsState.isSupportModalOpen = true
         client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
         mockClientContext.mockReturnValue({
             platform: 'ios-native',
@@ -126,5 +129,41 @@ describe('useCrispUserData', () => {
         client.setQueryData(['balance', WALLET], 100_000_000n)
         rerender()
         expect(result.current).not.toBe(first)
+    })
+
+    /*
+     * The cache reads are not subscriptions, so a query resolving after support
+     * opened would otherwise never reach the sidebar: the agent reads
+     * `unavailable` for the whole conversation and routes on a
+     * `balance-unavailable` segment, accurate at the instant it was read and
+     * wrong a second later.
+     */
+    it('picks up a query that resolves after support is already open', async () => {
+        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
+        expect(result.current.balance).toContain('unavailable')
+
+        await act(async () => {
+            client.setQueryData(['balance', WALLET], 100_000_000n)
+            client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
+                status: { hasApplication: false },
+                balance: null,
+                cards: [],
+            })
+        })
+
+        expect(result.current.balance).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
+        expect(result.current.segments).not.toContain('balance-unavailable')
+    })
+
+    it('does not watch the cache while support is closed', async () => {
+        modalsState.isSupportModalOpen = false
+        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
+        const before = result.current
+
+        await act(async () => {
+            client.setQueryData(['balance', WALLET], 100_000_000n)
+        })
+
+        expect(result.current).toBe(before)
     })
 })

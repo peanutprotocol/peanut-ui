@@ -88,7 +88,10 @@ export function buildAccountStats(profile: IUserProfile | undefined, now: number
     const age = relativeAge(profile.user?.createdAt, now)
     if (age) parts.push(`joined ${age} ago`)
     if (profile.user?.activationMilestone) parts.push(`milestone:${profile.user.activationMilestone}`)
-    if (profile.invitedBy) parts.push(`invited_by:${profile.invitedBy}`)
+    // `invitedBy` is another person's username. Whether the user was referred is
+    // useful to an agent; who referred them is a third party's identifier, and
+    // this module never sends one.
+    if (profile.invitedBy) parts.push('referred:yes')
     if (profile.invitesSent?.length) parts.push(`invites_sent:${profile.invitesSent.length}`)
 
     const badges = profile.user?.badges?.map((badge) => badge.code).filter(Boolean) ?? []
@@ -301,4 +304,91 @@ export function buildAppContext(client: {
     ]
         .filter(Boolean)
         .join(' · ')
+}
+
+/*
+ * Route segments that name a person or a specific object. `/pay/bob` tells a
+ * support agent who the user was paying, which is the counterparty leak this
+ * module exists to prevent — the same reason activity summaries carry no
+ * usernames. The route is worth having ("where were they when it broke"); the
+ * identifier in it is not.
+ */
+const IDENTIFIER_PREFIXES = new Set([
+    'pay',
+    'send',
+    'request',
+    'pay-request',
+    'receipt',
+    'qr',
+    'qr-pay',
+    'quests',
+    'profile',
+    'claim',
+    'invite',
+    'm',
+])
+
+/*
+ * Top-level segments that are real pages rather than a username. The root
+ * `[...recipient]` catch-all means ANY unlisted single segment may be a
+ * person's handle, so anything missing here degrades to `/:recipient` — a lost
+ * detail, never a leaked name. Fail-safe by construction: forgetting to add a
+ * new static route costs precision, not privacy.
+ */
+const STATIC_ROOT_SEGMENTS = new Set([
+    'home',
+    'history',
+    'settings',
+    'card',
+    'card-payment',
+    'card-recovery',
+    'add-money',
+    'withdraw',
+    'badges',
+    'points',
+    'rewards',
+    'notifications',
+    'limits',
+    'kyc',
+    'setup',
+    'dev',
+    'careers',
+    'jobs',
+    'lp',
+    'maintenance',
+    'recover-funds',
+    'recover-wallet',
+    'fix-card-signature',
+    'crisp-proxy',
+    'press',
+    'status',
+    'blog',
+    'help',
+    'compare',
+    'pricing',
+    'terms',
+    'privacy',
+    'app',
+    'shhhhh',
+])
+
+const LOCALE_SEGMENTS = new Set(['en', 'es-419', 'es-ar', 'es-es', 'pt-br'])
+
+/**
+ * The route an agent can read without learning who the user was dealing with.
+ *
+ * `/pay/bob` → `/pay/:id`, `/bob` → `/:recipient`, `/withdraw/manteca` unchanged —
+ * the provider is the useful half of that one and names nobody.
+ */
+export function normalizeSupportRoute(pathname: string | undefined): string | undefined {
+    if (!pathname) return undefined
+
+    const segments = pathname.split('/').filter(Boolean)
+    if (segments[0] && LOCALE_SEGMENTS.has(segments[0])) segments.shift()
+    if (!segments.length) return '/'
+
+    const [head, ...rest] = segments
+    if (IDENTIFIER_PREFIXES.has(head)) return rest.length ? `/${head}/:id` : `/${head}`
+    if (!STATIC_ROOT_SEGMENTS.has(head)) return '/:recipient'
+    return `/${[head, ...rest].join('/')}`
 }

@@ -36,10 +36,13 @@ const nativeCrisp = {
     openMessenger: jest.fn(),
 }
 
-const modalsState: { supportPrefilledMessage: string | undefined } = { supportPrefilledMessage: undefined }
+const modalsState: { supportPrefilledMessage: string | undefined; isSupportModalOpen: boolean } = {
+    supportPrefilledMessage: undefined,
+    isSupportModalOpen: true,
+}
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
-        isSupportModalOpen: true,
+        isSupportModalOpen: modalsState.isSupportModalOpen,
         setIsSupportModalOpen: jest.fn(),
         supportPrefilledMessage: modalsState.supportPrefilledMessage,
     }),
@@ -421,6 +424,7 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
         mockIsCapacitor.mockReset().mockReturnValue(true)
         Object.values(nativeCrisp).forEach((fn) => fn.mockReset())
         modalsState.supportPrefilledMessage = undefined
+        modalsState.isSupportModalOpen = true
     })
 
     it('sends a prefilled message once even when the snapshot changes mid-open', async () => {
@@ -493,5 +497,53 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
 
         await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1))
         expect(nativeCrisp.setTokenID).toHaveBeenCalledWith({ tokenID: 'token-abc' })
+    })
+
+    /*
+     * A boolean latch is not enough: the chain outlives the cycle that started
+     * it. Close the drawer while it is parked on the camera-permission await
+     * and reopen — a boolean has already been cleared, a second chain starts,
+     * both finish, and the prefill is sent twice. The generation counter makes
+     * the chain check, after its awaits, whether the cycle it belongs to is
+     * still the current one.
+     */
+    it('does not double-send when the user closes and reopens mid-chain', async () => {
+        modalsState.supportPrefilledMessage = 'my withdrawal is stuck'
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+
+        const view = render(<SupportDrawer />)
+
+        modalsState.isSupportModalOpen = false
+        view.rerender(<SupportDrawer />)
+        modalsState.isSupportModalOpen = true
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+        expect(nativeCrisp.sendMessage).toHaveBeenCalledTimes(1)
+        expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1)
+    })
+
+    /*
+     * The same gap in its other direction: a chain started before a close must
+     * not open the messenger, or post the prefill, into a conversation the user
+     * has already walked away from.
+     */
+    it('abandons a chain whose cycle the user dismissed', async () => {
+        modalsState.supportPrefilledMessage = 'my withdrawal is stuck'
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+
+        const view = render(<SupportDrawer />)
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        expect(nativeCrisp.openMessenger).not.toHaveBeenCalled()
+        expect(nativeCrisp.sendMessage).not.toHaveBeenCalled()
     })
 })

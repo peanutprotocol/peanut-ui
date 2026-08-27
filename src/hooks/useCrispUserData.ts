@@ -1,8 +1,11 @@
 import { buildSupportVerificationSummary } from '@/utils/support-verification'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useReducer } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useModalsContext } from '@/context/ModalsContext'
+import { LIMITS, TRANSACTIONS } from '@/constants/query.consts'
+import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import {
     readCachedLimits,
     readCachedRainOverview,
@@ -68,10 +71,40 @@ export interface CrispUserData {
  * in this hook would start a poll for every user on every screen. Reads go
  * through `support-cache`, which only ever looks at what is already cached.
  */
+/** The cache entries the snapshot reads. Everything else is noise to it. */
+const WATCHED_KEYS = new Set<unknown>(['balance', LIMITS, TRANSACTIONS, RAIN_CARD_OVERVIEW_QUERY_KEY])
+
 export function useCrispUserData(): CrispUserData {
     const { username, userId, user } = useAuth()
     const queryClient = useQueryClient()
     const client = useSupportClientContext()
+    const { isSupportModalOpen } = useModalsContext()
+
+    /*
+     * Cache reads are not subscriptions, so nothing re-renders when a query the
+     * snapshot reads finally resolves. Open support while the balance is still
+     * in flight and the sidebar would say `unavailable` for the whole
+     * conversation, with a `balance-unavailable` segment routing on it —
+     * accurate at the instant it was read, wrong a second later.
+     *
+     * So watch the cache, but only while support is open: outside an open cycle
+     * nobody consumes the snapshot, and this hook is mounted app-wide. The
+     * subscription is read-only — it observes what other components fetch and
+     * never triggers a fetch itself, which is the whole point of reading the
+     * cache rather than subscribing with useQuery.
+     *
+     * Re-render churn is bounded by the signature memo below: a cache event
+     * that doesn't change a value leaves the snapshot's identity alone, so no
+     * push to Crisp follows.
+     */
+    const [, onCacheChange] = useReducer((tick: number) => tick + 1, 0)
+    useEffect(() => {
+        if (!isSupportModalOpen) return
+        return queryClient.getQueryCache().subscribe((event) => {
+            if (event.type !== 'updated') return
+            if (WATCHED_KEYS.has(event.query.queryKey[0])) onCacheChange()
+        })
+    }, [isSupportModalOpen, queryClient])
 
     const walletAddress =
         user?.accounts?.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier || undefined

@@ -7,6 +7,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useConnectivity } from '@/hooks/useConnectivity'
 import { getNotificationPermissionSnapshot } from '@/hooks/useNotifications'
 import { getPlatform, isCapacitor } from '@/utils/capacitor'
+import { normalizeSupportRoute } from '@/utils/support-context'
 
 export interface SupportClientContext {
     platform: string
@@ -100,7 +101,10 @@ export function useSupportClientContext(): SupportClientContext {
         route: undefined,
     })
     if (latch.open !== isSupportModalOpen) {
-        setLatch({ open: isSupportModalOpen, route: isSupportModalOpen ? pathname : latch.route })
+        setLatch({
+            open: isSupportModalOpen,
+            route: isSupportModalOpen ? normalizeSupportRoute(pathname) : latch.route,
+        })
     }
 
     const buildParts = [webBuild() ? `web:${webBuild()}` : undefined, nativeBuild].filter(Boolean)
