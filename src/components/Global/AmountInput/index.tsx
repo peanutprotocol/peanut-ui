@@ -261,10 +261,11 @@ const AmountInput = ({
 
     return (
         <form
-            // board 17360:4451: the amount component is borderless bare text
-            // (only focus draws a border) — the old permanent box + dead dark:
-            // variant were pre-DS residue
-            className={`relative cursor-text rounded-sm bg-background-default p-4 ${className}`}
+            // usage board 17788:19201 (ruling 20, supersedes the borderless
+            // 17360:4451 read): the amount container is a bordered box —
+            // 1px border-default, L/16 padding, square corners. The dead
+            // dark: variant and disabled-text fixes from the earlier pass stay.
+            className={`relative cursor-text border border-border-default bg-background-default p-4 ${className}`}
             action=""
             onClick={() => inputRef.current?.focus()}
         >
