@@ -5,6 +5,7 @@ import {
     buildLinkedAccounts,
     buildSupportSegments,
     normalizeSupportRoute,
+    redactSupportText,
     relativeAge,
 } from '../support-context'
 import { AccountType, type Account, type IUserProfile } from '@/interfaces/interfaces'
@@ -218,5 +219,40 @@ describe('normalizeSupportRoute', () => {
     it('handles the root and the absent case', () => {
         expect(normalizeSupportRoute('/')).toBe('/')
         expect(normalizeSupportRoute(undefined)).toBeUndefined()
+    })
+})
+
+describe('redactSupportText', () => {
+    /*
+     * The blocking case: ClaimErrorView hands support `window.location.href`,
+     * and on a claim page the fragment is the bearer password for the funds —
+     * it derives the private claim key. The app publishes the topic to Crisp on
+     * open, before the user has decided to send anything, so an unclaimed link
+     * would be disclosed by a transient error screen.
+     */
+    it('strips the claim password while keeping what identifies the link', () => {
+        const redacted = redactSupportText(
+            "I can't claim this: https://peanut.me/claim?c=42161&v=v4.3&i=17#p=Xy7SecretPw"
+        )
+
+        expect(redacted).not.toContain('Xy7SecretPw')
+        expect(redacted).not.toContain('#')
+        // the query locates the deposit on-chain — an agent still needs it
+        expect(redacted).toContain('?c=42161&v=v4.3&i=17')
+    })
+
+    it('redacts every link in a message, not just the first', () => {
+        const redacted = redactSupportText('tried https://peanut.me/claim#p=one then https://peanut.me/claim#p=two')
+
+        expect(redacted).not.toContain('p=one')
+        expect(redacted).not.toContain('p=two')
+    })
+
+    it('leaves ordinary support messages alone', () => {
+        expect(redactSupportText('my withdrawal is stuck')).toBe('my withdrawal is stuck')
+        expect(redactSupportText('see https://peanut.me/help/withdrawals')).toBe(
+            'see https://peanut.me/help/withdrawals'
+        )
+        expect(redactSupportText('')).toBe('')
     })
 })

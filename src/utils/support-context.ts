@@ -310,3 +310,29 @@ export function normalizeSupportRoute(pathname: string | undefined): string | un
     if (!STATIC_ROOT_SEGMENTS.has(head)) return '/:recipient'
     return `/${[head, ...rest].join('/')}`
 }
+
+/*
+ * URLs in a support message, with the fragment removed.
+ *
+ * A claim link is `/claim?c=…&v=…&i=…#p=<password>` (history.utils). The query
+ * identifies the deposit and is what lets an agent find it; the fragment IS the
+ * bearer credential — whoever holds it can claim the funds, and it derives the
+ * private claim key. `ClaimErrorView` hands `window.location.href` to support,
+ * so without this the password reaches Crisp the moment the drawer opens,
+ * before the user has decided to send anything.
+ *
+ * Stripping the fragment rather than the whole query is deliberate: it removes
+ * every secret this app puts in a URL while keeping the part support actually
+ * works from. Call sites needing more than this still do it themselves — see
+ * not-found.tsx, which sends a bare pathname because arbitrary pages can carry
+ * magic-link and OAuth tokens in the query too.
+ */
+const URL_IN_TEXT = /https?:\/\/\S+/g
+
+export function redactSupportText(text: string): string {
+    if (!text) return text
+    return text.replace(URL_IN_TEXT, (raw) => {
+        const hashAt = raw.indexOf('#')
+        return hashAt === -1 ? raw : raw.slice(0, hashAt)
+    })
+}

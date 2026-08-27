@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
+import { redactSupportText } from '@/utils/support-context'
 
 interface ModalsContextType {
     // iOS PWA Install Modal
@@ -66,8 +67,15 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
     // Security Verification Overlay
     const [isSecurityVerificationOpen, setIsSecurityVerificationOpen] = useState(false)
 
+    /*
+     * Redact before storing, so every downstream sink is covered at once — the
+     * composer, and the `support_topic` row the app publishes to Crisp on open.
+     * Call sites hand over `window.location.href` (ClaimErrorView,
+     * Error.validation.view), and on a claim page the fragment is the bearer
+     * password for the funds.
+     */
     const openSupportWithMessage = useCallback((message: string) => {
-        setSupportPrefilledMessage(message)
+        setSupportPrefilledMessage(redactSupportText(message))
         setIsSupportModalOpenState(true)
     }, [])
 
