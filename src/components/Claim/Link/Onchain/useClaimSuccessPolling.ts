@@ -85,7 +85,10 @@ export function useClaimSuccessPolling(
         if (data.claim?.txHash) {
             hasReportedResult.current = true
             onClaimedRef.current(data.claim.txHash)
-        } else if (data.status === ESendLinkStatus.FAILED) {
+        } else if (data.status === ESendLinkStatus.FAILED || data.status === ESendLinkStatus.CANCELLED) {
+            // CANCELLED (sender withdrew mid-claim) has no distinct treatment
+            // in the failure UI — it flows through onFailed like FAILED so the
+            // view settles instead of holding "processing" forever.
             hasReportedResult.current = true
             onFailedRef.current(toFailure(data))
         }

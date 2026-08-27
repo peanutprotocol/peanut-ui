@@ -151,6 +151,24 @@ describe('useClaimSuccessPolling', () => {
         expect(onGaveUp).not.toHaveBeenCalled()
     })
 
+    it('routes CANCELLED through onFailed and stops, so the view settles', async () => {
+        mockGet.mockResolvedValue({
+            status: 'CANCELLED',
+            events: [{ status: 'CANCELLED', reason: 'sender cancelled' }],
+        })
+        const { onClaimed, onFailed, onGaveUp } = renderPolling()
+
+        await advance(0)
+        expect(onFailed).toHaveBeenCalledTimes(1)
+        expect(onFailed).toHaveBeenCalledWith({ code: null, reason: 'sender cancelled' })
+
+        await advance(10 * CLAIM_POLL_SLOW_INTERVAL_MS)
+        expect(mockGet).toHaveBeenCalledTimes(1)
+        expect(onFailed).toHaveBeenCalledTimes(1)
+        expect(onClaimed).not.toHaveBeenCalled()
+        expect(onGaveUp).not.toHaveBeenCalled()
+    })
+
     it('backs off to the slow interval after the fast phase', async () => {
         mockGet.mockRejectedValue(new Error('HTTP error! status: 404'))
         renderPolling()
