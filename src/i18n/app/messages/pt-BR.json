@@ -1773,6 +1773,7 @@
             "receivedFrom": "Recebido de {name}",
             "requestedFrom": "Cobrado de {name}",
             "requestingFrom": "Cobrando de {name}",
+            "youRequested": "Você cobrou",
             "withdrewTo": "Sacado para {name}",
             "withdrawingTo": "Sacando para {name}",
             "addedFrom": "Adicionado de {name}",

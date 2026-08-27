@@ -21,12 +21,16 @@ jest.mock('../TransactionAvatarBadge', () => ({
     ),
 }))
 
-jest.mock('@/components/UserHeader', () => ({
-    VerifiedUserLabel: ({ name, onNameClick }: { name: string; onNameClick?: () => void }) => (
-        <button type="button" onClick={onNameClick}>
-            {name}
-        </button>
-    ),
+// The real VerifiedUserLabel renders here (it used to be mocked, which hid
+// the bug where its AddressLink lane discarded the worded title for
+// raw-address usernames). Only its data hooks are stubbed.
+let mockPrimaryName: string | undefined
+jest.mock('@/hooks/usePrimaryNameServer', () => ({
+    usePrimaryNameServer: () => ({ primaryName: mockPrimaryName }),
+}))
+
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ invitedUsernamesSet: new Set(), user: null }),
 }))
 
 const renderHeader = (props: { isNameClickable: boolean; isAvatarClickable: boolean; bank?: boolean }) =>
@@ -56,6 +60,10 @@ const renderHeaderCard = (props: Partial<React.ComponentProps<typeof Transaction
         />,
         { wrapper: IntlWrapper }
     )
+
+beforeEach(() => {
+    mockPrimaryName = undefined
+})
 
 // PR #2813 review: inflow/outflow must be readable from the receipt words —
 // the sign alone is not enough. These lock the direction-worded titles for
@@ -137,7 +145,7 @@ describe('TransactionDetailsHeaderCard profile navigation', () => {
         expect(push).not.toHaveBeenCalled()
 
         // bank_request_fulfillment titles as a send now — "Sent to natalia"
-        fireEvent.click(screen.getByRole('button', { name: 'Sent to natalia' }))
+        fireEvent.click(screen.getByText('Sent to natalia'))
         expect(push).toHaveBeenCalledWith('/natalia')
     })
 
@@ -153,5 +161,75 @@ describe('TransactionDetailsHeaderCard profile navigation', () => {
 
         fireEvent.click(screen.getByText('$25.00'))
         expect(push).not.toHaveBeenCalled()
+    })
+})
+
+const EVM_ADDRESS = '0x1234567890AbcdEF1234567890aBcdef12345678'
+
+// The reported PR #2813 bug: for raw-address usernames VerifiedUserLabel
+// rendered its AddressLink lane and DISCARDED the worded title — a crypto
+// deposit receipt showed only the ENS-resolved sender, no "Added from".
+// These run against the real VerifiedUserLabel (no mock) so the composition
+// stays locked.
+describe('TransactionDetailsHeaderCard address counterparties keep the wording', () => {
+    it('words a deposit from an ENS-resolving address as "Added from {ens}"', () => {
+        mockPrimaryName = 'kushagra.peanut.me'
+        renderHeaderCard({ direction: 'add', status: 'completed', userName: EVM_ADDRESS })
+        expect(screen.getByText('Added from kushagra.peanut.me')).toBeInTheDocument()
+    })
+
+    it('falls back to the shortened raw address when no ENS resolves', () => {
+        renderHeaderCard({ direction: 'add', status: 'completed', userName: EVM_ADDRESS })
+        expect(screen.getByText('Added from 0x1234...345678')).toBeInTheDocument()
+    })
+})
+
+// Self-describing labels must render bare — never interpolated into
+// direction wording ("Sending to Send didn't complete").
+describe('TransactionDetailsHeaderCard self-describing labels', () => {
+    it('renders reaper fail copy bare on a failed withdraw', () => {
+        renderHeaderCard({
+            direction: 'withdraw',
+            status: 'failed',
+            userName: "Withdrawal didn't complete",
+            nameKey: 'failReason.cryptoWithdrawTimeout',
+        })
+        expect(screen.getByText("Withdrawal didn't complete")).toBeInTheDocument()
+        expect(screen.queryByText(/Withdrawing to/)).not.toBeInTheDocument()
+    })
+
+    it('renders a card refund bare, not "Received from Refund from …"', () => {
+        renderHeaderCard({
+            direction: 'receive',
+            status: 'completed',
+            userName: 'Refund from Starbucks',
+            nameKey: 'name.refundFrom',
+            nameParams: { name: 'Starbucks' },
+        })
+        expect(screen.getByText('Refund from Starbucks')).toBeInTheDocument()
+        expect(screen.queryByText(/Received from/)).not.toBeInTheDocument()
+    })
+
+    it("words the user's own open request pot as 'You requested'", () => {
+        renderHeaderCard({
+            direction: 'request_received',
+            status: 'pending',
+            userName: 'Request',
+            nameKey: 'name.request',
+            isRequestPotTransaction: true,
+        })
+        expect(screen.getByText('You requested')).toBeInTheDocument()
+    })
+
+    it('keeps an unresolved incoming request as bare "Request", never "You requested"', () => {
+        renderHeaderCard({
+            direction: 'request_received',
+            status: 'pending',
+            userName: 'Request',
+            nameKey: 'name.request',
+        })
+        expect(screen.getByText('Request')).toBeInTheDocument()
+        expect(screen.queryByText('You requested')).not.toBeInTheDocument()
+        expect(screen.queryByText(/is requesting/)).not.toBeInTheDocument()
     })
 })

@@ -103,7 +103,12 @@ export const VerifiedUserLabel = ({
 
     return (
         <div className="flex items-center gap-1.5">
-            {isCryptoAddressComputed ? (
+            {/* The AddressLink lane only wins when the caller passed no worded
+                copy (name === username). A caller that DID word the name — the
+                receipt head's "Added from {ens}" — must not have its title
+                discarded for a raw-address username (the bug behind the
+                type-less crypto-deposit receipt). */}
+            {isCryptoAddressComputed && name === username ? (
                 <AddressLink isLink={false} className={twMerge(LABEL_TYPE, className)} address={username} />
             ) : (
                 <div

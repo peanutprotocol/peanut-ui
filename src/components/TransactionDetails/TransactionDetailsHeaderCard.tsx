@@ -5,11 +5,15 @@ import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
+    SELF_DESCRIBING_NAME_KEYS,
     TRANSACTION_NAME_KEYS,
     translateTransactionName,
     type TransactionNameKey,
 } from '@/components/TransactionDetails/transaction-name-keys'
 import { printableUserHandle } from '@/utils/general.utils'
+import { normalizeEnsName } from '@/utils/ens-name.utils'
+import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
+import { isAddress } from 'viem'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import React from 'react'
@@ -57,6 +61,14 @@ const getTitle = (
     nameKey?: TransactionNameKey
 ): React.ReactNode => {
     let titleText = userName
+
+    // Self-describing labels (reaper fail copy, refunds, the failed-QR label,
+    // unresolved open requests) are complete on their own — interpolating
+    // them into direction wording produced compounds like "Sending to Send
+    // didn't complete" and "Received from Refund from Starbucks".
+    if (nameKey && SELF_DESCRIBING_NAME_KEYS.has(nameKey)) {
+        return userName
+    }
 
     // Link transactions short-circuit; userName is already a self-describing
     // label so the "Sent to ${displayName}" prefix doesn't apply.
@@ -140,15 +152,11 @@ const getTitle = (
                 break
             case 'qr_payment':
                 if (status === 'failed') {
-                    // Failed QR-pays carry a self-contained label from the
-                    // transformer ("Failed QR payment attempt") — no "Payment to"
-                    // prefix, which would read "Payment to Failed QR payment attempt".
                     // Failed card spends carry a merchant name, so they keep the
                     // direction words: "Payment to {merchant}" (board 17490:115877).
-                    titleText =
-                        nameKey === TRANSACTION_NAME_KEYS.failedQrPayment
-                            ? displayName
-                            : t('title.paymentTo', { name: displayName })
+                    // The self-contained "Failed QR payment attempt" label is
+                    // handled by the self-describing escape at the top.
+                    titleText = t('title.paymentTo', { name: displayName })
                 } else {
                     // Board 17490:115877 (Activity/CardPayment pending drawer):
                     // the title keeps the type wording "Paid to {name}" in every
@@ -216,6 +224,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     // surface below; raw `userName` stays for data uses (test-tx marker,
     // profile URL, verification lookups).
     const localizedUserName = nameKey ? translateTransactionName(t, nameKey, nameParams) : userName
+    // Reverse-resolve raw-address counterparties (same pattern as the feed
+    // row in TransactionCard) so the worded title reads "Added from {ens}"
+    // instead of a shortened 0x. No ENS → getTitle shortens the raw address.
+    const { primaryName } = usePrimaryNameServer(isAddress(userName) ? userName : undefined)
+    const resolvedUserName = normalizeEnsName(primaryName) ?? localizedUserName
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
@@ -294,11 +307,16 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                 username={userName}
                                 name={
                                     isRequestPotTransaction
-                                        ? localizedUserName
+                                        ? // The pot rollup row only ever renders for the request's
+                                          // owner — the generic "Request" label reads as their own
+                                          // ask: "You requested". Named pots keep their name.
+                                          nameKey === TRANSACTION_NAME_KEYS.request
+                                            ? t('title.youRequested')
+                                            : localizedUserName
                                         : (getTitle(
                                               t,
                                               direction,
-                                              localizedUserName,
+                                              resolvedUserName,
                                               isLinkTransaction,
                                               status,
                                               nameKey
