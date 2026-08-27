@@ -10,6 +10,7 @@ import 'react-tooltip/dist/react-tooltip.css'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { authReady } from '@/utils/auth-token'
 import { installNativeAuthCapture } from '@/utils/native-auth-capture'
+import { installCeremonyTelemetry } from '@/utils/webauthn-ceremony-telemetry'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
 
@@ -83,7 +84,12 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
                     .catch((err: unknown) => {
                         console.warn('[PeanutProvider] passkey shim init failed:', err)
                     })
+                    // only meaningful once the shim owns navigator.credentials — patching
+                    // before it would wrap the browser API the shim then replaces
+                    .finally(() => installCeremonyTelemetry())
             })
+        } else {
+            installCeremonyTelemetry()
         }
     }, [])
 
