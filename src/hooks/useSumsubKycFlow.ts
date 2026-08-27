@@ -8,6 +8,7 @@ import {
     initiateSelfHealResubmission,
     restartIdentityVerification,
     startKycAction,
+    isTerminalActionCode,
     type SumsubActionErrorCode,
 } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
@@ -282,12 +283,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     targetCountry,
                 })
 
-                // A refusal we cannot act on from here: the regions screen offers
-                // LATAM as one bucket, so it has no country to send, and the
-                // backend has already tried the user's residence. Retrying sends
-                // the identical request — mark it terminal so the modal offers
-                // support instead of a button that cannot work.
-                if (response.code === 'target_country_required' || response.code === 'unsupported_target_country') {
+                // A refusal no retry can change — no resolvable country for this
+                // entry point, or a permanent restriction like Manteca's
+                // US-nationality rule. Retrying sends the identical request and
+                // gets the identical answer, so mark it terminal and let the
+                // modal offer support instead of a button that cannot work.
+                if (isTerminalActionCode(response.code)) {
                     userInitiatedRef.current = false
                     setIsTerminalError(true)
                     setError(response.error || t('errorInitiateFailed'))

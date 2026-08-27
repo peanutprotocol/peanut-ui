@@ -9,10 +9,12 @@ import { serverFetch } from '@/utils/api-fetch'
  * and stays untranslated (#2554: keep BE prose as fallback where no code exists).
  */
 export type SumsubActionErrorCode =
-    // Terminal for this entry point: no supported country could be resolved, so
-    // a retry sends the identical request and gets the identical refusal.
+    // Permanent refusals the backend names in its `error` field. A retry sends
+    // the identical request and gets the identical answer, so callers must
+    // suppress their retry CTA on these.
     | 'target_country_required'
     | 'unsupported_target_country'
+    | 'manteca_us_nationality_restricted'
     | 'initiate_failed'
     | 'restart_failed'
     | 'resubmit_failed'
@@ -25,24 +27,44 @@ interface SumsubActionError {
     code?: SumsubActionErrorCode
 }
 
-/** Codes whose ONLY job is to tell the caller a refusal is terminal. They have
- *  no catalog entry, so attaching one never displaces the backend's message. */
-const TERMINAL_ACTION_CODES = new Set<SumsubActionErrorCode>(['target_country_required', 'unsupported_target_country'])
+/** Permanent refusals. These have no catalog entry, so classifying one never
+ *  displaces the backend's own explanation. */
+const TERMINAL_ACTION_CODES = new Set<string>([
+    'target_country_required',
+    'unsupported_target_country',
+    'manteca_us_nationality_restricted',
+])
+
+/** True when the result is a refusal no retry can change. */
+export const isTerminalActionCode = (code?: SumsubActionErrorCode): boolean => !!code && TERMINAL_ACTION_CODES.has(code)
+
+/**
+ * The backend's `error` field carries a MACHINE CODE on these routes, while
+ * `userMessage` carries the prose — but older routes put prose in `error`. So
+ * `error` is only read as a code when it matches one we know, and a recognized
+ * code is never shown to the user: rendering it verbatim is the raw-code
+ * outcome this whole path exists to remove.
+ */
+const terminalCodeOf = (responseJson: { error?: string }): SumsubActionErrorCode | undefined =>
+    typeof responseJson.error === 'string' && TERMINAL_ACTION_CODES.has(responseJson.error)
+        ? (responseJson.error as SumsubActionErrorCode)
+        : undefined
 
 const backendOrFallback = (
     responseJson: { userMessage?: string; error?: string },
     fallback: string,
     code: SumsubActionErrorCode
 ): SumsubActionError => {
-    const backendMessage = responseJson.userMessage || responseJson.error
+    const terminal = terminalCodeOf(responseJson)
+    const backendMessage = responseJson.userMessage || (terminal ? undefined : responseJson.error)
+    // A permanent refusal keeps its code so the caller can suppress the retry,
+    // AND its message — the two are not in competition.
+    if (terminal) return { error: backendMessage || fallback, code: terminal }
+    // Everything else: a backend message stays codeless, because
+    // `actionErrorMessage` prefers a mapped code over the message and would
+    // replace a specific explanation with generic retry copy.
     if (!backendMessage) return { error: fallback, code }
-    // A backend message stays codeless. `actionErrorMessage` prefers a mapped
-    // code over the message, so attaching one here would replace a specific
-    // explanation (Manteca's nationality restriction, say) with generic retry
-    // copy — and leave it looking retriable. The terminal discriminants are the
-    // exception: the caller needs them to suppress the retry, and they carry no
-    // catalog entry, so the prose still wins.
-    return TERMINAL_ACTION_CODES.has(code) ? { error: backendMessage, code } : { error: backendMessage }
+    return { error: backendMessage }
 }
 
 const caughtError = (e: unknown): SumsubActionError =>
@@ -71,14 +93,7 @@ export const initiateSumsubKyc = async (params?: {
         const responseJson = await response.json()
 
         if (!response.ok) {
-            // Preserve the backend's own code when it names one — the hook needs
-            // it to tell a terminal refusal from a transient failure.
-            const backendCode = responseJson?.error as SumsubActionErrorCode | undefined
-            const fallbackCode: SumsubActionErrorCode =
-                backendCode === 'target_country_required' || backendCode === 'unsupported_target_country'
-                    ? backendCode
-                    : 'initiate_failed'
-            return backendOrFallback(responseJson, 'Failed to initiate identity verification', fallbackCode)
+            return backendOrFallback(responseJson, 'Failed to initiate identity verification', 'initiate_failed')
         }
 
         return {

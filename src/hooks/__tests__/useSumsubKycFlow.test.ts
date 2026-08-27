@@ -11,6 +11,11 @@ import { initiateSumsubKyc, initiateSelfHealResubmission, startKycAction } from 
 
 const mockWs: { handler?: (status: string, labels?: string[]) => void } = {}
 jest.mock('@/app/actions/sumsub', () => ({
+    ...jest.requireActual('@/app/actions/sumsub'),
+    // Only the network-touching actions are stubbed. Pure helpers like
+    // isTerminalActionCode come from the real module: they encode which
+    // refusals are permanent, and a stub would let the hook's terminal
+    // branch pass a test while doing nothing in production.
     initiateSumsubKyc: jest.fn(),
     initiateSelfHealResubmission: jest.fn(),
     restartIdentityVerification: jest.fn(),
