@@ -1,7 +1,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { collectLatestEntries, useTransactionHistory, type HistoryResponse } from '@/hooks/useTransactionHistory'
+import {
+    collectLatestEntries,
+    latestPageSize,
+    useTransactionHistory,
+    type HistoryResponse,
+} from '@/hooks/useTransactionHistory'
 import type { HistoryEntry } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/utils/history.utils'
+import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import type { ReactNode } from 'react'
 
 // Mock the network — these tests assert hook-order behaviour, not fetching.
@@ -100,8 +107,8 @@ describe('useTransactionHistory', () => {
  * The API applies its limit to raw intents BEFORE collapsing a request pot's
  * contributions into one rollup row, so a page can hold far fewer unique rows
  * than asked for — in the extreme, one. Latest mode must follow the cursor
- * until it has `limit` unique rows, the feed is exhausted, or the page cap is
- * hit (a pathological feed must not fetch unboundedly).
+ * until it has `limit` unique rows, the feed is exhausted, or the pages stop
+ * yielding anything new (a pathological feed must not fetch unboundedly).
  */
 describe('collectLatestEntries', () => {
     const row = (uuid: string): HistoryEntry => ({ uuid, timestamp: new Date('2026-08-01') }) as HistoryEntry
@@ -143,17 +150,53 @@ describe('collectLatestEntries', () => {
         expect(result.hasMore).toBe(false)
     })
 
-    it('the page cap holds when every page yields one new row', async () => {
+    // The cap counts BARREN pages, not total pages. A pot with 40+ newest
+    // contributions collapses several consecutive pages to its own uuid; each
+    // one still advances the window, so a total-page cap truncated the feed
+    // before the real older transactions were ever reached.
+    it('pages past a pot that swallows several consecutive pages, then reaches the older rows', async () => {
+        const fetchPage = pageSequence([
+            { entries: [row('pot-1')], cursor: 'c1', hasMore: true },
+            { entries: [row('pot-1')], cursor: 'c2', hasMore: true },
+            { entries: [row('pot-1')], cursor: 'c3', hasMore: true },
+            // window finally clears the pot: the older transactions appear
+            { entries: [row('pot-1'), row('a'), row('b'), row('c'), row('d')], cursor: 'c4', hasMore: true },
+        ])
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(fetchPage).toHaveBeenCalledTimes(4)
+        expect(result.entries.map((e) => e.uuid)).toEqual(['pot-1', 'a', 'b', 'c', 'd'])
+    })
+
+    it('gives up after `maxBarrenPages` consecutive pages that add nothing new', async () => {
+        let n = 0
+        const fetchPage = jest.fn((cursor?: string): Promise<HistoryResponse> => {
+            void cursor
+            n += 1
+            return Promise.resolve({ entries: [row('pot-1')], cursor: `c${n}`, hasMore: true })
+        })
+
+        const result = await collectLatestEntries(fetchPage, 5, 3)
+
+        // page 1 is productive (pot-1 is new); pages 2-4 are barren → stop
+        expect(fetchPage).toHaveBeenCalledTimes(4)
+        expect(result.entries.map((e) => e.uuid)).toEqual(['pot-1'])
+        expect(result.hasMore).toBe(true)
+    })
+
+    it('the absolute page ceiling holds when every page trickles one new row', async () => {
         let n = 0
         const fetchPage = jest.fn(() => {
             n += 1
             return Promise.resolve({ entries: [row(`pot-${n}`)], cursor: `c${n}`, hasMore: true })
         })
 
-        const result = await collectLatestEntries(fetchPage, 10, 4)
+        // never barren (each page adds a new uuid), so only the ceiling stops it
+        const result = await collectLatestEntries(fetchPage, 100, 3, 10)
 
-        expect(fetchPage).toHaveBeenCalledTimes(4)
-        expect(result.entries).toHaveLength(4)
+        expect(fetchPage).toHaveBeenCalledTimes(10)
+        expect(result.entries).toHaveLength(10)
         expect(result.hasMore).toBe(true)
     })
 
@@ -176,6 +219,109 @@ describe('collectLatestEntries', () => {
         const result = await collectLatestEntries(fetchPage, 5)
 
         expect(result.entries).toHaveLength(5)
+    })
+})
+
+/**
+ * Each page's rollup aggregates only its own charge window, so the repeated
+ * copies carry PARTIAL totals. First-wins dedupe kept a stale partial, which
+ * the transformer then read as "collected < goal" and rendered a fully-paid
+ * request with the pending hourglass.
+ */
+describe('collectLatestEntries — request-pot rollup merge across pages', () => {
+    const potRow = (collected: number, opts: { timestamp?: string; charges?: string[] } = {}): HistoryEntry =>
+        ({
+            uuid: 'pot-1',
+            amount: '12',
+            status: 'OPEN',
+            isRequestLink: true,
+            timestamp: new Date(opts.timestamp ?? '2026-08-01T00:00:00Z'),
+            totalAmountCollected: collected,
+            charges: (opts.charges ?? []).map((uuid) => ({ uuid })),
+        }) as unknown as HistoryEntry
+
+    it('keeps the greater collected total when a later page carries the fuller rollup', async () => {
+        const fetchPage = jest.fn((cursor?: string) =>
+            Promise.resolve(
+                cursor
+                    ? { entries: [potRow(12), { uuid: 'a', timestamp: new Date() } as HistoryEntry], hasMore: false }
+                    : { entries: [potRow(10)], cursor: 'c1', hasMore: true }
+            )
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        const pot = result.entries.find((e) => e.uuid === 'pot-1')
+        expect(pot?.totalAmountCollected).toBe(12)
+    })
+
+    it('never regresses a fuller first-page total to a later partial one', async () => {
+        const fetchPage = jest.fn((cursor?: string) =>
+            Promise.resolve(
+                cursor
+                    ? { entries: [potRow(3)], hasMore: false }
+                    : { entries: [potRow(12)], cursor: 'c1', hasMore: true }
+            )
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(result.entries[0].totalAmountCollected).toBe(12)
+    })
+
+    it('unions the per-page charge projections and keeps the later timestamp', async () => {
+        const fetchPage = jest.fn((cursor?: string) =>
+            Promise.resolve(
+                cursor
+                    ? {
+                          entries: [potRow(12, { timestamp: '2026-08-05T00:00:00Z', charges: ['ch-2', 'ch-3'] })],
+                          hasMore: false,
+                      }
+                    : {
+                          entries: [potRow(10, { timestamp: '2026-08-03T00:00:00Z', charges: ['ch-1', 'ch-2'] })],
+                          cursor: 'c1',
+                          hasMore: true,
+                      }
+            )
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        const pot = result.entries[0]
+        expect(pot.charges?.map((c) => c.uuid)).toEqual(['ch-1', 'ch-2', 'ch-3'])
+        expect(new Date(pot.timestamp).toISOString()).toBe('2026-08-05T00:00:00.000Z')
+    })
+
+    it('the merged row maps to completed — a fully-paid pot loses the hourglass', async () => {
+        const fetchPage = jest.fn((cursor?: string) =>
+            Promise.resolve(
+                cursor
+                    ? { entries: [potRow(12)], hasMore: false }
+                    : { entries: [potRow(10)], cursor: 'c1', hasMore: true }
+            )
+        )
+
+        const { entries } = await collectLatestEntries(fetchPage, 5)
+        const merged = {
+            ...entries[0],
+            userRole: EHistoryUserRole.RECIPIENT,
+            extraData: { kind: 'P2P_REQUEST_FULFILL' },
+        } as HistoryEntry
+
+        // pre-merge, the stale $10-of-$12 copy rendered 'pending'
+        expect(mapTransactionDataForDrawer(merged).transactionDetails.status).toBe('completed')
+    })
+})
+
+// The API limit counts raw intents, pre-rollup, so latest mode asks for
+// several intents per wanted row — a bigger page collapses to more unique rows.
+describe('latestPageSize', () => {
+    it('over-requests intents per wanted row, capped at the API page size', () => {
+        expect(latestPageSize(5)).toBe(25)
+        expect(latestPageSize(10)).toBe(50)
+        expect(latestPageSize(50)).toBe(50)
+        // never asks for fewer rows than the caller wants
+        expect(latestPageSize(80)).toBeGreaterThanOrEqual(50)
     })
 })
 

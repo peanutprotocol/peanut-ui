@@ -2,7 +2,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { serverFetch } from '@/utils/api-fetch'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { completeHistoryEntry, dedupeHistoryEntriesByUuid } from '@/utils/history.utils'
+import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_HISTORY_ENTRIES } from '@/constants/demo-data'
@@ -30,40 +30,103 @@ type UseTransactionHistoryOptions = {
     filterMutualTxs?: boolean
 }
 
-/** Hard cap on cursor-follows per latest-mode load, so a pathological feed
- *  (every page collapsing into already-seen rows) can't fetch unboundedly. */
-const MAX_LATEST_PAGES = 4
+/** Consecutive pages that contribute zero new unique rows before latest mode
+ *  gives up. Counting BARREN pages (not total pages) is what lets a pot with
+ *  dozens of contributions page past itself: those pages keep collapsing into
+ *  the same rollup uuid, but each one advances the window toward the older
+ *  transactions behind it. */
+const MAX_BARREN_LATEST_PAGES = 3
+
+/** Absolute ceiling on requests per latest-mode load. Generous — it only
+ *  catches a pathological feed that keeps yielding a trickle of new rows. */
+const MAX_LATEST_PAGES = 10
+
+/** The API applies its limit to raw intents BEFORE the pot rollup, so asking
+ *  for several intents per wanted row makes a page collapse to more unique
+ *  rows. Capped at the API's own default page size. */
+const LATEST_PAGE_SIZE_MULTIPLIER = 5
+const MAX_LATEST_PAGE_SIZE = 50
+
+export function latestPageSize(limit: number): number {
+    return Math.min(Math.max(limit * LATEST_PAGE_SIZE_MULTIPLIER, limit), MAX_LATEST_PAGE_SIZE)
+}
+
+/**
+ * Merges two copies of the same request-pot rollup row.
+ *
+ * Every page holding any of a pot's charges re-emits the rollup under the
+ * link uuid, and each copy aggregates ONLY its own page window (BE:
+ * mapRequestLinkRollup over that page's potCharges) — so no single copy is
+ * authoritative. Rule: take the greater `totalAmountCollected` and the later
+ * `timestamp`, union the `charges` by uuid, and keep the earlier (page-0)
+ * copy for everything else — the link-level fields (amount/goal, status,
+ * recipient) are identical across copies, and page 0 is the freshest for a
+ * websocket-prepended row. Greater-not-sum because the windows overlap at
+ * page boundaries; summing would double-count the repeated charges.
+ */
+function mergeRepeatedEntry(existing: HistoryEntry, incoming: HistoryEntry): HistoryEntry {
+    const collected = Math.max(existing.totalAmountCollected ?? 0, incoming.totalAmountCollected ?? 0)
+    if (collected === (existing.totalAmountCollected ?? 0) && !incoming.charges?.length) return existing
+
+    const chargesByUuid = new Map((existing.charges ?? []).map((c) => [c.uuid, c]))
+    for (const charge of incoming.charges ?? []) {
+        if (!chargesByUuid.has(charge.uuid)) chargesByUuid.set(charge.uuid, charge)
+    }
+    const newer = new Date(incoming.timestamp).getTime() > new Date(existing.timestamp).getTime()
+
+    return {
+        ...existing,
+        timestamp: newer ? incoming.timestamp : existing.timestamp,
+        totalAmountCollected: collected,
+        charges: chargesByUuid.size ? [...chargesByUuid.values()] : existing.charges,
+    }
+}
 
 /**
  * Follows the history cursor until `limit` UNIQUE rows are collected, the
- * feed is exhausted, or `maxPages` pages were fetched.
+ * feed is exhausted, the pages stop yielding new rows, or the absolute page
+ * ceiling is hit.
  *
  * Needed because the API applies its limit to raw transaction intents BEFORE
  * collapsing a request pot's contributions into one rollup row — a page whose
  * newest intents are all contributions to the same pot comes back as a single
  * row with hasMore:true, so one fetch (any fixed limit) can't guarantee the
- * requested number of distinct rows. Pages are deduped by uuid (rollup rows
- * reuse the link uuid on every page holding that pot's charges).
+ * requested number of distinct rows.
  */
 export async function collectLatestEntries(
     fetchPage: (cursor?: string) => Promise<HistoryResponse>,
     limit: number,
+    maxBarrenPages: number = MAX_BARREN_LATEST_PAGES,
     maxPages: number = MAX_LATEST_PAGES
 ): Promise<HistoryResponse> {
-    let entries: HistoryEntry[] = []
+    const byUuid = new Map<string, HistoryEntry>()
     let cursor: string | undefined
     let hasMore = false
+    let barrenPages = 0
+
     for (let page = 0; page < maxPages; page++) {
         const res = await fetchPage(cursor)
-        entries = dedupeHistoryEntriesByUuid([...entries, ...res.entries])
+        let addedNewRow = false
+        for (const entry of res.entries) {
+            const existing = byUuid.get(entry.uuid)
+            if (existing) {
+                byUuid.set(entry.uuid, mergeRepeatedEntry(existing, entry))
+            } else {
+                byUuid.set(entry.uuid, entry)
+                addedNewRow = true
+            }
+        }
+        barrenPages = addedNewRow ? 0 : barrenPages + 1
         hasMore = res.hasMore
-        if (!hasMore || entries.length >= limit) break
+
+        if (!hasMore || byUuid.size >= limit || barrenPages >= maxBarrenPages) break
         // an unchanged or missing cursor cannot advance the window — stop
         // instead of refetching the same page (mirrors getNextPageParam below)
         if (!res.cursor || res.cursor === cursor) break
         cursor = res.cursor
     }
-    return { entries: entries.slice(0, limit), cursor, hasMore }
+
+    return { entries: [...byUuid.values()].slice(0, limit), cursor, hasMore }
 }
 
 export function useTransactionHistory(options: {
@@ -138,7 +201,7 @@ export function useTransactionHistory({
     // Cached only in TQ memory (30s stale); the HTTP response is no-store end to end.
     const latestQuery = useQuery({
         queryKey: [TRANSACTIONS, 'latest', { limit, targetUsername: filterMutualTxs ? username : undefined }],
-        queryFn: () => collectLatestEntries((cursor) => fetchHistory({ cursor, limit }), limit),
+        queryFn: () => collectLatestEntries((cursor) => fetchHistory({ cursor, limit: latestPageSize(limit) }), limit),
         enabled: mode === 'latest' && enabled,
         staleTime: 30 * 1000,
         gcTime: 5 * 60 * 1000,
