@@ -55,8 +55,13 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="py-4">
-                    <div className="space-y-4 p-4">
+                {/* no top padding: the drawer handle already carries the board's
+                    8px-above / 24px-below spacing (TX Details 17835:84492), and
+                    the TX receipt drawer starts its content right after it.
+                    py-4 + p-4 here stacked 32px of extra head room (PR #2813
+                    review, Jota). */}
+                <DrawerContent className="pb-4">
+                    <div className="space-y-4 px-4">
                         {/* centered head per the TX Details chrome (board 17490:115877):
                             badge art → type line → title. Tapping it opens the detail
                             modal — close the unlock drawer (z-50) first so the modal
