@@ -10,6 +10,7 @@ import { useQRScanner } from '../useQRScanner'
 let onDecode: (result: { data: string }) => void
 let startBehaviour: () => Promise<void> = () => Promise.resolve()
 let startCalls = 0
+let destroyCalls = 0
 let attachStream = true
 let lastOptions: { preferredCamera?: unknown } = {}
 
@@ -44,7 +45,9 @@ jest.mock('qr-scanner', () => ({
             this.active = false
             this.video.srcObject = null
         })
-        destroy = jest.fn()
+        destroy = jest.fn(() => {
+            destroyCalls++
+        })
         setCamera = jest.fn()
         setInversionMode = jest.fn()
     },
@@ -53,11 +56,15 @@ jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({
     useToast: () => ({ error: jest.fn(), info: jest.fn() }),
 }))
+// jest hoists these factories, so the switches they read must be `mock`-prefixed
+let mockDeviceType = 'web'
+let mockCapacitor = false
 jest.mock('@/hooks/useGetDeviceType', () => ({
-    useDeviceType: () => ({ deviceType: 'web' }),
+    useDeviceType: () => ({ deviceType: mockDeviceType }),
     DeviceType: { IOS: 'ios' },
 }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockCapacitor }))
+jest.mock('@/utils/camera-permission', () => ({ ensureNativeCameraPermission: jest.fn(async () => true) }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 
 // jsdom implements neither, and the hook's cleanup calls both on unmount
@@ -65,6 +72,13 @@ HTMLMediaElement.prototype.pause = jest.fn()
 HTMLMediaElement.prototype.load = jest.fn()
 
 const PIX_PAYLOAD = '00020101021226' + '0014br.gov.bcb.pix' + 'y'.repeat(68)
+
+// Every mount schedules a 100ms element-retry before the <video> exists. Left on
+// a real clock it outlives its own test and fires startCamera into whichever
+// test is running 100ms later, inflating the module-level startCalls there — a
+// ~4% flake in "does not re-enter the camera flow while the error view is up".
+beforeEach(() => jest.useFakeTimers())
+afterEach(() => jest.useRealTimers())
 
 it('camera scan: onScan failure is captured with the qr_scan_processing tag', async () => {
     const error = new Error('routing exploded')
@@ -76,7 +90,7 @@ it('camera scan: onScan failure is captured with the qr_scan_processing tag', as
     const videoRef = result.current.videoRef as React.MutableRefObject<HTMLVideoElement | null>
     videoRef.current = document.createElement('video')
     await act(async () => {
-        await result.current.retryCamera()
+        jest.advanceTimersByTime(100) // CONFIG.VIDEO_ELEMENT_RETRY_DELAY_MS
     })
 
     await act(async () => {
@@ -221,5 +235,180 @@ describe('resume after backgrounding (TASK-21862)', () => {
 
         // a MouseEvent here becomes qr-scanner's deviceId {exact: ...}
         expect(lastOptions.preferredCamera).toBe('environment')
+    })
+})
+
+describe('permission still pending at the deadline (TASK-21927)', () => {
+    const IOS_CAMERA_DELAY_MS = 200
+    const VIDEO_ELEMENT_RETRY_DELAY_MS = 100
+    const CAMERA_START_TIMEOUT_MS = 5000
+
+    type VideoRef = React.MutableRefObject<HTMLVideoElement | null>
+
+    let settleStart: { resolve: () => void; reject: (err: unknown) => void }
+
+    function setHidden(hidden: boolean): void {
+        Object.defineProperty(document, 'hidden', { value: hidden, configurable: true })
+        document.dispatchEvent(new Event('visibilitychange'))
+    }
+
+    /*
+     * Mounts an iOS scanner whose getUserMedia is still outstanding. The video
+     * element retry (100ms) and the iOS hardware-settle delay (200ms) both have
+     * to drain before the library's start() is even called.
+     */
+    async function mountPendingStart() {
+        startBehaviour = () =>
+            new Promise<void>((resolve, reject) => {
+                settleStart = { resolve, reject }
+            })
+        const { result } = renderHook(() => useQRScanner(jest.fn(), undefined, true))
+        const videoRef = result.current.videoRef as VideoRef
+        videoRef.current = document.createElement('video')
+        await act(async () => {
+            jest.advanceTimersByTime(VIDEO_ELEMENT_RETRY_DELAY_MS)
+        })
+        await act(async () => {
+            jest.advanceTimersByTime(IOS_CAMERA_DELAY_MS)
+        })
+        return { result, videoRef }
+    }
+
+    // The permission modal owns the whole screen, so React unmounts the <video>
+    // the pending scanner is bound to — and remounts a fresh one the moment the
+    // modal clears. That swap is why recovery has to restart the camera.
+    const unmountVideo = (videoRef: VideoRef) => {
+        videoRef.current = null
+    }
+    const remountVideo = (videoRef: VideoRef) => {
+        videoRef.current = document.createElement('video')
+    }
+
+    async function drainRebuild(videoRef: VideoRef) {
+        remountVideo(videoRef)
+        await act(async () => {
+            jest.advanceTimersByTime(VIDEO_ELEMENT_RETRY_DELAY_MS)
+        })
+        await act(async () => {
+            jest.advanceTimersByTime(IOS_CAMERA_DELAY_MS)
+        })
+    }
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        mockDeviceType = 'ios'
+        startCalls = 0
+        destroyCalls = 0
+        attachStream = true
+    })
+
+    afterEach(() => {
+        jest.useRealTimers()
+        Object.defineProperty(document, 'hidden', { value: false, configurable: true })
+        mockDeviceType = 'web'
+        mockCapacitor = false
+        startBehaviour = () => Promise.resolve()
+        attachStream = true
+    })
+
+    it('the deadline shows the permission modal without ending the attempt', async () => {
+        const { result } = await mountPendingStart()
+        const teardowns = destroyCalls
+
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_START_TIMEOUT_MS)
+        })
+
+        expect(result.current.isPermissionDenied).toBe(true)
+        expect(result.current.error).toBe('qrScanner.cameraPermissionDenied')
+        // the pre-fix deadline destroyed the scanner here, throwing away a grant
+        // that was still one tap away
+        expect(destroyCalls).toBe(teardowns)
+    })
+
+    it('a grant that lands after the deadline brings the camera up on its own', async () => {
+        const { result, videoRef } = await mountPendingStart()
+
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_START_TIMEOUT_MS)
+        })
+        expect(result.current.isPermissionDenied).toBe(true)
+        unmountVideo(videoRef)
+
+        // the user finally taps Allow, 5s late — the production specimen took 2m43s
+        startBehaviour = () => Promise.resolve()
+        await act(async () => {
+            settleStart.resolve()
+        })
+        await drainRebuild(videoRef)
+
+        expect(result.current.isPermissionDenied).toBe(false)
+        expect(result.current.error).toBeNull()
+        expect(result.current.isCameraReady).toBe(true)
+    })
+
+    it('a grant that lands while backgrounded is picked up on the way back', async () => {
+        const { result, videoRef } = await mountPendingStart()
+
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_START_TIMEOUT_MS)
+        })
+        unmountVideo(videoRef)
+        await act(async () => setHidden(true))
+
+        startBehaviour = () => Promise.resolve()
+        await act(async () => {
+            settleStart.resolve()
+        })
+        // rebuilding on a hidden document resolves without a stream, so the
+        // modal has to stay up until the visibility listener takes over
+        expect(result.current.isPermissionDenied).toBe(true)
+        expect(result.current.isCameraReady).toBe(false)
+
+        await act(async () => setHidden(false))
+        await drainRebuild(videoRef)
+
+        expect(result.current.isPermissionDenied).toBe(false)
+        expect(result.current.isCameraReady).toBe(true)
+    })
+
+    /*
+     * The rejection value is qr-scanner's real one, not a DOMException:
+     * _getCameraStream swallows every getUserMedia DOMException in a bare catch
+     * and then throws the bare string 'Camera not found.', whatever actually
+     * went wrong. Anything richer here would be testing a contract the pinned
+     * library never honours.
+     */
+    it('a failure that lands after the deadline leaves the user on the permission modal', async () => {
+        const { result, videoRef } = await mountPendingStart()
+
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_START_TIMEOUT_MS)
+        })
+        unmountVideo(videoRef)
+        await act(async () => {
+            settleStart.reject('Camera not found.')
+        })
+
+        expect(result.current.isPermissionDenied).toBe(true)
+        expect(result.current.error).toBe('qrScanner.cameraPermissionDenied')
+        expect(result.current.isCameraReady).toBe(false)
+    })
+
+    it('native keeps waiting on the OS dialog with no deadline at all', async () => {
+        mockCapacitor = true
+        const { result } = await mountPendingStart()
+
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_START_TIMEOUT_MS * 4)
+        })
+        // the OS owns this prompt and answers it cleanly, so nothing may pre-empt it
+        expect(result.current.isPermissionDenied).toBe(false)
+        expect(result.current.error).toBeNull()
+
+        await act(async () => {
+            settleStart.resolve()
+        })
+        expect(result.current.isCameraReady).toBe(true)
     })
 })
