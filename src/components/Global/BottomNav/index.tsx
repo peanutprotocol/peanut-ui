@@ -205,7 +205,10 @@ export const BottomNav = () => {
     }
 
     return (
-        <nav className="flex w-full items-center gap-4 px-6 py-2" translate="no">
+        // px-4 gutter (L/16): deliberate divergence from the board's px-6 —
+        // rulings 17+18 want the bar spanning the viewport on mobile with a
+        // minimal edge inset (AppShell's max-w-md wrapper keeps desktop sane)
+        <nav className="flex w-full items-center gap-4 px-4 py-2" translate="no">
             <div
                 ref={barRef}
                 onClickCapture={(e) => {
@@ -214,7 +217,10 @@ export const BottomNav = () => {
                         e.stopPropagation()
                     }
                 }}
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page"
+                // bg at /70 + blur-xl (24px, mirrors the figma Overlay-Blur 24):
+                // content scrolling behind the bar blurs through it.
+                // experiment: kush decides keep/drop
+                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page/70 backdrop-blur-xl"
             >
                 <Link
                     href="/home"
