@@ -13,6 +13,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 
+const mockTriggerHaptic = jest.fn()
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockRouterPush, replace: jest.fn(), prefetch: jest.fn(), back: jest.fn() }),
@@ -48,13 +49,23 @@ jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: null }) }))
 jest.mock('@/hooks/useRecipientDisplay', () => ({
     useRecipientDisplay: () => ({ displayName: 'alice' }),
 }))
-jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
+jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: mockTriggerHaptic }) }))
 jest.mock('@/utils/general.utils', () => ({
     formatTokenAmount: (n: number) => String(n),
     getTokenDetails: () => ({ symbol: 'USDC', decimals: 6 }),
     shortenStringLong: (s: string) => s,
 }))
-jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
+const mockSoundPlayed = jest.fn()
+jest.mock('@/components/Global/SoundPlayer', () => ({
+    SoundPlayer: (props: any) => {
+        mockSoundPlayed(props.sound)
+        return null
+    },
+}))
+jest.mock('@/components/Global/PeanutLoading', () => ({
+    __esModule: true,
+    default: (props: any) => <div data-testid="peanut-loading">{props.message}</div>,
+}))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/CreateAccountButton', () => ({
     __esModule: true,
@@ -82,20 +93,30 @@ const claimLinkData = {
     sender: null,
 } as any
 
-const renderView = (onCustom = jest.fn()) => {
+const renderView = (onCustom = jest.fn(), initialHash?: string) => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+
+    // the real parent owns `transactionHash`, so the poll's setter has to
+    // rebind the prop — a jest.fn() here would leave the view stuck pending
+    const Harness = () => {
+        const [transactionHash, setTransactionHash] = React.useState<string | undefined>(initialHash)
+        return (
+            <SuccessClaimLinkView
+                {...({
+                    transactionHash,
+                    setTransactionHash,
+                    claimLinkData,
+                    tokenPrice: 1,
+                    onCustom,
+                } as any)}
+            />
+        )
+    }
+
     render(
         <IntlWrapper>
             <QueryClientProvider client={client}>
-                <SuccessClaimLinkView
-                    {...({
-                        transactionHash: undefined,
-                        setTransactionHash: jest.fn(),
-                        claimLinkData,
-                        tokenPrice: 1,
-                        onCustom,
-                    } as any)}
-                />
+                <Harness />
             </QueryClientProvider>
         </IntlWrapper>
     )
@@ -106,6 +127,8 @@ describe('SUCCESS view — polled claim failure', () => {
     beforeEach(() => {
         mockSendLinksApi.get.mockReset()
         mockRouterPush.mockReset()
+        mockSoundPlayed.mockReset()
+        mockTriggerHaptic.mockReset()
     })
 
     test('a retryable failure replaces the success card with the retry copy and a way back', async () => {
@@ -146,5 +169,45 @@ describe('SUCCESS view — polled claim failure', () => {
 
         await waitFor(() => expect(screen.getByTestId('success-card')).toBeInTheDocument())
         expect(screen.queryByText(/network is busy/i)).not.toBeInTheDocument()
+    })
+})
+
+describe('SUCCESS view — before the poll resolves', () => {
+    beforeEach(() => {
+        mockSendLinksApi.get.mockReset()
+        mockSoundPlayed.mockReset()
+        mockTriggerHaptic.mockReset()
+    })
+
+    test('a claim with no outcome yet shows processing — no success card, sound or haptic', async () => {
+        // a poll that never settles: the optimistic 202 has landed, nothing else
+        mockSendLinksApi.get.mockReturnValue(new Promise(() => {}))
+
+        renderView()
+
+        expect(await screen.findByTestId('peanut-loading')).toBeInTheDocument()
+        expect(screen.queryByTestId('success-card')).not.toBeInTheDocument()
+        expect(mockSoundPlayed).not.toHaveBeenCalled()
+        expect(mockTriggerHaptic).not.toHaveBeenCalled()
+    })
+
+    test('a poll that keeps erroring stays in processing rather than claiming success', async () => {
+        mockSendLinksApi.get.mockRejectedValue(new Error('network down'))
+
+        renderView()
+
+        await waitFor(() => expect(mockSendLinksApi.get).toHaveBeenCalled())
+        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        expect(screen.queryByTestId('success-card')).not.toBeInTheDocument()
+    })
+
+    test('a synchronous claim arrives with its hash and renders success immediately', () => {
+        mockSendLinksApi.get.mockReturnValue(new Promise(() => {}))
+
+        renderView(jest.fn(), '0xabc')
+
+        expect(screen.getByTestId('success-card')).toBeInTheDocument()
+        expect(mockSoundPlayed).toHaveBeenCalledWith('success')
+        expect(mockTriggerHaptic).toHaveBeenCalled()
     })
 })

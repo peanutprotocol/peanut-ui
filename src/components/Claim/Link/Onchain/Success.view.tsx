@@ -22,6 +22,7 @@ import Image from 'next/image'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import PeanutLoading from '@/components/Global/PeanutLoading'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { API_ERROR_CODES } from '@/services/api-error'
@@ -184,9 +185,27 @@ export const SuccessClaimLinkView = ({
     }
 
     useEffect(() => {
-        // trigger haptic on mount
+        // success feedback belongs to a confirmed claim, not to arriving here —
+        // the optimistic path mounts this view before the broadcast is known
+        if (!transactionHash) return
         triggerHaptic()
-    }, [triggerHaptic])
+    }, [transactionHash, triggerHaptic])
+
+    // The optimistic 202 lands here with no hash and no outcome yet. Rendering
+    // the success card now would claim money that has not moved — and would
+    // keep claiming it for as long as the poll is slow or failing.
+    if (!transactionHash && !claimFailure) {
+        return (
+            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                <div className="md:hidden">
+                    <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
+                </div>
+                <div className="relative z-10 my-auto flex h-full flex-col justify-center">
+                    <PeanutLoading message={tCommon('status.processing')} />
+                </div>
+            </div>
+        )
+    }
 
     if (claimFailure) {
         const isRetryable = claimFailure.code === API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE
