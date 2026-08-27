@@ -237,33 +237,6 @@ export function buildSupportSegments(input: SupportSegmentInput): string[] {
     return segments
 }
 
-/**
- * Priority order for the ONE segment the native SDK can hold.
- *
- * `CrispSDK.session.segment = …` is an assignment, not an append (same on
- * Android via `setSessionSegment`), so repeated calls keep only the last. The
- * web SDK takes the whole list; native gets the most actionable one, and the
- * full list still rides along as a `segments` data row so nothing is lost.
- */
-const SEGMENT_PRIORITY = [
-    'verification-blocked',
-    'balance-unavailable',
-    'api-unreachable',
-    'offline',
-    'no-email',
-    'guest',
-    'zero-balance',
-    'card-holder',
-]
-
-export function primarySupportSegment(segments: string[] | undefined): string | undefined {
-    if (!segments?.length) return undefined
-    for (const candidate of SEGMENT_PRIORITY) {
-        if (segments.includes(candidate)) return candidate
-    }
-    return segments.find((segment) => segment.startsWith('kyc-')) ?? segments[0]
-}
-
 export interface SupportLinks {
     walletAddressLink: string | undefined
     bridgeCustomerLink: string | undefined

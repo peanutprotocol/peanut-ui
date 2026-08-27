@@ -479,8 +479,16 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
             nativeCrisp.setString.mock.calls.map(([{ key, value }]: [{ key: string; value: string }]) => [key, value])
         )
         expect(written.balance).toBe('$100.00 spendable')
-        expect(nativeCrisp.setSegment).toHaveBeenCalledWith({ segment: 'kyc-verified' })
-        expect(nativeCrisp.setSegment).not.toHaveBeenCalledWith({ segment: 'balance-unavailable' })
+        expect(written.segments).toBe('ios-native kyc-verified')
+
+        /*
+         * No native segment at all: the plugin's one-argument setSegment maps to
+         * Crisp.setSessionSegment on Android, which appends — a stale `offline`
+         * or `balance-unavailable` would keep routing the conversation after the
+         * user left that state. The data row above carries the whole list, and
+         * setString assigns, so nothing is lost.
+         */
+        expect(nativeCrisp.setSegment).not.toHaveBeenCalled()
     })
 
     it('still opens once the token resolves, rather than latching the waiting cycle shut', async () => {

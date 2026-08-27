@@ -20,7 +20,6 @@ import { notificationsApi } from '@/services/notifications'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 import { ensureNativeCrispConfigured, nativeCrispFields } from '@/utils/crisp'
-import { primarySupportSegment } from '@/utils/support-context'
 
 const DISMISS_THRESHOLD = 100
 
@@ -241,13 +240,19 @@ const SupportDrawer = () => {
                 for (const [key, value] of nativeCrispFields(snapshot)) {
                     CapacitorCrisp.setString({ key, value })
                 }
-                // Native holds exactly one segment — the assignment overwrites,
-                // so the list rides in the data row above and only the most
-                // actionable one goes here. See primarySupportSegment.
-                const primarySegment = primarySupportSegment(snapshot.segments)
-                if (primarySegment) {
-                    CapacitorCrisp.setSegment({ segment: primarySegment })
-                }
+                /*
+                 * No native segment. The plugin exposes only the one-argument
+                 * `setSegment`, which on Android calls `Crisp.setSessionSegment`
+                 * with no overwrite flag — so a segment APPENDS and a stale one
+                 * (`offline`, `balance-unavailable`, `kyc-pending`) keeps routing
+                 * the conversation after the user has left that state. A routing
+                 * tag that is wrong is worse than one that is missing.
+                 *
+                 * Nothing is lost to the agent: the `segments` data row above
+                 * carries the whole list, and `setString` assigns, so it replaces
+                 * cleanly on every open. Restore this when the plugin exposes the
+                 * SDK's overwrite overload.
+                 */
                 if (prefill) {
                     CapacitorCrisp.sendMessage({ value: prefill })
                 }

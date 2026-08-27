@@ -7,7 +7,6 @@ import {
     buildLinkedAccounts,
     buildSupportSegments,
     normalizeSupportRoute,
-    primarySupportSegment,
     relativeAge,
 } from '../support-context'
 import { AccountType, type Account, type IUserProfile } from '@/interfaces/interfaces'
@@ -238,18 +237,6 @@ describe('buildSupportSegments', () => {
 
     it('flags a blocked verification', () => {
         expect(buildSupportSegments({ ...base, hasFailureReason: true })).toContain('verification-blocked')
-    })
-})
-
-describe('primarySupportSegment', () => {
-    it('picks the most actionable one for the single native slot', () => {
-        expect(primarySupportSegment(['web', 'kyc-pending', 'verification-blocked'])).toBe('verification-blocked')
-    })
-
-    it('falls back to the kyc segment, then to the first', () => {
-        expect(primarySupportSegment(['web', 'kyc-pending'])).toBe('kyc-pending')
-        expect(primarySupportSegment(['web'])).toBe('web')
-        expect(primarySupportSegment([])).toBeUndefined()
     })
 })
 
