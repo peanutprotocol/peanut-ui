@@ -145,7 +145,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         const buttonClasses = twMerge(
             // static pressed-state classes: the old `translate-y-[${shadowSize}px]`
             // template never generated a real class under the jit scanner
-            'btn w-full flex items-center gap-2 transition-all duration-100 active:translate-x-1 active:translate-y-1 active:shadow-none notranslate',
+            'btn w-full flex items-center gap-2 transition-all duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none notranslate',
             buttonVariants[variant],
             variant === 'transparent' && props.disabled && 'disabled:bg-transparent disabled:border-transparent',
             size && buttonSizes[size],
@@ -195,7 +195,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 {/* Progress bar for long press */}
                 {longPress && pressProgress > 0 && (
                     <div
-                        className="absolute inset-0 bg-gradient-to-r opacity-30 transition-all duration-75 ease-out"
+                        className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 opacity-30 transition-all duration-instant ease-out"
                         style={{
                             width: `${pressProgress}%`,
                         }}

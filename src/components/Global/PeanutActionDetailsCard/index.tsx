@@ -187,7 +187,7 @@ export default function PeanutActionDetailsCard({
                         />
                     )}
                     {!isRegionalMethodClaim && (
-                        <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full p-1.5">
+                        <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-icon-bubble-yellow p-1.5">
                             <Icon size={14} name="bank" className="text-black" />
                         </div>
                     )}

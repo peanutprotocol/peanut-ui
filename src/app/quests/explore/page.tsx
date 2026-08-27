@@ -164,7 +164,7 @@ export default function QuestsExplorePage() {
                         {quests.map((quest, index) => {
                             const bgColorClass =
                                 quest.backgroundColor === 'purple'
-                                    ? ''
+                                    ? 'bg-purple-200'
                                     : quest.backgroundColor === 'pink'
                                       ? 'bg-pink-200'
                                       : 'bg-blue-200'

@@ -48,17 +48,18 @@ export function QuestCard({
     const getBadgeColorClasses = (color: string) => {
         switch (color) {
             case 'YELLOW':
-                return ''
+                return 'bg-yellow-200 text-foreground-primary'
             case 'PINK':
                 return 'bg-pink-200 text-pink-700'
             case 'BLUE':
                 return 'bg-blue-200 text-blue-600'
             default:
-                return ''
+                return 'bg-gray-100 text-gray-700'
         }
     }
 
-    const bgColorClass = backgroundColor === 'purple' ? '' : backgroundColor === 'pink' ? 'bg-pink-200' : 'bg-blue-200'
+    const bgColorClass =
+        backgroundColor === 'purple' ? 'bg-purple-200' : backgroundColor === 'pink' ? 'bg-pink-200' : 'bg-blue-200'
 
     return (
         <motion.div
