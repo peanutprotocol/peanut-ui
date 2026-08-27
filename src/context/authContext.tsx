@@ -23,7 +23,7 @@ import { resetCrispProxySessions } from '@/utils/crisp'
 import { disableDemoMode } from '@/utils/demo'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
-import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { captureException, setUser as setSentryUser } from '@/utils/sentry-lazy'
 // import { PUBLIC_ROUTES_REGEX } from '@/constants/routes'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
@@ -97,31 +97,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!user?.invitesSent) return new Set<string>()
         return new Set(user.invitesSent.map((invite) => invite.inviteeUsername))
     }, [user?.invitesSent])
-
-    /*
-     * Drop every cached query when the signed-in account CHANGES.
-     *
-     * An explicit logout already clears the cache below, but a session that
-     * expires passively never runs that path: /users/me 401s, and query keys
-     * that carry no user id — `[limits]`, `[transactions]` — stay warm. Sign a
-     * different account in on that device and react-query serves the previous
-     * account's rows until each refetch lands, so the new user briefly sees
-     * someone else's Activity, limits, and (via the support snapshot) their
-     * last transaction.
-     *
-     * Only fires on a change BETWEEN accounts. The first sign-in of a session
-     * (undefined → id) keeps whatever a guest legitimately prefetched, e.g. a
-     * claim link opened before signing in.
-     */
-    const lastUserIdRef = useRef<string | undefined>(undefined)
-    useEffect(() => {
-        const currentUserId = user?.user?.userId
-        const previousUserId = lastUserIdRef.current
-        lastUserIdRef.current = currentUserId ?? previousUserId
-        if (currentUserId && previousUserId && currentUserId !== previousUserId) {
-            queryClient.clear()
-        }
-    }, [user?.user?.userId, queryClient])
 
     useEffect(() => {
         if (user) {

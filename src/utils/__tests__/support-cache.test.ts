@@ -1,69 +1,52 @@
 /**
- * The cache readers exist so the support snapshot never issues a request —
- * SupportDrawer mounts app-wide, so a subscribing hook there would start a poll
- * for every user on every screen. These tests pin both halves of that contract:
- * the readers find what is genuinely cached, and they return `undefined` rather
- * than fetching when it isn't.
+ * Two contracts, both load-bearing.
+ *
+ * The readers never issue a request — SupportDrawer mounts app-wide, so a
+ * subscribing hook there would start a poll for every user on every screen —
+ * and they only read keys that name their owner, so a cached entry can be
+ * proved to belong to the person support is open for.
  */
 
 import { QueryClient } from '@tanstack/react-query'
-import { LIMITS, TRANSACTIONS } from '@/constants/query.consts'
-import { readCachedLimits, readLatestHistoryEntry } from '../support-cache'
-import type { HistoryEntry } from '@/utils/history.utils'
+import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
+import { readCachedRainOverview, readCachedSmartBalance } from '../support-cache'
+import type { RainCardOverview } from '@/services/rain'
 
-const entry = (uuid: string, timestamp: string): HistoryEntry =>
-    ({ uuid, timestamp: new Date(timestamp) }) as HistoryEntry
+const WALLET = '0xb8ed0b7578e658cb6718ae92facb98f718d445e3'
 
-describe('readLatestHistoryEntry', () => {
+describe('support cache readers', () => {
     let client: QueryClient
 
     beforeEach(() => {
         client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     })
 
-    /*
-     * The `latest` key carries its own `limit` and `targetUsername`, so the cache
-     * legitimately holds several variants at once (home Activity at 5, the
-     * carousel at 50). Reading one hardcoded key would silently return nothing
-     * the day a caller changed its limit — hence the scan.
-     */
-    it('finds the newest entry across every cached history variant', () => {
-        client.setQueryData([TRANSACTIONS, 'latest', { limit: 5, targetUsername: undefined }], {
-            entries: [entry('older', '2026-08-01T00:00:00Z')],
-            hasMore: false,
-        })
-        client.setQueryData([TRANSACTIONS, 'latest', { limit: 50, targetUsername: undefined }], {
-            entries: [entry('newest', '2026-08-26T00:00:00Z')],
-            hasMore: false,
-        })
-
-        expect(readLatestHistoryEntry(client)?.uuid).toBe('newest')
-    })
-
-    it('reads paged infinite-query data too', () => {
-        client.setQueryData([TRANSACTIONS, 'infinite', { limit: 50 }], {
-            pages: [
-                { entries: [entry('page-1', '2026-08-02T00:00:00Z')], hasMore: true },
-                { entries: [entry('page-2', '2026-08-20T00:00:00Z')], hasMore: false },
-            ],
-            pageParams: [undefined, 'cursor'],
-        })
-
-        expect(readLatestHistoryEntry(client)?.uuid).toBe('page-2')
-    })
-
     it('returns undefined on a cold cache instead of fetching', () => {
-        expect(readLatestHistoryEntry(client)).toBeUndefined()
-        expect(client.getQueryCache().findAll().length).toBe(0)
+        expect(readCachedSmartBalance(client, WALLET)).toBeUndefined()
+        expect(readCachedRainOverview(client, 'user-1')).toBeUndefined()
+        expect(client.getQueryCache().findAll()).toHaveLength(0)
     })
-})
 
-describe('readCachedLimits', () => {
-    it('returns undefined rather than triggering the request', () => {
-        const client = new QueryClient()
-        expect(readCachedLimits(client)).toBeUndefined()
+    it('reads what is already cached for this identity', () => {
+        client.setQueryData(['balance', WALLET], 100_000_000n)
+        client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], { status: { hasApplication: false } })
 
-        client.setQueryData([LIMITS], { manteca: null, bridge: null })
-        expect(readCachedLimits(client)).toEqual({ manteca: null, bridge: null })
+        expect(readCachedSmartBalance(client, WALLET)).toBe(100_000_000n)
+        expect(readCachedRainOverview(client, 'user-1')?.status?.hasApplication).toBe(false)
+    })
+
+    /*
+     * The reason limits and latest activity are absent from the snapshot: their
+     * keys name no owner, so there is no equivalent of this test for them. Here
+     * a different identity simply reads nothing, because the identity is part of
+     * the key rather than an assumption about who was signed in.
+     */
+    it('reads nothing for an identity that has no cached entry', () => {
+        client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
+            status: { hasApplication: true },
+        } as RainCardOverview)
+
+        expect(readCachedRainOverview(client, 'user-2')).toBeUndefined()
+        expect(readCachedSmartBalance(client, undefined)).toBeUndefined()
     })
 })

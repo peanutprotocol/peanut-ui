@@ -70,8 +70,6 @@ describe('supportSessionFields', () => {
             expect.arrayContaining([
                 'balance',
                 'account_stats',
-                'latest_activity',
-                'limits_remaining',
                 'card',
                 'linked_accounts',
                 'app_context',

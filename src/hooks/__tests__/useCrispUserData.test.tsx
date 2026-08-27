@@ -15,7 +15,6 @@ import type { ReactNode } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSupportClientContext } from '@/hooks/useSupportClientContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
-import { LIMITS, TRANSACTIONS } from '@/constants/query.consts'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { AccountType } from '@/interfaces/interfaces'
 
@@ -72,7 +71,6 @@ describe('useCrispUserData', () => {
 
         expect(result.current.balance).toContain('unavailable')
         expect(result.current.balance).not.toContain('$0.00')
-        expect(result.current.latestActivity).toBeUndefined()
         expect(result.current.segments).toContain('balance-unavailable')
     })
 
@@ -83,27 +81,9 @@ describe('useCrispUserData', () => {
             balance: null,
             cards: [],
         })
-        client.setQueryData([TRANSACTIONS, 'latest', { limit: 5, targetUsername: undefined }], {
-            entries: [
-                {
-                    uuid: 'tx-1',
-                    timestamp: new Date(),
-                    status: 'COMPLETED',
-                    amount: '25.00',
-                    tokenSymbol: 'USDC',
-                    userRole: 'SENDER',
-                    extraData: { kind: 'P2P_SEND' },
-                    recipientAccount: { username: 'bob', identifier: 'bob.eth', type: 'peanut-wallet', isUser: true },
-                },
-            ],
-            hasMore: false,
-        })
-
         const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
 
         expect(result.current.balance).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
-        expect(result.current.latestActivity).toContain('P2P_SEND')
-        expect(result.current.latestActivity).not.toContain('bob')
         expect(result.current.accountStats).toContain('1240 pts')
         expect(result.current.appContext).toContain('route:/withdraw/manteca')
         expect(
@@ -169,32 +149,17 @@ describe('useCrispUserData', () => {
 
     /*
      * An explicit logout clears the query cache, but an EXPIRED session does
-     * not: /users/me 401s, auth goes null, and `[limits]` / `[transactions]`
-     * stay warm behind keys carrying no user id. SupportDrawer is mounted on
-     * the guest and setup layouts, so without this gate the next person to open
-     * support on that device would have published the previous user's limits
-     * and last transaction under an empty `user_id`.
+     * not: /users/me 401s and auth goes null while the cache stays warm.
+     * SupportDrawer is mounted on the guest and setup layouts, so without this
+     * gate the next person to open support on that device would publish the
+     * previous user's balance and card state under an empty `user_id`.
      */
     it('publishes nothing from the cache once the session has expired', async () => {
         client.setQueryData(['balance', WALLET], 100_000_000n)
-        client.setQueryData([LIMITS], {
-            bridge: { onRampPerTransaction: '10000', offRampPerTransaction: '10000', asset: 'USD' },
-            manteca: null,
-        })
-        client.setQueryData([TRANSACTIONS, 'latest', { limit: 5, targetUsername: undefined }], {
-            entries: [
-                {
-                    uuid: 'tx-of-the-previous-user',
-                    timestamp: new Date(),
-                    status: 'COMPLETED',
-                    amount: '25.00',
-                    tokenSymbol: 'USDC',
-                    userRole: 'SENDER',
-                    extraData: { kind: 'P2P_SEND' },
-                    recipientAccount: { username: 'bob', identifier: 'bob.eth', type: 'peanut-wallet', isUser: true },
-                },
-            ],
-            hasMore: false,
+        client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
+            status: { hasApplication: true, applicationStatus: 'approved' },
+            balance: null,
+            cards: [],
         })
 
         // the session expires: auth goes null, the cache is untouched
@@ -206,10 +171,23 @@ describe('useCrispUserData', () => {
 
         const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
 
-        expect(result.current.latestActivity).toBeUndefined()
-        expect(result.current.limitsRemaining).toBeUndefined()
         expect(result.current.balance).toBeUndefined()
+        expect(result.current.card).toBeUndefined()
         expect(result.current.segments).toContain('guest')
-        expect(JSON.stringify(result.current)).not.toContain('tx-of-the-previous-user')
+        expect(JSON.stringify(result.current)).not.toContain('approved')
+    })
+
+    /*
+     * The snapshot reports only what it can attribute. `[limits]` and
+     * `[transactions]` carry no user id in their keys, so a warm entry cannot be
+     * proved to belong to the person support is open for — after a passive
+     * expiry a different account would read them as its own. They stay out of
+     * the payload until those keys are user-scoped.
+     */
+    it('reports no field that would need an account-agnostic cache key', () => {
+        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
+
+        expect(Object.keys(result.current)).not.toContain('limitsRemaining')
+        expect(Object.keys(result.current)).not.toContain('latestActivity')
     })
 })

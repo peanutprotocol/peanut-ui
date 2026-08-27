@@ -4,21 +4,13 @@ import { AccountType } from '@/interfaces/interfaces'
 import { useEffect, useMemo, useReducer } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useModalsContext } from '@/context/ModalsContext'
-import { LIMITS, TRANSACTIONS } from '@/constants/query.consts'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import {
-    readCachedLimits,
-    readCachedRainOverview,
-    readCachedSmartBalance,
-    readLatestHistoryEntry,
-} from '@/utils/support-cache'
+import { readCachedRainOverview, readCachedSmartBalance } from '@/utils/support-cache'
 import {
     buildAccountStats,
     buildAppContext,
     buildBalanceSummary,
     buildCardSummary,
-    buildLatestActivity,
-    buildLimitsSummary,
     buildLinkedAccounts,
     buildSupportLinks,
     buildSupportSegments,
@@ -45,11 +37,9 @@ export interface CrispUserData {
     verificationRails: string | undefined
     failureReason: string | undefined
     pendingActions: string | undefined
-    // Account context — balance, points, activity, limits, card, device/build.
+    // Account context — balance, points, card, linked accounts, device/build.
     balance: string | undefined
     accountStats: string | undefined
-    latestActivity: string | undefined
-    limitsRemaining: string | undefined
     card: string | undefined
     linkedAccounts: string | undefined
     appContext: string | undefined
@@ -72,7 +62,7 @@ export interface CrispUserData {
  * through `support-cache`, which only ever looks at what is already cached.
  */
 /** The cache entries the snapshot reads. Everything else is noise to it. */
-const WATCHED_KEYS = new Set<unknown>(['balance', LIMITS, TRANSACTIONS, RAIN_CARD_OVERVIEW_QUERY_KEY])
+const WATCHED_KEYS = new Set<unknown>(['balance', RAIN_CARD_OVERVIEW_QUERY_KEY])
 
 export function useCrispUserData(): CrispUserData {
     const { username, userId, user } = useAuth()
@@ -110,23 +100,21 @@ export function useCrispUserData(): CrispUserData {
         user?.accounts?.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier || undefined
 
     /*
-     * No authenticated cache entry is read without an authenticated user.
+     * Every cache entry read here is keyed by this user — the balance by their
+     * wallet address, the card overview by their user id — and read only while
+     * a user is authenticated.
      *
-     * An explicit logout clears the query cache (authContext), but a session
-     * that simply EXPIRES does not: `/users/me` 401s, `user` becomes null, and
-     * `[limits]` and `[transactions]` stay warm behind keys that carry no user
-     * id. SupportDrawer is mounted on the guest and setup layouts too, so the
-     * next person to open support — the same device, no session — would have
-     * published the previous user's limits and last transaction under an empty
-     * `user_id`. The balance and card reads are already keyed by wallet and
-     * user id; this makes the rule uniform rather than incidental.
+     * That is a deliberate limit on what this snapshot reports. Limits and
+     * latest activity would be useful to an agent, but `[limits]` and
+     * `[transactions]` carry no user id in their keys, so a cached entry cannot
+     * be proved to belong to the person support is open for. They stay out
+     * until those keys are user-scoped; see the follow-up. Do NOT add a read
+     * here that cannot answer "whose data is this?" from the key alone.
      */
     const isAuthenticated = Boolean(userId && user)
 
     const smartBalance = isAuthenticated ? readCachedSmartBalance(queryClient, walletAddress) : undefined
     const rainOverview = isAuthenticated ? readCachedRainOverview(queryClient, userId) : undefined
-    const limits = isAuthenticated ? readCachedLimits(queryClient) : undefined
-    const latestEntry = isAuthenticated ? readLatestHistoryEntry(queryClient) : undefined
 
     const snapshot = buildCrispUserData({
         username,
@@ -135,8 +123,6 @@ export function useCrispUserData(): CrispUserData {
         walletAddress,
         smartBalance,
         rainOverview,
-        limits,
-        latestEntry,
         client,
     })
 
@@ -158,13 +144,11 @@ type CrispUserDataInput = {
     walletAddress: string | undefined
     smartBalance: bigint | undefined
     rainOverview: ReturnType<typeof readCachedRainOverview>
-    limits: ReturnType<typeof readCachedLimits>
-    latestEntry: ReturnType<typeof readLatestHistoryEntry>
     client: ReturnType<typeof useSupportClientContext>
 }
 
 function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
-    const { username, userId, user, walletAddress, smartBalance, rainOverview, limits, latestEntry, client } = input
+    const { username, userId, user, walletAddress, smartBalance, rainOverview, client } = input
 
     // Use address from user.accounts (database) rather than useWallet hook
     // This ensures we always show the user's wallet address in support metadata,
@@ -205,8 +189,6 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
         pendingActions: verification?.pendingActions,
         balance,
         accountStats: buildAccountStats(user ?? undefined),
-        latestActivity: buildLatestActivity(latestEntry),
-        limitsRemaining: buildLimitsSummary(limits),
         card: buildCardSummary(rainOverview),
         linkedAccounts: buildLinkedAccounts(user?.accounts),
         appContext: buildAppContext(client),

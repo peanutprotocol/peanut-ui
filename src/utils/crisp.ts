@@ -65,8 +65,6 @@ export function supportSessionFields(userData: CrispUserData, supportTopic?: str
         ['pending_actions', userData.pendingActions || ''],
         ['balance', userData.balance || ''],
         ['account_stats', userData.accountStats || ''],
-        ['latest_activity', userData.latestActivity || ''],
-        ['limits_remaining', userData.limitsRemaining || ''],
         ['card', userData.card || ''],
         ['linked_accounts', userData.linkedAccounts || ''],
         ['app_context', userData.appContext || ''],

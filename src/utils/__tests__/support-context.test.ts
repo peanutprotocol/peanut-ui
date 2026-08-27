@@ -2,8 +2,6 @@ import {
     buildAccountStats,
     buildBalanceSummary,
     buildCardSummary,
-    buildLatestActivity,
-    buildLimitsSummary,
     buildLinkedAccounts,
     buildSupportSegments,
     normalizeSupportRoute,
@@ -11,7 +9,6 @@ import {
 } from '../support-context'
 import { AccountType, type Account, type IUserProfile } from '@/interfaces/interfaces'
 import type { RainCardOverview } from '@/services/rain'
-import type { HistoryEntry } from '@/utils/history.utils'
 
 const NOW = new Date('2026-08-27T12:00:00Z').getTime()
 
@@ -54,59 +51,6 @@ describe('buildBalanceSummary', () => {
     })
 })
 
-describe('buildLatestActivity', () => {
-    const entry = (partial: Partial<HistoryEntry> = {}): HistoryEntry =>
-        ({
-            uuid: 'tx-123',
-            type: 'TRANSACTION_INTENT',
-            timestamp: new Date('2026-08-27T09:00:00Z'),
-            amount: '25.00',
-            chainId: '42161',
-            tokenSymbol: 'USDC',
-            status: 'COMPLETED',
-            userRole: 'SENDER',
-            recipientAccount: { identifier: 'bob.eth', type: 'peanut-wallet', isUser: true, username: 'bob' },
-            extraData: { kind: 'P2P_SEND' },
-            ...partial,
-        }) as HistoryEntry
-
-    it('summarises kind, status, amount and age', () => {
-        expect(buildLatestActivity(entry(), NOW)).toBe(
-            'P2P_SEND · COMPLETED · 25.00 USDC · 3h ago · as sender · uuid:tx-123'
-        )
-    })
-
-    /*
-     * A support sidebar is the user's own state. Replicating who they paid would
-     * accumulate third parties' payment records in a chat console — which is
-     * both a privacy problem and something no agent needs to answer "where did
-     * my money go".
-     */
-    it('never names the counterparty', () => {
-        const summary = buildLatestActivity(entry(), NOW) ?? ''
-        expect(summary).not.toContain('bob')
-        expect(summary).not.toContain('bob.eth')
-    })
-
-    it('surfaces the reaper failure note on a failed intent', () => {
-        const failed = entry({ status: 'FAILED', extraData: { kind: 'FIAT_OFFRAMP', failReason: 'provider timeout' } })
-        expect(buildLatestActivity(failed, NOW)).toContain('failReason:provider timeout')
-    })
-
-    it('prefers the fiat amount when the entry carries one', () => {
-        expect(buildLatestActivity(entry({ currency: { amount: '25000', code: 'ARS' } }), NOW)).toContain('25000 ARS')
-    })
-
-    it('reads as a phrase for a transaction from moments ago', () => {
-        const justNow = entry({ timestamp: new Date('2026-08-27T11:59:45Z') })
-        expect(buildLatestActivity(justNow, NOW)).toContain('· just now ·')
-    })
-
-    it('is undefined when no history is cached', () => {
-        expect(buildLatestActivity(undefined, NOW)).toBeUndefined()
-    })
-})
-
 describe('buildAccountStats', () => {
     const profile = (partial: Partial<IUserProfile> = {}): IUserProfile =>
         ({
@@ -145,30 +89,6 @@ describe('buildAccountStats', () => {
 
     it('is undefined for a guest', () => {
         expect(buildAccountStats(undefined, NOW)).toBeUndefined()
-    })
-})
-
-describe('buildLimitsSummary', () => {
-    it('reports remaining headroom per provider', () => {
-        const summary = buildLimitsSummary({
-            bridge: { onRampPerTransaction: '10000', offRampPerTransaction: '10000', asset: 'USD' },
-            manteca: [
-                {
-                    exchangeCountry: 'ARG',
-                    type: 'EXCHANGE',
-                    asset: 'ARS',
-                    yearlyLimit: '12000',
-                    availableYearlyLimit: '9000',
-                    monthlyLimit: '1000',
-                    availableMonthlyLimit: '500',
-                },
-            ],
-        })
-        expect(summary).toBe('bridge on/tx 10000 off/tx 10000 USD · manteca ARG/EXCHANGE 500/1000 mo 9000/12000 yr ARS')
-    })
-
-    it('is undefined when limits were never fetched', () => {
-        expect(buildLimitsSummary(undefined)).toBeUndefined()
     })
 })
 

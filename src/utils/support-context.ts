@@ -25,9 +25,8 @@ import {
     POSTHOG_PERSON_BASE_URL,
     SENTRY_USER_ISSUES_BASE_URL,
 } from '@/constants/support'
-import { type Account, AccountType, type IUserProfile, type UserLimitsResponse } from '@/interfaces/interfaces'
+import { type Account, AccountType, type IUserProfile } from '@/interfaces/interfaces'
 import type { RainCardOverview } from '@/services/rain'
-import type { HistoryEntry } from '@/utils/history.utils'
 
 const usd = (units: bigint): string => `$${formatCurrency(formatUnits(units, PEANUT_WALLET_TOKEN_DECIMALS))}`
 
@@ -101,61 +100,6 @@ export function buildAccountStats(profile: IUserProfile | undefined, now: number
     if (queuePosition != null) parts.push(`queue:${queuePosition}/${profile.pwQueue?.totalUsers ?? '?'}`)
 
     return parts.join(' · ')
-}
-
-/**
- * The user's own most recent movement — kind, provider, status, amount, age.
- *
- * Deliberately NOT the counterparty: `HistoryEntry` carries the other party's
- * username and full name, and a support sidebar is not a place to replicate
- * someone else's payment record. `uuid` is enough for an agent to look the
- * transaction up through the tools they already have.
- */
-export function buildLatestActivity(entry: HistoryEntry | undefined, now: number = Date.now()): string | undefined {
-    if (!entry) return undefined
-
-    const kind = entry.extraData?.kind ?? entry.type
-    const provider = entry.extraData?.provider
-    const parts: string[] = [provider ? `${kind}/${provider}` : kind, entry.status]
-
-    if (entry.currency?.amount && entry.currency.code) {
-        parts.push(`${entry.currency.amount} ${entry.currency.code}`)
-    } else if (entry.amount) {
-        parts.push(`${entry.amount} ${entry.tokenSymbol ?? ''}`.trim())
-    }
-
-    const age = relativeAge(entry.timestamp, now)
-    // `relativeAge` already reads as a phrase for the sub-minute case.
-    if (age) parts.push(age === 'just now' ? age : `${age} ago`)
-    if (entry.userRole) parts.push(`as ${entry.userRole.toLowerCase()}`)
-
-    // The reaper's failure note is the single most useful field on a failed
-    // intent, and the user can rarely relay it accurately.
-    const failReason = entry.extraData?.failReason
-    if (failReason) parts.push(`failReason:${failReason}`)
-
-    parts.push(`uuid:${entry.uuid}`)
-    return parts.join(' · ')
-}
-
-/** Remaining fiat headroom per provider — answers "why was my withdrawal blocked". */
-export function buildLimitsSummary(limits: UserLimitsResponse | undefined): string | undefined {
-    if (!limits) return undefined
-    const parts: string[] = []
-
-    if (limits.bridge) {
-        const { onRampPerTransaction, offRampPerTransaction, asset } = limits.bridge
-        parts.push(`bridge on/tx ${onRampPerTransaction} off/tx ${offRampPerTransaction} ${asset}`)
-    }
-
-    for (const limit of limits.manteca ?? []) {
-        parts.push(
-            `manteca ${limit.exchangeCountry}/${limit.type} ${limit.availableMonthlyLimit}/${limit.monthlyLimit} mo` +
-                ` ${limit.availableYearlyLimit}/${limit.yearlyLimit} yr ${limit.asset}`
-        )
-    }
-
-    return parts.length ? parts.join(' · ') : undefined
 }
 
 /** Card application state and collateral, for the card half of support volume. */
