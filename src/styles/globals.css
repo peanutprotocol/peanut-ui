@@ -912,3 +912,17 @@ input::placeholder {
 .content-page tbody tr:nth-child(even) {
     @apply bg-primary-3/30;
 }
+
+/* ── Print (public receipt) ── */
+
+@media print {
+    body {
+        background: #fff !important;
+    }
+    * {
+        box-shadow: none !important;
+    }
+    .receipt-page {
+        padding: 0 !important;
+    }
+}

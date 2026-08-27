@@ -175,13 +175,73 @@ describe('ApiError HTTP status discrimination', () => {
         expect(friendlyError(apiError(503))).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
     })
 
-    test('a 4xx ApiError with an unmapped message still falls through to genericSupport', () => {
-        expect(friendlyError(apiError(422))).toEqual({ kind: 'code', code: 'genericSupport' })
+    test('a 4xx ApiError with an unmapped human message surfaces the backend copy verbatim', () => {
+        expect(friendlyError(apiError(422))).toEqual({ kind: 'text', text: 'authorization required' })
     })
 
     test('a numeric status on a non-ApiError is ignored', () => {
         const ethersish = Object.assign(new Error('server error'), { status: 500 })
         expect(friendlyError(ethersish)).toEqual({ kind: 'code', code: 'genericSupport' })
+    })
+})
+
+describe('unmatched backend messages (genericSupport fallback)', () => {
+    const apiError = (message: string, status = 422) => Object.assign(new Error(message), { name: 'ApiError', status })
+
+    test('an unmapped ApiError message is surfaced instead of discarded', () => {
+        const err = apiError('Withdrawals to this bank are temporarily paused')
+        expect(friendlyError(err)).toEqual({ kind: 'text', text: 'Withdrawals to this bank are temporarily paused' })
+    })
+
+    test('an unmapped plain Error keeps the support fallback — only our ApiError passes through', () => {
+        expect(friendlyError(new Error('Withdrawals to this bank are temporarily paused'))).toEqual({
+            kind: 'code',
+            code: 'genericSupport',
+        })
+    })
+
+    test.each([
+        ['empty', '   '],
+        ['multi-line dump', 'Request failed\n    at withdraw (bank.ts:12)'],
+        ['URL dump', 'GET https://api.peanut.me/bridge/transfers failed'],
+        ['JSON body', '{"error":"boom"}'],
+        ['our own fetch fallback', 'Failed to create charge'],
+        ['over-long prose', 'x'.repeat(201)],
+    ])('a technical ApiError message (%s) still gets genericSupport', (_label, message) => {
+        expect(friendlyError(apiError(message))).toEqual({ kind: 'code', code: 'genericSupport' })
+    })
+
+    test('matched messages keep their code — the passthrough only fires on the fallback', () => {
+        expect(friendlyError(apiError('insufficient funds', 402))).toEqual({
+            kind: 'code',
+            code: 'insufficientFunds',
+        })
+    })
+})
+
+describe('one-level .cause walk on the fallback', () => {
+    test('an unmatched wrapper is classified by its cause', () => {
+        const wrapped = new Error('withdraw leg failed', { cause: new Error('insufficient funds') })
+        expect(friendlyError(wrapped)).toEqual({ kind: 'code', code: 'insufficientFunds' })
+    })
+
+    test('a matched wrapper is NOT reclassified by its cause', () => {
+        const wrapped = new Error('User rejected the request', { cause: new Error('insufficient funds') })
+        expect(friendlyError(wrapped)).toEqual({ kind: 'code', code: 'userRejectedRequest' })
+    })
+
+    test('the walk is one level deep, not recursive', () => {
+        const deep = new Error('outer', { cause: new Error('middle', { cause: new Error('insufficient funds') }) })
+        expect(friendlyError(deep)).toEqual({ kind: 'code', code: 'genericSupport' })
+    })
+
+    test('an unmapped ApiError hanging off .cause is surfaced verbatim', () => {
+        const backendErr = Object.assign(new Error('Amount is below the provider minimum'), {
+            name: 'ApiError',
+            status: 422,
+        })
+        const wrapped = new Error('withdraw leg failed', { cause: backendErr })
+        expect(friendlyError(wrapped)).toEqual({ kind: 'text', text: 'Amount is below the provider minimum' })
     })
 })
 

@@ -1732,6 +1732,17 @@
     },
     "transaction": {
         "drawerTitle": "Detalles de la transacción",
+        "officialReceipt": {
+            "issuedBy": "Emitido por Peanut",
+            "reference": "Referencia del recibo",
+            "issuedOn": "Fecha de emisión"
+        },
+        "receiptUnavailable": {
+            "title": "Este enlace de recibo ya no está disponible",
+            "description": "La transacción puede seguir existiendo, pero este enlace compartido ya no puede mostrarla.",
+            "loadFailedTitle": "No pudimos cargar este recibo",
+            "loadFailedDescription": "Inténtalo de nuevo en un momento."
+        },
         "noGoalSet": "Sin meta definida",
         "amountCollected": "${amount} recaudados",
         "contributors": "Contribuyentes ({count})",
