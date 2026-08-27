@@ -51,7 +51,9 @@ function DocSectionRoot({ title, description, children }: DocSectionProps) {
                     )}
                 </div>
                 {description && <p className="mt-2 text-body-s text-foreground-secondary">{description}</p>}
-                <div className="mt-6">{contentNode}</div>
+                {/* space-y-4 = L/16 within-group gap (design.md spacing anatomy) — the
+                    content column owns the stack rhythm so pages don't sprinkle margins */}
+                <div className="space-y-4 mt-6">{contentNode}</div>
             </div>
 
             {/* Right: code */}
