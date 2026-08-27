@@ -5,6 +5,8 @@
  * jest.isolateModules per test.
  */
 
+import { APP_RELEASE } from '@/constants/app-release'
+
 const mockRegister = jest.fn()
 const mockSetPersonProperties = jest.fn()
 const mockIsIdentified = jest.fn()
@@ -156,17 +158,17 @@ describe('emitDeviceContextToAnalytics', () => {
     })
 
     /*
-     * Same value Sentry sends as `release`. Without it PostHog opens cannot be
-     * used as the denominator for a Sentry failure count on a given build,
-     * which is the split that separated 3% on one bundle from 21% on the next.
+     * Also registered in posthog.init's `loaded` callback — that is what covers
+     * the initial $pageview, which init captures before this effect ever runs.
+     * Kept in this context too so a logout's posthog.reset(), which wipes super
+     * properties, brings it back with the rest.
      */
-    it('registers the bundle release so opens can be joined to Sentry by build', async () => {
+    it('re-registers the bundle release with the context, for the post-reset path', async () => {
         setNavigatorLanguage('en-US')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledWith(
-            expect.objectContaining({ app_release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH ?? 'unknown' })
-        )
+        expect(mockRegister).toHaveBeenCalledWith(expect.objectContaining({ app_release: APP_RELEASE }))
+        expect(store.currentDeviceContext()).toEqual(expect.objectContaining({ app_release: APP_RELEASE }))
     })
 
     it('emits once per session', async () => {

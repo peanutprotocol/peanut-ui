@@ -5,6 +5,7 @@
 
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
+import { APP_RELEASE } from '@/constants/app-release'
 import { getPlatform, isCapacitor } from '@/utils/capacitor'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { resolveLocale, type AppLocale } from './config'
@@ -93,9 +94,11 @@ export async function emitDeviceContextToAnalytics(): Promise<void> {
         const context = {
             device_language: tag ? tag.trim().toLowerCase() : 'unknown',
             platform: getPlatform(),
-            // Same value Sentry sends as `release`, so PostHog opens can be used
-            // as the denominator for a Sentry failure count on the same build.
-            app_release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH ?? 'unknown',
+            // Also registered in posthog.init's `loaded` callback, which is what
+            // covers the initial $pageview. Repeated here so a logout's
+            // posthog.reset() — which wipes super properties — re-registers it
+            // along with the rest of this context.
+            app_release: APP_RELEASE,
         }
         posthog.register(context)
         // set only after a successful register — a throw leaves this null so a

@@ -1,3 +1,4 @@
+import { APP_RELEASE } from '@/constants/app-release'
 import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
@@ -37,6 +38,12 @@ if (
         ui_host: posthogHost,
         person_profiles: 'identified_only',
         capture_pageview: true,
+        // Registered here, not from the async device-context effect: PostHog
+        // captures the initial $pageview during init, and super properties are
+        // persisted — so a late register left the first open after an OTA
+        // carrying the PREVIOUS bundle's release. `loaded` runs before that
+        // first capture, which is the whole point of the denominator.
+        loaded: (ph) => ph.register({ app_release: APP_RELEASE }),
         capture_pageleave: true,
         // The payment explorer contains team-only identity and relationship data.
         // Drop every event on client navigation; direct loads skip init above.
