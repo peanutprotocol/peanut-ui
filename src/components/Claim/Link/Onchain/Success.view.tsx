@@ -7,12 +7,12 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
-import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
+import { useClaimSuccessPolling } from './useClaimSuccessPolling'
 import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
@@ -50,62 +50,33 @@ export const SuccessClaimLinkView = ({
         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }, [queryClient])
 
-    useEffect(() => {
-        if (!!transactionHash) return
+    const handleClaimConfirmed = useCallback(
+        (txHash: string) => {
+            setTransactionHash(txHash)
 
-        const fetchClaimData = async () => {
-            try {
-                const link = await sendLinksApi.get(claimLinkData.link)
-                if (link.claim) {
-                    const txHash = link.claim.txHash
-                    setTransactionHash(txHash)
+            // Force immediate refetch of balance and transactions,
+            // bypassing staleTime; only currently mounted queries.
+            queryClient.refetchQueries({ queryKey: [TRANSACTIONS], type: 'active' })
+            queryClient.refetchQueries({ queryKey: ['balance'], type: 'active' })
 
-                    // Force immediate refetch of balance and transactions
-                    // This runs inside the polling callback, so it works even if component unmounts
-                    // Using refetchQueries to bypass staleTime and force immediate refetch
-                    queryClient.refetchQueries({
-                        queryKey: [TRANSACTIONS],
-                        type: 'active', // Only refetch currently mounted queries
-                    })
-                    queryClient.refetchQueries({
-                        queryKey: ['balance'],
-                        type: 'active', // Only refetch currently mounted queries
-                    })
+            // Update user profile (points, etc)
+            fetchUser()
+        },
+        [queryClient, fetchUser, setTransactionHash]
+    )
 
-                    // Update user profile (points, etc)
-                    fetchUser()
+    const handleClaimFailed = useCallback(
+        (reason?: string) => {
+            // Claim failed after optimistic return
+            console.error('Claim failed:', reason || 'Unknown error')
+            // TODO: Show error UI to user instead of silent failure
+            // For now, setting txHash to 'FAILED' to stop showing loading state
+            setTransactionHash('FAILED')
+        },
+        [setTransactionHash]
+    )
 
-                    console.log('✅ Claim confirmed. WebSocket will handle backend updates:', txHash) // Poll every 1 second
-
-                    return true
-                } else if (link.status === ESendLinkStatus.FAILED) {
-                    // Claim failed after optimistic return - show error to user
-                    console.error('Claim failed:', link.events?.[link.events.length - 1]?.reason || 'Unknown error')
-                    // TODO: Show error UI to user instead of silent failure
-                    // For now, setting txHash to 'FAILED' to stop showing loading state
-                    setTransactionHash('FAILED')
-                    return true
-                }
-                return false
-            } catch (error) {
-                console.error('Error fetching claim data:', error)
-                return false
-            }
-        }
-
-        const intervalId = setInterval(async () => {
-            const claimFound = await fetchClaimData()
-            if (claimFound) {
-                clearInterval(intervalId)
-            }
-        }, 250)
-
-        // Initial fetch attempt
-        fetchClaimData()
-
-        // Clean up the interval when component unmounts or transactionHash changes
-        return () => clearInterval(intervalId)
-    }, [transactionHash, claimLinkData.link, queryClient, fetchUser])
+    useClaimSuccessPolling(claimLinkData.link, !transactionHash, handleClaimConfirmed, handleClaimFailed)
 
     const tokenDetails = useMemo(() => {
         if (!claimLinkData) return null

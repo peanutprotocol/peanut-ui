@@ -17,6 +17,7 @@ import { useAutoTruncatedAddress } from '@/hooks/useAutoTruncatedAddress'
 import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, NETWORK_LABELS, getSupportedTokens } from '@/constants/rhino.consts'
 import UserCard from '@/components/User/UserCard'
 import { isCryptoAddress, printableAddress } from '@/utils/general.utils'
+import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import { useTranslations } from 'next-intl'
 
 interface RhinoDepositViewProps {
@@ -46,6 +47,7 @@ const RhinoDepositView = ({
 }: RhinoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
     const tCommon = useTranslations('common')
+    const tPayment = useTranslations('payment')
     const copyRef = useRef<CopyToClipboardRef>(null)
     const {
         status: depositAddressStatus,
@@ -56,6 +58,16 @@ const RhinoDepositView = ({
     const { containerRef, truncatedAddress } = useAutoTruncatedAddress(depositAddressData?.depositAddress ?? '')
 
     const amountLimitsTitle = chainType === 'EVM' ? t('evmNetworks') : NETWORK_LABELS[chainType]
+
+    /*
+     * Fixed-amount flows (request payments pass `amount`) below the chain's SDA
+     * floor must be blocked here, where the per-chain floor is first known:
+     * Rhino accepts a sub-minimum deposit on-chain but never bridges it, so the
+     * funds strand uncredited. The chain tabs stay usable — another chain may
+     * have a lower floor.
+     */
+    const isBelowMinDeposit =
+        amount != null && isBelowRhinoMinDeposit(amount.toString(), depositAddressData?.minDepositLimitUsd)
 
     if (depositAddressStatus === 'failed') {
         return (
@@ -135,84 +147,110 @@ const RhinoDepositView = ({
                     </div>
                 )}
 
-                {depositAddressData && !isDepositAddressDataLoading && depositAddressStatus !== 'loading' && (
-                    <>
-                        <div className="flex items-center justify-center">
-                            <QRCodeWrapper url={depositAddressData?.depositAddress} />
-                        </div>
-
-                        <Button
-                            variant="primary-soft"
-                            className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5"
-                            shadowSize="3"
-                            size="small"
-                            onClick={() => copyRef.current?.copy()}
-                        >
-                            <p className="w-full text-sm" ref={containerRef}>
-                                {truncatedAddress}
-                            </p>
-                            <CopyToClipboard ref={copyRef} type="icon" textToCopy={depositAddressData.depositAddress} />
-                        </Button>
-
-                        <InfoCard
-                            iconClassName="text-yellow-11"
-                            variant="warning"
-                            icon="alert"
-                            containerClassName="items-center"
-                            customContent={
-                                <div className="flex items-center gap-2">
-                                    <p className="text-sm">{t('supportedTokensInline')}</p>
-                                    {getSupportedTokens(chainType).map((token) => (
-                                        <ChainChip
-                                            key={token.name}
-                                            chainName={token.name}
-                                            chainSymbol={token.logoUrl}
-                                        />
-                                    ))}
+                {depositAddressData &&
+                    !isDepositAddressDataLoading &&
+                    depositAddressStatus !== 'loading' &&
+                    isBelowMinDeposit && (
+                        <Card>
+                            <div className="flex w-full flex-col items-center justify-center gap-2">
+                                <div className="flex size-9 items-center justify-center rounded-full bg-secondary-1">
+                                    <Icon name="alert" size={20} />
                                 </div>
-                            }
-                        />
+                                <h1 className="text-base font-bold">{tPayment('minAmount.title')}</h1>
+                                <p className="text-center text-sm text-grey-1">
+                                    {tPayment('minAmount.description', {
+                                        minAmount: depositAddressData.minDepositLimitUsd,
+                                    })}
+                                </p>
+                            </div>
+                        </Card>
+                    )}
 
-                        <div className="w-full space-y-1">
-                            <div className="flex w-full items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Icon name="info" size={18} className="text-grey-1" />
-                                    <p className="text-sm text-grey-1">
-                                        {t('minDepositForLabel', { network: amountLimitsTitle })}
+                {depositAddressData &&
+                    !isDepositAddressDataLoading &&
+                    depositAddressStatus !== 'loading' &&
+                    !isBelowMinDeposit && (
+                        <>
+                            <div className="flex items-center justify-center">
+                                <QRCodeWrapper url={depositAddressData?.depositAddress} />
+                            </div>
+
+                            <Button
+                                variant="primary-soft"
+                                className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5"
+                                shadowSize="3"
+                                size="small"
+                                onClick={() => copyRef.current?.copy()}
+                            >
+                                <p className="w-full text-sm" ref={containerRef}>
+                                    {truncatedAddress}
+                                </p>
+                                <CopyToClipboard
+                                    ref={copyRef}
+                                    type="icon"
+                                    textToCopy={depositAddressData.depositAddress}
+                                />
+                            </Button>
+
+                            <InfoCard
+                                iconClassName="text-yellow-11"
+                                variant="warning"
+                                icon="alert"
+                                containerClassName="items-center"
+                                customContent={
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-sm">{t('supportedTokensInline')}</p>
+                                        {getSupportedTokens(chainType).map((token) => (
+                                            <ChainChip
+                                                key={token.name}
+                                                chainName={token.name}
+                                                chainSymbol={token.logoUrl}
+                                            />
+                                        ))}
+                                    </div>
+                                }
+                            />
+
+                            <div className="w-full space-y-1">
+                                <div className="flex w-full items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Icon name="info" size={18} className="text-grey-1" />
+                                        <p className="text-sm text-grey-1">
+                                            {t('minDepositForLabel', { network: amountLimitsTitle })}
+                                        </p>
+                                    </div>
+
+                                    <p className="text-sm font-medium text-grey-1">
+                                        {depositAddressData.minDepositLimitUsd} USD
                                     </p>
                                 </div>
 
-                                <p className="text-sm font-medium text-grey-1">
-                                    {depositAddressData.minDepositLimitUsd} USD
-                                </p>
-                            </div>
+                                <div className="flex w-full items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Icon name="info" size={18} className="text-grey-1" />
+                                        <p className="text-sm text-grey-1">
+                                            {t('maxDepositForLabel', { network: amountLimitsTitle })}
+                                        </p>
+                                    </div>
 
-                            <div className="flex w-full items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Icon name="info" size={18} className="text-grey-1" />
-                                    <p className="text-sm text-grey-1">
-                                        {t('maxDepositForLabel', { network: amountLimitsTitle })}
+                                    <p className="text-sm font-medium text-grey-1">
+                                        {depositAddressData.maxDepositLimitUsd} USD
                                     </p>
                                 </div>
-
-                                <p className="text-sm font-medium text-grey-1">
-                                    {depositAddressData.maxDepositLimitUsd} USD
-                                </p>
                             </div>
-                        </div>
 
-                        {chainType === 'EVM' && (
-                            <Card className="space-y-2 p-4">
-                                <h3 className="text-sm font-bold text-black">{t('supportedEvmNetworks')}</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {SUPPORTED_EVM_CHAINS.map((chain) => (
-                                        <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
-                                    ))}
-                                </div>
-                            </Card>
-                        )}
-                    </>
-                )}
+                            {chainType === 'EVM' && (
+                                <Card className="space-y-2 p-4">
+                                    <h3 className="text-sm font-bold text-black">{t('supportedEvmNetworks')}</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {SUPPORTED_EVM_CHAINS.map((chain) => (
+                                            <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
+                                        ))}
+                                    </div>
+                                </Card>
+                            )}
+                        </>
+                    )}
             </div>
         </div>
     )
