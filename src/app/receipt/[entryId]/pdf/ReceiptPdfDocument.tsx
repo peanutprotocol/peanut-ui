@@ -14,9 +14,40 @@ Font.register({
         { src: path.join(fontDir, 'montserrat-semibold.ttf'), fontWeight: 600 },
     ],
 })
-// Currency amounts can carry glyphs outside a font subset; keep hyphenation off
-// so ids/hashes wrap character-by-character instead of with hyphens.
+// Prose must never hyphenate, and an identifier must never gain a hyphen: a
+// 66-char tx hash is wider than the value column, so with no break opportunity
+// it overflows the row — but breaking it via the hyphenation callback makes
+// react-pdf render a hyphen at the break, which corrupts a hash someone reads
+// off the page. So keep hyphenation off entirely and give identifier-like
+// values zero-width break opportunities instead (see `breakableIdentifier`).
 Font.registerHyphenationCallback((word) => [word])
+
+const IDENTIFIER_MIN_LENGTH = 24
+const IDENTIFIER_LINE_LENGTH = 40
+
+const isIdentifierLike = (value: string) =>
+    value.length >= IDENTIFIER_MIN_LENGTH && /^[0-9a-zA-Z:_-]+$/.test(value) && /[0-9]/.test(value)
+
+/**
+ * Hard-wraps a long unbroken identifier so it stays inside its column.
+ *
+ * Two approaches were rejected first: the hyphenation callback DOES wrap, but
+ * react-pdf renders a hyphen at the break, and a hash someone reads off the
+ * page must not gain a character; zero-width spaces are invisible but react-pdf
+ * does not treat them as break opportunities, so the value still overflowed.
+ * An explicit newline is deterministic and adds no visible character. The line
+ * length is conservative for the value column at this font size — the wrap only
+ * needs to beat the column, not fill it exactly. Copied text carries the
+ * newlines, which is the accepted trade-off for never altering the characters.
+ */
+export function breakableIdentifier(value: string): string {
+    if (!isIdentifierLike(value)) return value
+    const lines: string[] = []
+    for (let i = 0; i < value.length; i += IDENTIFIER_LINE_LENGTH) {
+        lines.push(value.slice(i, i + IDENTIFIER_LINE_LENGTH))
+    }
+    return lines.join('\n')
+}
 
 const grey = '#6A6A6A'
 const border = '#000000'
@@ -111,7 +142,7 @@ export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
                             style={index === model.rows.length - 1 ? [styles.row, styles.lastRow] : styles.row}
                         >
                             <Text style={styles.rowLabel}>{row.label}</Text>
-                            <Text style={styles.rowValue}>{row.value}</Text>
+                            <Text style={styles.rowValue}>{breakableIdentifier(row.value)}</Text>
                         </View>
                     ))}
                 </View>
@@ -120,7 +151,7 @@ export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
                     <View style={styles.footerRule} />
                     <View style={styles.footerRow}>
                         <Text style={styles.footerLabel}>{model.referenceLabel}</Text>
-                        <Text style={styles.footerValue}>{model.reference}</Text>
+                        <Text style={styles.footerValue}>{breakableIdentifier(model.reference)}</Text>
                     </View>
                     <View style={styles.footerRow}>
                         <Text style={styles.footerLabel}>{model.issuedOnLabel}</Text>
