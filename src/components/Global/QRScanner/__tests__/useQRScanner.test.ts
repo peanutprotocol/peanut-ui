@@ -73,6 +73,13 @@ HTMLMediaElement.prototype.load = jest.fn()
 
 const PIX_PAYLOAD = '00020101021226' + '0014br.gov.bcb.pix' + 'y'.repeat(68)
 
+// Every mount schedules a 100ms element-retry before the <video> exists. Left on
+// a real clock it outlives its own test and fires startCamera into whichever
+// test is running 100ms later, inflating the module-level startCalls there — a
+// ~4% flake in "does not re-enter the camera flow while the error view is up".
+beforeEach(() => jest.useFakeTimers())
+afterEach(() => jest.useRealTimers())
+
 it('camera scan: onScan failure is captured with the qr_scan_processing tag', async () => {
     const error = new Error('routing exploded')
     const onScan = jest.fn().mockRejectedValue(error)
@@ -83,7 +90,7 @@ it('camera scan: onScan failure is captured with the qr_scan_processing tag', as
     const videoRef = result.current.videoRef as React.MutableRefObject<HTMLVideoElement | null>
     videoRef.current = document.createElement('video')
     await act(async () => {
-        await result.current.retryCamera()
+        jest.advanceTimersByTime(100) // CONFIG.VIDEO_ELEMENT_RETRY_DELAY_MS
     })
 
     await act(async () => {

@@ -83,6 +83,25 @@ const SCANNER_OPTIONS = {
 let lastScan: { data: string; timestamp: number } | null = null
 const SCAN_DEBOUNCE_MS = 1000
 
+/**
+ * Waits on a start attempt without taking ownership of it: 'started' when the
+ * camera came up in time, 'pending' when the deadline won and the attempt is
+ * still outstanding. Rejects with whatever start() rejected with.
+ */
+async function raceStartDeadline(started: Promise<void>): Promise<'started' | 'pending'> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    try {
+        return await Promise.race([
+            started.then(() => 'started' as const),
+            new Promise<'pending'>((resolve) => {
+                timeoutId = setTimeout(resolve, CONFIG.CAMERA_START_TIMEOUT_MS, 'pending')
+            }),
+        ])
+    } finally {
+        clearTimeout(timeoutId)
+    }
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -295,7 +314,6 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             const generation = ++startGenRef.current
             const superseded = () => generation !== startGenRef.current
 
-            let startTimeoutId: ReturnType<typeof setTimeout> | undefined
             try {
                 cleanup()
 
@@ -360,14 +378,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                      * adoptPendingStart and lets the permission modal cover the wait.
                      */
                     const started = scanner.start()
-                    const outcome = await Promise.race([
-                        started.then(() => 'started' as const),
-                        new Promise<'pending'>((resolve) => {
-                            startTimeoutId = setTimeout(resolve, CONFIG.CAMERA_START_TIMEOUT_MS, 'pending')
-                        }),
-                    ])
-                    clearTimeout(startTimeoutId)
-                    if (outcome === 'pending') {
+                    if ((await raceStartDeadline(started)) === 'pending') {
                         adoptPendingStart(started, superseded, preferredCamera)
                         return
                     }
@@ -406,7 +417,6 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 setIsCameraReady(true)
                 retryCountRef.current = 0
             } catch (err) {
-                clearTimeout(startTimeoutId)
                 cleanup()
                 console.error('Error accessing camera:', toError(err))
 
