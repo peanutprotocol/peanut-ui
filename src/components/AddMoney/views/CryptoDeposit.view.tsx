@@ -18,7 +18,6 @@ import {
     SUPPORTED_EVM_CHAINS,
     NETWORK_LABELS,
     NETWORK_LOGOS,
-    TOKEN_LOGOS,
     getSupportedTokens,
 } from '@/constants/rhino.consts'
 import type {
@@ -42,13 +41,7 @@ interface CryptoDepositViewProps {
     onRetry?: () => void
     onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void
     onBack: () => void
-    // offramp migration: same rhino EVM SDA (funds land on arbitrum) but with the
-    // multi-chain / multi-token picker stripped to a single arbitrum + usdc surface.
-    variant?: 'default' | 'offramp'
 }
-
-// The offramp migration surface advertises exactly one safe token.
-const OFFRAMP_DISPLAY_TOKENS = [{ name: 'USDC', logoUrl: TOKEN_LOGOS.USDC }]
 
 const CryptoDepositView = ({
     network,
@@ -58,7 +51,6 @@ const CryptoDepositView = ({
     onRetry,
     onSuccess,
     onBack,
-    variant = 'default',
 }: CryptoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
     const tAddMoney = useTranslations('addMoney')
@@ -69,7 +61,6 @@ const CryptoDepositView = ({
 
     const networkLabel = NETWORK_LABELS[network]
     const isEvm = network === 'EVM'
-    const isOfframp = variant === 'offramp'
 
     const supportedTokens = getSupportedTokens(network)
 
@@ -79,40 +70,24 @@ const CryptoDepositView = ({
         TRON: t('tooltipTron'),
     }
 
-    const amountLimitsLabel = isOfframp ? 'Arbitrum' : isEvm ? t('evmNetworks') : networkLabel
-    const headerTitle = isOfframp ? tAddMoney('methods.migrateFromOfframp') : t('title')
+    const amountLimitsLabel = isEvm ? t('evmNetworks') : networkLabel
 
     // failed state
     if (status === 'failed') {
         return (
             <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 pb-4 md:pb-0">
-                <NavHeader title={headerTitle} onPrev={onBack} />
+                <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
                     <Card>
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             <IconBubble icon="alert" size="s" color="yellow" />
-                            <h1 className="text-heading-card text-foreground-primary">
-                                {isOfframp ? t('transferSentBackTitle') : t('marketMovedTitle')}
-                            </h1>
-                            {isOfframp ? (
-                                <>
-                                    <p className="text-center text-body-s text-foreground-secondary">
-                                        {t('transferSentBackDescription')}
-                                    </p>
-                                    <p className="text-center text-body-s font-bold text-foreground-secondary">
-                                        {t('transferSentBackNote')}
-                                    </p>
-                                </>
-                            ) : (
-                                <>
-                                    <p className="text-center text-body-s text-foreground-secondary">
-                                        {t('marketMovedDescription')}
-                                    </p>
-                                    <p className="text-center text-body-s font-bold text-foreground-secondary">
-                                        {t('marketMovedNote')}
-                                    </p>
-                                </>
-                            )}
+                            <h1 className="text-heading-card text-foreground-primary">{t('marketMovedTitle')}</h1>
+                            <p className="text-center text-body-s text-foreground-secondary">
+                                {t('marketMovedDescription')}
+                            </p>
+                            <p className="text-center text-body-s font-bold text-foreground-secondary">
+                                {t('marketMovedNote')}
+                            </p>
                         </div>
                     </Card>
                     <Button onClick={resetStatus} shadowSize="4" loading={isResetting} disabled={isResetting}>
@@ -125,19 +100,15 @@ const CryptoDepositView = ({
 
     return (
         <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-4 md:pb-0">
-            <NavHeader title={headerTitle} onPrev={onBack} />
+            <NavHeader title={t('title')} onPrev={onBack} />
 
             <div className="my-auto flex w-full flex-col gap-4">
                 {/* subtitle */}
                 <p className="text-center text-body-s text-foreground-secondary">
-                    {isOfframp
-                        ? t.rich('sendUsdcOnArbitrum', {
-                              b: (chunks) => <span className="font-bold text-foreground-primary">{chunks}</span>,
-                          })
-                        : t.rich('sendTokensToAddress', {
-                              network: networkLabel,
-                              b: (chunks) => <span className="font-bold text-foreground-primary">{chunks}</span>,
-                          })}
+                    {t.rich('sendTokensToAddress', {
+                        network: networkLabel,
+                        b: (chunks) => <span className="font-bold text-foreground-primary">{chunks}</span>,
+                    })}
                 </p>
 
                 {/* loading state */}
@@ -173,7 +144,7 @@ const CryptoDepositView = ({
                         <div className="flex items-center justify-center">
                             <QRCodeWrapper
                                 url={depositAddressData.depositAddress}
-                                centerImage={isOfframp ? CHAIN_LOGOS.ARBITRUM : NETWORK_LOGOS[network]}
+                                centerImage={NETWORK_LOGOS[network]}
                             />
                         </div>
 
@@ -182,25 +153,14 @@ const CryptoDepositView = ({
                             {/* address section */}
                             <div className="flex flex-col gap-2 p-4">
                                 <div className="flex items-center gap-1">
-                                    {isOfframp ? (
-                                        <Tooltip content={t('migrationAddressTooltip')} position="bottom">
-                                            <span className="flex items-center gap-1">
-                                                <span className="text-body-s font-bold">
-                                                    {t('migrationDepositAddress')}
-                                                </span>
-                                                <Icon name="info" size={18} className="text-foreground-secondary" />
+                                    <Tooltip content={tooltipText[network]} position="bottom">
+                                        <span className="flex items-center gap-1">
+                                            <span className="text-body-s font-bold">
+                                                {isEvm ? t('universalDepositAddress') : t('depositAddress')}
                                             </span>
-                                        </Tooltip>
-                                    ) : (
-                                        <Tooltip content={tooltipText[network]} position="bottom">
-                                            <span className="flex items-center gap-1">
-                                                <span className="text-body-s font-bold">
-                                                    {isEvm ? t('universalDepositAddress') : t('depositAddress')}
-                                                </span>
-                                                <Icon name="info" size={18} className="text-foreground-secondary" />
-                                            </span>
-                                        </Tooltip>
-                                    )}
+                                            <Icon name="info" size={18} className="text-foreground-secondary" />
+                                        </span>
+                                    </Tooltip>
                                 </div>
                                 <div className="flex items-start justify-between gap-2">
                                     <p className="text-body-s break-all">
@@ -223,20 +183,16 @@ const CryptoDepositView = ({
                             {/* supported networks section */}
                             <div
                                 onClick={() => {
-                                    if (isEvm && !isOfframp) {
+                                    if (isEvm) {
                                         setShowSupportedNetworks(true)
                                     }
                                 }}
-                                className={`border-t border-border-default p-4 ${isEvm && !isOfframp ? 'cursor-pointer' : ''}`}
+                                className={`border-t border-border-default p-4 ${isEvm ? 'cursor-pointer' : ''}`}
                             >
-                                <p className="mb-2 text-body-s font-bold">
-                                    {isOfframp ? t('network') : t('supportedNetworks')}
-                                </p>
+                                <p className="mb-2 text-body-s font-bold">{t('supportedNetworks')}</p>
                                 <div className="flex items-center gap-2">
                                     <div className="flex flex-wrap gap-2">
-                                        {isOfframp ? (
-                                            <ChainChip chainName="Arbitrum" chainSymbol={CHAIN_LOGOS.ARBITRUM} />
-                                        ) : isEvm ? (
+                                        {isEvm ? (
                                             <>
                                                 {SUPPORTED_EVM_CHAINS.map((chain) => (
                                                     <Image
@@ -256,7 +212,7 @@ const CryptoDepositView = ({
                                             />
                                         )}
                                     </div>
-                                    {isEvm && !isOfframp && (
+                                    {isEvm && (
                                         <Button
                                             shadowSize="4"
                                             size="small"
@@ -272,11 +228,9 @@ const CryptoDepositView = ({
 
                             {/* supported tokens section */}
                             <div className="border-t border-border-default p-4">
-                                <p className="mb-2 text-body-s font-bold">
-                                    {isOfframp ? t('token') : t('supportedTokens')}
-                                </p>
+                                <p className="mb-2 text-body-s font-bold">{t('supportedTokens')}</p>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {(isOfframp ? OFFRAMP_DISPLAY_TOKENS : supportedTokens).map((token) => (
+                                    {supportedTokens.map((token) => (
                                         <ChainChip
                                             key={token.name}
                                             chainName={token.name}
@@ -288,20 +242,15 @@ const CryptoDepositView = ({
                         </div>
 
                         {/* warning card */}
-                        <Notification
-                            priority="attention"
-                            title={isOfframp ? t('warningTitleOfframp') : t('warningTitle')}
-                        >
-                            {isOfframp ? t('warningDescriptionOfframp') : t('warningDescription')}
+                        <Notification priority="attention" title={t('warningTitle')}>
+                            {t('warningDescription')}
                         </Notification>
 
                         {/* min/max limits */}
                         <div className="flex w-full flex-col gap-1">
                             <div className="flex w-full items-center justify-between">
                                 <p className="text-body-s text-foreground-secondary">
-                                    {isOfframp
-                                        ? t('minPerTransfer')
-                                        : t('minDepositFor', { network: amountLimitsLabel })}
+                                    {t('minDepositFor', { network: amountLimitsLabel })}
                                 </p>
                                 <p className="text-body-s font-bold">
                                     {depositAddressData.minDepositLimitUsd.toLocaleString()} USD
@@ -309,22 +258,13 @@ const CryptoDepositView = ({
                             </div>
                             <div className="flex w-full items-center justify-between">
                                 <p className="text-body-s text-foreground-secondary">
-                                    {isOfframp
-                                        ? t('maxPerTransfer')
-                                        : t('maxDepositFor', { network: amountLimitsLabel })}
+                                    {t('maxDepositFor', { network: amountLimitsLabel })}
                                 </p>
                                 <p className="text-body-s font-bold">
                                     {depositAddressData.maxDepositLimitUsd.toLocaleString()} USD
                                 </p>
                             </div>
-                            {!isOfframp && (
-                                <p className="pt-1 text-body-s text-foreground-secondary">{t('bridgingFeeNote')}</p>
-                            )}
-                            {isOfframp && (
-                                <p className="pt-1 text-body-s text-foreground-secondary">
-                                    {t('multipleTransfersNote')}
-                                </p>
-                            )}
+                            <p className="pt-1 text-body-s text-foreground-secondary">{t('bridgingFeeNote')}</p>
                         </div>
 
                         {/* how to deposit button */}
@@ -335,18 +275,14 @@ const CryptoDepositView = ({
                             onClick={() => setShowHowToDeposit(true)}
                         >
                             <Icon name="info" size={16} className="mr-1.5" />
-                            {isOfframp ? tAddMoney('howToDeposit.titleOfframp') : tAddMoney('howToDeposit.title')}
+                            {tAddMoney('howToDeposit.title')}
                         </Button>
                     </>
                 )}
             </div>
 
             {/* modals */}
-            <HowToDepositModal
-                visible={showHowToDeposit}
-                onClose={() => setShowHowToDeposit(false)}
-                variant={variant}
-            />
+            <HowToDepositModal visible={showHowToDeposit} onClose={() => setShowHowToDeposit(false)} />
             <SupportedNetworksModal visible={showSupportedNetworks} onClose={() => setShowSupportedNetworks(false)} />
         </div>
     )
