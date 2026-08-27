@@ -174,13 +174,17 @@ export function useNativeAppLinks() {
                 // this same launch URL (a full-document load recovers it from
                 // location) — dispatching it again would double-navigate.
                 const launch = await App.getLaunchUrl()
-                if (launch?.url && !hasDeepLinkNavigated()) {
+                if (launch?.url) {
+                    // Stamp BEFORE the hasDeepLinkNavigated() check: on the
+                    // RootRedirect path the URL is already handled, and skipping
+                    // the stamp let the next reload (module state gone,
+                    // getLaunchUrl unchanged) replay it.
                     let alreadyHandled = false
                     try {
                         alreadyHandled = sessionStorage.getItem(HANDLED_LAUNCH_URL_KEY) === launch.url
                         if (!alreadyHandled) sessionStorage.setItem(HANDLED_LAUNCH_URL_KEY, launch.url)
                     } catch {}
-                    if (!alreadyHandled) openDeepLink(launch.url, 'launch_url')
+                    if (!alreadyHandled && !hasDeepLinkNavigated()) openDeepLink(launch.url, 'launch_url')
                 }
                 const urlListener = await App.addListener('appUrlOpen', ({ url }: { url: string }) =>
                     openDeepLink(url, 'app_url_open')
