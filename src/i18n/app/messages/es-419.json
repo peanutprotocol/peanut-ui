@@ -1777,7 +1777,6 @@
             "claimTo": "Reclamo a {name}",
             "claimingTo": "Reclamando a {name}",
             "paidTo": "Pagado a {name}",
-            "payingTo": "Pagando a {name}",
             "paymentTo": "Pago a {name}"
         },
         "name": {

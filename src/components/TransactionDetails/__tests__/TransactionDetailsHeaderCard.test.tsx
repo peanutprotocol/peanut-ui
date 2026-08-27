@@ -76,6 +76,11 @@ describe('TransactionDetailsHeaderCard direction words', () => {
         expect(screen.getByText('Payment to Trader Joe S #225')).toBeInTheDocument()
     })
 
+    it('keeps "Paid to" on a PENDING card/QR payment (board: badge carries the state, not the verb)', () => {
+        renderHeaderCard({ direction: 'qr_payment', status: 'pending', userName: 'Museumsinsel' })
+        expect(screen.getByText('Paid to Museumsinsel')).toBeInTheDocument()
+    })
+
     it('leaves the self-contained failed-QR label unprefixed', () => {
         renderHeaderCard({
             direction: 'qr_payment',

@@ -139,9 +139,7 @@ const getTitle = (
                 }
                 break
             case 'qr_payment':
-                if (status === 'completed') {
-                    titleText = t('title.paidTo', { name: displayName })
-                } else if (status === 'failed') {
+                if (status === 'failed') {
                     // Failed QR-pays carry a self-contained label from the
                     // transformer ("Failed QR payment attempt") — no "Payment to"
                     // prefix, which would read "Payment to Failed QR payment attempt".
@@ -152,7 +150,11 @@ const getTitle = (
                             ? displayName
                             : t('title.paymentTo', { name: displayName })
                 } else {
-                    titleText = t('title.payingTo', { name: displayName })
+                    // Board 17490:115877 (Activity/CardPayment pending drawer):
+                    // the title keeps the type wording "Paid to {name}" in every
+                    // non-failed state — the status badge, not the verb tense,
+                    // carries pending/cancelled. ("Paying to" retired with it.)
+                    titleText = t('title.paidTo', { name: displayName })
                 }
                 break
             case 'bank_request_fulfillment':
