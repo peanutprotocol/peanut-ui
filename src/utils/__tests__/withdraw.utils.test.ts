@@ -450,14 +450,18 @@ describe('resolveWithdrawAmount', () => {
         expect(resolveWithdrawAmount('10.12', balance('50.00'), true, USDC)).toBe('10.12')
     })
 
-    it('never overdraws when the balance dropped after the tap', () => {
+    it('returns the amount on screen when the balance dropped — it does not clamp', () => {
+        // Not an overdraw guard: shrinking the amount under the user would send
+        // less than they confirmed. The shortfall is caught downstream instead
+        // (cross-chain blocks the CTA, a same-chain send fails), exactly as it
+        // always has for a typed amount.
         expect(resolveWithdrawAmount('10.12', balance('3.00'), true, USDC)).toBe('10.12')
     })
 
     it('holds the line when the balance moved by a sub-cent amount', () => {
         // still floors to 10.12, so the remainder is the user's to take
         expect(resolveWithdrawAmount('10.12', balance('10.129999'), true, USDC)).toBe('10.129999')
-        // dropped below the cent the user saw — fall back rather than guess
+        // dropped below the cent the user saw — return what they saw, unchanged
         expect(resolveWithdrawAmount('10.12', balance('10.119999'), true, USDC)).toBe('10.12')
     })
 

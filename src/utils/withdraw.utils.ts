@@ -369,9 +369,16 @@ export const isBelowRhinoMinDeposit = (
  * stranding dust that displays as $0.00 and can never be withdrawn.
  *
  * The live balance is only used while it still floors to the amount on screen.
- * A deposit landing between the tap and the confirm must NOT silently enlarge
- * the withdrawal, and a balance that dropped must not overdraw — either way we
- * fall back to the number the user actually saw and agreed to.
+ * Otherwise — a deposit landed, or the balance dropped — this returns the amount
+ * the user saw, unchanged.
+ *
+ * It deliberately does NOT clamp to the live balance. This function's only job is
+ * to decide whether the sub-cent remainder rides along; it never enlarges or
+ * shrinks what the user agreed to withdraw. Silently sending less than the
+ * confirmed amount would be worse than failing, and an amount that now exceeds
+ * the balance is caught downstream: cross-chain withdrawals block the confirm CTA
+ * on `insufficientForFee`, and a same-chain send fails rather than overdrawing.
+ * That is the same outcome a typed amount has always had when the balance moves.
  *
  * @param amount        the amount on screen, as filled or typed (USD)
  * @param spendableBalance  live spendable balance in token units
