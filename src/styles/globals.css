@@ -1004,6 +1004,12 @@
     .input {
         @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
     }
+    /* "content dissolves" bottom-nav treatment: the scroll container fades
+       its own last 96px so nothing needs painting behind the transparent nav */
+    .dissolve-bottom {
+        mask-image: linear-gradient(to bottom, black calc(100% - 96px), transparent);
+        -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 96px), transparent);
+    }
     .bg-peanut-repeat-normal {
         @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;
     }

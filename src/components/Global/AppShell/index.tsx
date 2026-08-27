@@ -75,6 +75,8 @@ export const AppShell = ({
                 // spacing board 17291:2772: screen edge inset is L/16 (px-4); vertical keeps the XL/24 section rhythm
                 className={twMerge(
                     'relative w-full flex-1 overflow-y-auto bg-background-page px-4 py-6',
+                    // content dissolves under the transparent bottom nav
+                    !!nav && 'dissolve-bottom',
                     contentClassName
                 )}
             >
