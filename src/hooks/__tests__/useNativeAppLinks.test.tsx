@@ -5,6 +5,7 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useNativeAppLinks } from '../useNativeAppLinks'
 import { restoreDeferredContext } from '@/utils/deferred-link'
+import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 import { getOneSignalAdapter } from '@/services/onesignal'
 
 const push = jest.fn()
@@ -17,6 +18,9 @@ jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => true),
     getPlatform: jest.fn(() => 'android-native'),
+    openExternalUrl: jest.fn(() => Promise.resolve()),
+    closeInAppBrowser: jest.fn(() => Promise.resolve()),
+    markInAppBrowserClosed: jest.fn(),
 }))
 
 jest.mock('@/services/onesignal', () => ({
@@ -41,6 +45,10 @@ const mockRestore = restoreDeferredContext as jest.MockedFunction<typeof restore
 beforeEach(() => {
     jest.clearAllMocks()
     launchUrl = undefined
+    // Module state + the launch-url guard outlive a test: without these resets
+    // an earlier test's navigation suppresses the next test's launch dispatch.
+    resetDeepLinkStateForTests()
+    sessionStorage.clear()
 })
 
 describe('useNativeAppLinks deferred restore wiring', () => {
@@ -98,5 +106,35 @@ describe('useNativeAppLinks deferred restore wiring', () => {
         const mockAdapter = getOneSignalAdapter as jest.MockedFunction<typeof getOneSignalAdapter>
         await waitFor(() => expect(mockAdapter).toHaveBeenCalled())
         expect(push).not.toHaveBeenCalled()
+    })
+})
+
+describe('launch-url replay guard', () => {
+    it('stamps the launch url even when RootRedirect already routed it, so a webview reload cannot replay it', async () => {
+        launchUrl = 'https://peanut.me/claim?i=abc'
+        // RootRedirect recovered the same URL from location on the full-document load
+        markDeepLinkNavigated()
+
+        const first = renderHook(() => useNativeAppLinks())
+        await waitFor(() => expect(getOneSignalAdapter).toHaveBeenCalled())
+        expect(push).not.toHaveBeenCalled()
+        first.unmount()
+
+        // logout / hard-nav fallback: same process, fresh module state,
+        // getLaunchUrl still returns the original URL
+        resetDeepLinkStateForTests()
+        jest.clearAllMocks()
+
+        renderHook(() => useNativeAppLinks())
+        await waitFor(() => expect(getOneSignalAdapter).toHaveBeenCalled())
+        expect(push).not.toHaveBeenCalled()
+    })
+
+    it('still dispatches a launch url that nothing has handled', async () => {
+        launchUrl = 'https://peanut.me/claim?i=unhandled'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/claim?i=unhandled'))
     })
 })

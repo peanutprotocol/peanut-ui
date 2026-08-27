@@ -5971,53 +5971,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/manteca/initiate-onboarding": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Initiate Manteca onboarding
-         * @description Creates an onboarding widget URL for the current user using userId as userExternalId and returns the URL
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        returnUrl: string;
-                        failureUrl?: string;
-                        exchange?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/manteca/prices": {
         parameters: {
             query?: never;

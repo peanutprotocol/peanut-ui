@@ -119,14 +119,24 @@ function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
 function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
+    const toast = useToast()
     return (
         <div className="flex flex-col justify-center p-6">
             <span className="text-sm">{t('qrScannerOverlay.externalUrlIntro')}</span>
             <span className="text-sm">{t('qrScannerOverlay.externalUrlTrust')}</span>
             <div className="flex items-center justify-center gap-2">
                 <Button
-                    onClick={() => {
-                        if (redirectTo) openExternalUrl(redirectTo)
+                    onClick={async () => {
+                        if (redirectTo) {
+                            // scheme-less QR payloads ("example.com/x") make
+                            // Browser.open throw — the tap died silently.
+                            const url = /^[a-z][a-z0-9+.-]*:/i.test(redirectTo) ? redirectTo : `https://${redirectTo}`
+                            try {
+                                await openExternalUrl(url)
+                            } catch {
+                                toast.error(tCommon('somethingWentWrong'))
+                            }
+                        }
                         setTimeout(() => {
                             setIsModalOpen(false)
                         }, 750)
@@ -289,7 +299,10 @@ export default function QRScannerOverlay() {
                             const lookup = await response.json()
 
                             if (lookup.claimed && lookup.redirectUrl) {
-                                redirectUrl = lookup.redirectUrl
+                                // The server sends an absolute peanut.me URL —
+                                // pushed raw it left the app (Safari on iOS, a
+                                // /setup bounce on Android). Map it in-app.
+                                redirectUrl = deepLinkToNativePath(lookup.redirectUrl) ?? qrClaimUrl(redirectQrCode)
                             } else {
                                 redirectUrl = qrClaimUrl(redirectQrCode)
                             }
