@@ -358,7 +358,10 @@ const AmountInput = ({
                 {walletBalance &&
                     !hideBalance &&
                     (() => {
-                        const balanceAmount = `${secondaryDenomination ? 'USD ' : '$ '}${walletBalance}`
+                        // A symbol sits against the number ($10.12), an ISO code
+                        // takes a space (USD 10.12) — the CLDR rule for en-US,
+                        // which is how the amount itself is formatted.
+                        const balanceAmount = `${secondaryDenomination ? 'USD ' : '$'}${walletBalance}`
                         if (!fillValue) {
                             return (
                                 <div className="text-center text-grey-1">

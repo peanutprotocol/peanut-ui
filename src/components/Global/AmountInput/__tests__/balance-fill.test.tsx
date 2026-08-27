@@ -80,9 +80,27 @@ describe('AmountInput full-balance fill', () => {
     it('makes only the amount tappable, not the word Balance', () => {
         const { useFullBalance } = setup()
 
-        expect(useFullBalance()).toHaveTextContent('$ 12.34')
+        expect(useFullBalance()).toHaveTextContent('$12.34')
         expect(useFullBalance()).not.toHaveTextContent(/Balance/)
         expect(screen.getByText('Balance:')).toBeInTheDocument()
+    })
+
+    it('writes the symbol against the number, and an ISO code apart from it', () => {
+        const { unmount } = renderWithIntl(
+            <AmountInput setPrimaryAmount={jest.fn()} primaryDenomination={USDC} walletBalance="12.34" />
+        )
+        expect(screen.getByText('Balance: $12.34')).toBeInTheDocument()
+        unmount()
+
+        renderWithIntl(
+            <AmountInput
+                setPrimaryAmount={jest.fn()}
+                primaryDenomination={USDC}
+                secondaryDenomination={{ symbol: 'ARS', price: 0.001, decimals: 2 }}
+                walletBalance="12.34"
+            />
+        )
+        expect(screen.getByText('Balance: USD 12.34')).toBeInTheDocument()
     })
 
     it('keeps the balance plain text when there is nothing to withdraw', () => {
