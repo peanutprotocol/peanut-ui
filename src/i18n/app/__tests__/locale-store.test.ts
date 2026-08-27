@@ -126,8 +126,12 @@ describe('emitDeviceContextToAnalytics', () => {
         setNavigatorLanguage('es-AR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'es-ar', platform: 'web' })
-        expect(store.currentDeviceContext()).toEqual({ device_language: 'es-ar', platform: 'web' })
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ device_language: 'es-ar', platform: 'web' })
+        )
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ device_language: 'es-ar', platform: 'web' })
+        )
     })
 
     it('reads the raw tag from the native device bridge on Capacitor', async () => {
@@ -137,14 +141,32 @@ describe('emitDeviceContextToAnalytics', () => {
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
         expect(mockGetLanguageTag).toHaveBeenCalled()
-        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'pt-br', platform: 'ios-native' })
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ device_language: 'pt-br', platform: 'ios-native' })
+        )
     })
 
     it('keeps an unsupported language as-is (never collapses to en — protects the OKR denominator)', async () => {
         setNavigatorLanguage('fr-FR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'fr-fr', platform: 'web' })
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ device_language: 'fr-fr', platform: 'web' })
+        )
+    })
+
+    /*
+     * Same value Sentry sends as `release`. Without it PostHog opens cannot be
+     * used as the denominator for a Sentry failure count on a given build,
+     * which is the split that separated 3% on one bundle from 21% on the next.
+     */
+    it('registers the bundle release so opens can be joined to Sentry by build', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ app_release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH ?? 'unknown' })
+        )
     })
 
     it('emits once per session', async () => {
@@ -165,7 +187,9 @@ describe('emitDeviceContextToAnalytics', () => {
         expect(store.currentDeviceContext()).toBeNull()
         // guard is set only on success, so the next call retries instead of no-op
         await store.emitDeviceContextToAnalytics()
-        expect(store.currentDeviceContext()).toEqual({ device_language: 'en-us', platform: 'web' })
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ device_language: 'en-us', platform: 'web' })
+        )
     })
 })
 

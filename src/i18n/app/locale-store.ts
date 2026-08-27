@@ -77,10 +77,12 @@ async function readDeviceTag(): Promise<string | null> {
 // KYC/nationality join. The resolved context is cached (not just a bool) so the
 // logout handler can re-register it after posthog.reset() wipes super
 // properties, mirroring app_locale. Fenced so analytics can never break the app.
-let deviceContext: { device_language: string; platform: string } | null = null
+type DeviceContext = { device_language: string; platform: string; app_release: string }
+
+let deviceContext: DeviceContext | null = null
 
 /** Last device context registered — for re-register after posthog.reset() on logout. */
-export function currentDeviceContext(): { device_language: string; platform: string } | null {
+export function currentDeviceContext(): DeviceContext | null {
     return deviceContext
 }
 
@@ -91,6 +93,9 @@ export async function emitDeviceContextToAnalytics(): Promise<void> {
         const context = {
             device_language: tag ? tag.trim().toLowerCase() : 'unknown',
             platform: getPlatform(),
+            // Same value Sentry sends as `release`, so PostHog opens can be used
+            // as the denominator for a Sentry failure count on the same build.
+            app_release: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH ?? 'unknown',
         }
         posthog.register(context)
         // set only after a successful register — a throw leaves this null so a
