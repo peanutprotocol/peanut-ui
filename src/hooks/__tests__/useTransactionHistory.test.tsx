@@ -269,6 +269,36 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
                 )
         )
 
+    it('takes a mid-pagination status change even when the copies share a timestamp', async () => {
+        // a rollup's timestamp does not move when the link status flips
+        const ts = '2026-08-01T00:00:00Z'
+        const fetchPage = twoPages(
+            potRow(10, { charges: [charge('ch-1', '10')], timestamp: ts }),
+            potRow(12, { charges: [charge('ch-2', '2')], timestamp: ts, status: 'CLOSED' })
+        )
+        const res = await collectLatestEntries(fetchPage, 5)
+        expect(res.entries[0].status).toBe('CLOSED')
+    })
+
+    it('falls back for a charge whose successful payments are only PARTLY settled', async () => {
+        const mixed = {
+            uuid: 'ch-mixed',
+            tokenAmount: '12',
+            payments: [
+                { uuid: 'p1', status: 'SUCCESSFUL', paidAmountInRequestedToken: baseUnits('7') },
+                { uuid: 'p2', status: 'SUCCESSFUL' },
+            ],
+            fulfillmentPayment: null,
+        }
+        const fetchPage = twoPages(
+            potRow(0, { charges: [mixed as never] }),
+            potRow(0, { charges: [charge('ch-other', '0')] })
+        )
+        const res = await collectLatestEntries(fetchPage, 5)
+        // summing would have counted the unsettled leg as 0 and undercounted at 7
+        expect(res.entries[0].totalAmountCollected).toBe(12)
+    })
+
     it('takes the link status from the fresher copy, not page 0', async () => {
         // the request was closed between the two page fetches
         const fetchPage = twoPages(

@@ -93,12 +93,15 @@ function sumCollectedFromCharges(entry: HistoryEntry, charges: ChargeEntry[]): n
         if (!successful.length) continue
         // Absent is not zero: a paid charge awaiting its settled figure falls
         // back to the requested amount, but an explicit 0 settles as 0 — else a
-        // zero-amount settlement would read as the full goal and mark an
-        // unpaid request completed.
-        const hasSettled = successful.some(
+        // zero-amount settlement would read as the full goal and mark an unpaid
+        // request completed. `every`, not `some`: with one payment settled and
+        // another still missing its figure, summing would silently count the
+        // missing leg as 0 and undercount the pot, so fall back for the whole
+        // charge instead.
+        const allSettled = successful.every(
             (p) => p.paidAmountInRequestedToken !== undefined && p.paidAmountInRequestedToken !== null
         )
-        if (!hasSettled) {
+        if (!allSettled) {
             total += Number(charge.tokenAmount || 0)
             continue
         }
@@ -142,7 +145,11 @@ function mergeRepeatedEntry(existing: HistoryEntry, incoming: HistoryEntry): His
 
     const greatestPageTotal = Math.max(existing.totalAmountCollected ?? 0, incoming.totalAmountCollected ?? 0)
     const fromCharges = sumCollectedFromCharges(existing, charges)
-    const newer = new Date(incoming.timestamp).getTime() > new Date(existing.timestamp).getTime()
+    // `>=`, not `>`: a rollup repeats under the same uuid on every page holding
+    // its charges and its timestamp does NOT move when the link status flips, so
+    // a strict comparison would keep page 0's stale status through a
+    // mid-pagination OPEN → CLOSED change.
+    const newer = new Date(incoming.timestamp).getTime() >= new Date(existing.timestamp).getTime()
 
     const fresher = newer ? incoming : existing
 
