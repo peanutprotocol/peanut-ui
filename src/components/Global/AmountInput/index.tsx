@@ -247,18 +247,23 @@ const AmountInput = ({
     }, [defaultSliderSuggestedAmount])
 
     // What tapping the balance row fills in, or undefined when the row stays
-    // plain text. The value comes from the number the parent validates against,
-    // never from the formatted label — that label rounds to two decimals, so
-    // parsing it would either leave dust behind or ask for more than the wallet
-    // holds (TASK-21899). forInput truncates to the denomination's decimals, so
-    // the filled amount never rounds up past the balance.
+    // plain text. Computed from the number the parent validates against, never
+    // parsed back out of the label. Floored to the 2 decimals the balance label
+    // shows — that label truncates too (formatNumberForDisplay, roundingMode
+    // 'trunc'), so the filled amount and the number under the user's thumb
+    // always agree, and neither can claim more than the wallet holds. Anything
+    // finer than a cent stays behind on purpose (TASK-21899).
     const fillValue = useMemo(() => {
         if (disabled || !balanceFillAmount || balanceFillAmount <= 0) return undefined
         // The amount is denominated in the primary unit, so it must not be
         // filled into a field the user toggled to the secondary one.
         if (displaySymbol !== primaryDenomination.symbol) return undefined
-        const formatted = formatTokenAmount(String(balanceFillAmount), denominations[displaySymbol]?.decimals, true)
-        // Anything the field can't express — a balance below its precision, or a
+        // A denomination coarser than cents still wins — filling 10.12 into a
+        // whole-number field would show an amount it can't hold.
+        const decimals = Math.min(2, denominations[displaySymbol]?.decimals ?? 2)
+        // forInput slices the fraction instead of rounding it, so this floors.
+        const formatted = formatTokenAmount(String(balanceFillAmount), decimals, true)
+        // Anything the field can't express — a balance under a cent, or a
         // magnitude String() writes in exponential notation — formats to "0"/"".
         // Leave the row inert rather than offering an amount that can't be used.
         return formatted && Number(formatted) ? formatted : undefined
@@ -354,23 +359,33 @@ const AmountInput = ({
                     !hideBalance &&
                     (() => {
                         const balanceAmount = `${secondaryDenomination ? 'USD ' : '$ '}${walletBalance}`
-                        const label = `${t('amountInput.balance')} ${balanceAmount}`
-                        if (!fillValue) return <div className="text-center text-grey-1">{label}</div>
+                        if (!fillValue) {
+                            return (
+                                <div className="text-center text-grey-1">
+                                    {`${t('amountInput.balance')} ${balanceAmount}`}
+                                </div>
+                            )
+                        }
+                        // Only the amount is the action — "Balance:" stays a label,
+                        // so the underline marks exactly what the tap fills in.
                         return (
-                            <button
-                                type="button"
-                                // The form wrapper focuses the amount field on any
-                                // click inside it. Let this one bubble and the mobile
-                                // keyboard opens over the CTA the user is heading for.
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    fillBalance()
-                                }}
-                                aria-label={t('amountInput.useFullBalance', { balance: balanceAmount })}
-                                className="min-h-11 px-2 text-center text-grey-1 underline underline-offset-4"
-                            >
-                                {label}
-                            </button>
+                            <div className="flex items-center justify-center gap-1 text-grey-1">
+                                <span>{t('amountInput.balance')}</span>
+                                <button
+                                    type="button"
+                                    // The form wrapper focuses the amount field on any
+                                    // click inside it. Let this one bubble and the mobile
+                                    // keyboard opens over the CTA the user is heading for.
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        fillBalance()
+                                    }}
+                                    aria-label={t('amountInput.useFullBalance', { balance: balanceAmount })}
+                                    className="min-h-11 px-1 underline underline-offset-4"
+                                >
+                                    {balanceAmount}
+                                </button>
+                            </div>
                         )
                     })()}
             </div>

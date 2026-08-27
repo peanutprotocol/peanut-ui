@@ -3,9 +3,10 @@ import { renderWithIntl } from '@/test-utils/intl'
 import AmountInput from '@/components/Global/AmountInput'
 
 /**
- * Tapping the balance row fills the whole spendable amount (TASK-21899).
- * The point of these tests is that the filled amount comes from the exact
- * number the parent validates against, not from the rounded label next to it.
+ * Tapping the balance amount fills the whole spendable amount (TASK-21899).
+ * The point of these tests is that the fill is floored to cents and can never
+ * exceed the balance — the user is never told they can withdraw more than
+ * they hold, and the fill matches the label, which truncates the same way.
  */
 
 // USDC, as the withdraw amount screen configures it
@@ -18,7 +19,7 @@ function setup(props: Partial<React.ComponentProps<typeof AmountInput>> = {}) {
             setPrimaryAmount={setPrimaryAmount}
             primaryDenomination={USDC}
             hideCurrencyToggle
-            walletBalance="12.35"
+            walletBalance="12.34"
             balanceFillAmount={12.345678}
             {...props}
         />
@@ -33,33 +34,55 @@ function setup(props: Partial<React.ComponentProps<typeof AmountInput>> = {}) {
 }
 
 describe('AmountInput full-balance fill', () => {
-    it('fills the exact balance rather than the rounded label', () => {
+    it('fills the balance floored to cents', () => {
         const { field, useFullBalance, lastReported } = setup()
 
         fireEvent.click(useFullBalance()!)
 
-        expect(field.value).toBe('12.345678')
-        expect(lastReported()).toBe('12.345678')
+        expect(field.value).toBe('12.34')
+        expect(lastReported()).toBe('12.34')
     })
 
-    it('truncates to the denomination precision instead of rounding above the balance', () => {
-        const { field, useFullBalance } = setup({ balanceFillAmount: 12.3456789 })
+    it('rounds down, never up, so the fill cannot exceed the balance', () => {
+        // 10.126123 must become 10.12, not 10.13 — the 0.006123 stays behind.
+        const { field, useFullBalance } = setup({ walletBalance: '10.12', balanceFillAmount: 10.126123 })
 
         fireEvent.click(useFullBalance()!)
 
-        expect(Number(field.value)).toBeLessThanOrEqual(12.3456789)
-        expect(field.value).toBe('12.345678')
+        expect(field.value).toBe('10.12')
+        expect(Number(field.value)).toBeLessThanOrEqual(10.126123)
     })
 
-    it('honours a two-decimal denomination', () => {
+    it('stays at cents even when the field accepts more decimals', () => {
+        // The withdraw screen runs this input at 6 decimals so a user CAN type
+        // them; the fill still stops at the two the balance label shows.
         const { field, useFullBalance } = setup({
-            primaryDenomination: { symbol: '$', price: 1, decimals: 2 },
+            primaryDenomination: { symbol: '$', price: 1, decimals: 6 },
             balanceFillAmount: 12.345678,
         })
 
         fireEvent.click(useFullBalance()!)
 
         expect(field.value).toBe('12.34')
+    })
+
+    it('does not fill more decimals than a coarse denomination holds', () => {
+        const { field, useFullBalance } = setup({
+            primaryDenomination: { symbol: '$', price: 1, decimals: 0 },
+            balanceFillAmount: 12.345678,
+        })
+
+        fireEvent.click(useFullBalance()!)
+
+        expect(field.value).toBe('12')
+    })
+
+    it('makes only the amount tappable, not the word Balance', () => {
+        const { useFullBalance } = setup()
+
+        expect(useFullBalance()).toHaveTextContent('$ 12.34')
+        expect(useFullBalance()).not.toHaveTextContent(/Balance/)
+        expect(screen.getByText('Balance:')).toBeInTheDocument()
     })
 
     it('keeps the balance plain text when there is nothing to withdraw', () => {
@@ -74,9 +97,8 @@ describe('AmountInput full-balance fill', () => {
         expect(setPrimaryAmount).not.toHaveBeenCalledWith(expect.stringMatching(/[1-9]/))
     })
 
-    it('keeps the balance plain text when it is smaller than the input can express', () => {
+    it('keeps the balance plain text when it is smaller than a cent', () => {
         const { field, useFullBalance } = setup({
-            primaryDenomination: { symbol: '$', price: 1, decimals: 2 },
             walletBalance: '0.00',
             balanceFillAmount: 0.004,
         })
@@ -94,8 +116,8 @@ describe('AmountInput full-balance fill', () => {
 
         fireEvent.click(useFullBalance()!)
 
-        expect(field.value).toBe('12.345678')
-        expect(lastReported()).toBe('12.345678')
+        expect(field.value).toBe('12.34')
+        expect(lastReported()).toBe('12.34')
     })
 
     it('does not open the keyboard over the CTA when filling', () => {
@@ -107,7 +129,7 @@ describe('AmountInput full-balance fill', () => {
         fireEvent.click(useFullBalance()!)
 
         expect(document.activeElement).not.toBe(field)
-        expect(field.value).toBe('12.345678')
+        expect(field.value).toBe('12.34')
     })
 
     it('does not offer the fill while the input is disabled', () => {

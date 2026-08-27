@@ -489,13 +489,14 @@ describe('GROUP 3: Amount Validation', () => {
         )
     })
 
-    test('Tapping the balance fills the exact spendable amount, not the rounded label', () => {
-        // The label rounds to two decimals; filling from it would strand dust
-        // the user asked to withdraw in full (TASK-21899).
+    test('Hands the full-precision spendable amount to the input, not the label', () => {
+        // The page passes the number its own validation compares against; the
+        // input is what floors it to cents before filling (TASK-21899). Passing
+        // the label instead would tie the fill to display formatting.
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
         mockUseWallet.mockReturnValue({
             spendableBalance: parseUnits('12.345678', 6),
-            formattedSpendableBalance: '12.35',
+            formattedSpendableBalance: '12.34',
             hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 12.345678,
         })
 
