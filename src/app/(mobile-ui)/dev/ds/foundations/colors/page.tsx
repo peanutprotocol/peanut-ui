@@ -43,7 +43,7 @@ export default function ColorsPage() {
         <div className="space-y-4">
             {[...groups.entries()].map(([prefix, tokens]) => (
                 <div key={prefix}>
-                    <p className="mb-1 font-mono text-[10px] font-bold text-grey-1 uppercase">{prefix}</p>
+                    <p className="mb-1 font-mono text-label-m text-foreground-secondary uppercase">{prefix}</p>
                     <div className="grid grid-cols-2 gap-2">
                         {tokens.map((token) => {
                             // copy the class matching the token's intent, not blanket bg-
@@ -59,20 +59,26 @@ export default function ColorsPage() {
                                 <button
                                     key={token.name}
                                     onClick={() => copyClass(cls)}
-                                    className="flex items-center gap-2 rounded-sm border border-n-1/20 p-2 text-left transition-colors hover:border-n-1/40"
+                                    className="flex items-center gap-2 rounded-sm border border-border-disabled p-2 text-left transition-colors hover:border-border-default/40"
                                 >
                                     <div
-                                        className="size-8 shrink-0 rounded-sm border border-n-1"
+                                        className="size-8 shrink-0 rounded-sm border border-border-default"
                                         style={{ backgroundColor: token.value }}
                                     />
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-xs font-bold break-all">{token.name}</p>
-                                        <p className="font-mono text-[9px] text-grey-1">{token.value}</p>
+                                        <p className="text-label-m break-all">{token.name}</p>
+                                        <p className="font-mono text-body-xs text-foreground-secondary">
+                                            {token.value}
+                                        </p>
                                     </div>
                                     {copiedColor === cls ? (
-                                        <Icon name="check" size={14} className="shrink-0 text-success-3" />
+                                        <Icon
+                                            name="check"
+                                            size={14}
+                                            className="shrink-0 text-background-icon-bubble-green"
+                                        />
                                     ) : (
-                                        <Icon name="copy" size={12} className="shrink-0 text-grey-1" />
+                                        <Icon name="copy" size={12} className="shrink-0 text-foreground-secondary" />
                                     )}
                                 </button>
                             )
@@ -96,16 +102,16 @@ export default function ColorsPage() {
             </DesignNote>
 
             <DocSection title="Semantic Tokens">
-                <p className="text-sm text-grey-1">
+                <p className="text-body-s text-foreground-secondary">
                     1:1 with the figma variables. New screens use ONLY these — e.g.{' '}
-                    <code className="font-mono font-bold text-n-1">bg-action-primary</code>,{' '}
-                    <code className="font-mono font-bold text-n-1">text-foreground-secondary</code>.
+                    <code className="font-mono font-bold text-foreground-primary">bg-action-primary</code>,{' '}
+                    <code className="font-mono font-bold text-foreground-primary">text-foreground-secondary</code>.
                 </p>
                 {renderGroups(SEMANTIC)}
             </DocSection>
 
             <DocSection title="Legacy Palette">
-                <p className="text-sm text-grey-1">
+                <p className="text-body-s text-foreground-secondary">
                     Ported verbatim from the v3 config for visual parity. Do not use in new code — consumer migration to
                     the semantic tokens is DS 06+.
                 </p>
@@ -114,29 +120,35 @@ export default function ColorsPage() {
 
             {/* Text / BG pairs */}
             <DocSection title="Text Colors">
-                <div className="space-y-2 rounded-sm border border-n-1 p-3 text-xs">
+                <div className="space-y-2 rounded-sm border border-border-default p-3 text-body-xs">
                     <div className="flex items-center gap-3">
-                        <span className="w-20 font-bold text-n-1">text-n-1</span>
-                        <span className="text-n-1">Primary text — headings, labels, body</span>
+                        <span className="w-20 font-bold text-foreground-primary">text-foreground-primary</span>
+                        <span className="text-foreground-primary">Primary text — headings, labels, body</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="w-20 font-bold text-grey-1">text-grey-1</span>
-                        <span className="text-grey-1">Secondary text — descriptions, hints, metadata</span>
+                        <span className="w-20 font-bold text-foreground-secondary">text-foreground-secondary</span>
+                        <span className="text-foreground-secondary">
+                            Secondary text — descriptions, hints, metadata
+                        </span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="w-20 font-bold text-error-1">text-error-1</span>
-                        <span className="text-error-1">Error text — validation messages, alerts</span>
+                        <span className="w-20 font-bold text-foreground-error">text-foreground-error</span>
+                        <span className="text-foreground-error">Error text — validation messages, alerts</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="w-20 font-bold text-success-3">text-success-3</span>
-                        <span className="text-success-3">Success text — confirmations</span>
+                        <span className="w-20 font-bold text-background-icon-bubble-green">
+                            text-background-icon-bubble-green
+                        </span>
+                        <span className="text-background-icon-bubble-green">Success text — confirmations</span>
                     </div>
                 </div>
 
                 <DesignNote type="info">
                     Inline links: always use{' '}
-                    <code className="rounded bg-white px-1 font-mono text-[10px]">text-black underline</code> — never
-                    text-purple-1.
+                    <code className="rounded-sm bg-background-default px-1 font-mono text-body-xs">
+                        text-black underline
+                    </code>{' '}
+                    — never text-purple-1.
                 </DesignNote>
             </DocSection>
 
@@ -144,8 +156,10 @@ export default function ColorsPage() {
             <DocSection title="Background Patterns">
                 <DesignNote type="warning">
                     DEAD IN PRODUCT —{' '}
-                    <code className="rounded bg-white px-1 font-mono text-[10px]">bg-peanut-repeat-*</code> (normal /
-                    large / small) are defined in the Tailwind theme but rendered on{' '}
+                    <code className="rounded-sm bg-background-default px-1 font-mono text-body-xs">
+                        bg-peanut-repeat-*
+                    </code>{' '}
+                    (normal / large / small) are defined in the Tailwind theme but rendered on{' '}
                     <span className="underline">zero</span> real app screens (0 non-dev, non-test call-sites).
                     Don&rsquo;t treat these as design-system tokens — they&rsquo;re delete-candidates. See{' '}
                     <Link href="/dev/ds/audit/app" className="underline">
@@ -156,9 +170,9 @@ export default function ColorsPage() {
                     {BACKGROUNDS.map((bg) => (
                         <button key={bg.name} onClick={() => copyClass(bg.name)} className="w-full text-left">
                             <div
-                                className={`${bg.name} h-20 rounded-sm border border-dashed border-n-1 bg-primary-3 p-2`}
+                                className={`${bg.name} h-20 rounded-sm border border-dashed border-border-default bg-background-badge-accent p-2`}
                             >
-                                <span className="font-mono text-[10px]">.{bg.name} · unused</span>
+                                <span className="font-mono text-body-xs">.{bg.name} · unused</span>
                             </div>
                         </button>
                     ))}

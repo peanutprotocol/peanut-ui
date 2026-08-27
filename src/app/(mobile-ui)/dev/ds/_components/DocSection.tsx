@@ -39,11 +39,11 @@ function DocSectionRoot({ title, description, children }: DocSectionProps) {
             {/* Left: title + description + content */}
             <div>
                 <div className="flex items-center gap-2">
-                    <h2 className="text-h5">{title}</h2>
+                    <h2 className="text-heading-xs">{title}</h2>
                     {hasCode && (
                         <button
                             onClick={() => setCodeVisible(!codeVisible)}
-                            className="flex items-center gap-1 rounded-sm border border-gray-3 px-1.5 py-0.5 text-[10px] font-bold text-foreground-secondary lg:hidden"
+                            className="flex items-center gap-1 rounded-sm border border-border-disabled px-2 py-0.5 text-label-m text-foreground-secondary lg:hidden"
                             aria-label={codeVisible ? 'Hide code' : 'Show code'}
                         >
                             &lt;/&gt;
@@ -57,7 +57,7 @@ function DocSectionRoot({ title, description, children }: DocSectionProps) {
             {/* Right: code */}
             {hasCode && (
                 <div className={`mt-6 lg:mt-0 ${codeVisible ? 'block' : 'hidden'} lg:block`}>
-                    <div className="space-y-6 rounded-sm bg-primary-3/10 p-4">{codeNode}</div>
+                    <div className="space-y-6 rounded-sm bg-background-badge-accent/20 p-4">{codeNode}</div>
                 </div>
             )}
         </section>

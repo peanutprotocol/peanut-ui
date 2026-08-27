@@ -86,14 +86,17 @@ export default function BaseInputPage() {
 
             <DocSection title="With Right Content">
                 <DocSection.Content>
-                    <BaseInput placeholder="Amount" rightContent={<span className="text-sm text-grey-1">USD</span>} />
+                    <BaseInput
+                        placeholder="Amount"
+                        rightContent={<span className="text-body-s text-foreground-secondary">USD</span>}
+                    />
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="With Right Content"
                         code={`<BaseInput
   placeholder="Amount"
-  rightContent={<span className="text-sm text-grey-1">USD</span>}
+  rightContent={<span className="text-body-s text-foreground-secondary">USD</span>}
 />`}
                     />
                 </DocSection.Code>
@@ -101,7 +104,7 @@ export default function BaseInputPage() {
 
             <DocSection title="Related Inputs (reference)">
                 <DocSection.Content>
-                    <p className="text-xs text-grey-1">
+                    <p className="text-body-xs text-foreground-secondary">
                         Specialized inputs built on top of BaseInput. AmountInput has its own page under Patterns.
                     </p>
                 </DocSection.Content>

@@ -35,7 +35,7 @@ export default function CardPage() {
                             <Card.Description>A description of the card content</Card.Description>
                         </Card.Header>
                         <Card.Content>
-                            <p className="text-sm">Body content goes here</p>
+                            <p className="text-body-s">Body content goes here</p>
                         </Card.Content>
                     </Card>
                 )}
@@ -65,16 +65,16 @@ export default function CardPage() {
                 <DocSection.Content>
                     <div className="space-y-3">
                         <Card className="p-4">
-                            <p className="text-sm">No shadow</p>
+                            <p className="text-body-s">No shadow</p>
                         </Card>
                         <Card shadowSize="4" className="p-4">
-                            <p className="text-sm">shadowSize=&quot;4&quot;</p>
+                            <p className="text-body-s">shadowSize=&quot;4&quot;</p>
                         </Card>
                         <Card shadowSize="6" className="p-4">
-                            <p className="text-sm">shadowSize=&quot;6&quot;</p>
+                            <p className="text-body-s">shadowSize=&quot;6&quot;</p>
                         </Card>
                         <Card shadowSize="8" className="p-4">
-                            <p className="text-sm">shadowSize=&quot;8&quot;</p>
+                            <p className="text-body-s">shadowSize=&quot;8&quot;</p>
                         </Card>
                     </div>
                 </DocSection.Content>
@@ -91,7 +91,7 @@ export default function CardPage() {
                             <Card.Description>description text</Card.Description>
                         </Card.Header>
                         <Card.Content>
-                            <p className="text-sm">body content</p>
+                            <p className="text-body-s">body content</p>
                         </Card.Content>
                     </Card>
                 </DocSection.Content>

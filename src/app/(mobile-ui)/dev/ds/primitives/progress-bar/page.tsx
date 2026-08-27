@@ -19,12 +19,12 @@ export default function ProgressBarPage() {
                 <DocSection.Content>
                     <div className="flex flex-col gap-4">
                         <ProgressBar value={25} />
-                        <ProgressBar value={60} fillClassName="bg-green-500" />
-                        <ProgressBar value={100} fillClassName="bg-green-500" />
+                        <ProgressBar value={60} fillClassName="bg-background-icon-bubble-green" />
+                        <ProgressBar value={100} fillClassName="bg-background-icon-bubble-green" />
                         <ProgressBar
                             value={45}
-                            fillClassName="bg-green-500"
-                            markers={[{ position: 75, className: 'bg-green-500' }]}
+                            fillClassName="bg-background-icon-bubble-green"
+                            markers={[{ position: 75, className: 'bg-background-icon-bubble-green' }]}
                         />
                     </div>
                 </DocSection.Content>
@@ -33,8 +33,8 @@ export default function ProgressBarPage() {
                         label="ProgressBar"
                         code={`import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 
-<ProgressBar value={60} fillClassName="bg-green-500" />
-<ProgressBar value={45} markers={[{ position: 75, className: 'bg-green-500' }]} />`}
+<ProgressBar value={60} fillClassName="bg-background-icon-bubble-green" />
+<ProgressBar value={45} markers={[{ position: 75, className: 'bg-background-icon-bubble-green' }]} />`}
                     />
                 </DocSection.Code>
             </DocSection>

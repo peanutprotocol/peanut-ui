@@ -6,7 +6,7 @@ export default function PatternsPage() {
         <DocPage>
             <div>
                 <h1 className="text-h3">Patterns</h1>
-                <p className="mt-1 text-sm text-grey-1">
+                <p className="mt-1 text-body-s text-foreground-secondary">
                     Composed components and layout patterns built from primitives and Global shared components.
                 </p>
             </div>

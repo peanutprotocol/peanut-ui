@@ -37,13 +37,13 @@ export default function FeedbackPage() {
             {/* StatusBadge */}
             <DocSection title="StatusBadge">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Rounded pill badge with text label. Three size variants. Shared StatusType across the codebase.
                     </p>
 
                     {/* All statuses */}
                     <div className="space-y-4">
-                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">All Status Types</p>
+                        <p className="text-label-m text-foreground-secondary uppercase">All Status Types</p>
                         <div className="flex flex-wrap gap-2">
                             {allStatuses.map((status) => (
                                 <StatusBadge key={status} status={status} />
@@ -53,12 +53,12 @@ export default function FeedbackPage() {
 
                     {/* Sizes */}
                     <div className="space-y-4">
-                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Sizes</p>
+                        <p className="text-label-m text-foreground-secondary uppercase">Sizes</p>
                         <div className="flex items-center gap-3">
                             {(['small', 'medium', 'large'] as const).map((size) => (
                                 <div key={size} className="text-center">
                                     <StatusBadge status="completed" size={size} />
-                                    <p className="mt-1 text-xs text-grey-1">{size}</p>
+                                    <p className="mt-1 text-body-xs text-foreground-secondary">{size}</p>
                                 </div>
                             ))}
                         </div>
@@ -103,21 +103,21 @@ export default function FeedbackPage() {
             {/* StatusPill */}
             <DocSection title="StatusPill">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         20px round icon chip (3px padding, 14px icon) on the badge background tokens — states board
                         17966:12128. Uses the same StatusType as StatusBadge (minus &quot;custom&quot;). Pairs well with
                         list items.
                     </p>
 
                     <div className="space-y-4">
-                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">All Status Types</p>
+                        <p className="text-label-m text-foreground-secondary uppercase">All Status Types</p>
                         <div className="flex flex-wrap items-center gap-4">
                             {allStatuses
                                 .filter((s): s is StatusPillType => s !== 'custom')
                                 .map((status) => (
                                     <div key={status} className="flex items-center gap-1.5">
                                         <StatusPill status={status} />
-                                        <span className="text-xs">{status}</span>
+                                        <span className="text-body-xs">{status}</span>
                                     </div>
                                 ))}
                         </div>
@@ -145,12 +145,12 @@ export default function FeedbackPage() {
             {/* Inline errors */}
             <DocSection title="Inline errors">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Inline errors render the Notification primitive with priority=&quot;error&quot; (ErrorAlert was
                         deleted). See the Notification page under primitives for all variants.
                     </p>
 
-                    <div className="space-y-2 rounded-sm border border-n-1 p-3">
+                    <div className="space-y-2 rounded-sm border border-border-default p-3">
                         <Notification priority="error">Insufficient balance to complete this transaction.</Notification>
                     </div>
                 </DocSection.Content>
@@ -170,7 +170,7 @@ export default function FeedbackPage() {
             {/* EmptyState */}
             <DocSection title="EmptyState">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Card-based empty state with icon, title, description, and optional CTA. Uses Global Card
                         internally.
                     </p>
@@ -237,11 +237,11 @@ export default function FeedbackPage() {
             {/* NoDataEmptyState */}
             <DocSection title="NoDataEmptyState">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Branded empty state with crying Peanutman GIF animation. For &quot;no data&quot; scenarios.
                     </p>
 
-                    <div className="rounded-sm border border-n-1 p-4">
+                    <div className="rounded-sm border border-border-default p-4">
                         <NoDataEmptyState message="Nothing to show here" />
                     </div>
 

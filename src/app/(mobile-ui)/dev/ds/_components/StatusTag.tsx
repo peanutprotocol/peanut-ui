@@ -1,21 +1,16 @@
-const styles = {
-    production: 'bg-green-1/30 text-foreground-primary',
-    limited: 'bg-yellow-1/30 text-foreground-primary',
-    unused: 'bg-background-disabled text-foreground-secondary',
-    'needs-refactor': 'bg-error-1/30 text-foreground-primary',
+import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
+
+type DocStatus = 'production' | 'limited' | 'unused' | 'needs-refactor'
+
+// doc status -> the DS StatusBadge tone that carries it (no hand-rolled pill)
+const MAP: Record<DocStatus, { status: StatusType; label: string }> = {
+    production: { status: 'completed', label: 'production' },
+    limited: { status: 'pending', label: 'limited use' },
+    unused: { status: 'custom', label: 'unused' },
+    'needs-refactor': { status: 'failed', label: 'needs refactor' },
 }
 
-const labels = {
-    production: 'production',
-    limited: 'limited use',
-    unused: 'unused',
-    'needs-refactor': 'needs refactor',
-}
-
-export function StatusTag({ status }: { status: 'production' | 'limited' | 'unused' | 'needs-refactor' }) {
-    return (
-        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${styles[status]}`}>
-            {labels[status]}
-        </span>
-    )
+export function StatusTag({ status }: { status: DocStatus }) {
+    const m = MAP[status]
+    return <StatusBadge status={m.status} customText={m.label} />
 }

@@ -8,7 +8,7 @@ export default function BigComponentsPage() {
         <UsageAudit
             eyebrow="Design System · Big Components"
             title="Modals, drawers, lists & cards"
-            heroClass="bg-primary-4"
+            heroClass="bg-avatar-purple-border"
             intro={
                 <>
                     The primitives are small; the real inconsistency lives in the <em>large composite</em> components.
@@ -20,10 +20,10 @@ export default function BigComponentsPage() {
             categories={BIG_COMPONENT_CATEGORIES}
             footnote={
                 <>
-                    <span className="font-bold text-n-1">Method:</span> every modal / drawer / list / composite-card
-                    component was enumerated by grep, real usage counted (excl <code>/dev</code> + tests), and
-                    divergences characterized (radius, padding, close behavior, header pattern). Dead/showcase-only
-                    claims were independently re-verified.
+                    <span className="font-bold text-foreground-primary">Method:</span> every modal / drawer / list /
+                    composite-card component was enumerated by grep, real usage counted (excl <code>/dev</code> +
+                    tests), and divergences characterized (radius, padding, close behavior, header pattern).
+                    Dead/showcase-only claims were independently re-verified.
                 </>
             }
         />

@@ -134,8 +134,8 @@ export default function ButtonPage() {
                         ).map(([variant, count, status]) => (
                             <div key={variant}>
                                 <div className="mb-2 flex items-center gap-2">
-                                    <span className="text-sm font-bold">{variant}</span>
-                                    <span className="text-xs text-grey-1">{count}</span>
+                                    <span className="text-label-l">{variant}</span>
+                                    <span className="text-body-xs text-foreground-secondary">{count}</span>
                                     <StatusTag status={status} />
                                 </div>
                                 <Button variant={variant}>{variant}</Button>
@@ -143,11 +143,11 @@ export default function ButtonPage() {
                         ))}
                         <div>
                             <div className="mb-2 flex items-center gap-2">
-                                <span className="text-sm font-bold">transparent-light</span>
-                                <span className="text-xs text-grey-1">2 usages</span>
+                                <span className="text-label-l">transparent-light</span>
+                                <span className="text-body-xs text-foreground-secondary">2 usages</span>
                                 <StatusTag status="limited" />
                             </div>
-                            <div className="rounded-sm bg-n-1 p-3">
+                            <div className="rounded-sm bg-foreground-primary p-3">
                                 <Button variant="transparent-light">transparent-light</Button>
                             </div>
                         </div>
@@ -169,25 +169,25 @@ export default function ButtonPage() {
                     <div className="flex flex-wrap items-end gap-4">
                         <div className="text-center">
                             <Button variant="stroke">default</Button>
-                            <p className="mt-2 text-xs text-grey-1">medium · 44px</p>
+                            <p className="mt-2 text-body-xs text-foreground-secondary">medium · 44px</p>
                         </div>
                         <div className="text-center">
                             <Button variant="stroke" size="small">
                                 small
                             </Button>
-                            <p className="mt-2 text-xs text-grey-1">40px (44px hit area)</p>
+                            <p className="mt-2 text-body-xs text-foreground-secondary">40px (44px hit area)</p>
                         </div>
                         <div className="text-center">
                             <Button variant="stroke" size="medium">
                                 medium
                             </Button>
-                            <p className="mt-2 text-xs text-grey-1">44px (= default)</p>
+                            <p className="mt-2 text-body-xs text-foreground-secondary">44px (= default)</p>
                         </div>
                         <div className="text-center">
                             <Button variant="stroke" size="large">
                                 large
                             </Button>
-                            <p className="mt-2 text-xs text-grey-1">48px</p>
+                            <p className="mt-2 text-body-xs text-foreground-secondary">48px</p>
                         </div>
                     </div>
                 </DocSection.Content>
@@ -264,19 +264,19 @@ export default function ButtonPage() {
                 <DocSection.Content>
                     <div className="space-y-6">
                         <div>
-                            <p className="text-sm font-bold">Primary CTA (most common)</p>
+                            <p className="text-label-l">Primary CTA (most common)</p>
                             <Button variant="purple" className="mt-2 w-full">
                                 Continue
                             </Button>
                         </div>
                         <div>
-                            <p className="text-sm font-bold">Secondary CTA</p>
+                            <p className="text-label-l">Secondary CTA</p>
                             <Button variant="stroke" className="mt-2 w-full">
                                 Go Back
                             </Button>
                         </div>
                         <div>
-                            <p className="text-sm font-bold">With icon</p>
+                            <p className="text-label-l">With icon</p>
                             <div className="mt-2 flex flex-wrap gap-2">
                                 <Button variant="purple" icon="share">
                                     Share
@@ -287,7 +287,7 @@ export default function ButtonPage() {
                             </div>
                         </div>
                         <div>
-                            <p className="text-sm font-bold">States</p>
+                            <p className="text-label-l">States</p>
                             <div className="mt-2 flex flex-wrap gap-2">
                                 <Button variant="purple" disabled>
                                     Disabled

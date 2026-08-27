@@ -31,11 +31,11 @@ export default function TypographyPage() {
             {/* Font families */}
             <DocSection title="Font Families">
                 <DocSection.Content>
-                    <div className="space-y-2 rounded-sm border border-n-1 p-3">
+                    <div className="space-y-2 rounded-sm border border-border-default p-3">
                         {FONT_TOKENS.map((font) => (
                             <div key={font.name}>
                                 <p
-                                    className="text-sm font-bold"
+                                    className="text-label-l"
                                     style={{
                                         fontFamily: font.stack,
                                         fontVariationSettings: font.fontVariationSettings,
@@ -43,22 +43,22 @@ export default function TypographyPage() {
                                 >
                                     font-{font.name}
                                 </p>
-                                <p className="font-mono text-[10px] break-all text-grey-1">
+                                <p className="font-mono text-body-xs break-all text-foreground-secondary">
                                     {font.stack}
                                     {font.fontVariationSettings && ` · ${font.fontVariationSettings}`}
                                 </p>
                             </div>
                         ))}
                         <div>
-                            <p className="font-mono text-sm font-bold">font-mono</p>
-                            <p className="text-sm text-grey-1">
+                            <p className="font-mono text-label-l">font-mono</p>
+                            <p className="text-body-s text-foreground-secondary">
                                 Stock Tailwind monospace — code, addresses, amounts. Not a theme token but part of the
                                 system.
                             </p>
                         </div>
-                        <div className="rounded-sm bg-purple-1 p-3">
+                        <div className="rounded-sm bg-action-primary p-3">
                             <Title text="KNERD FONT" />
-                            <p className="mt-1 text-sm text-n-1">
+                            <p className="mt-1 text-body-s text-foreground-primary">
                                 Display font with filled+outline double-render effect.
                             </p>
                         </div>
@@ -75,12 +75,12 @@ export default function TypographyPage() {
 
             {/* Semantic type scale */}
             <DocSection title="Semantic Type Scale">
-                <p className="text-sm text-grey-1">
+                <p className="text-body-s text-foreground-secondary">
                     1:1 with the figma Heading/Body/Label/Button styles. New screens use these — e.g.{' '}
-                    <code className="font-mono font-bold text-n-1">text-heading-m</code>,{' '}
-                    <code className="font-mono font-bold text-n-1">text-body-s</code>.
+                    <code className="font-mono font-bold text-foreground-primary">text-heading-m</code>,{' '}
+                    <code className="font-mono font-bold text-foreground-primary">text-body-s</code>.
                 </p>
-                <div className="space-y-3 rounded-sm border border-n-1 p-3">
+                <div className="space-y-3 rounded-sm border border-border-default p-3">
                     {SEMANTIC_STYLES.map((t) => (
                         <div key={t.name} className="min-w-0">
                             <p
@@ -89,7 +89,7 @@ export default function TypographyPage() {
                             >
                                 {t.name}
                             </p>
-                            <p className="font-mono text-[10px] text-grey-1">
+                            <p className="font-mono text-body-xs text-foreground-secondary">
                                 .text-{t.name} — {styleSpec(t)}
                             </p>
                         </div>
@@ -99,26 +99,27 @@ export default function TypographyPage() {
 
             {/* weight conventions — guidance, not token data */}
             <DocSection title="Font Weights">
-                <p className="text-sm text-grey-1">
+                <p className="text-body-s text-foreground-secondary">
                     The semantic styles above carry their own weight. For ad-hoc text:{' '}
-                    <code className="font-mono font-bold text-n-1">font-bold</code> for labels and headings,{' '}
-                    <code className="font-mono font-bold text-n-1">font-medium</code> for secondary text. The theme also
-                    defines <code className="font-mono font-bold text-n-1">font-weight-extraBlack</code> (1000) for
-                    display moments.
+                    <code className="font-mono font-bold text-foreground-primary">font-bold</code> for labels and
+                    headings, <code className="font-mono font-bold text-foreground-primary">font-medium</code> for
+                    secondary text. The theme also defines{' '}
+                    <code className="font-mono font-bold text-foreground-primary">font-weight-extraBlack</code> (1000)
+                    for display moments.
                 </p>
             </DocSection>
 
             {/* v3 parity overrides */}
             <DocSection title="v3 Parity Sizes">
-                <p className="text-sm text-grey-1">
+                <p className="text-body-s text-foreground-secondary">
                     Overrides ported from the v3 config (text-h1…h7 and changed stock sizes). Existing code only —
                     prefer the semantic scale above.
                 </p>
-                <div className="space-y-1 rounded-sm border border-n-1 p-3 text-xs">
+                <div className="space-y-1 rounded-sm border border-border-default p-3 text-body-xs">
                     {PARITY_STYLES.map((t) => (
                         <div key={t.name} className="flex items-baseline justify-between">
                             <code className="font-mono font-bold">.text-{t.name}</code>
-                            <span className="text-grey-1">{styleSpec(t)}</span>
+                            <span className="text-foreground-secondary">{styleSpec(t)}</span>
                         </div>
                     ))}
                 </div>

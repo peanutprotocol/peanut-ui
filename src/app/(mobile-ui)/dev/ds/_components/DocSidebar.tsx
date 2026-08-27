@@ -32,7 +32,7 @@ export function DocSidebar() {
             {/* Mobile hamburger */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-1.5 rounded-sm border border-n-1/20 px-2.5 py-1.5 text-body-xs font-bold md:hidden"
+                className="flex items-center gap-1 rounded-sm border border-border-subtle px-2 py-2 text-label-m md:hidden"
             >
                 <Icon name="docs" size={14} />
                 Menu
@@ -41,13 +41,13 @@ export function DocSidebar() {
             {/* Mobile overlay */}
             {isOpen && (
                 <div className="fixed inset-0 z-40 md:hidden" onClick={() => setIsOpen(false)}>
-                    <div className="absolute inset-0 bg-black/20" />
+                    <div className="absolute inset-0 bg-foreground-primary/20" />
                     <nav
-                        className="absolute top-0 left-0 h-full w-64 border-r border-n-1 bg-white p-4 shadow-lg"
+                        className="absolute top-0 left-0 h-full w-64 border-r border-border-default bg-background-default p-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="mb-4 flex items-center justify-between">
-                            <span className="text-body-s font-bold capitalize">{tier}</span>
+                            <span className="text-label-l capitalize">{tier}</span>
                             <button onClick={() => setIsOpen(false)}>
                                 <Icon name="cancel" size={16} />
                             </button>
@@ -58,7 +58,7 @@ export function DocSidebar() {
             )}
 
             {/* Desktop sidebar */}
-            <nav className="hidden w-48 shrink-0 border-r border-gray-3 pr-4 md:block">
+            <nav className="hidden w-48 shrink-0 border-r border-border-disabled pr-4 md:block">
                 <SidebarLinks items={items} pathname={pathname} />
             </nav>
         </>
@@ -83,10 +83,10 @@ function SidebarLinks({
                         key={item.href}
                         href={item.href}
                         onClick={onNavigate}
-                        className={`flex items-center gap-2 rounded-sm px-3 py-2 text-body-xs font-bold transition-colors ${
+                        className={`flex items-center gap-2 rounded-sm px-3 py-2 text-label-m transition-colors duration-fast ${
                             isActive
-                                ? 'bg-gray-3 text-foreground-primary'
-                                : 'text-foreground-secondary hover:bg-gray-3/50 hover:text-foreground-primary'
+                                ? 'bg-background-disabled text-foreground-primary'
+                                : 'text-foreground-secondary hover:bg-background-disabled hover:text-foreground-primary'
                         }`}
                     >
                         <Icon name={item.icon} size={14} />

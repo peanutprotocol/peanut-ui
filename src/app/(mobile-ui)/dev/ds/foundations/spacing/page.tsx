@@ -23,14 +23,14 @@ export default function SpacingPage() {
                         globals.css when it lands (pnpm gen:ds-tokens).
                     </DesignNote>
                 ) : (
-                    <div className="space-y-2 rounded-sm border border-n-1 p-3 text-xs">
+                    <div className="space-y-2 rounded-sm border border-border-default p-3 text-body-xs">
                         {SPACING_TOKENS.map((t) => (
                             <div key={t.name} className="flex items-center gap-3">
                                 <code className="w-24 shrink-0 font-mono font-bold">
                                     --spacing{t.name && `-${t.name}`}
                                 </code>
-                                <span className="w-14 shrink-0 text-grey-1">{t.value}</span>
-                                <div className="h-3 bg-purple-1" style={{ width: t.value }} />
+                                <span className="w-14 shrink-0 text-foreground-secondary">{t.value}</span>
+                                <div className="h-3 bg-action-primary" style={{ width: t.value }} />
                             </div>
                         ))}
                     </div>
@@ -40,30 +40,30 @@ export default function SpacingPage() {
             {/* Custom layout classes */}
             <DocSection title="Layout Utilities">
                 <DocSection.Content>
-                    <div className="space-y-2 rounded-sm border border-n-1 p-3 text-xs">
+                    <div className="space-y-2 rounded-sm border border-border-default p-3 text-body-xs">
                         <div className="flex items-center gap-3">
                             <code className="w-12 font-mono font-bold">.row</code>
-                            <span className="text-grey-1">flex items-center gap-2</span>
+                            <span className="text-foreground-secondary">flex items-center gap-2</span>
                         </div>
                         <div className="flex items-center gap-3">
                             <code className="w-12 font-mono font-bold">.col</code>
-                            <span className="text-grey-1">flex flex-col gap-2</span>
+                            <span className="text-foreground-secondary">flex flex-col gap-2</span>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <p className="text-xs font-bold">Example: .row</p>
-                        <div className="row rounded-sm border border-n-1 p-3">
-                            <div className="size-8 rounded-sm bg-purple-1" />
-                            <div className="size-8 rounded-sm bg-primary-3" />
-                            <div className="size-8 rounded-sm bg-yellow-1" />
+                        <p className="text-label-m">Example: .row</p>
+                        <div className="row rounded-sm border border-border-default p-3">
+                            <div className="size-8 rounded-sm bg-action-primary" />
+                            <div className="size-8 rounded-sm bg-background-badge-accent" />
+                            <div className="size-8 rounded-sm bg-action-secondary" />
                         </div>
 
-                        <p className="text-xs font-bold">Example: .col</p>
-                        <div className="col rounded-sm border border-n-1 p-3">
-                            <div className="h-6 w-full rounded-sm bg-purple-1" />
-                            <div className="h-6 w-full rounded-sm bg-primary-3" />
-                            <div className="h-6 w-full rounded-sm bg-yellow-1" />
+                        <p className="text-label-m">Example: .col</p>
+                        <div className="col rounded-sm border border-border-default p-3">
+                            <div className="h-6 w-full rounded-sm bg-action-primary" />
+                            <div className="h-6 w-full rounded-sm bg-background-badge-accent" />
+                            <div className="h-6 w-full rounded-sm bg-action-secondary" />
                         </div>
                     </div>
                 </DocSection.Content>
@@ -75,7 +75,7 @@ export default function SpacingPage() {
 
             {/* Common gap patterns */}
             <DocSection title="Common Gap Values">
-                <div className="space-y-2 rounded-sm border border-n-1 p-3 text-xs">
+                <div className="space-y-2 rounded-sm border border-border-default p-3 text-body-xs">
                     {[
                         ['gap-1', '4px', 'Tight grouping (icon + label)'],
                         ['gap-2', '8px', 'Default row/col spacing'],
@@ -86,8 +86,8 @@ export default function SpacingPage() {
                     ].map(([cls, px, note]) => (
                         <div key={cls} className="flex items-center gap-3">
                             <code className="w-12 shrink-0 font-mono font-bold">{cls}</code>
-                            <span className="w-10 shrink-0 text-grey-1">{px}</span>
-                            <span className="text-grey-1">{note}</span>
+                            <span className="w-10 shrink-0 text-foreground-secondary">{px}</span>
+                            <span className="text-foreground-secondary">{note}</span>
                         </div>
                     ))}
                 </div>
@@ -95,17 +95,18 @@ export default function SpacingPage() {
 
             {/* Page padding */}
             <DocSection title="Page Padding">
-                <div className="space-y-1 text-sm text-grey-1">
+                <div className="space-y-1 text-body-s text-foreground-secondary">
                     <p>
-                        Standard page content padding: <code className="font-mono font-bold text-n-1">px-4</code> (16px)
+                        Standard page content padding:{' '}
+                        <code className="font-mono font-bold text-foreground-primary">px-4</code> (16px)
                     </p>
                     <p>
-                        Card internal padding: <code className="font-mono font-bold text-n-1">p-4</code> (16px) or{' '}
-                        <code className="font-mono font-bold text-n-1">p-6</code> (24px)
+                        Card internal padding: <code className="font-mono font-bold text-foreground-primary">p-4</code>{' '}
+                        (16px) or <code className="font-mono font-bold text-foreground-primary">p-6</code> (24px)
                     </p>
                     <p>
-                        Section spacing: <code className="font-mono font-bold text-n-1">space-y-6</code> or{' '}
-                        <code className="font-mono font-bold text-n-1">gap-6</code>
+                        Section spacing: <code className="font-mono font-bold text-foreground-primary">space-y-6</code>{' '}
+                        or <code className="font-mono font-bold text-foreground-primary">gap-6</code>
                     </p>
                 </div>
             </DocSection>

@@ -36,7 +36,7 @@ export default function CheckboxPage() {
 
                     <div>
                         <Checkbox value={!checked} onChange={() => {}} />
-                        <p className="text-xs text-grey-1">Without label</p>
+                        <p className="text-body-xs text-foreground-secondary">Without label</p>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>

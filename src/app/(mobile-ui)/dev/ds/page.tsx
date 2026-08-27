@@ -86,7 +86,7 @@ export default function DesignSystemPage() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
                                         <h3 className="text-body-m font-bold">{section.title}</h3>
-                                        <span className="rounded-full bg-background-disabled px-2 py-0.5 text-body-xs font-bold text-foreground-secondary">
+                                        <span className="rounded-round bg-background-disabled px-2 py-0.5 text-label-m text-foreground-secondary">
                                             {section.count}
                                         </span>
                                     </div>
@@ -107,12 +107,15 @@ export default function DesignSystemPage() {
                 <ul className="space-y-1 text-body-s text-foreground-secondary">
                     <li>
                         Primary CTA:{' '}
-                        <code className="rounded bg-white px-1 font-mono text-[10px]">
+                        <code className="rounded-sm bg-background-default px-1 font-mono text-body-xs">
                             variant=&quot;purple&quot; shadowSize=&quot;4&quot; w-full
                         </code>
                     </li>
                     <li>
-                        Links: <code className="rounded bg-white px-1 font-mono text-[10px]">text-black underline</code>{' '}
+                        Links:{' '}
+                        <code className="rounded-sm bg-background-default px-1 font-mono text-body-xs">
+                            text-black underline
+                        </code>{' '}
                         — never text-purple-1
                     </li>
                     <li>

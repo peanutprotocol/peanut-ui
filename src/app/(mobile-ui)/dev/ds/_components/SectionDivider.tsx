@@ -1,3 +1,3 @@
 export function SectionDivider() {
-    return <hr className="border-t border-gray-3" />
+    return <hr className="border-t border-border-disabled" />
 }

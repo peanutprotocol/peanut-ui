@@ -33,15 +33,15 @@ export default function TitlePage() {
 
             <DocSection title="Examples">
                 <DocSection.Content>
-                    <div className="rounded-sm bg-purple-1 p-4">
+                    <div className="rounded-sm bg-action-primary p-4">
                         <Title text="PEANUT" />
                     </div>
 
-                    <div className="rounded-sm bg-purple-1 p-4">
+                    <div className="rounded-sm bg-action-primary p-4">
                         <Title text="NO OFFSET" offset={false} />
                     </div>
 
-                    <div className="rounded-sm bg-yellow-1 p-4">
+                    <div className="rounded-sm bg-action-secondary p-4">
                         <Title text="ON YELLOW" />
                     </div>
                 </DocSection.Content>

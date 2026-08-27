@@ -26,37 +26,37 @@ export interface UsageCategory {
 const STATUS_META: Record<UsageStatus, { label: string; cls: string; hint: string }> = {
     live: {
         label: 'live in product',
-        cls: 'bg-green-1/40 text-foreground-primary border-n-1',
+        cls: 'bg-background-badge-success text-foreground-primary border-border-default',
         hint: 'rendered on real app screens',
     },
     variant: {
         label: 'redundant variant',
-        cls: 'bg-secondary-6 text-foreground-primary border-n-1',
+        cls: 'bg-background-badge-info text-foreground-primary border-border-default',
         hint: 'used, but duplicates another impl',
     },
     duplicate: {
         label: 'duplicate',
-        cls: 'bg-error-1/60 text-foreground-primary border-n-1',
+        cls: 'bg-background-badge-error text-foreground-primary border-border-default',
         hint: 'same job as a canonical impl',
     },
     canonical: {
         label: 'canonical',
-        cls: 'bg-primary-1/50 text-foreground-primary border-n-1',
+        cls: 'bg-action-primary/50 text-foreground-primary border-border-default',
         hint: 'the one to keep',
     },
     adhoc: {
         label: 'ad-hoc inline',
-        cls: 'bg-yellow-1/50 text-foreground-primary border-n-1',
+        cls: 'bg-background-badge-attention text-foreground-primary border-border-default',
         hint: 'reinvented inline, not the primitive',
     },
     'showcase-only': {
         label: 'SHOWCASE-ONLY',
-        cls: 'bg-yellow-1/30 text-foreground-secondary border-grey-1',
+        cls: 'bg-background-badge-attention/60 text-foreground-secondary border-border-subtle',
         hint: 'exists in /dev only — product never renders it',
     },
     dead: {
         label: 'DEAD · never used',
-        cls: 'bg-background-disabled text-foreground-secondary border-grey-1',
+        cls: 'bg-background-disabled text-foreground-secondary border-border-subtle',
         hint: 'referenced nowhere, delete-candidate',
     },
 }
@@ -65,9 +65,7 @@ const STATUS_ORDER: UsageStatus[] = ['live', 'canonical', 'variant', 'duplicate'
 function StatusChip({ status }: { status: UsageStatus }) {
     const m = STATUS_META[status] ?? STATUS_META.live
     return (
-        <span
-            className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold whitespace-nowrap ${m.cls}`}
-        >
+        <span className={`inline-block rounded-round border px-2 py-0.5 text-label-m whitespace-nowrap ${m.cls}`}>
             {m.label}
         </span>
     )
@@ -77,7 +75,7 @@ export function UsageAudit({
     eyebrow,
     title,
     intro,
-    heroClass = 'bg-purple-1',
+    heroClass = 'bg-background-brand',
     categories,
     footnote,
 }: {
@@ -130,10 +128,10 @@ export function UsageAudit({
     return (
         <DocPage>
             {/* Hero */}
-            <div className={`rounded-sm border border-n-1 p-5 ${heroClass}`}>
-                <p className="text-[11px] font-bold tracking-wide text-foreground-primary/70 uppercase">{eyebrow}</p>
+            <div className={`rounded-sm border border-border-default p-4 ${heroClass}`}>
+                <p className="text-label-m text-foreground-primary/70 uppercase">{eyebrow}</p>
                 <h1 className="mt-1 text-h4">{title}</h1>
-                <div className="mt-2 text-body-s leading-snug font-bold text-foreground-primary">{intro}</div>
+                <div className="mt-2 text-label-l text-foreground-primary">{intro}</div>
             </div>
 
             {/* Stat cards */}
@@ -144,17 +142,17 @@ export function UsageAudit({
                     { label: 'showcase-only', value: counts.showcase },
                     { label: 'dead', value: counts.dead },
                 ].map((s) => (
-                    <div key={s.label} className="rounded-sm border border-n-1 p-2 text-center">
-                        <p className="text-heading-xs font-bold">{s.value}</p>
-                        <p className="text-[10px] leading-tight text-foreground-secondary">{s.label}</p>
+                    <div key={s.label} className="rounded-sm border border-border-default p-2 text-center">
+                        <p className="text-heading-xs">{s.value}</p>
+                        <p className="text-body-xs text-foreground-secondary">{s.label}</p>
                     </div>
                 ))}
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-x-3 gap-y-1 rounded-sm border border-dashed border-grey-1 p-3">
+            <div className="flex flex-wrap gap-x-3 gap-y-1 rounded-sm border border-dashed border-border-subtle p-3">
                 {STATUS_ORDER.map((s) => (
-                    <span key={s} className="flex items-center gap-1.5 text-[10px] text-foreground-secondary">
+                    <span key={s} className="flex items-center gap-1 text-body-xs text-foreground-secondary">
                         <StatusChip status={s} />
                         {STATUS_META[s].hint}
                     </span>
@@ -167,17 +165,17 @@ export function UsageAudit({
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search name / divergence / file…"
-                    className="w-full rounded-sm border border-n-1 bg-white px-3 py-2 text-body-s outline-none focus:border-primary-1"
+                    className="w-full rounded-sm border border-border-default bg-background-default px-3 py-2 text-body-s outline-none focus:border-action-focus"
                 />
                 <div className="flex flex-wrap gap-1">
                     {['all', ...catNames].map((c) => (
                         <button
                             key={c}
                             onClick={() => setCat(c)}
-                            className={`rounded-full border border-n-1 px-2.5 py-1 text-[11px] font-bold ${
+                            className={`rounded-round border border-border-default px-2 py-1 text-label-m ${
                                 cat === c
-                                    ? 'bg-primary-1 text-foreground-primary'
-                                    : 'bg-white text-foreground-secondary'
+                                    ? 'bg-action-primary text-foreground-primary'
+                                    : 'bg-background-default text-foreground-secondary'
                             }`}
                         >
                             {c}
@@ -189,10 +187,10 @@ export function UsageAudit({
                         <button
                             key={s}
                             onClick={() => setStatus(s)}
-                            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
+                            className={`rounded-round border px-2 py-1 text-label-m ${
                                 status === s
-                                    ? 'border-n-1 bg-n-1 text-white'
-                                    : 'border-grey-2 bg-white text-foreground-secondary'
+                                    ? 'border-border-default bg-foreground-primary text-foreground-inverse'
+                                    : 'border-border-disabled bg-background-default text-foreground-secondary'
                             }`}
                         >
                             {s === 'all' ? 'all status' : STATUS_META[s as UsageStatus].label}
@@ -204,14 +202,12 @@ export function UsageAudit({
             {/* Grouped items */}
             {visible.map((c) => (
                 <div key={c.category}>
-                    <div className="mb-2 border-b border-n-1 pb-1">
+                    <div className="mb-2 border-b border-border-default pb-1">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-body-s font-bold">{c.category}</h2>
-                            <span className="text-[11px] text-foreground-secondary">{c.items.length} shown</span>
+                            <h2 className="text-label-l">{c.category}</h2>
+                            <span className="text-body-xs text-foreground-secondary">{c.items.length} shown</span>
                         </div>
-                        {c.summary && (
-                            <p className="mt-1 text-[11px] leading-snug text-foreground-secondary">{c.summary}</p>
-                        )}
+                        {c.summary && <p className="mt-1 text-body-xs text-foreground-secondary">{c.summary}</p>}
                     </div>
                     <div className="space-y-2">
                         {c.items.map((i, idx) => {
@@ -220,16 +216,18 @@ export function UsageAudit({
                                 <div
                                     key={c.category + i.name + idx}
                                     className={`rounded-sm border p-3 ${
-                                        isDead ? 'border-dashed border-grey-1 bg-grey-3/40' : 'border-grey-2 bg-white'
+                                        isDead
+                                            ? 'border-dashed border-border-subtle bg-background-page'
+                                            : 'border-border-disabled bg-background-default'
                                     }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <p className="text-body-s leading-tight font-bold">{i.name}</p>
+                                        <p className="text-label-l">{i.name}</p>
                                         <span
-                                            className={`shrink-0 rounded-sm px-2 py-0.5 text-body-xs font-bold ${
+                                            className={`shrink-0 rounded-sm px-2 py-0.5 text-label-m ${
                                                 i.realUsages > 0
-                                                    ? 'bg-n-1 text-white'
-                                                    : 'bg-grey-2 text-foreground-secondary'
+                                                    ? 'bg-foreground-primary text-foreground-inverse'
+                                                    : 'bg-background-disabled text-foreground-secondary'
                                             }`}
                                         >
                                             {i.realUsages}× app
@@ -238,26 +236,26 @@ export function UsageAudit({
                                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                         <StatusChip status={i.status} />
                                         {typeof i.devUsages === 'number' && i.devUsages > 0 && (
-                                            <span className="text-[10px] text-foreground-secondary">
+                                            <span className="text-body-xs text-foreground-secondary">
                                                 {i.devUsages}× in /dev only
                                             </span>
                                         )}
                                         {i.verified && (
-                                            <span className="text-[10px] text-foreground-secondary">✓ re-verified</span>
+                                            <span className="text-body-xs text-foreground-secondary">
+                                                ✓ re-verified
+                                            </span>
                                         )}
                                     </div>
                                     {i.divergence && (
-                                        <p className="mt-1.5 text-[11px] leading-snug text-foreground-secondary">
-                                            {i.divergence}
-                                        </p>
+                                        <p className="mt-2 text-body-xs text-foreground-secondary">{i.divergence}</p>
                                     )}
                                     {i.source && (
-                                        <p className="mt-1 truncate font-mono text-[10px] text-foreground-secondary/80">
+                                        <p className="mt-1 truncate font-mono text-body-xs text-foreground-secondary/80">
                                             {i.source}
                                         </p>
                                     )}
                                     {i.usedIn && i.usedIn.length > 0 && (
-                                        <p className="mt-1 font-mono text-[10px] leading-snug text-foreground-secondary/70">
+                                        <p className="mt-1 font-mono text-body-xs text-foreground-secondary/70">
                                             used in: {i.usedIn.slice(0, 4).join(' · ')}
                                         </p>
                                     )}
@@ -269,7 +267,7 @@ export function UsageAudit({
             ))}
 
             {footnote && (
-                <div className="rounded-sm border border-dashed border-grey-1 p-3 text-[11px] leading-snug text-foreground-secondary">
+                <div className="rounded-sm border border-dashed border-border-subtle p-3 text-body-xs text-foreground-secondary">
                     {footnote}
                 </div>
             )}

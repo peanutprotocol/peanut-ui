@@ -21,32 +21,32 @@ export default function LoadingPage() {
             {/* Loading (CSS Spinner) */}
             <DocSection title="Loading (CSS Spinner)">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Minimal CSS-only spinner. Uses border animation. Size controlled via className.
                     </p>
 
                     <div className="space-y-4">
-                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Sizes</p>
+                        <p className="text-label-m text-foreground-secondary uppercase">Sizes</p>
                         <div className="flex items-end gap-6">
                             <div className="text-center">
                                 <Loading className="h-3 w-3" />
-                                <p className="mt-2 text-xs text-grey-1">h-3 w-3</p>
+                                <p className="mt-2 text-body-xs text-foreground-secondary">h-3 w-3</p>
                             </div>
                             <div className="text-center">
                                 <Loading />
-                                <p className="mt-2 text-xs text-grey-1">h-4 w-4 (default)</p>
+                                <p className="mt-2 text-body-xs text-foreground-secondary">h-4 w-4 (default)</p>
                             </div>
                             <div className="text-center">
                                 <Loading className="h-6 w-6" />
-                                <p className="mt-2 text-xs text-grey-1">h-6 w-6</p>
+                                <p className="mt-2 text-body-xs text-foreground-secondary">h-6 w-6</p>
                             </div>
                             <div className="text-center">
                                 <Loading className="h-8 w-8" />
-                                <p className="mt-2 text-xs text-grey-1">h-8 w-8</p>
+                                <p className="mt-2 text-body-xs text-foreground-secondary">h-8 w-8</p>
                             </div>
                             <div className="text-center">
                                 <Loading className="h-12 w-12" />
-                                <p className="mt-2 text-xs text-grey-1">h-12 w-12</p>
+                                <p className="mt-2 text-body-xs text-foreground-secondary">h-12 w-12</p>
                             </div>
                         </div>
                     </div>
@@ -82,21 +82,21 @@ export default function LoadingPage() {
             {/* mascot variant */}
             <DocSection title='Loading variant="mascot" (Branded)'>
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Spinning Peanut logo with optional message. Can cover the full screen as an overlay.
                     </p>
 
                     {/* Inline demo */}
                     <div className="space-y-4">
-                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Inline</p>
-                        <div className="rounded-sm border border-n-1 p-4">
+                        <p className="text-label-m text-foreground-secondary uppercase">Inline</p>
+                        <div className="rounded-sm border border-border-default p-4">
                             <Loading variant="mascot" message="Processing your transaction..." />
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">Without message</p>
-                        <div className="rounded-sm border border-n-1 p-4">
+                        <p className="text-label-m text-foreground-secondary uppercase">Without message</p>
+                        <div className="rounded-sm border border-border-default p-4">
                             <Loading variant="mascot" />
                         </div>
                     </div>

@@ -6,10 +6,11 @@ export default function PlaygroundPage() {
         <DocPage>
             <div>
                 <h1 className="text-h3">Playground</h1>
-                <p className="mt-1 text-sm text-grey-1">
+                <p className="mt-1 text-body-s text-foreground-secondary">
                     Interactive test harnesses for motion, haptics, confetti and share assets. These are standalone
-                    pages under <code className="rounded bg-n-1/10 px-1 font-mono text-[11px]">/dev</code> (not part of
-                    the doc-site chrome) — opening one navigates away from the design-system nav.
+                    pages under{' '}
+                    <code className="rounded-sm bg-foreground-primary/10 px-1 font-mono text-body-xs">/dev</code> (not
+                    part of the doc-site chrome) — opening one navigates away from the design-system nav.
                 </p>
             </div>
 

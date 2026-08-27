@@ -25,7 +25,7 @@ export default function NavigationPage() {
             {/* NavHeader */}
             <DocSection title="NavHeader">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Top navigation bar with back button (link or callback), centered title, and optional logout
                         button. Uses authContext for logout.
                     </p>
@@ -100,24 +100,24 @@ export default function NavigationPage() {
             {/* Flow usage (hideLabel + rightElement) */}
             <DocSection title="Flow Usage (hideLabel + rightElement)">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Minimal header for multi-step flows. Back button on the left, optional element on the right. No
                         title -- the screen content below provides context.
                     </p>
 
                     {/* Live demo */}
-                    <div className="space-y-2 rounded-sm border border-n-1 p-3">
-                        <p className="text-xs font-bold tracking-wider text-grey-1 uppercase">
+                    <div className="space-y-2 rounded-sm border border-border-default p-3">
+                        <p className="text-label-m text-foreground-secondary uppercase">
                             Live Demo (step {flowStep}/3)
                         </p>
                         <NavHeader
                             hideLabel
                             onPrev={() => setFlowStep((s) => Math.max(1, s - 1))}
                             disableBackBtn={flowStep <= 1}
-                            rightElement={<span className="text-xs text-grey-1">{flowStep}/3</span>}
+                            rightElement={<span className="text-body-xs text-foreground-secondary">{flowStep}/3</span>}
                         />
-                        <div className="flex items-center justify-center rounded-sm bg-primary-3/20 py-8">
-                            <span className="text-sm font-bold">Step {flowStep} Content</span>
+                        <div className="flex items-center justify-center rounded-sm bg-background-badge-accent/20 py-8">
+                            <span className="text-label-l">Step {flowStep} Content</span>
                         </div>
                         {flowStep < 3 ? (
                             <Button
@@ -165,7 +165,7 @@ export default function NavigationPage() {
   hideLabel
   onPrev={() => setStep((s) => Math.max(1, s - 1))}
   disableBackBtn={step <= 1}
-  rightElement={<span className="text-xs text-grey-1">2/3</span>}
+  rightElement={<span className="text-body-xs text-foreground-secondary">2/3</span>}
 />`}
                     />
                 </DocSection.Code>

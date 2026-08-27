@@ -29,18 +29,18 @@ export default function AmountInputPage() {
             {/* Visual Description */}
             <DocSection title="Visual Structure">
                 <DocSection.Content>
-                    <div className="rounded-sm border border-n-1 p-4">
+                    <div className="rounded-sm border border-border-default p-4">
                         <div className="flex flex-col items-center gap-2 py-4">
                             <div className="flex items-center gap-1">
-                                <span className="text-xl font-bold text-grey-1">$</span>
+                                <span className="text-heading-xs text-foreground-secondary">$</span>
                                 <span className="text-6xl font-black">0.00</span>
                             </div>
-                            <span className="text-lg font-bold text-grey-1">&asymp; ETH 0.00</span>
-                            <span className="text-sm text-grey-1">Balance: $ 42.50</span>
+                            <span className="text-heading-card text-foreground-secondary">&asymp; ETH 0.00</span>
+                            <span className="text-body-s text-foreground-secondary">Balance: $ 42.50</span>
                         </div>
-                        <div className="absolute top-1/2 right-4 -translate-y-1/2 text-grey-1"></div>
+                        <div className="absolute top-1/2 right-4 -translate-y-1/2 text-foreground-secondary"></div>
                     </div>
-                    <p className="text-xs text-grey-1">
+                    <p className="text-body-xs text-foreground-secondary">
                         The input uses a transparent background with auto-sizing width. A fake blinking caret (primary-1
                         color) shows when the input is empty and not focused.
                     </p>
@@ -212,7 +212,7 @@ export default function AmountInputPage() {
 
             {/* Refactoring Ideas */}
             <DocSection title="Refactoring Ideas">
-                <div className="space-y-1 text-sm text-grey-1">
+                <div className="space-y-1 text-body-s text-foreground-secondary">
                     <p>1. Extract conversion logic into a useAmountConversion hook</p>
                     <p>2. Split slider into a separate SliderAmountInput wrapper component</p>
                     <p>3. Remove pot-specific snap logic from the base component</p>
