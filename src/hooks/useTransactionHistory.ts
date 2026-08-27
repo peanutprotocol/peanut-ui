@@ -2,7 +2,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { serverFetch } from '@/utils/api-fetch'
 import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } from '@tanstack/react-query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { completeHistoryEntry } from '@/utils/history.utils'
+import { completeHistoryEntry, dedupeHistoryEntriesByUuid } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_HISTORY_ENTRIES } from '@/constants/demo-data'
@@ -28,6 +28,42 @@ type UseTransactionHistoryOptions = {
     enabled?: boolean
     username?: string
     filterMutualTxs?: boolean
+}
+
+/** Hard cap on cursor-follows per latest-mode load, so a pathological feed
+ *  (every page collapsing into already-seen rows) can't fetch unboundedly. */
+const MAX_LATEST_PAGES = 4
+
+/**
+ * Follows the history cursor until `limit` UNIQUE rows are collected, the
+ * feed is exhausted, or `maxPages` pages were fetched.
+ *
+ * Needed because the API applies its limit to raw transaction intents BEFORE
+ * collapsing a request pot's contributions into one rollup row — a page whose
+ * newest intents are all contributions to the same pot comes back as a single
+ * row with hasMore:true, so one fetch (any fixed limit) can't guarantee the
+ * requested number of distinct rows. Pages are deduped by uuid (rollup rows
+ * reuse the link uuid on every page holding that pot's charges).
+ */
+export async function collectLatestEntries(
+    fetchPage: (cursor?: string) => Promise<HistoryResponse>,
+    limit: number,
+    maxPages: number = MAX_LATEST_PAGES
+): Promise<HistoryResponse> {
+    let entries: HistoryEntry[] = []
+    let cursor: string | undefined
+    let hasMore = false
+    for (let page = 0; page < maxPages; page++) {
+        const res = await fetchPage(cursor)
+        entries = dedupeHistoryEntriesByUuid([...entries, ...res.entries])
+        hasMore = res.hasMore
+        if (!hasMore || entries.length >= limit) break
+        // an unchanged or missing cursor cannot advance the window — stop
+        // instead of refetching the same page (mirrors getNextPageParam below)
+        if (!res.cursor || res.cursor === cursor) break
+        cursor = res.cursor
+    }
+    return { entries: entries.slice(0, limit), cursor, hasMore }
 }
 
 export function useTransactionHistory(options: {
@@ -96,11 +132,13 @@ export function useTransactionHistory({
     // runtime cost over the conditional version, while removing the hook-order corruption
     // that bites if a caller ever flips `mode` mid-life.
 
-    // Latest transactions (home page).
+    // Latest transactions (home page). Follows the cursor inside the queryFn
+    // until `limit` unique rows are available (see collectLatestEntries) —
+    // one page suffices for typical feeds, so this rarely refetches.
     // Cached only in TQ memory (30s stale); the HTTP response is no-store end to end.
     const latestQuery = useQuery({
         queryKey: [TRANSACTIONS, 'latest', { limit, targetUsername: filterMutualTxs ? username : undefined }],
-        queryFn: () => fetchHistory({ limit }),
+        queryFn: () => collectLatestEntries((cursor) => fetchHistory({ cursor, limit }), limit),
         enabled: mode === 'latest' && enabled,
         staleTime: 30 * 1000,
         gcTime: 5 * 60 * 1000,

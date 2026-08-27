@@ -10,7 +10,10 @@ export const RECENT_ACTIVITY_LIMIT = 5
  * Fetch headroom over RECENT_ACTIVITY_LIMIT: synthetic rows (badges, KYC,
  * card-unlock) and live websocket entries merge into the fetched list before
  * the final slice, so fetching exactly RECENT_ACTIVITY_LIMIT rows let older
- * synthetic rows evict real recent transactions.
+ * synthetic rows evict real recent transactions. This is a UNIQUE-row target,
+ * not a page size — latest mode follows the API cursor until it's met (see
+ * collectLatestEntries), since pot contributions collapse into one rollup
+ * row after the API applies its limit.
  */
 export const RECENT_ACTIVITY_FETCH_LIMIT = 10
 
