@@ -94,6 +94,11 @@ export const useCurrency = (currencyCode: string | null) => {
             .catch((err) => {
                 if (cancelled) return
                 console.error(err)
+                // Drop the previous currency's rate: keeping it would let a
+                // consumer that gates on `price` alone price the new currency
+                // with the old one's number.
+                setSymbol(null)
+                setPrice(null)
                 setIsError(true)
                 setIsLoading(false)
             })

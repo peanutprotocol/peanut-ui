@@ -97,6 +97,25 @@ describe('useCurrency', () => {
         expect(result.current.code).toBe('ARS')
     })
 
+    // Consumers gate on `price`, so a retained rate would price the new currency
+    // with the old one's number.
+    it('drops the previous currency rate when the next fetch fails', async () => {
+        mockGetCachedCurrencyPrice.mockResolvedValueOnce({ buy: 1400, sell: 1350 })
+        mockGetCachedCurrencyPrice.mockRejectedValueOnce(new Error('timeout'))
+
+        const { result, rerender } = renderHook(({ code }) => useCurrency(code), {
+            initialProps: { code: 'ARS' },
+        })
+
+        await waitFor(() => expect(result.current.price).toEqual({ buy: 1400, sell: 1350 }))
+
+        rerender({ code: 'BRL' })
+
+        await waitFor(() => expect(result.current.isError).toBe(true))
+        expect(result.current.price).toBeNull()
+        expect(result.current.symbol).toBeNull()
+    })
+
     it('short-circuits USD without a network call', async () => {
         const { result } = renderHook(() => useCurrency('USD'))
 
