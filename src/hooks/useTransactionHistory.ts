@@ -62,7 +62,11 @@ function resolveLimit(limit: number | undefined, fallback: number): number {
 
 export function latestPageSize(limit: number): number {
     const rows = resolveLimit(limit, DEFAULT_LATEST_UNIQUE_ROWS)
-    return Math.min(Math.max(rows * LATEST_PAGE_SIZE_MULTIPLIER, rows), MAX_LATEST_PAGE_SIZE)
+    // Never ask for fewer raw rows than unique rows wanted: the API limit counts
+    // intents BEFORE pot rollup, so a page can only collapse to fewer rows than
+    // it fetched. The cap bounds ordinary requests, but a caller wanting more
+    // rows than the cap raises it rather than guaranteeing extra round trips.
+    return Math.max(Math.min(rows * LATEST_PAGE_SIZE_MULTIPLIER, MAX_LATEST_PAGE_SIZE), rows)
 }
 
 /**
@@ -87,13 +91,24 @@ function sumCollectedFromCharges(entry: HistoryEntry, charges: ChargeEntry[]): n
     for (const charge of charges) {
         const successful = (charge.payments ?? []).filter((payment) => payment.status === 'SUCCESSFUL')
         if (!successful.length) continue
+        // Absent is not zero: a paid charge awaiting its settled figure falls
+        // back to the requested amount, but an explicit 0 settles as 0 — else a
+        // zero-amount settlement would read as the full goal and mark an
+        // unpaid request completed.
+        const hasSettled = successful.some(
+            (p) => p.paidAmountInRequestedToken !== undefined && p.paidAmountInRequestedToken !== null
+        )
+        if (!hasSettled) {
+            total += Number(charge.tokenAmount || 0)
+            continue
+        }
         let settled = 0n
         try {
             settled = successful.reduce((sum, p) => sum + BigInt(p.paidAmountInRequestedToken ?? 0), 0n)
         } catch {
             return undefined
         }
-        total += settled > 0n ? Number(formatUnits(settled, decimals)) : Number(charge.tokenAmount || 0)
+        total += Number(formatUnits(settled, decimals))
     }
     return total
 }
@@ -129,9 +144,16 @@ function mergeRepeatedEntry(existing: HistoryEntry, incoming: HistoryEntry): His
     const fromCharges = sumCollectedFromCharges(existing, charges)
     const newer = new Date(incoming.timestamp).getTime() > new Date(existing.timestamp).getTime()
 
+    const fresher = newer ? incoming : existing
+
     return {
         ...existing,
-        timestamp: newer ? incoming.timestamp : existing.timestamp,
+        timestamp: fresher.timestamp,
+        // Link-level state can change mid-pagination (a request closed between
+        // pages), and the status drives the pill — take it from the fresher
+        // copy. Identity fields stay with page 0, which is the freshest for a
+        // websocket-prepended row.
+        status: fresher.status,
         totalAmountCollected: fromCharges !== undefined ? Math.max(fromCharges, greatestPageTotal) : greatestPageTotal,
         charges: charges.length ? charges : existing.charges,
     }

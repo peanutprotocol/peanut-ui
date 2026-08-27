@@ -246,12 +246,12 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
 
     const potRow = (
         collected: number,
-        opts: { timestamp?: string; charges?: ReturnType<typeof charge>[] } = {}
+        opts: { timestamp?: string; charges?: ReturnType<typeof charge>[]; status?: string } = {}
     ): HistoryEntry =>
         ({
             uuid: 'pot-1',
             amount: '12',
-            status: 'OPEN',
+            status: opts.status ?? 'OPEN',
             isRequestLink: true,
             chainId: '42161',
             tokenAddress: USDC_ARBITRUM,
@@ -268,6 +268,32 @@ describe('collectLatestEntries — request-pot rollup merge across pages', () =>
                     cursor ? { entries: [second], hasMore: false } : { entries: [first], cursor: 'c1', hasMore: true }
                 )
         )
+
+    it('takes the link status from the fresher copy, not page 0', async () => {
+        // the request was closed between the two page fetches
+        const fetchPage = twoPages(
+            potRow(10, { charges: [charge('ch-1', '10')], timestamp: '2026-08-01T00:00:00Z' }),
+            potRow(12, { charges: [charge('ch-2', '2')], timestamp: '2026-08-02T00:00:00Z', status: 'CLOSED' })
+        )
+        const res = await collectLatestEntries(fetchPage, 5)
+        expect(res.entries[0].status).toBe('CLOSED')
+    })
+
+    it('an explicit zero settlement contributes zero, not the requested amount', async () => {
+        const zeroSettled = {
+            uuid: 'ch-z',
+            tokenAmount: '12',
+            payments: [{ uuid: 'ch-z-p', status: 'SUCCESSFUL', paidAmountInRequestedToken: '0' }],
+            fulfillmentPayment: null,
+        }
+        const fetchPage = jest.fn(
+            (): Promise<HistoryResponse> =>
+                Promise.resolve({ entries: [potRow(0, { charges: [zeroSettled as never] })], hasMore: false })
+        )
+        const res = await collectLatestEntries(fetchPage, 5)
+        // a zero settlement must not read as the full $12 goal
+        expect(res.entries[0].totalAmountCollected).toBe(0)
+    })
 
     it('DISJOINT windows sum to the full total ($10 + $2 of a $12 goal)', async () => {
         const fetchPage = twoPages(
@@ -365,7 +391,8 @@ describe('latestPageSize', () => {
         expect(latestPageSize(10)).toBe(50)
         expect(latestPageSize(50)).toBe(50)
         // never asks for fewer rows than the caller wants
-        expect(latestPageSize(80)).toBeGreaterThanOrEqual(50)
+        expect(latestPageSize(80)).toBe(80)
+        expect(latestPageSize(120)).toBe(120)
     })
 })
 
