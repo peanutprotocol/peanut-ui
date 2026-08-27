@@ -10,6 +10,8 @@ export const FAST_CLAIM_POLL_ATTEMPTS = 30
 // 30 fast attempts (~30s) + 30 slow ones (~5min) before giving up
 export const MAX_CLAIM_POLL_ATTEMPTS = 60
 
+export type ClaimPollFailure = { code: string | null; reason?: string }
+
 /*
  * Terminal means "polling again can't change the answer". A projected claim
  * counts only WITH its txHash: the claim write flips SendLink.status to
@@ -21,6 +23,11 @@ const isTerminal = (link: SendLink | undefined): boolean =>
     !!link &&
     (!!link.claim?.txHash || link.status === ESendLinkStatus.FAILED || link.status === ESendLinkStatus.CANCELLED)
 
+const toFailure = (link: SendLink): ClaimPollFailure => ({
+    code: link.claimFailureCode ?? null,
+    reason: link.events?.[link.events.length - 1]?.reason,
+})
+
 /**
  * Polls the send link after an optimistic claim until the claim tx is indexed.
  * react-query owns the cadence: in-flight requests are deduped (a bare
@@ -28,7 +35,7 @@ const isTerminal = (link: SendLink | undefined): boolean =>
  * connection), gcTime 0 stops polling on unmount, and after the fast phase the
  * interval backs off. If the attempt ceiling is reached without a terminal
  * answer (e.g. prolonged connectivity loss), onGaveUp fires so the view can
- * settle into its unconfirmed state instead of polling being lost silently.
+ * hold its unconfirmed state instead of polling being lost silently.
  * Exactly one of onClaimed / onFailed / onGaveUp is reported — except that a
  * terminal response already in flight when the ceiling hits may still deliver
  * its onClaimed/onFailed after onGaveUp, which callers treat as an upgrade.
@@ -37,7 +44,7 @@ export function useClaimSuccessPolling(
     link: string,
     enabled: boolean,
     onClaimed: (txHash: string) => void,
-    onFailed: (reason?: string) => void,
+    onFailed: (failure: ClaimPollFailure) => void,
     onGaveUp: () => void
 ): void {
     const attempts = useRef(0)
@@ -80,7 +87,7 @@ export function useClaimSuccessPolling(
             onClaimedRef.current(data.claim.txHash)
         } else if (data.status === ESendLinkStatus.FAILED) {
             hasReportedResult.current = true
-            onFailedRef.current(data.events?.[data.events.length - 1]?.reason)
+            onFailedRef.current(toFailure(data))
         }
     }, [data])
 }

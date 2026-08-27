@@ -132,13 +132,17 @@ describe('useClaimSuccessPolling', () => {
         expect(onGaveUp).not.toHaveBeenCalled()
     })
 
-    it('stops and reports the failure reason once on FAILED', async () => {
-        mockGet.mockResolvedValue({ status: 'FAILED', events: [{ status: 'FAILED', reason: 'out of gas' }] })
+    it('stops and reports the failure code + reason once on FAILED', async () => {
+        mockGet.mockResolvedValue({
+            status: 'FAILED',
+            claimFailureCode: 'CHAIN_INFRA_UNAVAILABLE',
+            events: [{ status: 'FAILED', reason: 'out of gas' }],
+        })
         const { onClaimed, onFailed, onGaveUp } = renderPolling()
 
         await advance(0)
         expect(onFailed).toHaveBeenCalledTimes(1)
-        expect(onFailed).toHaveBeenCalledWith('out of gas')
+        expect(onFailed).toHaveBeenCalledWith({ code: 'CHAIN_INFRA_UNAVAILABLE', reason: 'out of gas' })
 
         await advance(10 * CLAIM_POLL_SLOW_INTERVAL_MS)
         expect(mockGet).toHaveBeenCalledTimes(1)

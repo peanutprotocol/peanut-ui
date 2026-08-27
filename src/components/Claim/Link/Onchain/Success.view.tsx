@@ -7,10 +7,10 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
-import { useClaimSuccessPolling } from './useClaimSuccessPolling'
-import { captureMessage } from '@sentry/nextjs'
+import { useClaimSuccessPolling, type ClaimPollFailure } from './useClaimSuccessPolling'
 import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
+import { captureMessage } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -22,6 +22,11 @@ import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
+import ErrorAlert from '@/components/Global/ErrorAlert'
+import PeanutLoading from '@/components/Global/PeanutLoading'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { useSafeBack } from '@/hooks/useSafeBack'
+import { API_ERROR_CODES } from '@/services/api-error'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
 export const SuccessClaimLinkView = ({
@@ -29,8 +34,15 @@ export const SuccessClaimLinkView = ({
     setTransactionHash,
     claimLinkData,
     tokenPrice,
+    onCustom,
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
+    const tCommon = useTranslations('common')
+    const toFriendlyError = useFriendlyError()
+    const goBack = useSafeBack('/home')
+    // The optimistic claim path lands here before the broadcast is known to
+    // have succeeded, so a failure can only arrive through the poll below.
+    const [claimFailure, setClaimFailure] = useState<{ code: string | null } | null>(null)
     const { user: authUser } = useUserStore()
     const { fetchUser } = useAuth()
     const router = useRouter()
@@ -43,8 +55,6 @@ export const SuccessClaimLinkView = ({
         user: claimLinkData.sender,
         address: claimLinkData.senderAddress,
     })
-    // claim polling reached a non-success end (failed / gave up) — stop polling
-    const [isClaimPollingSettled, setIsClaimPollingSettled] = useState(false)
 
     // @dev: Claimers don't earn points (only senders do), so we don't call calculatePoints
     // Points will show in activity history once the sender's transaction is processed
@@ -68,28 +78,24 @@ export const SuccessClaimLinkView = ({
         [queryClient, fetchUser, setTransactionHash]
     )
 
-    /*
-     * Both non-success outcomes only settle polling — the optimistic success
-     * card stays, matching the pre-existing behavior (dev never had a failure
-     * UI here; its TODO to add one still stands). A local flag stops the
-     * polling instead of dev's 'FAILED' sentinel string, which lived in the
-     * flow-level transactionHash where a future consumer could mistake a
-     * truthy non-hash for a real one.
-     */
-    const handleClaimFailed = useCallback((reason?: string) => {
-        // TODO: Show error UI to user instead of silent failure
-        console.error('Claim failed:', reason || 'Unknown error')
-        setIsClaimPollingSettled(true)
+    const handleClaimFailed = useCallback((failure: ClaimPollFailure) => {
+        console.error('Claim failed:', failure.reason || 'Unknown error')
+        setClaimFailure({ code: failure.code })
     }, [])
 
+    /*
+     * The poll ceiling was reached with no terminal answer (e.g. prolonged
+     * connectivity loss). Stay in the processing state — claiming success
+     * would be a lie and failure is not established either — and leave the
+     * query enabled so a window refocus gets one recovery fetch.
+     */
     const handleClaimUnconfirmed = useCallback(() => {
         captureMessage('Claim confirmation polling gave up without a terminal status', 'warning')
-        setIsClaimPollingSettled(true)
     }, [])
 
     useClaimSuccessPolling(
         claimLinkData.link,
-        !transactionHash && !isClaimPollingSettled,
+        !transactionHash && !claimFailure,
         handleClaimConfirmed,
         handleClaimFailed,
         handleClaimUnconfirmed
@@ -159,9 +165,58 @@ export const SuccessClaimLinkView = ({
     }
 
     useEffect(() => {
-        // trigger haptic on mount
+        // success feedback belongs to a confirmed claim, not to arriving here —
+        // the optimistic path mounts this view before the broadcast is known
+        if (!transactionHash) return
         triggerHaptic()
-    }, [triggerHaptic])
+    }, [transactionHash, triggerHaptic])
+
+    // The optimistic 202 lands here with no hash and no outcome yet. Rendering
+    // the success card now would claim money that has not moved — and would
+    // keep claiming it for as long as the poll is slow or failing.
+    if (!transactionHash && !claimFailure) {
+        return (
+            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                <div className="md:hidden">
+                    <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
+                </div>
+                <div className="relative z-10 my-auto flex h-full flex-col justify-center">
+                    <PeanutLoading message={tCommon('status.processing')} />
+                </div>
+            </div>
+        )
+    }
+
+    if (claimFailure) {
+        const isRetryable = claimFailure.code === API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE
+        return (
+            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+                <div className="md:hidden">
+                    <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
+                </div>
+                <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+                    <ErrorAlert description={toFriendlyError({ code: claimFailure.code })} />
+                    {isRetryable && (
+                        <Button
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={() => {
+                                // the link was rolled back, so INITIAL offers
+                                // the claim again rather than a spent link
+                                setTransactionHash(undefined)
+                                onCustom('INITIAL')
+                            }}
+                        >
+                            {tCommon('tryAgain')}
+                        </Button>
+                    )}
+                    <Button variant="stroke" className="w-full" onClick={() => router.push('/home')}>
+                        {t('backToHome')}
+                    </Button>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">

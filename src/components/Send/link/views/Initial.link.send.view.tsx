@@ -14,6 +14,7 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance, isValidSendAmount } from '@/utils/balance.utils'
 import { captureException } from '@sentry/nextjs'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
@@ -141,18 +142,32 @@ const LinkSendInitialView = () => {
                 } catch (error) {
                     // we want to capture any errors here because we are already in the background
                     console.error(error)
-                    captureException(error)
+                    captureException(error, {
+                        tags: { ...criticalFlowTags('send-link'), send_link_step: 'persist' },
+                    })
                 }
             }, 0)
         } catch (error) {
             // handle errors
             const errorString = toFriendlyError(error)
             setErrorState({ showError: true, errorMessage: errorString })
+            // `error_message` is the LOCALIZED copy the user saw, so it can't be
+            // grouped on — carry the raw class/message alongside it, which is what
+            // actually identifies the failing substep (TASK-21956).
             posthog.capture(ANALYTICS_EVENTS.SEND_LINK_FAILED, {
                 amount: tokenValue,
                 error_message: errorString,
+                error_name: error instanceof Error ? error.name : 'unknown',
+                error_raw: error instanceof Error ? error.message : String(error),
             })
-            captureException(error)
+            // Tagged, or the noise filters drop it: a send link that dies on a
+            // failed fetch matched `networkIssues` in sentry.utils.ts and was
+            // silently discarded, leaving the user on "contact support" and us
+            // with nothing to look at — the exact gap in TASK-21956.
+            captureException(error, {
+                tags: { ...criticalFlowTags('send-link'), send_link_step: 'create' },
+                extra: { amount: tokenValue, hasAttachment: !!attachmentOptions?.rawFile },
+            })
         } finally {
             setLoadingState('Idle')
         }

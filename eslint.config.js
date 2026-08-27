@@ -273,6 +273,9 @@ module.exports = [
             'src/components/Global/{PeanutLoading,Icons}/**',
             // InvitesGraph is a /dev-only debug visualization, not user-facing UI.
             'src/components/Global/InvitesGraph/**',
+            // The payment network explorer is a team-gated /dev tool; its copy is
+            // intentionally English-only.
+            'src/features/payment-network-explorer/**',
             // Hidden support tool — never linked in-app; support DMs the URL to
             // affected users, so the copy stays English-only.
             'src/app/(mobile-ui)/fix-card-signature/**',

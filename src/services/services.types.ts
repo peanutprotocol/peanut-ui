@@ -338,6 +338,10 @@ export type SendLink = {
     textContent?: string
     fileUrl?: string
     status: SendLinkStatus
+    /** Machine-readable reason the last claim attempt failed. The optimistic
+     *  claim path is answered 202 before the broadcast, so this is the only
+     *  thing a poller can read to tell a retryable outage from a dead end. */
+    claimFailureCode?: string | null
     createdAt: Date
     senderAddress: string
     amount: bigint
@@ -442,7 +446,6 @@ export enum PointsAction {
     MANTECA_QR_PAYMENT = 'MANTECA_QR_PAYMENT',
     P2P_SEND_LINK = 'P2P_SEND_LINK',
     P2P_REQUEST_PAYMENT = 'P2P_REQUEST_PAYMENT',
-    INVITE_KYC_VERIFIED = 'INVITE_KYC_VERIFIED',
 }
 
 export interface CalculatePointsRequest {

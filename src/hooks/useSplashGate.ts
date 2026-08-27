@@ -23,9 +23,44 @@ import { localeApplied } from '@/i18n/app/locale-store'
 let splashHidden = false
 let hardTimeoutArmed = false
 
+/*
+ * hide() unblocks the first frame, and on Android that frame is what runs the
+ * system splash-screen teardown. Running it while the activity is backgrounded
+ * hands the teardown a window that is gone by the time the app resumes and
+ * actually draws, which crashed the process (PEANUT-UI-SVN, one Android 13
+ * cold start backgrounded ~2s in and resumed 15s later). Park until the app is
+ * foregrounded; a splash nobody can see is not worth a crash.
+ */
+async function whenActive(): Promise<void> {
+    const { App } = await import('@capacitor/app')
+
+    let resumed!: () => void
+    const nextResume = new Promise<void>((resolve) => {
+        resumed = resolve
+    })
+
+    // Listener first, state read second: appStateChange is never replayed, so a
+    // resume landing between a false read and the registration would park the
+    // splash for the rest of the launch.
+    const listener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+        if (isActive) resumed()
+    })
+    try {
+        if ((await App.getState()).isActive) return
+        await nextResume
+    } finally {
+        await listener.remove().catch(() => {})
+    }
+}
+
 async function hideSplash() {
     if (splashHidden) return
     splashHidden = true
+    try {
+        await whenActive()
+    } catch (e) {
+        console.warn('failed to read native app state:', e)
+    }
     try {
         const { SplashScreen } = await import('@capacitor/splash-screen')
         await SplashScreen.hide()
@@ -34,7 +69,12 @@ async function hideSplash() {
     }
 }
 
-export function useSplashGate() {
+export function resetSplashGateForTests(): void {
+    splashHidden = false
+    hardTimeoutArmed = false
+}
+
+export function useSplashGate(): void {
     const pathname = usePathname()
 
     useEffect(() => {
