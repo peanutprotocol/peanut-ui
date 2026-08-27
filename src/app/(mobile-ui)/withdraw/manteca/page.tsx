@@ -17,6 +17,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -176,6 +177,7 @@ function MantecaBankWithdrawFlow() {
         code: currencyCode,
         price: currencyPrice,
         isLoading: isCurrencyLoading,
+        refetch: refetchCurrency,
     } = useCurrency(selectedCountry?.currency ?? null)
 
     // validates withdrawal against user's limits
@@ -551,7 +553,21 @@ function MantecaBankWithdrawFlow() {
         }
     }, [countryFromUrl, selectedCountry, router])
 
-    if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
+    // Both rate states keep the header mounted so back always works: a failed
+    // fetch used to fall through to a bare loader that spun forever with no way
+    // out, and a retry that stalls would land in the same place (#1848).
+    if (selectedCountry && countryConfig && (isCurrencyLoading || !currencyPrice)) {
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <NavHeader title={tNav('withdraw')} onPrev={onBack} />
+                <div className="my-auto flex flex-col justify-center">
+                    {isCurrencyLoading ? <PeanutLoading /> : <RateUnavailable onRetry={refetchCurrency} />}
+                </div>
+            </div>
+        )
+    }
+
+    if (!selectedCountry || !countryConfig) {
         return <PeanutLoading />
     }
 
