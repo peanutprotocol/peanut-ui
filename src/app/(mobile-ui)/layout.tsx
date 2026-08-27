@@ -22,6 +22,7 @@ import { Banner } from '@/components/Global/Banner'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
+import { saveRedirectUrl } from '@/utils/general.utils'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
@@ -114,6 +115,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         if (isDemoMode()) enableDemoMode()
         if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current && !isDemoMode()) {
             isRedirecting.current = true
+            // Keep the target: a logged-out tap on a protected deep link
+            // (/pay-request, /card, /receipt, every push) used to be dropped
+            // here and land on /home after login. useLogin/useAccountSetup
+            // consume this via consumePostAuthRedirect.
+            saveRedirectUrl()
             router.replace('/setup')
             // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {

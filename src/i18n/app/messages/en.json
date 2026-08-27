@@ -432,11 +432,16 @@
             "confirmDescription": "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed.",
             "confirmCta": "Yes, delete it",
             "cancelCta": "Never mind, I'll stay",
+            "blockedTitle": "Move your money first",
+            "blockedDescription": "You still have ${amount} in your account. Deleting it is permanent — you can't get back in afterwards, and that money would stay out of reach. Send it to someone or withdraw it first.",
+            "blockedCta": "Move my money",
+            "blockedCancelCta": "Never mind",
             "doneTitle": "We'll miss you",
             "doneDescription": "Your account is off and your data will be gone within 30 days. Thanks for cracking open Peanut with us — take care out there!",
             "doneCta": "Goodbye",
             "error": "Could not delete your account. Please try again.",
             "sadPeanutAlt": "Sad peanut",
+            "pointingPeanutAlt": "Peanut pointing",
             "cryingPeanutAlt": "Crying peanut"
         }
     },
@@ -1571,7 +1576,6 @@
             "minimumDeposit": "Minimum deposit is {amount}.",
             "selectCountryFirst": "Please select a country first.",
             "onrampDetails": "Could not get onramp details. Please try again.",
-            "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
             "bankAccountFailed": "Failed to process bank account. Please try again or contact support.",
             "bankAccountSettingUp": "Your bank account is still being set up. Please try again in a moment."
         },
@@ -3152,7 +3156,8 @@
         "cardApprovalCancelled": "Approval cancelled — you can retry anytime.",
         "cardApprovalFailed": "Card approval failed — please try again.",
         "logoutFailed": "Couldn’t log out. Please try again.",
-        "loginIncomplete": "Login didn’t complete. Please try again."
+        "loginIncomplete": "Login didn’t complete. Please try again.",
+        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment."
     },
     "appLock": {
         "title": "Welcome back!",

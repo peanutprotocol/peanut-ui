@@ -215,6 +215,9 @@
     },
     "settings": {
         "deleteAccount": {
+            "blockedTitle": "Primero mové tu plata",
+            "blockedDescription": "Todavía tenés ${amount} en tu cuenta. Eliminarla es permanente: después no vas a poder volver a entrar y esa plata quedaría fuera de tu alcance. Mandásela a alguien o retirala primero.",
+            "blockedCta": "Mover mi plata",
             "doneDescription": "Tu cuenta está desactivada y tus datos desaparecerán en un plazo de 30 días. Gracias por abrir Peanut con nosotros — ¡cuidate mucho!",
             "error": "No pudimos eliminar tu cuenta. Intentá de nuevo."
         }
@@ -673,7 +676,6 @@
             "invalidNumber": "Ingresá un número válido.",
             "selectCountryFirst": "Primero seleccioná un país.",
             "onrampDetails": "No pudimos obtener los datos para agregar dinero. Intentalo de nuevo.",
-            "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento.",
             "bankAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo o contactá a soporte.",
             "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Intentalo de nuevo en un momento."
         }
@@ -1241,7 +1243,8 @@
         "cardApprovalCancelled": "Aprobación cancelada: podés volver a intentarlo cuando quieras.",
         "cardApprovalFailed": "No se pudo aprobar la tarjeta. Intentalo de nuevo.",
         "logoutFailed": "No pudimos cerrar tu sesión. Intentalo de nuevo.",
-        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo."
+        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo.",
+        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento."
     },
     "appLock": {
         "prompt": "Desbloqueá para abrir la app.",

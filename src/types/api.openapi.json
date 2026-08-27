@@ -10108,54 +10108,6 @@
                 }
             }
         },
-        "/manteca/initiate-onboarding": {
-            "post": {
-                "summary": "Initiate Manteca onboarding",
-                "tags": [
-                    "manteca"
-                ],
-                "description": "Creates an onboarding widget URL for the current user using userId as userExternalId and returns the URL",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "returnUrl": {
-                                        "type": "string"
-                                    },
-                                    "failureUrl": {
-                                        "type": "string"
-                                    },
-                                    "exchange": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "returnUrl"
-                                ]
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "header",
-                        "name": "Authorization",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/manteca/prices": {
             "get": {
                 "parameters": [

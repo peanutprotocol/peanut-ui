@@ -18,6 +18,22 @@ name: Android Release (Play)
 # Plus the production NEXT_PUBLIC_* the static export bakes in (see the env step).
 
 on:
+    workflow_call:
+        inputs:
+            versionName:
+                description: 'Resolved <major>.<build>.0 version to ship'
+                required: true
+                type: string
+            track:
+                description: 'Play track'
+                required: false
+                default: 'internal'
+                type: string
+            pushDebug:
+                description: 'Enable OneSignal verbose logging in this build'
+                required: false
+                default: false
+                type: boolean
     push:
         tags: ['v*']
     workflow_dispatch:
@@ -29,7 +45,7 @@ on:
                 type: choice
                 options: [internal, alpha, beta, production]
             versionName:
-                description: 'versionName override (optional; defaults to package.json)'
+                description: 'Break-glass <major>.<build>.0 version (required; there is no package.json fallback)'
                 required: false
                 type: string
             pushDebug:
@@ -42,7 +58,16 @@ permissions:
     contents: read
 
 concurrency:
-    group: android-release-${{ github.ref }}
+    # A break-glass `v*` tag push runs outside release-native.yml's mutex, so it joins
+    # `production-release` here (which serialises iOS and Android for that path only —
+    # the price of not racing a concurrent OTA). When release-native.yml calls this
+    # workflow the parent already holds the mutex, and github.event_name is the
+    # caller's `workflow_dispatch`, so the called run keeps its own group instead of
+    # deadlocking against its parent. A direct dispatch of this workflow is
+    # indistinguishable from that, so it sits outside the mutex — deepest break-glass.
+    group: >-
+        ${{ github.event_name == 'push' && 'production-release'
+        || format('android-release-{0}', github.ref) }}
     cancel-in-progress: false
 
 jobs:
@@ -109,27 +134,30 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
-                  if [ "${{ github.event.inputs.pushDebug }}" = "true" ]; then
+                  if [ "${{ inputs.pushDebug }}" = "true" ]; then
                       echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
                   fi
 
             - name: Resolve release versionName
               id: version
               env:
-                  INPUT_VERSION: ${{ github.event.inputs.versionName || '' }}
+                  INPUT_VERSION: ${{ inputs.versionName || '' }}
               run: |
-                  # versionName: manual dispatch input wins; else the tag name minus
-                  # its leading 'v' (v1.0.10 -> 1.0.10); else package.json (the same
-                  # fallback build.gradle uses). Resolved once, up front, so the OTA
-                  # floor check and the bundle publish below see the exact version
-                  # the binary ships with. Keep in lockstep with ios-release.yml.
+                  # release-native.yml resolves the version and passes it here, so the
+                  # input wins; a break-glass tag push falls back to the tag name minus
+                  # its leading 'v' (v1.1.0 -> 1.1.0). Either way it is validated against
+                  # the release scheme before the build starts. Resolved once, up front,
+                  # so the OTA floor check and the bundle publish below see the exact
+                  # version the binary ships with. Keep in lockstep with ios-release.yml.
                   VERSION_NAME="$INPUT_VERSION"
                   if [ -z "$VERSION_NAME" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
                       VERSION_NAME="${GITHUB_REF_NAME#v}"
                   fi
                   if [ -z "$VERSION_NAME" ]; then
-                      VERSION_NAME="$(node -p "require('./package.json').version")"
+                      echo "::error::no versionName — call this from release-native.yml, or push a vX.Y.0 tag" >&2
+                      exit 1
                   fi
+                  node scripts/release-version.mjs validate "$VERSION_NAME" --kind native
                   echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
                   echo "Release versionName: $VERSION_NAME"
 
@@ -180,7 +208,7 @@ jobs:
                   serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
                   packageName: me.peanut.wallet
                   releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
-                  tracks: ${{ github.event.inputs.track || 'internal' }}
+                  tracks: ${{ inputs.track || 'internal' }}
                   status: completed
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.

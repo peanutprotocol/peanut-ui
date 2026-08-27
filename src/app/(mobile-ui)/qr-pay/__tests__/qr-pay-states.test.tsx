@@ -188,6 +188,7 @@ jest.mock('@/app/actions/increase-limits', () => ({
     initiateIncreaseLimits: jest.fn(),
 }))
 
+const mockHandleFixableRejection = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         isLoading: false,
@@ -196,6 +197,7 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         accessToken: null,
         handleInitiateKyc: jest.fn(),
         handleSelfHealResubmit: jest.fn(),
+        handleFixableRejection: mockHandleFixableRejection,
         handleSdkComplete: jest.fn(),
         handleSdkClose: jest.fn(),
         refreshToken: jest.fn(),
@@ -737,6 +739,57 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         expect(screen.getByText('We need an updated document')).toBeInTheDocument()
         expect(screen.getByText('Upload document')).toBeInTheDocument()
+    })
+
+    test('Manteca fixable rejection without a sumsub action heals via the generic resubmit (no action key)', () => {
+        setCapabilitiesGate('provider_rejection_fixable', { userMessage: 'Upload a clearer ID.' })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        fireEvent.click(screen.getByText('Upload document'))
+
+        expect(mockHandleFixableRejection).toHaveBeenCalledWith({ provider: 'MANTECA', actionKey: null })
+    })
+
+    // A Manteca RFI (PEP/FEP, source of funds) is its own Sumsub level. Handing
+    // the verdict's sumsub action key over is what keeps the user out of the
+    // generic ID-reupload action (already complete → "verified" → same modal).
+    test('Manteca fixable rejection with a sumsub nextAction hands the action key to the heal', () => {
+        const sofAction = {
+            key: 'sumsub:source_of_funds',
+            kind: 'sumsub' as const,
+            purpose: 'unlock-manteca',
+            levelKey: 'source_of_funds',
+        }
+        const base = capabilitiesForGate('provider_rejection_fixable', { userMessage: 'Source of funds needed.' })
+        const rails: TestRail[] = [
+            {
+                ...base.rails[0],
+                resolved: {
+                    status: 'fixable',
+                    blocking: {
+                        code: 'source_of_funds',
+                        userMessage: 'Source of funds needed.',
+                        selfHealable: true,
+                        selfHealKind: 'document-resubmit',
+                    },
+                    nextAction: sofAction,
+                },
+            },
+        ]
+        mockUseCapabilities.mockReturnValue({
+            ...base,
+            rails,
+            nextActions: [sofAction],
+            railsForProvider: (provider: string) => rails.filter((r) => r.provider === provider),
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        fireEvent.click(screen.getByText('Upload document'))
+
+        expect(mockHandleFixableRejection).toHaveBeenCalledWith({
+            provider: 'MANTECA',
+            actionKey: 'sumsub:source_of_funds',
+        })
     })
 
     // The prior "US-nationality restriction falls through to pay" test was deleted

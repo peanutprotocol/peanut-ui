@@ -114,8 +114,39 @@ function mapDeepLinkPath(parsed: URL): string | null {
     const extraParams = parsed.search.replace(/^\?/, '')
     const segments = path.split('/').filter(Boolean)
 
+    /*
+     * Bare origin (`https://peanut.me?id=X` / `?chargeId=X`) — the shape legacy
+     * withdraw pushes and their stored inbox rows carry. Without this branch the
+     * tap landed on the marketing page (web) or was dropped (native); the params
+     * are the same two /pay-request dispatches the recipient branch below uses.
+     */
+    if (segments.length === 0) {
+        const chargeId = parsed.searchParams.get('chargeId')
+        if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
+        const requestId = parsed.searchParams.get('id')
+        if (requestId) return requestPotUrl(requestId)
+        return isCapacitor() ? null : appendParams(path, extraParams)
+    }
+
     if (segments[0] === 'send' && segments[1]) {
         return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
+    }
+    // `/pay/<recipient>` — every user's "My QR" payload. The web page is a pure
+    // client redirect to sendUrl(recipient) and is stripped from the native
+    // export, so both platforms funnel straight to the send dispatcher here.
+    if (segments[0] === 'pay' && segments[1]) {
+        return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
+    }
+    /*
+     * Legacy `/request/pay?id=<chargeUuid>` — printed into old shared links.
+     * `id` here is a CHARGE uuid, so it must dispatch as chargePayUrl; falling
+     * through to the request branch reads "request money from user 'pay'", and
+     * the page's own native fallback treats the uuid as a request pot and 404s.
+     */
+    if (segments[0] === 'request' && segments[1] === 'pay' && segments.length === 2) {
+        const chargeId = parsed.searchParams.get('id') ?? parsed.searchParams.get('chargeId')
+        if (chargeId) return chargePayUrl(chargeId)
+        return appendParams(path, extraParams)
     }
     if (segments[0] === 'request' && segments[1]) {
         return appendParams(requestUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
@@ -184,8 +215,55 @@ function mapDeepLinkPath(parsed: URL): string | null {
         return null
     }
 
+    /*
+     * Reserved roots that the native export does not ship (marketing, blog,
+     * legal, locale prefixes, redirect slugs…) must return null rather than
+     * pass through: the passthrough cold-boots the app to / and reads as a
+     * dropped tap. null tells openDeepLink to show the real page in the
+     * in-app browser instead. Web keeps the passthrough — every reserved
+     * root is a real page there.
+     */
+    if (isCapacitor() && !NATIVE_EXPORT_ROOTS.has(segments[0].toLowerCase())) {
+        return null
+    }
+
     return appendParams(path, extraParams)
 }
+
+/*
+ * Route roots that exist in the native static export — src/app/(mobile-ui)/* +
+ * /setup, minus what scripts/native-build.js disables. The AASA drift test in
+ * __tests__/native-routes.test.ts walks the App Links path list against this
+ * mapper, so a root claimed for the app but missing here fails CI instead of
+ * shipping a dead deep link.
+ */
+const NATIVE_EXPORT_ROOTS = new Set([
+    'add-money',
+    'badges',
+    'card',
+    'card-payment',
+    'card-recovery',
+    'claim',
+    'fix-card-signature',
+    'history',
+    'home',
+    'limits',
+    'notifications',
+    'pay-request',
+    'points',
+    'profile',
+    'qr',
+    'qr-pay',
+    'receipt',
+    'recover-funds',
+    'recover-wallet',
+    'request',
+    'rewards',
+    'send',
+    'settings',
+    'setup',
+    'withdraw',
+])
 
 function appendParams(base: string, params: string): string {
     if (!params) return base
@@ -206,6 +284,10 @@ export function rewriteMethodPath(path: string, extraParams?: string): string {
     if (addMoneyMatch) {
         const country = addMoneyMatch[1]
         const subView = addMoneyMatch[2] // bank, manteca, etc.
+        // static routes, not [country] — same carve-out as withdraw below
+        if (country === 'crypto' || country === 'us') {
+            return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
+        }
         let url = `/add-money?country=${country}`
         if (subView) url += `&view=${subView}`
         if (extraParams) url += `&${extraParams}`

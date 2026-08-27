@@ -219,24 +219,6 @@ export const mantecaApi = {
 
         return response.json()
     },
-    initiateOnboarding: async (params: {
-        returnUrl: string
-        failureUrl?: string
-        exchange?: string
-    }): Promise<{ url: string }> => {
-        const response = await serverFetch('/manteca/initiate-onboarding', {
-            method: 'POST',
-            body: jsonStringify(params),
-        })
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Failed to get onboarding URL`)
-        }
-
-        return response.json()
-    },
-
     deposit: async (
         params: CreateMantecaOnrampParams
     ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {

@@ -3,6 +3,7 @@
 
 import type { BundleInfo } from '@capgo/capacitor-updater'
 import { isDemoMode } from '@/utils/demo'
+import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateState {
     updateAvailable: boolean
@@ -83,12 +84,48 @@ async function checkAndStageUpdate(
             // is the deferred variant.
             await CapacitorUpdater.next({ id: bundle.id })
         }
+        removeStoredValue(FAILURE_STREAK_KEY)
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err ?? '')
         // "No new version available" is the normal up-to-date path, not a failure.
-        if (message !== 'No new version available') {
-            console.error('[capgo] update check failed:', message)
-            onUpdateFailed?.(message)
+        if (message === 'No new version available') {
+            removeStoredValue(FAILURE_STREAK_KEY)
+            return
         }
+        // captureConsoleIntegration turns console.error into a Sentry event, and
+        // this updater runs on every launch — transient CDN/network failures that
+        // simply retry next launch were worth ~95 events/day. Only failures that
+        // mean OTA is actually dead for this build get error level immediately;
+        // anything else escalates once the same failure repeats launch after
+        // launch, so a persistent unknown outage still reaches Sentry.
+        const streak = recordFailureStreak(message)
+        if (OTA_BROKEN_ERRORS.some((pattern) => message.includes(pattern))) {
+            console.error('[capgo] update check failed:', message)
+        } else if (streak >= PERSISTENT_FAILURE_THRESHOLD) {
+            console.error(`[capgo] update check failed on ${streak} consecutive launches:`, message)
+        } else {
+            console.info('[capgo] update check failed:', message)
+        }
+        onUpdateFailed?.(message)
     }
+}
+
+// disable_auto_update_under_native: the served bundle semver-sorts below the
+// installed binary, so every device refuses it. Checksum mismatch: the bundle
+// arrived corrupt. Neither retries its way out.
+const OTA_BROKEN_ERRORS = ['disable_auto_update_under_native', 'Checksum mismatch']
+
+const FAILURE_STREAK_KEY = 'capgoUpdateFailureStreak'
+const PERSISTENT_FAILURE_THRESHOLD = 3
+
+function recordFailureStreak(message: string): number {
+    let count = 1
+    try {
+        const previous = JSON.parse(readStoredValue(FAILURE_STREAK_KEY) ?? '')
+        if (previous?.message === message && typeof previous.count === 'number') count = previous.count + 1
+    } catch {
+        // no stored streak, or an unreadable one — start over at 1
+    }
+    writeStoredValue(FAILURE_STREAK_KEY, JSON.stringify({ message, count }))
+    return count
 }

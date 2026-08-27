@@ -74,7 +74,7 @@ const UnlockedRegions = () => {
     // queries load the step resolves to a non-card value, so the redirect
     // fails toward region KYC (the trunk), never toward /card.
     const { activationStep } = useActivationStatus()
-    const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
+    const { rails, isKycApproved, railsForProvider, nextActionsForRail, nextActions } = useCapabilities()
     // MIGRATION-REVIEW: unlockedRegions/lockedRegions previously came from
     // `useIdentityVerification` (raw rails + Sumsub flags). Now derived from the
     // capability rails via deriveRegionAccess (same Region shape; faithful unlock
@@ -83,8 +83,8 @@ const UnlockedRegions = () => {
     // MIGRATION-REVIEW: bridge/manteca rejection state (was useProviderRejectionStatus),
     // and isSumsubApproved (was useUnifiedKycStatus) → the isKycApproved proxy (any enabled
     // rail ⇒ identity cleared at least once), all from the capability model.
-    const bridgeRejection = useMemo(() => deriveProviderRejection(rails, 'BRIDGE'), [rails])
-    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
+    const bridgeRejection = useMemo(() => deriveProviderRejection(rails, 'BRIDGE', nextActions), [rails, nextActions])
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
     const isSumsubApproved = isKycApproved
     const { setIsSupportModalOpen } = useModalsContext()
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
@@ -293,7 +293,7 @@ const UnlockedRegions = () => {
                               text: t('providerRejection.uploadDocument'),
                               onClick: () => {
                                   handleModalClose()
-                                  flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
+                                  flow.handleFixableRejection(providerRejectionForRegion)
                               },
                               variant: 'purple' as const,
                               shadowSize: '4' as const,

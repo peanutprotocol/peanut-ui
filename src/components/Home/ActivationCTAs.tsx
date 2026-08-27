@@ -71,6 +71,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const {
         hasFixableRejection,
         fixableProvider,
+        fixableActionKey,
         hasBlockedRejection,
         primaryRejectionMessage,
         primaryRejectionCode,
@@ -94,12 +95,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         const emailBlocked = rejectableRails.find(isEmailFix)
         const blocked =
             emailBlocked ?? rejectableRails.find((rail) => railVerdict(rail, actionByKey).status === 'blocked')
+        const fixableAction = fixableRail ? railVerdict(fixableRail, actionByKey).nextAction : undefined
         return {
             hasFixableRejection: !!fixableRail,
             fixableProvider:
                 fixableRail && (fixableRail.provider === 'bridge' || fixableRail.provider === 'manteca')
                     ? (fixableRail.provider.toUpperCase() as 'BRIDGE' | 'MANTECA')
                     : null,
+            fixableActionKey: fixableAction?.kind === 'sumsub' ? fixableAction.key : null,
             hasBlockedRejection: !!blocked,
             // Same precedence the copy/onClick use: email-blocked → fixable → terminal.
             primaryRejectionMessage: (() => {
@@ -337,7 +340,10 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                 })
                             )
                         } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
-                            void kycFlow.handleSelfHealResubmit(fixableProvider)
+                            void kycFlow.handleFixableRejection({
+                                provider: fixableProvider,
+                                actionKey: fixableActionKey,
+                            })
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
                             if (hasCardAccess) {
                                 posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)

@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
 import Loading from '@/components/Global/Loading'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount, railJurisdictionForBank } from '@/utils/bridge.utils'
@@ -191,7 +192,12 @@ function BridgeBankOnrampPage() {
     // deposit-side price (localCurrency per USD) for limits validation — deposits
     // execute at buy, so the USD equivalent must derive from buy, not the sell-side
     // display quote served by /fx/rate (useCurrency handles USD as 1:1)
-    const { price: localPrice, isLoading: isRateLoading, isError: isRateError } = useCurrency(localCurrency)
+    const {
+        price: localPrice,
+        isLoading: isRateLoading,
+        isError: isRateError,
+        refetch: refetchRate,
+    } = useCurrency(localCurrency)
 
     // convert input amount to USD for limits validation
     // bridge limits are always in USD, but user inputs in local currency
@@ -459,7 +465,7 @@ function BridgeBankOnrampPage() {
                             (localCurrency !== 'USD' && (isRateLoading || isRateError))
                         }
                         className="w-full"
-                        loading={isCreatingOnramp}
+                        loading={isCreatingOnramp || (localCurrency !== 'USD' && isRateLoading)}
                     >
                         {tCommon('continue')}
                     </Button>
@@ -467,9 +473,7 @@ function BridgeBankOnrampPage() {
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
                         <Notification priority="error">{error.errorMessage}</Notification>
                     )}
-                    {localCurrency !== 'USD' && isRateError && (
-                        <Notification priority="error">{t('errors.rateUnavailable')}</Notification>
-                    )}
+                    {localCurrency !== 'USD' && isRateError && <RateUnavailable onRetry={refetchRate} />}
                 </div>
 
                 <OnrampConfirmationModal

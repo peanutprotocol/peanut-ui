@@ -102,7 +102,8 @@
         "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
         "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
-        "loginIncomplete": "O login não foi concluído. Tente novamente."
+        "loginIncomplete": "O login não foi concluído. Tente novamente.",
+        "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes."
     },
     "migration": {
         "downloadPrompt": {

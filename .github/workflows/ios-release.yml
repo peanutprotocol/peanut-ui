@@ -6,7 +6,10 @@ name: iOS Release (TestFlight)
 # Android keystore-as-secret), the build is reproducible, and the IPA lands on
 # TestFlight for manual App Store promotion. No Ruby/fastlane toolchain.
 #
-# Trigger: push a tag `vX.Y.Z`, or run manually (workflow_dispatch).
+# Trigger: normally called by release-native.yml, which resolves the version so
+#          nobody types one. A `vX.Y.Z` tag push and a manual dispatch stay as
+#          break-glass paths; both validate the version against the release scheme
+#          (`v*` is too loose a glob to reject a tag like v2026.02.26 on its own).
 # Prereq: the `ios/` Capacitor platform must be committed on the branch CI builds
 #         (currently only present in the peanut-ui-ios2 worktree).
 #
@@ -19,12 +22,23 @@ name: iOS Release (TestFlight)
 # Plus the production NEXT_PUBLIC_* the static export bakes in (see the env step).
 
 on:
+    workflow_call:
+        inputs:
+            versionName:
+                description: 'Resolved <major>.<build>.0 version to ship'
+                required: true
+                type: string
+            pushDebug:
+                description: 'Enable OneSignal verbose logging in this build'
+                required: false
+                default: false
+                type: boolean
     push:
         tags: ['v*']
     workflow_dispatch:
         inputs:
             versionName:
-                description: 'versionName override (optional; defaults to package.json "version")'
+                description: 'Break-glass <major>.<build>.0 version (required; there is no package.json fallback)'
                 required: false
                 type: string
             pushDebug:
@@ -37,7 +51,16 @@ permissions:
     contents: read
 
 concurrency:
-    group: ios-release-${{ github.ref }}
+    # A break-glass `v*` tag push runs outside release-native.yml's mutex, so it joins
+    # `production-release` here (which serialises iOS and Android for that path only —
+    # the price of not racing a concurrent OTA). When release-native.yml calls this
+    # workflow the parent already holds the mutex, and github.event_name is the
+    # caller's `workflow_dispatch`, so the called run keeps its own group instead of
+    # deadlocking against its parent. A direct dispatch of this workflow is
+    # indistinguishable from that, so it sits outside the mutex — deepest break-glass.
+    group: >-
+        ${{ github.event_name == 'push' && 'production-release'
+        || format('ios-release-{0}', github.ref) }}
     cancel-in-progress: false
 
 jobs:
@@ -68,11 +91,14 @@ jobs:
             - name: Resolve release versionName
               id: version
               env:
-                  INPUT_VERSION: ${{ github.event.inputs.versionName || '' }}
+                  INPUT_VERSION: ${{ inputs.versionName || '' }}
               run: |
-                  # versionName: manual dispatch input wins; else the tag name minus
-                  # its leading 'v' (v1.0.31 -> 1.0.31); else package.json — the same
-                  # precedence the archive step always used. Resolved once, up front,
+                  # release-native.yml resolves the version and passes it here, so the
+                  # input wins; a break-glass tag push falls back to the tag name minus
+                  # its leading 'v' (v1.1.0 -> 1.1.0). Either way it is validated
+                  # against the release scheme before a 30-minute build starts, which is
+                  # what stops an off-scheme tag (v2026.02.26 is on main) from shipping
+                  # a binary the OTA lane can never sort above. Resolved once, up front,
                   # so the OTA floor check and the bundle publish below see the exact
                   # version the binary ships with. Keep in lockstep with
                   # android-release.yml.
@@ -81,8 +107,10 @@ jobs:
                       VERSION_NAME="${GITHUB_REF_NAME#v}"
                   fi
                   if [ -z "$VERSION_NAME" ]; then
-                      VERSION_NAME="$(node -p "require('./package.json').version")"
+                      echo "::error::no versionName — call this from release-native.yml, or push a vX.Y.0 tag" >&2
+                      exit 1
                   fi
+                  node scripts/release-version.mjs validate "$VERSION_NAME" --kind native
                   echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
                   echo "Release versionName: $VERSION_NAME"
 
@@ -150,11 +178,15 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
-                  if [ "${{ github.event.inputs.pushDebug }}" = "true" ]; then
+                  if [ "${{ inputs.pushDebug }}" = "true" ]; then
                       echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
                   fi
 
             - name: Build web + sync iOS
+              env:
+                  # postsync stamps project.pbxproj; without this it would stamp
+                  # package.json's version, which no longer tracks releases.
+                  IOS_MARKETING_VERSION: ${{ steps.version.outputs.name }}
               run: |
                   node scripts/native-build.js && npx cap sync ios
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi

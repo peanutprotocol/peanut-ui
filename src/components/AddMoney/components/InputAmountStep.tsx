@@ -5,6 +5,7 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import { useCurrency } from '@/hooks/useCurrency'
 import Loading from '@/components/Global/Loading'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
@@ -54,8 +55,17 @@ const InputAmountStep = ({
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
 
+    // The rate fetch can hold this screen for tens of seconds on a slow mobile
+    // network. Keep the header mounted so "back" always works instead of the
+    // page reading as frozen (#1848).
     if (currencyData?.isLoading) {
-        return <Loading variant="mascot" />
+        // dev keeps the header mounted so back always works during the load
+        return (
+            <div className="space-y-8 flex min-h-[inherit] flex-col justify-start">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <Loading variant="mascot" />
+            </div>
+        )
     }
 
     // FX fetch failed (e.g. provider outage): price is null but not loading.
@@ -128,11 +138,9 @@ const InputAmountStep = ({
                         {error}
                     </Notification>
                 )}
-                {rateUnavailable && !error && !limitsValidation?.isBlocking && (
-                    <Notification priority="error" data-testid="error-alert">
-                        {t('errors.rateUnavailable')}
-                    </Notification>
-                )}
+                {/* not gated on `error`/limits like the alert above: the retry is the only
+                    way to clear the rate block that disables Continue (dev #2843) */}
+                {rateUnavailable && <RateUnavailable onRetry={() => currencyData?.refetch()} />}
             </div>
         </div>
     )

@@ -1,0 +1,105 @@
+name: Release OTA
+
+# The single entry point for a production OTA. Click "Run workflow" on `dev`; the
+# bundle version is resolved from the channel's current bundle, not typed.
+#
+# Nothing here is automatic — merging to `dev` still only reaches the staging
+# channel, which no production device sees. This is the deliberate second step
+# that says "ship this JS to everyone", exactly as the `git tag ota-… && git push`
+# it replaces, minus the hand-picked number.
+#
+# The version always lands inside the current native build's range
+# (<major>.<build>.<ota+1>), so it cannot sort below the binary it targets — the
+# failure mode that left 102 devices refusing every update for a month
+# (TASK-21793). Shipping a second OTA on the same binary is just another run; the
+# `ota-1.0.48-hotfix1` style of suffixed tag is no longer needed.
+#
+# The tag is written afterwards as the record of what shipped. A failed deploy
+# leaves no tag, so a re-run resolves the same number instead of burning one.
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    # One mutex across every sanctioned production release: this workflow and its
+    # counterpart both end by writing the production Capgo channel, and interleaving
+    # them leaves it serving a bundle the newest binary rejects. An OTA that resolves
+    # its version before a concurrent native release publishes its `.0` is exactly the
+    # TASK-21793 shape, so the whole resolve-through-publish span holds the mutex.
+    group: production-release
+    cancel-in-progress: false
+
+jobs:
+    resolve:
+        runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.resolve.outputs.version }}
+        steps:
+            # An OTA reaches every shipped install, so it ships the code that has
+            # actually been through the staging channel — not whatever ref the
+            # workflow_dispatch dropdown was left on.
+            - name: Guard release ref
+              run: |
+                  if [ "$GITHUB_REF_NAME" != "dev" ]; then
+                      echo "::error::OTAs are shipped from dev, not $GITHUB_REF_NAME" >&2
+                      exit 1
+                  fi
+
+            - uses: actions/checkout@v7
+              with:
+                  # Full history + tags: the resolver reads the v<major>.<build>.0 tags.
+                  fetch-depth: 0
+
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '22'
+
+            - name: Resolve next OTA version
+              id: resolve
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+              run: |
+                  CURRENT="$(npx @capgo/cli@latest channel currentBundle production \
+                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
+                  if [ -z "$CURRENT" ]; then
+                      echo "::error::cannot read the production channel's current bundle from Capgo — refusing to guess the next OTA version" >&2
+                      exit 1
+                  fi
+                  VERSION="$(node scripts/release-version.mjs ota --current "$CURRENT")"
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+                  echo "Production serves $CURRENT — next OTA is $VERSION"
+                  echo "## OTA $VERSION" >> "$GITHUB_STEP_SUMMARY"
+                  echo "- **Replaces:** $CURRENT" >> "$GITHUB_STEP_SUMMARY"
+                  echo "- **Commit:** ${GITHUB_SHA:0:7}" >> "$GITHUB_STEP_SUMMARY"
+
+    deploy:
+        needs: resolve
+        uses: ./.github/workflows/capgo-deploy.yml
+        secrets: inherit
+        with:
+            channel: production
+            version: ${{ needs.resolve.outputs.version }}
+
+    tag:
+        needs: [resolve, deploy]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@v7
+
+            # GITHUB_TOKEN deliberately: GitHub does not start workflows from a push
+            # made with it, so this records the OTA without re-triggering the deploy
+            # it just finished. Swapping in a PAT here would double-ship.
+            - name: Tag the shipped commit
+              env:
+                  VERSION: ${{ needs.resolve.outputs.version }}
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git tag -a "ota-$VERSION" -m "OTA release $VERSION"
+                  git push origin "ota-$VERSION"
+                  echo "Tagged ota-$VERSION at ${GITHUB_SHA:0:7}"

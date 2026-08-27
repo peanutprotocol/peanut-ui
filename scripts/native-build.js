@@ -70,11 +70,31 @@ const P0_TRANSFORMS = [
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { hasNativeSession } from '@/utils/auth-token'
+import { deepLinkToNativePath } from '@/utils/native-routes'
+import { hasDeepLinkNavigated, markDeepLinkNavigated } from '@/utils/deep-link-state'
 import { isDemoMode } from '@/utils/demo'
 
 export default function RootRedirect() {
     const router = useRouter()
     useEffect(() => {
+        /*
+         * This is the only page that can answer a full-document load on either
+         * platform (iOS has no SPA fallback; Android's findPageHtml is shadowed
+         * by Capacitor's html5mode) — a load at a non-root path boots here with
+         * the original URL still in location. Recover it through the deep-link
+         * mapper instead of dumping the user at /home.
+         */
+        const { pathname, search, hash } = window.location
+        if (pathname !== '/' && pathname !== '/index.html') {
+            const target = deepLinkToNativePath(pathname + search + hash)
+            if (target) {
+                markDeepLinkNavigated()
+                router.replace(target)
+                return
+            }
+        }
+        // An App Link / push tap may have navigated already — don't clobber it.
+        if (hasDeepLinkNavigated()) return
         // Demo has no JWT — without the isDemoMode() check a demo user who hits
         // the root (e.g. bounced from a web-only route) lands on /setup, whose
         // landing screen disables demo and dumps them at Log In.
@@ -91,7 +111,8 @@ export default function RootRedirect() {
          */
         let cancelled = false
         hasNativeSession().then((has) => {
-            if (!cancelled) router.replace(has ? '/home' : '/setup')
+            if (cancelled || hasDeepLinkNavigated()) return
+            router.replace(has ? '/home' : '/setup')
         })
         return () => {
             cancelled = true
