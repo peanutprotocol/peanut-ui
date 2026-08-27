@@ -12,16 +12,18 @@ import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import posthog from 'posthog-js'
 import ProfileHeader from './ProfileHeader'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { invitesApi } from '@/services/invites'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
 import { isCapacitor } from '@/utils/capacitor'
 import { requestUrl } from '@/utils/native-routes'
 import Card from '@/components/Global/Card'
-import { checkIfInternalNavigation, saveToCookie, toInviteCode } from '@/utils/general.utils'
+import { saveToCookie, toInviteCode } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
+import { useSafeBack } from '@/hooks/useSafeBack'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
 import ShareButton from '@/components/Global/ShareButton'
 import ActionModal from '@/components/Global/ActionModal'
 import BadgesRow from '@/components/Badges/BadgesRow'
@@ -35,11 +37,12 @@ interface PublicProfileProps {
 const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = false, onSendClick }) => {
     const t = useTranslations('profile.publicProfile')
     const tNav = useTranslations('navigation')
-    const [totalSentByLoggedInUser, setTotalSentByLoggedInUser] = useState<string>('0')
+    const [profileUserId, setProfileUserId] = useState<string | null>(null)
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
     const router = useRouter()
+    const goBack = useSafeBack('/home')
     const { user, isFetchingUser } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
     const [showInviteModal, setShowInviteModal] = useState(false)
@@ -135,17 +138,16 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             // get the profile owner's showFullName preference
             setShowFullName(apiUser?.showFullName ?? false)
             setIsKycVerified(apiUser?.isVerified ?? false)
-            // to check if the logged in user has sent money to the profile user,
-            // we check the amount that the profile user has received from the logged in user.
-            if (apiUser?.totalUsdReceivedFromCurrentUser) {
-                setTotalSentByLoggedInUser(apiUser.totalUsdReceivedFromCurrentUser)
-            }
+            setProfileUserId(apiUser?.userId ?? null)
             setProfileBadges(apiUser?.badges ?? [])
         })
     }, [username])
 
-    // this flag is true if the current user has sent money to the profile user before.
-    const haveSentMoneyToUser = useMemo(() => Number(totalSentByLoggedInUser) > 0, [totalSentByLoggedInUser])
+    // interaction-status is the complete "sent money before" source (covers send-link
+    // claims etc., unlike the profile payload's narrow received-from-you sum); stays
+    // false (neutral) until the query resolves.
+    const { interactions } = useUserInteractions(isLoggedIn && profileUserId ? [profileUserId] : [])
+    const haveSentMoneyToUser = !!profileUserId && (interactions[profileUserId] ?? false)
 
     // respect profile owner's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const displayName = showFullName && fullName ? fullName : username
@@ -160,19 +162,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <Image src={PEANUT_LOGO_BLACK} alt={t('peanutLogoTextAlt')} height={12} />
                     </div>
                 ) : (
-                    <NavHeader
-                        onPrev={() => {
-                            // Check if the referrer is from the same domain (internal navigation)
-                            const isInternalReferrer = checkIfInternalNavigation()
-
-                            if (isInternalReferrer && window.history.length > 1) {
-                                router.back()
-                            } else {
-                                router.push('/home')
-                            }
-                        }}
-                        hideLabel
-                    />
+                    <NavHeader onPrev={goBack} hideLabel />
                 )}
             </div>
 
