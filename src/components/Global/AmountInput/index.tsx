@@ -258,8 +258,9 @@ const AmountInput = ({
         // filled into a field the user toggled to the secondary one.
         if (displaySymbol !== primaryDenomination.symbol) return undefined
         const formatted = formatTokenAmount(String(balanceFillAmount), denominations[displaySymbol]?.decimals, true)
-        // A balance below the input's precision formats to "0"/"" — leave the
-        // row inert rather than offering an amount that can't be used.
+        // Anything the field can't express — a balance below its precision, or a
+        // magnitude String() writes in exponential notation — formats to "0"/"".
+        // Leave the row inert rather than offering an amount that can't be used.
         return formatted && Number(formatted) ? formatted : undefined
     }, [disabled, balanceFillAmount, displaySymbol, primaryDenomination.symbol, denominations])
 
