@@ -1,0 +1,31 @@
+name: PR assets cleanup
+
+# The ds-shots comment in tests.yml renders its before/after PNGs from a
+# `pr-assets-<number>` branch, because GitHub markdown cannot show a workflow
+# artifact. Delete that branch when the PR ends, or the branches pile up — 20+
+# hand-made ones were still on the remote in August 2026.
+
+on:
+    pull_request:
+        types: [closed]
+
+permissions:
+    contents: write
+
+jobs:
+    delete-assets-branch:
+        name: delete-assets-branch
+        runs-on: ubuntu-latest
+        steps:
+            - name: Delete pr-assets-<number>
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  PR: ${{ github.event.pull_request.number }}
+              run: |
+                  # Most PRs never make this branch — a docs PR skips ds-shots,
+                  # and a fork PR cannot push. A missing branch is normal, so a
+                  # 422 from the delete is not a failure.
+                  gh api -X DELETE "repos/$REPO/git/refs/heads/pr-assets-$PR" \
+                      && echo "deleted pr-assets-$PR" \
+                      || echo "no pr-assets-$PR branch to delete"

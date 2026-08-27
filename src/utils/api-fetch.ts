@@ -7,6 +7,8 @@ import { fetchWithSentry } from './sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from './capacitor'
 import { isDemoMode } from './demo'
+import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
+import { ensureActiveFixture } from '@/dev/fixtures/active'
 
 type FetchOptions = RequestInit & {
     timeoutMs?: number
@@ -20,6 +22,16 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     // Lazy import keeps the demo module (and its viem-using fixtures) out of the
     // web bundle and out of every api-fetch importer's module graph.
     if (isDemoMode()) return import('./demo-api').then((m) => m.demoRespond(path, options))
+
+    // Dev fixtures: `?__fixture=<name>` answers every call from a named app
+    // state, so any screen renders with no DB, no API and no provider keys.
+    // Hooked HERE because callApi is the one layer every API call in the app
+    // goes through — no per-call-site branching anywhere. DEV_TOOLS_ENABLED is
+    // inlined at build time, so production folds this branch away and the
+    // bundler drops the chunk.
+    if (DEV_TOOLS_ENABLED && ensureActiveFixture()) {
+        return import('@/dev/fixtures/respond').then((m) => m.fixtureRespond(path, options))
+    }
 
     const { timeoutMs, includeAuth = true, ...fetchOptions } = options ?? {}
 

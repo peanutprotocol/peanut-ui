@@ -25,6 +25,7 @@ import { isPublicRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
+import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
@@ -219,6 +220,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </Suspense>
                     <QRScannerOverlay />
                     <SecurityVerificationOverlay />
+                    {/* dev fixture warning strip — renders null outside fixture mode */}
+                    <FixtureBanner />
                 </>
             }
         >

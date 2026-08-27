@@ -26,6 +26,7 @@ import type { Address, Hash } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_ADDRESS } from '@/constants/demo-data'
+import { ensureActiveFixture } from '@/dev/fixtures/active'
 import { captureException, captureMessage } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
@@ -358,8 +359,10 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             return
         }
 
-        // Demo mode: no passkey/kernel client — synthesize the address and report ready.
-        if (isDemoMode()) {
+        // Demo mode, and dev fixtures: no passkey/kernel client — synthesize the
+        // address and report ready. Without this a fixture screen waits forever
+        // on a kernel address it can never get.
+        if (isDemoMode() || ensureActiveFixture()) {
             dispatch(zerodevActions.setAddress(DEMO_ADDRESS))
             dispatch(zerodevActions.setIsKernelClientReady(true))
             return
