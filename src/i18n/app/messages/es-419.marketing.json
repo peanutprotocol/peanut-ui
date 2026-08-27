@@ -54,7 +54,8 @@
             "custom": "Personalizado",
             "unknown": "Desconocido"
         },
-        "exchangeRate": "Tipo de cambio"
+        "exchangeRate": "Tipo de cambio",
+        "slideToProceed": "Desliza para continuar"
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
@@ -101,7 +102,8 @@
         "cardApprovalCancelled": "Aprobación cancelada: puedes volver a intentarlo cuando quieras.",
         "cardApprovalFailed": "No se pudo aprobar la tarjeta. Inténtalo de nuevo.",
         "logoutFailed": "No pudimos cerrar tu sesión. Inténtalo de nuevo.",
-        "loginIncomplete": "No se completó el inicio de sesión. Inténtalo de nuevo."
+        "loginIncomplete": "No se completó el inicio de sesión. Inténtalo de nuevo.",
+        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Inténtalo de nuevo en un momento."
     },
     "migration": {
         "downloadPrompt": {

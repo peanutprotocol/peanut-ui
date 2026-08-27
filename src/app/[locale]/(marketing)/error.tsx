@@ -61,7 +61,7 @@ export default function MarketingError({ error, reset }: { error: Error & { dige
                 </button>
                 <Link
                     href={locale === DEFAULT_LOCALE ? '/' : `/${locale}`}
-                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-100"
                 >
                     {i18n.goHome}
                 </Link>

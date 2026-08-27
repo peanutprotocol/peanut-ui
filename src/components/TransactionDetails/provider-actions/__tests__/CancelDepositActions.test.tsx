@@ -52,10 +52,6 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
         </button>
     ),
 }))
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: ({ description }: { description: string }) => <div data-testid="error">{description}</div>,
-}))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => <span /> }))
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,

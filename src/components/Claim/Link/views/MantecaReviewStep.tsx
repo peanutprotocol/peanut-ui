@@ -1,7 +1,9 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import MantecaDetailsCard, { type MantecaCardRow } from '@/components/Global/MantecaDetailsCard'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import Card from '@/components/Global/Card'
+import { PaymentInfoRow, type PaymentInfoRowProps } from '@/components/Payment/PaymentInfoRow'
+import Loading from '@/components/Global/Loading'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
 import { sendLinksApi } from '@/services/sendLinks'
@@ -32,10 +34,10 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
     const tCommon = useTranslations('common')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const { price, isLoading } = useCurrency(currency)
+    const { price, isLoading, refetch: refetchCurrency } = useCurrency(currency)
     const { claimLink: claimLinkSecure } = useClaimLink()
 
-    const detailsCardRows: MantecaCardRow[] = [
+    const detailsCardRows: (PaymentInfoRowProps & { key: string })[] = [
         {
             key: 'destinationAddress',
             label: t('manteca.destinationAddress'),
@@ -126,14 +128,24 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
     }
 
     if (isLoading) {
-        return <PeanutLoading coverFullScreen />
+        return <Loading variant="mascot" coverFullScreen />
+    }
+
+    // Without a rate the exchange row renders "1 USD = undefined", so offer a
+    // retry rather than a review screen the user can't act on.
+    if (!price) {
+        return <RateUnavailable onRetry={refetchCurrency} />
     }
 
     return (
         <>
-            <MantecaDetailsCard rows={detailsCardRows} />
+            <Card>
+                {detailsCardRows.map(({ key, ...row }) => (
+                    <PaymentInfoRow key={key} {...row} />
+                ))}
+            </Card>
 
-            {error && <ErrorAlert description={error} />}
+            {error && <Notification priority="error">{error}</Notification>}
             <Button disabled={isSubmitting} loading={isSubmitting} shadowSize="4" onClick={handleWithdraw}>
                 {tNav('withdraw')}
             </Button>

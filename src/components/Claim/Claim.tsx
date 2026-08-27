@@ -9,7 +9,6 @@ import { TransactionDetailsReceipt } from '@/components/TransactionDetails/Trans
 import { type TransactionDetails, REWARD_TOKENS } from '@/components/TransactionDetails/transactionTransformer'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
-import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -36,12 +35,12 @@ import { useQuery } from '@tanstack/react-query'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import PageContainer from '../0_Bruddle/PageContainer'
-import PeanutLoading from '../Global/PeanutLoading'
+import Loading from '../Global/Loading'
 import * as _consts from './Claim.consts'
 import FlowManager from './Link/FlowManager'
 import { type ClaimXChainPreview } from './Claim.consts'
 import { ClaimedView, ClaimErrorView } from './Generic'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useSearchParams } from 'next/navigation'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
@@ -83,7 +82,6 @@ export const Claim = ({}) => {
     })
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
-    const { selectedTransaction, openTransactionDetails } = useTransactionDetailsDrawer()
 
     const [initialKYCStep, setInitialKYCStep] = useState<number>(0)
 
@@ -263,6 +261,15 @@ export const Claim = ({}) => {
         }))
     }
 
+    // the receipt shown on sender/already-claimed states — pure derivation
+    // (used to be pushed into the drawer hook's state via an effect)
+    const selectedTransaction = useMemo(() => {
+        const isReceiptState =
+            linkState === _consts.claimLinkStateType.CLAIM_SENDER ||
+            linkState === _consts.claimLinkStateType.ALREADY_CLAIMED
+        return isReceiptState ? transactionForDrawer : null
+    }, [linkState, transactionForDrawer])
+
     const showTransactionReceipt = useMemo(() => {
         if (!selectedTransaction) return false
         // check for showing txn receipt only to the creator after link is claimed
@@ -423,16 +430,6 @@ export const Claim = ({}) => {
         }
     }, [])
 
-    useEffect(() => {
-        if (!transactionForDrawer) return
-        if (
-            linkState === _consts.claimLinkStateType.CLAIM_SENDER ||
-            linkState === _consts.claimLinkStateType.ALREADY_CLAIMED
-        ) {
-            openTransactionDetails(transactionForDrawer)
-        }
-    }, [linkState, transactionForDrawer])
-
     // redirect to bank flow if user is KYC approved and step is bank
     useEffect(() => {
         const stepFromURL = searchParams.get('step')
@@ -448,14 +445,14 @@ export const Claim = ({}) => {
         >
             {linkState === _consts.claimLinkStateType.LOADING && (
                 <div className="flex flex-col items-center gap-4 px-4">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                     {isSendLinkLoading && failureCount > 0 && (
-                        <p className="text-center text-sm text-gray-600">
+                        <p className="text-center text-body-s text-foreground-secondary">
                             {failureCount < 3 ? t('loading.loadingYourLink') : t('loading.takingLonger')}
                         </p>
                     )}
                     {isSendLinkLoading && failureCount >= 3 && (
-                        <p className="text-center text-xs text-gray-500">
+                        <p className="text-center text-body-xs text-foreground-secondary">
                             {t('loading.stillTrying', { attempt: failureCount + 1, total: 5 })}
                         </p>
                     )}

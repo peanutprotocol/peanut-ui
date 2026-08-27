@@ -71,8 +71,8 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
     if (step === 'success') {
         return (
             <div className="flex flex-col items-center gap-4 text-center">
-                <div className="text-xl font-extrabold">{t('pin.successTitle')}</div>
-                <p className="text-sm text-grey-1">{t('pin.successBody')}</p>
+                <div className="text-heading-xs">{t('pin.successTitle')}</div>
+                <p className="text-body-s text-foreground-secondary">{t('pin.successBody')}</p>
                 <Button variant="purple" shadowSize="4" className="w-full" onClick={onDone}>
                     {tCommon('close')}
                 </Button>
@@ -84,11 +84,11 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
         return (
             <div className="flex flex-col items-center gap-6 text-center">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-xl font-extrabold">{t('pin.confirmTitle')}</h1>
-                    <p className="text-sm text-grey-1">{t('pin.confirmBody')}</p>
+                    <h1 className="text-heading-xs">{t('pin.confirmTitle')}</h1>
+                    <p className="text-body-s text-foreground-secondary">{t('pin.confirmBody')}</p>
                 </div>
                 <PinInput value={second} onChange={setSecond} disabled={step === 'saving'} />
-                {error && <p className="text-sm text-red">{error}</p>}
+                {error && <p className="text-body-s text-foreground-error">{error}</p>}
                 <Button
                     variant="purple"
                     shadowSize="4"
@@ -112,19 +112,19 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
     return (
         <div className="flex flex-col items-center gap-6 text-center">
             <div className="flex flex-col gap-2">
-                <h1 className="text-xl font-extrabold">{t('pin.chooseTitle')}</h1>
-                <p className="text-sm text-grey-1">{t('pin.chooseBody')}</p>
+                <h1 className="text-heading-xs">{t('pin.chooseTitle')}</h1>
+                <p className="text-body-s text-foreground-secondary">{t('pin.chooseBody')}</p>
             </div>
             <PinInput value={first} onChange={setFirst} />
-            <ul className="w-full list-inside list-disc text-left text-sm text-grey-1">
+            <ul className="w-full list-inside list-disc text-left text-body-s text-foreground-secondary">
                 <li>{t('pin.ruleSequential')}</li>
                 <li>{t('pin.ruleRepeating')}</li>
                 <li>{t('pin.ruleChangeLater')}</li>
             </ul>
             {choosePinValidation && !choosePinValidation.valid && choosePinValidation.reason && (
-                <p className="text-sm text-red">{t(REJECTION_KEYS[choosePinValidation.reason])}</p>
+                <p className="text-body-s text-foreground-error">{t(REJECTION_KEYS[choosePinValidation.reason])}</p>
             )}
-            {error && <p className="text-sm text-red">{error}</p>}
+            {error && <p className="text-body-s text-foreground-error">{error}</p>}
             <Button
                 variant="purple"
                 shadowSize="4"

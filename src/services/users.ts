@@ -44,6 +44,18 @@ export type ApiUser = {
     }>
 }
 
+/**
+ * Account deletion was refused because the account still holds spendable funds.
+ * `balanceUsd` is the server's live figure ("12.34"), or null if the response
+ * omitted it.
+ */
+export class AccountHasBalanceError extends Error {
+    constructor(public readonly balanceUsd: string | null) {
+        super('ACCOUNT_HAS_BALANCE')
+        this.name = 'AccountHasBalanceError'
+    }
+}
+
 export const usersApi = {
     getByUsername: async (username: string): Promise<ApiUser> => {
         const response = await serverFetch(`/users/username/${username}`, {
@@ -96,10 +108,18 @@ export const usersApi = {
     // Self-service account deletion (V1). Disables the account server-side and
     // starts the 30-day data-deletion clock. The user is taken from the JWT, so
     // there is no body — a user can only delete their own account.
+    //
+    // Rejects with AccountHasBalanceError when the account still holds funds:
+    // deletion is irreversible, so the server refuses until the money is moved
+    // out. The client gates on its own balance first; this covers the cases
+    // where the local figure was stale or had not loaded.
     requestDeletion: async (): Promise<void> => {
         const response = await serverFetch('/users/me/delete', { method: 'POST' })
-        if (!response.ok) {
-            throw new Error('Failed to request account deletion')
+        if (response.ok) return
+        const body = await response.json().catch(() => null)
+        if (body?.error === 'ACCOUNT_HAS_BALANCE') {
+            throw new AccountHasBalanceError(typeof body.balanceUsd === 'string' ? body.balanceUsd : null)
         }
+        throw new Error('Failed to request account deletion')
     },
 }

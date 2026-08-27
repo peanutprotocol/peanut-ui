@@ -126,7 +126,6 @@ describe('ICU message compilation', () => {
             minutes: 2,
         }
         for (const path of leafPaths(messages)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             t(path as any, dummy)
         }
         expect(invalid).toEqual([])

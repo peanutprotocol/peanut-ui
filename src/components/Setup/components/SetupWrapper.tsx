@@ -14,7 +14,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * props interface for the SetupWrapper component
@@ -86,7 +86,12 @@ const Navigation = memo(function Navigation({
         <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
             <div>
                 {showBackButton && (
-                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label={t('goBack')}>
+                    <Button
+                        variant="stroke"
+                        onClick={onBack}
+                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                        aria-label={t('goBack')}
+                    >
                         <Icon name="chevron-up" fill="black" size={20} className="-rotate-90" />
                     </Button>
                 )}
@@ -94,7 +99,7 @@ const Navigation = memo(function Navigation({
             <div className="flex items-center gap-3">
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-grey-1">{t('skip')}</span>
+                        <span className="text-foreground-over-color-secondary">{t('skip')}</span>
                     </Button>
                 )}
                 {showLogoutButton && (
@@ -102,11 +107,11 @@ const Navigation = memo(function Navigation({
                         onClick={onLogout}
                         loading={isLoggingOut}
                         variant="stroke"
-                        className={twMerge('h-7 w-7 p-0', isLoggingOut && 'pl-3')}
+                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
                         aria-label={t('logout')}
                         disabled={isLoggingOut}
                     >
-                        <Icon name="logout" fill="black" size={24} />
+                        {!isLoggingOut && <Icon name="logout" fill="black" size={20} />}
                     </Button>
                 )}
             </div>
@@ -140,7 +145,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -175,8 +180,8 @@ const ImageSection = ({
         <div
             className={classNames(
                 containerClass,
-                'flex w-full flex-row items-center justify-center bg-secondary-3/100 md:h-[100dvh] md:w-7/12',
-                screenId === 'success' && 'bg-secondary-1/15'
+                'flex w-full flex-row items-center justify-center bg-blue-300/100 md:h-[100dvh] md:w-7/12',
+                screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
             <Image
@@ -272,7 +277,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',
                         // signup: panel hugs its content so the hero absorbs the slack
                         // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
                         layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',
@@ -282,7 +287,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     {/* title and description container */}
                     <div
                         className={twMerge(
-                            'mx-auto h-full w-full space-y-4 md:max-h-48 md:max-w-xs',
+                            'mx-auto space-y-4 h-full w-full md:max-h-48 md:max-w-xs',
                             (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
                             sunsetLanding && 'md:h-auto md:max-h-none'
                         )}
@@ -290,7 +295,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                         {headingTitle && (
                             <h1
                                 className={twMerge(
-                                    'w-full text-left text-xl font-extrabold leading-tight',
+                                    'w-full text-left text-heading-xs leading-tight',
                                     sunsetLanding && 'md:text-center',
                                     titleClassName
                                 )}
@@ -299,12 +304,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             </h1>
                         )}
                         {headingDescription && (
-                            <p
-                                className={twMerge(
-                                    'text-base font-medium text-black',
-                                    sunsetLanding && 'md:text-center'
-                                )}
-                            >
+                            <p className={twMerge('text-body-m text-black', sunsetLanding && 'md:text-center')}>
                                 {headingDescription}
                             </p>
                         )}

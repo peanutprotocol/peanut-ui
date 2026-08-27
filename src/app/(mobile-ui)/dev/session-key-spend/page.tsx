@@ -37,7 +37,7 @@ export default function SessionKeySpendPage() {
             description="Per-transaction session key signs the Rain admin EIP-712 and the UserOp after a single enable-signature passkey tap. Falls back to the two-tap passkey path on any failure."
             width="prose"
         >
-            <div className="rounded-sm border border-n-1 p-3 text-sm">
+            <div className="rounded-sm border border-border-default p-3 text-sm">
                 <div>
                     <span className="font-bold">Build gate (NEXT_PUBLIC_SESSION_KEY_SPEND): </span>
                     {SESSION_KEY_SPEND_BUILD_ENABLED ? '✅ on' : '❌ off — this page can only toggle a dead switch'}

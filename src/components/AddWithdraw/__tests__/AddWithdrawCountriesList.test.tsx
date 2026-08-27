@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- jest.mock factories stub component props with `any`; matches the sibling add-money-states.test.tsx style. */
 /**
  * Regression coverage for the deposit/withdraw method list's bank gate.
  *
@@ -137,15 +136,15 @@ jest.mock('@/utils/withdraw.utils', () => ({ getCountryCodeForWithdraw: (id: str
 jest.mock('@/utils/bridge.utils', () => ({ railJurisdictionForBank: () => 'US' }))
 jest.mock('@/utils/regions.utils', () => ({ getRegionIntent: () => 'STANDARD' }))
 
-jest.mock('@/components/ActionListCard', () => ({
-    ActionListCard: (props: any) => (
+jest.mock('@/components/0_Bruddle/ListItem', () => ({
+    ListItem: (props: any) => (
         <button
             data-testid={`method-${props.title?.toLowerCase()}`}
-            onClick={props.isDisabled ? undefined : props.onClick}
-            disabled={props.isDisabled}
+            onClick={props.disabled ? undefined : props.onClick}
+            disabled={props.disabled}
         >
             {props.title}
-            {props.rightContent}
+            {props.trailing}
         </button>
     ),
 }))

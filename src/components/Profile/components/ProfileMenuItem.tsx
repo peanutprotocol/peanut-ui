@@ -2,7 +2,6 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
-import IndicatorDot from '@/components/Global/IndicatorDot'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { Tooltip } from '@/components/Tooltip'
 import Link from 'next/link'
@@ -24,7 +23,6 @@ interface ProfileMenuItemProps {
     showTooltip?: boolean
     toolTipText?: string
     badge?: string
-    highlight?: boolean
 }
 
 const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
@@ -42,7 +40,6 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     showTooltip = false,
     toolTipText,
     badge,
-    highlight = false,
 }) => {
     const content = (
         <div className="flex items-center justify-between py-1">
@@ -50,14 +47,9 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                 {typeof icon === 'string' ? (
                     <Icon name={icon as IconName} size={20} fill="black" className={iconClassName} />
                 ) : (
-                    <div className="flex items-center justify-center" style={{ width: 20, height: 20 }}>
-                        {icon}
-                    </div>
+                    <div className="flex size-5 items-center justify-center">{icon}</div>
                 )}
-                <div className="flex items-center gap-2">
-                    <label className="text-base font-medium">{label}</label>
-                    {highlight && <IndicatorDot className="animate-pulse" aria-label="highlight-indicator" />}
-                </div>
+                <label className="text-body-m text-foreground-primary">{label}</label>
                 {badge && <StatusBadge status="custom" customText={badge} />}
                 {showTooltip && (
                     <Tooltip content={toolTipText}>
@@ -67,7 +59,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
             </div>
 
             <div className="flex items-center gap-1">
-                {endText && <span className="text-sm text-grey-1">{endText}</span>}
+                {endText && <span className="text-body-s text-foreground-secondary">{endText}</span>}
                 {comingSoon ? (
                     <StatusBadge status="soon" size="medium" />
                 ) : endIcon ? (
@@ -81,7 +73,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
 
     if (comingSoon || !href) {
         return (
-            <Card position={position} className="bg-grey-4 p-4">
+            <Card position={position} className="bg-background-disabled p-4">
                 {content}
             </Card>
         )
@@ -89,7 +81,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
 
     if (onClick) {
         return (
-            <Card position={position} onClick={onClick} className="cursor-pointer p-4 active:bg-grey-4">
+            <Card position={position} onClick={onClick} className="cursor-pointer p-4 active:bg-background-disabled">
                 {content}
             </Card>
         )
@@ -102,7 +94,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
             target={isExternalLink ? '_blank' : undefined}
             rel={isExternalLink ? 'noopener noreferrer' : undefined}
         >
-            <Card position={position} onClick={onClick} className="p-4 active:bg-grey-4">
+            <Card position={position} onClick={onClick} className="p-4 active:bg-background-disabled">
                 {content}
             </Card>
         </Link>

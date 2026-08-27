@@ -35,11 +35,6 @@ jest.mock('@/components/Global/Card', () => ({
     default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }))
 
-jest.mock('@/components/Global/InfoCard', () => ({
-    __esModule: true,
-    default: ({ description }: { description: string }) => <div>{description}</div>,
-}))
-
 describe('KYC state cards', () => {
     it('does not pass the click event to action-required resume', () => {
         const onResume = jest.fn()

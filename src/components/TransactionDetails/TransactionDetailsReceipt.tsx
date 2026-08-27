@@ -1,101 +1,31 @@
 'use client'
-/**
- * @todo This file needs significant DRY (Don't Repeat Yourself) refactoring and consolidation
- * - Multiple repeated UI patterns and logic that could be extracted into reusable components
- * - Complex conditional rendering that could be simplified
- * - Duplicated status/type checking logic that could be centralized
- * - Large component that could be split into smaller focused components
- */
 
+import React, { useMemo } from 'react'
+import { twMerge } from '@/utils/tw'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { TRANSACTIONS } from '@/constants/query.consts'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { useUserStore } from '@/redux/hooks'
-import { chargesApi } from '@/services/charges'
-import useClaimLink from '@/components/Claim/useClaimLink'
-import { formatAmount, isStableCoin, formatCurrency } from '@/utils/general.utils'
-import { formatPoints } from '@/utils/format.utils'
-import { getAvatarUrl, isTestTransaction } from '@/utils/history.utils'
-import { printableAddress, shortenAddress, shortenStringLong, slugify } from '@/utils/general.utils'
-import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { captureException } from '@sentry/nextjs'
-import { useQueryClient } from '@tanstack/react-query'
-import Link from 'next/link'
-import Image from 'next/image'
-import React, { useMemo, useRef, useState, useEffect } from 'react'
-import { Button } from '@/components/0_Bruddle/Button'
-import DisplayIcon from '../Global/DisplayIcon'
-import { Icon } from '../Global/Icons/Icon'
-import { PerkIcon } from './PerkIcon'
-import { STAR_STRAIGHT_ICON } from '@/assets/icons'
-import QRCodeWrapper from '../Global/QRCodeWrapper'
-import ShareButton from '../Global/ShareButton'
-import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
-import CopyToClipboard from '../Global/CopyToClipboard'
-import CancelSendLinkDrawer from '../Global/CancelSendLinkDrawer'
-import { twMerge } from 'tailwind-merge'
-import { bankAccountLabelKey, getAccountCopyValue, type BankAccountLabelKey } from './transaction-details.utils'
-import { useModalsContext } from '@/context/ModalsContext'
-import { useRouter } from 'next/navigation'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
+import { formatCurrency, isStableCoin } from '@/utils/general.utils'
+import { PerkIcon } from './PerkIcon'
+import { ReceiptActions } from './ReceiptActions'
+import { ReceiptDetailsCard } from './ReceiptDetailsCard'
+import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
+import { LocalRailNudge } from './provider-rows/LocalRailNudge'
+import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
+import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
+import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
-    hasReferralNudge,
     hasUserProfile,
     hasUserProfileAvatar,
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
-    isSplittable,
-    usesCompletedTimestampLabel,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
-import { useReceiptDateFormatter } from './useReceiptDateFormatter'
-import { buildSplitBillRequestUrl } from './splitBill.utils'
-import { CardPaymentRows } from './provider-rows/CardPaymentRows'
-import { LocalRailNudge } from './provider-rows/LocalRailNudge'
-import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
-import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
-import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
-import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstructions'
-import { CancelDepositActions } from './provider-actions/CancelDepositActions'
-import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
-import { getReceiptUrl } from '@/utils/history.utils'
-import ContributorCard from '../Global/Contributors/ContributorCard'
-import { requestsApi } from '@/services/requests'
-import { PasskeyDocsLink } from '../Setup/Views/SignTestTransaction'
-import { useActivationStatus } from '@/hooks/useActivationStatus'
-import { generateInviteCodeLink } from '@/utils/general.utils'
-import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
-import { useTranslations } from 'next-intl'
-import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-
-type CancelLinkState = 'idle' | 'cancelling' | 'cancelled'
-
-const CANCEL_LINK_KEYS = {
-    idle: 'actions.cancelLink',
-    cancelling: 'actions.cancelling',
-    cancelled: 'actions.cancelled',
-} as const satisfies Record<CancelLinkState, string>
-
-// IBAN / CLABE are the standard scheme names — same in every locale.
-const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> = {
-    iban: 'IBAN',
-    clabe: 'CLABE',
-}
-
-// One wire shape for all three legs of the referral nudge. Module-level so the
-// impression effect can call it without re-running on every render.
-const referralNudgeProps = (variant: 'button' | 'text_link') => ({
-    source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
-    link_type: 'invite_code',
-    variant,
-})
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -121,97 +51,12 @@ export const TransactionDetailsReceipt = ({
     avatarUrl?: string
     isPublic?: boolean
 }) => {
-    // ref for the main content area to calculate dynamic height
-    const { user } = useUserStore()
-    const queryClient = useQueryClient()
-    const { fetchBalance } = useWallet()
-    const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
-    const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
-    const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
-    const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
-    const { setIsSupportModalOpen } = useModalsContext()
-    const toast = useToast()
-    const router = useRouter()
-    const { isActivated } = useActivationStatus()
     const t = useAppTranslations('transaction')
-    const tCommon = useTranslations('common')
-    const formatDate = useReceiptDateFormatter()
-    const bankAccountLabel = (type: string) => {
-        const key = bankAccountLabelKey(type)
-        if (key === 'address') return t('rows.address')
-        return BANK_ACCOUNT_SCHEME_LABELS[key] ?? t('rows.accountNumber')
-    }
-    const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
-
-    // Sync modal state to parent if callback is provided
-    useEffect(() => {
-        setIsModalOpen?.(showCancelLinkDrawer)
-    }, [showCancelLinkDrawer, setIsModalOpen])
 
     // All derived row-visibility / status / share-receipt state lives in the
-    // hook so this component stays focused on JSX + callbacks.
-    const {
-        isGuestBankClaim,
-        isPendingBankRequest,
-        isPeanutWalletToken,
-        isPendingRequestee,
-        isPendingRequester,
-        isPendingSentLink,
-        isQRPayment,
-        country,
-        rowVisibilityConfig,
-        shouldHideBorder,
-        shouldShowShareReceipt,
-        requestPotContributors,
-        formattedTotalAmountCollected,
-    } = useReceiptViewModel(transaction, { isPublic })
-
-    useEffect(() => {
-        const getTokenDetails = async () => {
-            if (!transaction?.tokenDisplayDetails) {
-                setIsTokenDataLoading(false)
-                return
-            }
-
-            if (transaction.tokenDisplayDetails.tokenIconUrl && transaction.tokenDisplayDetails.tokenSymbol) {
-                setTokenData({
-                    symbol: transaction.tokenDisplayDetails.tokenSymbol,
-                    icon: transaction.tokenDisplayDetails.tokenIconUrl,
-                })
-                setIsTokenDataLoading(false)
-                return
-            }
-
-            if (!transaction.tokenDisplayDetails.chainName) {
-                setIsTokenDataLoading(false)
-                return
-            }
-
-            try {
-                const chainName = slugify(transaction.tokenDisplayDetails.chainName)
-                const res = await fetch(
-                    `https://api.coingecko.com/api/v3/coins/${chainName}/contract/${transaction.tokenAddress}`
-                )
-
-                if (!res.ok) {
-                    throw new Error(`CoinGecko API error: ${res.status} ${res.statusText}`)
-                }
-
-                const tokenDetails = await res.json()
-                setTokenData({
-                    symbol: tokenDetails.symbol,
-                    icon: tokenDetails.image.large,
-                })
-            } catch (e) {
-                console.error('Failed to fetch token details from CoinGecko:', e)
-                setTokenData(null)
-            } finally {
-                setIsTokenDataLoading(false)
-            }
-        }
-
-        getTokenDetails()
-    }, [transaction?.tokenDisplayDetails])
+    // hook so this component stays focused on composition.
+    const vm = useReceiptViewModel(transaction, { isPublic })
+    const { formattedTotalAmountCollected } = vm
 
     const convertedAmount = useMemo(() => {
         if (!transaction) return null
@@ -235,52 +80,9 @@ export const TransactionDetailsReceipt = ({
         return null
     }, [transaction])
 
-    // `shouldShowShareReceipt` alone is TRUE for card spends (the txHash
-    // short-circuit in useReceiptViewModel); `getReceiptUrl` returning undefined
-    // is the real suppressor, so the CTA arithmetic must read the composite.
-    const receiptUrl = transaction ? getReceiptUrl(transaction) : undefined
-    const showShareReceipt = shouldShowShareReceipt && !!receiptUrl
-    const showSplitCta = !isPublic && !!transaction && isSplittable(transaction)
-
-    // `!isPublic`: on a public receipt the *viewer's* username would credit a
-    // bystander for someone else's payment.
-    const inviteUsername = user?.user.username
-    const showReferralNudge =
-        !isPublic &&
-        isActivated &&
-        !!transaction &&
-        transaction.status === 'completed' &&
-        hasReferralNudge(transaction) &&
-        !!inviteUsername
-    const inviteLink = inviteUsername ? generateInviteCodeLink(inviteUsername).inviteLink : ''
-
-    // With Split and Share Receipt both stacked (a QR pay) the nudge demotes to
-    // an underlined text row, so the drawer never shows three equal-weight CTAs.
-    const referralCtaVariant = showSplitCta && showShareReceipt ? 'text_link' : 'button'
-
-    // Outcome, not intent — ShareButton calls onSuccess only after a real share
-    // or copy, so a cancelled share sheet captures nothing.
-    const captureInviteShared = () => {
-        const props = referralNudgeProps(referralCtaVariant)
-        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, props)
-        posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, props)
-    }
-
-    // Per selected transaction, not per view: re-opening the same transaction
-    // may not remount the drawer.
-    const nudgeTransactionId = transaction?.id
-    const referralImpressionForId = useRef<string | null>(null)
-    useEffect(() => {
-        if (!showReferralNudge || !nudgeTransactionId) return
-        if (referralImpressionForId.current === nudgeTransactionId) return
-        referralImpressionForId.current = nudgeTransactionId
-        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, referralNudgeProps(referralCtaVariant))
-    }, [showReferralNudge, nudgeTransactionId, referralCtaVariant])
-
     if (!transaction) return null
 
     let usdAmount: number | bigint = 0
-
     if (transactionAmount) {
         // if transactionAmount is provided as a string, parse it
         const parsed = parseFloat(transactionAmount.replace(/[\+\-\$,]/g, ''))
@@ -299,7 +101,15 @@ export const TransactionDetailsReceipt = ({
     const safeAmount = isNaN(numericAmount) || numericAmount === null || numericAmount === undefined ? 0 : numericAmount
     let amountDisplay = `$${formatCurrency(Math.abs(safeAmount).toString())}`
 
-    const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
+    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
+        amountDisplay = `$${formatCurrency(transaction.amount.toString())}`
+    } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
+        amountDisplay = t('amountCollected', { amount: formattedTotalAmountCollected })
+    }
+
+    // States board (17966:12128): '-' marks outgoing money; incoming stays
+    // unsigned (base state — no '+'). Pots show a collected total, never a sign.
+    const headSign = !transaction.isRequestPotLink && getTransactionSign(transaction) === '-' ? '-' : ''
 
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
@@ -312,53 +122,15 @@ export const TransactionDetailsReceipt = ({
             (isRequestEntry(transaction) &&
                 transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.RECIPIENT))
 
-    const getLabelText = (transaction: TransactionDetails) => {
-        // Bank off-ramps / on-ramps / bank claims → "Completed" (lifecycle
-        // milestone of a bank transfer, not a peer interaction).
-        if (usesCompletedTimestampLabel(transaction)) return t('rows.completed')
-        return transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER
-            ? t('rows.sent')
-            : t('rows.received')
-    }
-
-    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
-        amountDisplay = `$${formatCurrency(transaction.amount.toString())}`
-    } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
-        amountDisplay = t('amountCollected', { amount: formattedTotalAmountCollected })
-    }
-
     // the counterparty name links whenever the peer has a real profile. the
     // avatar links only when it visually represents that user; bank flags and
     // account icons stay inert.
     const isNameClickable = hasUserProfile(transaction)
     const isAvatarClickable = hasUserProfileAvatar(transaction)
 
-    const closeRequestLink = async () => {
-        if (isPendingRequester && setIsLoading && onClose) {
-            setIsLoading(true)
-            try {
-                if (transaction.isRequestPotLink) {
-                    await requestsApi.close(transaction.id)
-                } else {
-                    await chargesApi.cancel(transaction.id)
-                }
-                await queryClient.invalidateQueries({
-                    queryKey: [TRANSACTIONS],
-                })
-                setIsLoading(false)
-                onClose()
-            } catch (error) {
-                captureException(error)
-                console.error('Error canceling charge:', error)
-                setIsLoading(false)
-            }
-        }
-    }
     // Special rendering for PERK_REWARD type
-    const isPerkReward = isPerkRewardTransaction(transaction)
     const perkRewardData = transaction.extraDataForDrawer?.perkReward
-
-    if (isPerkReward && perkRewardData) {
+    if (isPerkRewardTransaction(transaction) && perkRewardData) {
         return (
             <PerkRewardReceipt
                 transaction={transaction}
@@ -371,19 +143,15 @@ export const TransactionDetailsReceipt = ({
     }
 
     return (
-        <div ref={contentRef} className={twMerge('space-y-4', className)}>
-            {/* show qr code at the top if applicable */}
-            {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
-                <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
-            )}
-
-            {/* transaction header card */}
+        <div ref={contentRef} className={twMerge('flex flex-col gap-4', className)}>
+            {/* head (board 17490:115877): centered bubble → type line → amount → badge */}
             <TransactionDetailsHeaderCard
                 direction={transaction.direction}
                 userName={transaction.userName}
                 nameKey={transaction.nameKey}
                 nameParams={transaction.nameParams}
                 amountDisplay={amountDisplay}
+                sign={headSign}
                 initials={transaction.initials}
                 status={transaction.status}
                 isVerified={transaction.isVerified}
@@ -393,15 +161,7 @@ export const TransactionDetailsReceipt = ({
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
                 isNameClickable={isNameClickable}
                 isAvatarClickable={isAvatarClickable}
-                showProgessBar={transaction.isRequestPotLink}
-                goal={Number(transaction.amount)}
-                // Use the raw numeric field, NOT formattedTotalAmountCollected — the
-                // latter is comma-grouped ("1,234.56"), so Number() → NaN for any pot
-                // that has collected ≥ $1,000, blanking the progress bar.
-                progress={Number(transaction.totalAmountCollected)}
                 isRequestPotTransaction={transaction.isRequestPotLink}
-                isTransactionClosed={transaction.status === 'closed'}
-                convertedAmount={convertedAmount ?? undefined}
                 showFullName={transaction.showFullName}
                 fullName={transaction.fullName}
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
@@ -409,12 +169,14 @@ export const TransactionDetailsReceipt = ({
 
             {/* Perk eligibility banner */}
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (
-                <Card position="single" className="px-4 py-4">
+                <Card position="single" className="p-4">
                     <div className="flex items-center gap-3">
                         <PerkIcon size="small" />
                         <div className="flex flex-col gap-1">
-                            <span className="font-semibold text-gray-900">{t('perkBanner.title')}</span>
-                            <span className="text-sm text-gray-600">
+                            <span className="text-body-m-semibold text-foreground-primary">
+                                {t('perkBanner.title')}
+                            </span>
+                            <span className="text-body-s text-foreground-secondary">
                                 {(() => {
                                     const perk = transaction.extraDataForDrawer.perk
                                     const amount = perk.amountSponsored
@@ -436,304 +198,14 @@ export const TransactionDetailsReceipt = ({
                 </Card>
             )}
 
-            {/* details card (date, fee, memo) and more */}
-            <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
-                {/* `[&>*:last-child]:border-b-0` — the last row sits directly on the
-                    card's own black border, so its dashed rule reads as a divider to
-                    nothing. `shouldHideBorder` only reaches rows this component renders
-                    itself; the deposit-instruction sub-components below expand into rows
-                    of their own, and rows can also drop out on conditions the visibility
-                    config doesn't model (a token row still awaiting its icon fetch). The
-                    container settles it for whatever actually renders last. */}
-                <div className="space-y-0 [&>*:last-child]:border-b-0">
-                    {rowVisibilityConfig.createdAt && (
-                        <PaymentInfoRow
-                            label={t('rows.created')}
-                            value={formatDate(new Date(transaction.createdAt!.toString()))}
-                            hideBottomBorder={shouldHideBorder('createdAt')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.cancelled && (
-                        <PaymentInfoRow
-                            label={t('rows.cancelled')}
-                            value={formatDate(
-                                new Date(transaction.cancelledDate || transaction.createdAt || transaction.date)
-                            )}
-                            hideBottomBorder={shouldHideBorder('cancelled')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.claimed && (
-                        <PaymentInfoRow
-                            label={t('rows.claimed')}
-                            value={formatDate(new Date(transaction.claimedAt!))}
-                            hideBottomBorder={shouldHideBorder('claimed')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.completed && (
-                        <PaymentInfoRow
-                            label={getLabelText(transaction)}
-                            value={formatDate(new Date(transaction.completedAt!))}
-                            hideBottomBorder={shouldHideBorder('completed')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.refunded && (
-                        <PaymentInfoRow
-                            label={t('rows.refunded')}
-                            value={formatDate(new Date(transaction.date))}
-                            hideBottomBorder={shouldHideBorder('refunded')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.closed && (
-                        <>
-                            {transaction.cancelledDate && (
-                                <PaymentInfoRow
-                                    label={t('rows.closedAt')}
-                                    value={formatDate(new Date(transaction.cancelledDate))}
-                                    hideBottomBorder={shouldHideBorder('closed')}
-                                />
-                            )}
-                        </>
-                    )}
-
-                    {rowVisibilityConfig.to && (
-                        <PaymentInfoRow
-                            label={t('rows.to')}
-                            value={
-                                <div className="flex items-center gap-2">
-                                    {/* printableAddress shortens Solana/Tron/EVM and
-                                        passes usernames through — no viem isAddress
-                                        pre-guard, which is EVM-only and let 44-char
-                                        Solana counterparties render full-length. */}
-                                    <span>{printableAddress(transaction.userName)}</span>
-                                    <CopyToClipboard textToCopy={transaction.userName} iconSize="4" />
-                                </div>
-                            }
-                            hideBottomBorder={shouldHideBorder('to')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.tokenAndNetwork &&
-                        transaction.tokenDisplayDetails &&
-                        tokenData?.icon &&
-                        tokenData?.symbol && (
-                            <>
-                                {!isStableCoin(transaction.tokenSymbol ?? 'USDC') && (
-                                    <PaymentInfoRow label={t('rows.tokenAmount')} value={transaction.amount} />
-                                )}
-                                {!isPeanutWalletToken && (
-                                    <PaymentInfoRow
-                                        label={t('rows.tokenAndNetwork')}
-                                        value={
-                                            isTokenDataLoading ? (
-                                                <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-                                            ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
-                                                        {/* Main token icon */}
-                                                        <DisplayIcon
-                                                            iconUrl={tokenData.icon}
-                                                            altText={tokenData.symbol || 'token'}
-                                                            fallbackName={tokenData.symbol || 'T'}
-                                                            sizeClass="h-6 w-6"
-                                                        />
-                                                        {/* Smaller chain icon, absolutely positioned */}
-                                                        {transaction.tokenDisplayDetails.chainIconUrl && (
-                                                            <div className="absolute -bottom-1 -right-1">
-                                                                <DisplayIcon
-                                                                    iconUrl={
-                                                                        transaction.tokenDisplayDetails.chainIconUrl
-                                                                    }
-                                                                    altText={
-                                                                        transaction.tokenDisplayDetails.chainName ||
-                                                                        'chain'
-                                                                    }
-                                                                    fallbackName={
-                                                                        transaction.tokenDisplayDetails.chainName || 'C'
-                                                                    }
-                                                                    sizeClass="h-3.5 w-3.5 text-[7px]"
-                                                                    className="rounded-full border-2 border-white dark:border-grey-4"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <span>
-                                                        {t('rows.tokenOnChain', {
-                                                            token: tokenData.symbol.toUpperCase(),
-                                                            chain: transaction.tokenDisplayDetails.chainName ?? '',
-                                                        })}
-                                                    </span>
-                                                </div>
-                                            )
-                                        }
-                                        hideBottomBorder={shouldHideBorder('tokenAndNetwork')}
-                                    />
-                                )}
-                            </>
-                        )}
-
-                    {rowVisibilityConfig.txId && transaction.txHash && (
-                        <PaymentInfoRow
-                            label={t('rows.txId')}
-                            value={
-                                transaction.explorerUrl ? (
-                                    <Link
-                                        href={transaction.explorerUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-2 hover:underline"
-                                    >
-                                        <span>{shortenStringLong(transaction.txHash)}</span>
-                                        <Icon name="external-link" size={14} />
-                                    </Link>
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        <span>{shortenStringLong(transaction.txHash)}</span>
-                                        <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
-                                    </div>
-                                )
-                            }
-                            hideBottomBorder={shouldHideBorder('txId')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.cardPayment && (
-                        <CardPaymentRows transaction={transaction} isLastRow={shouldHideBorder('cardPayment')} />
-                    )}
-
-                    {rowVisibilityConfig.fee && (
-                        <PaymentInfoRow
-                            label={t('rows.fee')}
-                            value={feeDisplay}
-                            hideBottomBorder={shouldHideBorder('fee')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.mantecaDepositInfo && (
-                        <MantecaDepositInfo transaction={transaction} country={country} />
-                    )}
-
-                    {/* Exchange rate and original currency for completed bank_deposit transactions */}
-                    {rowVisibilityConfig.exchangeRate && (
-                        <>
-                            {/* TODO: stop using snake_case!!!!! */}
-                            {transaction.extraDataForDrawer?.receipt?.exchange_rate && (
-                                <PaymentInfoRow
-                                    label={tCommon('exchangeRate')}
-                                    value={`1 USD = ${transaction.currency!.code?.toUpperCase()} ${formatCurrency(transaction.extraDataForDrawer.receipt.exchange_rate, 4)}`}
-                                    hideBottomBorder={shouldHideBorder('exchangeRate')}
-                                />
-                            )}
-                        </>
-                    )}
-
-                    {rowVisibilityConfig.bankAccountDetails && transaction.bankAccountDetails && (
-                        <PaymentInfoRow
-                            label={bankAccountLabel(transaction.bankAccountDetails!.type)}
-                            value={
-                                <div className="flex items-center gap-2">
-                                    <span>
-                                        {isGuestBankClaim
-                                            ? transaction.bankAccountDetails.identifier
-                                            : maskAccountIdentifier(
-                                                  transaction.bankAccountDetails.identifier,
-                                                  transaction.bankAccountDetails.type
-                                              )}
-                                    </span>
-                                    {!isGuestBankClaim && (
-                                        // Copy yields the FULL identifier — masking is for
-                                        // visual privacy only; the user owns the account
-                                        // and may need to paste it elsewhere.
-                                        <CopyToClipboard
-                                            textToCopy={getAccountCopyValue(
-                                                transaction.bankAccountDetails.identifier,
-                                                transaction.bankAccountDetails.type
-                                            )}
-                                            iconSize="4"
-                                        />
-                                    )}
-                                </div>
-                            }
-                            hideBottomBorder={shouldHideBorder('bankAccountDetails')}
-                        />
-                    )}
-                    {rowVisibilityConfig.transferId && (
-                        <PaymentInfoRow
-                            label={t('rows.transferId')}
-                            value={
-                                <div className="flex items-center gap-2">
-                                    <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
-                                    <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
-                                </div>
-                            }
-                            hideBottomBorder={shouldHideBorder('transferId')}
-                        />
-                    )}
-
-                    {/* Onramp deposit instructions for bridge_onramp transactions */}
-                    {rowVisibilityConfig.depositInstructions && <BridgeDepositInstructions transaction={transaction} />}
-
-                    {rowVisibilityConfig.points && transaction.points && (
-                        <PaymentInfoRow
-                            label={t('rows.pointsEarned')}
-                            value={
-                                <div className="flex items-center gap-2">
-                                    <Image src={STAR_STRAIGHT_ICON} alt="star" width={16} height={16} />
-                                    <span>{formatPoints(transaction.points)}</span>
-                                </div>
-                            }
-                            hideBottomBorder={shouldHideBorder('points')}
-                            onClick={() => router.push('/rewards')}
-                        />
-                    )}
-                    {rowVisibilityConfig.comment && (
-                        <PaymentInfoRow
-                            label={tCommon('comment')}
-                            value={transaction.memoKey ? t(transaction.memoKey) : transaction.memo}
-                            hideBottomBorder={shouldHideBorder('comment')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.networkFee && (
-                        <PaymentInfoRow
-                            label={t('rows.networkFee')}
-                            value={transaction.networkFeeDetails!.amountDisplay}
-                            moreInfoText={transaction.networkFeeDetails!.moreInfoText}
-                            hideBottomBorder={shouldHideBorder('networkFee')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.peanutFee && (
-                        <PaymentInfoRow
-                            label={tCommon('peanutFee')}
-                            value={tCommon('sponsoredByPeanut')}
-                            hideBottomBorder={shouldHideBorder('peanutFee')}
-                        />
-                    )}
-
-                    {rowVisibilityConfig.attachment && transaction.attachmentUrl && (
-                        <PaymentInfoRow
-                            label={t('rows.attachment')}
-                            value={
-                                <Link
-                                    href={transaction.attachmentUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex items-center underline"
-                                >
-                                    {t('rows.download')}
-                                    <Icon name="download" size={14} />
-                                </Link>
-                            }
-                            hideBottomBorder
-                        />
-                    )}
-                </div>
-            </Card>
+            {/* the one receipt-style card (dates, conversion, fee, memo,
+                provider rows, pot progress + contributors) */}
+            <ReceiptDetailsCard
+                transaction={transaction}
+                vm={vm}
+                shouldShowQrShare={shouldShowQrShare}
+                convertedAmount={convertedAmount ?? undefined}
+            />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse
@@ -753,268 +225,23 @@ export const TransactionDetailsReceipt = ({
                 LocalRailNudge already fires. */}
             {!isPublic && <CardUsdAbroadNotice transaction={transaction} />}
 
-            {/* share and cancel buttons section (only if qr is shown) */}
+            {/* CTA zone (board): QR for shareable pending links/requests sits
+                with the CTAs, not above the head. */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
-                <div className="space-y-2 pr-1">
-                    {' '}
-                    {/* added space-y for button separation */}
-                    <ShareButton url={transaction.extraDataForDrawer.link} title={t('actions.shareLinkTitle')}>
-                        {t('actions.shareLink')}
-                    </ShareButton>
-                    {/* show cancel button only if the current user sent the link/request */}
-                    {(isSendLinkEntry(transaction) || isRequestEntry(transaction)) &&
-                        transaction.extraDataForDrawer.originalUserRole === EHistoryUserRole.SENDER &&
-                        setIsLoading &&
-                        onClose && (
-                            <Button
-                                disabled={isLoading || cancelLinkState === 'cancelled'}
-                                onClick={() => setShowCancelLinkDrawer(true)}
-                                loading={isLoading}
-                                variant={'primary-soft'}
-                                className="flex w-full items-center gap-1"
-                                shadowSize="4"
-                            >
-                                <div className="flex items-center">{!isLoading && <Icon name="ban" size={18} />}</div>
-                                <span>{t(CANCEL_LINK_KEYS[cancelLinkState])}</span>
-                            </Button>
-                        )}
-                </div>
+                <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
             )}
 
-            {isPendingSentLink && !shouldShowQrShare && (
-                <div className="flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-grey-1">
-                    <Icon name="info" size={20} />
-                    {t('pendingLinkDeviceNote')}
-                </div>
-            )}
-
-            {isPendingRequester && setIsLoading && onClose && (
-                <div className="pr-1">
-                    <Button
-                        icon="ban"
-                        iconSize={18}
-                        loading={isLoading}
-                        disabled={isLoading}
-                        onClick={closeRequestLink}
-                        variant={'primary-soft'}
-                        shadowSize="4"
-                        className="flex w-full items-center gap-1"
-                    >
-                        {transaction.totalAmountCollected > 0 ? t('actions.closeRequest') : t('actions.cancelRequest')}
-                    </Button>
-                </div>
-            )}
-
-            {isPendingRequestee && setIsLoading && onClose && (
-                <div className="space-y-2 pr-1">
-                    <Button
-                        onClick={() => {
-                            window.location.href = transaction.extraDataForDrawer?.link ?? ''
-                        }}
-                        shadowSize="4"
-                        className="flex w-full items-center gap-1"
-                    >
-                        <Icon name="currency" size={18} />
-                        {t('actions.pay')}
-                    </Button>
-                    <Button
-                        icon="ban"
-                        iconSize={18}
-                        disabled={isLoading}
-                        onClick={() => {
-                            setIsLoading(true)
-                            chargesApi
-                                .cancel(transaction.id)
-                                .then(() => {
-                                    queryClient
-                                        .invalidateQueries({
-                                            queryKey: [TRANSACTIONS],
-                                        })
-                                        .then(() => {
-                                            setIsLoading(false)
-                                            onClose()
-                                        })
-                                })
-                                .catch((error) => {
-                                    captureException(error)
-                                    console.error('Error canceling charge:', error)
-                                    setIsLoading(false)
-                                })
-                        }}
-                        variant={'primary-soft'}
-                        shadowSize="4"
-                        className="flex w-full items-center gap-1"
-                    >
-                        {t('actions.rejectRequest')}
-                    </Button>
-                </div>
-            )}
-
-            {showSplitCta && (
-                <Button
-                    onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
-                    icon="split"
-                    shadowSize="4"
-                >
-                    {t('actions.splitBill')}
-                </Button>
-            )}
-
-            {showShareReceipt && (
-                <div className="pr-1">
-                    <ShareButton variant={isQRPayment ? 'primary-soft' : 'purple'} url={receiptUrl!}>
-                        {t('actions.shareReceipt')}
-                    </ShareButton>
-                </div>
-            )}
-
-            <CancelDepositActions
+            <ReceiptActions
                 transaction={transaction}
-                isPendingBankRequest={isPendingBankRequest}
+                vm={vm}
+                isPublic={isPublic}
+                amountDisplay={amountDisplay}
+                shouldShowQrShare={shouldShowQrShare}
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
                 onClose={onClose}
+                setIsModalOpen={setIsModalOpen}
             />
-
-            {showReferralNudge &&
-                (referralCtaVariant === 'button' ? (
-                    <ShareButton
-                        url={inviteLink}
-                        title=""
-                        variant="primary-soft"
-                        showIcon={false}
-                        onSuccess={captureInviteShared}
-                    >
-                        <Icon name="invite-heart" size={16} />
-                        <span className="text-sm font-medium">{t('actions.inviteFriends')}</span>
-                    </ShareButton>
-                ) : (
-                    // Plain utilities beat the `.btn*` component classes (Tailwind
-                    // emits components before utilities), so no `!important` needed.
-                    <ShareButton
-                        url={inviteLink}
-                        title=""
-                        variant="transparent"
-                        showIcon={false}
-                        onSuccess={captureInviteShared}
-                        className="h-auto gap-2 p-0 text-sm font-medium text-grey-1 underline shadow-none hover:text-black active:translate-x-0 active:translate-y-0"
-                    >
-                        <Icon name="invite-heart" size={16} className="text-grey-1" />
-                        {t('actions.inviteFriends')}
-                    </ShareButton>
-                ))}
-
-            {/* support link section or passkey docs for test transactions */}
-            {isTestTransaction(transaction.userName) ? (
-                <PasskeyDocsLink className="border-t-0 pt-0" />
-            ) : (
-                <button
-                    onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
-                >
-                    <Icon name="peanut-support" size={16} className="text-grey-1" />
-                    {t('actions.reportIssue')}
-                </button>
-            )}
-
-            {/* Cancel Link Drawer */}
-
-            {setIsLoading && onClose && (
-                <CancelSendLinkDrawer
-                    // Rendered inside the transaction details drawer whenever that
-                    // drawer owns the close handler — vaul needs a NestedRoot there.
-                    nested={!!setIsModalOpen}
-                    showCancelLinkDrawer={showCancelLinkDrawer}
-                    setShowCancelLinkDrawer={setShowCancelLinkDrawer}
-                    amount={amountDisplay}
-                    isLoading={isLoading}
-                    onClick={async () => {
-                        try {
-                            setIsLoading(true)
-                            setCancelLinkState('cancelling')
-
-                            if (!user?.accounts) {
-                                throw new Error('User not found for cancellation')
-                            }
-                            const walletAddress = user.accounts.find((acc) => acc.type === 'peanut-wallet')?.identifier
-                            if (!walletAddress) {
-                                throw new Error('No wallet address found for cancellation')
-                            }
-
-                            // Validate transaction data
-                            if (!transaction.extraDataForDrawer?.link) {
-                                throw new Error('No link found for cancellation')
-                            }
-
-                            // Cancel the link by claiming it back
-                            await cancelLinkAndClaim({
-                                link: transaction.extraDataForDrawer.link,
-                                walletAddress,
-                                userId: user?.user?.userId,
-                            })
-
-                            try {
-                                // Wait for transaction confirmation
-                                const isConfirmed = await pollForClaimConfirmation(transaction.extraDataForDrawer.link)
-
-                                if (!isConfirmed) {
-                                    console.warn('Transaction confirmation timeout - proceeding with refresh')
-                                }
-
-                                // Update UI and queries
-                                fetchBalance()
-                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-
-                                setIsLoading(false)
-                                setShowCancelLinkDrawer(false)
-                                setCancelLinkState('cancelled')
-                                toast.success(t('toast.linkCancelled'))
-
-                                // Brief delay for toast visibility
-                                await new Promise((resolve) => setTimeout(resolve, 1500))
-                                onClose()
-                            } catch (invalidateError) {
-                                console.error('Failed to update after claim:', invalidateError)
-                                captureException(invalidateError, {
-                                    tags: { feature: 'cancel-link' },
-                                    extra: { userId: user?.user?.userId },
-                                })
-
-                                // Still close drawer even if invalidation fails
-                                setIsLoading(false)
-                                setShowCancelLinkDrawer(false)
-                                setCancelLinkState('cancelled')
-                                toast.success(t('toast.linkCancelledRefresh'))
-                                await new Promise((resolve) => setTimeout(resolve, 1500))
-                                onClose()
-                            }
-                        } catch (error) {
-                            captureException(error)
-                            console.error('Error claiming link:', error)
-                            setIsLoading(false)
-                            setCancelLinkState('idle')
-                            toast.error(t('toast.cancelLinkFailed'))
-                        }
-                    }}
-                />
-            )}
-
-            {requestPotContributors.length > 0 && (
-                <>
-                    <h2 className="text-base font-bold text-black">
-                        {t('contributors', { count: requestPotContributors.length })}
-                    </h2>
-                    <div className="overflow-y-auto">
-                        {requestPotContributors.map((contributor, index) => (
-                            <ContributorCard
-                                position={getCardPosition(index, requestPotContributors.length)}
-                                key={contributor.uuid}
-                                contributor={contributor}
-                            />
-                        ))}
-                    </div>
-                </>
-            )}
         </div>
     )
 }

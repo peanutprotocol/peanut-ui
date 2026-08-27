@@ -31,10 +31,12 @@ jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 // deferred-link.test.ts; here we only assert openStore routes it correctly
 const mockBuildPayload = jest.fn()
 const mockCopyIOSHandoff = jest.fn().mockResolvedValue(undefined)
+const mockTrackHandoffCreated = jest.fn()
 jest.mock('@/utils/deferred-link', () => ({
     buildDeferredPayload: (...args: unknown[]) => mockBuildPayload(...args),
     playStoreUrlWithReferrer: (payload: string) => `play://listing?referrer=${encodeURIComponent(payload)}`,
     copyIOSHandoff: (...args: unknown[]) => mockCopyIOSHandoff(...args),
+    trackDeferredHandoffCreated: (...args: unknown[]) => mockTrackHandoffCreated(...args),
 }))
 
 import { MIGRATION_CUTOVER_DATE, MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
@@ -171,6 +173,40 @@ describe('openStore deferred hand-off', () => {
         expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
         expect(mockOpenExternalUrl).toHaveBeenCalledWith(STORE_URL.ios)
     })
+
+    // the denominator for DEFERRED_LINK_RESTORED: one event per hand-off
+    // actually written inside a store-bounce tap
+    it('a written android hand-off counts as created', () => {
+        openStore('android', MIGRATION_SURFACES.GUEST_FLOW)
+        expect(mockTrackHandoffCreated).toHaveBeenCalledTimes(1)
+        expect(mockTrackHandoffCreated).toHaveBeenCalledWith('android')
+    })
+
+    it('an ios hand-off counts only after the clipboard write resolves', async () => {
+        let resolveCopy!: () => void
+        mockCopyIOSHandoff.mockReturnValue(new Promise<void>((r) => (resolveCopy = r)))
+        openStore('ios', MIGRATION_SURFACES.GUEST_FLOW)
+        expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
+        resolveCopy()
+        await Promise.resolve()
+        expect(mockTrackHandoffCreated).toHaveBeenCalledWith('ios')
+    })
+
+    it('a declined/failed ios clipboard write is not counted', async () => {
+        mockCopyIOSHandoff.mockRejectedValue(new Error('denied'))
+        openStore('ios', MIGRATION_SURFACES.GUEST_FLOW)
+        await Promise.resolve()
+        await Promise.resolve()
+        expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
+    })
+
+    it('no payload, no created event', () => {
+        mockBuildPayload.mockImplementation(() => {
+            throw new Error('no window')
+        })
+        openStore('android', MIGRATION_SURFACES.GUEST_FLOW)
+        expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
+    })
 })
 
 describe('store anchor helpers (self-navigating CTAs)', () => {
@@ -192,6 +228,14 @@ describe('store anchor helpers (self-navigating CTAs)', () => {
     it('android click only tracks — the href already carries the payload', () => {
         onStoreAnchorClick('android', MIGRATION_SURFACES.LANDING_HERO)
         expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+        expect(mockTrackHandoffCreated).toHaveBeenCalledWith('android')
+    })
+
+    it('ios anchor click counts the hand-off once the clipboard write resolves', async () => {
+        mockCopyIOSHandoff.mockResolvedValue(undefined)
+        onStoreAnchorClick('ios', MIGRATION_SURFACES.LANDING_HERO)
+        await Promise.resolve()
+        expect(mockTrackHandoffCreated).toHaveBeenCalledWith('ios')
     })
 
     it('a payload failure falls back to the bare store url', () => {

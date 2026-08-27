@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { hasNativeSession } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
+import { hasDeepLinkNavigated } from '@/utils/deep-link-state'
 import { isDemoMode } from '@/utils/demo'
 
 export function LandingPageCapacitorGate({ children }: { children: ReactNode }) {
@@ -18,6 +19,10 @@ export function LandingPageCapacitorGate({ children }: { children: ReactNode }) 
 
     useEffect(() => {
         if (isCapacitor()) {
+            // A deep link already navigated this boot — replacing to /home now
+            // would discard that pending push and eat the tap (a cold-start App
+            // Link races this gate on both platforms).
+            if (hasDeepLinkNavigated()) return
             // Demo mode has no session but is valid — send it to the app.
             if (isDemoMode()) {
                 router.replace('/home')
@@ -27,6 +32,7 @@ export function LandingPageCapacitorGate({ children }: { children: ReactNode }) 
             // legacy cookie-jar fallback). /home's layout still validates via
             // /users/me and bounces dead sessions.
             hasNativeSession().then((hasSession) => {
+                if (hasDeepLinkNavigated()) return
                 router.replace(hasSession ? '/home' : '/setup')
             })
         }

@@ -1,6 +1,7 @@
 'use client'
 
 import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import PIX from '@/assets/payment-apps/pix.svg'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -11,7 +12,6 @@ import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useRouter } from 'next/navigation'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -34,7 +34,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
-    const { canDo, isKycApproved, rails } = useCapabilities()
+    const { canDo, isKycApproved, rails, nextActions } = useCapabilities()
 
     // MIGRATION-REVIEW: MercadoPago/PIX claim is a `pay` operation over Manteca. Old gate was
     // `isUserMantecaKycApproved` (any MANTECA/SUMSUB-mantecaGeo verification approved). Mapped to
@@ -45,7 +45,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
 
     // Use the shared rejection util so the `restart-identity` branch (Manteca
     // country-ineligibility — user uploaded a non-AR/BR doc) is honored here too.
-    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -147,7 +147,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 />
 
                 {renderStepDetails()}
-                {sumsubFlow.error && <ErrorAlert description={sumsubFlow.error} />}
+                {sumsubFlow.error && <Notification priority="error">{sumsubFlow.error}</Notification>}
             </div>
             <InitiateKycModal
                 visible={showKycModal}
@@ -164,7 +164,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     if (mantecaRejection.state === 'restart-identity') {
                         await sumsubFlow.handleRestartIdentity()
                     } else if (mantecaRejection.state === 'fixable') {
-                        await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                        await sumsubFlow.handleFixableRejection(mantecaRejection)
                     } else {
                         await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, targetCountry)
                     }

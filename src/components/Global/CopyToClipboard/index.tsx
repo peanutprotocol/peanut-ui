@@ -1,6 +1,6 @@
 import React, { useState, forwardRef, useImperativeHandle, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../Icons/Icon'
 import { Button, type ButtonSize } from '@/components/0_Bruddle/Button'
 
@@ -60,7 +60,7 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
                     shadowSize="4"
                     variant="primary-soft"
                 >
-                    <p className="text-sm">{t('copyToClipboard.copyCode')}</p>
+                    <p className="text-body-s">{t('copyToClipboard.copyCode')}</p>
                 </Button>
             )
         }

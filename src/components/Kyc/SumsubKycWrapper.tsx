@@ -329,7 +329,7 @@ const SumsubWebSdkModal = ({
                 title: t('wrapper.troubleTitle'),
                 description: t('wrapper.troubleDescription'),
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-primary-1',
+                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('wrapper.chatWithSupport'),
@@ -341,7 +341,7 @@ const SumsubWebSdkModal = ({
                         text: tCommon('cancel'),
                         onClick: () => setIsHelpModalOpen(false),
                         variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full h-fit mt-3',
+                        className: 'underline text-body-s w-full h-fit mt-3',
                     },
                 ],
             }
@@ -351,7 +351,7 @@ const SumsubWebSdkModal = ({
             title: t('wrapper.exitForNowTitle'),
             description: t('wrapper.exitForNowDescription'),
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-secondary-1',
+            iconContainerClassName: 'bg-action-secondary',
             ctas: [
                 {
                     text: t('wrapper.exit'),
@@ -366,7 +366,7 @@ const SumsubWebSdkModal = ({
                     text: tCommon('continue'),
                     onClick: () => setIsHelpModalOpen(false),
                     variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    className: 'underline text-body-s w-full h-fit mt-3',
                 },
             ],
         }
@@ -378,7 +378,7 @@ const SumsubWebSdkModal = ({
                 visible={visible}
                 onClose={onClose}
                 classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
-                classOverlay={`bg-black bg-opacity-50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
+                classOverlay={`bg-black/50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
                 video={false}
                 className={`z-[100] !p-0 md:!p-6 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
                 classButtonClose="hidden"
@@ -397,7 +397,7 @@ const SumsubWebSdkModal = ({
                                 }}
                                 className="flex items-center gap-1 p-1"
                             >
-                                <Icon name="peanut-support" size={20} className="text-grey-1" />
+                                <Icon name="peanut-support" size={20} className="text-foreground-secondary" />
                             </button>
                             <button onClick={handleCloseButton} className="p-1">
                                 <Icon name="cancel" size={24} />

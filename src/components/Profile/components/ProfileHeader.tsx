@@ -4,7 +4,7 @@ import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts
 import { shareableUrl } from '@/utils/url.utils'
 import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import AvatarWithBadge from '../AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
@@ -61,7 +61,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
     return (
         <>
-            <div className={twMerge('flex flex-col items-center space-y-2', className)}>
+            <div className={twMerge('space-y-2 flex flex-col items-center', className)}>
                 {/* Avatar with initials */}
                 <AvatarWithBadge name={name || username} />
 
@@ -71,7 +71,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         name={name}
                         username={username}
                         isVerified={isVerified}
-                        className="text-2xl font-bold"
+                        className="text-heading-s text-foreground-primary"
                         iconSize={20}
                         haveSentMoneyToUser={haveSentMoneyToUser}
                         isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
@@ -88,9 +88,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         variant="primary-soft"
                         showIcon={false}
                         onSuccess={() => posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)}
-                        className="h-10 w-fit rounded-full py-3 pl-6 pr-4"
+                        className="h-10 w-fit rounded-full py-3 pr-4 pl-6"
                     >
-                        <div className="text-sm font-semibold">{profileUrl.replace('https://', '')}</div>
+                        <div className="text-body-s font-semibold">{profileUrl.replace('https://', '')}</div>
                         <div className="-ml-2">
                             <Icon name="share" size={16} fill="black" />
                         </div>

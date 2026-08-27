@@ -2,8 +2,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
-import type { IconName } from '@/components/Global/Icons/Icon'
-import InfoCard from '@/components/Global/InfoCard'
+import { type IconName } from '@/components/Global/Icons/Icon'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -103,7 +103,7 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             visible={isOpen}
             onClose={onClose}
             icon={'globe-lock' as IconName}
-            iconContainerClassName="bg-primary-1 text-black"
+            iconContainerClassName="bg-action-primary text-black"
             title={t('title')}
             ctas={[
                 {
@@ -123,11 +123,9 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             content={
                 <div className="flex w-full flex-col items-start gap-2">
                     <p>{t('youCanNow')}</p>
-                    <InfoCard
-                        variant="info"
-                        itemIcon="check"
-                        itemIconSize={12}
-                        itemIconClassName="text-secondary-7"
+                    <Notification
+                        priority="info"
+                        className="w-full"
                         items={items
                             .filter((item) => {
                                 if (unlockedChannels === 'all') {

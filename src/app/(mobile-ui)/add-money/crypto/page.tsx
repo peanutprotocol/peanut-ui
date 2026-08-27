@@ -1,8 +1,9 @@
 'use client'
 
+import ChooseNetworkView from '@/components/AddMoney/views/ChooseNetwork.view'
 import CryptoDepositView from '@/components/AddMoney/views/CryptoDeposit.view'
 import OfframpHandleGateView from '@/components/AddMoney/views/OfframpHandleGate.view'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -29,18 +30,21 @@ const AddMoneyCryptoPage = () => {
     const t = useTranslations('addMoney')
     const onBack = useSafeBack('/add-money')
     const { address: peanutWalletAddress } = useWallet()
-    const [networkParam] = useQueryState(
+    // no default: a bare /add-money/crypto shows the choose-network step per the
+    // Add/Crypto board (17830:78020); ?network= deep-links keep working
+    const [networkParam, setNetworkParam] = useQueryState(
         'network',
-        parseAsStringEnum<RhinoChainType>(['EVM', 'SOL', 'TRON']).withDefault('EVM')
+        parseAsStringEnum<RhinoChainType>(['EVM', 'SOL', 'TRON'])
     )
     // offramp migration deep-link: strips the chain/token picker down to arbitrum + usdc
     const [source] = useQueryState('source', parseAsStringEnum(['offramp']))
     const isOfframp = source === 'offramp'
+    const needsNetworkChoice = !isOfframp && networkParam === null
     // The offramp UI is hardwired to Arbitrum copy, so the underlying address
     // must be EVM no matter what a shared/edited link says — otherwise a
     // ?network=SOL&source=offramp URL would show a Solana address labeled
     // "Arbitrum" and instruct the user to send funds to it.
-    const network: RhinoChainType = isOfframp ? 'EVM' : networkParam
+    const network: RhinoChainType = isOfframp ? 'EVM' : (networkParam ?? 'EVM')
     const [showSuccessView, setShowSuccessView] = useState(false)
     const [depositResult, setDepositResult] = useState<DepositAddressStatusResponse | null>(null)
     // Offramp migrants must self-report their offramp.xyz username/email once
@@ -59,7 +63,7 @@ const AddMoneyCryptoPage = () => {
         queryKey: ['rhino-deposit-address', user?.user.userId, peanutWalletAddress, network],
         queryFn: () =>
             rhinoApi.createDepositAddress(peanutWalletAddress as string, network, user?.user.userId as string),
-        enabled: !!user && !!peanutWalletAddress,
+        enabled: !!user && !!peanutWalletAddress && !needsNetworkChoice,
         staleTime: 1000 * 60 * 60 * 24, // 24 hours
     })
 
@@ -125,11 +129,21 @@ const AddMoneyCryptoPage = () => {
         } satisfies TransactionDetails
     }, [depositResult, network, isOfframp])
 
+    if (needsNetworkChoice && !showSuccessView) {
+        return (
+            <ChooseNetworkView
+                // push so browser back returns from the deposit view to this step
+                onSelect={(value) => setNetworkParam(value, { history: 'push' })}
+                onBack={onBack}
+            />
+        )
+    }
+
     if (needsOfframpHandle && !showSuccessView) {
         // wait for the cached user before deciding — otherwise a migrant who
         // already provided their handle gets a flash of the gate on every visit
         if (isFetchingUser && !user) {
-            return <PeanutLoading />
+            return <Loading variant="mascot" />
         }
         return <OfframpHandleGateView onBack={onBack} onDone={() => setOfframpHandleSaved(true)} />
     }

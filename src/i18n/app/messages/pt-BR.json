@@ -54,7 +54,8 @@
             "custom": "Personalizado",
             "unknown": "Desconhecido"
         },
-        "exchangeRate": "Taxa de câmbio"
+        "exchangeRate": "Taxa de câmbio",
+        "slideToProceed": "Deslize para continuar"
     },
     "navigation": {
         "home": "Início",
@@ -73,7 +74,9 @@
         "claim": "Resgatar",
         "peanutLogoAlt": "Logo da Peanut",
         "receipt": "Recibo",
-        "supportUnread": "Nova resposta do suporte"
+        "supportUnread": "Nova resposta do suporte",
+        "card": "Cartão",
+        "scanQr": "Escanear QR"
     },
     "home": {
         "rewards": "Recompensas",
@@ -250,6 +253,15 @@
         },
         "iosCopy": {
             "rewards": "Cashback"
+        },
+        "openProfile": "Abrir seu perfil",
+        "showBalance": "Mostrar saldo",
+        "hideBalance": "Ocultar saldo",
+        "drawers": {
+            "sendToFriends": "Enviar para amigos",
+            "sendToFriendsDescription": "Link, contatos, banco, cripto",
+            "withdrawToOwnAccounts": "Sacar para suas contas",
+            "withdrawToOwnAccountsDescription": "Banco, Mercado, cripto"
         }
     },
     "profile": {
@@ -259,10 +271,11 @@
             "yourCard": "Seu cartão",
             "peanutCard": "Cartão Peanut",
             "newBadge": "Novo!",
+            "unlockBadge": "Desbloquear",
             "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Dados pessoais",
-            "unlockedRegions": "Regiões desbloqueadas",
+            "unlockedRegions": "Regiões e verificação",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
@@ -280,14 +293,6 @@
                 "phoneNumber": "Número de telefone",
                 "website": "Site"
             },
-            "placeholders": {
-                "name": "Adicione seu nome",
-                "surname": "Adicione seu sobrenome",
-                "bio": "Adicione uma bio",
-                "email": "Adicione seu e-mail",
-                "phone": "Adicione seu número",
-                "website": "Adicione seu site"
-            },
             "soonBadge": "Em breve!",
             "saveChanges": "Salvar alterações",
             "errors": {
@@ -295,7 +300,7 @@
             }
         },
         "regions": {
-            "title": "Regiões desbloqueadas",
+            "title": "Regiões e verificação",
             "description": "Transfira e receba de qualquer conta bancária e use os métodos de pagamento disponíveis.",
             "empty": {
                 "title": "Nenhuma região desbloqueada ainda",
@@ -427,11 +432,16 @@
             "confirmDescription": "Excluir sua conta é permanente. Vamos desativá-la imediatamente e apagar seus dados em até 30 dias. Este carinha preferia que você ficasse.",
             "confirmCta": "Sim, excluir",
             "cancelCta": "Deixa pra lá, vou ficar",
+            "blockedTitle": "Primeiro tire seu dinheiro",
+            "blockedDescription": "Você ainda tem ${amount} na sua conta. Excluir é permanente: depois você não consegue mais entrar e esse dinheiro ficaria fora do seu alcance. Envie para alguém ou saque antes.",
+            "blockedCta": "Mover meu dinheiro",
+            "blockedCancelCta": "Deixa pra lá",
             "doneTitle": "Vamos sentir sua falta",
             "doneDescription": "Sua conta foi desativada e seus dados serão apagados em até 30 dias. Obrigado por abrir o Peanut com a gente — se cuida!",
             "doneCta": "Tchau",
             "error": "Não foi possível excluir sua conta. Tente de novo.",
             "sadPeanutAlt": "Peanut triste",
+            "pointingPeanutAlt": "Peanut apontando",
             "cryingPeanutAlt": "Peanut chorando"
         }
     },
@@ -744,7 +754,7 @@
     "send": {
         "linkCard": {
             "title": "Envie dinheiro com um link",
-            "description": "Não precisa de conta para receber.",
+            "description": "Não precisa de conta para resgatar em carteira cripto. Banco, Pix e Mercado Pago exigem uma conta Peanut.",
             "cta": "Enviar por link"
         },
         "methods": {
@@ -754,8 +764,7 @@
             "bankDescription": "EUR, USD, MXN, ARS e mais",
             "instantTransfers": "Transferências instantâneas",
             "exchangeOrWalletTitle": "Exchange ou carteira",
-            "exchangeOrWalletDescription": "Binance, Metamask e mais",
-            "yourAccountsOnly": "SOMENTE SUAS CONTAS"
+            "exchangeOrWalletDescription": "Binance, Metamask e mais"
         },
         "contacts": {
             "searchPlaceholder": "Buscar contatos...",
@@ -777,7 +786,8 @@
             "cancelled": "Cancelado",
             "cancelSuccess": "Link cancelado com sucesso!",
             "cancelSuccessRefresh": "Link cancelado! Atualize para ver o saldo atualizado.",
-            "cancelFailed": "Não foi possível cancelar o link. Tente de novo."
+            "cancelFailed": "Não foi possível cancelar o link. Tente de novo.",
+            "minFiatClaimWarning": "Valores abaixo de ${amount} não podem ser resgatados em banco, Pix ou Mercado Pago — o destinatário ainda pode resgatar em uma conta Peanut ou carteira cripto."
         }
     },
     "request": {
@@ -1414,7 +1424,8 @@
             "title": "Escolher rede",
             "description": "Escolha a rede de onde você quer depositar:",
             "evmDescription": "{count} redes - 1 endereço",
-            "supportedTokens": "{count, plural, one {# token compatível} other {# tokens compatíveis}}"
+            "supportedTokens": "{count, plural, one {# token compatível} other {# tokens compatíveis}}",
+            "evmTokensOnNetworks": "{tokens, plural, one {# token suportado} other {# tokens suportados}} em {networks} redes"
         },
         "supportedNetworksModal": {
             "title": "Redes compatíveis",
@@ -1565,11 +1576,11 @@
             "minimumDeposit": "O depósito mínimo é {amount}.",
             "selectCountryFirst": "Primeiro selecione um país.",
             "onrampDetails": "Não conseguimos obter os dados para adicionar dinheiro. Tente de novo.",
-            "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes.",
             "bankAccountFailed": "Não foi possível processar a conta bancária. Tente de novo ou fale com o suporte.",
             "bankAccountSettingUp": "Sua conta bancária ainda está sendo configurada. Tente de novo em instantes."
         },
-        "pixMaintenanceBadge": "Manutenção"
+        "pixMaintenanceBadge": "Manutenção",
+        "addCryptoTitle": "Adicionar cripto"
     },
     "withdraw": {
         "amountToWithdraw": "Valor a sacar",
@@ -1685,6 +1696,10 @@
             "city": "Sua cidade",
             "cityRequired": "A cidade é obrigatória",
             "state": "Selecione seu estado",
+            "stateLabel": "Estado",
+            "streetLabel": "Endereço",
+            "cityLabel": "Cidade",
+            "postalCodeLabel": "CEP",
             "stateRequired": "O estado é obrigatório",
             "postalCode": "Seu CEP",
             "postalCodeRequired": "O CEP é obrigatório",
@@ -1718,7 +1733,9 @@
             "completeAccountSetup": "Complete a configuração da sua conta. Vá em Configurações para atualizar seu perfil.",
             "minWithdrawAmount": "O valor do saque precisa ser de pelo menos ${amount}"
         },
-        "resolvesTo": "resolve para"
+        "resolvesTo": "resolve para",
+        "addNewAccount": "Adicionar nova conta",
+        "mercadoPagoDescription": "Somente suas contas - transferência instantânea"
     },
     "transaction": {
         "drawerTitle": "Detalhes da transação",
@@ -1756,6 +1773,7 @@
             "receivedFrom": "Recebido de {name}",
             "requestedFrom": "Cobrado de {name}",
             "requestingFrom": "Cobrando de {name}",
+            "youRequested": "Você cobrou",
             "withdrewTo": "Sacado para {name}",
             "withdrawingTo": "Sacando para {name}",
             "addedFrom": "Adicionado de {name}",
@@ -1764,7 +1782,7 @@
             "claimTo": "Resgate para {name}",
             "claimingTo": "Resgatando para {name}",
             "paidTo": "Pago para {name}",
-            "payingTo": "Pagando para {name}"
+            "paymentTo": "Pagamento para {name}"
         },
         "name": {
             "merchant": "Estabelecimento",
@@ -1820,7 +1838,8 @@
             "download": "Baixar",
             "reason": "Motivo",
             "accountNumber": "Número da conta",
-            "address": "Endereço"
+            "address": "Endereço",
+            "estimateConversion": "Conversão estimada"
         },
         "perkBanner": {
             "title": "Você ganhou uma recompensa!",
@@ -2240,15 +2259,6 @@
         }
     },
     "notifications": {
-        "title": "Notificações",
-        "loadFailed": "Não foi possível carregar as notificações. Tente de novo.",
-        "loadMoreFailed": "Não foi possível carregar mais notificações. Toque para tentar de novo.",
-        "emptyTitle": "Você ainda não tem notificações!",
-        "emptyDescription": "Suas notificações aparecerão aqui.",
-        "loadingMore": "Carregando mais...",
-        "today": "Hoje",
-        "yesterday": "Ontem",
-        "iconAlt": "ícone",
         "setupTitle": "Ativar as notificações?",
         "setupDescription": "Ative as notificações e receba alertas de toda a atividade da sua carteira.",
         "migrationSetupTitle": "Receba alertas de dinheiro",
@@ -2689,6 +2699,7 @@
         "title": "Recuperar fundos",
         "selectToken": "Selecione um token para recuperar",
         "noTokens": "Nenhum token para recuperar",
+        "noTokensDescription": "Tokens enviados para seu endereço em outras redes aparecerão aqui.",
         "recipientPlaceholder": "Digite o endereço onde você quer receber os fundos",
         "review": "Revisar",
         "youWillReceiveTo": "Você vai receber em",
@@ -3027,12 +3038,6 @@
             "contributed": "{amount} contribuído",
             "remaining": "{amount} restante"
         },
-        "routeExpiryTimer": {
-            "findingBestRate": "Buscando a melhor taxa...",
-            "noQuote": "Nenhuma cotação disponível",
-            "quoteExpired": "A cotação expirou",
-            "priceLocked": "Preço garantido por {time}"
-        },
         "mantecaMaintenance": {
             "title": "Serviço temporariamente indisponível",
             "description": "Estamos com problemas nos {action, select, deposits {depósitos} withdrawals {saques} other {transferências}} por causa de uma falha de um provedor externo. Estamos trabalhando para restabelecer o serviço o quanto antes.",
@@ -3104,10 +3109,8 @@
             "payWhatYouWant": "Pague quanto quiser",
             "sendExactAmount": "Envie o valor exato!"
         },
-        "betaBanner": "O Peanut está em beta! Obrigado por ser um usuário inicial, compartilhe sua opinião aqui",
         "demoBanner": "Modo demo — você está testando o Peanut com uma carteira simulada. Saldos e transações não são reais.",
         "rainCooldownPill": "Resfriamento do cartão",
-        "betaBannerThumbsUpAlt": "Joinha",
         "easterEggImageAlt": "Ilustração de easter egg",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
@@ -3166,7 +3169,8 @@
         "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
         "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
-        "loginIncomplete": "O login não foi concluído. Tente novamente."
+        "loginIncomplete": "O login não foi concluído. Tente novamente.",
+        "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes."
     },
     "appLock": {
         "title": "Olá de novo!",

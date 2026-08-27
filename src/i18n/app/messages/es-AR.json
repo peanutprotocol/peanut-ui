@@ -1,7 +1,8 @@
 {
     "common": {
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
-        "tryDifferentCountry": "Probá con otro país."
+        "tryDifferentCountry": "Probá con otro país.",
+        "slideToProceed": "Deslizá para continuar"
     },
     "home": {
         "activation": {
@@ -133,14 +134,6 @@
             "inviteFriends": "Invitá amigos a Peanut"
         },
         "edit": {
-            "placeholders": {
-                "name": "Agregá tu nombre",
-                "surname": "Agregá tu apellido",
-                "bio": "Agregá una bio",
-                "email": "Agregá tu email",
-                "phone": "Agregá tu número",
-                "website": "Agregá tu sitio web"
-            },
             "errors": {
                 "nameRequired": "Por favor ingresá tu nombre."
             }
@@ -222,6 +215,9 @@
     },
     "settings": {
         "deleteAccount": {
+            "blockedTitle": "Primero mové tu plata",
+            "blockedDescription": "Todavía tenés ${amount} en tu cuenta. Eliminarla es permanente: después no vas a poder volver a entrar y esa plata quedaría fuera de tu alcance. Mandásela a alguien o retirala primero.",
+            "blockedCta": "Mover mi plata",
             "doneDescription": "Tu cuenta está desactivada y tus datos desaparecerán en un plazo de 30 días. Gracias por abrir Peanut con nosotros — ¡cuidate mucho!",
             "error": "No pudimos eliminar tu cuenta. Intentá de nuevo."
         }
@@ -680,7 +676,6 @@
             "invalidNumber": "Ingresá un número válido.",
             "selectCountryFirst": "Primero seleccioná un país.",
             "onrampDetails": "No pudimos obtener los datos para agregar dinero. Intentalo de nuevo.",
-            "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento.",
             "bankAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo o contactá a soporte.",
             "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Intentalo de nuevo en un momento."
         }
@@ -825,9 +820,6 @@
         "toastTapToView": "— tocá para ver"
     },
     "notifications": {
-        "loadFailed": "No pudimos cargar las notificaciones. Intentalo de nuevo.",
-        "loadMoreFailed": "No pudimos cargar más notificaciones. Tocá para reintentar.",
-        "emptyTitle": "¡Aún no tenés notificaciones!",
         "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
     },
     "kyc": {
@@ -1211,7 +1203,6 @@
             "payWhatYouWant": "Pagá lo que quieras",
             "sendExactAmount": "¡Enviá el monto exacto!"
         },
-        "betaBanner": "¡Peanut está en beta! Gracias por ser un usuario temprano, compartí tu opinión aquí",
         "iosCopy": {
             "inviteFriendsModal": {
                 "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás cashback."
@@ -1252,7 +1243,8 @@
         "cardApprovalCancelled": "Aprobación cancelada: podés volver a intentarlo cuando quieras.",
         "cardApprovalFailed": "No se pudo aprobar la tarjeta. Intentalo de nuevo.",
         "logoutFailed": "No pudimos cerrar tu sesión. Intentalo de nuevo.",
-        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo."
+        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo.",
+        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento."
     },
     "appLock": {
         "prompt": "Desbloqueá para abrir la app.",

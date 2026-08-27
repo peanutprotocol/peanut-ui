@@ -1,6 +1,6 @@
 import { Dialog, DialogBackdrop, DialogPanel, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../Icons/Icon'
 
 type ModalProps = {
@@ -64,7 +64,7 @@ const Modal = ({
                      * Wire it explicitly here, gated by `preventClose` so
                      * destructive-confirmation modals still keep the gate. */}
                     <DialogBackdrop
-                        className={`fixed inset-0 bottom-0  bg-n-1/85 sm:self-auto ${classOverlay}`}
+                        className={`fixed inset-0 bottom-0 bg-black/85 sm:self-auto ${classOverlay}`}
                         onClick={() => {
                             if (!preventClose) onClose()
                         }}
@@ -84,9 +84,9 @@ const Modal = ({
                             // transform-gpu + will-change promote the panel to its own
                             // compositor layer up front, so the scale/opacity enter tween
                             // doesn't hitch on first-frame rasterization (Android WebView)
-                            `relative bottom-0 z-10 mx-0 w-full max-w-[26rem] transform-gpu self-end rounded-md border-0 bg-white outline-none will-change-transform dark:bg-n-1 sm:m-auto sm:self-auto ${
+                            `relative bottom-0 z-10 mx-0 w-full max-w-[26rem] transform-gpu self-end rounded-md border-0 bg-white will-change-transform outline-none sm:m-auto sm:self-auto dark:bg-black ${
                                 video
-                                    ? 'static aspect-video max-w-[64rem] overflow-hidden bg-n-1 shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
+                                    ? 'static aspect-video max-w-[64rem] overflow-hidden bg-black shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
                                     : ''
                             } ${classWrap}`
                         )}
@@ -97,7 +97,7 @@ const Modal = ({
                                     <>
                                         <div
                                             className={
-                                                'border-b border-n-1 px-5 py-4 text-start text-h6 dark:border-white'
+                                                'border-b border-border-default px-4 py-4 text-start text-heading-card dark:border-white'
                                             }
                                         >
                                             {title}
@@ -108,15 +108,19 @@ const Modal = ({
                                     children
                                 )}
 
+                                {/* board 17800:57256 / 17829:74079: 40px circular close
+                                    button, black border + 4px hard shadow, overlapping
+                                    the panel's top-right corner */}
                                 <button
                                     className={twMerge(
-                                        `absolute right-2 top-2 p-2 text-0 hover:fill-primary-1 dark:fill-white dark:hover:fill-primary-1 ${
-                                            video ? 'absolute right-3 top-3 h-14 w-14 fill-white' : ''
-                                        } ${classButtonClose}`
+                                        video
+                                            ? 'absolute top-3 right-3 h-14 w-14 fill-white p-2 text-0'
+                                            : 'absolute -top-5 -right-5 z-10 flex size-10 items-center justify-center rounded-round border border-border-button bg-background-default text-0 shadow-4 hover:bg-background-disabled',
+                                        classButtonClose
                                     )}
                                     onClick={onClose}
                                 >
-                                    <Icon name="cancel" size={24} className="transition-colors" />
+                                    <Icon name="cancel" size={video ? 24 : 20} className="transition-colors" />
                                 </button>
                             </>
                         ) : (

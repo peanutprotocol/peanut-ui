@@ -1,7 +1,8 @@
 {
     "common": {
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
-        "tryDifferentCountry": "Probá con otro país."
+        "tryDifferentCountry": "Probá con otro país.",
+        "slideToProceed": "Deslizá para continuar"
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",
@@ -37,7 +38,8 @@
         "cardApprovalCancelled": "Aprobación cancelada: podés volver a intentarlo cuando quieras.",
         "cardApprovalFailed": "No se pudo aprobar la tarjeta. Intentalo de nuevo.",
         "logoutFailed": "No pudimos cerrar tu sesión. Intentalo de nuevo.",
-        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo."
+        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo.",
+        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento."
     },
     "migration": {
         "downloadPrompt": {

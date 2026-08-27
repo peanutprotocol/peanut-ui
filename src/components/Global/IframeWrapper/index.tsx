@@ -103,7 +103,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     </p>
                 ),
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-primary-1',
+                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('iframeWrapper.copyLink'),
@@ -119,13 +119,13 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
                         variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
+                        className: 'underline text-body-s w-full fill-none h-fit mt-3',
                     },
                     {
                         text: t('iframeWrapper.cancel'),
                         onClick: () => setIsHelpModalOpen(false),
                         variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full h-fit mt-3',
+                        className: 'underline text-body-s w-full h-fit mt-3',
                     },
                 ],
             }
@@ -135,7 +135,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             title: t('iframeWrapper.exitTitle'),
             description: t('iframeWrapper.exitDescription'),
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-secondary-1',
+            iconContainerClassName: 'bg-action-secondary',
             ctas: [
                 {
                     text: t('iframeWrapper.exit'),
@@ -150,7 +150,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     text: t('iframeWrapper.continueVerifying'),
                     onClick: () => setIsHelpModalOpen(false),
                     variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    className: 'underline text-body-s w-full h-fit mt-3',
                 },
             ],
         }
@@ -200,7 +200,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 }
             }}
             classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
-            classOverlay={`bg-black bg-opacity-50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
+            classOverlay={`bg-black/50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
             video={false}
             className={`z-[100] !p-0 md:!p-6 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
             classButtonClose="hidden"
@@ -214,11 +214,10 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         ref={iframeRef}
                         src={src}
                         allow="camera *; microphone *; fullscreen *"
-                        style={{ width: '100%', height: '85%', border: 'none' }}
-                        className="rounded-md"
+                        className="h-[85%] w-full rounded-md border-0"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
                     />
-                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-5">
+                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-4">
                         <Button
                             variant={'transparent'}
                             className={`h-8 max-w-md font-normal underline`}
@@ -238,8 +237,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             }}
                             className="flex items-center gap-1"
                         >
-                            <Icon name="peanut-support" size={16} className="text-grey-1" />
-                            <p className="text-xs font-medium text-grey-1 underline">
+                            <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
+                            <p className="text-body-xs font-medium text-foreground-secondary underline">
                                 {t('iframeWrapper.havingTrouble')}
                             </p>
                         </button>

@@ -61,14 +61,14 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
             <CloudsCss clouds={regulatedRailsClouds} />
 
             <div className="relative max-w-5xl px-10 py-8 md:px-24 md:py-16">
-                <AnimateOnView className="absolute -right-72 -top-12" delay="0.2s" x="5px" rotate="22deg">
+                <AnimateOnView className="absolute -top-12 -right-72" delay="0.2s" x="5px" rotate="22deg">
                     <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
-                <AnimateOnView className="absolute -right-0 -top-16 md:top-58" delay="0.6s" x="5px" rotate="22deg">
+                <AnimateOnView className="absolute -top-16 -right-0 md:top-58" delay="0.6s" x="5px" rotate="22deg">
                     <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
 
-                <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] font-extraBlack !leading-[5rem] md:text-6xl lg:text-headingMedium">
+                <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] !leading-[5rem] font-extraBlack md:text-6xl lg:text-headingMedium">
                     {i18n.landingRailsHeading}
                 </h1>
                 <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">{i18n.landingRailsBody}</p>
@@ -92,7 +92,7 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
             </div>
 
             <div className="w-full">
-                <p className="mb-4 text-center text-sm font-medium uppercase tracking-widest text-n-1 opacity-60">
+                <p className="mb-4 text-center text-sm font-medium tracking-widest text-n-1 uppercase opacity-60">
                     {i18n.landingWorksWith}
                 </p>
                 <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none">

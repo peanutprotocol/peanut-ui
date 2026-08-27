@@ -17,7 +17,7 @@ export default function BaseInputPage() {
         <DocPage>
             <DocHeader
                 title="BaseInput"
-                description="Text input with sm/md/lg size variants and optional right content slot."
+                description="Text input with sm/md size variants and optional right content slot."
                 status="production"
             />
 
@@ -26,7 +26,7 @@ export default function BaseInputPage() {
                 importPath={`import BaseInput from '@/components/0_Bruddle/BaseInput'`}
                 defaults={{ variant: 'md', placeholder: 'Enter text...' }}
                 controls={[
-                    { type: 'select', prop: 'variant', label: 'variant', options: ['sm', 'md', 'lg'] },
+                    { type: 'select', prop: 'variant', label: 'variant', options: ['sm', 'md'] },
                     { type: 'text', prop: 'placeholder', label: 'placeholder', placeholder: 'Placeholder text' },
                     { type: 'boolean', prop: 'disabled', label: 'disabled' },
                 ]}
@@ -54,9 +54,9 @@ export default function BaseInputPage() {
                 rows={[
                     {
                         name: 'variant',
-                        type: "'sm' | 'md' | 'lg'",
+                        type: "'sm' | 'md'",
                         default: "'md'",
-                        description: 'Height: sm=h-10, md=h-16, lg=h-20',
+                        description: 'Height: sm=h-10 (40px), md=h-12 (48px, default)',
                     },
                     {
                         name: 'rightContent',
@@ -72,7 +72,6 @@ export default function BaseInputPage() {
                 <DocSection.Content>
                     <BaseInput variant="sm" placeholder="small (sm)" />
                     <BaseInput variant="md" placeholder="medium (md) — default" />
-                    <BaseInput variant="lg" placeholder="large (lg)" />
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock label="Import" code={`import BaseInput from '@/components/0_Bruddle/BaseInput'`} />
@@ -80,23 +79,47 @@ export default function BaseInputPage() {
                     <CodeBlock
                         label="Size Variants"
                         code={`<BaseInput variant="sm" placeholder="Small" />
-<BaseInput variant="md" placeholder="Medium" />
-<BaseInput variant="lg" placeholder="Large" />`}
+<BaseInput variant="md" placeholder="Medium" />`}
                     />
                 </DocSection.Code>
             </DocSection>
 
             <DocSection title="With Right Content">
                 <DocSection.Content>
-                    <BaseInput placeholder="Amount" rightContent={<span className="text-sm text-grey-1">USD</span>} />
+                    <BaseInput
+                        placeholder="Amount"
+                        rightContent={<span className="text-body-s text-foreground-secondary">USD</span>}
+                    />
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="With Right Content"
                         code={`<BaseInput
   placeholder="Amount"
-  rightContent={<span className="text-sm text-grey-1">USD</span>}
+  rightContent={<span className="text-body-s text-foreground-secondary">USD</span>}
 />`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <DocSection title="Related Inputs (reference)">
+                <DocSection.Content>
+                    <p className="text-body-xs text-foreground-secondary">
+                        Specialized inputs built on top of BaseInput. AmountInput has its own page under Patterns.
+                    </p>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="ValidatedInput — async validation with debounce, used in setup flows"
+                        code={`import ValidatedInput from '@/components/Global/ValidatedInput'`}
+                    />
+                    <CodeBlock
+                        label="GeneralRecipientInput — multi-type recipient input (address, username, ...)"
+                        code={`import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'`}
+                    />
+                    <CodeBlock
+                        label="FileUploadInput — file upload with drag-and-drop"
+                        code={`import FileUploadInput from '@/components/Global/FileUploadInput'`}
                     />
                 </DocSection.Code>
             </DocSection>

@@ -1,11 +1,10 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -137,7 +136,7 @@ export default function ConfirmWithdrawView({
         <div className="space-y-8">
             <NavHeader title={isFromSendFlow ? tNav('send') : tNav('withdraw')} onPrev={onBack} />
 
-            <div className="space-y-4 pb-5">
+            <div className="space-y-4 pb-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"
                     transactionType={'WITHDRAW'}
@@ -170,13 +169,13 @@ export default function ConfirmWithdrawView({
                                             sizeClass="h-6 w-6"
                                         />
                                         {chainIconUrl && (
-                                            <div className="absolute -bottom-1 -right-1">
+                                            <div className="absolute -right-1 -bottom-1">
                                                 <DisplayIcon
                                                     iconUrl={chainIconUrl}
                                                     altText={resolvedChainName || t('confirm.chainAlt')}
                                                     fallbackName={resolvedChainName || 'C'}
                                                     sizeClass="h-3.5 w-3.5"
-                                                    className="rounded-full border-2 border-white dark:border-grey-4"
+                                                    className="rounded-full border-2 border-white dark:border-gray-100"
                                                 />
                                             </div>
                                         )}
@@ -196,9 +195,15 @@ export default function ConfirmWithdrawView({
                         label={t('confirm.to')}
                         value={
                             toNickname ? (
-                                <span className="text-black">{savedAddressLabel(toNickname, toAddress)}</span>
+                                <span className="text-foreground-primary">
+                                    {savedAddressLabel(toNickname, toAddress)}
+                                </span>
                             ) : (
-                                <AddressLink isLink={false} address={toAddress} className="text-black no-underline" />
+                                <AddressLink
+                                    isLink={false}
+                                    address={toAddress}
+                                    className="text-foreground-primary no-underline"
+                                />
                             )
                         }
                     />
@@ -216,9 +221,7 @@ export default function ConfirmWithdrawView({
 
                 {saveAddressPrompt}
 
-                {showHighFeeWarning && (
-                    <InfoCard variant="info" icon="info" description={t('confirm.highFeeWarning')} />
-                )}
+                {showHighFeeWarning && <Notification priority="info">{t('confirm.highFeeWarning')}</Notification>}
 
                 {error ? (
                     <Button
@@ -259,11 +262,13 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {insufficientBalance && !error && <ErrorAlert description={tErrors('notEnoughBalanceAddFunds')} />}
-                {belowMinimumMessage && !insufficientBalance && !error && (
-                    <ErrorAlert description={belowMinimumMessage} />
+                {insufficientBalance && !error && (
+                    <Notification priority="error">{tErrors('notEnoughBalanceAddFunds')}</Notification>
                 )}
-                {error && <ErrorAlert description={error} />}
+                {belowMinimumMessage && !insufficientBalance && !error && (
+                    <Notification priority="error">{belowMinimumMessage}</Notification>
+                )}
+                {error && <Notification priority="error">{error}</Notification>}
             </div>
         </div>
     )

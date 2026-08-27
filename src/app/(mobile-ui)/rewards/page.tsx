@@ -6,7 +6,7 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
@@ -53,7 +53,7 @@ const PointsPage = () => {
     }
     const {
         data: invites,
-        isLoading,
+        isPending: isInvitesPending,
         isError: isInvitesError,
         error: invitesError,
     } = useQuery({
@@ -64,7 +64,7 @@ const PointsPage = () => {
 
     const {
         data: tierInfo,
-        isLoading: isTierInfoLoading,
+        isPending: isTierInfoPending,
         isError: isTierInfoError,
         error: tierInfoError,
     } = useQuery({
@@ -105,15 +105,26 @@ const PointsPage = () => {
         fetchUser()
     }, [])
 
-    if (isLoading || isTierInfoLoading || !tierInfo?.data) {
-        return <PeanutLoading />
+    // isPending, not isLoading: both queries wait on `user`, and a disabled query
+    // reports isLoading false. isLoading would send the first paint to the error
+    // state below, before either request has even started.
+    if (isInvitesPending || isTierInfoPending) {
+        return <Loading variant="mascot" />
     }
 
-    if (isInvitesError || isTierInfoError) {
-        console.error('Error loading points data:', invitesError ?? tierInfoError)
+    // getTierInfo catches its own failures and resolves with `data: null`, so the
+    // query never reports an error. Past the guard above the request has settled,
+    // so missing data means it failed.
+    if (isInvitesError || isTierInfoError || !tierInfo?.data) {
+        // in the swallowed-error path both error objects are null — log the
+        // settled response so the branch never prints a contentless "null"
+        console.error(
+            'Error loading points data:',
+            invitesError ?? tierInfoError ?? { tierInfoSettledWithoutData: tierInfo }
+        )
 
         return (
-            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <EmptyState icon="alert" title={t('loadPointsFailed')} description={t('contactSupport')} />
             </div>
         )
@@ -123,7 +134,7 @@ const PointsPage = () => {
         <PageContainer className="flex flex-col">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <section className="mx-auto mb-auto mt-10 w-full space-y-4">
+            <section className="mx-auto space-y-4 mt-10 mb-auto w-full">
                 {/* rewards hero — pending claimable as primary, lifetime as secondary */}
                 <Card className="flex flex-col gap-4 p-6">
                     {cashStatus?.success &&
@@ -137,14 +148,20 @@ const PointsPage = () => {
                                 <div className="flex flex-col items-center gap-1">
                                     {pendingUsd > 0 ? (
                                         <>
-                                            <p className="text-sm text-grey-1">{t('youHave')}</p>
-                                            <h2 className="text-4xl font-black text-black">${pendingUsd.toFixed(2)}</h2>
-                                            <p className="text-center text-sm text-grey-1">{t('pendingCallout')}</p>
+                                            <p className="text-body-s text-foreground-secondary">{t('youHave')}</p>
+                                            <h2 className="text-heading-l text-foreground-primary">
+                                                ${pendingUsd.toFixed(2)}
+                                            </h2>
+                                            <p className="text-center text-body-s text-foreground-secondary">
+                                                {t('pendingCallout')}
+                                            </p>
                                         </>
                                     ) : (
-                                        <p className="text-center text-sm text-grey-1">{t('noPendingRewards')}</p>
+                                        <p className="text-center text-body-s text-foreground-secondary">
+                                            {t('noPendingRewards')}
+                                        </p>
                                     )}
-                                    <p className="mt-2 text-center text-sm text-grey-1">
+                                    <p className="mt-2 text-center text-body-s text-foreground-secondary">
                                         {t('lifetimeRewards', { amount: `$${lifetimeUsd.toFixed(2)}` })}
                                     </p>
                                 </div>
@@ -160,12 +177,12 @@ const PointsPage = () => {
                         {t('inviteNow')}
                     </Button>
 
-                    <div className="border-t border-grey-2" />
+                    <div className="border-t border-border-disabled" />
 
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-center gap-2">
                             <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={16} height={16} />
-                            <p className="text-base font-medium text-grey-1">
+                            <p className="text-body-m text-foreground-secondary">
                                 {(() => {
                                     const { number, suffix } = shortenPoints(animatedTotal)
                                     return (
@@ -187,9 +204,9 @@ const PointsPage = () => {
                                 width={20}
                                 height={20}
                             />
-                            <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-grey-2">
+                            <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-background-disabled">
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-primary-1 to-primary-2 transition-all duration-500"
+                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-hover transition-all duration-500"
                                     style={{
                                         width: `${
                                             tierInfo?.data.currentTier >= 2
@@ -218,7 +235,7 @@ const PointsPage = () => {
                             )}
                         </div>
                         {tierInfo?.data.currentTier < 2 && (
-                            <p className="text-center text-xs text-grey-1">
+                            <p className="text-center text-body-xs text-foreground-secondary">
                                 {t('pointsToNextTier', { count: tierInfo.data.pointsToNextTier })}
                             </p>
                         )}
@@ -229,11 +246,11 @@ const PointsPage = () => {
                     the explainer is part of that framing, so web and Android skip it */}
                 {isIOSNative() && (
                     <Card className="flex flex-col gap-3 p-6">
-                        <h2 className="text-base font-black">{t('howItWorks.title')}</h2>
+                        <h2 className="text-body-m font-black">{t('howItWorks.title')}</h2>
                         <ol className="flex flex-col gap-2">
                             {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
-                                <li key={step} className="flex items-start gap-3 text-sm">
-                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-secondary-1 text-xs font-black">
+                                <li key={step} className="flex items-start gap-3 text-body-s">
+                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-action-secondary text-body-xs font-black">
                                         {i + 1}
                                     </span>
                                     <span>{t(`howItWorks.${step}`)}</span>
@@ -246,9 +263,10 @@ const PointsPage = () => {
                 {/* invite graph with consolidated explanation */}
                 {myGraphResult?.data && (
                     <>
-                        {/* only render the graph when there are people to show — an
-                            empty graph renders as a blank box (demo / no invites yet) */}
-                        {myGraphResult.data.nodes?.length > 0 && (
+                        {/* only render the graph when there are people to show — a
+                            single node is just the user themselves and renders as a
+                            giant lone blob (no invites yet) */}
+                        {myGraphResult.data.nodes?.length > 1 && (
                             <Card className="!mt-8 overflow-hidden p-0">
                                 <InvitesGraph
                                     minimal
@@ -259,7 +277,7 @@ const PointsPage = () => {
                                 />
                             </Card>
                         )}
-                        <p className="text-center text-sm">
+                        <p className="text-center text-body-s">
                             {user?.invitedBy && (
                                 <>
                                     <span
@@ -285,8 +303,8 @@ const PointsPage = () => {
                             className="flex cursor-pointer items-center justify-between"
                             onClick={() => router.push('/rewards/invites')}
                         >
-                            <h2 className="font-bold">{t('peopleYouInvited')}</h2>
-                            <NavigationArrow className="text-black" />
+                            <h2 className="text-heading-card text-foreground-primary">{t('peopleYouInvited')}</h2>
+                            <NavigationArrow className="text-foreground-primary" />
                         </div>
 
                         <div ref={inviteesRef}>
@@ -315,7 +333,7 @@ const PointsPage = () => {
                                                     size="small"
                                                 />
                                             </div>
-                                            <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
+                                            <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                                 <VerifiedUserLabel
                                                     name={displayName}
                                                     username={username}
@@ -335,23 +353,24 @@ const PointsPage = () => {
                     </>
                 ) : (
                     <>
-                        {/* if user has no invites: show empty state with modal button */}
-                        <Card className="!mt-8 flex flex-col items-center justify-center gap-4 py-4">
-                            <div className="flex items-center justify-center rounded-full bg-primary-1 p-2">
-                                <Icon name="trophy" />
-                            </div>
-                            <h2 className="font-medium">{t('noInvitesYet')}</h2>
-
-                            <p className="text-center text-sm text-grey-1">{t('shareInviteLinkPrompt')}</p>
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                onClick={() => setIsInviteModalOpen(true)}
-                                className="w-full"
-                            >
-                                {t('shareInviteLink')}
-                            </Button>
-                        </Card>
+                        {/* if user has no invites: canonical empty state with modal button */}
+                        <EmptyState
+                            icon="trophy"
+                            title={t('noInvitesYet')}
+                            description={t('shareInviteLinkPrompt')}
+                            containerClassName="!mt-8"
+                            cta={
+                                <Button
+                                    variant="purple"
+                                    shadowSize="4"
+                                    size="small"
+                                    className="mt-2"
+                                    onClick={() => setIsInviteModalOpen(true)}
+                                >
+                                    {t('shareInviteLink')}
+                                </Button>
+                            }
+                        />
                     </>
                 )}
 

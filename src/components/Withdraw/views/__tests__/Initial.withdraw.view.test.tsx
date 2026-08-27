@@ -63,11 +63,6 @@ jest.mock('@/components/Global/TokenSelector/TokenSelector', () => ({
     default: () => null,
 }))
 
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: () => null,
-}))
-
 jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_CHAIN: { id: 1, name: 'Ethereum' },
     PEANUT_WALLET_TOKEN: '0x0000000000000000000000000000000000000000',

@@ -20,7 +20,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import IconStack from '@/components/Global/IconStack'
 import Loading from '@/components/Global/Loading'
 import ActionModal from '@/components/Global/ActionModal'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
@@ -181,11 +181,10 @@ export function RequestPotActionList({
                     }
 
                     return (
-                        <ActionListCard
+                        <ListItem
                             key={method.id}
                             position="single"
-                            description={method.description}
-                            descriptionClassName="text-[12px]"
+                            body={<div className="text-[12px]">{method.description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
                                     {method.title}
@@ -198,8 +197,8 @@ export function RequestPotActionList({
                                 </div>
                             }
                             onClick={() => handleMethodClick(method)}
-                            isDisabled={method.soon || !isAmountEntered}
-                            rightContent={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+                            disabled={method.soon || !isAmountEntered}
+                            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
                         />
                     )
                 })}
@@ -213,7 +212,7 @@ export function RequestPotActionList({
                 description={t('minAmount.description', { minAmount: MIN_BANK_TRANSFER_AMOUNT })}
                 icon="alert"
                 ctas={[{ text: tCommon('close'), shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
@@ -254,7 +253,7 @@ export function RequestPotActionList({
                         },
                     },
                 ]}
-                iconContainerClassName="bg-primary-1"
+                iconContainerClassName="bg-action-primary"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />

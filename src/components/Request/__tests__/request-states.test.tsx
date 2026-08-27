@@ -214,7 +214,8 @@ jest.mock('@/components/Global/FileUploadInput', () => ({
 
 jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
-    default: () => <div data-testid="loading-spinner" />,
+    default: (props: any) =>
+        props.variant === 'mascot' ? <div data-testid="peanut-loading" /> : <div data-testid="loading-spinner" />,
 }))
 
 jest.mock('@/components/0_Bruddle/Button', () => ({
@@ -232,15 +233,6 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 
 jest.mock('@/components/Global/Icons/Icon', () => ({
     Icon: (props: any) => <span data-testid={`icon-${props.name}`} />,
-}))
-
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="error-alert" role="alert">
-            {props.description}
-        </div>
-    ),
 }))
 
 // ---------- context mocks ----------
@@ -299,11 +291,6 @@ jest.mock('@/hooks/useUserByUsername', () => ({
 const mockUseUserInteractions = jest.fn(() => ({ interactions: {} }))
 jest.mock('@/hooks/useUserInteractions', () => ({
     useUserInteractions: () => mockUseUserInteractions(),
-}))
-
-jest.mock('@/components/Global/PeanutLoading', () => ({
-    __esModule: true,
-    default: () => <div data-testid="peanut-loading" />,
 }))
 
 jest.mock('@/components/User/UserCard', () => ({

@@ -71,17 +71,17 @@ export default function RejectionBuilderPage() {
                                 <button
                                     key={key}
                                     onClick={() => setMascot(key)}
-                                    className={`rounded-full border-2 border-n-1 px-3 py-1 text-xs font-bold transition-colors ${
+                                    className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
                                         mascot === key
-                                            ? 'bg-primary-1 text-n-1'
-                                            : 'bg-white text-grey-1 hover:bg-grey-2'
+                                            ? 'bg-action-primary text-foreground-primary'
+                                            : 'bg-white text-foreground-secondary'
                                     }`}
                                 >
                                     {label}
                                 </button>
                             ))}
                         </div>
-                        <p className="text-[11px] leading-snug text-grey-1">
+                        <p className="text-[11px] leading-snug text-foreground-secondary">
                             No dedicated “laughing” peanut exists yet — these are the closest mocking/cool poses. Say
                             the word and I’ll generate a true laughing one via the badges pipeline.
                         </p>
@@ -110,13 +110,13 @@ export default function RejectionBuilderPage() {
                                 className="w-full"
                             />
                         </DevField>
-                        <p className="rounded-sm border border-n-1 bg-grey-3 p-2 text-center text-xs font-bold text-n-1">
+                        <p className="rounded-sm border border-border-default bg-background-page p-2 text-center text-label-m text-foreground-primary">
                             renders as:{' '}
-                            <span className="text-primary-1">
+                            <span className="text-action-primary">
                                 {tally.applicants.toLocaleString('en-US')} tried · {tally.admitted} got in
                             </span>
                             <br />
-                            <span className="font-normal text-grey-1">
+                            <span className="font-normal text-foreground-secondary">
                                 “tried” = waitlist × FOMO multiplier (floored); “got in” = real admitted
                             </span>
                         </p>
@@ -151,13 +151,15 @@ export default function RejectionBuilderPage() {
                     <DevPanel title="Waitlist state">
                         <button
                             onClick={() => setAlreadyJoined((v) => !v)}
-                            className={`rounded-full border-2 border-n-1 px-3 py-1 text-xs font-bold transition-colors ${
-                                alreadyJoined ? 'bg-primary-1 text-n-1' : 'bg-white text-grey-1 hover:bg-grey-2'
+                            className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
+                                alreadyJoined
+                                    ? 'bg-action-primary text-foreground-primary'
+                                    : 'bg-white text-foreground-secondary'
                             }`}
                         >
                             {alreadyJoined ? 'already joined ✓' : 'not joined yet'}
                         </button>
-                        <p className="text-[11px] leading-snug text-grey-1">
+                        <p className="text-[11px] leading-snug text-foreground-secondary">
                             Toggles the post-join state: “Join anyway” becomes an “on the list” confirmation while the
                             asset + “Tweet to appeal” stay.
                         </p>
@@ -166,11 +168,11 @@ export default function RejectionBuilderPage() {
 
                 {/* ─── RIGHT: Phone-frame preview of the whole screen ──── */}
                 <main className="flex flex-1 flex-col items-center gap-4">
-                    <div className="self-stretch rounded-sm border border-n-1 bg-grey-3 p-2 text-center font-mono text-xs text-grey-1">
+                    <div className="self-stretch rounded-sm border border-border-default bg-background-page p-2 text-center font-mono text-body-xs text-foreground-secondary">
                         mobile screen · CardRejectionScreen
                     </div>
                     <div
-                        className="shadow-4 w-full max-w-[392px] overflow-hidden rounded-[28px] border-2 border-n-1 bg-white"
+                        className="w-full max-w-[392px] overflow-hidden rounded-[28px] border-2 border-border-default bg-white shadow-4"
                         style={{ height: 800 }}
                     >
                         <div className="flex h-full flex-col px-5 py-4" style={{ minHeight: 740 }}>

@@ -135,7 +135,7 @@ export const InitiateKycModal = ({
             description={getDescription()}
             preventClose
             icon={(error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName}
-            iconContainerClassName={isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-yellow-1' : ''}
+            iconContainerClassName={isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-action-secondary' : ''}
             modalPanelClassName="max-w-full m-2"
             ctaClassName="grid grid-cols-1 gap-3"
             ctas={[

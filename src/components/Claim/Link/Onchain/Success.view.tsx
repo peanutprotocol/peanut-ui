@@ -178,16 +178,14 @@ export const SuccessClaimLinkView = ({
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
-            <div className="md:hidden">
-                <NavHeader
-                    icon="cancel"
-                    title={navHeaderTitle}
-                    onPrev={() => {
-                        router.push('/home')
-                    }}
-                />
-            </div>
-            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+            <NavHeader
+                icon="cancel"
+                title={navHeaderTitle}
+                onPrev={() => {
+                    router.push('/home')
+                }}
+            />
+            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
                 <Image
                     src={PeanutCheering.src}
                     unoptimized
@@ -199,7 +197,9 @@ export const SuccessClaimLinkView = ({
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
                 {campaignTag?.toLowerCase() === 'devconnect_ba_2025' && (
-                    <p className="text-center text-xs text-grey-1">{t('success.devconnectReturnHint')}</p>
+                    <p className="text-center text-body-xs text-foreground-secondary">
+                        {t('success.devconnectReturnHint')}
+                    </p>
                 )}
             </div>
         </div>

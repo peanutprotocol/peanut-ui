@@ -94,9 +94,14 @@ jest.mock('../../Common/CountryList', () => ({
     ),
 }))
 
-jest.mock('../../Global/PeanutLoading', () => ({
+jest.mock('../../Global/Loading', () => ({
     __esModule: true,
-    default: () => <div data-testid="loading" />,
+    default: (props: any) =>
+        props.variant === 'mascot' ? (
+            <div data-testid="loading">{props.message && <span>{props.message}</span>}</div>
+        ) : (
+            <div data-testid="loading-spinner" />
+        ),
 }))
 
 jest.mock('../../Common/SavedAccountsView', () => ({

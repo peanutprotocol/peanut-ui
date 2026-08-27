@@ -1,7 +1,7 @@
 'use client'
 
-import Modal from '@/components/Global/Modal'
-import InfoCard from '@/components/Global/InfoCard'
+import ActionModal from '@/components/Global/ActionModal'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 
 interface HowToDepositModalProps {
@@ -23,30 +23,28 @@ const HowToDepositModal = ({ visible, onClose, variant = 'default' }: HowToDepos
         text: isOfframp ? t(`offramp.${key}`) : t(`default.${key}`),
     }))
     return (
-        <Modal
+        <ActionModal
             visible={visible}
             onClose={onClose}
-            classWrap="sm:m-auto sm:self-center self-center m-4 bg-background rounded-sm"
-        >
-            <div className="flex flex-col gap-5 p-5">
-                <h3 className={'text-start text-h6 font-bold text-black'}>
-                    {isOfframp ? t('titleOfframp') : t('title')}
-                </h3>
-                <div className="flex flex-col overflow-hidden rounded-sm border border-black bg-white">
-                    {steps.map((item, index) => (
-                        <div
-                            key={index}
-                            className={`px-4 py-3 ${index !== steps.length - 1 ? 'border-b border-black' : ''}`}
-                        >
-                            <p className="text-sm font-bold">{item.step}</p>
-                            <p className="text-sm text-grey-1">{item.text}</p>
-                        </div>
-                    ))}
-                </div>
+            title={isOfframp ? t('titleOfframp') : t('title')}
+            content={
+                <div className="flex w-full flex-col gap-5 text-left">
+                    <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
+                        {steps.map((item, index) => (
+                            <div
+                                key={index}
+                                className={`px-4 py-3 ${index !== steps.length - 1 ? 'border-b border-border-default' : ''}`}
+                            >
+                                <p className="text-body-s font-bold">{item.step}</p>
+                                <p className="text-body-s text-foreground-secondary">{item.text}</p>
+                            </div>
+                        ))}
+                    </div>
 
-                <InfoCard variant="warning" icon="alert" title={isOfframp ? t('warningOfframp') : t('warning')} />
-            </div>
-        </Modal>
+                    <Notification priority="attention">{isOfframp ? t('warningOfframp') : t('warning')}</Notification>
+                </div>
+            }
+        />
     )
 }
 

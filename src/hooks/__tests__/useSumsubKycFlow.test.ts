@@ -1,7 +1,7 @@
 import { act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
-import { initiateSumsubKyc } from '@/app/actions/sumsub'
+import { initiateSumsubKyc, initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
 
 // useSumsubKycFlow wires a websocket, redux, the router and three server actions.
 // Stub everything except the one action the cross-region branch reads so the test
@@ -14,6 +14,7 @@ jest.mock('@/app/actions/sumsub', () => ({
     initiateSumsubKyc: jest.fn(),
     initiateSelfHealResubmission: jest.fn(),
     restartIdentityVerification: jest.fn(),
+    startKycAction: jest.fn(),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({
     useWebSocket: (opts: { onSumsubKycStatusUpdate?: (status: string, labels?: string[]) => void }) => {
@@ -25,6 +26,8 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), repla
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
+const mockResubmit = initiateSelfHealResubmission as jest.MockedFunction<typeof initiateSelfHealResubmission>
+const mockStartAction = startKycAction as jest.MockedFunction<typeof startKycAction>
 
 describe('useSumsubKycFlow — cross-region routing', () => {
     beforeEach(() => {
@@ -393,5 +396,116 @@ describe('useSumsubKycFlow — verification-progress poll backoff', () => {
             levelName: undefined,
             targetCountry: undefined,
         })
+    })
+})
+
+// Regression for the post-KYC "upload document" loop on Manteca (add-money
+// Bolivia/Argentina, 2026-08). A Manteca RFI (source of funds, PEP/FEP) is
+// its own Sumsub level carried as a `sumsub:*` nextAction; the legacy resubmit
+// route only ever mints the generic ID-reupload action, which Sumsub opens on
+// "your profile is verified" → nothing submitted → same modal on the next tap.
+describe('useSumsubKycFlow — handleFixableRejection routing', () => {
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockResubmit.mockReset()
+        mockStartAction.mockReset()
+        mockWs.handler = undefined
+    })
+
+    it('MANTECA + sumsub action key → start-action for that level, never the generic resubmit', async () => {
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-sof', levelName: 'provider-rfi-source-of-funds' } })
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
+        })
+
+        expect(mockStartAction).toHaveBeenCalledWith('sumsub:source_of_funds')
+        expect(mockResubmit).not.toHaveBeenCalled()
+        expect(result.current.accessToken).toBe('tok-sof')
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isActionFlow).toBe(true)
+    })
+
+    it('MANTECA without an action key → legacy resubmit (generic ID re-upload)', async () => {
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-reupload' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'MANTECA', actionKey: null })
+        })
+
+        expect(mockResubmit).toHaveBeenCalledWith('MANTECA', undefined)
+        expect(mockStartAction).not.toHaveBeenCalled()
+        expect(result.current.accessToken).toBe('tok-reupload')
+    })
+
+    it('BRIDGE keeps the resubmit route even when a sumsub action key exists', async () => {
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'BRIDGE', actionKey: 'sumsub:proof_of_address' })
+        })
+
+        expect(mockResubmit).toHaveBeenCalledWith('BRIDGE', undefined)
+        expect(mockStartAction).not.toHaveBeenCalled()
+    })
+
+    it('start-action failure surfaces an error and does not open the SDK', async () => {
+        mockStartAction.mockResolvedValue({ error: 'Action not allowed for this user' })
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
+        })
+
+        expect(result.current.error).toBe('Action not allowed for this user')
+        expect(result.current.showWrapper).toBe(false)
+    })
+
+    // The WebSDK refreshes mid-upload once the token TTL lapses. POST /users/identity
+    // ignores levelName and no-ops for an already-approved user — exactly who an RFI
+    // targets — so falling through to it killed the SDK mid-RFI.
+    it('refreshToken re-mints an RFI token through start-action, not POST /users/identity', async () => {
+        mockStartAction
+            .mockResolvedValueOnce({ data: { token: 'tok-sof', levelName: 'provider-rfi-source-of-funds' } })
+            .mockResolvedValueOnce({ data: { token: 'tok-sof-refreshed', levelName: 'provider-rfi-source-of-funds' } })
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
+        })
+
+        let refreshed: string | undefined
+        await act(async () => {
+            refreshed = await result.current.refreshToken()
+        })
+
+        expect(refreshed).toBe('tok-sof-refreshed')
+        expect(mockStartAction).toHaveBeenLastCalledWith('sumsub:source_of_funds')
+        expect(mockStartAction).toHaveBeenCalledTimes(2)
+        expect(mockInitiate).not.toHaveBeenCalled()
+        expect(mockResubmit).not.toHaveBeenCalled()
+    })
+
+    it('a self-heal resubmit after an RFI refreshes through resubmit, not the stale action key', async () => {
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-sof', levelName: 'provider-rfi-source-of-funds' } })
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
+        })
+        await act(async () => {
+            await result.current.handleFixableRejection({ provider: 'BRIDGE', actionKey: null })
+        })
+
+        await act(async () => {
+            await result.current.refreshToken()
+        })
+
+        expect(mockResubmit).toHaveBeenLastCalledWith('BRIDGE')
+        expect(mockStartAction).toHaveBeenCalledTimes(1)
     })
 })

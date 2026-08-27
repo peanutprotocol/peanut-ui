@@ -40,14 +40,14 @@ export default function PaymentGraphPage() {
     if (!passwordSubmitted) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
-                <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-2xl">
+                <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
                     <div className="text-center">
                         <div className="mb-4 text-6xl">💸</div>
-                        <h2 className="mb-2 text-2xl font-bold text-gray-900">Payment Graph</h2>
-                        <p className="text-sm text-gray-600">P2P payment flow visualization</p>
+                        <h2 className="mb-2 text-2xl font-bold">Payment Graph</h2>
+                        <p className="text-sm">P2P payment flow visualization</p>
                     </div>
                     {error && (
-                        <div className="bg-red-50 text-red-800 rounded-lg p-3 text-sm">
+                        <div className="rounded-lg p-3 text-sm">
                             <div className="font-semibold">Error</div>
                             <div>{error}</div>
                         </div>
@@ -58,15 +58,12 @@ export default function PaymentGraphPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
                         placeholder="Password"
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                        className="w-full rounded-lg border px-4 py-3 text-sm transition-colors focus:ring-2 focus:outline-none"
                     />
                     <Button onClick={handlePasswordSubmit} className="w-full">
                         Enter Graph
                     </Button>
-                    <button
-                        onClick={() => (window.location.href = '/dev')}
-                        className="w-full text-sm text-gray-500 hover:text-gray-700"
-                    >
+                    <button onClick={() => (window.location.href = '/dev')} className="w-full text-sm">
                         ← Back to Dev Tools
                     </button>
                 </div>
@@ -81,7 +78,7 @@ export default function PaymentGraphPage() {
     const initialFocusUsername = searchParams.get('user') ?? undefined
 
     return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-gray-50">
+        <div className="fixed inset-0 z-50 flex flex-col">
             <InvitesGraph
                 apiKey=""
                 password={password}
@@ -107,12 +104,12 @@ export default function PaymentGraphPage() {
                 }) => (
                     <>
                         {/* Controls Panel - Top Right */}
-                        <div className="absolute right-4 top-4 max-h-[calc(100vh_-_140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
-                            <h3 className="mb-2 text-xs font-bold text-gray-900">Display & Forces</h3>
+                        <div className="absolute top-4 right-4 max-h-[calc(100vh_-_140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
+                            <h3 className="mb-2 text-xs font-bold">Display & Forces</h3>
 
                             <div className="space-y-2 text-[11px]">
                                 {/* Scale indicator */}
-                                <div className="-mb-1 flex justify-between text-[8px] text-gray-400">
+                                <div className="-mb-1 flex justify-between text-[8px]">
                                     <span>0.1×</span>
                                     <span>1×</span>
                                     <span>10×</span>
@@ -131,12 +128,12 @@ export default function PaymentGraphPage() {
                                                         charge: { ...forceConfig.charge, enabled: e.target.checked },
                                                     })
                                                 }
-                                                className="h-3 w-3 rounded border-gray-300 text-cyan-600"
+                                                className="h-3 w-3 rounded"
                                             />
-                                            <span className="text-gray-700">Repulsion Force</span>
+                                            <span>Repulsion Force</span>
                                         </div>
                                         {forceConfig.charge.enabled && (
-                                            <span className="text-[9px] text-gray-500">
+                                            <span className="text-[9px]">
                                                 {(
                                                     forceConfig.charge.strength / DEFAULT_FORCE_CONFIG.charge.strength
                                                 ).toFixed(1)}
@@ -164,7 +161,7 @@ export default function PaymentGraphPage() {
                                                     },
                                                 })
                                             }
-                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-cyan-600"
+                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg"
                                         />
                                     )}
                                 </div>
@@ -185,12 +182,12 @@ export default function PaymentGraphPage() {
                                                         },
                                                     })
                                                 }}
-                                                className="h-3 w-3 rounded border-gray-300 text-cyan-600"
+                                                className="h-3 w-3 rounded"
                                             />
-                                            <span className="text-gray-700">P2P Force</span>
+                                            <span>P2P Force</span>
                                         </div>
                                         {forceConfig.p2pLinks.enabled && (
-                                            <span className="text-[9px] text-gray-500">
+                                            <span className="text-[9px]">
                                                 {(
                                                     forceConfig.p2pLinks.strength /
                                                     DEFAULT_FORCE_CONFIG.p2pLinks.strength
@@ -219,7 +216,7 @@ export default function PaymentGraphPage() {
                                                     },
                                                 })
                                             }
-                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-cyan-600"
+                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg"
                                         />
                                     )}
                                 </div>
@@ -242,12 +239,12 @@ export default function PaymentGraphPage() {
                                                         },
                                                     })
                                                 }
-                                                className="h-3 w-3 rounded border-gray-300 text-amber-600"
+                                                className="h-3 w-3 rounded text-amber-600"
                                             />
-                                            <span className="text-gray-700">Center Force</span>
+                                            <span>Center Force</span>
                                         </div>
                                         {(forceConfig.center?.enabled ?? DEFAULT_FORCE_CONFIG.center.enabled) && (
-                                            <span className="text-[9px] text-gray-500">
+                                            <span className="text-[9px]">
                                                 {(
                                                     (forceConfig.center?.strength ??
                                                         DEFAULT_FORCE_CONFIG.center.strength) /
@@ -280,14 +277,14 @@ export default function PaymentGraphPage() {
                                                         },
                                                     })
                                                 }
-                                                className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-amber-600"
+                                                className="h-1 w-full cursor-pointer appearance-none rounded-lg accent-amber-600"
                                             />
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Divider */}
-                                <div className="my-1 border-t border-gray-200"></div>
+                                <div className="my-1 border-t"></div>
 
                                 {/* External Nodes Section */}
                                 <div className="space-y-1">
@@ -305,28 +302,21 @@ export default function PaymentGraphPage() {
                                                         : externalNodesConfig.types,
                                                 })
                                             }
-                                            className="h-3 w-3 rounded border-gray-300 text-orange-600"
+                                            className="h-3 w-3 rounded"
                                         />
-                                        <span className="text-gray-700">External Nodes</span>
+                                        <span>External Nodes</span>
                                         {externalNodesLoading && (
-                                            <span className="ml-auto animate-pulse text-[9px] text-orange-500">
-                                                loading...
-                                            </span>
+                                            <span className="ml-auto animate-pulse text-[9px]">loading...</span>
                                         )}
                                         {externalNodesError && (
-                                            <span
-                                                className="text-red-500 ml-auto text-[9px]"
-                                                title={externalNodesError}
-                                            >
+                                            <span className="ml-auto text-[9px]" title={externalNodesError}>
                                                 ❌
                                             </span>
                                         )}
                                         {!externalNodesLoading &&
                                             !externalNodesError &&
                                             externalNodesConfig.enabled && (
-                                                <span className="ml-auto text-[9px] text-gray-400">
-                                                    {externalNodes.length}
-                                                </span>
+                                                <span className="ml-auto text-[9px]">{externalNodes.length}</span>
                                             )}
                                     </div>
                                     {externalNodesConfig.enabled && !externalNodesError && (
@@ -346,9 +336,9 @@ export default function PaymentGraphPage() {
                                                                 },
                                                             })
                                                         }
-                                                        className="h-2.5 w-2.5 rounded border-gray-300 text-orange-500"
+                                                        className="h-2.5 w-2.5 rounded"
                                                     />
-                                                    <span className="text-orange-600">₿</span>
+                                                    <span>₿</span>
                                                 </label>
                                                 <label className="flex cursor-pointer items-center gap-0.5">
                                                     <input
@@ -363,7 +353,7 @@ export default function PaymentGraphPage() {
                                                                 },
                                                             })
                                                         }
-                                                        className="h-2.5 w-2.5 rounded border-gray-300 text-blue-500"
+                                                        className="h-2.5 w-2.5 rounded text-blue-500"
                                                     />
                                                     <span className="text-blue-600">🏦</span>
                                                 </label>
@@ -380,14 +370,14 @@ export default function PaymentGraphPage() {
                                                                 },
                                                             })
                                                         }
-                                                        className="h-2.5 w-2.5 rounded border-gray-300 text-green-500"
+                                                        className="h-2.5 w-2.5 rounded"
                                                     />
-                                                    <span className="text-green-600">🏪</span>
+                                                    <span>🏪</span>
                                                 </label>
                                             </div>
                                             {/* Min connections */}
                                             <div className="space-y-1">
-                                                <span className="text-[9px] text-gray-500">Min users:</span>
+                                                <span className="text-[9px]">Min users:</span>
                                                 <div className="flex flex-wrap gap-0.5">
                                                     {[1, 2, 3, 5, 10, 20, 50].map((val) => (
                                                         <button
@@ -400,8 +390,8 @@ export default function PaymentGraphPage() {
                                                             }
                                                             className={`rounded px-1 py-0.5 text-[9px] transition-colors ${
                                                                 externalNodesConfig.minConnections === val
-                                                                    ? 'bg-orange-600 text-white'
-                                                                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                                    ? 'bg-orange-800 text-white'
+                                                                    : ''
                                                             }`}
                                                         >
                                                             {val}
@@ -429,13 +419,13 @@ export default function PaymentGraphPage() {
                                                                     },
                                                                 })
                                                             }
-                                                            className="h-2.5 w-2.5 rounded border-gray-300 text-orange-500"
+                                                            className="h-2.5 w-2.5 rounded"
                                                         />
-                                                        <span className="text-[9px] text-gray-600">Link Force</span>
+                                                        <span className="text-[9px]">Link Force</span>
                                                     </div>
                                                     {(forceConfig.externalLinks?.enabled ??
                                                         DEFAULT_FORCE_CONFIG.externalLinks.enabled) && (
-                                                        <span className="text-[9px] text-gray-500">
+                                                        <span className="text-[9px]">
                                                             {(
                                                                 (forceConfig.externalLinks?.strength ??
                                                                     DEFAULT_FORCE_CONFIG.externalLinks.strength) /
@@ -469,7 +459,7 @@ export default function PaymentGraphPage() {
                                                                 },
                                                             })
                                                         }
-                                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-orange-500"
+                                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg"
                                                     />
                                                 )}
                                             </div>
@@ -478,7 +468,7 @@ export default function PaymentGraphPage() {
                                 </div>
 
                                 {/* Divider */}
-                                <div className="my-1 border-t border-gray-200"></div>
+                                <div className="my-1 border-t"></div>
 
                                 {/* Other options */}
                                 <div className="flex gap-3">
@@ -487,9 +477,9 @@ export default function PaymentGraphPage() {
                                             type="checkbox"
                                             checked={showUsernames}
                                             onChange={(e) => setShowUsernames(e.target.checked)}
-                                            className="h-3 w-3 rounded border-gray-300 text-cyan-600"
+                                            className="h-3 w-3 rounded"
                                         />
-                                        <span className="text-gray-600">Names</span>
+                                        <span>Names</span>
                                     </label>
                                 </div>
 
@@ -499,8 +489,8 @@ export default function PaymentGraphPage() {
                                         onClick={() => setPerformanceMode(!performanceMode)}
                                         className={`flex-1 rounded border px-2 py-1 text-[10px] transition-colors ${
                                             performanceMode
-                                                ? 'border-green-500 bg-green-50 text-green-700'
-                                                : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                                                ? 'border-green-500 bg-green-200 text-green-800'
+                                                : 'border-gray-200 hover:bg-gray-100'
                                         }`}
                                         title="Limit to top 1000 nodes for better performance"
                                     >
@@ -512,14 +502,14 @@ export default function PaymentGraphPage() {
                                 <div className="flex gap-1">
                                     <button
                                         onClick={handleRecalculate}
-                                        className="flex-1 rounded border border-cyan-200 px-2 py-0.5 text-[9px] text-cyan-600 hover:bg-cyan-50 hover:text-cyan-800"
+                                        className="flex-1 rounded border px-2 py-0.5 text-[9px]"
                                         title="Recalculate layout with current settings"
                                     >
                                         🔄 Recalc
                                     </button>
                                     <button
                                         onClick={handleReset}
-                                        className="flex-1 rounded border border-gray-200 px-2 py-0.5 text-[9px] text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                                        className="flex-1 rounded border px-2 py-0.5 text-[9px]"
                                         title="Reset all settings to defaults"
                                     >
                                         ↺ Defaults
@@ -528,26 +518,25 @@ export default function PaymentGraphPage() {
                             </div>
 
                             {/* Compact Legend */}
-                            <div className="mt-3 border-t border-gray-200 pt-2">
+                            <div className="mt-3 border-t pt-2">
                                 <div className="space-y-1 text-[9px]">
                                     {/* Nodes - by P2P activity */}
-                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-gray-500">
+                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                                         <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-2 w-2 rounded-full bg-purple-500"></span>
+                                            <span className="inline-block h-2 w-2 rounded-full"></span>
                                             P2P Active
                                         </span>
                                         <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-2 w-2 rounded-full bg-gray-400 opacity-50"></span>
+                                            <span className="inline-block h-2 w-2 rounded-full opacity-50"></span>
                                             No P2P
                                         </span>
                                     </div>
                                     {/* External nodes */}
                                     {externalNodesConfig.enabled && (
-                                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-gray-500">
+                                        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                                             {externalNodesConfig.types.WALLET && (
                                                 <span className="flex items-center gap-0.5">
-                                                    <span className="inline-block h-2 w-2 rotate-45 bg-orange-500"></span>
-                                                    ₿
+                                                    <span className="inline-block h-2 w-2 rotate-45"></span>₿
                                                 </span>
                                             )}
                                             {externalNodesConfig.types.BANK && (
@@ -559,7 +548,7 @@ export default function PaymentGraphPage() {
                                             {externalNodesConfig.types.MERCHANT && (
                                                 <span className="flex items-center gap-0.5">
                                                     <span
-                                                        className="inline-block h-2 w-2 bg-green-500"
+                                                        className="inline-block h-2 w-2"
                                                         style={{
                                                             clipPath:
                                                                 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
@@ -571,15 +560,13 @@ export default function PaymentGraphPage() {
                                         </div>
                                     )}
                                     {/* Edges */}
-                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-gray-500">
+                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                                         <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-0.5 w-3 bg-cyan-500/50"></span>P2P
+                                            <span className="inline-block h-0.5 w-3"></span>P2P
                                         </span>
                                     </div>
-                                    <p className="text-gray-400">Click → Select | Right-click → Focus</p>
-                                    <p className="text-gray-400">
-                                        {performanceMode ? 'Limited to 1000 nodes' : 'Limited to 5000 nodes'}
-                                    </p>
+                                    <p>Click → Select | Right-click → Focus</p>
+                                    <p>{performanceMode ? 'Limited to 1000 nodes' : 'Limited to 5000 nodes'}</p>
                                 </div>
                             </div>
                         </div>

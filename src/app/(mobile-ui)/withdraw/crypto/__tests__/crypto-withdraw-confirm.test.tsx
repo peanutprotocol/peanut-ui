@@ -144,13 +144,19 @@ jest.mock('@/components/Global/AddressLink', () => ({
     default: (props: { address: string }) => <span>{props.address}</span>,
 }))
 
-jest.mock('@/components/Global/PeanutLoading', () => ({
+jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
-    default: () => <div data-testid="loading" />,
+    default: (props: any) =>
+        props.variant === 'mascot' ? (
+            <div data-testid="loading">{props.message && <span>{props.message}</span>}</div>
+        ) : (
+            <div data-testid="loading-spinner" />
+        ),
 }))
 
-jest.mock('@/components/Slider', () => ({
-    Slider: () => <div data-testid="slider" />,
+jest.mock('@/components/0_Bruddle/SlideToConfirm', () => ({
+    __esModule: true,
+    default: () => <div data-testid="slider" />,
 }))
 
 // ---------- flow hooks ----------
