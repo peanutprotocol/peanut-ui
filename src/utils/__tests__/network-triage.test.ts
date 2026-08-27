@@ -116,10 +116,25 @@ describe('triageNetworkFailure', () => {
         expect(triage?.observed).toBe('api_reachable')
     })
 
-    test('nothing reachable → offline', async () => {
+    // iOS WKWebView serves no opaque responses at all: the retired native
+    // canary measured its no-cors probe failing 108/108 while every other iOS
+    // probe succeeded. Both no-cors probes below therefore always fail there,
+    // so their failure must never be read as evidence of a dead network.
+    test('nothing reachable but the device says online → unknown, never offline', async () => {
         mockProbes({ apiCors: false, internet: false })
         const triage = await triageNetworkFailure(fetchRejection)
-        expect(triage?.observed).toBe('offline')
+        expect(triage?.observed).toBe('unknown')
+    })
+
+    test('nothing reachable and the device says offline → offline', async () => {
+        mockProbes({ apiCors: false, internet: false })
+        Object.defineProperty(navigator, 'onLine', { configurable: true, value: false })
+        try {
+            const triage = await triageNetworkFailure(fetchRejection)
+            expect(triage?.observed).toBe('offline')
+        } finally {
+            Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
+        }
     })
 
     test('also triages fetchWithSentry-wrapped failures by their rethrown name', async () => {
