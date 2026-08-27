@@ -46,11 +46,20 @@ const row = (model: ReturnType<typeof buildReceiptPdfModel>, label: string) =>
 describe('buildReceiptPdfModel — completed bank withdraw', () => {
     const model = buildReceiptPdfModel(baseTx, t, 'en')
 
+    // Manteca synthetic ids are case-sensitive lookup keys: a reference that
+    // was uppercased could not be used to find the entry it belongs to.
+    test('keeps a mixed-case receipt id verbatim in both PDF fields', () => {
+        const mixed = { ...baseTx, id: 'MaNtEcA-Qr-7f3B-AbCd' }
+        const m = buildReceiptPdfModel(mixed, t, 'en')
+        expect(m.reference).toBe('MaNtEcA-Qr-7f3B-AbCd')
+        expect(row(m, 'transaction.rows.transferId')).toBe('MaNtEcA-Qr-7f3B-AbCd')
+    })
+
     test('carries the official-document header and footer facts', () => {
         expect(model.title).toBe('transaction.officialReceipt.pdf.title')
         expect(model.issuedBy).toBe('transaction.officialReceipt.issuedBy')
         expect(model.site).toBe('peanut.me')
-        expect(model.reference).toBe(baseTx.id.toUpperCase())
+        expect(model.reference).toBe(baseTx.id)
         // settlement timestamp beats creation for the issue date
         expect(model.issuedOn).toContain('2026')
         expect(model.issuedOn).toContain('15:22')
@@ -67,7 +76,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         expect(row(model, 'transaction.rows.fee')).toBe('0.5')
         expect(row(model, 'transaction.rows.txId')).toBe(baseTx.txHash)
         // bank_withdraw carries its transfer reference
-        expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id.toUpperCase())
+        expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id)
     })
 
     test('completed OFFRAMP uses the Completed timestamp label and drops Created', () => {

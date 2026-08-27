@@ -178,7 +178,7 @@ export function buildReceiptPdfModel(
         transaction.id &&
         !isCancelled
     ) {
-        push(t('transaction.rows.transferId'), transaction.id.toUpperCase())
+        push(t('transaction.rows.transferId'), transaction.id)
     }
 
     // Always masked: the PDF lives behind a shareable URL, so the unmasked
@@ -214,7 +214,7 @@ export function buildReceiptPdfModel(
         statusLabel,
         rows,
         referenceLabel: t('transaction.officialReceipt.reference'),
-        reference: transaction.id.toUpperCase(),
+        reference: transaction.id,
         issuedOnLabel: t('transaction.officialReceipt.issuedOn'),
         issuedOn: formatDate(issuedAtSource, locale),
         fileName: `peanut-receipt-${transaction.id}.pdf`,
