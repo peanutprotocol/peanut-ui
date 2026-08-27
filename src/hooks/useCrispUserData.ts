@@ -109,10 +109,24 @@ export function useCrispUserData(): CrispUserData {
     const walletAddress =
         user?.accounts?.find((account) => account.type === AccountType.PEANUT_WALLET)?.identifier || undefined
 
-    const smartBalance = readCachedSmartBalance(queryClient, walletAddress)
-    const rainOverview = readCachedRainOverview(queryClient, userId)
-    const limits = readCachedLimits(queryClient)
-    const latestEntry = readLatestHistoryEntry(queryClient)
+    /*
+     * No authenticated cache entry is read without an authenticated user.
+     *
+     * An explicit logout clears the query cache (authContext), but a session
+     * that simply EXPIRES does not: `/users/me` 401s, `user` becomes null, and
+     * `[limits]` and `[transactions]` stay warm behind keys that carry no user
+     * id. SupportDrawer is mounted on the guest and setup layouts too, so the
+     * next person to open support — the same device, no session — would have
+     * published the previous user's limits and last transaction under an empty
+     * `user_id`. The balance and card reads are already keyed by wallet and
+     * user id; this makes the rule uniform rather than incidental.
+     */
+    const isAuthenticated = Boolean(userId && user)
+
+    const smartBalance = isAuthenticated ? readCachedSmartBalance(queryClient, walletAddress) : undefined
+    const rainOverview = isAuthenticated ? readCachedRainOverview(queryClient, userId) : undefined
+    const limits = isAuthenticated ? readCachedLimits(queryClient) : undefined
+    const latestEntry = isAuthenticated ? readLatestHistoryEntry(queryClient) : undefined
 
     const snapshot = buildCrispUserData({
         username,

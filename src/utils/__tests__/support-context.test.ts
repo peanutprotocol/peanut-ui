@@ -98,6 +98,11 @@ describe('buildLatestActivity', () => {
         expect(buildLatestActivity(entry({ currency: { amount: '25000', code: 'ARS' } }), NOW)).toContain('25000 ARS')
     })
 
+    it('reads as a phrase for a transaction from moments ago', () => {
+        const justNow = entry({ timestamp: new Date('2026-08-27T11:59:45Z') })
+        expect(buildLatestActivity(justNow, NOW)).toContain('· just now ·')
+    })
+
     it('is undefined when no history is cached', () => {
         expect(buildLatestActivity(undefined, NOW)).toBeUndefined()
     })

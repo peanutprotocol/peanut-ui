@@ -125,7 +125,8 @@ export function buildLatestActivity(entry: HistoryEntry | undefined, now: number
     }
 
     const age = relativeAge(entry.timestamp, now)
-    if (age) parts.push(`${age} ago`)
+    // `relativeAge` already reads as a phrase for the sub-minute case.
+    if (age) parts.push(age === 'just now' ? age : `${age} ago`)
     if (entry.userRole) parts.push(`as ${entry.userRole.toLowerCase()}`)
 
     // The reaper's failure note is the single most useful field on a failed

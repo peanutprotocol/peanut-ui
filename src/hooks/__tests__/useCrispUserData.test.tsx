@@ -15,7 +15,7 @@ import type { ReactNode } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSupportClientContext } from '@/hooks/useSupportClientContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
-import { TRANSACTIONS } from '@/constants/query.consts'
+import { LIMITS, TRANSACTIONS } from '@/constants/query.consts'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { AccountType } from '@/interfaces/interfaces'
 
@@ -165,5 +165,51 @@ describe('useCrispUserData', () => {
         })
 
         expect(result.current).toBe(before)
+    })
+
+    /*
+     * An explicit logout clears the query cache, but an EXPIRED session does
+     * not: /users/me 401s, auth goes null, and `[limits]` / `[transactions]`
+     * stay warm behind keys carrying no user id. SupportDrawer is mounted on
+     * the guest and setup layouts, so without this gate the next person to open
+     * support on that device would have published the previous user's limits
+     * and last transaction under an empty `user_id`.
+     */
+    it('publishes nothing from the cache once the session has expired', async () => {
+        client.setQueryData(['balance', WALLET], 100_000_000n)
+        client.setQueryData([LIMITS], {
+            bridge: { onRampPerTransaction: '10000', offRampPerTransaction: '10000', asset: 'USD' },
+            manteca: null,
+        })
+        client.setQueryData([TRANSACTIONS, 'latest', { limit: 5, targetUsername: undefined }], {
+            entries: [
+                {
+                    uuid: 'tx-of-the-previous-user',
+                    timestamp: new Date(),
+                    status: 'COMPLETED',
+                    amount: '25.00',
+                    tokenSymbol: 'USDC',
+                    userRole: 'SENDER',
+                    extraData: { kind: 'P2P_SEND' },
+                    recipientAccount: { username: 'bob', identifier: 'bob.eth', type: 'peanut-wallet', isUser: true },
+                },
+            ],
+            hasMore: false,
+        })
+
+        // the session expires: auth goes null, the cache is untouched
+        mockUseAuth.mockReturnValue({
+            username: undefined,
+            userId: undefined,
+            user: undefined,
+        } as unknown as ReturnType<typeof useAuth>)
+
+        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
+
+        expect(result.current.latestActivity).toBeUndefined()
+        expect(result.current.limitsRemaining).toBeUndefined()
+        expect(result.current.balance).toBeUndefined()
+        expect(result.current.segments).toContain('guest')
+        expect(JSON.stringify(result.current)).not.toContain('tx-of-the-previous-user')
     })
 })
