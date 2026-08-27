@@ -52,6 +52,7 @@ export enum EHistoryStatus {
     refunded = 'refunded',
     canceled = 'canceled', // historical DEPRECATED_SIMPLEFI rows, canceled with only one l
     expired = 'expired',
+    OPEN = 'OPEN',
     CLOSED = 'CLOSED',
 }
 
@@ -304,13 +305,14 @@ const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
 // build error, not a silent `''` at runtime.
 const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
     send: '-',
-    request_received: '-',
     withdraw: '-',
     bank_withdraw: '-',
     bank_claim: '-',
     claim_external: '-',
     qr_payment: '-',
     receive: '+',
+    // a received request is money coming TO the viewer (they created it)
+    request_received: '+',
     request_sent: '+',
     add: '+',
     bank_deposit: '+',

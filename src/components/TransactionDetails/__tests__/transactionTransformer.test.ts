@@ -559,6 +559,65 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
+    describe('request-link OPEN status (TASK-20560)', () => {
+        // BE forwards the raw link.status (OPEN|CLOSED) for request-link rows.
+        // OPEN used to fall to the default 'pending' arm → a paid request kept
+        // the hourglass pill forever.
+        const openRequest = (totalAmountCollected: number) =>
+            baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                status: EHistoryStatus.OPEN,
+                extraData: { kind: 'P2P_REQUEST_FULFILL' },
+                isRequestLink: true,
+                totalAmountCollected,
+            })
+
+        it('a paid open request maps to completed, with the inbound sign', () => {
+            const result = mapTransactionDataForDrawer(openRequest(25)).transactionDetails
+            expect(result.status).toBe('completed')
+            expect(result.direction).toBe('request_received')
+            expect(getTransactionSign(result)).toBe('+')
+        })
+
+        it('a partially-paid open request also drops the hourglass', () => {
+            const result = mapTransactionDataForDrawer(openRequest(0.5)).transactionDetails
+            expect(result.status).toBe('completed')
+        })
+
+        it('an unpaid open request stays pending', () => {
+            const result = mapTransactionDataForDrawer(openRequest(0)).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+    })
+
+    describe('sender-side SEND_LINK claim state (TASK-20289)', () => {
+        const sentLink = (overrides: Partial<HistoryEntry> = {}) =>
+            baseEntry({
+                userRole: EHistoryUserRole.SENDER,
+                status: EHistoryStatus.COMPLETED,
+                recipientAccount: externalEoa,
+                extraData: { kind: 'SEND_LINK' },
+                ...overrides,
+            })
+
+        it('COMPLETED without claimedAt stays pending (escrowed, not yet claimed)', () => {
+            const result = mapTransactionDataForDrawer(sentLink()).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+
+        it('COMPLETED with claimedAt maps to completed', () => {
+            const result = mapTransactionDataForDrawer(
+                sentLink({ claimedAt: '2026-04-02T09:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('completed')
+        })
+
+        it('raw CLAIMED status maps to completed (BE mirror of parentSendLink.status)', () => {
+            const result = mapTransactionDataForDrawer(sentLink({ status: EHistoryStatus.CLAIMED })).transactionDetails
+            expect(result.status).toBe('completed')
+        })
+    })
+
     describe('direct P2P avatar for display-name-only users (no @username)', () => {
         // Regression guard: p2p-send used to drop fullName/showFullName, so a
         // recipient/sender with only a display name fell back to their wallet

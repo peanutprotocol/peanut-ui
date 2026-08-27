@@ -28,6 +28,12 @@ import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { completeHistoryEntry } from '@/utils/history.utils'
+import {
+    RECENT_ACTIVITY_FETCH_LIMIT,
+    RECENT_ACTIVITY_LIMIT,
+    selectRecentEntries,
+    upsertEntryByUuid,
+} from './homeHistory.utils'
 import { formatUnits } from 'viem'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -67,7 +73,13 @@ const HomeHistory = ({
         isLoading,
         isError,
         error,
-    } = useTransactionHistory({ mode: 'latest', limit: 5, username, filterMutualTxs, enabled: isLoggedIn })
+    } = useTransactionHistory({
+        mode: 'latest',
+        limit: RECENT_ACTIVITY_FETCH_LIMIT,
+        username,
+        filterMutualTxs,
+        enabled: isLoggedIn,
+    })
     // check if the username is the same as the current user
     const { fetchBalance } = useWallet()
     const queryClient = useQueryClient()
@@ -243,15 +255,7 @@ const HomeHistory = ({
                         }
                     }
 
-                    const existingIndex = entries.findIndex((entry) => entry.uuid === completedEntry.uuid)
-
-                    if (existingIndex !== -1) {
-                        // update existing entry with latest websocket data
-                        entries[existingIndex] = completedEntry
-                    } else {
-                        // add new entry if it doesn't exist
-                        entries.push(completedEntry)
-                    }
+                    upsertEntryByUuid(entries, completedEntry)
                 }
 
                 // add the single identity-verification row (provider-agnostic)
@@ -281,19 +285,11 @@ const HomeHistory = ({
                 // Check cancellation before setting state
                 if (cancelled) return
 
-                // Sort entries by date in descending order
-                entries.sort((a, b) => {
-                    const dateA = new Date(a.timestamp || 0).getTime()
-                    const dateB = new Date(b.timestamp || 0).getTime()
-                    return dateB - dateA
-                })
-
-                // Cap at 5 fresh entries. The card-unlock row is NOT pinned —
-                // it sorts chronologically and ages out behind newer activity
-                // like any other entry (pinning it made it "always there").
-                // It stays reachable on the paginated /history page.
-                const RECENT_LIMIT = 5
-                setCombinedEntries(entries.slice(0, RECENT_LIMIT))
+                // Newest-first, capped at RECENT_ACTIVITY_LIMIT. The card-unlock
+                // row is NOT pinned — it sorts chronologically and ages out
+                // behind newer activity like any other entry (pinning it made it
+                // "always there"). It stays reachable on the paginated /history page.
+                setCombinedEntries(selectRecentEntries(entries, RECENT_ACTIVITY_LIMIT))
             }
 
             processEntries()
@@ -306,23 +302,10 @@ const HomeHistory = ({
         return undefined
     }, [historyData, liveEntries, user, isLoading, isViewingOwnHistory, cardInfo, rainOverview])
 
-    const pendingRequests = useMemo(() => {
-        if (!combinedEntries.length) return []
-        return combinedEntries.filter(
-            (entry): entry is HistoryEntry =>
-                !isKycStatusItem(entry) &&
-                !isBadgeHistoryItem(entry) &&
-                !isCardUnlockHistoryItem(entry) &&
-                String(entry.type) === 'REQUEST' &&
-                entry.userRole === 'SENDER' &&
-                entry.status === 'NEW'
-        )
-    }, [combinedEntries])
-
     // Memoize per-row drawer projection — `mapTransactionDataForDrawer`
-    // dispatches a strategy + builds derived view-model state per call. Two
-    // .map() sites below render dozens of rows; without this memo each row
-    // recomputes on every parent rerender (websocket tick, hover, etc.).
+    // dispatches a strategy + builds derived view-model state per call;
+    // without this memo each rendered row recomputes on every parent
+    // rerender (websocket tick, hover, etc.).
     const drawerByUuid = useMemo(() => {
         const m = new Map<string, ReturnType<typeof mapTransactionDataForDrawer>>()
         for (const item of combinedEntries) {
@@ -418,37 +401,6 @@ const HomeHistory = ({
     return (
         <div className={twMerge('mx-auto w-full space-y-3 md:max-w-2xl md:space-y-3', isLoggedIn ? 'pb-4' : 'pb-0')}>
             {/* link to the full history page */}
-            {pendingRequests.length > 0 && (
-                <>
-                    <h2 className="text-base font-bold">{t('pendingTransactions')}</h2>
-                    <div className="h-full w-full">
-                        {/* map over the latest entries and render transactioncard */}
-                        {pendingRequests.map((item, index) => {
-                            const { transactionDetails, transactionCardType } =
-                                drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
-
-                            // determine card position for styling (first, middle, last, single)
-                            const position = getCardPosition(index, pendingRequests.length)
-
-                            return (
-                                <TransactionCard
-                                    key={item.uuid}
-                                    type={transactionCardType}
-                                    name={transactionDetails.userName}
-                                    amount={Number(transactionDetails.amount)}
-                                    status={transactionDetails.status}
-                                    initials={transactionDetails.initials}
-                                    transaction={transactionDetails}
-                                    position={position}
-                                    isPending={true}
-                                    haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
-                                    hideTxnAmount={hideTxnAmount}
-                                />
-                            )
-                        })}
-                    </div>
-                </>
-            )}
             {!isViewingOwnHistory ? (
                 <h2 className="text-base font-bold">{t('latestTransactions')}</h2>
             ) : (
@@ -460,69 +412,61 @@ const HomeHistory = ({
             {/* container for the transaction cards */}
             <div className="h-full w-full">
                 {/* map over the latest entries and render transactioncard */}
-                {combinedEntries
-                    .filter((item) => !pendingRequests.some((r) => r.uuid === item.uuid))
-                    .map((item, index) => {
-                        // filter out pending requests to calculate correct card position
-                        const filteredEntries = combinedEntries.filter(
-                            (entry) => !pendingRequests.some((r) => r.uuid === entry.uuid)
-                        )
-                        const position = getCardPosition(index, filteredEntries.length)
+                {combinedEntries.map((item, index) => {
+                    const position = getCardPosition(index, combinedEntries.length)
 
-                        // Render the identity-verification status row when it's its turn in the
-                        // sorted list. KycStatusItem self-sources its status from
-                        // useIdentityVerification() — the entry is just a timeline marker.
-                        if (isKycStatusItem(item)) {
-                            return <KycStatusItem key={item.uuid} position={position} />
-                        }
+                    // Render the identity-verification status row when it's its turn in the
+                    // sorted list. KycStatusItem self-sources its status from
+                    // useIdentityVerification() — the entry is just a timeline marker.
+                    if (isKycStatusItem(item)) {
+                        return <KycStatusItem key={item.uuid} position={position} />
+                    }
 
-                        // render badge milestone entries
-                        if (isBadgeHistoryItem(item)) {
-                            return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
-                        }
+                    // render badge milestone entries
+                    if (isBadgeHistoryItem(item)) {
+                        return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
+                    }
 
-                        // render the card-unlock milestone entry
-                        if (isCardUnlockHistoryItem(item)) {
-                            return (
-                                <CardUnlockHistoryItem
-                                    key={item.uuid}
-                                    entry={item}
-                                    position={position}
-                                    username={user?.user?.username ?? undefined}
-                                    badges={user?.user?.badges}
-                                />
-                            )
-                        }
-
-                        const { transactionDetails, transactionCardType } =
-                            drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
-
-                        // determine card position for styling (first, middle, last, single)
-
-                        const haveSentMoneyToUser =
-                            item.userRole === 'SENDER'
-                                ? item.recipientAccount.userId
-                                    ? interactions[item.recipientAccount.userId]
-                                    : false
-                                : item.senderAccount?.userId
-                                  ? interactions[item.senderAccount.userId]
-                                  : false
-
+                    // render the card-unlock milestone entry
+                    if (isCardUnlockHistoryItem(item)) {
                         return (
-                            <TransactionCard
+                            <CardUnlockHistoryItem
                                 key={item.uuid}
-                                type={transactionCardType}
-                                name={transactionDetails.userName}
-                                amount={Number(transactionDetails.amount)}
-                                status={transactionDetails.status}
-                                initials={transactionDetails.initials}
-                                transaction={transactionDetails}
+                                entry={item}
                                 position={position}
-                                haveSentMoneyToUser={haveSentMoneyToUser}
-                                hideTxnAmount={hideTxnAmount}
+                                username={user?.user?.username ?? undefined}
+                                badges={user?.user?.badges}
                             />
                         )
-                    })}
+                    }
+
+                    const { transactionDetails, transactionCardType } =
+                        drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
+
+                    const haveSentMoneyToUser =
+                        item.userRole === 'SENDER'
+                            ? item.recipientAccount.userId
+                                ? interactions[item.recipientAccount.userId]
+                                : false
+                            : item.senderAccount?.userId
+                              ? interactions[item.senderAccount.userId]
+                              : false
+
+                    return (
+                        <TransactionCard
+                            key={item.uuid}
+                            type={transactionCardType}
+                            name={transactionDetails.userName}
+                            amount={Number(transactionDetails.amount)}
+                            status={transactionDetails.status}
+                            initials={transactionDetails.initials}
+                            transaction={transactionDetails}
+                            position={position}
+                            haveSentMoneyToUser={haveSentMoneyToUser}
+                            hideTxnAmount={hideTxnAmount}
+                        />
+                    )
+                })}
             </div>
         </div>
     )

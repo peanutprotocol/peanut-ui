@@ -142,6 +142,61 @@ describe('TransactionCard — clickable counterparty name', () => {
     })
 })
 
+// TASK-21887: a received request is inbound money (the viewer created the
+// request), so the row must carry the inbound arrow and the + sign — it used
+// to render the outbound arrow with a negative amount.
+describe('TransactionCard — received request renders as inbound', () => {
+    function requestTx(): TransactionDetails {
+        const tx = eligibleTx()
+        tx.direction = 'request_received'
+        tx.status = 'pending'
+        ;(tx.extraDataForDrawer as { transactionCardType: string }).transactionCardType = 'request'
+        return tx
+    }
+
+    it('draws the inbound arrow and a positive amount', () => {
+        const { container } = render(
+            <TransactionCard type="request" name="natalia" amount={10} status="pending" transaction={requestTx()} />
+        )
+
+        expect(container.querySelector('svg.lucide-arrow-down-left')).not.toBeNull()
+        expect(container.querySelector('svg.lucide-arrow-up-right')).toBeNull()
+        expect(screen.getByText('+$10')).toBeInTheDocument()
+    })
+})
+
+// TASK-20700: `truncate`/`line-clamp` only engage when every flex ancestor can
+// shrink (min-w-0) and the amount block refuses to (shrink-0). Locks the class
+// chain so a long name can never push the amount off the card.
+describe('TransactionCard — long-name overflow containment', () => {
+    it('keeps a min-w-0 chain around the name and shrink-0 on the amount block', () => {
+        renderCard(eligibleTx())
+
+        const nameEl = screen.getByText('natalia')
+        const card = nameEl.closest('[data-testid="transaction-card"]') as HTMLElement
+
+        const row = card.querySelector(':scope > div') as HTMLElement
+        expect(row.className).toContain('min-w-0')
+
+        const leftCluster = row.querySelector(':scope > div') as HTMLElement
+        expect(leftCluster.className).toContain('min-w-0')
+        expect(leftCluster.className).toContain('flex-1')
+
+        // every flex ancestor between the left cluster and the name can shrink
+        let node = nameEl.parentElement
+        const flexAncestors: HTMLElement[] = []
+        while (node && node !== leftCluster) {
+            if (node.className.includes('flex')) flexAncestors.push(node)
+            node = node.parentElement
+        }
+        expect(flexAncestors.length).toBeGreaterThan(0)
+        flexAncestors.forEach((el) => expect(el.className).toContain('min-w-0'))
+
+        const amountBlock = screen.getByText('-$10').closest('.shrink-0')
+        expect(amountBlock).not.toBeNull()
+    })
+})
+
 /** A Rain card spend row; `cardPayment` overrides shape the flag cases. */
 function cardSpendTx(cardPayment: Record<string, unknown>): TransactionDetails {
     const tx = eligibleTx()
