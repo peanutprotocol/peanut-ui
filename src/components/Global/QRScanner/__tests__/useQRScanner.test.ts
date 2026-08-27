@@ -552,6 +552,32 @@ describe('classifying a failure the library discarded', () => {
         expect(result.current.isCameraReady).toBe(true)
     })
 
+    it('a manual retry that recovers first is not torn down by the pending busy retry', async () => {
+        browserCamera.devices = CAMERA_PRESENT
+        browserCamera.probe = busy
+
+        const result = await mountScanning()
+        await failTheCamera(result)
+        expect(result.current.error).toBe('qrScanner.cameraBusyRetrying')
+
+        // the user beats the 1s timer to it
+        startBehaviour = () => Promise.resolve()
+        await act(async () => {
+            await result.current.retryCamera()
+        })
+        expect(result.current.isCameraReady).toBe(true)
+        const afterRecovery = startCalls
+
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_RETRY_DELAY_MS * 2)
+        })
+
+        // the stale callback would cleanup() and reacquire a working scanner
+        expect(startCalls).toBe(afterRecovery)
+        expect(result.current.isCameraReady).toBe(true)
+        expect(result.current.error).toBeNull()
+    })
+
     it('a camera that stays busy stops retrying and says so', async () => {
         browserCamera.devices = CAMERA_PRESENT
         browserCamera.probe = busy

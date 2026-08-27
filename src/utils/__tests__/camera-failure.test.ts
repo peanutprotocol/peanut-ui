@@ -81,6 +81,29 @@ it('gives up on a probe that hangs, as an iOS PWA getUserMedia does after denial
     jest.useRealTimers()
 })
 
+it('stops a probe stream that arrives after the deadline has passed', async () => {
+    jest.useFakeTimers()
+    const videoTrack = track()
+    let grant: (stream: MediaStream) => void = () => {}
+    mediaDevices.getUserMedia.mockReturnValue(
+        new Promise<MediaStream>((resolve) => {
+            grant = resolve
+        })
+    )
+
+    const classified = classifyCameraFailure(QR_SCANNER_REJECTION)
+    await jest.advanceTimersByTimeAsync(2000) // PROBE_TIMEOUT_MS
+    await expect(classified).resolves.toBe('')
+
+    // the delayed iOS grant this whole path exists for: nobody is waiting on the
+    // stream any more, so if it is not released here the camera stays live
+    grant({ getTracks: () => [videoTrack] } as unknown as MediaStream)
+    await Promise.resolve()
+
+    expect(videoTrack.stop).toHaveBeenCalled()
+    jest.useRealTimers()
+})
+
 it('reports absent hardware when the browser exposes no camera api at all', async () => {
     setMediaDevices(undefined)
 

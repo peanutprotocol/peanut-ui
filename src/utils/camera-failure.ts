@@ -35,11 +35,22 @@ async function hasVideoInput(): Promise<boolean> {
 }
 
 async function probeCamera(): Promise<string> {
+    const acquisition = navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+
+    /*
+     * Release from the acquisition, never from the race. The probe is allowed to
+     * outlive its deadline — that hang is the thing it exists to diagnose — and a
+     * stream that arrives after we have stopped waiting is one nobody holds a
+     * reference to. Left running it keeps the camera, and its indicator, live
+     * behind an error screen.
+     */
+    void acquisition.then((stream) => stream.getTracks().forEach((track) => track.stop())).catch(() => {})
+
     let timeoutId: ReturnType<typeof setTimeout> | undefined
     let stream: MediaStream | undefined
     try {
         stream = await Promise.race([
-            navigator.mediaDevices.getUserMedia({ video: true, audio: false }),
+            acquisition,
             new Promise<undefined>((resolve) => {
                 timeoutId = setTimeout(resolve, PROBE_TIMEOUT_MS, undefined)
             }),
@@ -48,7 +59,6 @@ async function probeCamera(): Promise<string> {
         return nameOf(err)
     } finally {
         clearTimeout(timeoutId)
-        stream?.getTracks().forEach((track) => track.stop())
     }
 
     /*

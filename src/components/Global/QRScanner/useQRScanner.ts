@@ -444,7 +444,10 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 if (shouldRetry) {
                     retryCountRef.current++
                     setTimeout(() => {
-                        if (isScanningRef.current) startCamera(preferredCamera)
+                        // a manual Retry that recovered in the meantime owns the
+                        // camera now; restarting would tear down a working scanner
+                        if (superseded() || !isScanningRef.current) return
+                        startCamera(preferredCamera)
                     }, CONFIG.CAMERA_RETRY_DELAY_MS)
                 } else {
                     retryCountRef.current = 0
