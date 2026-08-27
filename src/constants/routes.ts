@@ -79,6 +79,11 @@ export const DEDICATED_ROUTES = [
     'pricing',
     'stories',
     'content',
+    // Same shape, same trap: 'status' is six lowercase letters, so /status was
+    // resolving to a payment-profile shell on a 200 instead of the status page.
+    // Also still claimable as a username server-side — the backend needs it on
+    // its reserved list too.
+    'status',
 
     // Locale prefixes (current SUPPORTED_LOCALES)
     'en',

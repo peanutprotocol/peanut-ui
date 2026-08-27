@@ -99,7 +99,7 @@ const Navigation = memo(function Navigation({
             <div className="flex items-center gap-3">
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-foreground-secondary">{t('skip')}</span>
+                        <span className="text-foreground-over-color-secondary">{t('skip')}</span>
                     </Button>
                 )}
                 {showLogoutButton && (

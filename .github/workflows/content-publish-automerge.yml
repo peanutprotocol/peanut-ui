@@ -134,9 +134,10 @@ jobs:
                   # on; the run conclusion also folds in advisory jobs (ds-shots). Gate on
                   # exactly what the ruleset gates on.
                   #
-                  # `Tests` runs on both `push` and `pull_request`, so a commit usually
-                  # carries TWO ci-success check runs. Require at least one and ALL of
-                  # them green — a single red run must block the merge.
+                  # `Tests` runs on `pull_request` (and `push` for dev/main), so a
+                  # commit can carry more than one ci-success check run. Require at
+                  # least one and ALL of them green — a single red run must block the
+                  # merge.
                   RUNS="repos/$REPO/commits/$SHA/check-runs?per_page=100"
                   TOTAL=$(gh api "$RUNS" --jq '[.check_runs[] | select(.name=="ci-success")] | length' || echo 0)
                   GREEN=$(gh api "$RUNS" --jq '[.check_runs[] | select(.name=="ci-success" and .conclusion=="success")] | length' || echo 0)

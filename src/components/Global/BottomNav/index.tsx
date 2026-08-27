@@ -218,6 +218,7 @@ export const BottomNav = () => {
             >
                 <Link
                     href="/home"
+                    draggable={false}
                     aria-label={t('home')}
                     onClick={() => triggerHaptic()}
                     className={tabClass}
@@ -229,6 +230,7 @@ export const BottomNav = () => {
                 </Link>
                 <Link
                     href="/card"
+                    draggable={false}
                     aria-label={t('card')}
                     onClick={() => triggerHaptic()}
                     className={tabClass}
