@@ -20,6 +20,20 @@ export const MIN_BANK_TRANSFER_AMOUNT = 5
 export const MIN_MERCADOPAGO_AMOUNT = 5
 export const MIN_PIX_AMOUNT = 5
 
+/**
+ * Single source for the per-rail fiat claim minimums. Everything that reasons
+ * about them (validateMinimumAmount, the claim action list, the send-time
+ * below-minimum warning) derives from this map, so a per-rail divergence
+ * changes every consumer together. The send-time warning copy names all three
+ * rails as one class — a test pins the values equal so a divergence forces
+ * that copy to be revisited rather than silently changing the gate.
+ */
+export const CLAIM_RAIL_MINIMUMS = {
+    bank: MIN_BANK_TRANSFER_AMOUNT,
+    mercadopago: MIN_MERCADOPAGO_AMOUNT,
+    pix: MIN_PIX_AMOUNT,
+} as const
+
 // deposit limits for manteca regional onramps (in USD)
 export const MAX_MANTECA_DEPOSIT_AMOUNT = 2000
 export const MIN_MANTECA_DEPOSIT_AMOUNT = 1
@@ -72,10 +86,5 @@ export const CARD_FX_MARKUP_BY_CURRENCY: Record<string, number> = {
  * @returns true if amount is valid, false otherwise
  */
 export const validateMinimumAmount = (amount: number, methodId: string): boolean => {
-    const minimums: Record<string, number> = {
-        bank: MIN_BANK_TRANSFER_AMOUNT,
-        mercadopago: MIN_MERCADOPAGO_AMOUNT,
-        pix: MIN_PIX_AMOUNT,
-    }
-    return amount >= (minimums[methodId] ?? 0)
+    return amount >= ((CLAIM_RAIL_MINIMUMS as Record<string, number>)[methodId] ?? 0)
 }

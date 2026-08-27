@@ -117,6 +117,10 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     const retryCountRef = useRef<number>(0)
     const videoElementRetryCountRef = useRef<number>(0)
     const isSwitchingCameraRef = useRef(false)
+    // bumped by every startCamera; a start whose generation is stale was
+    // superseded mid-await and must not commit state or touch the new scanner
+    const startGenRef = useRef(0)
+    const startCameraRef = useRef<((preferredCamera?: FacingMode) => Promise<void>) | null>(null)
 
     // -------------------------------------------------------------------------
     // Scanner Lifecycle
@@ -181,7 +185,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     toast.error(result.error || t('qrScanner.qrProcessingFailed'))
                     processingQRRef.current = false
                     // Resume scanner on failure so user can try again
-                    scannerRef.current?.start()
+                    scannerRef.current?.start().catch(() => startCameraRef.current?.())
                 }
             } catch (err) {
                 // console.info, not error: captureConsoleIntegration would turn an
@@ -191,7 +195,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 toast.error(t('qrScanner.qrProcessingError'))
                 processingQRRef.current = false
                 // Resume scanner on error so user can try again
-                scannerRef.current?.start()
+                scannerRef.current?.start().catch(() => startCameraRef.current?.())
             }
         },
         [onScan, toast, t]
@@ -246,12 +250,16 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
             // reset retry counter on success
             videoElementRetryCountRef.current = 0
 
+            const generation = ++startGenRef.current
+            const superseded = () => generation !== startGenRef.current
+
             let startTimeoutId: ReturnType<typeof setTimeout> | undefined
             try {
                 cleanup()
 
                 if (isCapacitor()) {
                     const granted = await ensureNativeCameraPermission()
+                    if (superseded()) return
                     if (!granted) {
                         setIsPermissionDenied(true)
                         setError(getErrorMessage(CAMERA_ERRORS.NOT_ALLOWED, 0))
@@ -262,6 +270,14 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 // iOS needs a delay to release camera hardware
                 if (deviceType === DeviceType.IOS) {
                     await new Promise((resolve) => setTimeout(resolve, CONFIG.IOS_CAMERA_DELAY_MS))
+                }
+
+                // the drawer may have closed, or a newer start may have taken
+                // over, while the settle delay ran
+                if (superseded()) return
+                if (!isScanningRef.current || !videoRef.current) {
+                    cleanup()
+                    return
                 }
 
                 /*
@@ -304,6 +320,21 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                         }),
                     ])
                     clearTimeout(startTimeoutId)
+                }
+
+                if (superseded() || !isScanningRef.current) return
+
+                /*
+                 * qr-scanner resolves start() without a stream when it was
+                 * stopped mid-acquisition (it discards the stream once
+                 * _active is false) or when the document was hidden. Reporting
+                 * ready here is what leaves a black <video> under a dismissed
+                 * spinner, so treat a missing stream as a failed start.
+                 */
+                if (!videoRef.current?.srcObject) {
+                    cleanup()
+                    setError(t('qrScanner.cameraStartFailed'))
+                    return
                 }
 
                 // Request continuous autofocus — some devices default to single-shot
@@ -368,8 +399,12 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
          */
         isSwitchingCameraRef.current = true
         setIsCameraReady(false)
+        const scanner = scannerRef.current
         try {
-            await scannerRef.current.setCamera(newFacingMode)
+            await scanner.setCamera(newFacingMode)
+            // a resume or retry may have rebuilt the scanner during the
+            // handover; committing facingMode now would describe a dead stream
+            if (scannerRef.current !== scanner) return
             setFacingMode(newFacingMode)
             if (isScanningRef.current) setIsCameraReady(true)
         } catch (err) {
@@ -389,6 +424,11 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
         isScanningRef.current = isScanning
     }, [isScanning])
 
+    // the visibility listener subscribes once; read startCamera through a ref
+    useEffect(() => {
+        startCameraRef.current = startCamera
+    }, [startCamera])
+
     // Handle visibility change - pause camera when app goes to background
     useEffect(() => {
         const handleVisibilityChange = () => {
@@ -396,19 +436,38 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 scannerRef.current?.stop()
                 // resume repaints from a cold stream — show the placeholder until then
                 setIsCameraReady(false)
-            } else if (isScanning && scannerRef.current) {
+            } else if (isScanningRef.current && scannerRef.current) {
+                /*
+                 * iOS reclaims the capture device while backgrounded, so this
+                 * start() can reject with "Camera not found" even though the
+                 * same session had a working camera (PEANUT-UI-SV1). Falling
+                 * back to a full rebuild recovers it, and if that fails too the
+                 * user lands on the error view instead of an endless spinner.
+                 *
+                 * Deliberately still the scanner's own start() on the happy
+                 * path: it re-arms the instance the hidden branch stopped, and
+                 * skips a decode-worker rebuild on every foreground.
+                 */
                 scannerRef.current
                     .start()
                     .then(() => {
-                        if (isScanningRef.current) setIsCameraReady(true)
+                        if (!isScanningRef.current) return
+                        // start() also resolves without a stream when it was
+                        // stopped mid-acquisition — rebuild rather than show a
+                        // ready state over a dead <video>
+                        if (!videoRef.current?.srcObject) {
+                            void startCameraRef.current?.()
+                            return
+                        }
+                        setIsCameraReady(true)
                     })
-                    .catch((err) => console.error('Error resuming camera:', err))
+                    .catch(() => startCameraRef.current?.())
             }
         }
 
         document.addEventListener('visibilitychange', handleVisibilityChange)
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }, [isScanning])
+    }, [])
 
     // Start/stop scanner based on isScanning state
     useEffect(() => {
@@ -442,6 +501,8 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
         videoRef,
         close,
         toggleCamera,
-        retryCamera: startCamera,
+        // wrapped: callers wire this straight to onClick, and a MouseEvent
+        // arriving as preferredCamera makes qr-scanner ask for deviceId {exact: [object MouseEvent]}
+        retryCamera: () => startCamera(),
     }
 }

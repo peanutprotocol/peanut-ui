@@ -749,7 +749,7 @@
     "send": {
         "linkCard": {
             "title": "Send money with a link",
-            "description": "No account needed to receive.",
+            "description": "No account needed for crypto-wallet claims. Bank, Pix and Mercado Pago need a Peanut account.",
             "cta": "Send via link"
         },
         "methods": {
@@ -781,7 +781,8 @@
             "cancelled": "Cancelled",
             "cancelSuccess": "Link cancelled successfully!",
             "cancelSuccessRefresh": "Link cancelled! Refresh to see updated balance.",
-            "cancelFailed": "Failed to cancel link. Please try again."
+            "cancelFailed": "Failed to cancel link. Please try again.",
+            "minFiatClaimWarning": "Amounts under ${amount} can't be claimed to a bank, Pix or Mercado Pago — the recipient can still claim to a Peanut account or crypto wallet."
         }
     },
     "request": {

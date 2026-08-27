@@ -45,12 +45,7 @@ import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptio
 import SupportCTA from '../../Global/SupportCTA'
 import DEVCONNECT_LOGO from '@/assets/logos/devconnect.svg'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import {
-    MIN_BANK_TRANSFER_AMOUNT,
-    MIN_MERCADOPAGO_AMOUNT,
-    MIN_PIX_AMOUNT,
-    validateMinimumAmount,
-} from '@/constants/payment.consts'
+import { CLAIM_RAIL_MINIMUMS, validateMinimumAmount } from '@/constants/payment.consts'
 import { useAppDispatch } from '@/redux/hooks'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useTranslations } from 'next-intl'
@@ -135,13 +130,8 @@ export default function SendLinkActionList({
 
     const handleMethodClick = async (method: PaymentMethod) => {
         const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-        if (['bank', 'mercadopago', 'pix'].includes(method.id) && !validateMinimumAmount(amountInUsd, method.id)) {
-            const minAmount =
-                method.id === 'bank'
-                    ? MIN_BANK_TRANSFER_AMOUNT
-                    : method.id === 'mercadopago'
-                      ? MIN_MERCADOPAGO_AMOUNT
-                      : MIN_PIX_AMOUNT
+        if (method.id in CLAIM_RAIL_MINIMUMS && !validateMinimumAmount(amountInUsd, method.id)) {
+            const minAmount = CLAIM_RAIL_MINIMUMS[method.id as keyof typeof CLAIM_RAIL_MINIMUMS]
             setMinAmountErrorInfo({ title: method.title, amount: minAmount })
             setShowMinAmountError(true)
             return

@@ -749,7 +749,7 @@
     "send": {
         "linkCard": {
             "title": "Envía dinero con un enlace",
-            "description": "No se necesita cuenta para recibir.",
+            "description": "No se necesita cuenta para reclamar en billetera cripto. Banco, Pix y Mercado Pago requieren una cuenta Peanut.",
             "cta": "Enviar por enlace"
         },
         "methods": {
@@ -781,7 +781,8 @@
             "cancelled": "Cancelado",
             "cancelSuccess": "¡Enlace cancelado con éxito!",
             "cancelSuccessRefresh": "¡Enlace cancelado! Actualiza para ver tu saldo al día.",
-            "cancelFailed": "No se pudo cancelar el enlace. Inténtalo de nuevo."
+            "cancelFailed": "No se pudo cancelar el enlace. Inténtalo de nuevo.",
+            "minFiatClaimWarning": "Los montos menores a ${amount} no se pueden reclamar en banco, Pix o Mercado Pago; el destinatario igual puede reclamar en una cuenta Peanut o billetera cripto."
         }
     },
     "request": {
