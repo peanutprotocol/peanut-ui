@@ -1,7 +1,14 @@
 'use client'
 
-import { UsageAudit } from '../../_components/UsageAudit'
-import { APP_DIVERGENCE_CATEGORIES } from './audit-app-data'
+import { UsageAudit, type UsageCategory } from '../../_components/UsageAudit'
+
+// build-time gate — mirrors DEV_TOOLS_ENABLED; see ../page.tsx for why the
+// condition must stay inline. drops ~77KB of audit data from prod bundles.
+const APP_DIVERGENCE_CATEGORIES: UsageCategory[] =
+    process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview'
+        ? // eslint-disable-next-line @typescript-eslint/no-require-imports -- see ../page.tsx
+          (require('./audit-app-data') as typeof import('./audit-app-data')).APP_DIVERGENCE_CATEGORIES
+        : []
 
 export default function AppDivergencesPage() {
     return (

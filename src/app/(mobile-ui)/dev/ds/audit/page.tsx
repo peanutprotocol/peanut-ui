@@ -3,7 +3,27 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { DocPage } from '../_components/DocPage'
-import { AUDIT_ITEMS, AUDIT_CLUSTERS, LAYER_STATS, type AuditStatus } from './audit-data'
+import type { AuditCluster, AuditItem, AuditStatus, LayerStat } from './audit-data'
+
+// build-time gate — mirrors DEV_TOOLS_ENABLED (src/constants/dev-tools.consts.ts).
+// next inlines process.env.NODE_ENV / NEXT_PUBLIC_* at compile time, so in a prod
+// build webpack folds this condition to `false` and drops the require()'d branch —
+// ~360KB of audit data never enters the prod bundle. two things keep the fold
+// working: (1) the condition must stay inline — importing DEV_TOOLS_ENABLED hides
+// the literals from webpack's parser and the data would ship; (2) both next
+// configs define NEXT_PUBLIC_VERCEL_ENV unconditionally (see next.config.js `env`)
+// so the second leg is always a foldable literal, even off-Vercel. runtime access
+// is still blocked by the notFound() in dev/layout.tsx; a prod build just renders
+// this page empty.
+const auditData =
+    process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview'
+        ? // eslint-disable-next-line @typescript-eslint/no-require-imports -- conditional require IS the tree-shaking mechanism; import() would code-split the data into a chunk that still ships
+          (require('./audit-data') as typeof import('./audit-data'))
+        : null
+
+const AUDIT_ITEMS: AuditItem[] = auditData?.AUDIT_ITEMS ?? []
+const AUDIT_CLUSTERS: AuditCluster[] = auditData?.AUDIT_CLUSTERS ?? []
+const LAYER_STATS: LayerStat[] = auditData?.LAYER_STATS ?? []
 
 const STATUS_META: Record<AuditStatus, { label: string; cls: string }> = {
     canonical: { label: 'canonical', cls: 'bg-background-badge-success text-foreground-primary border-border-default' },

@@ -1,7 +1,14 @@
 'use client'
 
-import { UsageAudit } from '../../_components/UsageAudit'
-import { BIG_COMPONENT_CATEGORIES } from './audit-components-data'
+import { UsageAudit, type UsageCategory } from '../../_components/UsageAudit'
+
+// build-time gate — mirrors DEV_TOOLS_ENABLED; see ../page.tsx for why the
+// condition must stay inline. drops ~58KB of audit data from prod bundles.
+const BIG_COMPONENT_CATEGORIES: UsageCategory[] =
+    process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview'
+        ? // eslint-disable-next-line @typescript-eslint/no-require-imports -- see ../page.tsx
+          (require('./audit-components-data') as typeof import('./audit-components-data')).BIG_COMPONENT_CATEGORIES
+        : []
 
 export default function BigComponentsPage() {
     return (
