@@ -26,6 +26,7 @@ export default function NativeReceiptPage() {
         data: entry,
         isLoading,
         isError,
+        refetch,
     } = useQuery({
         queryKey: [TRANSACTIONS, 'entry', entryId, kind],
         enabled: Boolean(entryId && kind),
@@ -52,7 +53,10 @@ export default function NativeReceiptPage() {
             </div>
             <div className="flex flex-1 flex-col items-center justify-center">
                 {unavailable ? (
-                    <ReceiptUnavailable variant={unavailable} />
+                    <ReceiptUnavailable
+                        variant={unavailable}
+                        onRetry={unavailable === 'loadFailed' ? () => void refetch() : undefined}
+                    />
                 ) : isLoading || !entry ? (
                     <PeanutLoading />
                 ) : (

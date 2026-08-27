@@ -9,10 +9,18 @@ import Card from '@/components/Global/Card'
 
 /**
  * Branded terminal state for a receipt link that cannot render: 'gone' for
- * legacy `?t=` links whose id no longer resolves (pre-May-2026 share URLs),
- * 'loadFailed' for a transient fetch/transform failure worth retrying.
+ * legacy `?t=` links whose id no longer resolves (pre-May-2026 share URLs) —
+ * permanently dead, no retry — and 'loadFailed' for a transient
+ * fetch/transform failure, which offers a Retry (the caller's refetch when
+ * provided, else a full reload of the same URL for the server route).
  */
-export function ReceiptUnavailable({ variant = 'gone' }: { variant?: 'gone' | 'loadFailed' }) {
+export function ReceiptUnavailable({
+    variant = 'gone',
+    onRetry,
+}: {
+    variant?: 'gone' | 'loadFailed'
+    onRetry?: () => void
+}) {
     const t = useTranslations('transaction.receiptUnavailable')
     const tCommon = useTranslations('common')
     const tNav = useTranslations('navigation')
@@ -28,8 +36,22 @@ export function ReceiptUnavailable({ variant = 'gone' }: { variant?: 'gone' | 'l
                     {variant === 'gone' ? t('description') : t('loadFailedDescription')}
                 </p>
             </Card>
+            {variant === 'loadFailed' && (
+                <Button
+                    variant="purple"
+                    shadowSize="4"
+                    className="w-full print:hidden"
+                    onClick={() => (onRetry ? onRetry() : window.location.reload())}
+                >
+                    {tCommon('retry')}
+                </Button>
+            )}
             <Link href="/home" className="w-full print:hidden">
-                <Button variant="purple" shadowSize="4" className="w-full">
+                <Button
+                    variant={variant === 'loadFailed' ? 'primary-soft' : 'purple'}
+                    shadowSize="4"
+                    className="w-full"
+                >
                     {tCommon('goToHome')}
                 </Button>
             </Link>
