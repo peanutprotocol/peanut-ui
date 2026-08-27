@@ -82,7 +82,7 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
     const getTrackColor = () => {
         if (isOverGoal) return 'bg-action-secondary'
         if (!isClosed) return 'bg-background-disabled'
-        return isGoalAchieved ? 'bg-success-3' : 'bg-error-4'
+        return isGoalAchieved ? 'bg-green-500' : 'bg-red-200'
     }
 
     const renderStatusText = () => {
@@ -147,21 +147,21 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
 
         if (isOverGoal) {
             return [
-                { position: goalPercentage, className: 'bg-success-3' },
+                { position: goalPercentage, className: 'bg-green-500' },
                 { position: 'end', className: 'bg-action-secondary' },
             ]
         }
 
         const markers: ProgressBarMarker[] = []
-        if (!isGoalAchieved) markers.push({ position: progressPercentage, className: 'bg-success-3' })
+        if (!isGoalAchieved) markers.push({ position: progressPercentage, className: 'bg-green-500' })
         markers.push(
             isGoalAchieved
                 ? {
                       position: 'end',
-                      className: 'bg-success-3',
+                      className: 'bg-green-500',
                       label: <p className="absolute right-0 bottom-full mb-2 text-body-s whitespace-nowrap">100%</p>,
                   }
-                : { position: 100, className: 'bg-error-4' }
+                : { position: 100, className: 'bg-red-200' }
         )
         return markers
     }
@@ -174,7 +174,7 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
             <ProgressBar
                 value={isOverGoal ? goalPercentage : progressPercentage}
                 trackClassName={getTrackColor()}
-                fillClassName="bg-success-3"
+                fillClassName="bg-green-500"
                 markers={getMarkers()}
             />
         </div>

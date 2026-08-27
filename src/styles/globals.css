@@ -1015,11 +1015,14 @@
     .btn-shadow-secondary-8 {
         @apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)];
     }
-    /* ds-06 restyle to the input board (17802:61538): subtle border at rest,
-       black when active, blue ring on keyboard focus, red on aria-invalid,
-       gray fill when disabled. was: pink focus border. */
+    /* input board 17802:61538 / set 17360:4441: black border at rest
+       (border/default), subtle border ONLY when disabled, blue ring on
+       keyboard focus, red on aria-invalid, gray fill when disabled. the
+       earlier "subtle at rest" reading was wrong — subtle is the Disabled
+       variant's border on the board. height 48px per ruling (touch law;
+       board's 40px sits under the 44px minimum). */
     .input {
-        @apply h-16 w-full rounded-sm border border-border-subtle bg-background-default px-5 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus:border-border-default focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
+        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
     }
     .bg-peanut-repeat-normal {
         @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;

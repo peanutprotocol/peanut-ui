@@ -32,7 +32,6 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useAppDispatch, useAppSelector } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
-import { twMerge } from '@/utils/tw'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
 import { withdrawBankUrl } from '@/utils/native-routes'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
@@ -368,10 +367,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                             ? createSmartPasteHandler(smartPasteKind, field.onChange)
                                             : undefined
                                     }
-                                    className={twMerge(
-                                        'h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-body-s',
-                                        errors[name] && touchedFields[name] && 'border-error'
-                                    )}
+                                    state={errors[name] && touchedFields[name] ? 'error' : 'default'}
+                                    className="text-body-s"
                                     onBlur={async (_e) => {
                                         // remove any whitespace from the input field
                                         // note: @dev not a great fix, this should also be fixed in the backend
@@ -426,10 +423,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             onValueChange={field.onChange}
                             onBlur={field.onBlur}
                             error={!!(errors[name] && touchedFields[name])}
-                            className={twMerge(
-                                'h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-body-s',
-                                errors[name] && touchedFields[name] && 'border-error'
-                            )}
+                            className="h-12 w-full rounded-sm text-body-s"
                         />
                     )}
                 />

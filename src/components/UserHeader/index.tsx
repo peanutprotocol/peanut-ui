@@ -82,13 +82,13 @@ export const VerifiedUserLabel = ({
 
     // A kyc-verified user always gets at least a single badge.
     if (isVerified) {
-        badge = <Icon name="check" size={iconSize} className="text-success-1" />
+        badge = <Icon name="check" size={iconSize} className="text-green-500" />
         tooltipContent = isAuthenticatedUserVerified ? "You're a verified user." : 'This is a verified user.'
     }
 
     // if they are also verified and the viewer has sent them money, it's upgraded to a double badge.
     if (isVerified && haveSentMoneyToUser) {
-        badge = <Icon name="double-check" size={iconSize} className="text-success-1" />
+        badge = <Icon name="double-check" size={iconSize} className="text-green-500" />
         tooltipContent = "This is a verified user and you've sent them money before."
     }
 

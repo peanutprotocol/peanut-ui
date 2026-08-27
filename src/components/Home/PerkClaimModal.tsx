@@ -216,7 +216,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                 preventClose={isExiting}
                 icon="check"
                 iconProps={{ className: 'text-white' }}
-                iconContainerClassName="bg-success-3"
+                iconContainerClassName="bg-green-500"
                 title=""
                 description={
                     <div className={isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}>

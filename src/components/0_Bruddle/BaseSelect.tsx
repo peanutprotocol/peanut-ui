@@ -67,8 +67,9 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                     className={twMerge(
                         'flex h-12 w-full items-center justify-between rounded-sm border border-border-default bg-white px-4 text-label-l text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary',
                         'disabled:cursor-not-allowed disabled:opacity-50',
-                        'focus:border-action-primary',
-                        error && 'border-error',
+                        // DS input focus pattern (blue ring), not the old pink border
+                        'focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid',
+                        error && 'border-border-error',
                         className
                     )}
                 >

@@ -7,7 +7,6 @@ import { isAlreadyReported } from '@/utils/webauthn.utils'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useState } from 'react'
-import { twMerge } from '@/utils/tw'
 import * as Sentry from '@sentry/nextjs'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
@@ -120,11 +119,7 @@ const JoinWaitlist = () => {
                 }}
                 isSetupFlow
                 isInputChanging={isChanging}
-                className={twMerge(
-                    !isValid && !isChanging && !!inviteCode && 'border-error',
-                    isValid && !isChanging && !!inviteCode && 'border-success-3',
-                    'rounded-sm'
-                )}
+                className="rounded-sm"
             />
 
             {error && (

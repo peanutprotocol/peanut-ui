@@ -64,7 +64,7 @@ const BridgeLimitsView = () => {
                             <Card position="single" className="space-y-2 p-4">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="check" className="text-success-1" size={16} />
+                                        <Icon name="check" className="text-green-500" size={16} />
                                         <span className="text-body-s">
                                             {t.rich('addMoneyLimit', {
                                                 medium: (chunks) => <span className="font-medium">{chunks}</span>,
@@ -76,7 +76,7 @@ const BridgeLimitsView = () => {
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Icon name="check" className="text-success-1" size={16} />
+                                        <Icon name="check" className="text-green-500" size={16} />
                                         <span className="text-body-s">
                                             {t.rich('withdrawLimit', {
                                                 medium: (chunks) => <span className="font-medium">{chunks}</span>,
@@ -117,7 +117,7 @@ const BridgeLimitsView = () => {
                                         </Accordion.Trigger>
                                         <Accordion.Content>
                                             <div className="flex items-center gap-2">
-                                                <Icon name="check" className="text-success-1" size={16} />
+                                                <Icon name="check" className="text-green-500" size={16} />
                                                 <span>
                                                     {t('qrPayLimit', {
                                                         amount: `$${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()}`,
