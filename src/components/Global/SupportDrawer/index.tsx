@@ -237,7 +237,7 @@ const SupportDrawer = () => {
                  * agents (i.e. agents helping app users) with less than the
                  * agents helping web users.
                  */
-                for (const [key, value] of nativeCrispFields(snapshot)) {
+                for (const [key, value] of nativeCrispFields(snapshot, prefill)) {
                     CapacitorCrisp.setString({ key, value })
                 }
                 /*
@@ -253,10 +253,18 @@ const SupportDrawer = () => {
                  * cleanly on every open. Restore this when the plugin exposes the
                  * SDK's overwrite overload.
                  */
-                if (prefill) {
-                    CapacitorCrisp.sendMessage({ value: prefill })
-                }
-
+                /*
+                 * No sendMessage on native. The plugin declares it
+                 * `unimplemented` on BOTH iOS and Android, so this never
+                 * prefilled anything in the app — it only left an unhandled
+                 * rejection ("Not implemented on ios") behind every support open
+                 * that carried a topic. The topic rides in the `support_topic`
+                 * data row above instead, which both platforms implement.
+                 *
+                 * The user's composer stays empty on native, so they still write
+                 * their own opening message — but the agent is no longer blind to
+                 * what brought them there.
+                 */
                 CapacitorCrisp.openMessenger()
                 // The chat is now in front of the user, so the badge has done its
                 // job. There is no isCrispReady on this path — the native messenger

@@ -47,6 +47,19 @@ describe('supportSessionFields', () => {
         expect(Object.fromEntries(supportSessionFields(userData({ emailOnFile: undefined }))).email_on_file).toBe('')
     })
 
+    /*
+     * `sendMessage` is `unimplemented` in this plugin on BOTH iOS and Android,
+     * so the prefill never reached Crisp in the app — every "contact support
+     * about X" entry point lost its context, silently. The topic rides as a data
+     * row, which both platforms implement, and on web it also survives the user
+     * clearing the prefilled composer before sending.
+     */
+    it('carries the support topic so native does not lose it', () => {
+        const withTopic = Object.fromEntries(supportSessionFields(userData(), 'my withdrawal is stuck'))
+        expect(withTopic.support_topic).toBe('my withdrawal is stuck')
+        expect(Object.fromEntries(supportSessionFields(userData())).support_topic).toBe('')
+    })
+
     it('carries the full segment list as a data row for the native sink', () => {
         expect(Object.fromEntries(supportSessionFields(userData())).segments).toBe('ios-native kyc-verified')
     })

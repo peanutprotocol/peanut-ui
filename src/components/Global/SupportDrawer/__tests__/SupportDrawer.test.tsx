@@ -441,8 +441,33 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
         })
 
         await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
-        expect(nativeCrisp.sendMessage).toHaveBeenCalledTimes(1)
         expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1)
+        expect(
+            nativeCrisp.setString.mock.calls.filter(([{ key }]: [{ key: string }]) => key === 'support_topic')
+        ).toHaveLength(1)
+    })
+
+    /*
+     * `sendMessage` is `unimplemented` in this plugin on BOTH iOS and Android.
+     * Calling it prefilled nothing and left an unhandled rejection behind every
+     * support open that carried a topic. The topic now rides as a data row.
+     */
+    it('delivers the support topic without calling the unimplemented sendMessage', async () => {
+        modalsState.supportPrefilledMessage = 'my withdrawal is stuck'
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+
+        await act(async () => {
+            render(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+        expect(nativeCrisp.sendMessage).not.toHaveBeenCalled()
+
+        const written = Object.fromEntries(
+            nativeCrisp.setString.mock.calls.map(([{ key, value }]: [{ key: string; value: string }]) => [key, value])
+        )
+        expect(written.support_topic).toBe('my withdrawal is stuck')
     })
 
     /*
@@ -530,8 +555,10 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
         })
 
         await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
-        expect(nativeCrisp.sendMessage).toHaveBeenCalledTimes(1)
         expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1)
+        expect(
+            nativeCrisp.setString.mock.calls.filter(([{ key }]: [{ key: string }]) => key === 'support_topic')
+        ).toHaveLength(1)
     })
 
     /*

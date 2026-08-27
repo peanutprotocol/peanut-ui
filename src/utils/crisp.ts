@@ -46,7 +46,7 @@ export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeC
  * Values are always present, empty string when absent, so a previous user's
  * value can never linger on a device-local Crisp session.
  */
-export function supportSessionFields(userData: CrispUserData): Array<[string, string]> {
+export function supportSessionFields(userData: CrispUserData, supportTopic?: string): Array<[string, string]> {
     const { emailOnFile } = userData
     return [
         ['username', userData.username || ''],
@@ -71,6 +71,18 @@ export function supportSessionFields(userData: CrispUserData): Array<[string, st
         ['linked_accounts', userData.linkedAccounts || ''],
         ['app_context', userData.appContext || ''],
         ['segments', (userData.segments ?? []).join(' ')],
+        /*
+         * Why the prefill is a data row and not only the composer text.
+         *
+         * On web the prefill populates the user's composer and reaches the agent
+         * as a message. On native it cannot: `sendMessage` is `unimplemented` in
+         * this plugin on BOTH iOS and Android, so every "contact support about X"
+         * entry point lost its context in the app — silently, and with an
+         * unhandled rejection behind it. Carrying the topic here delivers it
+         * through a method both platforms actually implement, and on web it
+         * survives the user deleting the prefilled text before sending.
+         */
+        ['support_topic', supportTopic || ''],
     ]
 }
 
@@ -117,7 +129,7 @@ export function setCrispUserData(
     }
 
     // Session metadata for support agents - must be 3 levels of nested arrays
-    crispInstance.push(['set', 'session:data', [supportSessionFields(userData)]])
+    crispInstance.push(['set', 'session:data', [supportSessionFields(userData, prefilledMessage)]])
 
     /*
      * Segments carry the boolean half (platform, kyc-*, zero-balance, offline…).
