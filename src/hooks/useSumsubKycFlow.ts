@@ -322,6 +322,19 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return false
                 }
 
+                // approved, but every rail for this region is dead — a payload-build
+                // failure can mark all four Bridge rails FAILED at once, and nothing
+                // in the product re-enables them. Identical on the wire to "you're
+                // done" until the backend started saying so, which is why a stranded
+                // user pressed Verify, saw no SDK, no error and nothing at all, and
+                // support told them to press it again (TASK-21882). Same shape as
+                // 'unsupported-region' above: bail terminally, before the status sync.
+                if (response.data?.actionType === 'rails-unavailable') {
+                    userInitiatedRef.current = false
+                    setError(t('railsUnavailableError'))
+                    return false
+                }
+
                 // if already approved (or reverifying) and no token returned, kyc is done.
                 // set prevStatusRef so the transition effect doesn't fire onKycSuccess a second time.
                 // when a token IS returned (e.g. cross-region action or additional-docs), we still need to show the SDK.

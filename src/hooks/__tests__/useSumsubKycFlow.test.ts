@@ -60,6 +60,47 @@ describe('useSumsubKycFlow — cross-region routing', () => {
         await waitFor(() => expect(onKycSuccess).not.toHaveBeenCalled())
     })
 
+    // The P1 soft-lock. One payload-build failure marks all four Bridge rails
+    // FAILED at once, and nothing in the product re-enables them. The BE used to
+    // answer with a bare approved+null-token body — identical on the wire to
+    // "you're done" — so the hook fired onKycSuccess and the user saw nothing at
+    // all when they pressed Verify. Support then told them to press it again
+    // (TASK-21882).
+    it('rails-unavailable → surfaces an error and does NOT fire onKycSuccess', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: null, applicantId: 'app_1', status: 'APPROVED', actionType: 'rails-unavailable' },
+        })
+        const onKycSuccess = jest.fn()
+
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU', undefined, true)
+        })
+
+        expect(result.current.error).toBeTruthy()
+        expect(result.current.showWrapper).toBe(false)
+        await waitFor(() => expect(onKycSuccess).not.toHaveBeenCalled())
+    })
+
+    // The other side of the same branch: a genuinely finished user must still be
+    // treated as finished, or the fix above turns every approval into an error.
+    it('approved with no token and no actionType is still success', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: null, applicantId: 'app_1', status: 'APPROVED' },
+        })
+        const onKycSuccess = jest.fn()
+
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU', undefined, true)
+        })
+
+        expect(result.current.error).toBeFalsy()
+        await waitFor(() => expect(onKycSuccess).toHaveBeenCalled())
+    })
+
     // The race the loop-fix has to survive: the user is already APPROVED, so a stale /
     // connect-time websocket APPROVED event can land AFTER the unsupported-region error.
     // If the branch left userInitiatedRef set, that event trips the status-transition

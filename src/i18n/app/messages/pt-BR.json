@@ -2298,6 +2298,7 @@
         "processingTitle": "Configurando sua conta…",
         "processingDescription": "Estamos confirmando seu documento. Isso costuma levar menos de um minuto.",
         "unsupportedRegionError": "Os depósitos bancários ainda não estão disponíveis na sua região. Avisaremos assim que forem liberados.",
+        "railsUnavailableError": "Sua identidade está verificada, mas não conseguimos configurar os pagamentos para a sua região no momento. Fale com o suporte e vamos resolver.",
         "unexpectedError": "Ocorreu um erro inesperado",
         "processingStatusValue": "Estamos revisando seus documentos. Isso geralmente leva de 5 a 10 min.",
         "errorSdkUnavailable": "O SDK de KYC não está disponível. Atualize o app.",

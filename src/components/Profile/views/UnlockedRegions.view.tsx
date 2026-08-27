@@ -17,6 +17,7 @@ import { deriveRegionAccess, getRegionIntent, providerForRegionIntent, type Regi
 import { useRegionLabel } from '@/hooks/useRegionLabel'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
@@ -75,6 +76,7 @@ const UnlockedRegions = () => {
     // fails toward region KYC (the trunk), never toward /card.
     const { activationStep } = useActivationStatus()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail, nextActions } = useCapabilities()
+    const { identity } = useIdentityVerification()
     // MIGRATION-REVIEW: unlockedRegions/lockedRegions previously came from
     // `useIdentityVerification` (raw rails + Sumsub flags). Now derived from the
     // capability rails via deriveRegionAccess (same Region shape; faithful unlock
@@ -100,15 +102,15 @@ const UnlockedRegions = () => {
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
 
     // MIGRATION-REVIEW + CONTRACT GAP: KycFailedModal's terminal-rejection heuristic used
-    // sumsubRejectLabels / sumsubRejectType / a rejected-SUMSUB-verification count, all read
-    // off raw `user.kycVerifications` via useUnifiedKycStatus. The capability model carries
-    // no per-verification Sumsub history (labels, reject type, or attempt count), so these
-    // are dropped (passed null/undefined). isTerminalRejection degrades gracefully — without
-    // a FINAL reject type or terminal labels it defaults to retryable, and the backend still
-    // flips the rail to 'blocked' (→ 'rejected' variant, contact-support CTA) on a final
-    // rejection, so a genuinely terminal user is still routed to support via the rail status.
-    const sumsubRejectLabels: string[] | null = null
-    const sumsubRejectType: 'RETRY' | 'FINAL' | null = null
+    // Real rejection detail from the identity read-model, not placeholders. These
+    // were hardcoded null because the view had no per-verification Sumsub history —
+    // but `identityVerification` carries exactly that, and nulling them made
+    // `isTerminalRejection` degrade to retryable for EVERY user. A terminally
+    // rejected user was shown "Let's try that again", and the retry called an
+    // endpoint that could not help them (TASK-21882).
+    const sumsubRejectLabels: string[] | null = identity.rejectLabels ?? null
+    const sumsubRejectType: 'RETRY' | 'FINAL' | null =
+        identity.status === 'failed' ? 'FINAL' : identity.status === 'action_required' ? 'RETRY' : null
     const sumsubFailureCount: number | undefined = undefined
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
