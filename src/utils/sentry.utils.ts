@@ -43,6 +43,10 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // to the user via the cooldown modal + floating timer. Normal UX state,
     // not an error; would otherwise flood Sentry on every retry.
     { pattern: /\/rain\/cards\/withdraw\/prepare/, statuses: [425] },
+    // /send-links/{pubKey} 404 = link not yet indexed (DB replication lag) or a
+    // mistyped/withdrawn link — both expected, surfaced by the polling/claim UI.
+    // The claim-success poller hits this every second until the claim lands.
+    { pattern: /\/send-links\/0x[0-9a-fA-F]{40}/, statuses: [404] },
 ]
 
 /**

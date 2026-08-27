@@ -160,12 +160,13 @@ export const sendLinksApi = {
     get: async (link: string): Promise<SendLink> => {
         const params = getParamsFromLink(link)
         const pubKey = generateKeysFromString(params.password).address
-        // Add timestamp to prevent caching of 404s during DB replication lag
-        const cacheBuster = Date.now()
+        // no-store instead of a Date.now() cache-buster: prevents cached 404s
+        // during DB replication lag without defeating react-query dedupe
         const response = await serverFetch(
-            `/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}&_=${cacheBuster}`,
+            `/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`,
             {
                 method: 'GET',
+                cache: 'no-store',
             }
         )
         if (!response.ok) {
