@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Divider } from '@/components/0_Bruddle/Divider'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { isAlreadyReported } from '@/utils/webauthn.utils'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -105,28 +105,26 @@ const JoinWaitlist = () => {
 
     return (
         <div className="flex flex-col gap-4">
-            <ValidatedInput
-                placeholder={t('waitlist.inviterUsernamePlaceholder')}
-                value={inviteCode}
-                debounceTime={750}
-                validate={validateInviteCode}
-                shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
-                onUpdate={({ value, isValid, isChanging }) => {
-                    setIsValid(isValid)
-                    setIsChanging(isChanging)
-                    setInviteCode(value)
-                    if (isChanging) setError('')
-                }}
-                isSetupFlow
-                isInputChanging={isChanging}
-                className="rounded-sm"
-            />
-
-            {error && (
-                <div className="pb-1">
-                    <Notification priority="error">{error}</Notification>
-                </div>
-            )}
+            {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+            <div className="flex flex-col gap-1">
+                <ValidatedInput
+                    placeholder={t('waitlist.inviterUsernamePlaceholder')}
+                    value={inviteCode}
+                    debounceTime={750}
+                    validate={validateInviteCode}
+                    shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
+                    onUpdate={({ value, isValid, isChanging }) => {
+                        setIsValid(isValid)
+                        setIsChanging(isChanging)
+                        setInviteCode(value)
+                        if (isChanging) setError('')
+                    }}
+                    isSetupFlow
+                    isInputChanging={isChanging}
+                    className="rounded-sm"
+                />
+                {error && <FieldError>{error}</FieldError>}
+            </div>
 
             <Button
                 variant="purple"

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ProfileEditField from '@/components/Profile/components/ProfileEditField'
 import { updateUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
@@ -99,7 +100,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                         placeholder={t('provideEmail.emailPlaceholder')}
                         type="email"
                     />
-                    {error && <p className="mt-2 text-body-s text-error">{error}</p>}
+                    {error && <FieldError className="mt-1">{error}</FieldError>}
                 </div>
             }
         />

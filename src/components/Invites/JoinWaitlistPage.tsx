@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { invitesApi } from '@/services/invites'
 import { useEffect, useRef, useState } from 'react'
@@ -308,23 +309,25 @@ const JoinWaitlistPage = () => {
                             <h1 className="text-heading-xs text-foreground-primary">{t('emailTitle')}</h1>
                             <p className="text-body-m">{t('emailDescription')}</p>
 
-                            <BaseInput
-                                type="email"
-                                variant="sm"
-                                aria-label={t('emailLabel')}
-                                placeholder={t('emailPlaceholder')}
-                                value={emailValue}
-                                onChange={(e) => {
-                                    setEmailValue(e.target.value)
-                                    setEmailError('')
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && isValidEmail(emailValue)) handleEmailSubmit()
-                                }}
-                                className="h-12"
-                            />
-
-                            {emailError && <Notification priority="error">{emailError}</Notification>}
+                            {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+                            <div className="flex flex-col gap-1">
+                                <BaseInput
+                                    type="email"
+                                    variant="sm"
+                                    aria-label={t('emailLabel')}
+                                    placeholder={t('emailPlaceholder')}
+                                    value={emailValue}
+                                    onChange={(e) => {
+                                        setEmailValue(e.target.value)
+                                        setEmailError('')
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && isValidEmail(emailValue)) handleEmailSubmit()
+                                    }}
+                                    className="h-12"
+                                />
+                                {emailError && <FieldError>{emailError}</FieldError>}
+                            </div>
 
                             <Button
                                 shadowSize="4"
@@ -370,37 +373,40 @@ const JoinWaitlistPage = () => {
                             </h2>
                             <p className="text-body-m">{t('skipTheLine')}</p>
 
-                            <div className="flex items-center gap-2">
-                                <ValidatedInput
-                                    placeholder={tSetup('waitlist.inviterUsernamePlaceholder')}
-                                    value={inviteCode}
-                                    debounceTime={750}
-                                    validate={validateInviteCode}
-                                    shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
-                                    onUpdate={({ value, isValid, isChanging }) => {
-                                        setIsValid(isValid)
-                                        setIsChanging(isChanging)
-                                        setInviteCode(value)
-                                    }}
-                                    isSetupFlow
-                                    isInputChanging={isChanging}
-                                    className="rounded-sm"
-                                />
+                            {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                    <ValidatedInput
+                                        placeholder={tSetup('waitlist.inviterUsernamePlaceholder')}
+                                        value={inviteCode}
+                                        debounceTime={750}
+                                        validate={validateInviteCode}
+                                        shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
+                                        onUpdate={({ value, isValid, isChanging }) => {
+                                            setIsValid(isValid)
+                                            setIsChanging(isChanging)
+                                            setInviteCode(value)
+                                        }}
+                                        isSetupFlow
+                                        isInputChanging={isChanging}
+                                        className="rounded-sm"
+                                    />
 
-                                <Button
-                                    className="h-12 w-4/12"
-                                    loading={isAccepting}
-                                    shadowSize="4"
-                                    onClick={handleAcceptInvite}
-                                    disabled={!isValid || isChanging || isValidating || isAccepting}
-                                >
-                                    {tCommon('next')}
-                                </Button>
+                                    <Button
+                                        className="h-12 w-4/12"
+                                        loading={isAccepting}
+                                        shadowSize="4"
+                                        onClick={handleAcceptInvite}
+                                        disabled={!isValid || isChanging || isValidating || isAccepting}
+                                    >
+                                        {tCommon('next')}
+                                    </Button>
+                                </div>
+
+                                {!isValid && !isChanging && !!inviteCode && (
+                                    <FieldError>{tSetup('waitlist.inviterNotFound')}</FieldError>
+                                )}
                             </div>
-
-                            {!isValid && !isChanging && !!inviteCode && (
-                                <Notification priority="error">{tSetup('waitlist.inviterNotFound')}</Notification>
-                            )}
 
                             {error && <Notification priority="error">{error}</Notification>}
 

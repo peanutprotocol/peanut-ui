@@ -1,5 +1,6 @@
 'use client'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useForm, Controller, type ControllerRenderProps, type FieldPath, type RegisterOptions } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
@@ -391,11 +392,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             )}
                         />
                     </div>
-                    {errors[name] && touchedFields[name] && (
-                        <div className="w-fit text-start">
-                            <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
-                        </div>
-                    )}
+                    {errors[name] && touchedFields[name] && <FieldError>{errors[name]?.message ?? ''}</FieldError>}
                 </div>
             )
         }
@@ -427,11 +424,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         />
                     )}
                 />
-                {errors[name] && touchedFields[name] && (
-                    <div className="w-fit text-start">
-                        <Notification priority="error">{errors[name]?.message ?? ''}</Notification>
-                    </div>
-                )}
+                {errors[name] && touchedFields[name] && <FieldError>{errors[name]?.message ?? ''}</FieldError>}
             </div>
         )
 

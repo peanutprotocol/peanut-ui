@@ -1,5 +1,5 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import DocsLink from '@/components/Global/DocsLink'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
@@ -121,7 +121,7 @@ const SignupStep = () => {
     return (
         <>
             <div className="flex h-full flex-col justify-between gap-10 md:pt-6">
-                <div className="space-y-2 mb-auto w-full">
+                <div className="space-y-1 mb-auto w-full">
                     <div className="flex items-center gap-2">
                         <ValidatedInput
                             placeholder={t('signupStep.usernamePlaceholder')}
@@ -145,10 +145,9 @@ const SignupStep = () => {
                         </Button>
                     </div>
                     {/* slot space is always reserved so the error mounting doesn't
-                        re-center the vertically-centered step block (F-5) */}
-                    <div className="min-h-14 pb-1">
-                        {error && <Notification priority="error">{error}</Notification>}
-                    </div>
+                        re-center the vertically-centered step block (F-5). min-h-8
+                        = two 16px body-xs lines, enough for the longest message */}
+                    <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
                 </div>
                 <div>
                     <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
