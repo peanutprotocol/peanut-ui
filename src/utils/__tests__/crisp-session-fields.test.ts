@@ -87,37 +87,27 @@ describe('setCrispUserData segments', () => {
     const segmentPushes = (calls: unknown[][]) => calls.filter(([, key]) => key === 'session:segments')
 
     /*
-     * Crisp APPENDS session segments unless the second argument is true, and
-     * this runs again on every snapshot change. Without the flag a user who was
-     * briefly offline keeps routing as `offline` after recovery, and
-     * `kyc-pending` outlives their approval — the inbox then filters on state
-     * the user has already left, which is worse than no segments at all.
+     * Segments are a field people write by hand, and one of them backs an OKR:
+     * agents tag translation reports `translation-issue` and the monthly count
+     * only sees a conversation that still carries it. Crisp has no partial
+     * write — a set replaces the whole list — so any automatic write erases
+     * whatever a human put there, and this function runs on every snapshot
+     * change, not only when support opens. Appending instead would leave the
+     * app's own flags stale. So the app writes none. See TASK-21968.
      */
-    it('replaces the segment set rather than appending to it', () => {
-        const crisp = push()
-        setCrispUserData(crisp as never, userData({ segments: ['web', 'kyc-pending', 'offline'] }))
-
-        const [, , payload] = segmentPushes(crisp.calls)[0] as [string, string, unknown[]]
-        expect(payload).toEqual([['web', 'kyc-pending', 'offline'], true])
-    })
-
-    it('leaves no trace of a segment the user has moved past', () => {
+    it('never writes Crisp segments, whatever the snapshot says', () => {
         const crisp = push()
         setCrispUserData(crisp as never, userData({ segments: ['web', 'kyc-pending', 'offline'] }))
         setCrispUserData(crisp as never, userData({ segments: ['web', 'kyc-verified'] }))
 
-        const pushes = segmentPushes(crisp.calls)
-        expect(pushes).toHaveLength(2)
-        for (const [, , payload] of pushes as [string, string, unknown[]][]) {
-            expect(payload[1]).toBe(true)
-        }
-        expect((pushes[1] as [string, string, unknown[]])[2][0]).toEqual(['web', 'kyc-verified'])
+        expect(segmentPushes(crisp.calls)).toHaveLength(0)
     })
 
-    it('pushes nothing when there are no segments, rather than clearing blindly', () => {
+    it('still gives the agent the flags, as a data row', () => {
         const crisp = push()
-        setCrispUserData(crisp as never, userData({ segments: [] }))
+        setCrispUserData(crisp as never, userData({ segments: ['web', 'kyc-verified'] }))
 
-        expect(segmentPushes(crisp.calls)).toHaveLength(0)
+        const [, , payload] = crisp.calls.find(([, key]) => key === 'session:data') as [string, string, unknown[][]]
+        expect(Object.fromEntries(payload[0] as [string, string][]).segments).toBe('web kyc-verified')
     })
 })

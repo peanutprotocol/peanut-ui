@@ -111,7 +111,7 @@ export function setCrispUserData(
 ): void {
     if (!crispInstance) return
 
-    const { username, email, fullName, avatar, segments } = userData
+    const { username, email, fullName, avatar } = userData
 
     if (email) {
         crispInstance.push(['set', 'user:email', [email]])
@@ -130,20 +130,23 @@ export function setCrispUserData(
     crispInstance.push(['set', 'session:data', [supportSessionFields(userData, prefilledMessage)]])
 
     /*
-     * Segments carry the boolean half (platform, kyc-*, zero-balance, offline…).
-     * They're what the inbox filters and routes on, and keeping them out of
-     * session:data is what stops the sidebar becoming a wall of yes/no rows.
+     * The app does NOT write Crisp segments. Deliberate — do not add it back.
      *
-     * The `true` is the overwrite flag, and it is load-bearing: Crisp APPENDS
-     * segments by default, so a user who was briefly offline would keep routing
-     * as `offline` forever, and `kyc-pending` would outlive their approval. This
-     * push runs on every snapshot change, so the set has to REPLACE — an
-     * accumulated segment list is worse than none, because it routes on state
-     * the user has already left.
+     * Segments are a field people write by hand, and one of them backs an OKR:
+     * agents tag translation reports `translation-issue`, and the monthly count
+     * only sees a conversation that still carries the tag
+     * (mono/ops/playbook/translation-issue-tag.md). Ops tags incidents the same
+     * way. Crisp has no partial write — a set replaces the whole list — so any
+     * automatic write erases whatever a human put there, and this runs on every
+     * snapshot change, not just on open.
+     *
+     * Appending instead is not the answer either: the app's own flags then go
+     * stale, and a user who was briefly offline routes as `offline` for good.
+     *
+     * The flags still reach the agent, as the `segments` row in the sidebar
+     * above. What the app gives up is filtering the inbox by its own state,
+     * which has never existed. See TASK-21968.
      */
-    if (segments?.length) {
-        crispInstance.push(['set', 'session:segments', [segments, true]])
-    }
 
     if (prefilledMessage) {
         crispInstance.push(['set', 'message:text', [prefilledMessage]])
