@@ -211,7 +211,7 @@ export const pointsApi = {
 
     getInvitesGraph: async (
         apiKey: string,
-        options?: { mode?: 'full' | 'payment'; topNodes?: number; includeNewDays?: number; password?: string }
+        options?: { mode?: 'full' | 'payment'; topNodes?: number; includeNewDays?: number }
     ): Promise<InvitesGraphResponse> => {
         const isPaymentMode = options?.mode === 'payment'
         const params = new URLSearchParams()
@@ -224,11 +224,9 @@ export const pointsApi = {
         if (options?.includeNewDays && options.includeNewDays > 0) {
             params.set('includeNewDays', options.includeNewDays.toString())
         }
-        if (options?.password) {
-            params.set('password', options.password)
-        }
         const endpoint = `/invites/graph${params.toString() ? `?${params}` : ''}`
-        // Payment mode uses password auth (no API key needed), full mode requires API key + JWT
+        // Full mode: JWT + the backend's team whitelist (its api-key check is a no-op).
+        // Payment mode still needs the server's password, which no client passes any more.
         const headers: Record<string, string> = isPaymentMode ? {} : { 'api-key': apiKey }
         return fetchInvitesGraph(endpoint, headers, (status) => {
             if (status === 403) {
@@ -288,7 +286,6 @@ export const pointsApi = {
             types?: ExternalNodeType[]
             limit?: number
             topNodes?: number
-            password?: string
         }
     ): Promise<ExternalNodesResponse> => {
         try {
@@ -310,10 +307,6 @@ export const pointsApi = {
             }
             if (options?.topNodes && options.topNodes > 0) {
                 params.set('topNodes', options.topNodes.toString())
-            }
-            // Password is required for payment mode
-            if (options?.password) {
-                params.set('password', options.password)
             }
 
             const path = `/invites/graph/external${params.toString() ? `?${params}` : ''}`

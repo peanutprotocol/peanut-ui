@@ -3,6 +3,7 @@ import posthog from 'posthog-js'
 import { beforeSendHandler } from '../../sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { loadSentry } from '@/utils/sentry-lazy'
+import { isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
 const ENABLED = process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_PERF_BARE !== 'true'
@@ -32,6 +33,7 @@ function bufferEvent(event: ErrorEvent | PromiseRejectionEvent): void {
 
 export function initSentry(): void {
     if (!ENABLED || started || typeof window === 'undefined') return
+    if (isPaymentNetworkExplorerPath(window.location.pathname)) return
     started = true
 
     void loadSentry().then((Sentry) => {
@@ -60,7 +62,10 @@ export function initSentry(): void {
              */
             attachStacktrace: true,
 
-            beforeSend: beforeSendHandler,
+            // A client-side navigation can enter a private route after init.
+            beforeSend: (event) =>
+                isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
+            beforeSendTransaction: (event) => (isPaymentNetworkExplorerPath(window.location.pathname) ? null : event),
 
             integrations: [
                 Sentry.captureConsoleIntegration({
