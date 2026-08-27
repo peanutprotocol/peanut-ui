@@ -3127,6 +3127,7 @@
         "notDeployedOnChain": "Bulk is not able on this chain, please try another chain.",
         "userRejectedRequest": "Please confirm the request in your wallet.",
         "networkError": "A network error occured. Please refresh and try again.",
+        "connectionLost": "Connection lost. Check your internet connection and try again.",
         "nonceExpired": "Nonce expired, please try again.",
         "walletNotConnected": "Please make sure your wallet is connected.",
         "gasExceedsAllowance": "Gas required exceeds balance. Please confirm you have enough funds.",
