@@ -1,7 +1,13 @@
 import type { ExplorerFilters, ExplorerNode, ExplorerRelationship, P2PEdge } from './types'
 
-/** The backend aggregates p2pEdges over this fixed window. Label only — there is no time filter. */
-export const FIXED_WINDOW_LABEL = 'Last 120 days · completed payments only'
+/**
+ * The backend aggregates p2pEdges over this fixed window. Label only — there is no time filter.
+ *
+ * Deliberately does NOT claim "completed only": p2pEdges.sql filters on COMPLETED for the
+ * send-link and request-payment arms, but its CRYPTO_DEPOSIT (direct transfer) arm has no
+ * status predicate, so a pending or stuck deposit can be counted.
+ */
+export const FIXED_WINDOW_LABEL = 'Last 120 days of payment activity'
 
 export const DEFAULT_TOP_NODES = 5000
 /** 0 = no server limit: the entire user base is serialized. Keep behind an explicit choice. */
