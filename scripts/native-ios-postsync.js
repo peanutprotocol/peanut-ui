@@ -35,17 +35,20 @@ const capAppPkgSwift = path.join(repoRoot, 'ios/App/CapApp-SPM/Package.swift')
 const pbxprojPath = path.join(repoRoot, 'ios/App/App.xcodeproj/project.pbxproj')
 
 /*
- * 0. MARKETING_VERSION <- package.json.
+ * 0. MARKETING_VERSION <- IOS_MARKETING_VERSION, else package.json.
  *
  * Deliberately ahead of every early exit below: the SumSub vendoring can
  * legitimately bail out when the plugin is uninstalled, and the version stamp
- * must not bail with it. Android has derived versionName from package.json
- * since native-release.sh; this is the iOS half, and it runs on every
- * `cap sync ios` — CI and local alike — so the project value can no longer
- * drift from the release it is shipping.
+ * must not bail with it. It runs on every `cap sync ios` — CI and local alike —
+ * so the project value can no longer drift from the release it is shipping.
+ *
+ * CI passes IOS_MARKETING_VERSION because the release version is resolved from
+ * git tags, not package.json (see scripts/release-version.mjs). package.json
+ * remains the local-build fallback.
  */
 ;(function syncMarketingVersion() {
-    const { version } = require(path.join(repoRoot, 'package.json'))
+    const source = process.env.IOS_MARKETING_VERSION ? 'IOS_MARKETING_VERSION' : 'package.json'
+    const version = process.env.IOS_MARKETING_VERSION || require(path.join(repoRoot, 'package.json')).version
     const marketingVersion = toMarketingVersion(version)
     const before = fs.readFileSync(pbxprojPath, 'utf8')
     const after = stampMarketingVersion(before, marketingVersion)
@@ -55,7 +58,7 @@ const pbxprojPath = path.join(repoRoot, 'ios/App/App.xcodeproj/project.pbxproj')
         return
     }
     fs.writeFileSync(pbxprojPath, after)
-    console.log(`[postsync] MARKETING_VERSION -> ${marketingVersion} (from package.json)`)
+    console.log(`[postsync] MARKETING_VERSION -> ${marketingVersion} (from ${source})`)
 })()
 
 const pluginInstalled = (() => {

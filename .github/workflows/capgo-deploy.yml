@@ -2,36 +2,38 @@ name: Deploy OTA Update (Capgo)
 
 on:
     # Production OTA reaches every shipped iOS and Android install, so it is opt-in
-    # per release and never a side effect of pushing code: it fires on an `ota-*`
-    # tag and nothing else. Pushing to mobile-release builds and lands code; tagging
-    # is the separate, deliberate act that says "ship this JS to everyone", and the
-    # tag is a permanent record of exactly which commit went out.
+    # per release and never a side effect of pushing code. Normally this workflow is
+    # called by release-ota.yml, which resolves the bundle version and tags the
+    # commit afterwards; `dev` still auto-ships to staging, which reaches no
+    # production device.
     #
-    # One deliberate exception to "tags only": a NATIVE release whose versionName
-    # is ahead of the newest production bundle auto-publishes a matching bundle
-    # from its own commit (see android-release.yml / ios-release.yml). Without
-    # that, Capgo's disable_auto_update_under_native rule makes every device on
-    # the new binary refuse all existing bundles — OTA silently dead for the
-    # fleet while CI stays green (TASK-21793).
+    # One deliberate exception: a NATIVE release whose versionName is ahead of the
+    # newest production bundle auto-publishes a matching bundle from its own commit
+    # (see android-release.yml / ios-release.yml). Without that, Capgo's
+    # disable_auto_update_under_native rule makes every device on the new binary
+    # refuse all existing bundles — OTA silently dead for the fleet while CI stays
+    # green (TASK-21793).
     #
-    #   git tag ota-1.0.48 && git push origin ota-1.0.48
+    # An `ota-*` tag push stays as a break-glass path, naming its own bundle
+    # (ota-1.1.4 -> 1.1.4) and validated against the release scheme. Deliberately
+    # NOT `v*`: ios-release.yml and android-release.yml claim that prefix for native
+    # store builds, and a JS-only OTA must not be able to trigger those.
     #
-    # The bundle version is taken from the tag (ota-1.0.48 -> 1.0.48), so each
-    # shipped bundle is named by the tag that shipped it and two OTAs can never
-    # collide on one version. `ota-1.0.48-hotfix1` is a valid follow-up on the same
-    # native build.
-    #
-    # Deliberately NOT `v*`: ios-release.yml and android-release.yml already claim
-    # that prefix for native store builds, and a JS-only OTA must not be able to
-    # trigger those or vice versa.
-    #
-    # `dev` still auto-ships to staging, which reaches no production device.
-    #
-    # NOTE: the tag is currently the only approval step. The job declares the
-    # Production environment below, but that environment has no protection rules
-    # (verified 2026-08-06 via `gh api repos/:owner/:repo/environments`), so it
-    # gates nothing yet — adding required reviewers there makes the tag push queue
-    # for a second human, with no change to this file.
+    # NOTE: running the workflow is currently the only approval step. The job
+    # declares the Production environment below, but that environment has no
+    # protection rules (verified 2026-08-06 via `gh api repos/:owner/:repo/environments`),
+    # so it gates nothing yet — adding required reviewers there makes a production
+    # deploy queue for a second human, with no change to this file.
+    workflow_call:
+        inputs:
+            channel:
+                description: 'Capgo channel to deploy to'
+                required: true
+                type: string
+            version:
+                description: 'Resolved bundle version to upload'
+                required: true
+                type: string
     push:
         branches: [dev]
         tags: ['ota-*']
@@ -51,8 +53,17 @@ permissions:
     contents: read
 
 concurrency:
-    group: capgo-deploy-${{ github.ref }}
-    cancel-in-progress: true
+    # Two separate hazards, one expression. A routine merge to dev must never cancel a
+    # production write mid-flight, so the channel is part of the group and production
+    # never cancels. And a break-glass `ota-*` tag push runs outside release-ota.yml's
+    # mutex, so it joins `production-release` here — while a CALLED run must not, since
+    # release-ota.yml is already holding that mutex and would deadlock against its own
+    # child (github.event_name is the caller's `workflow_dispatch`, not `push`).
+    group: >-
+        ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ota-'))
+        && 'production-release'
+        || format('capgo-deploy-{0}-{1}', inputs.channel || 'staging', github.ref) }}
+    cancel-in-progress: ${{ inputs.channel != 'production' && !startsWith(github.ref, 'refs/tags/ota-') }}
 
 jobs:
     deploy:
@@ -68,7 +79,7 @@ jobs:
         # Keep the two in sync — every branch that resolves to `production` needs to
         # appear here, or its deploy would reach all users with no approval.
         environment: >-
-            ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.channel == 'production')
+            ${{ (inputs.channel == 'production'
             || startsWith(github.ref, 'refs/tags/ota-')) && 'Production' || '' }}
         steps:
             - uses: actions/checkout@v7
@@ -102,8 +113,8 @@ jobs:
                   # Keep in lockstep with the `environment:` expression above — a ref
                   # that resolves to production here but is missing there would ship to
                   # every device with nobody approving it.
-                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                    echo "name=${{ github.event.inputs.channel }}" >> $GITHUB_OUTPUT
+                  if [ -n "${{ inputs.channel }}" ]; then
+                    echo "name=${{ inputs.channel }}" >> $GITHUB_OUTPUT
                   elif [ "$GITHUB_REF_TYPE" = "tag" ] && case "$GITHUB_REF_NAME" in ota-*) true;; *) false;; esac; then
                     echo "name=production" >> $GITHUB_OUTPUT
                   else
@@ -114,28 +125,35 @@ jobs:
               id: version
               env:
                   CHANNEL: ${{ steps.channel.outputs.name }}
+                  INPUT_VERSION: ${{ inputs.version || '' }}
               run: |
-                  # Capgo defaults the bundle version to package.json's, which only
-                  # moves on a native release, so a lane shipping on every merge
-                  # collides the moment two merges share a version ("Version x already
-                  # exists"). That silently killed dev -> staging: dev sat on 1.0.8 and
-                  # every deploy after the first failed, which looks identical to no
-                  # deploy at all.
+                  # release-ota.yml resolves the production version off the channel's
+                  # current bundle and passes it here, so the input wins. A break-glass
+                  # `ota-*` tag still names its own bundle, validated against the
+                  # release scheme so an off-scheme tag cannot ship.
                   #
-                  # Production takes its version from the ota-* tag, so the bundle is
-                  # named by the tag that shipped it and re-shipping the same JS on the
-                  # same native build just needs a new tag (ota-1.0.48-hotfix1) rather
-                  # than a package.json bump.
-                  #
-                  # Every other lane derives <major>.<minor>.<commit count>. A short-SHA
-                  # suffix would look equivalent and is not: 1.0.8-abc1234 is a semver
-                  # prerelease, sorts BELOW plain 1.0.8, and Capgo's
-                  # disable_auto_update_under_native makes every device on the 1.0.8
-                  # binary refuse it — uploaded, listed, never installed.
-                  if [ "$CHANNEL" = "production" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
+                  # Every other lane derives <major>.<build>.<commit count>. The commit
+                  # count is what keeps staging out of production's way: the two share
+                  # one bundle namespace, production counts OTAs in single digits, and a
+                  # version collision no-ops under --version-exists-ok — uploaded,
+                  # listed, shipped to nobody. A short-SHA suffix would look equivalent
+                  # and is not: 1.1.0-abc1234 is a semver prerelease, sorts BELOW plain
+                  # 1.1.0, and Capgo's disable_auto_update_under_native makes every
+                  # device on the 1.1.0 binary refuse it.
+                  if [ -n "$INPUT_VERSION" ]; then
+                      VERSION="$INPUT_VERSION"
+                  elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
                       VERSION="${GITHUB_REF_NAME#ota-}"
+                      node scripts/release-version.mjs validate "$VERSION" --kind ota
+                  elif [ "$CHANNEL" = "production" ]; then
+                      # A bare dispatch to production would land a staging-shaped
+                      # version on the production channel and drag its OTA counter into
+                      # the commit-count band, where the next resolved version collides
+                      # with a bundle that already exists.
+                      echo "::error::a production deploy needs a resolved version — use the Release OTA workflow" >&2
+                      exit 1
                   else
-                      VERSION="$(node scripts/capgo-bundle-version.mjs)"
+                      VERSION="$(node scripts/release-version.mjs staging)"
                   fi
                   echo "name=$VERSION" >> "$GITHUB_OUTPUT"
                   echo "Uploading as bundle version $VERSION"

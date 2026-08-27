@@ -139,7 +139,8 @@ pnpm native:release        # derive version → native-build → cap sync → bu
   (route handler / `force-dynamic`) isn't in `ITEMS_TO_DISABLE`. Fix = add it there
   (web-only) or give the page `generateStaticParams`.
 - **Versioning** (`android/app/build.gradle`, zero manual edits):
-  - `versionName` ← `ANDROID_VERSION_NAME` env, else `package.json` `version`.
+  - `versionName` ← `ANDROID_VERSION_NAME` env, else `package.json` `version` (a
+    local-build fallback only — CI resolves it, see "Version scheme" below).
   - `versionCode` ← `ANDROID_VERSION_CODE` env, else git commit count; floored at 2
     (rejected first upload was code 1). CI passes `10000 + github.run_number`.
   - **CI is the only authoritative versionCode source.** Local builds derive the code
@@ -150,6 +151,53 @@ pnpm native:release        # derive version → native-build → cap sync → bu
 - **Headers note:** `vercel.json` headers (CSP, HSTS, …) apply to the Vercel web
   deployment only — the native static export is served from the app bundle and ships
   no HTTP headers, so nothing there affects (or protects) the WebView.
+
+### Version scheme
+
+Every shipped version is `<major>.<build>.<ota>`:
+
+| component | means | moves when |
+|-----------|-------|------------|
+| `major` | app generation | a deliberate major upgrade — edit `package.json` `version`, the only place it is read from |
+| `build` | native build counter | every store build; resets `ota` to 0 |
+| `ota` | OTA counter within that build | every OTA on top of that binary; `.0` is the JS baked into the binary itself |
+
+So `1.7.0` is the seventh store build and `1.7.3` is its third OTA. Two properties fall
+out of the shape that used to be maintained by hand: an OTA always sorts strictly above
+the binary it targets (Capgo drops anything below it — TASK-21793), and the version alone
+says which binary a bundle belongs to.
+
+**Nobody types a number.** `scripts/release-version.mjs` resolves them from git tags
+(`v<major>.<build>.0`) plus the Capgo channel. That registry is deliberately not a file
+in the repo: `dev` and `main` both carry a `pull_request` ruleset with no bypass actors,
+so CI cannot push a version-bump commit and `package.json` cannot be the auto-bumped
+source of truth. Its `version` is now only the major anchor and the local-build fallback,
+and it is fine for it to lag behind what ships.
+
+### Cutting a release
+
+Two `workflow_dispatch` buttons, both run from `dev` (they refuse any other ref — `main`
+runs well behind, and a release off the wrong ref would look correctly numbered while
+shipping stale code):
+
+| | button | what it does |
+|-|--------|--------------|
+| native | **Release Native** | resolves `<major>.<build+1>.0` → builds iOS + Android from that one number → TestFlight + Play `internal` → tags `v<version>` |
+| OTA | **Release OTA** | resolves `<major>.<build>.<ota+1>` off the production channel → uploads the bundle → tags `ota-<version>` |
+
+Neither is automatic: no push, merge or commit reaches them. They are the same deliberate
+act as the `git tag … && git push` they replace, minus the hand-picked number.
+
+The tag is written **after** the build, as the record of what shipped — a failed run
+leaves no tag, so a re-run resolves the same number instead of burning one. CI tags with
+`GITHUB_TOKEN` on purpose: GitHub does not start workflows from a push made with it, so
+the tag records the release without re-triggering the build. **A PAT there would
+double-build.**
+
+Both build workflows still accept a `v*` tag push as break-glass, and validate the
+version against the scheme before starting. That check is what a glob cannot do: `v*`
+cannot reject `v2026.02.26` (a real tag on `main`) because it is `X.Y.Z` shaped — only
+the major comparison catches it.
 
 ---
 
@@ -189,11 +237,14 @@ a leak is bounded by Play review + account 2FA. Still treat it as a secret.
 Removes the "release only builds on one laptop" gap — keystore lives as CI secrets,
 the build is reproducible, the AAB lands on a Play track.
 
-- **Trigger:** push tag `vX.Y.Z`, or manual dispatch (pick a track).
+- **Trigger:** called by `release-native.yml` (§6, "Version scheme"). A `vX.Y.0` tag push and a
+  manual dispatch stay as break-glass paths.
 - **Flow:** checkout (submodules) → JDK 17 + Node 22 → install → decode keystore +
   write `keystore.properties` → write prod `NEXT_PUBLIC_*` → `pnpm native:release`
   (`versionCode = github.run_number`) → upload AAB to Play (`internal` by default).
-- **Gate** with a `production` GitHub Environment + required reviewers.
+- **Gate** with a `production` GitHub Environment + required reviewers — not configured
+  yet: the environment has no protection rules today, so runs ship without a second
+  approval (see §9, "No second approver yet").
 - **Track promotion:** internal → closed/beta → production with **staged rollout**
   (`status: inProgress` + `userFraction: 0.1`, promote after metrics look clean).
 
@@ -223,23 +274,22 @@ the build is reproducible, the AAB lands on a Play track.
 `capgo-deploy.yml` builds the static export and uploads it. Production is **opt-in per
 release**, never a side effect of pushing code:
 
-| trigger                                    | channel      | bundle version    |
-| ------------------------------------------ | ------------ | ----------------- |
-| push tag `ota-1.0.48`                       | `production` | `1.0.48`          |
-| push tag `ota-1.0.48-hotfix1`               | `production` | `1.0.48-hotfix1`  |
-| push to `dev`                               | `staging`    | `<pkg>-<sha>`     |
-| manual dispatch                             | your choice  | as above          |
+| trigger                              | channel      | bundle version                    |
+| ------------------------------------ | ------------ | --------------------------------- |
+| **Release OTA** workflow (§6)        | `production` | `<major>.<build>.<ota+1>`         |
+| merge to `dev`                       | `staging`    | `<major>.<build>.<commit count>`  |
+| push tag `ota-1.1.4` (break-glass)   | `production` | `1.1.4`                           |
+| manual dispatch                      | `staging` / `development` only | `<major>.<build>.<commit count>` |
 
-Shipping an OTA to everyone is therefore two steps — land the code, then tag it:
+Shipping an OTA to everyone is therefore two steps — land the code, then run **Release
+OTA** (§6). Merging only reaches `staging`, which no production device sees. A bare manual
+dispatch to `production` is refused: it would upload a staging-shaped version and drag
+the production OTA counter into the commit-count band, where the next resolved version
+collides with a bundle that already exists.
 
-```bash
-git push origin mobile-release          # lands code, ships nothing
-git tag ota-1.0.48 && git push origin ota-1.0.48   # ships to all users
-```
-
-The tag is the approval, and a permanent record of which commit went out. Use a suffixed
-tag (`ota-1.0.48-hotfix1`) to ship JS again on the same native build — bundle versions
-must be unique, and re-tagging is cheaper than a package.json bump.
+Staging keeps the commit count as its OTA component on purpose. Both lanes share one
+bundle namespace, production counts OTAs in single digits, and a version collision
+no-ops under `--version-exists-ok` — uploaded, listed, shipped to nobody.
 
 Not `v*`: that prefix belongs to `ios-release.yml` / `android-release.yml` for native
 store builds, and the two must not trigger each other.
@@ -257,7 +307,7 @@ own `out/` under the binary's versionName, then assert the channel serves it.
 - **The `production` channel** must exist in the Capgo dashboard and be bound to the prod
   app. It does — bundle 1.0.48 shipped to it on 2026-08-06.
 - **No second approver yet.** The job declares the `Production` environment, but that
-  environment has no protection rules, so the tag push ships immediately. Adding required
+  environment has no protection rules, so the run ships immediately. Adding required
   reviewers under Settings → Environments → Production makes it queue for approval with no
   workflow change (needs repo admin).
 - **Native-version gating:** `--auto-min-update-version` (already set) keeps a JS bundle
