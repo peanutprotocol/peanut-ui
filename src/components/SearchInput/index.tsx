@@ -2,6 +2,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { twMerge } from '@/utils/tw'
+import { useTranslations } from 'next-intl'
 
 interface SearchInputProps {
     value: string
@@ -27,6 +28,7 @@ export const SearchInput = ({
     className,
     ...props
 }: SearchInputProps) => {
+    const t = useTranslations('global')
     return (
         <div className={twMerge('relative', className)}>
             <BaseInput
@@ -48,7 +50,7 @@ export const SearchInput = ({
                     variant="transparent"
                     onClick={onClear}
                     className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0"
-                    aria-label="Clear search"
+                    aria-label={t('tokenSelector.clearSearch')}
                 >
                     <div className="flex size-6 items-center justify-center">
                         <Icon name="cancel" size={16} className="text-foreground-secondary" />

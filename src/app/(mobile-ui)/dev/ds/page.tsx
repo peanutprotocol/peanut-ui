@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Card } from '@/components/0_Bruddle/Card'
-import Title from '@/components/0_Bruddle/Title'
 import { DocPage } from './_components/DocPage'
 
 const sections = [
@@ -49,10 +48,11 @@ export default function DesignSystemPage() {
     return (
         <DocPage>
             {/* Hero */}
-            <div className="rounded-sm border border-n-1 bg-purple-1 p-6">
-                <Title text="PEANUT" />
-                <p className="mt-2 text-base font-bold text-n-1">Design System</p>
-                <p className="mt-1 text-sm text-n-1/70">Foundations → Primitives → Patterns → Audit → Playground</p>
+            <div className="rounded-sm border border-border-default bg-action-primary p-6">
+                <h1 className="text-heading-l text-foreground-over-color-primary">Peanut Design System</h1>
+                <p className="mt-1 text-body-s text-foreground-over-color-secondary">
+                    Foundations → Primitives → Patterns → Audit → Playground
+                </p>
             </div>
 
             {/* Quick stats */}
@@ -62,9 +62,9 @@ export default function DesignSystemPage() {
                     { label: 'Flagged dead', value: '68' },
                     { label: 'Merge clusters', value: '104' },
                 ].map((stat) => (
-                    <div key={stat.label} className="rounded-sm border border-n-1 p-3 text-center">
-                        <p className="text-2xl font-bold">{stat.value}</p>
-                        <p className="text-xs text-grey-1">{stat.label}</p>
+                    <div key={stat.label} className="rounded-sm border border-border-default p-3 text-center">
+                        <p className="text-heading-s font-bold">{stat.value}</p>
+                        <p className="text-body-xs text-foreground-secondary">{stat.label}</p>
                     </div>
                 ))}
             </div>
@@ -78,19 +78,21 @@ export default function DesignSystemPage() {
                             className="cursor-pointer p-4 transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-sm border border-n-1 bg-primary-3">
+                                <div className="flex size-10 items-center justify-center rounded-sm border border-border-default bg-background-badge-accent">
                                     <Icon name={section.icon} size={20} />
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
-                                        <h3 className="text-base font-bold">{section.title}</h3>
-                                        <span className="rounded-full bg-n-1/10 px-2 py-0.5 text-xs font-bold text-grey-1">
+                                        <h3 className="text-body-m font-bold">{section.title}</h3>
+                                        <span className="rounded-full bg-background-disabled px-2 py-0.5 text-body-xs font-bold text-foreground-secondary">
                                             {section.count}
                                         </span>
                                     </div>
-                                    <p className="mt-0.5 text-sm text-grey-1">{section.description}</p>
+                                    <p className="mt-0.5 text-body-s text-foreground-secondary">
+                                        {section.description}
+                                    </p>
                                 </div>
-                                <Icon name="arrow-up-right" size={16} className="text-grey-1" />
+                                <Icon name="arrow-up-right" size={16} className="text-foreground-secondary" />
                             </div>
                         </Card>
                     </Link>
@@ -98,9 +100,9 @@ export default function DesignSystemPage() {
             </div>
 
             {/* Design rules quick reference */}
-            <div className="space-y-4 rounded-sm border border-n-1 bg-primary-3/20 p-3">
-                <p className="text-sm font-bold">Quick Rules</p>
-                <ul className="space-y-1 text-sm text-grey-1">
+            <div className="space-y-4 rounded-sm border border-border-default bg-background-page p-3">
+                <p className="text-body-s font-bold">Quick Rules</p>
+                <ul className="space-y-1 text-body-s text-foreground-secondary">
                     <li>
                         Primary CTA:{' '}
                         <code className="rounded bg-white px-1 font-mono text-[10px]">

@@ -5,7 +5,7 @@ type IconBubbleSize = 'xs' | 's' | 'm' | 'l'
 type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'logo'
 
 interface IconBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
-    icon: IconName | React.ReactNode
+    icon: IconName | React.ReactElement
     size?: IconBubbleSize
     color?: IconBubbleColor
     iconClassName?: string

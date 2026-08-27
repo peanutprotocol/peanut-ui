@@ -3,7 +3,7 @@
 import { Root, List, Trigger } from '@radix-ui/react-tabs'
 import { twMerge } from '@/utils/tw'
 
-export interface SegmentedControlOption {
+interface SegmentedControlOption {
     value: string
     label: string
 }

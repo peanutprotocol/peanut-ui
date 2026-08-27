@@ -43,14 +43,14 @@ function DocSectionRoot({ title, description, children }: DocSectionProps) {
                     {hasCode && (
                         <button
                             onClick={() => setCodeVisible(!codeVisible)}
-                            className="flex items-center gap-1 rounded-sm border border-gray-3 px-1.5 py-0.5 text-[10px] font-bold text-grey-1 lg:hidden"
+                            className="flex items-center gap-1 rounded-sm border border-gray-3 px-1.5 py-0.5 text-[10px] font-bold text-foreground-secondary lg:hidden"
                             aria-label={codeVisible ? 'Hide code' : 'Show code'}
                         >
                             &lt;/&gt;
                         </button>
                     )}
                 </div>
-                {description && <p className="mt-2 text-sm text-grey-1">{description}</p>}
+                {description && <p className="mt-2 text-body-s text-foreground-secondary">{description}</p>}
                 <div className="mt-6">{contentNode}</div>
             </div>
 

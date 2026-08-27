@@ -65,7 +65,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                     ref={ref}
                     aria-label={ariaLabel}
                     className={twMerge(
-                        'flex h-12 w-full items-center justify-between rounded-sm border border-border-default bg-white px-4 text-label-l text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary',
+                        'notranslate flex h-12 w-full items-center justify-between rounded-sm border border-border-default bg-white px-4 text-label-l text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary',
                         'disabled:cursor-not-allowed disabled:opacity-50',
                         // DS input focus pattern (blue ring), not the old pink border
                         'focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid',
@@ -92,7 +92,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                         align="start"
                         style={{ width: 'var(--radix-select-trigger-width)' }}
                     >
-                        <Viewport className="w-full p-1">
+                        <Viewport className="notranslate w-full p-1">
                             {options.map((option) => (
                                 <Item
                                     key={option.value}

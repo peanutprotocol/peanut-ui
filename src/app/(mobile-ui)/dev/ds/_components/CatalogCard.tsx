@@ -26,24 +26,24 @@ export function CatalogCard({ title, description, href, icon, status, quality, u
                         </div>
                     )}
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-base font-bold">{title}</h3>
-                        <p className="mt-1 text-sm text-grey-1">{description}</p>
+                        <h3 className="text-body-m font-bold">{title}</h3>
+                        <p className="mt-1 text-body-s text-foreground-secondary">{description}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             {status && <StatusTag status={status} />}
                             {quality && (
-                                <span className="text-[10px] text-grey-1">
+                                <span className="text-[10px] text-foreground-secondary">
                                     {'★'.repeat(quality)}
                                     {'☆'.repeat(5 - quality)}
                                 </span>
                             )}
                             {usages !== undefined && (
-                                <span className="text-[10px] text-grey-1">
+                                <span className="text-[10px] text-foreground-secondary">
                                     {usages} usage{usages !== 1 ? 's' : ''}
                                 </span>
                             )}
                         </div>
                     </div>
-                    <Icon name="arrow-up-right" size={14} className="shrink-0 text-grey-1" />
+                    <Icon name="arrow-up-right" size={14} className="shrink-0 text-foreground-secondary" />
                 </div>
             </Card>
         </Link>

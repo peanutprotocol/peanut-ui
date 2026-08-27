@@ -1,146 +1,31 @@
 import { CatalogCard, CatalogGrid } from '../_components/CatalogCard'
 import { DocPage } from '../_components/DocPage'
+import { SIDEBAR_CONFIG } from '../_components/nav-config'
 
 export default function PrimitivesPage() {
     return (
         <DocPage>
             <div>
                 <h1 className="text-h3">Primitives</h1>
-                <p className="mt-1 text-sm text-grey-1">
+                <p className="mt-1 text-body-s text-foreground-secondary">
                     Bruddle base components. The lowest-level building blocks of the UI.
                 </p>
             </div>
 
+            {/* derived from nav-config (the sidebar's source) so the two can
+                never disagree again — F-21; a drift test pins both to the
+                filesystem */}
             <CatalogGrid>
-                <CatalogCard
-                    title="Button"
-                    description="Primary interaction component. 7 variants, 3 sizes, shadow options, long-press support"
-                    href="/dev/ds/primitives/button"
-                    icon="switch"
-                    status="production"
-                    quality={4}
-                    usages={120}
-                />
-                <CatalogCard
-                    title="Card"
-                    description="Container with optional shadow. Compound component with Header, Title, Description, Content"
-                    href="/dev/ds/primitives/card"
-                    icon="docs"
-                    status="production"
-                    quality={4}
-                />
-                <CatalogCard
-                    title="BaseInput"
-                    description="Text input with sm/md/lg variants and optional right content slot"
-                    href="/dev/ds/primitives/base-input"
-                    icon="clip"
-                    status="production"
-                    quality={3}
-                />
-                <CatalogCard
-                    title="BaseSelect"
-                    description="Radix-based dropdown select with error and disabled states"
-                    href="/dev/ds/primitives/base-select"
-                    icon="clip"
-                    status="production"
-                    quality={4}
-                />
-                <CatalogCard
-                    title="Checkbox"
-                    description="Simple checkbox with optional label"
-                    href="/dev/ds/primitives/checkbox"
-                    icon="check"
-                    status="production"
-                    quality={3}
-                />
-                <CatalogCard
-                    title="Toast"
-                    description="Context-based toast notification system. 4 types, auto-dismiss"
-                    href="/dev/ds/primitives/toast"
-                    icon="bell"
-                    status="production"
-                    quality={5}
-                />
-                <CatalogCard
-                    title="Divider"
-                    description="Horizontal divider with optional text label"
-                    href="/dev/ds/primitives/divider"
-                    icon="minus-circle"
-                    status="production"
-                />
-                <CatalogCard
-                    title="Title"
-                    description="Knerd display font with filled/outline double-render effect. DEAD IN PRODUCT — only rendered by MarketingHero (marketing pages); the wallet app never uses it."
-                    href="/dev/ds/primitives/title"
-                    icon="docs"
-                    status="unused"
-                    quality={3}
-                    usages={1}
-                />
-                <CatalogCard
-                    title="PageContainer"
-                    description="Responsive page wrapper with max-width and alignment options"
-                    href="/dev/ds/primitives/page-container"
-                    icon="docs"
-                    status="production"
-                />
-                <CatalogCard
-                    title="Notification"
-                    description="Inline notification banner. 5 priorities, title + body, dismiss, up to 2 CTAs"
-                    href="/dev/ds/primitives/notification"
-                    icon="alert"
-                    status="limited"
-                />
-                <CatalogCard
-                    title="LinkButton"
-                    description="Standalone underlined link for lightweight navigation. Optional trailing icon"
-                    href="/dev/ds/primitives/link-button"
-                    icon="link"
-                    status="limited"
-                />
-                <CatalogCard
-                    title="Accordion"
-                    description="Expand/collapse sections over the radix base. Single or multiple, disabled items"
-                    href="/dev/ds/primitives/accordion"
-                    icon="chevron-down"
-                    status="production"
-                    usages={1}
-                />
-                <CatalogCard
-                    title="PageStack"
-                    description="Page shell recipe: NavHeader + vertical stack with Center and Footer regions"
-                    href="/dev/ds/primitives/page-stack"
-                    icon="docs"
-                    status="production"
-                />
-                <CatalogCard
-                    title="Section"
-                    description="Section title above a list/card stack. Owns the heading token"
-                    href="/dev/ds/primitives/section"
-                    icon="docs"
-                    status="production"
-                />
-                <CatalogCard
-                    title="ListGroup"
-                    description="Derives first/middle/last positions for ListItem/Card children"
-                    href="/dev/ds/primitives/list-group"
-                    icon="docs"
-                    status="production"
-                />
-                <CatalogCard
-                    title="TitleBlock"
-                    description="Title + supporting-text pair extracted from EmptyState"
-                    href="/dev/ds/primitives/title-block"
-                    icon="docs"
-                    status="production"
-                />
-                <CatalogCard
-                    title="DataRow"
-                    description="Label + value row, promoted from TransactionDetails/ReceiptRow. Copy, tooltip, loading, trailing slot"
-                    href="/dev/ds/primitives/data-row"
-                    icon="docs"
-                    status="production"
-                />
+                {SIDEBAR_CONFIG.primitives.map((item) => (
+                    <CatalogCard
+                        key={item.href}
+                        title={item.label}
+                        description={item.description ?? ''}
+                        href={item.href}
+                        icon={item.icon}
+                        status={item.status ?? 'production'}
+                    />
+                ))}
             </CatalogGrid>
         </DocPage>
     )

@@ -24,27 +24,39 @@ export interface UsageCategory {
 }
 
 const STATUS_META: Record<UsageStatus, { label: string; cls: string; hint: string }> = {
-    live: { label: 'live in product', cls: 'bg-green-1/40 text-n-1 border-n-1', hint: 'rendered on real app screens' },
+    live: {
+        label: 'live in product',
+        cls: 'bg-green-1/40 text-foreground-primary border-n-1',
+        hint: 'rendered on real app screens',
+    },
     variant: {
         label: 'redundant variant',
-        cls: 'bg-secondary-6 text-n-1 border-n-1',
+        cls: 'bg-secondary-6 text-foreground-primary border-n-1',
         hint: 'used, but duplicates another impl',
     },
-    duplicate: { label: 'duplicate', cls: 'bg-error-1/60 text-n-1 border-n-1', hint: 'same job as a canonical impl' },
-    canonical: { label: 'canonical', cls: 'bg-primary-1/50 text-n-1 border-n-1', hint: 'the one to keep' },
+    duplicate: {
+        label: 'duplicate',
+        cls: 'bg-error-1/60 text-foreground-primary border-n-1',
+        hint: 'same job as a canonical impl',
+    },
+    canonical: {
+        label: 'canonical',
+        cls: 'bg-primary-1/50 text-foreground-primary border-n-1',
+        hint: 'the one to keep',
+    },
     adhoc: {
         label: 'ad-hoc inline',
-        cls: 'bg-yellow-1/50 text-n-1 border-n-1',
+        cls: 'bg-yellow-1/50 text-foreground-primary border-n-1',
         hint: 'reinvented inline, not the primitive',
     },
     'showcase-only': {
         label: 'SHOWCASE-ONLY',
-        cls: 'bg-yellow-1/30 text-grey-1 border-grey-1',
+        cls: 'bg-yellow-1/30 text-foreground-secondary border-grey-1',
         hint: 'exists in /dev only — product never renders it',
     },
     dead: {
         label: 'DEAD · never used',
-        cls: 'bg-n-1/10 text-grey-1 border-grey-1',
+        cls: 'bg-background-disabled text-foreground-secondary border-grey-1',
         hint: 'referenced nowhere, delete-candidate',
     },
 }
@@ -119,9 +131,9 @@ export function UsageAudit({
         <DocPage>
             {/* Hero */}
             <div className={`rounded-sm border border-n-1 p-5 ${heroClass}`}>
-                <p className="text-[11px] font-bold tracking-wide text-n-1/70 uppercase">{eyebrow}</p>
+                <p className="text-[11px] font-bold tracking-wide text-foreground-primary/70 uppercase">{eyebrow}</p>
                 <h1 className="mt-1 text-h4">{title}</h1>
-                <div className="mt-2 text-sm leading-snug font-bold text-n-1">{intro}</div>
+                <div className="mt-2 text-body-s leading-snug font-bold text-foreground-primary">{intro}</div>
             </div>
 
             {/* Stat cards */}
@@ -133,8 +145,8 @@ export function UsageAudit({
                     { label: 'dead', value: counts.dead },
                 ].map((s) => (
                     <div key={s.label} className="rounded-sm border border-n-1 p-2 text-center">
-                        <p className="text-xl font-bold">{s.value}</p>
-                        <p className="text-[10px] leading-tight text-grey-1">{s.label}</p>
+                        <p className="text-heading-xs font-bold">{s.value}</p>
+                        <p className="text-[10px] leading-tight text-foreground-secondary">{s.label}</p>
                     </div>
                 ))}
             </div>
@@ -142,7 +154,7 @@ export function UsageAudit({
             {/* Legend */}
             <div className="flex flex-wrap gap-x-3 gap-y-1 rounded-sm border border-dashed border-grey-1 p-3">
                 {STATUS_ORDER.map((s) => (
-                    <span key={s} className="flex items-center gap-1.5 text-[10px] text-grey-1">
+                    <span key={s} className="flex items-center gap-1.5 text-[10px] text-foreground-secondary">
                         <StatusChip status={s} />
                         {STATUS_META[s].hint}
                     </span>
@@ -155,7 +167,7 @@ export function UsageAudit({
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search name / divergence / file…"
-                    className="w-full rounded-sm border border-n-1 bg-white px-3 py-2 text-sm outline-none focus:border-primary-1"
+                    className="w-full rounded-sm border border-n-1 bg-white px-3 py-2 text-body-s outline-none focus:border-primary-1"
                 />
                 <div className="flex flex-wrap gap-1">
                     {['all', ...catNames].map((c) => (
@@ -163,7 +175,9 @@ export function UsageAudit({
                             key={c}
                             onClick={() => setCat(c)}
                             className={`rounded-full border border-n-1 px-2.5 py-1 text-[11px] font-bold ${
-                                cat === c ? 'bg-primary-1 text-n-1' : 'bg-white text-grey-1'
+                                cat === c
+                                    ? 'bg-primary-1 text-foreground-primary'
+                                    : 'bg-white text-foreground-secondary'
                             }`}
                         >
                             {c}
@@ -176,7 +190,9 @@ export function UsageAudit({
                             key={s}
                             onClick={() => setStatus(s)}
                             className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-                                status === s ? 'border-n-1 bg-n-1 text-white' : 'border-grey-2 bg-white text-grey-1'
+                                status === s
+                                    ? 'border-n-1 bg-n-1 text-white'
+                                    : 'border-grey-2 bg-white text-foreground-secondary'
                             }`}
                         >
                             {s === 'all' ? 'all status' : STATUS_META[s as UsageStatus].label}
@@ -190,10 +206,12 @@ export function UsageAudit({
                 <div key={c.category}>
                     <div className="mb-2 border-b border-n-1 pb-1">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-sm font-bold">{c.category}</h2>
-                            <span className="text-[11px] text-grey-1">{c.items.length} shown</span>
+                            <h2 className="text-body-s font-bold">{c.category}</h2>
+                            <span className="text-[11px] text-foreground-secondary">{c.items.length} shown</span>
                         </div>
-                        {c.summary && <p className="mt-1 text-[11px] leading-snug text-grey-1">{c.summary}</p>}
+                        {c.summary && (
+                            <p className="mt-1 text-[11px] leading-snug text-foreground-secondary">{c.summary}</p>
+                        )}
                     </div>
                     <div className="space-y-2">
                         {c.items.map((i, idx) => {
@@ -206,10 +224,12 @@ export function UsageAudit({
                                     }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <p className="text-sm leading-tight font-bold">{i.name}</p>
+                                        <p className="text-body-s leading-tight font-bold">{i.name}</p>
                                         <span
-                                            className={`shrink-0 rounded-sm px-2 py-0.5 text-xs font-bold ${
-                                                i.realUsages > 0 ? 'bg-n-1 text-white' : 'bg-grey-2 text-grey-1'
+                                            className={`shrink-0 rounded-sm px-2 py-0.5 text-body-xs font-bold ${
+                                                i.realUsages > 0
+                                                    ? 'bg-n-1 text-white'
+                                                    : 'bg-grey-2 text-foreground-secondary'
                                             }`}
                                         >
                                             {i.realUsages}× app
@@ -218,18 +238,26 @@ export function UsageAudit({
                                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                         <StatusChip status={i.status} />
                                         {typeof i.devUsages === 'number' && i.devUsages > 0 && (
-                                            <span className="text-[10px] text-grey-1">{i.devUsages}× in /dev only</span>
+                                            <span className="text-[10px] text-foreground-secondary">
+                                                {i.devUsages}× in /dev only
+                                            </span>
                                         )}
-                                        {i.verified && <span className="text-[10px] text-grey-1">✓ re-verified</span>}
+                                        {i.verified && (
+                                            <span className="text-[10px] text-foreground-secondary">✓ re-verified</span>
+                                        )}
                                     </div>
                                     {i.divergence && (
-                                        <p className="mt-1.5 text-[11px] leading-snug text-grey-1">{i.divergence}</p>
+                                        <p className="mt-1.5 text-[11px] leading-snug text-foreground-secondary">
+                                            {i.divergence}
+                                        </p>
                                     )}
                                     {i.source && (
-                                        <p className="mt-1 truncate font-mono text-[10px] text-grey-1/80">{i.source}</p>
+                                        <p className="mt-1 truncate font-mono text-[10px] text-foreground-secondary/80">
+                                            {i.source}
+                                        </p>
                                     )}
                                     {i.usedIn && i.usedIn.length > 0 && (
-                                        <p className="mt-1 font-mono text-[10px] leading-snug text-grey-1/70">
+                                        <p className="mt-1 font-mono text-[10px] leading-snug text-foreground-secondary/70">
                                             used in: {i.usedIn.slice(0, 4).join(' · ')}
                                         </p>
                                     )}
@@ -241,7 +269,7 @@ export function UsageAudit({
             ))}
 
             {footnote && (
-                <div className="rounded-sm border border-dashed border-grey-1 p-3 text-[11px] leading-snug text-grey-1">
+                <div className="rounded-sm border border-dashed border-grey-1 p-3 text-[11px] leading-snug text-foreground-secondary">
                     {footnote}
                 </div>
             )}

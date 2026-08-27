@@ -41,7 +41,7 @@ import {
     TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS,
 } from './TokenSelector.consts'
 import { useChainRollout } from '@/hooks/useChainRollout'
-import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
+import { Drawer, DrawerContent } from '../Drawer'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // USDC logo for the hardcoded USDC-on-Arbitrum fallback (when the token list
@@ -472,8 +472,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             </Button>
 
             <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
-                <DrawerContent className="p-4">
-                    <DrawerTitle className="sr-only">{t('tokenSelector.drawerTitle')}</DrawerTitle>
+                <DrawerContent accessibleTitle={t('tokenSelector.drawerTitle')} className="p-4">
                     <div ref={contentRef} className="mx-auto md:max-w-2xl">
                         {showNetworkList ? (
                             <NetworkListView

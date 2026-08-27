@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { slugify } from '@/utils/general.utils'
 
-export interface TokenDisplayData {
+interface TokenDisplayData {
     symbol: string
     icon: string
 }

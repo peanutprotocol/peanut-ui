@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic'
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
-type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
 type ToastId = string | number
 
 const ToastStack = dynamic(() => import('./ToastStack'), { ssr: false })
@@ -18,7 +17,6 @@ interface ToastOptions {
     type?: ToastType
     /** Number = ms until auto-dismiss. `'persistent'` = stays until `dismiss(id)` is called. */
     duration?: number | 'persistent'
-    position?: ToastPosition
     /** Caller-supplied id. Lets the same toast be `dismiss(id)`-able and prevents
      *  duplicate stacking — if a toast with this id is already on screen, the
      *  duplicate call is a no-op (no re-animation). Auto-generated when omitted. */
@@ -26,6 +24,9 @@ interface ToastOptions {
     /** Extra classes merged into the toast container — for one-off accents like
      *  `border-action-secondary` that don't fit the standard success/error/info/warning. */
     className?: string
+    /** Self-designed toast content (badge celebrations): suppress the priority icon
+     *  so Notification chrome doesn't stack onto the content's own artwork. */
+    hideIcon?: boolean
 }
 
 export interface ToastMessage extends Omit<ToastOptions, 'id'> {
@@ -63,7 +64,6 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         const defaults: Partial<ToastOptions> = {
             type: 'info',
             duration: 3000,
-            position: 'bottom-right',
         }
 
         const toastOptions = typeof options === 'string' ? { message: options } : options

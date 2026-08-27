@@ -25,7 +25,7 @@ export interface ActionModalProps {
     onClose: () => void
     title: string | React.ReactNode
     description?: string | React.ReactNode
-    icon?: IconName | React.ReactNode
+    icon?: IconName | React.ReactElement
     iconProps?: Partial<Omit<GlobalIconProps, 'name'>>
     iconContainerClassName?: string
     isLoadingIcon?: boolean
