@@ -479,6 +479,11 @@
             "yearly": "Anual",
             "selectAriaLabel": "Selecionar período"
         },
+        "capNudge": {
+            "description": "Você atingiu seu limite mensal. Verifique sua renda para solicitar um limite maior.",
+            "cta": "Verificar renda",
+            "underReview": "Recebemos a verificação da sua renda: nossa equipe está revisando seu limite."
+        },
         "increase": {
             "cta": "Aumentar meus limites",
             "submitted": "Documento enviado! Seus limites serão atualizados em breve."

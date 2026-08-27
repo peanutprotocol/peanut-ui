@@ -479,6 +479,11 @@
             "yearly": "Yearly",
             "selectAriaLabel": "Select period"
         },
+        "capNudge": {
+            "description": "You've hit your monthly limit. Verify your income to request a higher one.",
+            "cta": "Verify income",
+            "underReview": "Income verification received — our team is reviewing your limit."
+        },
         "increase": {
             "cta": "Increase my limits",
             "submitted": "Document submitted! Your limits will be updated shortly."
