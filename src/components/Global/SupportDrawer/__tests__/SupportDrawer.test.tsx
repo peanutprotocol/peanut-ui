@@ -92,6 +92,40 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
      * verification snapshot to Crisp with the chat closed — making that sentence
      * untrue. The gate is the promise, not an optimisation.
      */
+    /*
+     * The token gate and the mount latch interact. Open support while a logged-in
+     * user's token is still resolving and the iframe is blocked from mounting —
+     * but latching "has been opened" on the drawer alone leaves it true, so when
+     * the token lands after the user has closed, the hidden iframe mounts, boots
+     * and handshakes with the chat shut. The snapshot would then reach Crisp
+     * outside an open cycle.
+     */
+    it('does not mount the proxy when the token resolves after support closed', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+        mockUseCrispTokenId.mockReturnValue(undefined)
+
+        const view = render(<SupportDrawer />)
+        expect(supportIframe()).not.toBeInTheDocument()
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        // the token lands with the drawer already closed
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        expect(supportIframe()).not.toBeInTheDocument()
+    })
+
+    /*
+     * A token or locale change remounts an already-mounted iframe, and that can
+     * happen with the drawer closed. The fresh proxy handshakes; the reply is
+     * registered once and so needs a ref to see the current open state.
+     */
     it('does not push the snapshot to Crisp after support closes', async () => {
         mockUseCrispTokenId.mockReturnValue('token-abc')
         mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com', balance: 'wallet $1.00' })
@@ -162,6 +196,7 @@ describe('SupportDrawer — crisp-proxy init handshake (postmortem F5: no PII in
         })
         mockUseCrispTokenId.mockReset().mockReturnValue('token-abc')
         mockIsCapacitor.mockReset().mockReturnValue(false)
+        modalsState.isSupportModalOpen = true
     })
 
     // sends a request "from" the given window; the real proxy iframe's
@@ -182,6 +217,26 @@ describe('SupportDrawer — crisp-proxy init handshake (postmortem F5: no PII in
         const proxyWindow = (supportIframe() as HTMLIFrameElement).contentWindow as Window
         return { proxyWindow, postSpy: jest.spyOn(proxyWindow, 'postMessage') }
     }
+
+    it('does not answer the proxy handshake while support is closed', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+
+        const view = render(<SupportDrawer />)
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        // spy on the iframe as it stands NOW — the drawer keeps it mounted while
+        // closed (opacity/transform, not unmount), so this is the same proxy that
+        // a token or locale change would remount behind a shut chat
+        const { proxyWindow, postSpy } = mountedProxyWindow()
+        requestInit(window.location.origin, proxyWindow)
+
+        expect(postSpy).not.toHaveBeenCalled()
+    })
 
     it('replies to CRISP_PROXY_REQUEST_INIT with the payload, addressed to the asking iframe', () => {
         render(<SupportDrawer />)

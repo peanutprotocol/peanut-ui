@@ -108,10 +108,26 @@ const SupportDrawer = () => {
      * opened — and never on Capacitor, where support opens the native Crisp
      * messenger instead.
      */
+    // A logged-in user's token is computed asynchronously (SHA-256 of their userId).
+    // Until it resolves we must NOT load the proxy: a token-less load makes Crisp fall
+    // back to the shared anonymous session persisted on client.crisp.chat, which on a
+    // browser that has hosted more than one Peanut account surfaces the *previous*
+    // user's conversation. Anonymous visitors (no userId) have no token by design and
+    // load immediately.
+    const isAwaitingToken = Boolean(userData.userId) && !crispTokenId
+
     const [hasBeenOpened, setHasBeenOpened] = useState(false)
     useEffect(() => {
-        if (isSupportModalOpen) setHasBeenOpened(true)
-    }, [isSupportModalOpen])
+        /*
+         * Latched only when the drawer is open AND the token is ready — both, or
+         * the iframe first mounts while CLOSED. Open a support drawer whose token
+         * is still resolving, close it, and let the token land: latching on
+         * `isSupportModalOpen` alone leaves this true while the token gate opens,
+         * so the hidden iframe boots and handshakes with the chat shut, and the
+         * account snapshot goes to Crisp outside an open cycle.
+         */
+        if (isSupportModalOpen && !isAwaitingToken) setHasBeenOpened(true)
+    }, [isSupportModalOpen, isAwaitingToken])
 
     // Guests reach this drawer too (claim and pay links mount the same layout),
     // and they have no notifications — the call would just 401.
@@ -164,14 +180,6 @@ const SupportDrawer = () => {
         setIsCrispReady(false)
         setIsCrispFailed(false)
     }, [crispTokenId, crispLocale])
-
-    // A logged-in user's token is computed asynchronously (SHA-256 of their userId).
-    // Until it resolves we must NOT load the proxy: a token-less load makes Crisp fall
-    // back to the shared anonymous session persisted on client.crisp.chat, which on a
-    // browser that has hosted more than one Peanut account surfaces the *previous*
-    // user's conversation. Anonymous visitors (no userId) have no token by design and
-    // load immediately.
-    const isAwaitingToken = Boolean(userData.userId) && !crispTokenId
 
     // in capacitor, open native crisp messenger instead of iframe.
     // Same token gate as the web iframe: for a logged-in user we must not
@@ -322,6 +330,17 @@ const SupportDrawer = () => {
         setDragOffset(0)
     }, [dragOffset, setIsSupportModalOpen])
 
+    /*
+     * The open state, for the handshake listener below. That listener is
+     * registered once and never re-created, so it cannot close over
+     * `isSupportModalOpen` — it would answer with the state from drawer mount
+     * forever.
+     */
+    const isSupportOpenRef = useRef(isSupportModalOpen)
+    useEffect(() => {
+        isSupportOpenRef.current = isSupportModalOpen
+    }, [isSupportModalOpen])
+
     // listen for crisp messages once — persists across open/close cycles.
     // Registered at drawer mount, long before the iframe can mount (hasBeenOpened
     // gate), so the proxy's init request can never race past this listener.
@@ -333,6 +352,24 @@ const SupportDrawer = () => {
                 event.data?.type === CRISP_PROXY_REQUEST_INIT_MSG &&
                 event.source === iframeRef.current?.contentWindow
             ) {
+                /*
+                 * Answer only while support is open. A token or locale change
+                 * remounts an already-mounted iframe (see its key), and that
+                 * remount can happen with the drawer closed — the fresh proxy
+                 * then handshakes, and answering would publish the account
+                 * snapshot outside an open cycle, which the privacy policy says
+                 * we do not do.
+                 *
+                 * Staying silent is safe rather than fatal: the proxy re-asks
+                 * every 250ms until it boots, and the update effect above posts
+                 * the payload the moment the drawer opens, which boots it
+                 * directly. If the 8s readiness watchdog fires first the parent
+                 * shows the mail fallback, and the later CRISP_READY clears it.
+                 */
+                if (!isSupportOpenRef.current) {
+                    return
+                }
+
                 // the proxy iframe asks for its init payload — reply only to OUR
                 // mounted iframe (not any same-origin frame), and directly to it,
                 // never broadcast
