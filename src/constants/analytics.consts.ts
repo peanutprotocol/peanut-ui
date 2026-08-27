@@ -303,6 +303,9 @@ export const ANALYTICS_EVENTS = {
     DELETE_ACCOUNT_INITIATED: 'delete_account_initiated',
     DELETE_ACCOUNT_CONFIRMED: 'delete_account_confirmed',
     DELETE_ACCOUNT_FAILED: 'delete_account_failed',
+    // Deletion refused because the account still holds funds — the user was sent
+    // to move the money out first.
+    DELETE_ACCOUNT_BLOCKED_BALANCE: 'delete_account_blocked_balance',
 
     // ── PWA sunset / app migration ──
     // Funnel: modal_shown(migration_download) → store_cta_clicked / qr_shown

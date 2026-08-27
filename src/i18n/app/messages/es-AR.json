@@ -222,6 +222,9 @@
     },
     "settings": {
         "deleteAccount": {
+            "blockedTitle": "Primero mové tu plata",
+            "blockedDescription": "Todavía tenés ${amount} en tu cuenta. Eliminarla es permanente: después no vas a poder volver a entrar y esa plata quedaría fuera de tu alcance. Mandásela a alguien o retirala primero.",
+            "blockedCta": "Mover mi plata",
             "doneDescription": "Tu cuenta está desactivada y tus datos desaparecerán en un plazo de 30 días. Gracias por abrir Peanut con nosotros — ¡cuidate mucho!",
             "error": "No pudimos eliminar tu cuenta. Intentá de nuevo."
         }
