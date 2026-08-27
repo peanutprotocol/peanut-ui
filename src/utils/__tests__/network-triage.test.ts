@@ -1,6 +1,7 @@
 import {
     captureNetworkTriagedFailure,
     isNativeFetchRejection,
+    isNetworkLayerFailure,
     networkTriageTags,
     triageNetworkFailure,
 } from '../network-triage'
@@ -52,6 +53,27 @@ describe('isNativeFetchRejection', () => {
         expect(isNativeFetchRejection('Error', 'Failed to fetch charges: 500')).toBe(false)
         expect(isNativeFetchRejection('TypeError', 'Failed to fetch charges: 500')).toBe(false)
         expect(isNativeFetchRejection(undefined, undefined)).toBe(false)
+    })
+})
+
+// The predicate the qr-pay / withdraw catches use to report selectively: their
+// other branches are deliberate non-reports (backend wire codes, user actions),
+// so they need to single out the network class without capturing everything.
+describe('isNetworkLayerFailure', () => {
+    test.each([
+        ['a raw engine rejection', new TypeError('Failed to fetch')],
+        ['a fetchWithSentry timeout', Object.assign(new Error('slow'), { name: 'ConnectionTimeoutError' })],
+        ['a fetchWithSentry generic wrap', Object.assign(new Error('nope'), { name: 'ServiceUnavailableError' })],
+    ])('accepts %s', (_label, error) => {
+        expect(isNetworkLayerFailure(error)).toBe(true)
+    })
+
+    test.each([
+        ['a server decision', Object.assign(new Error('insufficient collateral'), { name: 'ApiError' })],
+        ['our own wrapped fetch copy', new Error('Failed to fetch charges: 500')],
+        ['a non-Error throw', 'something odd'],
+    ])('rejects %s', (_label, error) => {
+        expect(isNetworkLayerFailure(error)).toBe(false)
     })
 })
 

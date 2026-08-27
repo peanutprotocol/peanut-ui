@@ -37,6 +37,15 @@ function classifyNetworkFailure(error: unknown): NetworkErrorClass | null {
     return null
 }
 
+/**
+ * Did this error die at the network layer (rather than being something a
+ * server, or the user, decided)? For call sites that report selectively —
+ * a catch whose other branches are deliberate non-reports.
+ */
+export function isNetworkLayerFailure(error: unknown): boolean {
+    return classifyNetworkFailure(error) !== null
+}
+
 export interface NetworkTriage {
     /**
      * What the probes OBSERVED in the seconds after the failure — not proof of
