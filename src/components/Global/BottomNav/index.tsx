@@ -217,10 +217,10 @@ export const BottomNav = () => {
                         e.stopPropagation()
                     }
                 }}
-                // bg at /70 + blur-xl (24px, mirrors the figma Overlay-Blur 24):
-                // content scrolling behind the bar blurs through it.
-                // experiment: kush decides keep/drop
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page/70 backdrop-blur-xl"
+                // solid bar + soft elevation shadow (ruled 2026-08-27, replaces
+                // the blur/dissolve experiments). no DS token carries a soft
+                // .35-alpha shadow — arbitrary value on purpose.
+                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-[0_10px_22px_-6px_rgb(0_0_0/0.35)]"
             >
                 <Link
                     href="/home"
