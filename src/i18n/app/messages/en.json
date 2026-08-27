@@ -1777,7 +1777,8 @@
             "claimTo": "Claim to {name}",
             "claimingTo": "Claiming to {name}",
             "paidTo": "Paid to {name}",
-            "payingTo": "Paying to {name}"
+            "payingTo": "Paying to {name}",
+            "paymentTo": "Payment to {name}"
         },
         "name": {
             "merchant": "Merchant",

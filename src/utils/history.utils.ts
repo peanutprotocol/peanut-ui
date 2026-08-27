@@ -305,6 +305,19 @@ const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
 export const PENDING_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['pending', 'processing', 'soon'])
 export const STRUCK_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['cancelled', 'failed', 'refunded'])
 
+/**
+ * Open requests — unfulfilled request links (direction `request_sent` /
+ * `request_received`) and request-pot rollups — are exempt from the pending
+ * treatment (no pending pill, no greyed amount) in both the history row and
+ * the receipt head. Per the states board (17966:12128) the greyed amount +
+ * pending badge mean "money is moving"; an open request has no money in
+ * flight. A request FULFILMENT that is settling arrives as direction
+ * `receive` / `send` and keeps the pending treatment.
+ */
+export function isOpenRequestDisplay(tx: Pick<TransactionDetails, 'direction' | 'isRequestPotLink'>): boolean {
+    return tx.direction === 'request_sent' || tx.direction === 'request_received' || !!tx.isRequestPotLink
+}
+
 // Direction → balance-change sign. A `Record` (not a switch) so the compiler
 // enforces exhaustiveness: adding a `TransactionDirection` without a sign is a
 // build error, not a silent `''` at runtime.

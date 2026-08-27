@@ -204,3 +204,48 @@ describe('TransactionCard — failed strike-through and the refund carve-out', (
         expect(screen.getByText('$10')).not.toHaveClass('line-through')
     })
 })
+
+// PR #2813 review: open requests (unfulfilled request links + pots) never get
+// the pending treatment in the feed row — no pending chip, no greyed amount.
+// A settling request FULFILMENT (direction receive/send) keeps both.
+describe('TransactionCard — open-request pending exemption', () => {
+    // the icon-only StatusPill has no text; its pending background class is
+    // the stable hook to assert presence/absence
+    const pendingPill = (container: HTMLElement) => container.querySelector('.bg-background-badge-attention')
+
+    function pendingTx(overrides: Partial<TransactionDetails>): TransactionDetails {
+        return { ...eligibleTx(), status: 'pending', ...overrides } as TransactionDetails
+    }
+
+    function renderPending(tx: TransactionDetails, type: 'request' | 'send' | 'receive' = 'request') {
+        return render(
+            <TransactionCard
+                type={type}
+                name="natalia"
+                amount={10}
+                status="pending"
+                transaction={tx}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
+        )
+    }
+
+    it('shows no pending chip and no greyed amount for an open request', () => {
+        const { container } = renderPending(pendingTx({ direction: 'request_received' }))
+        expect(pendingPill(container)).toBeNull()
+        expect(screen.getByText('-$10')).not.toHaveClass('opacity-40')
+    })
+
+    it('exempts request-pot rollups too', () => {
+        const { container } = renderPending(pendingTx({ direction: 'receive', isRequestPotLink: true }), 'receive')
+        expect(pendingPill(container)).toBeNull()
+    })
+
+    it('keeps the pending chip + greyed amount for a real pending payment', () => {
+        const { container } = renderPending(pendingTx({ direction: 'send' }), 'send')
+        expect(pendingPill(container)).not.toBeNull()
+        expect(screen.getByText('-$10')).toHaveClass('opacity-40')
+    })
+})

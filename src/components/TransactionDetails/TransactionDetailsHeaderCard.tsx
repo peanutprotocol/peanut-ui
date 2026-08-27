@@ -1,7 +1,7 @@
 'use client'
 
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
-import { isTestTransaction } from '@/utils/history.utils'
+import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
@@ -81,18 +81,18 @@ const getTitle = (
 
         switch (direction) {
             case 'send':
-                if (status === 'pending' || status === 'cancelled') {
-                    titleText = displayName
+                // Locale-safe discriminant (#2554): key off nameKey, never
+                // the (now localized) display string.
+                if (nameKey === TRANSACTION_NAME_KEYS.sentViaLink) {
+                    titleText = t('title.sentViaLink')
                 } else {
-                    // Locale-safe discriminant (#2554): key off nameKey, never
-                    // the (now localized) display string.
-                    if (nameKey === TRANSACTION_NAME_KEYS.sentViaLink) {
-                        titleText = t('title.sentViaLink')
-                    } else {
-                        titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                            name: displayName,
-                        })
-                    }
+                    // Direction stays in words for every status (PR #2813
+                    // review): a bare counterparty name can't tell inflow
+                    // from outflow. Non-completed (pending / cancelled /
+                    // failed) reads "Sending to".
+                    titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
+                        name: displayName,
+                    })
                 }
                 break
             case 'request_received':
@@ -145,10 +145,23 @@ const getTitle = (
                     // Failed QR-pays carry a self-contained label from the
                     // transformer ("Failed QR payment attempt") — no "Payment to"
                     // prefix, which would read "Payment to Failed QR payment attempt".
-                    titleText = displayName
+                    // Failed card spends carry a merchant name, so they keep the
+                    // direction words: "Payment to {merchant}" (board 17490:115877).
+                    titleText =
+                        nameKey === TRANSACTION_NAME_KEYS.failedQrPayment
+                            ? displayName
+                            : t('title.paymentTo', { name: displayName })
                 } else {
                     titleText = t('title.payingTo', { name: displayName })
                 }
+                break
+            case 'bank_request_fulfillment':
+                // Payer side of a request fulfilled via bank rails — outgoing
+                // money, worded like a send (PR #2813 review: direction must
+                // be readable from the receipt words, not the sign alone).
+                titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
+                    name: displayName,
+                })
                 break
             default:
                 titleText = displayName
@@ -160,9 +173,10 @@ const getTitle = (
 }
 
 /** Amount treatment per the states board (17966:12128): pending = greyed,
- *  cancelled/refunded/failed = strikethrough, everything else = base. */
-const amountStateClasses = (status?: StatusType) => {
-    if (status === 'pending' || status === 'processing') return 'text-foreground-secondary'
+ *  cancelled/refunded/failed = strikethrough, everything else = base.
+ *  Open requests skip the pending grey-out — see isOpenRequestDisplay. */
+const amountStateClasses = (status?: StatusType, isOpenRequest?: boolean) => {
+    if ((status === 'pending' || status === 'processing') && !isOpenRequest) return 'text-foreground-secondary'
     if (status === 'cancelled' || status === 'refunded' || status === 'failed') return 'line-through'
     return ''
 }
@@ -213,7 +227,12 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
         router.push(profileUrl(userName))
     }
 
-    const showBadge = !!status && status !== 'completed'
+    // Open requests (unfulfilled request links + pots) skip the pending
+    // treatment entirely — no pending badge, no greyed amount (PR #2813
+    // review; states board shows requests in the base state).
+    const isOpenRequest = isOpenRequestDisplay({ direction, isRequestPotLink: isRequestPotTransaction })
+    const isPendingFamily = !!status && status !== 'custom' && PENDING_AMOUNT_STATUSES.has(status)
+    const showBadge = !!status && status !== 'completed' && !(isOpenRequest && isPendingFamily)
 
     return (
         <div className="flex flex-col items-center gap-4 text-center">
@@ -292,7 +311,12 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         )}
                     </h2>
                     {!isTest && (
-                        <h1 className={twMerge('text-heading-l text-foreground-primary', amountStateClasses(status))}>
+                        <h1
+                            className={twMerge(
+                                'text-heading-l text-foreground-primary',
+                                amountStateClasses(status, isOpenRequest)
+                            )}
+                        >
                             {sign}
                             {amountDisplay}
                         </h1>

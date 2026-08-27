@@ -1777,7 +1777,8 @@
             "claimTo": "Resgate para {name}",
             "claimingTo": "Resgatando para {name}",
             "paidTo": "Pago para {name}",
-            "payingTo": "Pagando para {name}"
+            "payingTo": "Pagando para {name}",
+            "paymentTo": "Pagamento para {name}"
         },
         "name": {
             "merchant": "Estabelecimento",

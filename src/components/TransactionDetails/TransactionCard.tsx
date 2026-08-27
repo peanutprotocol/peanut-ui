@@ -23,6 +23,7 @@ import {
 import {
     getAvatarUrl,
     getTransactionSign,
+    isOpenRequestDisplay,
     isTestTransaction,
     PENDING_AMOUNT_STATUSES,
     STRUCK_AMOUNT_STATUSES,
@@ -209,9 +210,18 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         status === 'failed' &&
         isCardPaymentEntry(transaction) &&
         !!transaction.extraDataForDrawer?.cardPayment?.isRefund
-    const isPendingAmount = !!status && PENDING_AMOUNT_STATUSES.has(status)
+    // Open requests (unfulfilled request links + pots) are exempt from the
+    // pending treatment — no greyed amount, no pending chip. See
+    // isOpenRequestDisplay for the reasoning; PR #2813 review.
+    const isOpenRequest = isOpenRequestDisplay(transaction)
+    const isPendingAmount = !!status && PENDING_AMOUNT_STATUSES.has(status) && !isOpenRequest
     const isStruckAmount = !!status && STRUCK_AMOUNT_STATUSES.has(status) && !isFailedCardRefund
-    const showStatusChip = !!status && status !== 'completed' && status !== 'closed' && status !== 'cancelled'
+    const showStatusChip =
+        !!status &&
+        status !== 'completed' &&
+        status !== 'closed' &&
+        status !== 'cancelled' &&
+        !(isOpenRequest && PENDING_AMOUNT_STATUSES.has(status))
 
     // Settlement cleared at a different amount than authorized (tip / FX
     // true-up) — flag the row so the balance impact isn't invisible in the
