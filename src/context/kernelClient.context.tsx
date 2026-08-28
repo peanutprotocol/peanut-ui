@@ -1,6 +1,7 @@
 'use client'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import {
+    assertZeroDevBundlerUrl,
     assertZeroDevRpcUrls,
     PEANUT_WALLET_CHAIN,
     USER_OP_ENTRY_POINT,
@@ -125,6 +126,10 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
     privateKey: `0x${string}`,
     { bundlerUrl, paymasterUrl }: { bundlerUrl: string; paymasterUrl: string }
 ): Promise<GenericSmartAccountClient<C>> => {
+    // Bundler on BOTH paths: http(undefined) silently falls back to the chain's
+    // public RPC, which has no ERC-4337 methods, so an unsponsored run would
+    // report ready and then fail every userOp.
+    assertZeroDevBundlerUrl(bundlerUrl)
     const signer = privateKeyToAccount(privateKey)
     const validator = await signerToEcdsaValidator(publicClient, {
         signer,

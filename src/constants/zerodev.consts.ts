@@ -15,14 +15,23 @@ export const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL!
 // RPC has no ERC-4337 methods — so every userOp failed with an error naming neither
 // ZeroDev nor the missing variable. Assert at the transports instead of at module load,
 // which would white-screen the whole app over a wallet-only misconfiguration.
-export function assertZeroDevRpcUrls(bundlerUrl?: string, paymasterUrl?: string) {
-    const missing = [
-        !bundlerUrl && 'NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL',
-        !paymasterUrl && 'NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL',
-    ].filter(Boolean)
+function assertConfigured(entries: Array<[string, string | undefined]>) {
+    const missing = entries.filter(([, value]) => !value).map(([name]) => name)
     if (missing.length) {
         throw new Error(`ZeroDev RPC is not configured — ${missing.join(' and ')} missing from this bundle`)
     }
+}
+
+export function assertZeroDevRpcUrls(bundlerUrl?: string, paymasterUrl?: string) {
+    assertConfigured([
+        ['NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL', bundlerUrl],
+        ['NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL', paymasterUrl],
+    ])
+}
+
+/** Bundler alone — an unsponsored run builds no paymaster transport but still sends userOps. */
+export function assertZeroDevBundlerUrl(bundlerUrl?: string) {
+    assertConfigured([['NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL', bundlerUrl]])
 }
 
 // Timeout for the ZeroDev bundler + paymaster RPC transports. viem's http()
