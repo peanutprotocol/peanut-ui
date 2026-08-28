@@ -14,7 +14,7 @@ import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 type ChecklistItemId = 'create-account' | 'add-money' | 'get-card' | 'first-payment'
 

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * Deterministic generative avatar for the user's OWN identity (home chip,

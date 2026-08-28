@@ -14,7 +14,6 @@ import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import ShowNameToggle from '../components/ShowNameToggle'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
-import Card from '@/components/Global/Card'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 

@@ -51,7 +51,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
 
