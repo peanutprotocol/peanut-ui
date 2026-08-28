@@ -140,7 +140,51 @@ jobs:
             - name: Typecheck
               run: pnpm typecheck
 
+    # Isolated on purpose. The BE's living fixture lives in peanut-api-ts, so
+    # fetching it needs a cross-repo secret — and a secret must never share a
+    # job with PR-authored code, which can plant a GITHUB_PATH wrapper during
+    # postinstall and read it out of the environment. This job checks nothing
+    # out, installs nothing, runs no repo code, and hands the result to `unit`
+    # as data.
+    #
+    # Non-blocking by design: no credential in this repo is currently scoped to
+    # read peanut-api-ts (MONO_READ_TOKEN is mono-only — it 404s here), so the
+    # fetch warns and produces no artifact, and the drift checks in
+    # render-snapshot skip. Provision a contents:read token for peanut-api-ts
+    # and the check goes live with no other change.
+    be-baseline:
+        runs-on: ubuntu-latest
+        permissions: {}
+        steps:
+            - name: Fetch the BE render-snapshot baseline
+              id: fetch
+              env:
+                  GH_TOKEN: ${{ secrets.MONO_READ_TOKEN }}
+                  BE_REF: ${{ github.base_ref || 'dev' }}
+              run: |
+                  set -euo pipefail
+                  if [ -z "${GH_TOKEN:-}" ]; then
+                      echo "::warning::No token for the BE baseline fetch — baseline-vs-BE drift checks will skip."
+                      exit 0
+                  fi
+                  if ! gh api "repos/peanutprotocol/peanut-api-ts/contents/test/integration/__fixtures__/history-real-staging.jsonl?ref=${BE_REF}" \
+                          --jq '.content' > /tmp/be-baseline.b64; then
+                      echo "::warning::Could not read the BE fixture at ${BE_REF} — the token is not scoped to peanut-api-ts. Drift checks will skip."
+                      exit 0
+                  fi
+                  base64 -d < /tmp/be-baseline.b64 > /tmp/be-baseline.jsonl
+                  test -s /tmp/be-baseline.jsonl
+                  echo 'fetched=true' >> "$GITHUB_OUTPUT"
+
+            - uses: actions/upload-artifact@v4
+              if: steps.fetch.outputs.fetched == 'true'
+              with:
+                  name: be-baseline
+                  path: /tmp/be-baseline.jsonl
+                  retention-days: 1
+
     unit:
+        needs: be-baseline
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -160,45 +204,25 @@ jobs:
             - name: Generate Next types
               run: pnpm next typegen
 
-            # Fetch the canonical 49-entry HistoryEntry baseline from the BE
-            # repo. Living source-of-truth = peanut-api-ts/test/integration/
-            # __fixtures__/history-real-staging.jsonl. We don't vendor a copy
-            # in this repo because it bloats every FE diff by ~3.7K lines.
-            # PR base branch tracks the BE branch the FE is coordinated with
-            # (dev when targeting dev; the paired BE PR's HEAD when in flight).
-            # Two steps on purpose: only the fetch may see the cross-repo
-            # token. The import runs scripts/import-be-baseline.mjs from the PR
-            # checkout, which a PR is free to edit, so it must not be able to
-            # read the token out of process.env. `base_ref` goes
-            # through env rather than being interpolated into the script, so a
-            # branch name can never be shell.
-            - name: Fetch BE render-snapshot baseline
-              id: be_baseline
-              env:
-                  # contents:read, which is all the contents API needs here.
-                  GH_TOKEN: ${{ secrets.MONO_READ_TOKEN }}
-                  BE_REF: ${{ github.base_ref || 'dev' }}
-              run: |
-                  set -euo pipefail
-                  # This fetch has been failing silently: the pipe took its exit
-                  # status from base64, so a `gh` error exited 0 and wrote an
-                  # empty file. With pipefail it can't hide any more, so be
-                  # explicit about the two cases instead — no token is a skip,
-                  # a broken fetch with a token is a failure.
-                  if [ -z "${GH_TOKEN:-}" ]; then
-                      echo "::warning::No token for the BE baseline fetch — skipping, so the baseline-vs-BE drift checks cannot run. The FE-side snapshot assertions are unaffected."
-                      echo 'fetched=false' >> "$GITHUB_OUTPUT"
-                      exit 0
-                  fi
-                  gh api "repos/peanutprotocol/peanut-api-ts/contents/test/integration/__fixtures__/history-real-staging.jsonl?ref=${BE_REF}" \
-                      --jq '.content' | base64 -d > /tmp/be-baseline.jsonl
-                  echo 'fetched=true' >> "$GITHUB_OUTPUT"
+            # The BE fixture arrives as an ARTIFACT from the isolated be-baseline
+            # job. Nothing here ever sees a credential: this job has already run
+            # PR-controlled checkout, postinstall and typegen, so a secret in
+            # scope could be lifted by a GITHUB_PATH wrapper.
+            - name: Download the BE render-snapshot baseline
+              uses: actions/download-artifact@v4
+              continue-on-error: true
+              with:
+                  name: be-baseline
+                  path: /tmp/be-baseline
 
             - name: Import the BE baseline
-              if: steps.be_baseline.outputs.fetched == 'true'
               run: |
                   set -euo pipefail
-                  node scripts/import-be-baseline.mjs /tmp/be-baseline.jsonl \
+                  if [ ! -s /tmp/be-baseline/be-baseline.jsonl ]; then
+                      echo 'No BE baseline artifact — the drift checks will skip.'
+                      exit 0
+                  fi
+                  node scripts/import-be-baseline.mjs /tmp/be-baseline/be-baseline.jsonl \
                       src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 
             - name: Run unit tests
