@@ -1,5 +1,12 @@
 name: PR assets cleanup
 
+# DORMANT since 2026-08-28: ds-shots no longer publishes this branch. The job
+# runs PR-authored build code, so it was dropped to contents:read and the PNGs
+# now travel as a workflow artifact. This workflow is kept, not deleted,
+# because the planned pull_request/workflow_run split restores branch
+# publishing from a job that never executes PR code. Until then it finds
+# nothing to delete on every run, which is harmless.
+#
 # The ds-shots comment in tests.yml renders its before/after PNGs from a
 # `pr-assets-<number>` branch, because GitHub markdown cannot show a workflow
 # artifact. Delete that branch when the PR ends, or the branches pile up — 20+

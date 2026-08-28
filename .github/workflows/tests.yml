@@ -330,11 +330,14 @@ jobs:
         # Build ~4m + capture ~2m on a runner, plus install. A hang past this is
         # a bug, not a slow day.
         timeout-minutes: 30
+        # Read-only on purpose. This job checks out the PR and runs its
+        # install, build and test code, and a later step is not an isolation
+        # boundary: a postinstall can plant a GITHUB_PATH or GITHUB_ENV hook
+        # that fires in any step after it. Nothing here may hold a credential
+        # that can write to the repo, so the diff travels as an artifact and a
+        # job summary instead of a pushed branch and a PR comment.
         permissions:
-            # push the pr-assets-<number> branch that holds the PNGs
-            contents: write
-            # keep the one comment up to date
-            pull-requests: write
+            contents: read
         steps:
             - uses: actions/checkout@v4
               with:
@@ -482,51 +485,23 @@ jobs:
                       echo 'Nothing changed, so nothing to publish.'
                   fi
 
-            - name: Publish the changed screenshots
+            # The PNGs ride out as an artifact. Publishing them to a branch
+            # needed contents:write in this job, which is exactly what a PR's
+            # own build code must never be able to reach.
+            - name: Upload the changed screenshots
               if: steps.diff.outputs.ready == 'true' && steps.wanted.outputs.any == 'true'
-              id: assets
-              env:
-                  GH_TOKEN: ${{ github.token }}
-                  PR: ${{ github.event.pull_request.number }}
-                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-              run: |
-                  set -euo pipefail
-                  # GitHub renders an <img> from a URL and never from a workflow
-                  # artifact, so the PNGs need a home the comment can link to.
-                  # The repo convention is a pr-assets-<number> branch read over
-                  # raw.githubusercontent (PRs #2727, #2733, #2748, #2758).
-
-                  SUB="visual/${HEAD_SHA:0:7}"
-                  WORK="$RUNNER_TEMP/pr-assets"
-                  mkdir -p "$WORK/$SUB/base" "$WORK/$SUB/head" "$WORK/$SUB/diff"
-                  while read -r f; do
-                      [ -n "$f" ] || continue
-                      cp "e2e/__shots__/base/$f" "$WORK/$SUB/base/$f"
-                      cp "e2e/__shots__/head/$f" "$WORK/$SUB/head/$f"
-                      # A resized screen has no diff image. Not an error.
-                      cp "e2e/__shots__/diff/$f" "$WORK/$SUB/diff/$f" 2>/dev/null || true
-                  done < e2e/__shots__/wanted.txt
-
-                  # A fresh orphan branch every push, force-pushed, so the
-                  # branch holds only the current images and never grows. The
-                  # commit-sha path keeps raw.githubusercontent from serving a
-                  # cached image from the previous push.
-                  git -C "$WORK" init -q -b "pr-assets-$PR"
-                  git -C "$WORK" add -A
-                  git -C "$WORK" \
-                      -c user.name='github-actions[bot]' \
-                      -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-                      commit -qm "visual shots for #$PR"
-                  # Auth via an http header, never in the remote URL: a failed
-                  # push echoes the remote, and a URL-embedded token lands in
-                  # the build log.
-                  git -C "$WORK" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')" \
-                      push -qf "https://github.com/$GITHUB_REPOSITORY.git" "pr-assets-$PR"
-
-                  echo "url=https://raw.githubusercontent.com/$GITHUB_REPOSITORY/pr-assets-$PR/$SUB" \
-                      >> "$GITHUB_OUTPUT"
-
-            - name: Render the comment
+              uses: actions/upload-artifact@v4
+              with:
+                  name: visual-diff-${{ github.event.pull_request.number }}
+                  path: |
+                      e2e/__shots__/base
+                      e2e/__shots__/head
+                      e2e/__shots__/diff
+                  retention-days: 7
+            # Rendered into the job summary, which needs no permissions. The
+            # script omits the <img> tags when --assets is empty, so this is a
+            # text report plus the artifact above.
+            - name: Render the visual diff summary
               if: github.event_name == 'pull_request'
               env:
                   BASE_REF: ${{ github.base_ref }}
@@ -534,52 +509,20 @@ jobs:
                   set -euo pipefail
                   if [ '${{ steps.diff.outputs.ready }}' != 'true' ]; then
                       {
-                          echo '<!-- ds-shots -->'
                           echo '## 🖼 Visual diff — no baseline yet'
                           echo
                           echo "Nothing is cached for \`${BASE_REF}\`. The next push to that"
-                          echo 'branch captures one, and this comment fills in on your next push here.'
+                          echo 'branch captures one, and this fills in on your next push here.'
                       } > e2e/__shots__/body.md
                   else
                       node scripts/visual-comment.mjs e2e/__shots__/report.json \
-                          --assets='${{ steps.assets.outputs.url }}' \
                           --baseline='${{ steps.diff.outputs.baseline }}' \
                           --head='${{ github.event.pull_request.head.sha }}' > e2e/__shots__/body.md
+                      echo >> e2e/__shots__/body.md
+                      echo 'Images are in the **visual-diff** artifact on this run.' >> e2e/__shots__/body.md
                   fi
                   cat e2e/__shots__/body.md >> "$GITHUB_STEP_SUMMARY"
 
-            # `always()` so a failed capture replaces the previous comment
-            # instead of leaving a green one that is now a lie.
-            - name: Comment on the PR
-              if: always() && github.event_name == 'pull_request'
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      const fs = require('fs')
-                      const tag = '<!-- ds-shots -->'
-                      const out = 'e2e/__shots__/body.md'
-                      const body = fs.existsSync(out)
-                          ? fs.readFileSync(out, 'utf8')
-                          : `${tag}\n## 🖼 Visual diff — the capture failed\n\nNo screenshots this time. The job log says why.`
-
-                      const comments = await github.paginate(github.rest.issues.listComments, {
-                          issue_number: context.issue.number,
-                          owner: context.repo.owner,
-                          repo: context.repo.repo,
-                          per_page: 100,
-                      })
-                      const existing = comments.find((c) => c.body && c.body.includes(tag))
-                      const target = { owner: context.repo.owner, repo: context.repo.repo }
-                      if (existing) {
-                          await github.rest.issues.updateComment({ ...target, comment_id: existing.id, body })
-                      } else {
-                          await github.rest.issues.createComment({ ...target, issue_number: context.issue.number, body })
-                      }
-
-            # The four kept behaviour specs (setup reload-loop guard, icon
-            # regression, send-link hydration, share-asset capture) run
-            # nowhere else in CI. Last on purpose: a red spec fails the job
-            # without aborting the baseline/diff/comment steps above.
             - name: Run regression specs
               run: pnpm test:e2e:regression
 
