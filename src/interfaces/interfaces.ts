@@ -314,6 +314,18 @@ export interface Contact {
     transactionCount: number
 }
 
+/** Crypto address book entry (GET /users/saved-addresses). */
+export interface SavedAddress {
+    id: string
+    /** Storage form: lowercase hex, verbatim base58 (Tron/Solana). */
+    address: string
+    /** As the withdraw flow stores it: numeric id for EVM, chain name for non-EVM ('tron', 'solana'). */
+    chainId: string
+    nickname: string
+    lastUsedAt: string
+    createdAt: string
+}
+
 export interface ContactsResponse {
     contacts: Contact[]
     total: number

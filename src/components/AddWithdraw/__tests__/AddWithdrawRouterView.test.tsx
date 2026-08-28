@@ -114,6 +114,20 @@ jest.mock('../../Global/TokenAndNetworkConfirmationModal', () => ({
     __esModule: true,
     default: () => null,
 }))
+// address book is react-query backed; this file pins the bank-account paths only
+jest.mock('@/hooks/useSavedAddresses', () => ({
+    useSavedAddresses: () => ({
+        savedAddresses: [],
+        isLoading: false,
+        findSaved: () => undefined,
+        rename: { mutateAsync: jest.fn() },
+        remove: { mutateAsync: jest.fn() },
+    }),
+}))
+jest.mock('../../Withdraw/AddressBook/SavedAddressEditDrawer', () => ({
+    __esModule: true,
+    default: () => null,
+}))
 
 import { AddWithdrawRouterView } from '../AddWithdrawRouterView'
 import { WithdrawFlowContextProvider, useWithdrawFlow } from '@/context/WithdrawFlowContext'

@@ -1,0 +1,46 @@
+'use client'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { SAVED_ADDRESSES } from '@/constants/query.consts'
+import { savedAddressesApi, type SaveAddressInput } from '@/services/saved-addresses'
+import { useUserStore } from '@/redux/hooks'
+import type { SavedAddress } from '@/interfaces/interfaces'
+import { savedAddressKey } from '@/utils/saved-address.utils'
+
+/** The user's crypto address book, plus save / rename / remove. Every mutation refetches the list.
+ *  `enabled: false` skips the fetch on surfaces that never read it (the add-money flow). */
+export function useSavedAddresses({ enabled = true }: { enabled?: boolean } = {}) {
+    const { user } = useUserStore()
+    const queryClient = useQueryClient()
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: [SAVED_ADDRESSES] })
+
+    // user-scoped key: the QueryClient outlives a passive logout, so a shared key
+    // could hand the next login the previous user's book; [SAVED_ADDRESSES] stays
+    // the invalidation prefix
+    const query = useQuery({
+        queryKey: [SAVED_ADDRESSES, user?.user.userId],
+        queryFn: savedAddressesApi.list,
+        enabled: enabled && !!user,
+        staleTime: 5 * 60 * 1000,
+    })
+
+    const save = useMutation({
+        mutationFn: (input: SaveAddressInput) => savedAddressesApi.save(input),
+        onSuccess: invalidate,
+    })
+    const rename = useMutation({
+        mutationFn: ({ id, nickname }: { id: string; nickname: string }) => savedAddressesApi.rename(id, nickname),
+        onSuccess: invalidate,
+    })
+    const remove = useMutation({
+        mutationFn: (id: string) => savedAddressesApi.remove(id),
+        onSuccess: invalidate,
+    })
+
+    const savedAddresses = query.data ?? []
+    const findSaved = (chainId: string | number, address: string): SavedAddress | undefined => {
+        const key = savedAddressKey(chainId, address)
+        return savedAddresses.find((s) => savedAddressKey(s.chainId, s.address) === key)
+    }
+
+    return { savedAddresses, isLoading: query.isLoading, findSaved, save, rename, remove }
+}

@@ -3106,6 +3106,18 @@
             "flagAlt": "Bandera de {country}",
             "flagAltGeneric": "Bandera del país"
         },
+        "savedAddresses": {
+            "title": "Libreta de direcciones cripto",
+            "lastUsed": "{days, plural, =0 {Usada hoy} =1 {Usada ayer} other {Usada hace # días}}",
+            "editTitle": "Editar dirección",
+            "editAria": "Editar {nickname}",
+            "nicknameLabel": "Apodo",
+            "nicknamePlaceholder": "p. ej. Binance",
+            "deleteCta": "Eliminar dirección",
+            "savePrompt": "Guardar en la libreta",
+            "editFailed": "No pudimos actualizar la dirección. Intentá de nuevo.",
+            "nicknameRequired": "Agregá un apodo para guardar esta dirección."
+        },
         "forceIosPwaInstall": {
             "videoUnsupported": "Tu navegador no admite la etiqueta de video.",
             "title": "Vive la experiencia completa",

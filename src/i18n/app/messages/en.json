@@ -3106,6 +3106,18 @@
             "flagAlt": "{country} flag",
             "flagAltGeneric": "Country flag"
         },
+        "savedAddresses": {
+            "title": "Crypto address book",
+            "lastUsed": "{days, plural, =0 {Used today} =1 {Used yesterday} other {Used # days ago}}",
+            "editTitle": "Edit address",
+            "editAria": "Edit {nickname}",
+            "nicknameLabel": "Nickname",
+            "nicknamePlaceholder": "e.g. Binance",
+            "deleteCta": "Delete address",
+            "savePrompt": "Save to address book",
+            "editFailed": "Could not update the address. Try again.",
+            "nicknameRequired": "Add a nickname to save this address."
+        },
         "forceIosPwaInstall": {
             "videoUnsupported": "Your browser does not support the video tag.",
             "title": "Get the full experience",
