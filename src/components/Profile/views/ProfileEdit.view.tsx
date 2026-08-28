@@ -8,13 +8,19 @@ import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Icon } from '@/components/Global/Icons/Icon'
+import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
+import ShowNameToggle from '../components/ShowNameToggle'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
+import Card from '@/components/Global/Card'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const ProfileEditView = () => {
     const t = useTranslations('profile.edit')
+    const tMenu = useTranslations('profile.menu')
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack('/profile')
@@ -220,6 +226,17 @@ export const ProfileEditView = () => {
                         disabled
                     />
                 </div>
+
+                {/* Name visibility belongs with the name itself; only shown
+                    once there is a name to show or hide. */}
+                {!!user?.user.fullName?.trim() && (
+                    <ListItem
+                        position="single"
+                        leading={<Icon name="eye" size={24} />}
+                        title={tMenu('showMyFullName')}
+                        trailing={<ShowNameToggle />}
+                    />
+                )}
             </div>
 
             {/* Save renders inline at the end of the form and scrolls with it.
@@ -238,6 +255,8 @@ export const ProfileEditView = () => {
                 >
                     {t('saveChanges')}
                 </Button>
+
+                <DeleteAccountButton />
             </div>
         </div>
     )

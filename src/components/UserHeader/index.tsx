@@ -1,6 +1,6 @@
 'use client'
 
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import DotFaceAvatar from '@/components/Global/DotFaceAvatar'
 import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from '@/utils/tw'
@@ -17,27 +17,19 @@ interface UserHeaderProps {
     isVerified?: boolean
 }
 
-export const UserHeader = ({ username, fullName }: UserHeaderProps) => {
-    const { user } = useAuth()
-    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
-    const nameForAvatar = user?.user.showFullName && fullName ? fullName : username
-
+export const UserHeader = ({ username }: UserHeaderProps) => {
     return (
         <Link href={`/profile`} className="block">
             <Button
                 variant="primary-soft"
                 className={twMerge(
-                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5'
+                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-1 md:h-9'
                 )}
                 shadowSize="3"
                 size="small"
             >
-                <AvatarWithBadge
-                    size="extra-small"
-                    className="h-5 w-5 text-[10px] md:h-6 md:w-6 md:text-[11px]"
-                    name={nameForAvatar}
-                />
-                <span className="text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
+                <DotFaceAvatar username={username} className="h-[30px] w-[30px]" />
+                <span className="pr-1.5 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
             </Button>
         </Link>
     )

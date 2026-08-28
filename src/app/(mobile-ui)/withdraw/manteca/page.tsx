@@ -673,6 +673,7 @@ function MantecaBankWithdrawFlow() {
     return (
         <div className="flex min-h-[inherit] flex-col gap-8">
             <InitiateKycModal
+                prepPath="extended"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {

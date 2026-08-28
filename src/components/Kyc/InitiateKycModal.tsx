@@ -3,9 +3,15 @@
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import ActionModal from '@/components/Global/ActionModal'
+import { useKycDegraded } from '@/hooks/useKycDegraded'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
+import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 
 interface InitiateKycModalProps {
     visible: boolean
@@ -23,6 +29,9 @@ interface InitiateKycModalProps {
     reasonCode?: string
     /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
     regionName?: string
+    /** Which prep checklist the SDK-bound variants show: extended for the
+     *  Manteca (BR/AR) flows, standard elsewhere. */
+    prepPath?: 'standard' | 'extended'
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
@@ -42,10 +51,22 @@ export const InitiateKycModal = ({
     providerMessage,
     reasonCode,
     regionName,
+    prepPath = 'standard',
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
+    // Enforced HERE rather than at each call site on purpose. Six gates open this
+    // modal (add-money, withdraw, the two bank pages, and both Manteca flow
+    // managers), and each one computes its variant from a rail gate that cannot
+    // see WHY identity failed: a region-restricted user reads as `needs-identity`
+    // (no rail + unverified) and would be offered "Unlock now" → the Sumsub SDK
+    // → the same guaranteed rejection, or as `blocked-rejection` → contact
+    // support. Both contradict the region screen. Short-circuiting at the one
+    // component they all share makes the invariant impossible for a future call
+    // site to miss.
+    const { isRegionRestricted } = useIdentityVerification()
+    const isKycDegraded = useKycDegraded()
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
     const isProviderRejection = variant === 'provider_rejection'
@@ -127,12 +148,64 @@ export const InitiateKycModal = ({
 
     const cta = getCta()
 
+    // Outage outranks everything, including the region screen: whatever the
+    // user's state, opening the SDK during a verification outage burns an
+    // attempt against a wall. Same choke-point rationale as the region check
+    // below — six gates share this modal, so the invariant lives here once.
+    if (isKycDegraded) {
+        return (
+            <ActionModal
+                visible={visible}
+                onClose={onClose}
+                title={t('degraded.title')}
+                description={t('degraded.description')}
+                icon="alert"
+                iconContainerClassName="bg-yellow-1"
+                ctas={[
+                    {
+                        text: t('degraded.notifyMe'),
+                        variant: 'purple',
+                        shadowSize: '4',
+                        onClick: () => {
+                            posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
+                            // cohort tag: ops pushes to exactly these users when
+                            // the flag flips back off
+                            posthog.setPersonProperties({ kyc_down_notify_requested: true })
+                            onClose()
+                        },
+                    },
+                    { text: tCommon('gotIt'), variant: 'stroke', onClick: onClose },
+                ]}
+            />
+        )
+    }
+
+    // Render the ONE definition of this screen rather than a second copy of it:
+    // a local re-implementation could drift from the drawer/profile surface, and
+    // "these two never disagree" is the property this whole change rests on.
+    if (isRegionRestricted) {
+        return <KycRegionRestrictedModal visible={visible} onClose={onClose} />
+    }
+
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
             title={getTitle()}
-            description={getDescription()}
+            description={
+                // The variants that lead into a fresh SDK run (the plain unlock
+                // offer and the cross-region unlock) carry the prep checklist,
+                // so no path reaches the vendor without it. Every other variant
+                // is an error/action state where the list would be noise.
+                (variant === 'default' || variant === 'cross_region') && !error ? (
+                    <div className="flex flex-col gap-3">
+                        <p>{getDescription()}</p>
+                        <KycPrepChecklist path={prepPath} />
+                    </div>
+                ) : (
+                    getDescription()
+                )
+            }
             preventClose
             icon={(error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName}
             iconContainerClassName={isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-action-secondary' : ''}

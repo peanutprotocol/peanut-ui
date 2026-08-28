@@ -143,6 +143,11 @@ export const viewport: Viewport = {
     userScalable: false,
     colorScheme: 'light',
     viewportFit: 'cover',
+    // Renders <meta name="theme-color">, which Android Chrome applies
+    // immediately (browser tab AND installed PWA) and which overrides a
+    // cached manifest theme_color — the manifest alone left the status
+    // strip black until Chrome's day-scale manifest refresh.
+    themeColor: '#FAF4F0',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

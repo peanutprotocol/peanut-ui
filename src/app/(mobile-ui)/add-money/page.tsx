@@ -16,7 +16,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
-import { readReturnTo } from '@/utils/return-to.utils'
+import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import posthog from 'posthog-js'
@@ -42,9 +42,14 @@ export default function AddMoneyPage() {
     }, [countryFromQuery, resetOnrampFlow])
 
     const handleBack = () => {
-        // if viewing country-specific form, go back to country list
+        // if viewing country-specific form, go back to country list. Keep the
+        // returnTo origin alive: dropping it here would strand the later backs
+        // on /home instead of the caller (the bug returnTo exists to fix).
         if (countryFromQuery) {
-            router.push('/add-money?method=bank')
+            const params = new URLSearchParams({ method: 'bank' })
+            const origin = searchParams.get(RETURN_TO_PARAM)
+            if (origin) params.set(RETURN_TO_PARAM, origin)
+            router.push(`/add-money?${params.toString()}`)
             return
         }
 

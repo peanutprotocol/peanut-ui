@@ -15,9 +15,7 @@ import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardInfo } from '@/hooks/useCardInfo'
-import Card from '../Global/Card'
-import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
-import ShowNameToggle from './components/ShowNameToggle'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
@@ -32,7 +30,14 @@ export const Profile = () => {
     // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
-    const { hasCardAccess } = useCardInfo()
+    const { hasCardAccess, isEligible } = useCardInfo()
+    const residenceRestrictions = useResidenceRestrictions()
+    // Card holders always see their card row; for everyone else the promo row
+    // only makes sense when the card is actually attainable — a restricted
+    // residence or a server "not eligible" hides it instead of advertising a
+    // closed door. Unknown (still loading) keeps the row: the /shhhhh
+    // explainer is a safe landing either way.
+    const showCardMenuItem = hasCardAccess || (!residenceRestrictions.card && isEligible !== false)
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
 
@@ -50,27 +55,47 @@ export const Profile = () => {
             <div className="space-y-8">
                 <ProfileHeader name={displayName} username={username} isVerified={isUserSumsubKycApproved} />
                 <div className="space-y-4">
-                    <ProfileMenuItem
-                        icon="smile"
-                        label={t('menu.inviteFriends')}
-                        onClick={() => setIsInviteFriendsModalOpen(true)}
-                        href="/dummy" // Dummy link, wont be called
-                        position="single"
-                    />
-                    {/* Menu Items - First Group */}
+                    {/* IA from #2834: identity/products first, then social +
+                        account, then app settings. Payment limits moved inline
+                        into Unlock payments; name visibility moved to
+                        /profile/edit. */}
                     <ListGroup>
-                        {/* Card row shows for everyone. Holders go straight to /card;
-                            everyone else lands on /shhhhh — the waitlist/explainer door,
-                            the canonical card entry point — whose CTA forwards on to /card
-                            post-launch. We deliberately DON'T send non-holders to /card:
-                            it notFound()s users without card access. `hasCardAccess` is
-                            undefined while useCardInfo loads, falling to the /shhhhh path —
-                            the safe default (never 404s; the gated /card route would). */}
                         <ProfileMenuItem
-                            icon="credit-card"
-                            label={hasCardAccess ? t('menu.yourCard') : t('menu.peanutCard')}
-                            href={hasCardAccess ? '/card' : '/shhhhh'}
-                            badge={hasCardAccess ? undefined : t('menu.newBadge')}
+                            icon="globe-lock"
+                            label={t('menu.unlockedRegions')}
+                            href="/profile/identity-verification"
+                            // same chip treatment as the card row's "New!" — a
+                            // pulsing dot was a second attention language on
+                            // one screen.
+                            badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
+                        />
+                        {/* Card row shows for everyone eligible. Holders go straight to
+                            /card; everyone else lands on /shhhhh — the waitlist/explainer
+                            door, the canonical card entry point — whose CTA forwards on to
+                            /card post-launch. We deliberately DON'T send non-holders to
+                            /card: it notFound()s users without card access. */}
+                        {showCardMenuItem && (
+                            <ProfileMenuItem
+                                icon="credit-card"
+                                label={hasCardAccess ? t('menu.yourCard') : t('menu.peanutCard')}
+                                href={hasCardAccess ? '/card' : '/shhhhh'}
+                                badge={hasCardAccess ? undefined : t('menu.newBadge')}
+                            />
+                        )}
+                        <ProfileMenuItem
+                            icon="exchange"
+                            label={t('menu.exchangeRatesAndFees')}
+                            href="/profile/exchange-rate"
+                            iconClassName="size-4"
+                        />
+                    </ListGroup>
+
+                    <ListGroup>
+                        <ProfileMenuItem
+                            icon="smile"
+                            label={t('menu.inviteFriends')}
+                            onClick={() => setIsInviteFriendsModalOpen(true)}
+                            href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
                         <ProfileMenuItem
@@ -78,51 +103,23 @@ export const Profile = () => {
                             label={t('menu.points')}
                             href="/rewards"
                         />
-                    </ListGroup>
-                    <ListGroup>
                         <ProfileMenuItem icon="user" label={t('menu.personalDetails')} href="/profile/edit" />
+                    </ListGroup>
 
-                        <ProfileMenuItem
-                            icon="globe-lock"
-                            label={t('menu.unlockedRegions')}
-                            href="/profile/identity-verification"
-                            // same chip treatment as the card row's "New!" — a
-                            // pulsing dot was a second attention language on
-                            // one screen. COPY IS PROPOSED: "Unlock" over
-                            // "Verify" / "Start", because the destination
-                            // modal already says "Unlock {region}".
-                            badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
-                        />
-
-                        <ProfileMenuItem icon="meter" label={t('menu.paymentLimits')} href="/limits" />
-
+                    <ListGroup>
                         <ProfileMenuItem
                             icon="globe"
                             label={t('language')}
                             endText={LOCALE_LABELS[locale]}
                             href="/settings/language"
                         />
-
-                        <Card className="p-4">
-                            <div className="flex items-center justify-between py-1">
-                                <div className="flex items-center gap-2">
-                                    <Icon name={'eye'} size={20} fill="black" />
-                                    <span className="text-body-m text-foreground-primary">
-                                        {t('menu.showMyFullName')}
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center">
-                                    <ShowNameToggle />
-                                </div>
-                            </div>
-                        </Card>
                         <ProfileMenuItem
                             icon="upload-cloud"
                             label={t('menu.backup')}
                             href="/profile/backup"
                             onClick={() => router.push('/profile/backup')}
                         />
+                        <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
                             icon="bank"
@@ -131,14 +128,7 @@ export const Profile = () => {
                             comingSoon
                         /> */}
                     </ListGroup>
-                    {/* Menu Items - Second Group */}
-                    <ProfileMenuItem
-                        icon="exchange"
-                        label={t('menu.exchangeRatesAndFees')}
-                        href="/profile/exchange-rate"
-                        position="single"
-                        iconClassName="size-4"
-                    />
+
                     {/* Logout + Delete account */}
                     <div className="space-y-6 w-full pb-10">
                         <Button
@@ -152,7 +142,6 @@ export const Profile = () => {
                             <Icon name="logout" size={20} fill="black" />
                             <span className="font-bold">{t('logOut')}</span>
                         </Button>
-                        <DeleteAccountButton />
                     </div>
                 </div>
             </div>
