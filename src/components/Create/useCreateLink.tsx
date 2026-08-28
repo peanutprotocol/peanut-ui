@@ -1,5 +1,6 @@
 'use client'
 import { getNextDepositIndex } from '@/app/actions/claimLinks'
+import { BASE_URL } from '@/constants/general.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { saveToLocalStorage } from '@/utils/general.utils'
 import { generateKeysFromString, getLinkFromParams } from '@/utils/peanut-link.utils'
@@ -119,7 +120,7 @@ export const useCreateLink = () => {
                         contractVersion,
                         depositIdx,
                         password,
-                        `${process.env.NEXT_PUBLIC_BASE_URL!}/claim`,
+                        `${BASE_URL}/claim`,
                         undefined
                     )
                     return {

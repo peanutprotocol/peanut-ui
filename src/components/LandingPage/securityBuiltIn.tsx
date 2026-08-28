@@ -9,6 +9,8 @@ import selfCustodialDesign from '@/assets/illustrations/self-custodial-design.sv
 import kycOnlyWhenRequired from '@/assets/illustrations/kyc-only-when-required.svg'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
+import type { LandingContentHrefs } from './landingContentHrefs'
+import { contentHrefsFor } from './landingContentHrefs.server'
 
 interface Feature {
     id: number
@@ -20,7 +22,7 @@ interface Feature {
     learnMoreHref?: string
 }
 
-function buildFeatures(i18n: Translations, locale: Locale): Feature[] {
+function buildFeatures(i18n: Translations, contentHrefs: LandingContentHrefs): Feature[] {
     return [
         {
             id: 1,
@@ -29,7 +31,7 @@ function buildFeatures(i18n: Translations, locale: Locale): Feature[] {
             description: i18n.landingSecurityTotalDesc,
             iconSrc: handThumbsUp,
             iconAlt: 'Thumbs up',
-            learnMoreHref: `/${locale}/help/passkeys`,
+            learnMoreHref: contentHrefs.passkeys,
         },
         {
             id: 2,
@@ -38,7 +40,7 @@ function buildFeatures(i18n: Translations, locale: Locale): Feature[] {
             description: i18n.landingSecurityControlDesc,
             iconSrc: handWaving,
             iconAlt: 'Hand waving',
-            learnMoreHref: `/${locale}/help/verification`,
+            learnMoreHref: contentHrefs.verification,
         },
         {
             id: 3,
@@ -53,7 +55,7 @@ function buildFeatures(i18n: Translations, locale: Locale): Feature[] {
 
 export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
-    const features = buildFeatures(i18n, locale)
+    const features = buildFeatures(i18n, contentHrefsFor(locale))
 
     return (
         <section id="security" className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">

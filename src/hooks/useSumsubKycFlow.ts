@@ -59,6 +59,31 @@ const ACTION_ERROR_KEYS = {
     unexpected: 'unexpectedError',
 } as const satisfies Partial<Record<SumsubActionErrorCode, string>>
 
+/**
+ * A workflow is multi-level when Sumsub can show a SECOND level in the same
+ * session, after the first submit:
+ *   - LATAM → `general`, which branches AR/BR applicants to `manteca-requirements`
+ *   - EU → `bridge-requirements`, which branches EEA applicants to the
+ *     `bridge-eea-uplift` questionnaire
+ *
+ * NA is deliberately NOT here, even though it shares the `bridge-requirements`
+ * workflow. NA second levels exist but are rare organic branches — the workflow
+ * routes to `source-of-funds` (applicant age >= 60) and `proof-of-address` (POI
+ * country in the higher-risk list); see peanut-api-ts `level-registry.ts`.
+ * Marking NA multi-level would hold EVERY US applicant in an open SDK on
+ * Sumsub's "documents submitted" screen until approval to serve those rare
+ * branches. The branch cohort gets the ACTION_REQUIRED drawer round-trip
+ * instead, which converges. EU differs: every EEA applicant branches to the
+ * uplift questionnaire, so the hold serves the whole cohort.
+ *
+ * ROW and STANDARD are single-level. Applicant actions are always single-level,
+ * whatever the region — see the `isActionFlow` check at the initiate open.
+ *
+ * This list is hand-rolled workflow knowledge and will drift. The durable fix is
+ * for the initiate response to report the level / multi-level flag itself.
+ */
+const isMultiLevelIntent = (intent: KYCRegionIntent | undefined): boolean => intent === 'LATAM' || intent === 'EU'
+
 const getKycPollDelayMs = (elapsedMs: number): number => {
     for (const { untilMs, delayMs } of KYC_POLL_SCHEDULE) {
         if (elapsedMs < untilMs) return delayMs
@@ -95,6 +120,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
     // true when the SDK is showing an applicant action (not a standard level)
     const [isActionFlow, setIsActionFlow] = useState(false)
+    // true when the open SDK session runs a multi-level workflow, so the SDK must
+    // stay open past the first submit and show the follow-up level. Raised by the
+    // initiate open (the only path that can start one) and cleared by both close
+    // handlers, so "closed" always means false. It depends on the intent that open
+    // actually used — most entry points pass it to handleInitiateKyc rather than
+    // as the `regionIntent` prop, so the prop alone is not the effective intent.
+    const [isMultiLevel, setIsMultiLevel] = useState(false)
     const prevStatusRef = useRef(liveKycStatus)
     const showWrapperRef = useRef(showWrapper)
     showWrapperRef.current = showWrapper
@@ -133,14 +165,38 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     // react to status transitions
     useEffect(() => {
+        // Hold an ACTION_REQUIRED transition while a multi-level SDK session is
+        // open: the follow-up questionnaire IS the required action, so acting on it
+        // here would tear the flow down under the user.
+        //
+        // This returns BEFORE prevStatusRef is advanced, so the transition is
+        // deferred, not consumed. When the SDK closes, `showWrapper` changes, this
+        // effect re-runs and the branches below evaluate the same transition for
+        // real. Advancing the ref first would swallow it: a user who abandoned
+        // mid-questionnaire (the SDK can sit on top of an open progress modal)
+        // would then sit on a stale "verifying" modal forever.
+        //
+        // The one close that must NOT replay it is a submission — the user just
+        // acted, so the held transition is stale for what they submitted.
+        // handleSdkComplete consumes it by advancing prevStatusRef itself.
+        //
+        // Both flags are committed state rather than refs, so an interrupted render
+        // can never leak a value this guard acts on.
+        if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
+
         const prevStatus = prevStatusRef.current
         prevStatusRef.current = liveKycStatus
 
         if (prevStatus !== 'APPROVED' && liveKycStatus === 'APPROVED') {
-            // if SDK is still open (LATAM multi-level), close it now —
+            // if SDK is still open (multi-level), close it now —
             // applicantWorkflowCompleted has fired, all levels are done.
             if (showWrapperRef.current) {
                 setShowWrapper(false)
+                // this is the third and last path that closes the SDK, so clearing
+                // here is what makes "closed ⇒ single-level" hold everywhere. A
+                // later action open (self-heal, restart-identity, start-action)
+                // would otherwise inherit a stale true and never close on submit.
+                setIsMultiLevel(false)
                 setIsVerificationProgressModalOpen(true)
                 userInitiatedRef.current = true
             }
@@ -157,7 +213,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             // close modal for any non-success terminal state (REJECTED, ACTION_REQUIRED, FAILED, etc.)
             setIsVerificationProgressModalOpen(false)
         }
-    }, [liveKycStatus, onKycSuccess])
+    }, [liveKycStatus, onKycSuccess, showWrapper, isMultiLevel])
 
     // fetch current status to recover from missed websocket events.
     // skip when regionIntent is undefined to avoid creating an applicant with the wrong template
@@ -380,6 +436,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // not just this one — reaches the right SDK.
                     setAccessToken(response.data.token)
                     setIsActionFlow(!!response.data.actionType)
+                    setIsMultiLevel(!response.data.actionType && isMultiLevelIntent(effectiveIntent))
                     setShowWrapper(true)
                     return true
                 } else {
@@ -406,15 +463,23 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         userInitiatedRef.current = true
         selfHealProviderRef.current = null
         actionKeyRef.current = null
+        // Consume a deferred ACTION_REQUIRED (see the transition effect): this
+        // close IS a submission, so the held transition is stale — replaying it
+        // would close the progress modal this handler opens (in-session resubmit
+        // after a RED decline). The manual close keeps the replay: abandoning
+        // really does leave the action required.
+        if (liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
         setShowWrapper(false)
         setIsActionFlow(false)
+        setIsMultiLevel(false)
         setIsVerificationProgressModalOpen(true)
-    }, [])
+    }, [liveKycStatus])
 
     // called when user manually closes the sdk modal
     const handleClose = useCallback(() => {
         setShowWrapper(false)
         setIsActionFlow(false)
+        setIsMultiLevel(false)
         onManualClose?.()
     }, [onManualClose])
 
@@ -493,6 +558,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             }
             if (response.data?.token) {
                 setAccessToken(response.data.token)
+                // The restart reopens the SAME workflow the original initiate ran
+                // (the token targets the applicant's existing level), so re-derive
+                // the multi-level flag. Left false, a restarted LATAM `general`
+                // session would close on first submit — before the
+                // manteca-requirements questionnaire. Best-effort: the ref is
+                // undefined when this hook instance never initiated, which keeps
+                // today's single-level behavior.
+                setIsMultiLevel(isMultiLevelIntent(regionIntentRef.current))
                 setShowWrapper(true)
             } else {
                 userInitiatedRef.current = false
@@ -623,5 +696,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         closeVerificationModalAndGoHome,
         resetError,
         isActionFlow,
+        isMultiLevel,
     }
 }
