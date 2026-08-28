@@ -37,7 +37,8 @@ function applyUserData(payload: CrispInitPayload | null, withPrefill: boolean) {
     if (payload?.userData && Object.values(payload.userData).some(Boolean)) {
         // `prefill` is guarded (composer); the topic is not (metadata) — see setCrispUserData.
         setCrispUserData(window.$crisp, payload.userData, prefill, payload?.prefilledMessage)
-    } else if (prefill) {
+    } else if (prefill !== undefined) {
+        // same distinction as setCrispUserData: '' clears, undefined leaves alone
         window.$crisp.push(['set', 'message:text', [prefill]])
     }
 }

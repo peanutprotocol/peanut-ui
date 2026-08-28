@@ -90,10 +90,20 @@ export function useCrispUserData(): CrispUserData {
     const [, onCacheChange] = useReducer((tick: number) => tick + 1, 0)
     useEffect(() => {
         if (!isSupportModalOpen) return
-        return queryClient.getQueryCache().subscribe((event) => {
+        const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
             if (event.type !== 'updated') return
             if (WATCHED_KEYS.has(event.query.queryKey[0])) onCacheChange()
         })
+        /*
+         * Re-read once now that the subscription is attached. The values above
+         * were read during render; a balance or card query resolving between
+         * that render and this effect emits its only `updated` event with
+         * nobody listening, and the conversation would keep the initial
+         * `unavailable` snapshot — and the routing flag derived from it — until
+         * some unrelated render happened to recompute it.
+         */
+        onCacheChange()
+        return unsubscribe
     }, [isSupportModalOpen, queryClient])
 
     const walletAddress =

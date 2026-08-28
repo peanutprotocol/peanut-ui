@@ -156,7 +156,15 @@ export function setCrispUserData(
      * which has never existed. See TASK-21968.
      */
 
-    if (prefilledMessage) {
+    /*
+     * `undefined` means "leave the composer alone" — a routine metadata refresh
+     * must not overwrite what the user is typing. An empty STRING is a real
+     * instruction: clear it. Without that distinction, opening support from an
+     * error CTA, closing without sending, then reopening from the nav left the
+     * old error text sitting in the composer, because the iframe stays mounted
+     * and a falsy check skips the clear.
+     */
+    if (prefilledMessage !== undefined) {
         crispInstance.push(['set', 'message:text', [prefilledMessage]])
     }
 }

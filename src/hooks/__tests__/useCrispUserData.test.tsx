@@ -11,6 +11,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook } from '@testing-library/react'
+import { useLayoutEffect } from 'react'
 import type { ReactNode } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSupportClientContext } from '@/hooks/useSupportClientContext'
@@ -175,6 +176,40 @@ describe('useCrispUserData', () => {
         expect(result.current.card).toBeUndefined()
         expect(result.current.segments).toContain('guest')
         expect(JSON.stringify(result.current)).not.toContain('approved')
+    })
+
+    /*
+     * The cache reads happen during render; the subscription attaches in a
+     * passive effect. A query resolving in that window emits its only `updated`
+     * event with nobody listening, so the conversation would keep the initial
+     * `unavailable` snapshot — and the routing flag derived from it — until
+     * some unrelated render recomputed it. A layout effect models the window
+     * exactly: React runs it after render, before passive effects.
+     */
+    it('picks up a query that resolves between render and the subscription', async () => {
+        const Resolver = () => {
+            useLayoutEffect(() => {
+                client.setQueryData(['balance', WALLET], 100_000_000n)
+                client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
+                    status: { hasApplication: false },
+                    balance: null,
+                    cards: [],
+                })
+            }, [])
+            return null
+        }
+
+        const { result } = renderHook(() => useCrispUserData(), {
+            wrapper: ({ children }: { children: ReactNode }) => (
+                <QueryClientProvider client={client}>
+                    <Resolver />
+                    {children}
+                </QueryClientProvider>
+            ),
+        })
+
+        expect(result.current.balance).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
+        expect(result.current.segments).not.toContain('balance-unavailable')
     })
 
     /*

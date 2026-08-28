@@ -337,8 +337,34 @@ export function normalizeSupportRoute(pathname: string | undefined): string | un
  */
 const URL_IN_TEXT = /https?:\/\/\S+/g
 
-/** Paths whose query identifies a thing rather than authorizing access to it. */
-const QUERY_BEARING_PATHS = ['/claim']
+/**
+ * Query parameters kept per path, by name.
+ *
+ * Naming the path is not enough — forwarding `url.search` wholesale would carry
+ * anything else that happens to be on a claim URL, including a parameter added
+ * later or an encoded nested link. The query is rebuilt from these names, so a
+ * parameter nobody has vetted is dropped rather than published.
+ */
+const SAFE_QUERY_PARAMS: Record<string, string[]> = {
+    // c/v/i locate the deposit on-chain (history.utils builds them); the
+    // password rides in the fragment and never survives this function.
+    '/claim': ['c', 'v', 'i'],
+}
+
+function safeQuery(url: URL): string {
+    const allowed = Object.entries(SAFE_QUERY_PARAMS).find(
+        ([path]) => url.pathname === path || url.pathname.endsWith(path)
+    )?.[1]
+    if (!allowed) return ''
+
+    const kept = new URLSearchParams()
+    for (const name of allowed) {
+        const value = url.searchParams.get(name)
+        if (value !== null) kept.set(name, value)
+    }
+    const query = kept.toString()
+    return query ? `?${query}` : ''
+}
 
 export function redactSupportText(text: string): string {
     if (!text) return text
@@ -350,7 +376,6 @@ export function redactSupportText(text: string): string {
             // Not parseable as a URL, so nothing can be reasoned about it.
             return '[link removed]'
         }
-        const keepsQuery = QUERY_BEARING_PATHS.some((path) => url.pathname === path || url.pathname.endsWith(path))
-        return `${url.origin}${url.pathname}${keepsQuery ? url.search : ''}`
+        return `${url.origin}${url.pathname}${safeQuery(url)}`
     })
 }

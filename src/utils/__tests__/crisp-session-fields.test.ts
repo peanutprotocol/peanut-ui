@@ -117,6 +117,28 @@ describe('setCrispUserData segments', () => {
         expect(crisp.calls.filter(([, key]) => key === 'message:text')).toHaveLength(0)
     })
 
+    /*
+     * The iframe stays mounted between open cycles, so the composer keeps
+     * whatever was last put in it. Open support from an error CTA, close
+     * without sending, reopen from the nav: the new cycle has no prefill, and a
+     * falsy guard skipped the clear — leaving the old error text in the box.
+     * `undefined` means "leave the composer alone" (routine metadata refresh);
+     * an empty string is a real instruction to clear it.
+     */
+    it('clears the composer when a new cycle has no prefill', () => {
+        const crisp = push()
+        setCrispUserData(crisp as never, userData(), '')
+
+        expect(crisp.calls.filter(([, key]) => key === 'message:text')).toEqual([['set', 'message:text', ['']]])
+    })
+
+    it('leaves the composer alone on a routine metadata refresh', () => {
+        const crisp = push()
+        setCrispUserData(crisp as never, userData(), undefined, 'topic only')
+
+        expect(crisp.calls.filter(([, key]) => key === 'message:text')).toHaveLength(0)
+    })
+
     it('still gives the agent the flags, as a data row', () => {
         const crisp = push()
         setCrispUserData(crisp as never, userData({ segments: ['web', 'kyc-verified'] }))

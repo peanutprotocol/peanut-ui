@@ -253,6 +253,27 @@ describe('redactSupportText', () => {
         expect(redactSupportText('https://peanut.me/login?token=magic_link_token')).toBe('https://peanut.me/login')
     })
 
+    /*
+     * Naming the path is not enough. Forwarding `url.search` wholesale carried
+     * anything else that happened to be on a claim URL — a parameter added
+     * later, or an encoded nested link — straight to Crisp once the fragment
+     * was gone. The query is rebuilt from the vetted names instead.
+     */
+    it('rebuilds the claim query from vetted names, dropping anything else', () => {
+        const redacted = redactSupportText(
+            'https://peanut.me/claim?c=42161&v=v4.3&i=17&token=leaked&next=https%3A%2F%2Fevil.example%3Fp%3Dnested'
+        )
+
+        expect(redacted).toBe('https://peanut.me/claim?c=42161&v=v4.3&i=17')
+        expect(redacted).not.toContain('leaked')
+        expect(redacted).not.toContain('nested')
+    })
+
+    it('keeps only the claim params that are actually present', () => {
+        expect(redactSupportText('https://peanut.me/claim?i=17')).toBe('https://peanut.me/claim?i=17')
+        expect(redactSupportText('https://peanut.me/claim')).toBe('https://peanut.me/claim')
+    })
+
     it('redacts every link in a message, not just the first', () => {
         const redacted = redactSupportText('tried https://peanut.me/claim#p=one then https://peanut.me/claim#p=two')
 
