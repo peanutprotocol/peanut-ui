@@ -24,14 +24,14 @@ export default function FacetChecklist({
 
     return (
         <fieldset className="border-t border-n-1/15 py-3 first:border-t-0 first:pt-0">
-            <legend className="mb-2 flex w-full items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-grey-1">
+            <legend className="mb-2 flex w-full items-center gap-1.5 text-xs font-bold tracking-wide text-grey-1 uppercase">
                 {label}
                 <InfoTooltip label={label}>{tooltip}</InfoTooltip>
                 {selected.length > 0 && (
                     <button
                         type="button"
                         onClick={() => onChange([])}
-                        className="ml-auto text-[11px] normal-case tracking-normal text-n-1 underline"
+                        className="ml-auto text-[11px] tracking-normal text-n-1 normal-case underline"
                     >
                         Clear
                     </button>
@@ -40,7 +40,7 @@ export default function FacetChecklist({
             {facets.length === 0 ? (
                 <p className="text-xs text-grey-1">{emptyLabel}</p>
             ) : (
-                <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                     {facets.map((facet) => {
                         const checked = selected.includes(facet.value)
                         return (
@@ -59,7 +59,7 @@ export default function FacetChecklist({
                                 <span className="min-w-0 flex-1 truncate" title={facet.label}>
                                     {facet.label}
                                 </span>
-                                <span className="tabular-nums text-grey-1">{facet.observedCount.toLocaleString()}</span>
+                                <span className="text-grey-1 tabular-nums">{facet.observedCount.toLocaleString()}</span>
                             </label>
                         )
                     })}

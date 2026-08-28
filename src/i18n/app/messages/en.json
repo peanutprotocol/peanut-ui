@@ -54,7 +54,8 @@
             "custom": "Custom",
             "unknown": "Unknown"
         },
-        "exchangeRate": "Exchange rate"
+        "exchangeRate": "Exchange rate",
+        "slideToProceed": "Slide to Proceed"
     },
     "navigation": {
         "home": "Home",
@@ -73,7 +74,9 @@
         "claim": "Claim",
         "peanutLogoAlt": "Peanut Logo",
         "receipt": "Receipt",
-        "supportUnread": "New support reply"
+        "supportUnread": "New support reply",
+        "card": "Card",
+        "scanQr": "Scan QR"
     },
     "home": {
         "rewards": "Rewards",
@@ -250,6 +253,15 @@
         },
         "iosCopy": {
             "rewards": "Cashback"
+        },
+        "openProfile": "Open your profile",
+        "showBalance": "Show balance",
+        "hideBalance": "Hide balance",
+        "drawers": {
+            "sendToFriends": "Send to friends",
+            "sendToFriendsDescription": "Link, Contacts, Bank, Crypto",
+            "withdrawToOwnAccounts": "Withdraw to own accounts",
+            "withdrawToOwnAccountsDescription": "Bank, Mercado, Crypto"
         }
     },
     "profile": {
@@ -259,10 +271,11 @@
             "yourCard": "Your Card",
             "peanutCard": "Peanut Card",
             "newBadge": "New!",
+            "unlockBadge": "Unlock",
             "yourBadges": "Your Badges",
             "points": "Points",
             "personalDetails": "Personal details",
-            "unlockedRegions": "Unlocked regions",
+            "unlockedRegions": "Regions and verification",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
@@ -280,14 +293,6 @@
                 "phoneNumber": "Phone number",
                 "website": "Website"
             },
-            "placeholders": {
-                "name": "Add your name",
-                "surname": "Add your surname",
-                "bio": "Add a bio",
-                "email": "Add your email",
-                "phone": "Add your number",
-                "website": "Add your website"
-            },
             "soonBadge": "Soon!",
             "saveChanges": "Save Changes",
             "errors": {
@@ -295,7 +300,7 @@
             }
         },
         "regions": {
-            "title": "Unlocked regions",
+            "title": "Regions and verification",
             "description": "Transfer to and receive from any bank account and use supported payments methods.",
             "empty": {
                 "title": "No regions unlocked yet",
@@ -768,8 +773,7 @@
             "bankDescription": "EUR, USD, MXN, ARS & more",
             "instantTransfers": "Instant transfers",
             "exchangeOrWalletTitle": "Exchange or Wallet",
-            "exchangeOrWalletDescription": "Binance, Metamask and more",
-            "yourAccountsOnly": "YOUR ACCOUNTS ONLY"
+            "exchangeOrWalletDescription": "Binance, Metamask and more"
         },
         "contacts": {
             "searchPlaceholder": "Search contacts...",
@@ -1418,18 +1422,17 @@
         "eurAccountsOnlyDescription": "Only EUR accounts with IBAN work for onramps. Your local currency account may not work.",
         "chainTokenOnly": "{chain} · {tokens} only",
         "methods": {
-            "migrateFromOfframp": "Migrate from Offramp",
-            "migrateFromOfframpDescription": "Move your Offramp balance to Peanut",
             "crypto": "Crypto",
             "cryptoDescription": "Deposit from a wallet or exchange",
-            "bankTransfer": "Bank Transfer",
+            "bankTransfer": "Bank transfer",
             "kycRequired": "KYC required"
         },
         "networkDrawer": {
             "title": "Choose Network",
             "description": "Select Network you want to make deposit from:",
             "evmDescription": "{count} Networks - 1 Address",
-            "supportedTokens": "{count, plural, one {# Supported token} other {# Supported tokens}}"
+            "supportedTokens": "{count, plural, one {# Supported token} other {# Supported tokens}}",
+            "evmTokensOnNetworks": "{tokens, plural, one {# supported token} other {# supported tokens}} on {networks} networks"
         },
         "supportedNetworksModal": {
             "title": "Supported Networks",
@@ -1438,37 +1441,24 @@
         },
         "howToDeposit": {
             "title": "How to Deposit",
-            "titleOfframp": "How to Migrate",
             "step": "Step {number}",
             "warning": "Sending to the wrong network or token will result in permanent loss.",
-            "warningOfframp": "Only send USDC on Arbitrum — other tokens or networks may be lost.",
             "default": {
                 "step1": "Copy your deposit address above",
                 "step2": "Open your wallet or exchange and start a withdrawal",
                 "step3": "Paste the address and select one of the supported networks",
                 "step4": "Confirm and send — funds arrive within a few minutes"
-            },
-            "offramp": {
-                "step1": "Copy your migration deposit address above",
-                "step2": "Open your Offramp account and start a withdrawal or send",
-                "step3": "Choose USDC on the Arbitrum network and paste the address",
-                "step4": "Confirm and send — your balance arrives within a few minutes"
             }
         },
         "crypto": {
             "title": "Deposit Crypto",
-            "sendUsdcOnArbitrum": "Send <b>USDC on Arbitrum</b> to migrate your balance",
             "sendTokensToAddress": "Send tokens to this <b>{network}</b> address",
             "tooltipEvm": "{count} EVM networks supported. For exact amounts, deposit USDC on Arbitrum. Other chains/tokens are bridged (±0.1%).",
             "tooltipSol": "Your Solana deposit address. Deposits are bridged to Arbitrum (±0.1% variance).",
             "tooltipTron": "Your Tron deposit address. Deposits are bridged to Arbitrum (±0.1% variance).",
-            "migrationAddressTooltip": "Use this address for your Offramp migration. It only accepts USDC on Arbitrum — don't save it as a general wallet address.",
-            "migrationDepositAddress": "Migration deposit address",
             "universalDepositAddress": "Universal Deposit Address",
             "depositAddress": "Deposit Address",
-            "network": "Network:",
             "supportedNetworks": "Supported Networks:",
-            "token": "Token:",
             "supportedTokens": "Supported Tokens:",
             "supportedTokensInline": "Supported tokens:",
             "supportedEvmNetworks": "Supported EVM networks",
@@ -1476,33 +1466,18 @@
             "selectNetworkType": "Select network type",
             "warningTitle": "Send to supported networks only",
             "warningDescription": "Wrong token or network may cause permanent loss.",
-            "warningTitleOfframp": "Send USDC on Arbitrum only",
-            "warningDescriptionOfframp": "Other tokens or networks may cause permanent loss.",
             "minDepositFor": "Min deposit for {network}:",
             "maxDepositFor": "Max deposit for {network}:",
             "minDepositForLabel": "Min deposit for {network}",
             "maxDepositForLabel": "Max deposit for {network}",
-            "minPerTransfer": "Min per transfer:",
-            "maxPerTransfer": "Max per transfer:",
             "bridgingVarianceNote": "Deposits are bridged to Arbitrum and can vary slightly (±0.1%).",
             "bridgingVarianceNoteEvm": "USDC on Arbitrum arrives exactly. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).",
-            "multipleTransfersNote": "Moving more than the max? Send it in multiple transfers.",
             "addressErrorTitle": "We couldn't prepare your deposit address",
             "addressErrorDescription": "Nothing was sent. Please try again — if this keeps happening, contact support.",
             "marketMovedTitle": "Oops! Market moved",
             "marketMovedDescription": "The exchange rate changed too much to complete your deposit.",
             "marketMovedNote": "Your money is on its way back to your wallet.",
-            "transferSentBackTitle": "Transfer sent back",
-            "transferSentBackDescription": "We couldn't complete your migration transfer.",
-            "transferSentBackNote": "Your money was returned to your Offramp account — start the withdrawal again from there.",
-            "migrationComplete": "Migration Complete",
             "depositedCrypto": "Deposited Crypto"
-        },
-        "offrampGate": {
-            "title": "Which Offramp account is this?",
-            "description": "Enter the username or email of the Offramp account you're migrating from, so we can match your balance to your new Peanut wallet.",
-            "placeholder": "Offramp username or email",
-            "error": "Could not save your Offramp account. Please try again."
         },
         "manteca": {
             "youreAdding": "You're adding",
@@ -1584,7 +1559,8 @@
             "bankAccountFailed": "Failed to process bank account. Please try again or contact support.",
             "bankAccountSettingUp": "Your bank account is still being set up. Please try again in a moment."
         },
-        "pixMaintenanceBadge": "Maintenance"
+        "pixMaintenanceBadge": "Maintenance",
+        "addCryptoTitle": "Add crypto"
     },
     "withdraw": {
         "amountToWithdraw": "Amount to withdraw",
@@ -1700,6 +1676,10 @@
             "city": "Your City",
             "cityRequired": "City is required",
             "state": "Select your state",
+            "stateLabel": "State",
+            "streetLabel": "Street address",
+            "cityLabel": "City",
+            "postalCodeLabel": "Postal code",
             "stateRequired": "State is required",
             "postalCode": "Your Postal Code",
             "postalCodeRequired": "Postal code is required",
@@ -1733,7 +1713,9 @@
             "completeAccountSetup": "Please complete your account setup. Go to Settings to update your profile.",
             "minWithdrawAmount": "Withdraw amount must be at least ${amount}"
         },
-        "resolvesTo": "resolves to"
+        "resolvesTo": "resolves to",
+        "addNewAccount": "Add new account",
+        "mercadoPagoDescription": "Your accounts only - instant transfer"
     },
     "transaction": {
         "drawerTitle": "Transaction Details",
@@ -1788,6 +1770,7 @@
             "receivedFrom": "Received from {name}",
             "requestedFrom": "Requested from {name}",
             "requestingFrom": "Requesting from {name}",
+            "youRequested": "You requested",
             "withdrewTo": "Withdrew to {name}",
             "withdrawingTo": "Withdrawing to {name}",
             "addedFrom": "Added from {name}",
@@ -1796,7 +1779,7 @@
             "claimTo": "Claim to {name}",
             "claimingTo": "Claiming to {name}",
             "paidTo": "Paid to {name}",
-            "payingTo": "Paying to {name}"
+            "paymentTo": "Payment to {name}"
         },
         "name": {
             "merchant": "Merchant",
@@ -1852,7 +1835,8 @@
             "download": "Download",
             "reason": "Reason",
             "accountNumber": "Account Number",
-            "address": "Address"
+            "address": "Address",
+            "estimateConversion": "Estimate conversion"
         },
         "perkBanner": {
             "title": "You earned a reward!",
@@ -2273,15 +2257,6 @@
         }
     },
     "notifications": {
-        "title": "Notifications",
-        "loadFailed": "Failed to load notifications. Please try again.",
-        "loadMoreFailed": "Failed to load more notifications. Tap to retry.",
-        "emptyTitle": "No notifications yet!",
-        "emptyDescription": "You will see your notifications here.",
-        "loadingMore": "Loading more...",
-        "today": "Today",
-        "yesterday": "Yesterday",
-        "iconAlt": "icon",
         "setupTitle": "Turn on notifications?",
         "setupDescription": "Enable notifications and get alerts for all wallet activity.",
         "migrationSetupTitle": "Get money alerts",
@@ -2723,6 +2698,7 @@
         "title": "Recover Funds",
         "selectToken": "Select a token to recover",
         "noTokens": "No tokens to recover",
+        "noTokensDescription": "Tokens sent to your address on other networks will show up here.",
         "recipientPlaceholder": "Enter the address where you want to receive the funds",
         "review": "Review",
         "youWillReceiveTo": "You will receive to",
@@ -3061,12 +3037,6 @@
             "contributed": "{amount} contributed",
             "remaining": "{amount} remaining"
         },
-        "routeExpiryTimer": {
-            "findingBestRate": "Finding best rate...",
-            "noQuote": "No quote available",
-            "quoteExpired": "Quote expired",
-            "priceLocked": "Price locked for {time}"
-        },
         "mantecaMaintenance": {
             "title": "Service Temporarily Unavailable",
             "description": "We're experiencing issues with {action, select, deposits {deposits} withdrawals {withdrawals} other {transfers}} due to an external provider outage. We're working to restore service as soon as possible.",
@@ -3126,10 +3096,8 @@
             "payWhatYouWant": "Pay what you want",
             "sendExactAmount": "Send the exact amount!"
         },
-        "betaBanner": "Peanut is in beta! Thank you for being an early user, share your feedback here",
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
         "rainCooldownPill": "Card cool-down",
-        "betaBannerThumbsUpAlt": "Thumbs up",
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",

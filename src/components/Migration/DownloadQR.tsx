@@ -25,7 +25,7 @@ export default function DownloadQR({ surface }: { surface: MigrationSurface }) {
     return (
         <div className="flex flex-col items-center gap-3 py-2">
             <QRCodeWrapper url={`${origin}/app`} />
-            <span className="text-xs text-grey-1">{t('qr.scanHint')}</span>
+            <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
             {/* desktop can install directly too (e.g. Google Play from the browser) */}
             <StoreBadges surface={surface} />
         </div>

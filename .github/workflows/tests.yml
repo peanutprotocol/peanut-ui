@@ -6,10 +6,15 @@ on:
     # concurrency groups, so neither cancelled the other).
     # content-publish-automerge's merge-on-green requires "at least one and
     # ALL green" ci-success check runs per SHA, so one run per SHA satisfies it.
+    # feat/design-system is in both lists for the DS release train: PRs based
+    # on it need the suite (and ds-shots), and pushes to it write the ds-shots
+    # baseline a based PR can restore — Actions cache scoping only lets a PR
+    # read caches from its own ref, its base branch, and the default branch.
+    # Remove it from all three allowlists once the DS branch merges to dev.
     push:
-        branches: [main, dev]
+        branches: [main, dev, feat/design-system]
     pull_request:
-        branches: [main, dev, develop]
+        branches: [main, dev, develop, feat/design-system]
     workflow_dispatch:
 
 # Cancel in-progress runs on the same PR / branch when a newer commit lands.
@@ -27,7 +32,7 @@ jobs:
     # Prettier formatting + content-link validation. Fast, no node_modules
     # needed beyond what setup-node cache restores.
     # (Renamed from "lint" — the job never actually ran a linter; ESLint now
-    # lives in its own advisory job below.)
+    # lives in its own blocking job below.)
     format:
         runs-on: ubuntu-latest
         steps:
@@ -60,9 +65,32 @@ jobs:
             - name: Validate sitemap, footer, and blog links
               run: pnpm validate-links
 
-    # Blocking ESLint pass. In ci-success.needs, so a red eslint job blocks the
-    # PR. `pnpm lint` fails on errors only — the remaining warnings do not gate.
-    # Ratchet to a warn floor (`--max-warnings`) once that count is down.
+    # DS debt ratchet (DS 10, TASK-21450). Runs scripts/ds-lint-counts.mjs
+    # --check against the committed baseline: debt counts (raw hex, inline
+    # styles, stock text sizes, non-DS classes in views, useSearchParams files)
+    # may only go down. A PR that lowers a count should also tighten the
+    # baseline (--write-baseline) so the gain locks in. Pure-node script — no
+    # pnpm install needed.
+    ds-lint:
+        runs-on: ubuntu-latest
+        steps:
+            # no submodules/token: the count script only reads src/**/*.ts(x)
+            # and the only submodule (src/content) holds none. no git ops after
+            # checkout either, so don't persist credentials.
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: DS lint-count ratchet
+              run: node scripts/ds-lint-counts.mjs --check
+
+    # Blocking ESLint pass (DS 10, TASK-21450). Errors reached zero on
+    # feat/design-system, so this gates the PR via ci-success.needs. Warnings
+    # do not fail the job; add a warn floor only if the team decides one.
     eslint:
         runs-on: ubuntu-latest
         steps:
@@ -176,22 +204,96 @@ jobs:
                   path: test-results/junit.xml
                   retention-days: 7
 
-    # Playwright e2e — advisory until TEST_HARNESS_SECRET + harness API
-    # reachability are wired in repo settings (per the prior comment).
-    e2e:
+    # Can this PR move a pixel? Answered from the PR file list over the API, so
+    # a docs-only, workflow-only or test-only PR skips the capture with no
+    # checkout and no install.
+    ds-shots-filter:
+        name: ds-shots-filter
+        # A fork PR gets a read-only GITHUB_TOKEN and no SUBMODULE_TOKEN, so
+        # neither the submodule checkout nor the comment can work. Skip it.
+        if: >-
+            github.event_name == 'pull_request' &&
+            github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
-        # Without a cap a stalled step runs to the 6h default. "Install
-        # Playwright browsers" hung three times on 2026-08-18 (~30min each)
-        # while sibling runs cleared it in under two minutes. An unbounded hang
-        # is worse than a failure here: `ci-success` never reports, and
-        # content-publish-automerge merges on all-green-of-N, so N stays 0 and
-        # a content publish stalls with no error anywhere. Fail fast instead.
-        timeout-minutes: 20
+        # Reads the PR file list and nothing else.
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            render: ${{ steps.check.outputs.render }}
+        steps:
+            - name: Look for a file that changes what a screen renders
+              id: check
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR: ${{ github.event.pull_request.number }}
+                  REPO: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+                  # Everything a fixture screen is built from. src/ is most of
+                  # it; the config files decide how src/ compiles, and the lock
+                  # file decides which version of every dependency renders.
+                  # e2e/flows/ and the regression config are here because the
+                  # behaviour specs run inside ds-shots — without them a PR
+                  # touching only those files would skip the job that runs them.
+                  KEEP='^(src/|e2e/(shots|flows)/|scripts/visual-(diff|comment)\.mjs$|playwright\.(shots|regression)\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
+                  # Inside the set above but never on camera. src/content is the
+                  # blog and SEO submodule, and no fixture renders those pages.
+                  DROP='(^src/content(/|$)|/__tests__/|/__mocks__/|\.test\.tsx?$|\.md$)'
+
+                  FILES=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename')
+                  HITS=$(printf '%s\n' "$FILES" | grep -E "$KEEP" | grep -vE "$DROP" || true)
+
+                  if [ -z "$HITS" ]; then
+                      echo 'render=false' >> "$GITHUB_OUTPUT"
+                      echo 'Nothing here can move a pixel. Skipping the visual diff.'
+                      exit 0
+                  fi
+                  echo 'render=true' >> "$GITHUB_OUTPUT"
+                  echo 'Files that can move a pixel:'
+                  printf '%s\n' "$HITS"
+
+    # Visual diff over src/dev/fixtures/registry.ts — 30 fixtures at four phone
+    # widths, 120 PNGs. No API, no database, no provider key and no secret: a
+    # fixture answers every request the app makes.
+    #
+    # ADVISORY. It is deliberately NOT in `ci-success.needs`, so it can never
+    # block a merge. It is a review aid.
+    #
+    # Two roles, one set of steps, because the capture half is the same work:
+    #   • push to dev, main or feat/design-system (the DS release train) →
+    #     capture that commit and cache it as a baseline.
+    #     The cache has to be written from the base branch: an entry written by
+    #     a PR run is scoped to that PR, and no sibling PR can read it. Written
+    #     from dev, ten PRs on that base restore it instead of building it.
+    #   • pull request → capture the head, diff it against that baseline, and
+    #     keep one comment up to date.
+    ds-shots:
+        name: ds-shots
+        needs: [ds-shots-filter]
+        # `always()` because ds-shots-filter never runs on a push, and a skipped
+        # `needs` would otherwise skip this job too.
+        if: >-
+            always() &&
+            ((github.event_name == 'push' && contains(fromJSON('["dev","main","feat/design-system"]'), github.ref_name))
+            || needs.ds-shots-filter.outputs.render == 'true')
+        runs-on: ubuntu-latest
+        # Build ~4m + capture ~2m on a runner, plus install. A hang past this is
+        # a bug, not a slow day.
+        timeout-minutes: 30
+        permissions:
+            # push the pr-assets-<number> branch that holds the PNGs
+            contents: write
+            # keep the one comment up to date
+            pull-requests: write
         steps:
             - uses: actions/checkout@v4
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # The asset push below builds its own remote URL, so the
+                  # submodule PAT does not need to stay in .git/config.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -202,9 +304,10 @@ jobs:
 
             - run: pnpm install --frozen-lockfile
 
-            # Cache the browser binaries — the download is the step that hangs,
-            # so the cheapest fix is to not do it on most runs. Keyed on the
-            # Playwright version, because browser builds are pinned to it.
+            # Browser cache, moved here verbatim from the deleted `e2e` job. The
+            # download is the step that hangs, so the cheapest fix is to not do
+            # it on most runs. Keyed on the Playwright version, because browser
+            # builds are pinned to it.
             - name: Resolve Playwright version
               id: pw
               run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
@@ -255,26 +358,186 @@ jobs:
                   echo "::error::playwright install-deps failed after 3 attempts"
                   exit 1
 
-            - name: Run E2E tests
-              run: pnpm test:e2e
-              continue-on-error: true
+            - name: Build
+              env:
+                  # Without this DEV_TOOLS_ENABLED is false, ?__fixture= is
+                  # ignored, and every screen redirects to /setup. It is a
+                  # NEXT_PUBLIC_ value, so it must be set on the build, not on
+                  # the capture — Next inlines it into the bundle here.
+                  NEXT_PUBLIC_VERCEL_ENV: preview
+                  # BASE_URL falls back to https://peanut.me when unset, which
+                  # flips the dev layout's prod gate and notFound()s every
+                  # /dev page the regression specs drive. Locally .env sets
+                  # it; CI has no .env, so set it here.
+                  NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
+              run: pnpm build
 
-            - name: Upload Playwright report
-              if: always()
+            # The capture fails a shot that still has a spinner on camera, on
+            # purpose. No continue-on-error: a red step is how anyone finds out.
+            - name: Capture screenshots
+              env:
+                  SHOTS_OUT: e2e/__shots__/${{ github.event_name == 'push' && 'base' || 'head' }}
+              run: pnpm test:visual:capture
+
+            - name: Save this commit as the baseline
+              if: github.event_name == 'push'
+              # A re-run of the same commit finds the key taken. Losing that
+              # race costs nothing — the baseline is already there.
+              continue-on-error: true
+              uses: actions/cache/save@v4
+              with:
+                  path: e2e/__shots__/base
+                  key: ds-shots-${{ github.sha }}
+
+            - name: Restore the baseline capture
+              if: github.event_name == 'pull_request'
+              id: baseline
+              uses: actions/cache/restore@v4
+              with:
+                  path: e2e/__shots__/base
+                  key: ds-shots-${{ github.event.pull_request.base.sha }}
+                  # If the exact base commit is not cached — it landed minutes
+                  # ago, or the entry was evicted — take the newest baseline
+                  # there is. The comment names the commit it actually used.
+                  restore-keys: ds-shots-
+
+            - name: Diff against the baseline
+              if: github.event_name == 'pull_request'
+              id: diff
+              run: |
+                  set -euo pipefail
+                  MATCHED='${{ steps.baseline.outputs.cache-matched-key }}'
+                  if [ -z "$MATCHED" ]; then
+                      echo 'ready=false' >> "$GITHUB_OUTPUT"
+                      echo 'No baseline is cached yet.'
+                      exit 0
+                  fi
+                  echo "ready=true" >> "$GITHUB_OUTPUT"
+                  echo "baseline=${MATCHED#ds-shots-}" >> "$GITHUB_OUTPUT"
+                  node scripts/visual-diff.mjs e2e/__shots__/base e2e/__shots__/head \
+                      --out=e2e/__shots__/diff --json > e2e/__shots__/report.json
+
+            - name: Publish the changed screenshots
+              if: steps.diff.outputs.ready == 'true'
+              id: assets
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR: ${{ github.event.pull_request.number }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+              run: |
+                  set -euo pipefail
+                  # GitHub renders an <img> from a URL and never from a workflow
+                  # artifact, so the PNGs need a home the comment can link to.
+                  # The repo convention is a pr-assets-<number> branch read over
+                  # raw.githubusercontent (PRs #2727, #2733, #2748, #2758).
+                  node scripts/visual-comment.mjs e2e/__shots__/report.json --list > e2e/__shots__/wanted.txt
+                  if [ ! -s e2e/__shots__/wanted.txt ]; then
+                      echo 'Nothing changed, so nothing to publish.'
+                      exit 0
+                  fi
+
+                  SUB="visual/${HEAD_SHA:0:7}"
+                  WORK="$RUNNER_TEMP/pr-assets"
+                  mkdir -p "$WORK/$SUB/base" "$WORK/$SUB/head" "$WORK/$SUB/diff"
+                  while read -r f; do
+                      [ -n "$f" ] || continue
+                      cp "e2e/__shots__/base/$f" "$WORK/$SUB/base/$f"
+                      cp "e2e/__shots__/head/$f" "$WORK/$SUB/head/$f"
+                      # A resized screen has no diff image. Not an error.
+                      cp "e2e/__shots__/diff/$f" "$WORK/$SUB/diff/$f" 2>/dev/null || true
+                  done < e2e/__shots__/wanted.txt
+
+                  # A fresh orphan branch every push, force-pushed, so the
+                  # branch holds only the current images and never grows. The
+                  # commit-sha path keeps raw.githubusercontent from serving a
+                  # cached image from the previous push.
+                  git -C "$WORK" init -q -b "pr-assets-$PR"
+                  git -C "$WORK" add -A
+                  git -C "$WORK" \
+                      -c user.name='github-actions[bot]' \
+                      -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+                      commit -qm "visual shots for #$PR"
+                  git -C "$WORK" push -qf \
+                      "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" \
+                      "pr-assets-$PR"
+
+                  echo "url=https://raw.githubusercontent.com/$GITHUB_REPOSITORY/pr-assets-$PR/$SUB" \
+                      >> "$GITHUB_OUTPUT"
+
+            - name: Render the comment
+              if: github.event_name == 'pull_request'
+              run: |
+                  set -euo pipefail
+                  if [ '${{ steps.diff.outputs.ready }}' != 'true' ]; then
+                      {
+                          echo '<!-- ds-shots -->'
+                          echo '## 🖼 Visual diff — no baseline yet'
+                          echo
+                          echo 'Nothing is cached for `${{ github.base_ref }}`. The next push to that'
+                          echo 'branch captures one, and this comment fills in on your next push here.'
+                      } > e2e/__shots__/body.md
+                  else
+                      node scripts/visual-comment.mjs e2e/__shots__/report.json \
+                          --assets='${{ steps.assets.outputs.url }}' \
+                          --baseline='${{ steps.diff.outputs.baseline }}' \
+                          --head='${{ github.event.pull_request.head.sha }}' > e2e/__shots__/body.md
+                  fi
+                  cat e2e/__shots__/body.md >> "$GITHUB_STEP_SUMMARY"
+
+            # `always()` so a failed capture replaces the previous comment
+            # instead of leaving a green one that is now a lie.
+            - name: Comment on the PR
+              if: always() && github.event_name == 'pull_request'
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs')
+                      const tag = '<!-- ds-shots -->'
+                      const out = 'e2e/__shots__/body.md'
+                      const body = fs.existsSync(out)
+                          ? fs.readFileSync(out, 'utf8')
+                          : `${tag}\n## 🖼 Visual diff — the capture failed\n\nNo screenshots this time. The job log says why.`
+
+                      const comments = await github.paginate(github.rest.issues.listComments, {
+                          issue_number: context.issue.number,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          per_page: 100,
+                      })
+                      const existing = comments.find((c) => c.body && c.body.includes(tag))
+                      const target = { owner: context.repo.owner, repo: context.repo.repo }
+                      if (existing) {
+                          await github.rest.issues.updateComment({ ...target, comment_id: existing.id, body })
+                      } else {
+                          await github.rest.issues.createComment({ ...target, issue_number: context.issue.number, body })
+                      }
+
+            # The four kept behaviour specs (setup reload-loop guard, icon
+            # regression, send-link hydration, share-asset capture) run
+            # nowhere else in CI. Last on purpose: a red spec fails the job
+            # without aborting the baseline/diff/comment steps above.
+            - name: Run regression specs
+              run: pnpm test:e2e:regression
+
+            # The page snapshot in error-context.md is the only way to see
+            # WHAT rendered on the runner when a spec dies in CI but passes
+            # locally. Without this upload the failure is undebuggable.
+            - name: Upload regression artifacts on failure
+              if: failure()
               uses: actions/upload-artifact@v4
               with:
-                  name: playwright-report
-                  path: playwright-report/
+                  name: regression-results-${{ github.run_number }}
+                  path: e2e/__results__/
                   retention-days: 7
 
     # Coverage + test-summary aggregator. Mirrors the pattern from
     # peanut-api-ts/.github/workflows/tests.yaml `report` job.
     report:
         runs-on: ubuntu-latest
-        # Wait for format + typecheck + e2e too — the report header says
-        # "all green", which would lie if only unit results were
-        # considered (per CR feedback on PR #1908).
-        needs: [format, typecheck, unit, e2e]
+        # Wait for format + typecheck too — the report header says "all
+        # green", which would lie if only unit results were considered
+        # (per CR feedback on PR #1908).
+        needs: [format, typecheck, unit]
         if: always()
         permissions:
             contents: read
@@ -548,7 +811,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, eslint, typecheck, unit, e2e, report, human-authors]
+        needs: [format, ds-lint, eslint, typecheck, unit, report, human-authors]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -557,10 +820,10 @@ jobs:
                       echo "::error::One or more required jobs failed or were cancelled"
                       echo "Job results:"
                       echo "  format:    ${{ needs.format.result }}"
+                      echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
-                      echo "  e2e:       ${{ needs.e2e.result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"
                       exit 1

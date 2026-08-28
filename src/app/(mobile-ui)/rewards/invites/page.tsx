@@ -4,7 +4,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
@@ -20,7 +20,9 @@ import { type PointsInvite } from '@/services/services.types'
 import { formatPoints } from '@/utils/format.utils'
 import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import { Button } from '@/components/0_Bruddle/Button'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { isIOSNative } from '@/utils/capacitor'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
@@ -31,6 +33,7 @@ const InvitesPage = () => {
     const router = useRouter()
     const onBack = useSafeBack('/rewards')
     const { user } = useAuth()
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const listRef = useRef(null)
     const listInView = useInView(listRef, { once: true, margin: '-50px' })
 
@@ -57,15 +60,50 @@ const InvitesPage = () => {
     })
 
     if (isLoading) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (isError) {
         console.error('Error loading invites:', error)
         return (
-            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <EmptyState icon="alert" title={t('loadInvitesFailed')} description={t('contactSupport')} />
             </div>
+        )
+    }
+
+    // zero invites — the summary card and "people you invited" heading over a
+    // blank list say nothing; show the canonical empty state with the existing
+    // invite modal instead
+    if (!invites?.invitees || invites.invitees.length === 0) {
+        return (
+            <PageContainer className="flex flex-col">
+                <NavHeader title={t('invitesTitle')} onPrev={onBack} />
+                <div className="mx-auto my-auto w-full">
+                    <EmptyState
+                        icon="trophy"
+                        title={t('noInvitesYet')}
+                        description={t('shareInviteLinkPrompt')}
+                        cta={
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                size="small"
+                                className="mt-2"
+                                onClick={() => setIsInviteModalOpen(true)}
+                            >
+                                {t('shareInviteLink')}
+                            </Button>
+                        }
+                    />
+                </div>
+                <InviteFriendsModal
+                    visible={isInviteModalOpen}
+                    onClose={() => setIsInviteModalOpen(false)}
+                    username={user?.user.username ?? ''}
+                    source="invites_page"
+                />
+            </PageContainer>
         )
     }
 
@@ -73,27 +111,33 @@ const InvitesPage = () => {
         <PageContainer className="flex flex-col">
             <NavHeader title={t('invitesTitle')} onPrev={onBack} />
 
-            <section className="mx-auto mb-auto mt-10 w-full space-y-4">
+            <section className="mx-auto space-y-4 mt-10 mb-auto w-full">
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">
                     {invites?.summary?.totalLifetimeEarnedUsd !== undefined &&
                     invites.summary.totalLifetimeEarnedUsd > 0 ? (
                         <>
-                            <h2 className="text-center font-medium text-black">{t('friendsEarnedYou')}</h2>
-                            <span className="text-3xl font-extrabold text-black">
+                            <h2 className="text-center text-body-m font-medium text-foreground-primary">
+                                {t('friendsEarnedYou')}
+                            </h2>
+                            <span className="text-heading-m text-foreground-primary">
                                 ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
                             </span>
-                            {isIOSNative() && <span className="text-sm text-grey-1">{t('lifetimeCaption')}</span>}
-                            <span className="flex items-center gap-1 text-sm text-grey-1">
+                            {isIOSNative() && (
+                                <span className="text-body-s text-foreground-secondary">{t('lifetimeCaption')}</span>
+                            )}
+                            <span className="flex items-center gap-1 text-body-s text-foreground-secondary">
                                 <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={14} height={14} />
                                 {formatPoints(totalPointsEarned)} {t('pointsLabel', { count: totalPointsEarned })}
                             </span>
                         </>
                     ) : (
                         <>
-                            <h2 className="text-center font-medium text-black">{t('friendsEarnedYou')}</h2>
+                            <h2 className="text-center text-body-m font-medium text-foreground-primary">
+                                {t('friendsEarnedYou')}
+                            </h2>
                             <span className="flex items-center gap-2">
                                 <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={20} height={20} />
-                                <span className="text-3xl font-extrabold text-black">
+                                <span className="text-heading-m text-foreground-primary">
                                     {formatPoints(animatedTotal)} {t('pointsLabel', { count: totalPointsEarned })}
                                 </span>
                             </span>

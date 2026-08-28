@@ -332,12 +332,17 @@ jest.mock('@/components/Global/AmountInput', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/PeanutLoading', () => ({
+jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>,
+    default: (props: any) =>
+        props.variant === 'mascot' ? (
+            <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>
+        ) : (
+            <div data-testid="loading-spinner" />
+        ),
 }))
 
-jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({
+jest.mock('@/components/Global/Loading/CyclingLoading', () => ({
     __esModule: true,
     default: () => <div data-testid="cycling-loading" />,
 }))
@@ -375,15 +380,6 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 
 jest.mock('@/components/Global/Icons/Icon', () => ({
     Icon: (props: any) => <span data-testid={`icon-${props.name}`} />,
-}))
-
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="error-alert" role="alert">
-            {props.description}
-        </div>
-    ),
 }))
 
 jest.mock('@/components/Global/ActionModal', () => ({
@@ -578,8 +574,8 @@ function applyDefaults() {
 
     mockUseTransactionDetailsDrawer.mockReturnValue({
         openTransactionDetails: jest.fn(),
-        selectedTransaction: null,
-        isDrawerOpen: false,
+        selectedTxId: null,
+        isTransactionSelected: () => false,
         closeTransactionDetails: jest.fn(),
     })
 
@@ -1115,8 +1111,8 @@ describe('GROUP 4: Success States', () => {
         const openTransactionDetails = jest.fn()
         mockUseTransactionDetailsDrawer.mockReturnValue({
             openTransactionDetails,
-            selectedTransaction: null,
-            isDrawerOpen: false,
+            selectedTxId: null,
+            isTransactionSelected: () => false,
             closeTransactionDetails: jest.fn(),
         })
 

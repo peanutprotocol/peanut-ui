@@ -62,7 +62,8 @@ jest.mock('@/components/Global/SoundPlayer', () => ({
         return null
     },
 }))
-jest.mock('@/components/Global/PeanutLoading', () => ({
+// ds: PeanutLoading is retired here; the view renders Loading variant="mascot"
+jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
     default: (props: any) => <div data-testid="peanut-loading">{props.message}</div>,
 }))

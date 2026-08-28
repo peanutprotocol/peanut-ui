@@ -27,11 +27,11 @@ export default function DividerPage() {
                 <DocSection.Content>
                     <div className="space-y-6">
                         <div>
-                            <p className="mb-2 text-sm text-grey-1">Default</p>
+                            <p className="mb-2 text-body-s text-foreground-secondary">Default</p>
                             <Divider />
                         </div>
                         <div>
-                            <p className="mb-2 text-sm text-grey-1">With text</p>
+                            <p className="mb-2 text-body-s text-foreground-secondary">With text</p>
                             <Divider text="or" />
                         </div>
                     </div>

@@ -54,7 +54,8 @@
             "custom": "Personalizado",
             "unknown": "Desconhecido"
         },
-        "exchangeRate": "Taxa de câmbio"
+        "exchangeRate": "Taxa de câmbio",
+        "slideToProceed": "Deslize para continuar"
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",

@@ -1,6 +1,6 @@
 import Image, { type StaticImageData } from 'next/image'
 import Link from 'next/link'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * A country flag over its payment rail's mark, linking to the page that explains

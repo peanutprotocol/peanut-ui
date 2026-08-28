@@ -22,8 +22,8 @@ import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import Loading from '@/components/Global/Loading'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { API_ERROR_CODES } from '@/services/api-error'
@@ -181,7 +181,7 @@ export const SuccessClaimLinkView = ({
                     <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 </div>
                 <div className="relative z-10 my-auto flex h-full flex-col justify-center">
-                    <PeanutLoading message={tCommon('status.processing')} />
+                    <Loading variant="mascot" message={tCommon('status.processing')} />
                 </div>
             </div>
         )
@@ -194,8 +194,10 @@ export const SuccessClaimLinkView = ({
                 <div className="md:hidden">
                     <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 </div>
-                <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
-                    <ErrorAlert description={toFriendlyError({ code: claimFailure.code })} />
+                <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
+                    <Notification priority="error" data-testid="error-alert">
+                        {toFriendlyError({ code: claimFailure.code })}
+                    </Notification>
                     {isRetryable && (
                         <Button
                             shadowSize="4"
@@ -221,16 +223,14 @@ export const SuccessClaimLinkView = ({
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
-            <div className="md:hidden">
-                <NavHeader
-                    icon="cancel"
-                    title={navHeaderTitle}
-                    onPrev={() => {
-                        router.push('/home')
-                    }}
-                />
-            </div>
-            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+            <NavHeader
+                icon="cancel"
+                title={navHeaderTitle}
+                onPrev={() => {
+                    router.push('/home')
+                }}
+            />
+            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
                 <Image
                     src={PeanutCheering.src}
                     unoptimized
@@ -242,7 +242,9 @@ export const SuccessClaimLinkView = ({
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
                 {campaignTag?.toLowerCase() === 'devconnect_ba_2025' && (
-                    <p className="text-center text-xs text-grey-1">{t('success.devconnectReturnHint')}</p>
+                    <p className="text-center text-body-xs text-foreground-secondary">
+                        {t('success.devconnectReturnHint')}
+                    </p>
                 )}
             </div>
         </div>

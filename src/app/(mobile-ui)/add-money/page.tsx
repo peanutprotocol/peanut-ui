@@ -1,6 +1,7 @@
 'use client'
 
 import AddMoneyMethodSelection from '@/components/AddMoney/views/AddMoneyMethodSelection.view'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import dynamic from 'next/dynamic'
 
@@ -114,8 +115,9 @@ export default function AddMoneyPage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title={t('title')} onPrev={handleBack} />
+        <PageStack>
+            {/* board Page/Add/Bank (17830:77534): country list titles "Bank transfer" */}
+            <NavHeader title={method === 'bank' ? t('methods.bankTransfer') : t('title')} onPrev={handleBack} />
 
             {method === 'bank' ? (
                 <CountryList
@@ -127,6 +129,6 @@ export default function AddMoneyPage() {
             ) : (
                 <AddMoneyMethodSelection onBankTransferClick={() => setMethod('bank')} />
             )}
-        </div>
+        </PageStack>
     )
 }

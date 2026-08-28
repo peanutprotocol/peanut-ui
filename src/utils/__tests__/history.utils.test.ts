@@ -89,7 +89,10 @@ describe('completeHistoryEntry amount-contract guards', () => {
 })
 
 /**
- * getTransactionSign drives the +/- prefix on the activity-feed amount.
+ * getTransactionSign drives the "-" prefix on the activity-feed amount.
+ *
+ * States board 17966:12128: incoming is the base state and never carries a
+ * "+" — only outgoing amounts get a sign.
  *
  * Regression: a Rain card AUTH sits in `pending` for hours until the CLEAR
  * webhook settles it. The old guard suppressed the sign for anything that
@@ -110,8 +113,9 @@ describe('getTransactionSign', () => {
         expect(sign('qr_payment', 'completed')).toBe('-')
     })
 
-    it('shows the inflow sign for a pending receive', () => {
-        expect(sign('receive', 'pending')).toBe('+')
+    it('keeps incoming sign-less (base state, board rule) even while pending', () => {
+        expect(sign('receive', 'pending')).toBe('')
+        expect(sign('receive', 'completed')).toBe('')
     })
 
     it('shows the inflow sign for a received request — the viewer created it, money comes IN', () => {

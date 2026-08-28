@@ -232,7 +232,15 @@ let nextConfig = {
         // Vercel injects VERCEL_ENV and VERCEL_GIT_COMMIT_REF server-side at
         // build time. Re-export as NEXT_PUBLIC_* so the client bundle (and
         // src/utils/sentry-env.ts in particular) can read them too.
-        NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV,
+        // The `?? ''` matters: next skips null env values, and only a defined
+        // value is statically inlined by webpack's DefinePlugin. The /dev
+        // build-time gates (dev/ds/audit pages, DEV_TOOLS_ENABLED) need the
+        // literal so their `=== 'preview'` check folds to a constant and the
+        // dev-only data is tree-shaken out of non-Vercel prod builds.
+        // respect an explicitly-set build env first (the ds-shots CI job sets
+        // NEXT_PUBLIC_VERCEL_ENV=preview so fixture mode engages), then Vercel's
+        // own var, else '' so the audit-gate condition still folds to a literal.
+        NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV ?? '',
         NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF,
     },
 

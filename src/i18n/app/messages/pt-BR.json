@@ -54,7 +54,8 @@
             "custom": "Personalizado",
             "unknown": "Desconhecido"
         },
-        "exchangeRate": "Taxa de câmbio"
+        "exchangeRate": "Taxa de câmbio",
+        "slideToProceed": "Deslize para continuar"
     },
     "navigation": {
         "home": "Início",
@@ -73,7 +74,9 @@
         "claim": "Resgatar",
         "peanutLogoAlt": "Logo da Peanut",
         "receipt": "Recibo",
-        "supportUnread": "Nova resposta do suporte"
+        "supportUnread": "Nova resposta do suporte",
+        "card": "Cartão",
+        "scanQr": "Escanear QR"
     },
     "home": {
         "rewards": "Recompensas",
@@ -250,6 +253,15 @@
         },
         "iosCopy": {
             "rewards": "Cashback"
+        },
+        "openProfile": "Abrir seu perfil",
+        "showBalance": "Mostrar saldo",
+        "hideBalance": "Ocultar saldo",
+        "drawers": {
+            "sendToFriends": "Enviar para amigos",
+            "sendToFriendsDescription": "Link, contatos, banco, cripto",
+            "withdrawToOwnAccounts": "Sacar para suas contas",
+            "withdrawToOwnAccountsDescription": "Banco, Mercado, cripto"
         }
     },
     "profile": {
@@ -259,10 +271,11 @@
             "yourCard": "Seu cartão",
             "peanutCard": "Cartão Peanut",
             "newBadge": "Novo!",
+            "unlockBadge": "Desbloquear",
             "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Dados pessoais",
-            "unlockedRegions": "Regiões desbloqueadas",
+            "unlockedRegions": "Regiões e verificação",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
@@ -280,14 +293,6 @@
                 "phoneNumber": "Número de telefone",
                 "website": "Site"
             },
-            "placeholders": {
-                "name": "Adicione seu nome",
-                "surname": "Adicione seu sobrenome",
-                "bio": "Adicione uma bio",
-                "email": "Adicione seu e-mail",
-                "phone": "Adicione seu número",
-                "website": "Adicione seu site"
-            },
             "soonBadge": "Em breve!",
             "saveChanges": "Salvar alterações",
             "errors": {
@@ -295,7 +300,7 @@
             }
         },
         "regions": {
-            "title": "Regiões desbloqueadas",
+            "title": "Regiões e verificação",
             "description": "Transfira e receba de qualquer conta bancária e use os métodos de pagamento disponíveis.",
             "empty": {
                 "title": "Nenhuma região desbloqueada ainda",
@@ -768,8 +773,7 @@
             "bankDescription": "EUR, USD, MXN, ARS e mais",
             "instantTransfers": "Transferências instantâneas",
             "exchangeOrWalletTitle": "Exchange ou carteira",
-            "exchangeOrWalletDescription": "Binance, Metamask e mais",
-            "yourAccountsOnly": "SOMENTE SUAS CONTAS"
+            "exchangeOrWalletDescription": "Binance, Metamask e mais"
         },
         "contacts": {
             "searchPlaceholder": "Buscar contatos...",
@@ -1418,8 +1422,6 @@
         "eurAccountsOnlyDescription": "Só funcionam contas em EUR com IBAN para adicionar dinheiro. Sua conta em moeda local pode não funcionar.",
         "chainTokenOnly": "{chain} · somente {tokens}",
         "methods": {
-            "migrateFromOfframp": "Migrar do Offramp",
-            "migrateFromOfframpDescription": "Mova seu saldo do Offramp para o Peanut",
             "crypto": "Cripto",
             "cryptoDescription": "Deposite de uma carteira ou corretora",
             "bankTransfer": "Transferência bancária",
@@ -1429,7 +1431,8 @@
             "title": "Escolher rede",
             "description": "Escolha a rede de onde você quer depositar:",
             "evmDescription": "{count} redes - 1 endereço",
-            "supportedTokens": "{count, plural, one {# token compatível} other {# tokens compatíveis}}"
+            "supportedTokens": "{count, plural, one {# token compatível} other {# tokens compatíveis}}",
+            "evmTokensOnNetworks": "{tokens, plural, one {# token suportado} other {# tokens suportados}} em {networks} redes"
         },
         "supportedNetworksModal": {
             "title": "Redes compatíveis",
@@ -1438,37 +1441,24 @@
         },
         "howToDeposit": {
             "title": "Como depositar",
-            "titleOfframp": "Como migrar",
             "step": "Passo {number}",
             "warning": "Enviar para a rede ou o token errado vai resultar em perda permanente.",
-            "warningOfframp": "Envie somente USDC na Arbitrum: outros tokens ou redes podem ser perdidos.",
             "default": {
                 "step1": "Copie seu endereço de depósito acima",
                 "step2": "Abra sua carteira ou corretora e inicie um saque",
                 "step3": "Cole o endereço e escolha uma das redes compatíveis",
                 "step4": "Confirme e envie: os fundos chegam em poucos minutos"
-            },
-            "offramp": {
-                "step1": "Copie seu endereço de depósito de migração acima",
-                "step2": "Abra sua conta do Offramp e inicie um saque ou envio",
-                "step3": "Escolha USDC na rede Arbitrum e cole o endereço",
-                "step4": "Confirme e envie: seu saldo chega em poucos minutos"
             }
         },
         "crypto": {
             "title": "Depositar cripto",
-            "sendUsdcOnArbitrum": "Envie <b>USDC na Arbitrum</b> para migrar seu saldo",
             "sendTokensToAddress": "Envie tokens para este endereço da <b>{network}</b>",
             "tooltipEvm": "{count} redes EVM compatíveis. Para valores exatos, deposite USDC na Arbitrum. Outras redes/tokens passam por ponte (±0,1%).",
             "tooltipSol": "Seu endereço de depósito da Solana. Os depósitos passam por ponte até a Arbitrum (variação de ±0,1%).",
             "tooltipTron": "Seu endereço de depósito da Tron. Os depósitos passam por ponte até a Arbitrum (variação de ±0,1%).",
-            "migrationAddressTooltip": "Use este endereço para a sua migração do Offramp. Ele só aceita USDC na Arbitrum: não salve como endereço geral da carteira.",
-            "migrationDepositAddress": "Endereço de depósito da migração",
             "universalDepositAddress": "Endereço de depósito universal",
             "depositAddress": "Endereço de depósito",
-            "network": "Rede:",
             "supportedNetworks": "Redes compatíveis:",
-            "token": "Token:",
             "supportedTokens": "Tokens compatíveis:",
             "supportedTokensInline": "Tokens compatíveis:",
             "supportedEvmNetworks": "Redes EVM compatíveis",
@@ -1476,33 +1466,18 @@
             "selectNetworkType": "Selecione o tipo de rede",
             "warningTitle": "Envie somente para redes compatíveis",
             "warningDescription": "O token ou a rede errados podem causar perda permanente.",
-            "warningTitleOfframp": "Envie somente USDC na Arbitrum",
-            "warningDescriptionOfframp": "Outros tokens ou redes podem causar perda permanente.",
             "minDepositFor": "Depósito mínimo para {network}:",
             "maxDepositFor": "Depósito máximo para {network}:",
             "minDepositForLabel": "Depósito mínimo para {network}",
             "maxDepositForLabel": "Depósito máximo para {network}",
-            "minPerTransfer": "Mínimo por transferência:",
-            "maxPerTransfer": "Máximo por transferência:",
             "bridgingVarianceNote": "Os depósitos passam por ponte até a Arbitrum e podem variar um pouco (±0,1%).",
             "bridgingVarianceNoteEvm": "USDC na Arbitrum chega exato. Depósitos de outras redes ou tokens passam por ponte e podem variar um pouco (±0,1%).",
-            "multipleTransfersNote": "Vai mover mais que o máximo? Envie em várias transferências.",
             "addressErrorTitle": "Não conseguimos preparar seu endereço de depósito",
             "addressErrorDescription": "Nada foi enviado. Tente de novo: se continuar acontecendo, fale com o suporte.",
             "marketMovedTitle": "Ops! O mercado mudou",
             "marketMovedDescription": "A taxa de câmbio mudou demais para concluir seu depósito.",
             "marketMovedNote": "Seu dinheiro está voltando para a sua carteira.",
-            "transferSentBackTitle": "Transferência devolvida",
-            "transferSentBackDescription": "Não conseguimos concluir sua transferência de migração.",
-            "transferSentBackNote": "Seu dinheiro voltou para a sua conta do Offramp: inicie o saque de novo por lá.",
-            "migrationComplete": "Migração concluída",
             "depositedCrypto": "Cripto depositada"
-        },
-        "offrampGate": {
-            "title": "Qual é esta conta do Offramp?",
-            "description": "Informe o usuário ou o email da conta do Offramp de onde você está migrando, para conseguirmos vincular seu saldo à sua nova carteira Peanut.",
-            "placeholder": "Usuário ou email do Offramp",
-            "error": "Não conseguimos salvar sua conta do Offramp. Tente de novo."
         },
         "manteca": {
             "youreAdding": "Você está adicionando",
@@ -1584,7 +1559,8 @@
             "bankAccountFailed": "Não foi possível processar a conta bancária. Tente de novo ou fale com o suporte.",
             "bankAccountSettingUp": "Sua conta bancária ainda está sendo configurada. Tente de novo em instantes."
         },
-        "pixMaintenanceBadge": "Manutenção"
+        "pixMaintenanceBadge": "Manutenção",
+        "addCryptoTitle": "Adicionar cripto"
     },
     "withdraw": {
         "amountToWithdraw": "Valor a sacar",
@@ -1700,6 +1676,10 @@
             "city": "Sua cidade",
             "cityRequired": "A cidade é obrigatória",
             "state": "Selecione seu estado",
+            "stateLabel": "Estado",
+            "streetLabel": "Endereço",
+            "cityLabel": "Cidade",
+            "postalCodeLabel": "CEP",
             "stateRequired": "O estado é obrigatório",
             "postalCode": "Seu CEP",
             "postalCodeRequired": "O CEP é obrigatório",
@@ -1733,7 +1713,9 @@
             "completeAccountSetup": "Complete a configuração da sua conta. Vá em Configurações para atualizar seu perfil.",
             "minWithdrawAmount": "O valor do saque precisa ser de pelo menos ${amount}"
         },
-        "resolvesTo": "resolve para"
+        "resolvesTo": "resolve para",
+        "addNewAccount": "Adicionar nova conta",
+        "mercadoPagoDescription": "Somente suas contas - transferência instantânea"
     },
     "transaction": {
         "drawerTitle": "Detalhes da transação",
@@ -1788,6 +1770,7 @@
             "receivedFrom": "Recebido de {name}",
             "requestedFrom": "Cobrado de {name}",
             "requestingFrom": "Cobrando de {name}",
+            "youRequested": "Você cobrou",
             "withdrewTo": "Sacado para {name}",
             "withdrawingTo": "Sacando para {name}",
             "addedFrom": "Adicionado de {name}",
@@ -1796,7 +1779,7 @@
             "claimTo": "Resgate para {name}",
             "claimingTo": "Resgatando para {name}",
             "paidTo": "Pago para {name}",
-            "payingTo": "Pagando para {name}"
+            "paymentTo": "Pagamento para {name}"
         },
         "name": {
             "merchant": "Estabelecimento",
@@ -1852,7 +1835,8 @@
             "download": "Baixar",
             "reason": "Motivo",
             "accountNumber": "Número da conta",
-            "address": "Endereço"
+            "address": "Endereço",
+            "estimateConversion": "Conversão estimada"
         },
         "perkBanner": {
             "title": "Você ganhou uma recompensa!",
@@ -2273,15 +2257,6 @@
         }
     },
     "notifications": {
-        "title": "Notificações",
-        "loadFailed": "Não foi possível carregar as notificações. Tente de novo.",
-        "loadMoreFailed": "Não foi possível carregar mais notificações. Toque para tentar de novo.",
-        "emptyTitle": "Você ainda não tem notificações!",
-        "emptyDescription": "Suas notificações aparecerão aqui.",
-        "loadingMore": "Carregando mais...",
-        "today": "Hoje",
-        "yesterday": "Ontem",
-        "iconAlt": "ícone",
         "setupTitle": "Ativar as notificações?",
         "setupDescription": "Ative as notificações e receba alertas de toda a atividade da sua carteira.",
         "migrationSetupTitle": "Receba alertas de dinheiro",
@@ -2723,6 +2698,7 @@
         "title": "Recuperar fundos",
         "selectToken": "Selecione um token para recuperar",
         "noTokens": "Nenhum token para recuperar",
+        "noTokensDescription": "Tokens enviados para seu endereço em outras redes aparecerão aqui.",
         "recipientPlaceholder": "Digite o endereço onde você quer receber os fundos",
         "review": "Revisar",
         "youWillReceiveTo": "Você vai receber em",
@@ -3061,12 +3037,6 @@
             "contributed": "{amount} contribuído",
             "remaining": "{amount} restante"
         },
-        "routeExpiryTimer": {
-            "findingBestRate": "Buscando a melhor taxa...",
-            "noQuote": "Nenhuma cotação disponível",
-            "quoteExpired": "A cotação expirou",
-            "priceLocked": "Preço garantido por {time}"
-        },
         "mantecaMaintenance": {
             "title": "Serviço temporariamente indisponível",
             "description": "Estamos com problemas nos {action, select, deposits {depósitos} withdrawals {saques} other {transferências}} por causa de uma falha de um provedor externo. Estamos trabalhando para restabelecer o serviço o quanto antes.",
@@ -3126,10 +3096,8 @@
             "payWhatYouWant": "Pague quanto quiser",
             "sendExactAmount": "Envie o valor exato!"
         },
-        "betaBanner": "O Peanut está em beta! Obrigado por ser um usuário inicial, compartilhe sua opinião aqui",
         "demoBanner": "Modo demo — você está testando o Peanut com uma carteira simulada. Saldos e transações não são reais.",
         "rainCooldownPill": "Resfriamento do cartão",
-        "betaBannerThumbsUpAlt": "Joinha",
         "easterEggImageAlt": "Ilustração de easter egg",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",

@@ -1,9 +1,9 @@
 'use client'
 
 import { useRef, useState, type ReactNode } from 'react'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import ActionModal from '@/components/Global/ActionModal'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { isMantecaOnrampEntry, isRequestEntry } from '@/components/TransactionDetails/transaction-predicates'
@@ -99,7 +99,7 @@ export function CancelDepositActions({
     const withError = (button: ReactNode) => (
         <div className="flex w-full flex-col gap-2">
             {button}
-            {error && <ErrorAlert description={error} />}
+            {error && <Notification priority="error">{error}</Notification>}
             <ActionModal
                 visible={confirmOpen}
                 onClose={() => setConfirmOpen(false)}
@@ -207,7 +207,7 @@ function CancelButton({ label, disabled, onClick }: { label?: string; disabled: 
         <Button
             disabled={disabled}
             onClick={onClick}
-            variant={'primary-soft'}
+            variant={'stroke'}
             className="flex w-full items-center gap-1"
             shadowSize="4"
         >

@@ -1,8 +1,9 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import AddressLink from '@/components/Global/AddressLink'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.view'
 import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.view'
@@ -30,7 +31,6 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
-import { Slider } from '@/components/Slider'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -48,6 +48,7 @@ import { toError } from '@/utils/to-error'
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const t = useTranslations('withdraw')
+    const tCommon = useTranslations('common')
     const tNav = useTranslations('navigation')
     const toFriendlyError = useFriendlyError()
     // Send → Exchange or Wallet lands here as /withdraw/crypto?method=crypto.
@@ -619,11 +620,11 @@ export default function WithdrawCryptoPage() {
     }, [needsAmountRedirect, router, amountStepHref])
 
     if (needsAmountRedirect) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     return (
-        <div className="mx-auto min-h-[inherit] w-full max-w-md space-y-4 self-center">
+        <div className="mx-auto space-y-4 min-h-[inherit] w-full max-w-md self-center">
             {currentView === 'INITIAL' && (
                 <InitialWithdrawView
                     amount={usdAmount}
@@ -675,7 +676,7 @@ export default function WithdrawCryptoPage() {
                         usdAmount={usdAmount}
                         message={
                             <AddressLink
-                                className="text-sm font-normal text-grey-1 no-underline"
+                                className="text-body-s font-normal text-foreground-secondary no-underline"
                                 address={withdrawData.address}
                             />
                         }
@@ -700,7 +701,7 @@ export default function WithdrawCryptoPage() {
                         {!!withdrawData?.address && (
                             <p>
                                 {t('compatibilityModal.sendingTo')}{' '}
-                                <span className="font-mono font-medium text-n-1 dark:text-white">
+                                <span className="font-mono font-medium text-foreground-primary dark:text-foreground-inverse">
                                     {printableAddress(withdrawData.address)}
                                 </span>
                             </p>
@@ -710,12 +711,7 @@ export default function WithdrawCryptoPage() {
                 icon="alert"
                 footer={
                     <div className="w-full">
-                        <Slider
-                            onValueChange={(v: boolean) => {
-                                if (!v) return
-                                handleCompatibilityProceed()
-                            }}
-                        />
+                        <SlideToConfirm label={tCommon('slideToProceed')} onConfirm={handleCompatibilityProceed} />
                     </div>
                 }
             />

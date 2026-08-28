@@ -153,7 +153,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const displayName = showFullName && fullName ? fullName : username
 
     return (
-        <div className="flex h-full w-full flex-col space-y-4 bg-background">
+        <div className="space-y-4 flex h-full w-full flex-col bg-background">
             {/* Logo - Only shown in guest view */}
             <div>
                 {!isLoggedIn ? (
@@ -217,8 +217,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <Card position="single" className="space-y-2 p-4 text-center">
                             {isLoggedIn ? (
                                 <>
-                                    <h2 className="text-lg font-extrabold">{t('allSetTitle')}</h2>
-                                    <p className="mx-auto max-w-[55%] text-sm">{t('allSetDescription')}</p>
+                                    <h2 className="text-heading-card text-foreground-primary">{t('allSetTitle')}</h2>
+                                    <p className="mx-auto max-w-[55%] text-body-s">{t('allSetDescription')}</p>
                                 </>
                             ) : (
                                 <div className="space-y-4">
@@ -230,7 +230,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                                 width={20}
                                                 height={20}
                                             />
-                                            <h2 className="text-lg font-extrabold">{t('joinPeanut')}</h2>
+                                            <h2 className="text-heading-card text-foreground-primary">
+                                                {t('joinPeanut')}
+                                            </h2>
                                             <Image
                                                 src={HandThumbsUpV2.src}
                                                 className="scale-x-[-1] transform"
@@ -246,8 +248,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             )}
                         </Card>
                         {/* <div
-                            className="absolute left-0 top-0 flex w-full justify-center"
-                            style={{ transform: 'translateY(-15%)' }}
+                            className="absolute top-0 left-0 flex w-full -translate-y-[15%] justify-center"
                         >
                             <div className="relative h-42 w-[65%] md:h-44 md:w-[45%]">
                                 <Image
@@ -267,9 +268,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div>
                         <HomeHistory username={username} />
                         {isSelfProfile && (
-                            <div className="mb-1 mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-grey-4/25 px-3 py-2">
-                                <Icon name="info" size={16} className="text-grey-1" />
-                                <p className="text-center text-sm text-grey-1">{t('activityPrivateNote')}</p>
+                            <div className="mt-3 mb-1 flex w-full items-center justify-center gap-2 rounded-md bg-background-disabled/25 px-3 py-2">
+                                <Icon name="info" size={16} className="text-foreground-secondary" />
+                                <p className="text-center text-body-s text-foreground-secondary">
+                                    {t('activityPrivateNote')}
+                                </p>
                             </div>
                         )}
                     </div>

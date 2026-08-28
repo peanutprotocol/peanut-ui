@@ -29,7 +29,11 @@ jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() })
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/app/actions/ens', () => ({ resolveEns: jest.fn() }))
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, openExternalUrl: jest.fn() }))
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => false,
+    isAndroidNative: () => false,
+    openExternalUrl: jest.fn(),
+}))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'satoshi' } } }) }))
 jest.mock('@/context/ModalsContext', () => ({

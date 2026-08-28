@@ -3,7 +3,7 @@ import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react'
 import React, { useState, useMemo } from 'react'
 import BaseInput from '../0_Bruddle/BaseInput'
 import { Icon } from '../Global/Icons/Icon'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import StatusBadge from '../Global/Badges/StatusBadge'
@@ -62,7 +62,7 @@ const CurrencySelect = ({
                     >
                         <div className="flex max-h-full w-full flex-col gap-4 overflow-hidden p-4">
                             <div className="relative w-full">
-                                <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                                <div className="absolute top-1/2 left-2 -translate-y-1/2">
                                     <Icon name="search" size={15} />
                                 </div>
                                 <BaseInput
@@ -70,7 +70,7 @@ const CurrencySelect = ({
                                     placeholder="Currency or country"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="h-10 w-full rounded-sm border-[1.15px] border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:border-black focus:outline-none focus:ring-0"
+                                    className="h-10 w-full rounded-sm border-[1.15px] border-black pr-10 pl-10 font-normal caret-[#FF90E8] focus:border-black focus:ring-0 focus:outline-none"
                                 />
                             </div>
 

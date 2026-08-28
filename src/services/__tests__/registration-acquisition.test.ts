@@ -9,16 +9,15 @@ const acquisition = { fallback: 'normal_app' as const, destination: 'offramp_mig
 describe('new-registration campaign navigation', () => {
     beforeEach(() => jest.clearAllMocks())
 
+    // every destination currently routes to /home (the offramp migration
+    // surface is gone), so a confirmed claim persists nothing
     it.each(['awarded', 'already_owned'] as const)(
-        'persists a bespoke destination after a confirmed %s canonical claim',
+        'does not persist a redirect for a confirmed %s canonical claim',
         (outcome) => {
             expect(
                 persistRegistrationBadgeCampaignDestination([{ badgeCampaign: 'offramp', outcome, acquisition }])
-            ).toBe('/add-money/crypto?network=EVM&source=offramp')
-            expect(mockSaveToLocalStorage).toHaveBeenCalledWith(
-                'redirect',
-                '/add-money/crypto?network=EVM&source=offramp'
-            )
+            ).toBe('/home')
+            expect(mockSaveToLocalStorage).not.toHaveBeenCalled()
         }
     )
 

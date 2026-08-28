@@ -39,16 +39,16 @@ const CancelSendLinkDrawer = ({
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center gap-4 px-5 pb-6 pt-1 text-center">
-                    <div className="flex size-8 items-center justify-center rounded-full bg-purple-1">
+                <div className="flex flex-col items-center gap-4 px-5 pt-1 pb-6 text-center">
+                    <div className="flex size-8 items-center justify-center rounded-full bg-action-primary">
                         <Icon name="link-slash" fill="currentColor" className="size-4 text-black" />
                     </div>
 
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle className="text-base font-bold text-black">
+                        <DrawerTitle className="text-body-m font-bold text-black">
                             {t('cancelSendLinkModal.title')}
                         </DrawerTitle>
-                        <DrawerDescription className="text-sm text-grey-1">
+                        <DrawerDescription className="text-body-s text-foreground-secondary">
                             {t.rich('cancelSendLinkModal.amountReturned', {
                                 amount,
                                 strong: (chunks) => <strong>{chunks}</strong>,

@@ -41,7 +41,7 @@ jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 
 const FINANCIAL_REDIRECT = '/claim?step=claim&id=payment-1'
-const CAMPAIGN_REDIRECT = '/add-money/crypto?network=EVM&source=offramp'
+const CAMPAIGN_REDIRECT = '/add-money/crypto?network=EVM'
 
 describe('post-auth redirect consumers', () => {
     beforeEach(() => {

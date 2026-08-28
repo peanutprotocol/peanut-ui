@@ -5,57 +5,67 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { FONT_TOKENS, TEXT_STYLES, type TextStyle } from '../tokens.generated'
 
-const WEIGHTS = [
-    { class: 'font-light', label: 'Light', usages: 5 },
-    { class: 'font-normal', label: 'Normal', usages: 50 },
-    { class: 'font-medium', label: 'Medium', usages: 104 },
-    { class: 'font-semibold', label: 'Semibold', usages: 66 },
-    { class: 'font-bold', label: 'Bold', usages: 304 },
-    { class: 'font-extrabold', label: 'Extrabold', usages: 55 },
-    { class: 'font-black', label: 'Black', usages: 16 },
-]
+const SEMANTIC_STYLES = TEXT_STYLES.filter((t) => t.section === 'semantic')
+const PARITY_STYLES = TEXT_STYLES.filter((t) => t.section === 'parity')
 
-const SIZES = [
-    { class: 'text-xs', example: 'Extra small (12px)', note: 'metadata, badges, hints' },
-    { class: 'text-sm', example: 'Small (14px)', note: 'body text, descriptions' },
-    { class: 'text-base', example: 'Base (16px)', note: 'default' },
-    { class: 'text-lg', example: 'Large (18px)', note: 'section headings' },
-    { class: 'text-xl', example: 'Extra large (20px)', note: 'page titles' },
-    { class: 'text-2xl', example: '2XL (24px)', note: 'hero text' },
-]
+// previews render from the token values inline, so they cannot drift and don't
+// depend on tailwind emitting a utility for every style.
+const px = (rem?: string) => (rem?.endsWith('rem') ? `${parseFloat(rem) * 16}px` : rem)
+
+function styleSpec(t: TextStyle) {
+    return [px(t.fontSize), t.lineHeight && `lh ${px(t.lineHeight)}`, t.fontWeight && `w${t.fontWeight}`]
+        .filter(Boolean)
+        .join(' · ')
+}
 
 export default function TypographyPage() {
     return (
         <DocPage>
-            <DocHeader title="Typography" description="Font families, weights, and text sizes used across the app." />
+            <DocHeader
+                title="Typography"
+                description="Generated from the @theme block in globals.css (pnpm gen:ds-tokens) — previews render the real token values."
+            />
 
             {/* Font families */}
             <DocSection title="Font Families">
                 <DocSection.Content>
-                    <div className="space-y-2 rounded-sm border border-n-1 p-3">
+                    <div className="space-y-2 rounded-sm border border-border-default p-3">
+                        {FONT_TOKENS.map((font) => (
+                            <div key={font.name}>
+                                <p
+                                    className="text-label-l"
+                                    style={{
+                                        fontFamily: font.stack,
+                                        fontVariationSettings: font.fontVariationSettings,
+                                    }}
+                                >
+                                    font-{font.name}
+                                </p>
+                                <p className="font-mono text-body-xs break-all text-foreground-secondary">
+                                    {font.stack}
+                                    {font.fontVariationSettings && ` · ${font.fontVariationSettings}`}
+                                </p>
+                            </div>
+                        ))}
                         <div>
-                            <p className="text-sm font-bold">System Default</p>
-                            <p className="text-sm text-grey-1">Primary body font. Used everywhere by default.</p>
+                            <p className="font-mono text-label-l">font-mono</p>
+                            <p className="text-body-s text-foreground-secondary">
+                                Stock Tailwind monospace — code, addresses, amounts. Not a theme token but part of the
+                                system.
+                            </p>
                         </div>
-                        <div>
-                            <p className="font-mono text-sm font-bold">font-mono</p>
-                            <p className="text-sm text-grey-1">Monospace for code, addresses, amounts. 21 usages.</p>
-                        </div>
-                        <div>
-                            <p className="font-roboto-flex text-sm font-bold">font-roboto-flex</p>
-                            <p className="text-sm text-grey-1">Roboto Flex for specific UI elements. 16 usages.</p>
-                        </div>
-                        <div className="rounded-sm bg-purple-1 p-3">
+                        <div className="rounded-sm bg-action-primary p-3">
                             <Title text="KNERD FONT" />
-                            <p className="mt-1 text-sm text-n-1">
+                            <p className="mt-1 text-body-s text-foreground-primary">
                                 Display font with filled+outline double-render effect.
                             </p>
                         </div>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Font Mono" code='className="font-mono"' />
+                    <CodeBlock label="Font Display" code='className="font-display"' />
                     <CodeBlock
                         label="Title Component"
                         code={`import Title from '@/components/0_Bruddle/Title'\n<Title text="PEANUT" />`}
@@ -63,33 +73,53 @@ export default function TypographyPage() {
                 </DocSection.Code>
             </DocSection>
 
-            {/* Font weights */}
-            <DocSection title="Font Weights">
-                <div className="space-y-1 rounded-sm border border-n-1 p-3">
-                    {WEIGHTS.map((w) => (
-                        <div key={w.class} className="flex items-baseline justify-between">
-                            <p className={`text-sm ${w.class}`}>
-                                {w.label} <span className="font-mono text-[10px] text-grey-1">.{w.class}</span>
+            {/* Semantic type scale */}
+            <DocSection title="Semantic Type Scale">
+                <p className="text-body-s text-foreground-secondary">
+                    1:1 with the figma Heading/Body/Label/Button styles. New screens use these — e.g.{' '}
+                    <code className="font-mono font-bold text-foreground-primary">text-heading-m</code>,{' '}
+                    <code className="font-mono font-bold text-foreground-primary">text-body-s</code>.
+                </p>
+                <div className="space-y-3 rounded-sm border border-border-default p-3">
+                    {SEMANTIC_STYLES.map((t) => (
+                        <div key={t.name} className="min-w-0">
+                            <p
+                                className="truncate"
+                                style={{ fontSize: t.fontSize, lineHeight: t.lineHeight, fontWeight: t.fontWeight }}
+                            >
+                                {t.name}
                             </p>
-                            <span className="text-xs text-grey-1">{w.usages}</span>
+                            <p className="font-mono text-body-xs text-foreground-secondary">
+                                .text-{t.name} — {styleSpec(t)}
+                            </p>
                         </div>
                     ))}
                 </div>
-                <p className="text-sm text-grey-1">
-                    font-bold dominates (304 usages). Use font-bold for labels and headings, font-medium for secondary
-                    text.
+            </DocSection>
+
+            {/* weight conventions — guidance, not token data */}
+            <DocSection title="Font Weights">
+                <p className="text-body-s text-foreground-secondary">
+                    The semantic styles above carry their own weight. For ad-hoc text:{' '}
+                    <code className="font-mono font-bold text-foreground-primary">font-bold</code> for labels and
+                    headings, <code className="font-mono font-bold text-foreground-primary">font-medium</code> for
+                    secondary text. The theme also defines{' '}
+                    <code className="font-mono font-bold text-foreground-primary">font-weight-extraBlack</code> (1000)
+                    for display moments.
                 </p>
             </DocSection>
 
-            {/* Text sizes */}
-            <DocSection title="Text Sizes">
-                <div className="space-y-2 rounded-sm border border-n-1 p-3">
-                    {SIZES.map((s) => (
-                        <div key={s.class}>
-                            <p className={`${s.class} font-bold`}>{s.example}</p>
-                            <p className="text-xs text-grey-1">
-                                .{s.class} — {s.note}
-                            </p>
+            {/* v3 parity overrides */}
+            <DocSection title="v3 Parity Sizes">
+                <p className="text-body-s text-foreground-secondary">
+                    Overrides ported from the v3 config (text-h1…h7 and changed stock sizes). Existing code only —
+                    prefer the semantic scale above.
+                </p>
+                <div className="space-y-1 rounded-sm border border-border-default p-3 text-body-xs">
+                    {PARITY_STYLES.map((t) => (
+                        <div key={t.name} className="flex items-baseline justify-between">
+                            <code className="font-mono font-bold">.text-{t.name}</code>
+                            <span className="text-foreground-secondary">{styleSpec(t)}</span>
                         </div>
                     ))}
                 </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -217,11 +217,11 @@ const UnlockedRegions = () => {
     const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null && !flow.isTerminalError
 
     return (
-        <div className="flex min-h-[inherit] flex-col space-y-8">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+        <div className="space-y-8 flex min-h-[inherit] flex-col">
+            <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto">
                 <h1 className="font-bold">{t('title')}</h1>
-                <p className="mt-2 text-sm">{t('description')}</p>
+                <p className="mt-2 text-body-s">{t('description')}</p>
 
                 {/* Pending Bridge verification tasks (ToS / hosted re-verification).
                     Non-dismissible here — this is where the /home card's X sends
@@ -244,7 +244,7 @@ const UnlockedRegions = () => {
                 {lockedRegions.length > 0 && (
                     <>
                         <h1 className="mt-5 font-bold">{t('lockedTitle')}</h1>
-                        <p className="mt-2 text-sm">{t('lockedDescription')}</p>
+                        <p className="mt-2 text-body-s">{t('lockedDescription')}</p>
 
                         <RegionsList regions={lockedRegions} isLocked={true} onRegionClick={handleRegionClick} />
                     </>
@@ -297,7 +297,7 @@ const UnlockedRegions = () => {
                           : t('providerRejection.unavailableDescription')
                 }
                 icon="alert"
-                iconContainerClassName="bg-yellow-1"
+                iconContainerClassName="bg-action-secondary"
                 ctas={[
                     providerRejectionForRegion.state === 'fixable'
                         ? {
@@ -337,7 +337,7 @@ const UnlockedRegions = () => {
                 title={failedRegionRetriable ? t('initError.retriableTitle') : t('initError.notAvailableTitle')}
                 description={flow.error || tCommon('genericError')}
                 icon="alert"
-                iconContainerClassName="bg-yellow-1"
+                iconContainerClassName="bg-action-secondary"
                 ctas={
                     failedRegionRetriable
                         ? [
@@ -390,9 +390,9 @@ const RegionsList = ({ regions, isLocked, onRegionClick }: RegionsListProps) => 
             {regions.map((region, index) => {
                 const label = regionLabel(region)
                 return (
-                    <ActionListCard
+                    <ListItem
                         key={region.path}
-                        leftIcon={
+                        leading={
                             <Image
                                 src={region.icon}
                                 alt={label.name}
@@ -408,10 +408,10 @@ const RegionsList = ({ regions, isLocked, onRegionClick }: RegionsListProps) => 
                                 onRegionClick(region)
                             }
                         }}
-                        isDisabled={!isLocked}
-                        description={label.description}
-                        descriptionClassName="text-xs"
-                        rightContent={!isLocked ? <Icon name="check" className="size-4 text-success-1" /> : null}
+                        disabled={!isLocked}
+                        body={<div className="text-body-xs">{label.description}</div>}
+                        trailing={!isLocked ? <Icon name="check" className="size-4 text-green-500" /> : null}
+                        chevron={isLocked}
                     />
                 )
             })}

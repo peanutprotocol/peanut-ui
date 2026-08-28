@@ -1,6 +1,8 @@
 'use client'
 
 import { Card } from '@/components/0_Bruddle/Card'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Playground } from '../../_components/Playground'
 import { PropsTable } from '../../_components/PropsTable'
 import { DocHeader } from '../../_components/DocHeader'
@@ -33,7 +35,7 @@ export default function CardPage() {
                             <Card.Description>A description of the card content</Card.Description>
                         </Card.Header>
                         <Card.Content>
-                            <p className="text-sm">Body content goes here</p>
+                            <p className="text-body-s">Body content goes here</p>
                         </Card.Content>
                     </Card>
                 )}
@@ -63,16 +65,16 @@ export default function CardPage() {
                 <DocSection.Content>
                     <div className="space-y-3">
                         <Card className="p-4">
-                            <p className="text-sm">No shadow</p>
+                            <p className="text-body-s">No shadow</p>
                         </Card>
                         <Card shadowSize="4" className="p-4">
-                            <p className="text-sm">shadowSize=&quot;4&quot;</p>
+                            <p className="text-body-s">shadowSize=&quot;4&quot;</p>
                         </Card>
                         <Card shadowSize="6" className="p-4">
-                            <p className="text-sm">shadowSize=&quot;6&quot;</p>
+                            <p className="text-body-s">shadowSize=&quot;6&quot;</p>
                         </Card>
                         <Card shadowSize="8" className="p-4">
-                            <p className="text-sm">shadowSize=&quot;8&quot;</p>
+                            <p className="text-body-s">shadowSize=&quot;8&quot;</p>
                         </Card>
                     </div>
                 </DocSection.Content>
@@ -89,7 +91,7 @@ export default function CardPage() {
                             <Card.Description>description text</Card.Description>
                         </Card.Header>
                         <Card.Content>
-                            <p className="text-sm">body content</p>
+                            <p className="text-body-s">body content</p>
                         </Card.Content>
                     </Card>
                 </DocSection.Content>
@@ -102,6 +104,77 @@ export default function CardPage() {
     <Card.Description>Description</Card.Description>
   </Card.Header>
   <Card.Content>Content</Card.Content>
+</Card>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
+            <DocSection
+                title="Board Variants"
+                description="Figma card board (17802:61536): icon bubble + heading + body + CTA compositions."
+            >
+                <DocSection.Content>
+                    <div className="space-y-4">
+                        <Card className="items-center gap-6 p-6 text-center">
+                            <div className="flex flex-col items-center gap-2">
+                                <IconBubble icon="check" color="green" />
+                                <div className="flex flex-col items-center gap-1">
+                                    <Card.Title className="pb-0 text-center">Verify to get started</Card.Title>
+                                    <Card.Description className="text-center">
+                                        Use bank accounts and other local payment methods
+                                    </Card.Description>
+                                </div>
+                            </div>
+                            <Button variant="purple" className="w-full">
+                                Verify now
+                            </Button>
+                        </Card>
+                        <Card className="items-center gap-6 p-6 text-center">
+                            <div className="flex flex-col items-center gap-2">
+                                <IconBubble icon="check" color="yellow" />
+                                <div className="flex flex-col items-center gap-1">
+                                    <Card.Title className="pb-0 text-center">Verify to get started</Card.Title>
+                                    <Card.Description className="text-center">
+                                        Use bank accounts and other local payment methods
+                                    </Card.Description>
+                                </div>
+                            </div>
+                            <div className="flex w-full flex-col gap-3">
+                                <Button variant="purple" className="w-full">
+                                    Path 1
+                                </Button>
+                                <Button variant="stroke" className="w-full">
+                                    Path 2
+                                </Button>
+                            </div>
+                        </Card>
+                        <Card className="items-center gap-6 p-6 text-center">
+                            <div className="flex flex-col items-center gap-2">
+                                <IconBubble icon="wallet" color="gray" />
+                                <div className="flex flex-col items-center gap-1">
+                                    <Card.Title className="pb-0 text-center">No custodial wallet</Card.Title>
+                                    <Card.Description className="text-center">
+                                        Only you control this wallet, we can&apos;t recover it if you lose access.
+                                    </Card.Description>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="card.cta.primary"
+                        code={`<Card className="items-center gap-6 p-6 text-center">
+  <div className="flex flex-col items-center gap-2">
+    <IconBubble icon="check" color="green" />
+    <div className="flex flex-col items-center gap-1">
+      <Card.Title className="pb-0">Verify to get started</Card.Title>
+      <Card.Description>Use bank accounts…</Card.Description>
+    </div>
+  </div>
+  <Button variant="purple" className="w-full">Verify now</Button>
 </Card>`}
                     />
                 </DocSection.Code>

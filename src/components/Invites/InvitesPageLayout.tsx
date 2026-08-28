@@ -4,7 +4,7 @@ import { RAGDOLL_ENABLED } from '@/constants/ragdoll.consts'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import CloudsBackground from '../0_Bruddle/CloudsBackground'
 import starImage from '@/assets/icons/star.png'
 
@@ -42,7 +42,7 @@ const InvitesPageLayout = ({ image, children, showRagdoll = false }: InvitesPage
                         // h-full against this pane and would collapse to 0.
                         // md:h-[100dvh] below covers the desktop side.
                         'h-[55dvh]',
-                        'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                        'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
                     )}
                 >
                     {/* render animated star decorations */}
@@ -64,7 +64,7 @@ const InvitesPageLayout = ({ image, children, showRagdoll = false }: InvitesPage
                     {showRagdoll && PeanutRagdoll ? (
                         <div
                             aria-hidden="true"
-                            className="relative z-10 aspect-square max-h-full w-full max-w-[80%] overflow-hidden rounded-sm border border-n-1 md:max-w-[75%] lg:max-w-xl"
+                            className="relative z-10 aspect-square max-h-full w-full max-w-[80%] overflow-hidden rounded-sm border border-border-default md:max-w-[75%] lg:max-w-xl"
                         >
                             <PeanutRagdoll />
                         </div>

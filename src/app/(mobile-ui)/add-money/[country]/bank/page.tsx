@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -18,13 +18,12 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { formatUnits } from 'viem'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import RateUnavailable from '@/components/Global/RateUnavailable'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
 import { getCurrencyConfig, getCurrencySymbol, getMinimumAmount, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
-import InfoCard from '@/components/Global/InfoCard'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
@@ -375,7 +374,7 @@ function BridgeBankOnrampPage() {
 
     // Show loading while user is being fetched and no step in URL yet
     if (!urlState.step && user === null) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (!selectedCountry) {
@@ -393,13 +392,13 @@ function BridgeBankOnrampPage() {
 
     // Still determining initial step
     if (!urlState.step) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (urlState.step === 'showDetails') {
         // Show loading while useEffect redirects if data is missing
         if (!onrampData?.transferId) {
-            return <PeanutLoading />
+            return <Loading variant="mascot" />
         }
         return <AddMoneyBankDetails onBack={() => setUrlState({ step: 'inputAmount' })} />
     }
@@ -408,10 +407,10 @@ function BridgeBankOnrampPage() {
         const showLimitsCard = limitsValidation.isBlocking || limitsValidation.isWarning
 
         return (
-            <div className="flex flex-col justify-start space-y-8">
+            <div className="space-y-8 flex flex-col justify-start">
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
-                    <div className="text-sm font-bold">{t('howMuchToAdd')}</div>
+                    <div className="text-body-s font-bold">{t('howMuchToAdd')}</div>
                     <AmountInput
                         initialAmount={rawTokenAmount}
                         setPrimaryAmount={handleTokenAmountChange}
@@ -442,17 +441,14 @@ function BridgeBankOnrampPage() {
                         })()}
 
                     {!limitsValidation.isBlocking && (
-                        <InfoCard variant="warning" icon="alert" description={t('amountMustMatchBank')} />
+                        <Notification priority="attention">{t('amountMustMatchBank')}</Notification>
                     )}
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {!limitsValidation.isBlocking && isNonEuroSepa && !isUK && (
-                        <InfoCard
-                            variant="info"
-                            icon="info"
-                            title={t('eurAccountsOnlyTitle')}
-                            description={t('eurAccountsOnlyDescription')}
-                        />
+                        <Notification priority="info" title={t('eurAccountsOnlyTitle')}>
+                            {t('eurAccountsOnlyDescription')}
+                        </Notification>
                     )}
                     <Button
                         variant="purple"
@@ -475,7 +471,7 @@ function BridgeBankOnrampPage() {
                     </Button>
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
-                        <ErrorAlert description={error.errorMessage} />
+                        <Notification priority="error">{error.errorMessage}</Notification>
                     )}
                     {localCurrency !== 'USD' && isRateError && <RateUnavailable onRetry={refetchRate} />}
                 </div>
@@ -575,7 +571,7 @@ export default function OnrampBankPage() {
     }, [isMantecaRoute, selectedCountry, router])
 
     if (isMantecaRoute) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     return <BridgeBankOnrampPage />

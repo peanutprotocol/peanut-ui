@@ -30,7 +30,7 @@ export default function ModalPage() {
             {/* Base Modal */}
             <DocSection title="Base Modal">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         HeadlessUI Dialog wrapper with animated overlay and panel. Use for custom modal content.
                     </p>
 
@@ -40,7 +40,7 @@ export default function ModalPage() {
                         </Button>
                         <Modal visible={showModal} onClose={() => setShowModal(false)} title="Example Modal">
                             <div className="p-5">
-                                <p className="text-sm text-grey-1">
+                                <p className="text-body-s text-foreground-secondary">
                                     This is the base Modal. It provides the overlay, panel animation, close button, and
                                     optional title bar. You supply the children.
                                 </p>
@@ -138,7 +138,7 @@ export default function ModalPage() {
             {/* ActionModal */}
             <DocSection title="ActionModal">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Pre-composed modal with icon, title, description, CTA buttons, and optional checkbox. Built on
                         top of Base Modal.
                     </p>
@@ -287,13 +287,13 @@ export default function ModalPage() {
 
             {/* Specialized Modals Reference */}
             <DocSection title="Specialized Modals (14)">
-                <p className="text-sm text-grey-1">
+                <p className="text-body-s text-foreground-secondary">
                     These are pre-built modals for specific flows. They compose ActionModal or Modal internally.
                 </p>
-                <div className="overflow-x-auto rounded-sm border border-n-1 text-xs">
+                <div className="overflow-x-auto rounded-sm border border-border-default text-body-xs">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-n-1 bg-primary-3/20">
+                            <tr className="border-b border-border-default bg-background-badge-accent/20">
                                 <th className="px-3 py-1.5 text-left font-bold">Component</th>
                                 <th className="px-3 py-1.5 text-left font-bold">Purpose</th>
                             </tr>
@@ -314,7 +314,7 @@ export default function ModalPage() {
                                 ['ExportPrivateKeyModal', 'Reveal and copy private key'],
                                 ['ConfirmTransactionModal', 'Final review before transaction submit'],
                             ].map(([name, purpose]) => (
-                                <tr key={name} className="border-b border-n-1 last:border-0">
+                                <tr key={name} className="border-b border-border-default last:border-0">
                                     <td className="px-3 py-1.5 font-mono font-bold">{name}</td>
                                     <td className="px-3 py-1.5">{purpose}</td>
                                 </tr>
@@ -329,7 +329,7 @@ export default function ModalPage() {
             {/* Easter Egg Modal */}
             <DocSection title="Easter Egg Modal">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Fun modal shown when users tap uninhabited/weird countries (Antarctica, Bouvet Island, etc.) in
                         the country selector. Uses base Modal with an image and humorous caption.
                     </p>

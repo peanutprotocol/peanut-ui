@@ -36,7 +36,7 @@ export const useCurrency = (currencyCode: string | null) => {
 
     /**
      * `code` seeds from the first render only, so without this the hook never
-     * sees a later currency. Callers derive theirs from `useSearchParams()`,
+     * sees a later currency. Callers derive theirs from the URL search params,
      * which is empty on the first render of a statically exported page — the
      * hook would latch `null`, never fetch, and leave the withdraw screen on a
      * loader that never resolves (#1848).

@@ -51,10 +51,10 @@ export default function Inspector({
             {selection.type === 'node' ? (
                 <>
                     <div className="rounded-sm border border-n-1 bg-[#fcfaf7] p-3">
-                        <p className="break-words text-base font-bold">
+                        <p className="text-base font-bold break-words">
                             {selection.node.username ?? selection.node.id}
                         </p>
-                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-grey-1">
+                        <p className="mt-1 text-[11px] font-semibold tracking-wide text-grey-1 uppercase">
                             {selection.node.hasAppAccess ? 'App access' : 'No app access'}
                             {selection.node.kycRegions?.length ? ` · KYC ${selection.node.kycRegions.join(', ')}` : ''}
                         </p>
@@ -87,10 +87,10 @@ export default function Inspector({
                     </div>
 
                     <section className="mt-4" aria-labelledby="connections-heading">
-                        <h3 id="connections-heading" className="text-xs font-bold uppercase tracking-wide text-grey-1">
+                        <h3 id="connections-heading" className="text-xs font-bold tracking-wide text-grey-1 uppercase">
                             Connections
                         </h3>
-                        <ul className="mt-2 space-y-1">
+                        <ul className="space-y-1 mt-2">
                             {connections.slice(0, CONNECTION_LIMIT).map((relationship) => {
                                 const outgoing = relationship.source === selection.node.id
                                 const otherId = outgoing ? relationship.target : relationship.source

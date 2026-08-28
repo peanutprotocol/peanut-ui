@@ -13,7 +13,7 @@
  * Strategy: mock every hook and service at the module level, then configure
  * per-test via mockReturnValue / mockImplementation.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react/display-name */
+/* eslint-disable @typescript-eslint/no-unused-vars, react/display-name */
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
@@ -363,12 +363,17 @@ jest.mock('@/components/Global/AmountInput', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/PeanutLoading', () => ({
+jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
-    default: (props: any) => <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>,
+    default: (props: any) =>
+        props.variant === 'mascot' ? (
+            <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>
+        ) : (
+            <div data-testid="loading-spinner" />
+        ),
 }))
 
-jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({
+jest.mock('@/components/Global/Loading/CyclingLoading', () => ({
     __esModule: true,
     default: () => <div data-testid="cycling-loading" />,
 }))
@@ -416,15 +421,6 @@ jest.mock('@/components/Global/Icons/Icon', () => ({
     Icon: (props: any) => <span data-testid={`icon-${props.name}`} />,
 }))
 
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="error-alert" role="alert">
-            {props.description}
-        </div>
-    ),
-}))
-
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
     default: (props: any) =>
@@ -436,20 +432,6 @@ jest.mock('@/components/Global/ActionModal', () => ({
                 {props.footer}
             </div>
         ) : null,
-}))
-
-jest.mock('@/components/Global/InfoCard', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="info-card">
-            {props.title && <span>{props.title}</span>}
-            {props.description && <span>{props.description}</span>}
-            {props.items?.map((item: any, i: number) => (
-                <span key={i}>{item}</span>
-            ))}
-            {props.customContent}
-        </div>
-    ),
 }))
 
 jest.mock('@/components/Global/CopyToClipboard', () => {
@@ -534,11 +516,11 @@ jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
         ) : null,
 }))
 
-jest.mock('@/components/ActionListCard', () => ({
-    ActionListCard: (props: any) => (
+jest.mock('@/components/0_Bruddle/ListItem', () => ({
+    ListItem: (props: any) => (
         <div data-testid={`action-card-${props.title?.toLowerCase().replace(/\s+/g, '-')}`} onClick={props.onClick}>
             <span>{props.title}</span>
-            <span>{props.description}</span>
+            <span>{props.body}</span>
         </div>
     ),
 }))
@@ -590,14 +572,6 @@ jest.mock('@/components/Tooltip', () => ({
 const mockUseCryptoDepositPolling = jest.fn()
 jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
     useCryptoDepositPolling: (...args: any[]) => mockUseCryptoDepositPolling(...args),
-}))
-
-// updateUserById — the offramp handle gate persists the migrant's offramp.xyz
-// username/email through this server action
-const mockUpdateUserById = jest.fn()
-jest.mock('@/app/actions/users', () => ({
-    ...jest.requireActual('@/app/actions/users'),
-    updateUserById: (...args: any[]) => mockUpdateUserById(...args),
 }))
 
 // Country list
@@ -690,9 +664,10 @@ jest.mock('@/components/User/UserCard', () => ({
     default: (props: any) => <div data-testid="user-card">{props.username}</div>,
 }))
 
-jest.mock('@/components/Slider', () => ({
-    Slider: (props: any) => (
-        <button data-testid="slider" onClick={() => props.onValueChange?.(true)}>
+jest.mock('@/components/0_Bruddle/SlideToConfirm', () => ({
+    __esModule: true,
+    default: (props: any) => (
+        <button data-testid="slider" onClick={() => props.onConfirm?.()}>
             Slide to confirm
         </button>
     ),
@@ -1003,29 +978,8 @@ describe('GROUP 1: Landing / Method Selection', () => {
         renderWithProviders(<AddMoneyPage />)
 
         expect(screen.getByText('Crypto')).toBeInTheDocument()
-        expect(screen.getByText('Bank Transfer')).toBeInTheDocument()
+        expect(screen.getByText('Bank transfer')).toBeInTheDocument()
         expect(screen.getByText('Add Money')).toBeInTheDocument()
-    })
-
-    test('an earned Offramp badge keeps its migration entry regardless of provenance', () => {
-        mockUseAuth.mockReturnValue({
-            user: {
-                user: {
-                    username: 'test-user',
-                    userId: 'user-123',
-                    badges: [{ code: 'OFFRAMP_USER' }],
-                },
-            },
-            isFetchingUser: false,
-            fetchUser: jest.fn(),
-        })
-
-        renderWithProviders(<AddMoneyPage />)
-
-        fireEvent.click(screen.getByTestId('action-card-migrate-from-offramp'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp')
-        expect(screen.getByText('Crypto')).toBeInTheDocument()
-        expect(screen.getByText('Bank Transfer')).toBeInTheDocument()
     })
 
     test('clicking Crypto opens the network drawer', () => {
@@ -1316,86 +1270,6 @@ describe('GROUP 4: Crypto Page (with success)', () => {
 
         // The component renders CryptoDepositView which shows Deposit Crypto
         expect(screen.getByText('Deposit Crypto')).toBeInTheDocument()
-    })
-})
-
-// ============================================================
-// GROUP 4b: Offramp migration — required handle gate
-// ============================================================
-describe('GROUP 4b: Offramp migration handle gate', () => {
-    const authWithHandle = (offrampHandle: string | null) => {
-        mockUseAuth.mockReturnValue({
-            user: { user: { username: 'test-user', userId: 'user-123', offrampHandle } },
-            isFetchingUser: false,
-            fetchUser: jest.fn().mockResolvedValue(null),
-        })
-    }
-
-    beforeEach(() => {
-        resetQueryState({ network: 'EVM', source: 'offramp' })
-        mockUseCryptoDepositPolling.mockReturnValue({
-            status: 'not_started',
-            resetStatus: jest.fn(),
-            isResetting: false,
-        })
-        mockRhinoApi.createDepositAddress.mockResolvedValue({
-            depositAddress: '0xDepositAddress123',
-            minDepositLimitUsd: 5,
-            maxDepositLimitUsd: 10000,
-        })
-    })
-
-    test('migrant without a stored handle must enter it before seeing the deposit address', () => {
-        authWithHandle(null)
-        renderWithProviders(<AddMoneyCryptoPage />)
-
-        expect(screen.getByPlaceholderText('Offramp username or email')).toBeInTheDocument()
-        expect(screen.queryByTestId('qr-code')).not.toBeInTheDocument()
-    })
-
-    test('submitting the handle saves it trimmed and reveals the deposit screen', async () => {
-        authWithHandle(null)
-        mockUpdateUserById.mockResolvedValue({ data: {} })
-        renderWithProviders(<AddMoneyCryptoPage />)
-
-        fireEvent.change(screen.getByPlaceholderText('Offramp username or email'), {
-            target: { value: '  alice@offramp.xyz  ' },
-        })
-        fireEvent.click(screen.getByText('Continue'))
-
-        await waitFor(() => {
-            expect(mockUpdateUserById).toHaveBeenCalledWith({
-                userId: 'user-123',
-                offrampHandle: 'alice@offramp.xyz',
-            })
-        })
-        await waitFor(() => {
-            expect(screen.queryByPlaceholderText('Offramp username or email')).not.toBeInTheDocument()
-        })
-    })
-
-    test('save failure keeps the gate up and shows an error', async () => {
-        authWithHandle(null)
-        mockUpdateUserById.mockResolvedValue({ error: 'boom' })
-        renderWithProviders(<AddMoneyCryptoPage />)
-
-        fireEvent.change(screen.getByPlaceholderText('Offramp username or email'), {
-            target: { value: 'alice@offramp.xyz' },
-        })
-        fireEvent.click(screen.getByText('Continue'))
-
-        await waitFor(() => {
-            expect(screen.getByText(/Could not save your Offramp account/)).toBeInTheDocument()
-        })
-        expect(screen.getByPlaceholderText('Offramp username or email')).toBeInTheDocument()
-    })
-
-    test('migrant with a stored handle goes straight to the deposit screen', () => {
-        authWithHandle('alice@offramp.xyz')
-        renderWithProviders(<AddMoneyCryptoPage />)
-
-        expect(screen.queryByPlaceholderText('Offramp username or email')).not.toBeInTheDocument()
-        expect(screen.getAllByText('Migrate from Offramp').length).toBeGreaterThan(0)
     })
 })
 
@@ -1922,10 +1796,12 @@ describe('GROUP 8: InputAmountStep Component', () => {
             />
         )
 
-        expect(screen.getByTestId('error-alert')).toBeInTheDocument()
+        // dev #2843 replaced the inline alert with RateUnavailable: same error
+        // copy plus an always-reachable retry that clears the rate block
         expect(
             screen.getByText('Exchange rates are temporarily unavailable. Please try again in a moment.')
         ).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeDisabled()
     })
 

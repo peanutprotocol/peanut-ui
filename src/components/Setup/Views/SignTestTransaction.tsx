@@ -14,7 +14,7 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 
 const SignTestTransaction = () => {
@@ -183,7 +183,7 @@ const SignTestTransaction = () => {
 
     return (
         <div>
-            <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
+            <div className="flex h-full flex-col justify-between gap-10 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
                     <Button
                         loading={isLoading}
@@ -194,10 +194,10 @@ const SignTestTransaction = () => {
                     >
                         {getButtonText()}
                     </Button>
-                    {displayError && <p className="text-sm font-bold text-error">{displayError}</p>}
+                    {displayError && <p className="text-body-s font-bold text-foreground-error">{displayError}</p>}
                 </div>
                 <div>
-                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                             {t('passkey.learnMore')}
                         </DocsLink>{' '}
@@ -211,7 +211,11 @@ const SignTestTransaction = () => {
 export const PasskeyDocsLink = ({ className }: { className?: string }) => {
     const t = useTranslations('setup')
     return (
-        <p className={twMerge('border-t border-grey-1 pt-2 text-center text-xs text-grey-1', className)}>
+        <p
+            // ds text tokens stay outside twMerge — unconfigured twMerge groups
+            // them as colors and deletes the size (see LinkButton.tsx:40)
+            className={`text-body-xs text-foreground-secondary ${twMerge('border-t border-border-subtle pt-2 text-center', className)}`}
+        >
             <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                 {t('passkey.learnMore')}
             </DocsLink>{' '}

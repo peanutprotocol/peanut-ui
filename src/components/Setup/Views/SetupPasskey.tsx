@@ -1,8 +1,8 @@
 import DocsLink from '@/components/Global/DocsLink'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 import { useSetupStore } from '@/redux/hooks'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
@@ -14,7 +14,6 @@ import { checkPasskeySupport } from '@/utils/passkeyPreflight'
 import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -25,9 +24,11 @@ import { useTranslations } from 'next-intl'
 // Fail-open on network errors — the server's 409 is the backstop.
 const isUsernameTaken = async (username: string): Promise<boolean> => {
     try {
-        // capacitorHttp doesn't support HEAD — use GET in native
-        const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+        // capacitorHttp doesn't support HEAD — use GET in native.
+        // includeAuth: false — public pre-auth check, no session token involved.
+        const res = await apiFetch(`/users/username/${username}`, {
             method: isCapacitor() ? 'GET' : 'HEAD',
+            includeAuth: false,
         })
         return res.status === 200
     } catch {
@@ -218,7 +219,7 @@ const SetupPasskey = () => {
 
     return (
         <div>
-            <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
+            <div className="flex h-full flex-col justify-between gap-10 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
                     {/* Stays enabled even with a preflight warning: handlePasskeySetup
                         re-checks support and surfaces an actionable message, so a tap is
@@ -232,10 +233,10 @@ const SetupPasskey = () => {
                     >
                         {t('passkey.setItUp')}
                     </Button>
-                    {preflightWarning && <p className="text-sm font-bold text-orange-1">{preflightWarning}</p>}
+                    {preflightWarning && <p className="text-body-s font-bold text-orange-400">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
-                            <ErrorAlert description={t('passkey.usernameTaken')} />
+                            <Notification priority="error">{t('passkey.usernameTaken')}</Notification>
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
@@ -248,10 +249,10 @@ const SetupPasskey = () => {
                             </Button>
                         </>
                     )}
-                    {inlineError && <ErrorAlert description={inlineError} />}
+                    {inlineError && <Notification priority="error">{inlineError}</Notification>}
                 </div>
                 <div>
-                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                             {t('passkey.learnMore')}
                         </DocsLink>{' '}

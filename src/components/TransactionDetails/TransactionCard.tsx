@@ -1,4 +1,4 @@
-import Card from '@/components/Global/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
@@ -12,7 +12,6 @@ import {
     isCardPaymentEntry,
     isPerkReward,
 } from '@/components/TransactionDetails/transaction-predicates'
-import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { useTranslations } from 'next-intl'
 import {
     formatNumberForDisplay,
@@ -21,9 +20,16 @@ import {
     isStableCoin,
     shortenStringLong,
 } from '@/utils/general.utils'
-import { getAvatarUrl, getTransactionSign, isTestTransaction } from '@/utils/history.utils'
-import React, { lazy, Suspense } from 'react'
-import { twMerge } from 'tailwind-merge'
+import {
+    getAvatarUrl,
+    getTransactionSign,
+    isOpenRequestDisplay,
+    isTestTransaction,
+    PENDING_AMOUNT_STATUSES,
+    STRUCK_AMOUNT_STATUSES,
+} from '@/utils/history.utils'
+import React, { lazy, Suspense, useEffect, useRef } from 'react'
+import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import { isAddress } from 'viem'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
@@ -58,6 +64,12 @@ interface TransactionCardProps {
     isPending?: boolean
     haveSentMoneyToUser?: boolean
     hideTxnAmount?: boolean
+    /** whether this row's receipt drawer is open — computed by the LIST from
+     *  useTransactionDetailsDrawer, so N rows don't each subscribe to `?tx=` */
+    isSelected: boolean
+    /** the list's (stable) useTransactionDetailsDrawer callbacks */
+    onOpen: (transaction: TransactionDetails) => void
+    onClose: () => void
 }
 
 /**
@@ -76,17 +88,25 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     isPending = false,
     haveSentMoneyToUser = false,
     hideTxnAmount = false,
+    isSelected,
+    onOpen,
+    onClose,
 }) => {
-    // hook to manage the state of the details drawer (open/closed, selected transaction)
-    const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
-        useTransactionDetailsDrawer()
+    // mount the (lazy, vaul) drawer only once this row has been selected —
+    // keeps N history rows from each carrying a mounted dialog, while the
+    // ref keeps it mounted through the close animation. Written in an effect
+    // (not during render) so a discarded render can't leak the flag.
+    const hasBeenSelectedRef = useRef(false)
+    useEffect(() => {
+        if (isSelected) hasBeenSelectedRef.current = true
+    }, [isSelected])
     const { triggerHaptic } = useAppHaptic()
     const router = useRouter()
     const t = useTranslations('transaction')
 
     const handleClick = () => {
         triggerHaptic()
-        openTransactionDetails(transaction)
+        onOpen(transaction)
     }
 
     const canNavigateToProfile = hasUserProfile(transaction)
@@ -173,146 +193,148 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolUpper}`
     }
 
-    // Spec §4.4: declined card transactions stay in the feed but are visually
-    // de-emphasized so they don't compete with successful items. Scope to
-    // declined SPENDS specifically — refunds also populate cardPayment, but
-    // a failed refund (e.g. processing error) shouldn't be greyed out.
-    const isDeclinedCardSpend =
-        status === 'failed' && isCardPaymentEntry(transaction) && !transaction.extraDataForDrawer?.cardPayment?.isRefund
+    // States board 17966:12128 amount treatment — the single place both the
+    // home widget and the history page inherit:
+    //   incoming successful = base state (no "+", no badge — see getTransactionSign)
+    //   pending family      = greyed amount + pending chip
+    //   cancelled           = strikethrough, no chip
+    //   failed              = strikethrough + failed chip
+    //   refunded            = strikethrough + refund chip (board is silent; kept from before)
+    // Status families come from history.utils so they stay in lockstep with
+    // STATUS_SHOWS_SIGN (the sign rule) — don't re-list statuses here.
+    //
+    // Carve-out (kept from the old isDeclinedCardSpend rule): a FAILED card
+    // REFUND is money still owed to the user — striking it through reads as
+    // "this credit never counted". It keeps the failed chip but not the strike.
+    const isFailedCardRefund =
+        status === 'failed' &&
+        isCardPaymentEntry(transaction) &&
+        !!transaction.extraDataForDrawer?.cardPayment?.isRefund
+    // Open requests (unfulfilled request links + pots) are exempt from the
+    // pending treatment — no greyed amount, no pending chip. See
+    // isOpenRequestDisplay for the reasoning; PR #2813 review.
+    const isOpenRequest = isOpenRequestDisplay(transaction)
+    const isPendingAmount = !!status && PENDING_AMOUNT_STATUSES.has(status) && !isOpenRequest
+    const isStruckAmount = !!status && STRUCK_AMOUNT_STATUSES.has(status) && !isFailedCardRefund
+    const showStatusChip =
+        !!status &&
+        status !== 'completed' &&
+        status !== 'closed' &&
+        status !== 'cancelled' &&
+        !(isOpenRequest && PENDING_AMOUNT_STATUSES.has(status))
 
     // Settlement cleared at a different amount than authorized (tip / FX
     // true-up) — flag the row so the balance impact isn't invisible in the
     // feed; the receipt carries the authorized/adjustment breakdown. Refunds
-    // excluded like isDeclinedCardSpend above — a refund-auth that clears at
+    // excluded like isFailedCardRefund above — a refund-auth that clears at
     // a different amount would otherwise render "Refund · Adjusted".
     const isAdjustedCardSpend =
         isCardPaymentEntry(transaction) &&
         Boolean(transaction.extraDataForDrawer?.cardPayment?.settlementAdjusted) &&
         !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
+    // txn avatar handles icon/initials/colors — the row's leading slot
+    const leading = isTest ? (
+        <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
+            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
+        </div>
+    ) : isPerkRewardEntry ? (
+        <PerkIcon size="extra-small" />
+    ) : avatarUrl ? (
+        <div className={'relative flex size-8 items-center justify-center rounded-full'}>
+            <Image src={avatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />
+        </div>
+    ) : (
+        <TransactionAvatarBadge
+            initials={initials}
+            userName={userNameForAvatar}
+            isLinkTransaction={isLinkTx}
+            transactionType={type}
+            context="card"
+            size="extra-small"
+            countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
+        />
+    )
+
     return (
         <>
-            {/* the clickable card */}
-            <Card position={position} onClick={handleClick} className="cursor-pointer" data-testid="transaction-card">
-                <div className="flex min-w-0 items-center justify-between">
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                        {/* txn avatar component handles icon/initials/colors */}
-                        {isTest ? (
-                            <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
-                                <Image
-                                    src={PEANUTMAN}
-                                    alt="Peanut Logo"
-                                    className="size-8 object-contain"
-                                    width={30}
-                                    height={30}
-                                />
-                            </div>
-                        ) : isPerkRewardEntry ? (
-                            <>
-                                <PerkIcon size="extra-small" />
-                            </>
-                        ) : avatarUrl ? (
-                            <div className={'relative flex size-8 items-center justify-center rounded-full'}>
-                                <Image
-                                    src={avatarUrl}
-                                    alt="Icon"
-                                    className="size-8 object-contain"
-                                    width={30}
-                                    height={30}
-                                />
-                            </div>
-                        ) : (
-                            <TransactionAvatarBadge
-                                initials={initials}
-                                userName={userNameForAvatar}
-                                isLinkTransaction={isLinkTx}
-                                transactionType={type}
-                                context="card"
-                                size="extra-small"
-                                countryCode={getBankAccountCountryCode(
-                                    transaction.bankAccountDetails,
-                                    transaction.currency?.code
-                                )}
+            {/* the clickable row — figma list-item board anatomy */}
+            <ListItem
+                position={position}
+                onClick={handleClick}
+                data-testid="transaction-card"
+                leading={leading}
+                title={
+                    <div className="flex min-w-0 flex-row items-center gap-2">
+                        {isPending && <IndicatorDot className="h-2 w-2 animate-pulsate" />}
+                        <div className="min-w-0 flex-1 truncate">
+                            <VerifiedUserLabel
+                                username={transaction.userName}
+                                name={displayName}
+                                isVerified={transaction.isVerified}
+                                haveSentMoneyToUser={haveSentMoneyToUser}
+                                onNameClick={canNavigateToProfile ? handleNameClick : undefined}
                             />
-                        )}
-                        <div className="flex min-w-0 flex-col">
-                            {/* display formatted name (address or username) */}
-                            <div className="flex min-w-0 flex-row items-center gap-2">
-                                {isPending && <IndicatorDot className="h-2 w-2 animate-pulsate" />}
-                                <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
-                                    <VerifiedUserLabel
-                                        username={transaction.userName}
-                                        name={displayName}
-                                        isVerified={transaction.isVerified}
-                                        haveSentMoneyToUser={haveSentMoneyToUser}
-                                        onNameClick={canNavigateToProfile ? handleNameClick : undefined}
-                                    />
-                                </div>
-                            </div>
-                            {/* display the action icon and type text */}
-                            <div className="flex items-center gap-1 text-xs font-medium text-gray-1">
-                                {!isTest && getActionIcon(type, status)}
-                                <span>
-                                    {isTest
-                                        ? t('type.setup')
-                                        : isPerkRewardEntry
-                                          ? t('type.reward')
-                                          : t(getActionLabelKey(type, status))}
-                                </span>
-                                {status && <StatusPill status={status} />}
-                                {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
-                            </div>
                         </div>
                     </div>
-
-                    {/* amount and status on the right side */}
-                    {isTest ? (
+                }
+                body={
+                    <div className="flex items-center gap-1">
+                        {!isTest && getActionIcon(type, status)}
+                        <span>
+                            {isTest
+                                ? t('type.setup')
+                                : isPerkRewardEntry
+                                  ? t('type.reward')
+                                  : t(getActionLabelKey(type, status))}
+                        </span>
+                        {showStatusChip && status && <StatusPill status={status} />}
+                        {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
+                    </div>
+                }
+                trailing={
+                    isTest ? (
                         <InvitesIcon animate={false} className="size-4" />
                     ) : (
-                        <div className="flex shrink-0 items-center gap-2">
-                            <div className="flex flex-col items-end gap-1">
-                                {hideTxnAmount ? (
-                                    <span className="text-2xl font-bold">****</span>
-                                ) : (
-                                    <>
+                        <div className="flex flex-col items-end gap-1">
+                            {hideTxnAmount ? (
+                                <span className="text-body-m-semibold">****</span>
+                            ) : (
+                                <>
+                                    <span
+                                        className={twMerge(
+                                            'text-body-m-semibold text-foreground-primary',
+                                            isPendingAmount && 'opacity-40',
+                                            isStruckAmount && 'line-through'
+                                        )}
+                                    >
+                                        {displayAmount}
+                                    </span>
+                                    {currencyDisplayAmount && (
                                         <span
                                             className={twMerge(
-                                                'font-semibold',
-                                                status === 'refunded' && 'text-gray-1 line-through',
-                                                // Declined card spends: gray the amount so the row reads
-                                                // as "didn't go through" without the opacity-60 wash
-                                                // we used before (which dimmed merchant name + icons
-                                                // too and made the row hard to read at a glance).
-                                                isDeclinedCardSpend && 'text-gray-1'
+                                                'text-body-s text-foreground-secondary',
+                                                isPendingAmount && 'opacity-40',
+                                                isStruckAmount && 'line-through'
                                             )}
                                         >
-                                            {displayAmount}
+                                            {currencyDisplayAmount}
                                         </span>
-                                        {currencyDisplayAmount && (
-                                            <span
-                                                className={twMerge(
-                                                    'text-sm font-medium text-gray-1',
-                                                    status === 'refunded' && 'line-through'
-                                                )}
-                                            >
-                                                {currencyDisplayAmount}
-                                            </span>
-                                        )}
-                                    </>
-                                )}
-                            </div>
+                                    )}
+                                </>
+                            )}
                         </div>
-                    )}
-                </div>
-            </Card>
+                    )
+                }
+            />
 
             {/* Transaction Details Drawer */}
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
                     <TransactionDetailsDrawer
-                        isOpen={isDrawerOpen && selectedTransaction?.id === transaction.id}
-                        onClose={closeTransactionDetails}
-                        transaction={selectedTransaction}
+                        isOpen={isSelected}
+                        onClose={onClose}
+                        transaction={isSelected || hasBeenSelectedRef.current ? transaction : null}
                         transactionAmount={displayAmount}
                         avatarUrl={avatarUrl}
                     />
@@ -379,4 +401,6 @@ function getActionLabelKey(type: TransactionType, status?: StatusPillType) {
     return TYPE_LABEL_KEYS[status === 'refunded' ? 'refund' : type]
 }
 
-export default TransactionCard
+// memo: history is an unvirtualized infinite list — without this, any
+// drawer open/close re-rendered every loaded row (each row read `?tx=`).
+export default React.memo(TransactionCard)

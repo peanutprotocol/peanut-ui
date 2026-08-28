@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Drawer as DrawerPrimitive } from 'vaul'
 
 type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {
@@ -47,7 +47,10 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
             <DrawerPrimitive.Content
                 ref={ref}
                 className={twMerge(
-                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-[10px] border bg-background',
+                    // chrome per the TX Details board (17490:115877): page background,
+                    // no border, handle 32x5 sitting 8px from the top with 24px below.
+                    // tx-details board 17835:84492: 16px top corners (was a hardcoded 10px)
+                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-2xl bg-background-page',
                     className
                 )}
                 aria-describedby={undefined}
@@ -55,7 +58,7 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 onTouchMove={(e) => e.stopPropagation()}
             >
                 {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
-                <div className="mx-auto my-4 h-1.5 w-10 rounded-full bg-black" />
+                <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-round bg-foreground-secondary" />
                 <div className="flex w-full justify-center">
                     <div
                         className={twMerge(
@@ -88,7 +91,14 @@ const DrawerTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <DrawerPrimitive.Title
         ref={ref}
-        className={twMerge('text-lg font-semibold leading-none tracking-tight', className)}
+        // Heading/Card (18/700/24) as a token, not the vaul-boilerplate trio it
+        // replaces. `font-semibold` and `leading-none` fill --tw-font-weight and
+        // --tw-leading, which is where a type token reads ITS weight and line
+        // height from — so the three callers passing `text-heading-s` got the
+        // 24px size and kept this component's 600 weight and 1.0 line height.
+        // A token in the same conflict group loses to the caller cleanly.
+        // `tracking-tight` also went: every board style is letterSpacing 0.
+        className={twMerge('text-heading-card', className)}
         {...props}
     />
 ))
@@ -98,7 +108,11 @@ const DrawerDescription = React.forwardRef<
     React.ElementRef<typeof DrawerPrimitive.Description>,
     React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Description>
 >(({ className, ...props }, ref) => (
-    <DrawerPrimitive.Description ref={ref} className={twMerge('text-sm text-grey-1', className)} {...props} />
+    <DrawerPrimitive.Description
+        ref={ref}
+        className={twMerge('text-body-s text-foreground-secondary', className)}
+        {...props}
+    />
 ))
 DrawerDescription.displayName = DrawerPrimitive.Description.displayName
 
