@@ -125,7 +125,6 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
     privateKey: `0x${string}`,
     { bundlerUrl, paymasterUrl }: { bundlerUrl: string; paymasterUrl: string }
 ): Promise<GenericSmartAccountClient<C>> => {
-    assertZeroDevRpcUrls(bundlerUrl, paymasterUrl)
     const signer = privateKeyToAccount(privateKey)
     const validator = await signerToEcdsaValidator(publicClient, {
         signer,
@@ -149,6 +148,10 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
     }
 
     if (sponsored) {
+        // Only the sponsored branch reads paymasterUrl, so validating it up
+        // front rejected a deliberately unsponsored harness run that never
+        // needed one.
+        assertZeroDevRpcUrls(bundlerUrl, paymasterUrl)
         clientConfig.paymaster = {
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({

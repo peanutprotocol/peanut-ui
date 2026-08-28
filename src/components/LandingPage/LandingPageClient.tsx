@@ -101,8 +101,6 @@ export function LandingPageClient({
         }
     }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
 
-    // Memoized: this component re-renders per scroll frame during the button
-    // animation — don't rebuild the FAQ array + rich answer element each time.
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
     const [buttonScale, setButtonScale] = useState(1)

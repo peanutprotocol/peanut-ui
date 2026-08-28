@@ -99,6 +99,9 @@ export const FooterChrome = ({
                 <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
             </div>
 
+            {/* Nav on its own row rather than the brand row: the nav labels
+                change width per locale, so a single row overflowed once the
+                copy was translated. */}
             <nav className="mt-8 flex flex-wrap items-center justify-between gap-6">
                 <div className="flex flex-wrap items-center gap-6">
                     <Link prefetch={false} className={NAV_LINK} href="/support">

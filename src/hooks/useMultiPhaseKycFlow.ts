@@ -141,6 +141,8 @@ export const useMultiPhaseKycFlow = ({
     // completed/abandoned events (LATAM successes fired as kyc_approved with
     // region_intent: None). The last initiated intent wins over the prop.
     const lastIntentRef = useRef<KYCRegionIntent | undefined>(undefined)
+    // Last rejection status already reported, so a re-render cannot re-report it.
+    const capturedRejectionRef = useRef<string | null>(null)
 
     // bridge ToS state
     const [tosLink, setTosLink] = useState<string | null>(null)
@@ -281,11 +283,20 @@ export const useMultiPhaseKycFlow = ({
         // abandoned session still gets the capture and the store refresh.
         if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
         if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
-            posthog.capture(ANALYTICS_EVENTS.KYC_REJECTED, {
-                region_intent: lastIntentRef.current ?? regionIntent,
-                status: liveKycStatus,
-            })
-            fetchUser()
+            // Capture the TRANSITION, not the state. `showWrapper` and
+            // `isMultiLevel` are dependencies, so re-initiating after a
+            // rejection (wrapper false -> true) re-ran this effect and fired a
+            // second KYC_REJECTED for the same rejection, inflating the funnel.
+            if (capturedRejectionRef.current !== liveKycStatus) {
+                capturedRejectionRef.current = liveKycStatus
+                posthog.capture(ANALYTICS_EVENTS.KYC_REJECTED, {
+                    region_intent: lastIntentRef.current ?? regionIntent,
+                    status: liveKycStatus,
+                })
+                fetchUser()
+            }
+        } else {
+            capturedRejectionRef.current = null
         }
     }, [liveKycStatus, fetchUser, regionIntent, showWrapper, isMultiLevel])
 
