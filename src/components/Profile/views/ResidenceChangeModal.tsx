@@ -18,6 +18,8 @@ interface ResidenceChangeModalProps {
     userId: string | undefined
     /** current declared residence, preselected */
     declared: string | null
+    /** The durable second document country from /users/me. */
+    declaredSecond?: string | null
     /** KYC-verified residence, when one exists */
     verified: string | null
     /** when the escalating change cooldown lifts (ISO); null = change allowed now */
@@ -42,6 +44,7 @@ const ResidenceChangeModal = ({
     onClose,
     userId,
     declared,
+    declaredSecond,
     verified,
     nextChangeAllowedAt,
     onSaved,
@@ -95,7 +98,11 @@ const ResidenceChangeModal = ({
             // pair as selected/selected and loses the outgoing country for
             // good (the local mirror would merely hide that on this device).
             // A pick in neither slot is a genuine move: the second stands.
-            const previousSecond = readSecondResidence(userId)
+            // Server value first: the device mirror is absent on a fresh
+            // device, and trusting it there is what let a reorder wipe the
+            // outgoing country. The mirror is the fallback for the window
+            // before the /users/me field reaches production.
+            const previousSecond = declaredSecond ?? readSecondResidence(userId)
             const isReorder = !!declared && previousSecond === selected
             const result = await updateUserById({
                 userId,

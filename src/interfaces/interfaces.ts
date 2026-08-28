@@ -301,7 +301,16 @@ export interface IUserProfile {
     // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
     // nextChangeAllowedAt: when the escalating change cooldown lifts (ISO);
     // null or absent = a change is allowed right now.
-    residence?: { declared: string | null; verified: string | null; nextChangeAllowedAt?: string | null }
+    // declaredSecond: the optional second jurisdiction from the signup step,
+    // served by /users/me since 2026-08-26. Optional here only for the window
+    // before that BE lands in production; callers fall back to the device
+    // mirror in declared-residence.storage.
+    residence?: {
+        declared: string | null
+        declaredSecond?: string | null
+        verified: string | null
+        nextChangeAllowedAt?: string | null
+    }
 }
 
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue }

@@ -182,7 +182,8 @@ const UnlockPayments = () => {
     const { localDeclared, secondResidenceIso2 } = useMemo(
         () => ({
             localDeclared: readDeclaredResidence(userId),
-            // Second declared residence: device mirror until the API returns it.
+            // Second declared residence: device mirror, used only where the
+            // API value is absent (pre-production BE, or a stale cached user).
             secondResidenceIso2: readSecondResidence(userId),
         }),
         [userId]
@@ -484,6 +485,7 @@ const UnlockPayments = () => {
                 onClose={() => setIsChangeModalOpen(false)}
                 userId={user?.user?.userId}
                 declared={residence?.declared ?? null}
+                declaredSecond={residence?.declaredSecond ?? secondResidenceIso2}
                 verified={residence?.verified ?? null}
                 nextChangeAllowedAt={residence?.nextChangeAllowedAt ?? null}
                 onSaved={async () => {

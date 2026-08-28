@@ -118,6 +118,36 @@ describe('ResidenceChangeModal', () => {
         expect(readSecondResidence('u1')).toBe('FR')
     })
 
+    // The device mirror is absent on a fresh device, so trusting it there is
+    // exactly what let a reorder wipe the outgoing country. The durable value
+    // comes from /users/me.
+    it('swaps from the server value with no device mirror at all', async () => {
+        const { onClose } = render({ declared: 'ES', verified: 'ES', declaredSecond: 'FR' })
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByText('France'))
+        fireEvent.click(screen.getByText('Save'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({
+            userId: 'u1',
+            residenceCountry: 'FR',
+            secondResidenceCountry: 'ES',
+        })
+    })
+
+    it('prefers the server value over a stale device mirror', async () => {
+        storeSecondResidence('u1', 'DE')
+        const { onClose } = render({ declared: 'ES', verified: 'ES', declaredSecond: 'FR' })
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByText('France'))
+        fireEvent.click(screen.getByText('Save'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({
+            userId: 'u1',
+            residenceCountry: 'FR',
+            secondResidenceCountry: 'ES',
+        })
+    })
+
     it('warns when the picked country is restricted', () => {
         render({ declared: 'RU', verified: null })
         expect(
