@@ -44,11 +44,11 @@ import {
     type UnlockRow,
 } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
-import { readDeclaredResidence, readSecondResidence } from '@/utils/declared-residence.storage'
+import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { countryData } from '@/components/AddMoney/consts'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
@@ -188,6 +188,19 @@ const UnlockPayments = () => {
         }),
         [userId]
     )
+    // `declaredSecond` is authoritative when the server sends it AT ALL: `null`
+    // means "no second residence", which `??` would wrongly treat like the
+    // pre-deploy absent field and revive a stale device mirror. Only `undefined`
+    // — an API that predates the field — falls back.
+    const serverSecond = residence?.declaredSecond
+    const declaredSecondIso2 = serverSecond === undefined ? secondResidenceIso2 : serverSecond
+    // Re-sync the mirror to the server's answer, including clearing it: it is
+    // read elsewhere (useResidenceRestrictions), so leaving a disowned country
+    // there would keep shaping availability.
+    useEffect(() => {
+        if (userId && serverSecond !== undefined) storeSecondResidence(userId, serverSecond)
+    }, [userId, serverSecond])
+
     const declaredIso2 = residence?.declared ?? localDeclared
     const residenceIso2 = residence?.verified ?? declaredIso2 ?? null
     const isEuropeIso2 = (iso2: string | null): boolean =>
@@ -485,7 +498,7 @@ const UnlockPayments = () => {
                 onClose={() => setIsChangeModalOpen(false)}
                 userId={user?.user?.userId}
                 declared={residence?.declared ?? null}
-                declaredSecond={residence?.declaredSecond ?? secondResidenceIso2}
+                declaredSecond={declaredSecondIso2}
                 verified={residence?.verified ?? null}
                 nextChangeAllowedAt={residence?.nextChangeAllowedAt ?? null}
                 onSaved={async () => {

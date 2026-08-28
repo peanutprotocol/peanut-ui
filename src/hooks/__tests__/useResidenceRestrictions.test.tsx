@@ -2,7 +2,11 @@
 import { renderHook } from '@testing-library/react'
 import { deriveResidenceRestrictions, useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 
-let mockUser: { residenceRestrictions?: { banking: boolean; card: boolean } } | null = null
+let mockUser: {
+    residenceRestrictions?: { banking: boolean; card: boolean }
+    residence?: { declared?: string | null; declaredSecond?: string | null }
+    user?: { userId: string }
+} | null = null
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
 }))
@@ -53,6 +57,32 @@ describe('useResidenceRestrictions', () => {
         mockSetupState = { residenceCountry: 'UA' }
         const { result } = renderHook(() => useResidenceRestrictions())
         expect(result.current).toEqual({ banking: false, card: true })
+    })
+
+    // A dual resident can verify under either jurisdiction, so an unrestricted
+    // second country lifts the primary's restriction. That intersection used to
+    // read the device mirror only, so a fresh device — where there is no mirror
+    // — kept offers hidden from someone entitled to them.
+    it("intersects with the server's second residence on a device with no mirror", () => {
+        window.localStorage.clear()
+        mockUser = {
+            residenceRestrictions: { banking: true, card: true },
+            residence: { declared: 'RU', declaredSecond: 'BR' },
+            user: { userId: 'u1' },
+        }
+        const { result } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual({ banking: false, card: false })
+    })
+
+    it('treats an explicit null second residence as none, ignoring a stale mirror', () => {
+        window.localStorage.setItem('peanut:secondResidence:u1', 'BR')
+        mockUser = {
+            residenceRestrictions: { banking: true, card: true },
+            residence: { declared: 'RU', declaredSecond: null },
+            user: { userId: 'u1' },
+        }
+        const { result } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual({ banking: true, card: true })
     })
 
     it('defaults to no restriction when nothing is known', () => {
