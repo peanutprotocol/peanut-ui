@@ -5,6 +5,7 @@
 
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
+import { APP_RELEASE } from '@/constants/app-release'
 import { getPlatform, isCapacitor } from '@/utils/capacitor'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { resolveLocale, type AppLocale } from './config'
@@ -77,10 +78,12 @@ async function readDeviceTag(): Promise<string | null> {
 // KYC/nationality join. The resolved context is cached (not just a bool) so the
 // logout handler can re-register it after posthog.reset() wipes super
 // properties, mirroring app_locale. Fenced so analytics can never break the app.
-let deviceContext: { device_language: string; platform: string } | null = null
+type DeviceContext = { device_language: string; platform: string; app_release: string }
+
+let deviceContext: DeviceContext | null = null
 
 /** Last device context registered — for re-register after posthog.reset() on logout. */
-export function currentDeviceContext(): { device_language: string; platform: string } | null {
+export function currentDeviceContext(): DeviceContext | null {
     return deviceContext
 }
 
@@ -91,6 +94,11 @@ export async function emitDeviceContextToAnalytics(): Promise<void> {
         const context = {
             device_language: tag ? tag.trim().toLowerCase() : 'unknown',
             platform: getPlatform(),
+            // Also registered in posthog.init's `loaded` callback, which is what
+            // covers the initial $pageview. Repeated here so a logout's
+            // posthog.reset() — which wipes super properties — re-registers it
+            // along with the rest of this context.
+            app_release: APP_RELEASE,
         }
         posthog.register(context)
         // set only after a successful register — a throw leaves this null so a

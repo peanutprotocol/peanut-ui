@@ -5,6 +5,8 @@
  * jest.isolateModules per test.
  */
 
+import { APP_RELEASE } from '@/constants/app-release'
+
 const mockRegister = jest.fn()
 const mockSetPersonProperties = jest.fn()
 const mockIsIdentified = jest.fn()
@@ -126,8 +128,12 @@ describe('emitDeviceContextToAnalytics', () => {
         setNavigatorLanguage('es-AR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'es-ar', platform: 'web' })
-        expect(store.currentDeviceContext()).toEqual({ device_language: 'es-ar', platform: 'web' })
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ device_language: 'es-ar', platform: 'web' })
+        )
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ device_language: 'es-ar', platform: 'web' })
+        )
     })
 
     it('reads the raw tag from the native device bridge on Capacitor', async () => {
@@ -137,14 +143,32 @@ describe('emitDeviceContextToAnalytics', () => {
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
         expect(mockGetLanguageTag).toHaveBeenCalled()
-        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'pt-br', platform: 'ios-native' })
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ device_language: 'pt-br', platform: 'ios-native' })
+        )
     })
 
     it('keeps an unsupported language as-is (never collapses to en — protects the OKR denominator)', async () => {
         setNavigatorLanguage('fr-FR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'fr-fr', platform: 'web' })
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ device_language: 'fr-fr', platform: 'web' })
+        )
+    })
+
+    /*
+     * Also registered in posthog.init's `loaded` callback — that is what covers
+     * the initial $pageview, which init captures before this effect ever runs.
+     * Kept in this context too so a logout's posthog.reset(), which wipes super
+     * properties, brings it back with the rest.
+     */
+    it('re-registers the bundle release with the context, for the post-reset path', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledWith(expect.objectContaining({ app_release: APP_RELEASE }))
+        expect(store.currentDeviceContext()).toEqual(expect.objectContaining({ app_release: APP_RELEASE }))
     })
 
     it('emits once per session', async () => {
@@ -165,7 +189,9 @@ describe('emitDeviceContextToAnalytics', () => {
         expect(store.currentDeviceContext()).toBeNull()
         // guard is set only on success, so the next call retries instead of no-op
         await store.emitDeviceContextToAnalytics()
-        expect(store.currentDeviceContext()).toEqual({ device_language: 'en-us', platform: 'web' })
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ device_language: 'en-us', platform: 'web' })
+        )
     })
 })
 
