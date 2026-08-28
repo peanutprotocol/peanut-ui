@@ -2085,7 +2085,7 @@
         },
         "nudge": {
             "localRailTitle": "Pague como um local na próxima vez",
-            "localRailDescription": "Em {country}, pagar com {rail} custa cerca de {percent}% menos do que usar o cartão.",
+            "localRailDescription": "{iso2, select, BR {No} AR {Na} other {Em}} {country}, pagar com {rail} custa cerca de {percent}% menos do que usar o cartão.",
             "usdAbroadTitle": "Pague na moeda local na próxima vez",
             "usdAbroadDescription": "Você foi cobrado em dólares. Quando a maquininha oferecer cobrar em dólares, escolha a moeda local — a taxa de câmbio da Peanut costuma ser melhor."
         },
