@@ -12,6 +12,12 @@ import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
+import {
+    captureCeremonyGuardError,
+    guardPasskeyCeremony,
+    isCeremonyGuardError,
+    isPasskeyShimInstalled,
+} from '@/utils/passkeyCeremony.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -82,17 +88,21 @@ export const useZeroDev = () => {
 
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
+            // Same TASK-21782 guard as login: native shim gate + 60s bound —
+            // signup is the tightest shim race (first tap after a fresh install).
             const webAuthnKey = await withCeremonyPurpose('registration', () =>
-                toWebAuthnKey({
-                    passkeyName: _getPasskeyName(username),
-                    passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                    mode: WebAuthnMode.Register,
-                    // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
-                    // register/verify request body, so the terms+privacy versions the
-                    // signup screen displayed ride in a header the backend ledgers.
-                    passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
-                    rpID: rpId,
-                })
+                guardPasskeyCeremony(() =>
+                    toWebAuthnKey({
+                        passkeyName: _getPasskeyName(username),
+                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                        mode: WebAuthnMode.Register,
+                        // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
+                        // register/verify request body, so the terms+privacy versions the
+                        // signup screen displayed ride in a header the backend ledgers.
+                        passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
+                        rpID: rpId,
+                    })
+                )
             )
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
@@ -239,13 +249,17 @@ export const useZeroDev = () => {
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
+                // the concurrent-request bail must still release the button
+                dispatch(zerodevActions.setIsRegistering(false))
                 return
             }
             const err = e as Error
             console.error('[useZeroDev] registration failed:', err.name, err.message, err, {
-                shimInstalled: (globalThis as typeof globalThis & { __capgoPasskeyShimInstalled?: boolean })
-                    .__capgoPasskeyShimInstalled,
+                shimInstalled: isPasskeyShimInstalled(),
             })
+            if (isCeremonyGuardError(err)) {
+                captureCeremonyGuardError(err, 'register')
+            }
             dispatch(zerodevActions.setIsRegistering(false))
             throw e
         }
@@ -254,6 +268,7 @@ export const useZeroDev = () => {
     // login function
     const handleLogin = async () => {
         dispatch(zerodevActions.setIsLoggingIn(true))
+        const ceremonyStartedAt = Date.now()
         try {
             const passkeyServerHeaders: Record<string, string> = {}
 
@@ -263,14 +278,22 @@ export const useZeroDev = () => {
 
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
 
+            // TASK-21782: on native, gate on the shim being installed (a tap
+            // racing autoShimWebAuthn runs the webview's raw WebAuthn, which
+            // silently hangs in Capacitor) and bound the ceremony to 60s so a
+            // never-settling toWebAuthnKey can't leave isLoggingIn true until
+            // app kill. A late result is discarded and its verify token is not
+            // captured (ceremony window closed) — see passkeyCeremony.utils.
             const webAuthnKey = await withCeremonyPurpose('login', () =>
-                toWebAuthnKey({
-                    passkeyName: '[]',
-                    passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                    mode: WebAuthnMode.Login,
-                    passkeyServerHeaders,
-                    rpID: rpId,
-                })
+                guardPasskeyCeremony(() =>
+                    toWebAuthnKey({
+                        passkeyName: '[]',
+                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                        mode: WebAuthnMode.Login,
+                        passkeyServerHeaders,
+                        rpID: rpId,
+                    })
+                )
             )
 
             setWebAuthnKey(webAuthnKey)
@@ -287,8 +310,12 @@ export const useZeroDev = () => {
                     : e
             const { code, message } = classifyPasskeyError(err)
             dispatch(zerodevActions.setIsLoggingIn(false))
-            // Cancel saved no state; everything else clears stale state and reports the error to Sentry.
-            if (code !== 'LOGIN_CANCELED') {
+            // Ceremony guards: nothing was authenticated, so keep any existing
+            // state (no clearAuthState) and report with a discriminating tag —
+            // this is the telemetry that tells us WHERE native logins hang.
+            if (isCeremonyGuardError(err)) {
+                captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
+            } else if (code !== 'LOGIN_CANCELED') {
                 console.error('Error logging in', err)
                 await clearAuthState(user?.user.userId)
                 captureException(err, { tags: { error_type: 'login_error' } })

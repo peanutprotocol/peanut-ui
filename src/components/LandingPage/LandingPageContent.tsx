@@ -17,6 +17,7 @@ import { getLandingContent } from '@/lib/landingContent'
 import { getTranslations } from '@/i18n'
 import { landingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
+import { contentHrefsFor } from './landingContentHrefs.server'
 
 // Blue, not Manteca's default cream: on the homepage it follows RegulatedRails,
 // which is cream already.
@@ -29,6 +30,8 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
     const { heroConfig, faqData, marqueeMessages } = getLandingContent(locale)
     const strings = landingStrings(getTranslations(locale))
 
+    const contentHrefs = contentHrefsFor(locale)
+
     /*
      * The FAQ is static copy, so it is assembled here and passed in as a slot
      * rather than built inside the client component.
@@ -38,12 +41,12 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
      * own answer.
      */
     const learnMoreHrefs: Record<string, string> = {
-        '1': `/${locale}/help/what-are-digital-dollars`,
-        '2': `/${locale}/help/verification`,
-        '3': `/${locale}/help/passkeys`,
-        '4': `/${locale}/help/security-custody`,
-        '5': `/${locale}/help/fees-pricing`,
-        [SUPPORTED_RAILS_FAQ_ID]: `/${locale}/help/supported-geographies`,
+        '1': contentHrefs.whatAreDigitalDollars,
+        '2': contentHrefs.verification,
+        '3': contentHrefs.passkeys,
+        '4': contentHrefs.securityCustody,
+        '5': contentHrefs.feesPricing,
+        [SUPPORTED_RAILS_FAQ_ID]: contentHrefs.supportedGeographies,
     }
     const faqQuestions = faqData.questions.map((question) => ({
         ...question,
@@ -71,6 +74,7 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     marqueeMessages={marqueeMessages}
                     locale={locale}
                     strings={strings}
+                    contentHrefs={contentHrefs}
                     problemSlot={<ProblemFold strings={strings} />}
                     mantecaSlot={<Manteca locale={locale} backgroundColor={MANTECA_BG_COLOR} />}
                     regulatedRailsSlot={<RegulatedRails locale={locale} />}

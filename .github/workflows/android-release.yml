@@ -115,9 +115,12 @@ jobs:
               run: |
                   # NEXT_PUBLIC_* values are baked into the static export at build time.
                   # rpId MUST be peanut.me (passkeys + assetlinks/AASA).
-                  # Keep this block identical to ios-release.yml. CAPACITOR_BUILD /
-                  # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.
-                  cat > .env.production.local <<EOF
+                  # Keep this block identical to ios-release.yml / android-release.yml /
+                  # capgo-deploy.yml. CAPACITOR_BUILD / IS_NATIVE_BUILD / GIT_COMMIT_HASH
+                  # are auto-baked by next.config.native.js.
+                  # Delimiter is quoted: a secret holding $ or a backtick must land in the
+                  # file verbatim, not be expanded — or executed — by the shell.
+                  cat > .env.production.local <<'EOF'
                   NEXT_PUBLIC_BASE_URL=https://peanut.me
                   NEXT_PUBLIC_PEANUT_API_URL=${{ vars.NEXT_PUBLIC_PEANUT_API_URL }}
                   NEXT_PUBLIC_NATIVE_RP_ID=peanut.me

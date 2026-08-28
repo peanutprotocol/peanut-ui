@@ -44,11 +44,11 @@ export const webOneSignalAdapter: OneSignalAdapter = {
         initPromise = (async () => {
             const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID
             const safariWebId = process.env.NEXT_PUBLIC_SAFARI_WEB_ID
-            const webhookUrl = process.env.NEXT_PUBLIC_ONESIGNAL_WEBHOOK!
+            const webhookUrl = process.env.NEXT_PUBLIC_ONESIGNAL_WEBHOOK
 
-            if (!appId || !safariWebId) {
+            if (!appId || !safariWebId || !webhookUrl) {
                 throw new Error(
-                    'OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID and NEXT_PUBLIC_SAFARI_WEB_ID are required'
+                    'OneSignal configuration missing: NEXT_PUBLIC_ONESIGNAL_APP_ID, NEXT_PUBLIC_SAFARI_WEB_ID and NEXT_PUBLIC_ONESIGNAL_WEBHOOK are required'
                 )
             }
 

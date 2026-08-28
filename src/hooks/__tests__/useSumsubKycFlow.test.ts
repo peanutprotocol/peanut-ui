@@ -327,6 +327,221 @@ describe('useSumsubKycFlow — terminal-error exits clear the user-initiated gua
     })
 })
 
+// Sumsub's `bridge-requirements` workflow branches every EEA applicant to the
+// `bridge-eea-uplift` questionnaire right after the documents go GREEN. The SDK
+// therefore has a SECOND level to show, exactly like LATAM's Manteca
+// questionnaire, and must not be closed on the first submit. `isMultiLevel` is
+// the flag that keeps it open (SumsubKycWrapper early-returns on it), so it has
+// to be true for the intent the SDK was actually opened with.
+describe('useSumsubKycFlow — multi-level workflows', () => {
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockWs.handler = undefined
+        mockInitiate.mockResolvedValue({ data: { token: 'tok_1', applicantId: 'app_1', status: 'PENDING' } })
+    })
+
+    // The intent reaches the hook as a call-time override at almost every entry
+    // point (the bank / claim / add-money flows deliberately withhold the
+    // `regionIntent` prop so mounting the page does not create a backend record).
+    // Deriving multi-level from the prop alone made the flag false for all of
+    // them — the EEA questionnaire never got shown.
+    // NA shares the `bridge-requirements` workflow with EU but is deliberately
+    // NOT multi-level: its second levels are rare organic branches
+    // (source-of-funds, proof-of-address), and marking NA multi-level would park
+    // every US applicant in an open SDK until approval to serve them.
+    it.each([
+        ['EU', true],
+        ['LATAM', true],
+        ['NA', false],
+        ['ROW', false],
+        ['STANDARD', false],
+    ] as const)('intent %s passed as a call-time override → isMultiLevel %s', async (intent, expected) => {
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc(intent)
+        })
+
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isMultiLevel).toBe(expected)
+    })
+
+    it('falls back to the regionIntent prop when no override is passed', async () => {
+        const { result } = renderHook(() => useSumsubKycFlow({ regionIntent: 'EU' }))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+
+        expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    // An applicant action is a single level whatever the region — cross-region
+    // LATAM mints a `manteca` action token, so it must still close on submit.
+    // Every path that closes the SDK must clear the flag, or a later single-level
+    // open (self-heal, restart-identity, start-action) inherits a stale true and
+    // SumsubKycWrapper suppresses its completion close — stranding the user in the
+    // SDK. Approval is the one close path that does not run a close handler.
+    it('clears isMultiLevel when approval closes the SDK', async () => {
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU')
+        })
+        expect(result.current.isMultiLevel).toBe(true)
+
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isMultiLevel).toBe(false)
+    })
+
+    it('an applicant action is single-level even for a multi-level intent', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'manteca' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM', undefined, true, 'AR')
+        })
+
+        expect(result.current.isActionFlow).toBe(true)
+        expect(result.current.isMultiLevel).toBe(false)
+    })
+})
+
+// The companion backend change maps the follow-up level's `init` state to
+// ACTION_REQUIRED, which now lands ~3 min after the documents are submitted —
+// while the user is still filling the questionnaire in the open SDK. The
+// status-transition effect must not tear the flow down under them.
+describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', () => {
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockWs.handler = undefined
+        mockInitiate.mockResolvedValue({ data: { token: 'tok_1', applicantId: 'app_1', status: 'PENDING' } })
+    })
+
+    // Reaches the both-open state the guard protects: the user submitted once
+    // (progress modal up), then re-initiated from another entry point, so the
+    // SDK is open again on top of it.
+    const openSdkOverProgressModal = async (intent: 'EU' | 'ROW') => {
+        const view = renderHook(() => useSumsubKycFlow({}))
+        act(() => {
+            view.result.current.handleSdkComplete()
+        })
+        await act(async () => {
+            await view.result.current.handleInitiateKyc(intent)
+        })
+        expect(view.result.current.showWrapper).toBe(true)
+        expect(view.result.current.isVerificationProgressModalOpen).toBe(true)
+        return view
+    }
+
+    it('holds the flow open while the SDK shows the questionnaire', async () => {
+        const { result } = await openSdkOverProgressModal('EU')
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+    })
+
+    // The suppression must DEFER the transition, not consume it. prevStatusRef is
+    // left alone while the SDK is open, so closing the SDK re-runs the effect and
+    // the transition is evaluated for real. If the ref were advanced during the
+    // suppressed pass, a user who abandoned mid-questionnaire would be stranded on
+    // a stale "verifying" modal with nothing left to close it.
+    it('re-evaluates the deferred transition once the SDK closes', async () => {
+        const { result } = await openSdkOverProgressModal('EU')
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+
+        // user abandons the questionnaire — no new status event follows
+        act(() => {
+            result.current.handleClose()
+        })
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+    })
+
+    // …EXCEPT when the close is a submission. An in-session resubmit after a RED
+    // decline runs handleSdkComplete, which opens the progress modal — replaying
+    // the held (now stale) transition would close it in the same breath and dump
+    // the user on an ACTION_REQUIRED drawer for documents they just resubmitted.
+    // handleSdkComplete consumes the deferred status instead.
+    it('a submission close consumes the deferred transition — the progress modal stays open', async () => {
+        const { result } = await openSdkOverProgressModal('EU')
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+
+        // in-session resubmit: onApplicantResubmitted → handleSdkComplete
+        act(() => {
+            result.current.handleSdkComplete()
+        })
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+    })
+
+    // Boundary: the suppression is scoped to an OPEN SDK. Once the user is out of
+    // the SDK, ACTION_REQUIRED is a real drawer state and must close the modal.
+    it('still closes once the SDK is closed', async () => {
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU')
+        })
+        expect(result.current.isMultiLevel).toBe(true)
+
+        act(() => {
+            result.current.handleSdkComplete()
+        })
+        expect(result.current.showWrapper).toBe(false)
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+    })
+
+    // Boundary: the suppression is scoped to ACTION_REQUIRED. A rejection is
+    // terminal and must still close, SDK open or not.
+    it('REJECTED still closes the modal with the SDK open', async () => {
+        const { result } = await openSdkOverProgressModal('EU')
+
+        await act(async () => {
+            mockWs.handler?.('REJECTED')
+        })
+
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+    })
+
+    // Boundary: the suppression is scoped to multi-level flows. A single-level
+    // ROW session gets the unchanged close.
+    it('a single-level session still closes on ACTION_REQUIRED', async () => {
+        const { result } = await openSdkOverProgressModal('ROW')
+        expect(result.current.isMultiLevel).toBe(false)
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+    })
+})
+
 // Incident 2026-07-02: while the verification-progress modal was open, this hook
 // fired initiateSumsubKyc — a MUTATING endpoint — on a fixed 5s setInterval for
 // the entire modal-open, re-running provider submissions for approved-LATAM
