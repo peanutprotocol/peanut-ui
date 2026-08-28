@@ -208,6 +208,41 @@ describe('SumsubKycWrapper', () => {
         expect(onComplete).not.toHaveBeenCalled()
     })
 
+    // The real sequence: submit -> RED -> resubmit. The retry must produce its
+    // OWN submit signal — downstream that is the attempt boundary that lets the
+    // retry's rejection be reported. Gating it on "first submit ever" swallowed
+    // it, because the first submission already consumed that flag.
+    it('multi-level reports a submit signal for the retry, not just the first submission', async () => {
+        const onComplete = jest.fn()
+        const onSubmitted = jest.fn()
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="tok_abc"
+                onClose={jest.fn()}
+                onComplete={onComplete}
+                onSubmitted={onSubmitted}
+                onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
+                isMultiLevel
+            />
+        )
+        await waitFor(() => expect(launch).toHaveBeenCalled())
+
+        act(() => {
+            sdkHandlers['onApplicantSubmitted']?.()
+        })
+        expect(onSubmitted).toHaveBeenCalledTimes(1)
+
+        act(() => {
+            sdkHandlers['onApplicantResubmitted']?.()
+            // the idCheck twin is one SDK event, not a second retry
+            sdkHandlers['idCheck.onApplicantResubmitted']?.()
+        })
+
+        expect(onSubmitted).toHaveBeenCalledTimes(2)
+        expect(onComplete).not.toHaveBeenCalled()
+    })
+
     // Single-level resubmission keeps the July contract: the retry closes.
     it('single-level resubmission closes via onComplete', async () => {
         const onComplete = jest.fn()
