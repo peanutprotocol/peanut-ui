@@ -522,13 +522,12 @@ describe('mapTransactionDataForDrawer', () => {
             extraData: { kind: 'CARD_SPEND_AUTH', provider: 'RAIN', merchantName: 'Acme Coffee', usdAmount: '-14.68' },
         })
 
-        it('a negative auth stays pending (never "refunded") and reads as an incoming base-state amount', () => {
+        it('a negative auth stays pending (never "refunded") and reads as an incoming amount', () => {
             const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
             expect(result.status).toBe('pending')
             expect(result.direction).toBe('receive')
-            // incoming carries no sign (states board 17966:12128 base state) —
             // the point is it must NOT read as an outgoing '-' spend.
-            expect(getTransactionSign(result)).toBe('')
+            expect(getTransactionSign(result)).toBe('+')
         })
 
         it('flags the drawer cardPayment as a refund', () => {
@@ -575,12 +574,11 @@ describe('mapTransactionDataForDrawer', () => {
                 totalAmountCollected,
             })
 
-        it('a fully-paid open request maps to completed, and inbound stays unsigned', () => {
+        it('a fully-paid open request maps to completed, with the inbound sign', () => {
             const result = mapTransactionDataForDrawer(openRequest('25.00', 25)).transactionDetails
             expect(result.status).toBe('completed')
             expect(result.direction).toBe('request_received')
-            // DS states board 17966:12128: incoming amounts render unsigned
-            expect(getTransactionSign(result)).toBe('')
+            expect(getTransactionSign(result)).toBe('+')
         })
 
         it('float noise in the collected sum cannot leave a fully-paid request pending', () => {

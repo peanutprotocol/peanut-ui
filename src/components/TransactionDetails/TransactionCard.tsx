@@ -195,7 +195,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     // States board 17966:12128 amount treatment — the single place both the
     // home widget and the history page inherit:
-    //   incoming successful = base state (no "+", no badge — see getTransactionSign)
+    //   incoming successful = "+" prefix, no badge (see getTransactionSign)
     //   pending family      = greyed amount + pending chip
     //   cancelled           = strikethrough, no chip
     //   failed              = strikethrough + failed chip

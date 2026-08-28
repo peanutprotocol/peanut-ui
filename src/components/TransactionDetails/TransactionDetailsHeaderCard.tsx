@@ -34,7 +34,7 @@ interface TransactionDetailsHeaderCardProps {
     /** '-' for outgoing money; '' otherwise. Incoming never shows '+' — the
      *  states board (17966:12128) treats incoming-successful as the base
      *  state with no indicators. */
-    sign?: '-' | ''
+    sign?: '-' | '+' | ''
     initials: string
     status?: StatusType
     isVerified?: boolean

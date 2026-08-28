@@ -25,7 +25,9 @@ describe('DotFaceAvatar', () => {
     it('derives every trait from the palette and trait ranges', () => {
         for (const name of ['alice', 'bob88', 'mariana.br', 'x']) {
             const t = dotFaceTraits(name)
-            expect(['#FF90E8', '#FFC900', '#BA8BFF', '#98E9AB', '#90A8ED']).toContain(t.background)
+            // the avatar board's seven triples — the same set the initials
+            // avatar uses, so the two never clash side by side
+            expect(['pink', 'yellow', 'orange', 'blue', 'purple', 'red', 'green']).toContain(t.background)
             expect(t.eyeStyle).toBeGreaterThanOrEqual(0)
             expect(t.eyeStyle).toBeLessThan(5)
             expect(t.mouthStyle).toBeGreaterThanOrEqual(0)

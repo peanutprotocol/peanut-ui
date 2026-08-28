@@ -322,26 +322,28 @@ export function isOpenRequestDisplay(tx: Pick<TransactionDetails, 'direction' | 
 // Direction → balance-change sign. A `Record` (not a switch) so the compiler
 // enforces exhaustiveness: adding a `TransactionDirection` without a sign is a
 // build error, not a silent `''` at runtime.
-// States board 17966:12128: an incoming transaction is the base state and
-// carries NO "+" prefix — only outgoing amounts get a sign ("-$38").
-const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | ''> = {
+// Both directions carry a sign: "-$38" out, "+$38" in. The states board
+// (17966:12128) draws incoming unsigned, but a signed inflow reads faster in
+// a mixed feed and matches what people expect from a money app — ruled by
+// Slava 2026-08-28 over the board. Vlad updates the board to match.
+const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
     send: '-',
     withdraw: '-',
     bank_withdraw: '-',
     bank_claim: '-',
     claim_external: '-',
     qr_payment: '-',
-    receive: '',
+    receive: '+',
     // a received request is money coming TO the viewer (they created it)
-    request_received: '',
-    request_sent: '',
-    add: '',
-    bank_deposit: '',
-    bank_request_fulfillment: '',
+    request_received: '+',
+    request_sent: '+',
+    add: '+',
+    bank_deposit: '+',
+    bank_request_fulfillment: '+',
 }
 
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */
-export function getTransactionSign(transaction: Pick<TransactionDetails, 'direction' | 'status'>): '-' | '' {
+export function getTransactionSign(transaction: Pick<TransactionDetails, 'direction' | 'status'>): '-' | '+' | '' {
     if (transaction.status && !STATUS_SHOWS_SIGN[transaction.status]) {
         return ''
     }

@@ -121,9 +121,8 @@ export const TransactionDetailsReceipt = ({
     const issuedAtSource = transaction.completedAt ?? transaction.claimedAt ?? transaction.createdAt ?? transaction.date
     const issuedAt = issuedAtSource ? new Date(issuedAtSource) : undefined
 
-    // States board (17966:12128): '-' marks outgoing money; incoming stays
-    // unsigned (base state — no '+'). Pots show a collected total, never a sign.
-    const headSign = !transaction.isRequestPotLink && getTransactionSign(transaction) === '-' ? '-' : ''
+    // '-' out, '+' in. Pots show a collected total, never a sign.
+    const headSign = transaction.isRequestPotLink ? '' : getTransactionSign(transaction)
 
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the

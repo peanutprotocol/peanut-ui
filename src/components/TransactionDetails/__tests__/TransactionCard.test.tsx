@@ -143,9 +143,8 @@ describe('TransactionCard — clickable counterparty name', () => {
 })
 
 // TASK-21887: a received request is inbound money (the viewer created the
-// request), so the row must carry the inbound arrow — it used to render the
-// outbound arrow with a negative amount. The sign itself is gone: the DS
-// states board (17966:12128) renders incoming amounts unsigned.
+// request), so the row must carry the inbound arrow and the "+" — it used to
+// render the outbound arrow with a negative amount.
 describe('TransactionCard — received request renders as inbound', () => {
     function requestTx(): TransactionDetails {
         const tx = eligibleTx()
@@ -155,7 +154,7 @@ describe('TransactionCard — received request renders as inbound', () => {
         return tx
     }
 
-    it('draws the inbound arrow and an unsigned amount', () => {
+    it('draws the inbound arrow and a positive amount', () => {
         const { container } = render(
             <TransactionCard
                 type="request"
@@ -171,7 +170,7 @@ describe('TransactionCard — received request renders as inbound', () => {
 
         expect(container.querySelector('svg.lucide-arrow-down-left')).not.toBeNull()
         expect(container.querySelector('svg.lucide-arrow-up-right')).toBeNull()
-        expect(screen.getByText('$10')).toBeInTheDocument()
+        expect(screen.getByText('+$10')).toBeInTheDocument()
     })
 })
 
@@ -296,7 +295,7 @@ describe('TransactionCard — open-request pending exemption', () => {
     it('shows no pending chip and no greyed amount for an open request', () => {
         const { container } = renderPending(pendingTx({ direction: 'request_received' }))
         expect(pendingPill(container)).toBeNull()
-        expect(screen.getByText('$10')).not.toHaveClass('opacity-40')
+        expect(screen.getByText('+$10')).not.toHaveClass('opacity-40')
     })
 
     it('exempts request-pot rollups too', () => {

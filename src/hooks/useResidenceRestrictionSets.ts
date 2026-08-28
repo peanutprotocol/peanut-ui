@@ -3,8 +3,7 @@ import {
     CARD_RESTRICTED_RESIDENCE_ISO2,
     RESTRICTED_RESIDENCE_ISO2,
 } from '@/constants/residence.consts'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 import { useEffect, useState } from 'react'
 
 export interface ResidenceRestrictionSets {
@@ -41,7 +40,8 @@ const parseLists = (json: unknown): ResidenceRestrictionSets | null => {
 
 async function loadServerSets(): Promise<ResidenceRestrictionSets | null> {
     if (serverSets) return serverSets
-    inflight ??= fetchWithSentry(`${PEANUT_API_URL}/config/residence-restrictions`)
+    // public config: no auth, so it must not queue behind token hydration
+    inflight ??= apiFetch('/config/residence-restrictions', { includeAuth: false })
         .then(async (res) => {
             if (!res.ok) return null
             const parsed = parseLists(await res.json())

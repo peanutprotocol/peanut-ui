@@ -43,7 +43,6 @@ const HEX_ALLOW = [
     'dev/kyc-flows/', // mermaid theming
     'LandingPage/PioneerCard3D', // canvas 3d card
     'receipt/[entryId]/pdf/', // @react-pdf/renderer — its StyleSheet takes no tailwind tokens
-    'Global/DotFaceAvatar', // generated svg face palette (same class as InvitesGraph)
     'app/layout.tsx', // next viewport themeColor — browser chrome, must be a literal
 ]
 

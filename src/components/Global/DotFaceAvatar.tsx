@@ -6,17 +6,63 @@ import { twMerge } from 'tailwind-merge'
 
 /**
  * Deterministic generative avatar for the user's OWN identity (home chip,
- * self profile header). The username is hashed once; the hash picks the
- * background from the five Peanut palette colors, one of five eye styles,
- * one of five mouths, and whether the cheeks blush — 625 combinations,
- * stable across devices, nothing stored or uploaded.
+ * self profile header). The username is hashed once; the hash picks one of
+ * the seven avatar colors, one of five eye styles, one of five mouths, and
+ * whether the cheeks blush — 875 combinations, stable across devices,
+ * nothing stored or uploaded.
  *
  * Deliberately NOT used for other people: counterparty rows keep the
  * initials avatar, where letters genuinely help tell contacts apart.
- * Face strokes use currentColor so the theme token supplies the outline.
+ *
+ * Colors come from the avatar board's seven triples (17802:61529) — the same
+ * set `AvatarWithBadge` draws initials on. Each triple travels together: the
+ * pale fill is the face, its border rims the circle, and its foreground draws
+ * the features and blush, so the face is legible at every size without a
+ * per-color contrast check.
  */
-const PALETTE = ['#FF90E8', '#FFC900', '#BA8BFF', '#98E9AB', '#90A8ED'] as const
-const BLUSH = '#FF90E8'
+const PALETTE = ['pink', 'yellow', 'orange', 'blue', 'purple', 'red', 'green'] as const
+
+export type DotFaceColor = (typeof PALETTE)[number]
+
+// full literals so tailwind's scanner emits them; the fill/stroke pair cannot
+// both ride currentColor, so the circle takes classes and the features inherit
+const FACE_CLASSES: Record<DotFaceColor, { circle: string; text: string; blush: string }> = {
+    pink: {
+        circle: 'fill-avatar-pink stroke-avatar-pink-border',
+        text: 'text-avatar-pink-foreground',
+        blush: 'fill-avatar-pink-border',
+    },
+    yellow: {
+        circle: 'fill-avatar-yellow stroke-avatar-yellow-border',
+        text: 'text-avatar-yellow-foreground',
+        blush: 'fill-avatar-yellow-border',
+    },
+    orange: {
+        circle: 'fill-avatar-orange stroke-avatar-orange-border',
+        text: 'text-avatar-orange-foreground',
+        blush: 'fill-avatar-orange-border',
+    },
+    blue: {
+        circle: 'fill-avatar-blue stroke-avatar-blue-border',
+        text: 'text-avatar-blue-foreground',
+        blush: 'fill-avatar-blue-border',
+    },
+    purple: {
+        circle: 'fill-avatar-purple stroke-avatar-purple-border',
+        text: 'text-avatar-purple-foreground',
+        blush: 'fill-avatar-purple-border',
+    },
+    red: {
+        circle: 'fill-avatar-red stroke-avatar-red-border',
+        text: 'text-avatar-red-foreground',
+        blush: 'fill-avatar-red-border',
+    },
+    green: {
+        circle: 'fill-avatar-green stroke-avatar-green-border',
+        text: 'text-avatar-green-foreground',
+        blush: 'fill-avatar-green-border',
+    },
+}
 
 const djb2 = (value: string): number => {
     let hash = 5381
@@ -34,7 +80,7 @@ const lcg = (seed: number) => {
 }
 
 export interface DotFaceTraits {
-    background: string
+    background: DotFaceColor
     eyeStyle: number
     mouthStyle: number
     blush: boolean
@@ -54,6 +100,7 @@ const DotFaceAvatar = ({ username, size, className }: { username: string; size?:
     const t = useTranslations('common')
     const traits = useMemo(() => dotFaceTraits(username), [username])
     const { background, eyeStyle, mouthStyle, blush } = traits
+    const face = FACE_CLASSES[background]
 
     const cx = 50
     const cy = 46
@@ -132,10 +179,7 @@ const DotFaceAvatar = ({ username, size, className }: { username: string; size?:
 
     return (
         <span
-            className={twMerge(
-                'inline-flex shrink-0 items-center justify-center text-foreground-primary dark:text-white',
-                className
-            )}
+            className={twMerge('inline-flex shrink-0 items-center justify-center', face.text, className)}
             style={size ? { width: size, height: size } : undefined}
             data-testid="dot-face-avatar"
         >
@@ -145,11 +189,11 @@ const DotFaceAvatar = ({ username, size, className }: { username: string; size?:
                 role="img"
                 aria-label={t('userAvatarAlt', { username })}
             >
-                <circle cx="50" cy="50" r="47.5" fill={background} stroke="currentColor" strokeWidth="5" />
+                <circle cx="50" cy="50" r="47.5" className={face.circle} strokeWidth="5" />
                 {eyes}
                 {mouths}
                 {blush && (
-                    <g fill={BLUSH} opacity="0.85">
+                    <g className={face.blush} opacity="0.85">
                         <circle cx={cx - ex - 8 * sc} cy={cy + 5 * sc} r={3.2 * sc} />
                         <circle cx={cx + ex + 8 * sc} cy={cy + 5 * sc} r={3.2 * sc} />
                     </g>
