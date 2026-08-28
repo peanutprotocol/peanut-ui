@@ -166,13 +166,24 @@ jobs:
             # in this repo because it bloats every FE diff by ~3.7K lines.
             # PR base branch tracks the BE branch the FE is coordinated with
             # (dev when targeting dev; the paired BE PR's HEAD when in flight).
+            # Two steps on purpose: only the fetch may see the cross-repo
+            # token. The import runs scripts/import-be-baseline.mjs from the PR
+            # checkout, which a PR is free to edit, so it must not be able to
+            # read PEANUT_ALL_READ_TOKEN out of process.env. `base_ref` goes
+            # through env rather than being interpolated into the script, so a
+            # branch name can never be shell.
             - name: Fetch BE render-snapshot baseline
               env:
                   GH_TOKEN: ${{ secrets.PEANUT_ALL_READ_TOKEN }}
+                  BE_REF: ${{ github.base_ref || 'dev' }}
               run: |
-                  BE_REF="${{ github.base_ref || 'dev' }}"
+                  set -euo pipefail
                   gh api "repos/peanutprotocol/peanut-api-ts/contents/test/integration/__fixtures__/history-real-staging.jsonl?ref=${BE_REF}" \
                       --jq '.content' | base64 -d > /tmp/be-baseline.jsonl
+
+            - name: Import the BE baseline
+              run: |
+                  set -euo pipefail
                   node scripts/import-be-baseline.mjs /tmp/be-baseline.jsonl \
                       src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 
@@ -479,6 +490,8 @@ jobs:
 
             - name: Render the comment
               if: github.event_name == 'pull_request'
+              env:
+                  BASE_REF: ${{ github.base_ref }}
               run: |
                   set -euo pipefail
                   if [ '${{ steps.diff.outputs.ready }}' != 'true' ]; then
@@ -486,7 +499,7 @@ jobs:
                           echo '<!-- ds-shots -->'
                           echo '## 🖼 Visual diff — no baseline yet'
                           echo
-                          echo 'Nothing is cached for `${{ github.base_ref }}`. The next push to that'
+                          echo "Nothing is cached for \`${BASE_REF}\`. The next push to that"
                           echo 'branch captures one, and this comment fills in on your next push here.'
                       } > e2e/__shots__/body.md
                   else

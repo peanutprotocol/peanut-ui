@@ -37,9 +37,11 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             - name: Resolve base package.json
+              env:
+                  BASE_REF: ${{ github.base_ref }}
               run: |
-                  git fetch origin "${{ github.base_ref }}"
-                  git show "origin/${{ github.base_ref }}:package.json" > /tmp/base-package.json
+                  git fetch origin "$BASE_REF"
+                  git show "origin/$BASE_REF:package.json" > /tmp/base-package.json
 
             - name: Check min release age
               run: node scripts/check-min-release-age.mjs --base /tmp/base-package.json
