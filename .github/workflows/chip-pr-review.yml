@@ -12,11 +12,19 @@
 # which only somebody with push access can arrange -- it covers every teammate
 # with no list to maintain, and excludes fork PRs.
 #
-# Do NOT filter on author_association. It reports MEMBER only when the person
-# made their org membership PUBLIC, so it read CONTRIBUTOR for an org admin
-# with private membership and silently skipped their reviews (verified live,
-# 2026-08-27). issue_comment carries no head-repo field, so the manual job
-# matches the command only and leans entirely on the server-side check.
+# The REVIEW job must not filter on author_association: it reports MEMBER only
+# when the person made their org membership PUBLIC, so it read CONTRIBUTOR for
+# an org admin with private membership and silently skipped their reviews
+# (verified live, 2026-08-27).
+#
+# The MANUAL job has no head-repo field to filter on, so author_association is
+# the only in-repo control it has. CONTRIBUTOR is excluded there deliberately:
+# it is granted permanently after a single merged commit on this public repo
+# and survives access being revoked, so it would let a former collaborator
+# open an SSH session to the review box. KNOWN COST of that exclusion: an org
+# admin whose membership is private reads as CONTRIBUTOR and their `/chip`
+# commands are skipped — they can make membership public, or we move to an
+# explicit allowlist (.github/CODEOWNERS is the obvious source).
 #
 # The real gate is server side: the dispatcher re-checks live repository write
 # permission before Codex reads anything.
@@ -67,7 +75,7 @@ jobs:
         if: >-
             github.event_name == 'issue_comment' &&
             github.event.issue.pull_request &&
-            contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.comment.author_association) &&
+            contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
             (contains(github.event.comment.body, '/chip review') || contains(github.event.comment.body, '@chip-peanut-bot review')
             || contains(github.event.comment.body, '/chip quiet') || contains(github.event.comment.body, '/chip loud'))
         runs-on: ubuntu-latest

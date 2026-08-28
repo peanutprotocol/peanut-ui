@@ -180,6 +180,55 @@ describe('SumsubKycWrapper', () => {
         expect(onComplete).not.toHaveBeenCalled()
     })
 
+    // RED on Level 1 keeps a multi-level SDK open (evaluateSumsubStatusEvent
+    // never auto-closes for multi-level), so the in-session retry must not
+    // close either — it still owes the follow-up questionnaire. handleSubmitted
+    // learned about multi-level in Aug 2026; handleResubmitted was left behind.
+    it('multi-level resubmission after RED does not close the SDK', async () => {
+        const onComplete = jest.fn()
+        const onSubmitted = jest.fn()
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="tok_abc"
+                onClose={jest.fn()}
+                onComplete={onComplete}
+                onSubmitted={onSubmitted}
+                onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
+                isMultiLevel
+            />
+        )
+        await waitFor(() => expect(launch).toHaveBeenCalled())
+
+        act(() => {
+            sdkHandlers['onApplicantResubmitted']?.()
+            sdkHandlers['idCheck.onApplicantResubmitted']?.()
+        })
+
+        expect(onComplete).not.toHaveBeenCalled()
+    })
+
+    // Single-level resubmission keeps the July contract: the retry closes.
+    it('single-level resubmission closes via onComplete', async () => {
+        const onComplete = jest.fn()
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="tok_abc"
+                onClose={jest.fn()}
+                onComplete={onComplete}
+                onRefreshToken={jest.fn().mockResolvedValue('tok_abc')}
+            />
+        )
+        await waitFor(() => expect(launch).toHaveBeenCalled())
+
+        act(() => {
+            sdkHandlers['onApplicantResubmitted']?.()
+        })
+
+        expect(onComplete).toHaveBeenCalled()
+    })
+
     // Single-level keeps its original contract: submit closes via onComplete,
     // and onSubmitted stays silent (no double analytics signal).
     it('single-level submit fires onComplete, not onSubmitted', async () => {

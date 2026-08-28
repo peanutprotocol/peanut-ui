@@ -177,10 +177,17 @@ const SumsubWebSdkModal = ({
                 stableOnComplete()
             }
             // resubmission = user retried after rejection (ACTION_REQUIRED).
-            // always close SDK regardless of multi-level — the retry is a fresh submission.
+            // Multi-level is handled exactly as in handleSubmitted: a retry on
+            // Level 1 still owes the follow-up questionnaire, so closing here
+            // stranded the applicant looking submitted with a level outstanding.
             const handleResubmitted = () => {
                 console.log('[sumsub] onApplicantResubmitted fired')
+                const isFirstSubmit = !hasSubmittedRef.current
                 hasSubmittedRef.current = true
+                if (isMultiLevelRef.current) {
+                    if (isFirstSubmit) stableOnSubmitted()
+                    return
+                }
                 stableOnComplete()
             }
             // Applicant Actions (like rain-card-application) emit this instead

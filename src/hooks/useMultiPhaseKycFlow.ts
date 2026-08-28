@@ -141,6 +141,11 @@ export const useMultiPhaseKycFlow = ({
     // completed/abandoned events (LATAM successes fired as kyc_approved with
     // region_intent: None). The last initiated intent wins over the prop.
     const lastIntentRef = useRef<KYCRegionIntent | undefined>(undefined)
+    // Terminal status already reported for the CURRENT attempt. Cleared on each
+    // submission, so a re-opened SDK cannot re-report the same rejection while a
+    // genuinely new rejection after a retry still reports (status alone cannot
+    // tell those apart — liveKycStatus stays REJECTED across both).
+    const reportedRejectionRef = useRef<string | null>(null)
 
     // bridge ToS state
     const [tosLink, setTosLink] = useState<string | null>(null)
@@ -281,6 +286,8 @@ export const useMultiPhaseKycFlow = ({
         // abandoned session still gets the capture and the store refresh.
         if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
         if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
+            if (reportedRejectionRef.current === liveKycStatus) return
+            reportedRejectionRef.current = liveKycStatus
             posthog.capture(ANALYTICS_EVENTS.KYC_REJECTED, {
                 region_intent: lastIntentRef.current ?? regionIntent,
                 status: liveKycStatus,
@@ -294,11 +301,13 @@ export const useMultiPhaseKycFlow = ({
     // closes it without onComplete. The wrapper reports the Level-1 submit
     // through onSubmitted instead, so the funnel still gets its KYC_SUBMITTED.
     const handleSdkSubmitted = useCallback(() => {
+        reportedRejectionRef.current = null
         posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
     }, [regionIntent])
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
+        reportedRejectionRef.current = null
         posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
         isRealtimeFlowRef.current = true
         originalHandleSdkComplete()
