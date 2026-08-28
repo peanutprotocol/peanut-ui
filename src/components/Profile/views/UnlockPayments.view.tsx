@@ -224,10 +224,10 @@ const UnlockPayments = () => {
                 // waitlist grant only gates activation and is handled on /card.
                 card: hasActiveCard ? 'active' : isEligible === false ? 'notAvailable' : 'get',
                 residenceIso2,
-                secondResidenceIso2,
-                isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),
+                secondResidenceIso2: declaredSecondIso2,
+                isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(declaredSecondIso2),
             }),
-        [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, residenceIso2, secondResidenceIso2]
+        [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, residenceIso2, declaredSecondIso2]
     )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──

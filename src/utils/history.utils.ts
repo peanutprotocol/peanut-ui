@@ -339,7 +339,10 @@ const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
     request_sent: '+',
     add: '+',
     bank_deposit: '+',
-    bank_request_fulfillment: '+',
+    // NOT an inflow: p2p-send emits this for the SENDER of a bridge-fulfilled
+    // request — the viewer is paying via bank rails, so their balance drops.
+    // It sits with the inbound names purely because of its wording.
+    bank_request_fulfillment: '-',
 }
 
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */

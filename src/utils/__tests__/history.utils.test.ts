@@ -123,6 +123,14 @@ describe('getTransactionSign', () => {
         expect(sign('request_received', 'completed')).toBe('+')
     })
 
+    // The wording is inbound but the money is not: p2p-send emits this for the
+    // SENDER of a bridge-fulfilled request, who is paying. A "+" here told a
+    // payer their balance had gone up.
+    it('shows the outflow sign for a bank-request fulfillment (the payer)', () => {
+        expect(sign('bank_request_fulfillment', 'pending')).toBe('-')
+        expect(sign('bank_request_fulfillment', 'completed')).toBe('-')
+    })
+
     it.each(['cancelled', 'failed', 'refunded'])('suppresses the sign for status=%s', (status) => {
         expect(sign('qr_payment', status)).toBe('')
         expect(sign('receive', status)).toBe('')
