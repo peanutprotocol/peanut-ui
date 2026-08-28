@@ -8,7 +8,7 @@ import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets
 import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
-import { storeDeclaredResidence } from '@/utils/declared-residence.storage'
+import { readSecondResidence, storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
@@ -95,6 +95,15 @@ const ResidenceChangeModal = ({
                 return false
             }
             storeDeclaredResidence(userId, selected)
+            // Promoting the second document country is a REORDER, not a move:
+            // writing only the primary would leave both slots holding `selected`
+            // and drop the outgoing country from the restriction intersection
+            // (which is what makes a dual-residence pair stricter than either
+            // country alone). Swap instead. Picking a country that is in neither
+            // slot is a genuine move, and leaves the second document alone.
+            if (declared && readSecondResidence(userId) === selected) {
+                storeSecondResidence(userId, declared)
+            }
             posthog.capture(ANALYTICS_EVENTS.RESIDENCE_CHANGED, {
                 residence_country: selected,
                 differed_from_verified: differsFromVerified,

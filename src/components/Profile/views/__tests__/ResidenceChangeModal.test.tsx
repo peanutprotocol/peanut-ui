@@ -4,6 +4,7 @@ import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-librar
 import { IntlWrapper } from '@/test-utils/intl'
 import ResidenceChangeModal from '@/components/Profile/views/ResidenceChangeModal'
 import { updateUserById } from '@/app/actions/users'
+import { readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
@@ -32,6 +33,7 @@ const render = (props?: Partial<React.ComponentProps<typeof ResidenceChangeModal
 describe('ResidenceChangeModal', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        window.localStorage.clear()
         mockedUpdate.mockResolvedValue({ data: undefined })
     })
 
@@ -81,6 +83,32 @@ describe('ResidenceChangeModal', () => {
         await waitFor(() => expect(screen.getByText('nope')).toBeInTheDocument())
         expect(onClose).not.toHaveBeenCalled()
         expect(onReverify).not.toHaveBeenCalled()
+    })
+
+    // A dual-residence pair is stricter than either country alone: the
+    // restriction hook intersects both slots. Promoting the second document
+    // country must therefore SWAP the pair, not overwrite the primary and
+    // leave both slots holding the same country — that silently drops the
+    // outgoing country from the intersection.
+    it('promoting the second document country swaps the pair instead of dropping one', async () => {
+        storeSecondResidence('u1', 'FR')
+        const { onClose } = render({ declared: 'ES', verified: 'ES' })
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByText('France'))
+        fireEvent.click(screen.getByText('Save'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'FR' })
+        expect(readSecondResidence('u1')).toBe('ES')
+    })
+
+    it('moving to a country in neither slot leaves the second document alone', async () => {
+        storeSecondResidence('u1', 'FR')
+        const { onClose } = render({ declared: 'ES', verified: 'ES' })
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByText('Germany'))
+        fireEvent.click(screen.getByText('Save'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(readSecondResidence('u1')).toBe('FR')
     })
 
     it('warns when the picked country is restricted', () => {
