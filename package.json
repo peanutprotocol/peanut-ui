@@ -79,6 +79,7 @@
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slider": "^1.3.5",
         "@radix-ui/react-tabs": "^1.1.13",
+        "@react-pdf/renderer": "4.6.0",
         "@reduxjs/toolkit": "^2.5.0",
         "@sentry/nextjs": "^8.39.0",
         "@serwist/next": "^9.0.10",
@@ -197,9 +198,10 @@
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat|nuqs)([@+/]|$))"
+            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat|nuqs|@react-pdf|yoga-layout|@swc\\+helpers|@swc/helpers|color-name|color-string|fontkit|jay-peg|linebreak|png-js|restructure|unicode-properties)([@+/]|$))"
         ],
         "moduleNameMapper": {
+            "yoga-wasm-base64-esm\\.js$": "<rootDir>/src/utils/__mocks__/yoga-wasm-cjs.ts",
             "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",
             "^@/config/wagmi\\.config$": "<rootDir>/src/utils/__mocks__/wagmi-config.ts",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",

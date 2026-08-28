@@ -55,6 +55,7 @@ import {
     usesCompletedTimestampLabel,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
+import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
 import { useReceiptDateFormatter } from './useReceiptDateFormatter'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
@@ -164,6 +165,7 @@ export const TransactionDetailsReceipt = ({
         rowVisibilityConfig,
         shouldHideBorder,
         shouldShowShareReceipt,
+        shouldShowDownloadPdf,
         requestPotContributors,
         formattedTotalAmountCollected,
     } = useReceiptViewModel(transaction, { isPublic })
@@ -917,6 +919,10 @@ export const TransactionDetailsReceipt = ({
                         {t('actions.shareReceipt')}
                     </ShareButton>
                 </div>
+            )}
+
+            {shouldShowDownloadPdf && transaction.extraDataForDrawer?.kind && (
+                <DownloadReceiptPdfLink entryId={transaction.id} kind={transaction.extraDataForDrawer.kind} />
             )}
 
             <CancelDepositActions

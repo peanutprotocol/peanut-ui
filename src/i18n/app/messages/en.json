@@ -1735,7 +1735,13 @@
         "officialReceipt": {
             "issuedBy": "Issued by Peanut",
             "reference": "Receipt reference",
-            "issuedOn": "Issued on"
+            "issuedOn": "Issued on",
+            "pdf": {
+                "title": "Payment Receipt",
+                "type": "Type",
+                "status": "Status",
+                "from": "From"
+            }
         },
         "receiptUnavailable": {
             "title": "This receipt link is no longer available",
@@ -1867,6 +1873,7 @@
             "rejectRequest": "Reject request",
             "splitBill": "Split this bill",
             "shareReceipt": "Share Receipt",
+            "downloadPdf": "Download PDF",
             "inviteFriends": "Invite friends to earn more rewards",
             "reportIssue": "Issues with this transaction?",
             "cancelDeposit": "Cancel deposit",
