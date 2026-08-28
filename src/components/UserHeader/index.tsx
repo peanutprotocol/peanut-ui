@@ -89,7 +89,7 @@ export const VerifiedUserLabel = ({
     const isInviter = user?.invitedBy === username
 
     return (
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
             {isCryptoAddressComputed ? (
                 <AddressLink
                     isLink={false}
@@ -99,7 +99,7 @@ export const VerifiedUserLabel = ({
             ) : (
                 <div
                     className={twMerge(
-                        'line-clamp-1 font-semibold md:text-base',
+                        'line-clamp-1 min-w-0 font-semibold md:text-base',
                         className,
                         onNameClick && 'cursor-pointer'
                     )}

@@ -114,6 +114,11 @@ describe('getTransactionSign', () => {
         expect(sign('receive', 'pending')).toBe('+')
     })
 
+    it('shows the inflow sign for a received request — the viewer created it, money comes IN', () => {
+        expect(sign('request_received', 'pending')).toBe('+')
+        expect(sign('request_received', 'completed')).toBe('+')
+    })
+
     it.each(['cancelled', 'failed', 'refunded'])('suppresses the sign for status=%s', (status) => {
         expect(sign('qr_payment', status)).toBe('')
         expect(sign('receive', status)).toBe('')

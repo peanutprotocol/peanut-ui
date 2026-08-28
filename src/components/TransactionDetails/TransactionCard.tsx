@@ -4,7 +4,7 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
-import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
+import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
 import {
@@ -194,8 +194,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         <>
             {/* the clickable card */}
             <Card position={position} onClick={handleClick} className="cursor-pointer" data-testid="transaction-card">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center justify-between">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                         {/* txn avatar component handles icon/initials/colors */}
                         {isTest ? (
                             <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
@@ -235,9 +235,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 )}
                             />
                         )}
-                        <div className="flex flex-col">
+                        <div className="flex min-w-0 flex-col">
                             {/* display formatted name (address or username) */}
-                            <div className="flex flex-row items-center gap-2">
+                            <div className="flex min-w-0 flex-row items-center gap-2">
                                 {isPending && <IndicatorDot className="h-2 w-2 animate-pulsate" />}
                                 <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
                                     <VerifiedUserLabel
@@ -251,7 +251,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             </div>
                             {/* display the action icon and type text */}
                             <div className="flex items-center gap-1 text-xs font-medium text-gray-1">
-                                {!isTest && getActionIcon(type, transaction.direction, status)}
+                                {!isTest && getActionIcon(type, status)}
                                 <span>
                                     {isTest
                                         ? t('type.setup')
@@ -269,7 +269,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     {isTest ? (
                         <InvitesIcon animate={false} className="size-4" />
                     ) : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex shrink-0 items-center gap-2">
                             <div className="flex flex-col items-end gap-1">
                                 {hideTxnAmount ? (
                                     <span className="text-2xl font-bold">****</span>
@@ -324,13 +324,14 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
 // Per-type presentation: the feed row's action icon. One table keyed by
 // TransactionType replaces the switch this used to be, so a new type is a
-// single row here. `icon: null` means "no icon" (e.g. `request`, which is
-// direction-dependent and handled in getActionIcon). The row's label lives
+// single row here. `icon: null` means "no icon". The row's label lives
 // in the `transaction.type.*` catalog, keyed by the same literal.
 const TYPE_PRESENTATION: Record<TransactionType, { icon: IconName | null; iconSize?: number }> = {
     send: { icon: 'arrow-up-right' },
     receive: { icon: 'arrow-down-left' },
-    request: { icon: null }, // direction-dependent — see getActionIcon
+    // Inbound arrow: a request row is money coming TO the viewer, including
+    // request_received (an open request the viewer created).
+    request: { icon: 'arrow-down-left' },
     withdraw: { icon: 'arrow-up', iconSize: 8 },
     cashout: { icon: 'arrow-up', iconSize: 8 },
     claim_external: { icon: 'arrow-up', iconSize: 8 },
@@ -363,19 +364,9 @@ const TYPE_LABEL_KEYS = {
 } as const satisfies Record<TransactionType, string>
 
 // helper functions
-function getActionIcon(
-    type: TransactionType,
-    direction: TransactionDirection,
-    status?: StatusPillType
-): React.ReactNode {
+function getActionIcon(type: TransactionType, status?: StatusPillType): React.ReactNode {
     if (status === 'refunded') {
         return <Icon name="arrow-down-left" size={7} fill="currentColor" />
-    }
-    // `request` is the one type whose icon depends on direction (incoming vs
-    // outgoing request), so it stays out of the table.
-    if (type === 'request') {
-        const iconName: IconName = direction === 'request_received' ? 'arrow-up-right' : 'arrow-down-left'
-        return <Icon name={iconName} size={7} fill="currentColor" />
     }
     const { icon, iconSize } = TYPE_PRESENTATION[type]
     if (!icon) return null
