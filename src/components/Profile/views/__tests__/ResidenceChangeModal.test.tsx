@@ -97,7 +97,13 @@ describe('ResidenceChangeModal', () => {
         fireEvent.click(screen.getByText('France'))
         fireEvent.click(screen.getByText('Save'))
         await waitFor(() => expect(onClose).toHaveBeenCalled())
-        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'FR' })
+        // both slots travel with the request: the server pair is the durable
+        // one, and a local-only swap would just hide the loss on this device
+        expect(mockedUpdate).toHaveBeenCalledWith({
+            userId: 'u1',
+            residenceCountry: 'FR',
+            secondResidenceCountry: 'ES',
+        })
         expect(readSecondResidence('u1')).toBe('ES')
     })
 
@@ -108,6 +114,7 @@ describe('ResidenceChangeModal', () => {
         fireEvent.click(screen.getByText('Germany'))
         fireEvent.click(screen.getByText('Save'))
         await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'DE' })
         expect(readSecondResidence('u1')).toBe('FR')
     })
 

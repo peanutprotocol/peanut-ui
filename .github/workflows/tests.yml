@@ -417,8 +417,24 @@ jobs:
                   node scripts/visual-diff.mjs e2e/__shots__/base e2e/__shots__/head \
                       --out=e2e/__shots__/diff --json > e2e/__shots__/report.json
 
-            - name: Publish the changed screenshots
+            # The listing runs PR-authored code (scripts/visual-comment.mjs is
+            # itself pixel-moving, so a PR may edit it) — deliberately no token
+            # in this step's env for it to read.
+            - name: List the changed screenshots
               if: steps.diff.outputs.ready == 'true'
+              id: wanted
+              run: |
+                  set -euo pipefail
+                  node scripts/visual-comment.mjs e2e/__shots__/report.json --list > e2e/__shots__/wanted.txt
+                  if [ -s e2e/__shots__/wanted.txt ]; then
+                      echo 'any=true' >> "$GITHUB_OUTPUT"
+                  else
+                      echo 'any=false' >> "$GITHUB_OUTPUT"
+                      echo 'Nothing changed, so nothing to publish.'
+                  fi
+
+            - name: Publish the changed screenshots
+              if: steps.diff.outputs.ready == 'true' && steps.wanted.outputs.any == 'true'
               id: assets
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -430,11 +446,6 @@ jobs:
                   # artifact, so the PNGs need a home the comment can link to.
                   # The repo convention is a pr-assets-<number> branch read over
                   # raw.githubusercontent (PRs #2727, #2733, #2748, #2758).
-                  node scripts/visual-comment.mjs e2e/__shots__/report.json --list > e2e/__shots__/wanted.txt
-                  if [ ! -s e2e/__shots__/wanted.txt ]; then
-                      echo 'Nothing changed, so nothing to publish.'
-                      exit 0
-                  fi
 
                   SUB="visual/${HEAD_SHA:0:7}"
                   WORK="$RUNNER_TEMP/pr-assets"
@@ -457,9 +468,11 @@ jobs:
                       -c user.name='github-actions[bot]' \
                       -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
                       commit -qm "visual shots for #$PR"
-                  git -C "$WORK" push -qf \
-                      "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" \
-                      "pr-assets-$PR"
+                  # Auth via an http header, never in the remote URL: a failed
+                  # push echoes the remote, and a URL-embedded token lands in
+                  # the build log.
+                  git -C "$WORK" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')" \
+                      push -qf "https://github.com/$GITHUB_REPOSITORY.git" "pr-assets-$PR"
 
                   echo "url=https://raw.githubusercontent.com/$GITHUB_REPOSITORY/pr-assets-$PR/$SUB" \
                       >> "$GITHUB_OUTPUT"

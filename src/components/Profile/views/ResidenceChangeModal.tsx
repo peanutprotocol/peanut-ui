@@ -89,21 +89,25 @@ const ResidenceChangeModal = ({
         setIsSaving(true)
         setError(null)
         try {
-            const result = await updateUserById({ userId, residenceCountry: selected })
+            // Promoting the second document country is a REORDER, not a move.
+            // Both slots are durable on the server, so the swap has to travel
+            // WITH the request — writing only the primary leaves the server
+            // pair as selected/selected and loses the outgoing country for
+            // good (the local mirror would merely hide that on this device).
+            // A pick in neither slot is a genuine move: the second stands.
+            const previousSecond = readSecondResidence(userId)
+            const isReorder = !!declared && previousSecond === selected
+            const result = await updateUserById({
+                userId,
+                residenceCountry: selected,
+                ...(isReorder ? { secondResidenceCountry: declared } : {}),
+            })
             if (result.error) {
                 setError(result.error)
                 return false
             }
             storeDeclaredResidence(userId, selected)
-            // Promoting the second document country is a REORDER, not a move:
-            // writing only the primary would leave both slots holding `selected`
-            // and drop the outgoing country from the restriction intersection
-            // (which is what makes a dual-residence pair stricter than either
-            // country alone). Swap instead. Picking a country that is in neither
-            // slot is a genuine move, and leaves the second document alone.
-            if (declared && readSecondResidence(userId) === selected) {
-                storeSecondResidence(userId, declared)
-            }
+            if (isReorder) storeSecondResidence(userId, declared)
             posthog.capture(ANALYTICS_EVENTS.RESIDENCE_CHANGED, {
                 residence_country: selected,
                 differed_from_verified: differsFromVerified,
