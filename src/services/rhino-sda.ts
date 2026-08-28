@@ -10,9 +10,7 @@
  * Three consumers: withdraw, pay-request-x-chain, claim-link-x-chain.
  */
 
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getAuthHeaders, authReady } from '@/utils/auth-token'
+import { apiFetch } from '@/utils/api-fetch'
 import type { Address } from 'viem'
 
 export type RhinoTransferContext = 'withdraw' | 'pay-request' | 'claim-xchain'
@@ -73,13 +71,9 @@ export interface SdaPreviewResult {
 }
 
 async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: string): Promise<TRes> {
-    await authReady()
-    const response = await fetchWithSentry(`${PEANUT_API_URL}${path}`, {
+    // apiFetch awaits authReady(), attaches the JWT, and sets Content-Type.
+    const response = await apiFetch(path, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-        },
         body: JSON.stringify(body),
     })
     if (!response.ok) {

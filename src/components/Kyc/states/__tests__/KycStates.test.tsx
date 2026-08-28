@@ -26,6 +26,8 @@ jest.mock('../../RejectLabelsList', () => ({
     RejectLabelsList: () => <div data-testid="reject-labels-list" />,
 }))
 
+const mockSetIsSupportModalOpen = jest.fn()
+
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
     PaymentInfoRow: () => <div data-testid="payment-info-row" />,
 }))
@@ -33,11 +35,6 @@ jest.mock('@/components/Payment/PaymentInfoRow', () => ({
 jest.mock('@/components/Global/Card', () => ({
     __esModule: true,
     default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}))
-
-jest.mock('@/components/Global/InfoCard', () => ({
-    __esModule: true,
-    default: ({ description }: { description: string }) => <div>{description}</div>,
 }))
 
 describe('KYC state cards', () => {
@@ -90,5 +87,55 @@ describe('KYC state cards', () => {
 
         expect(onRetry).toHaveBeenCalledTimes(1)
         expect(onRetry).toHaveBeenCalledWith()
+    })
+})
+
+describe('KycFailed — terminal vs retryable', () => {
+    beforeEach(() => mockSetIsSupportModalOpen.mockClear())
+
+    it('a terminal rejection offers support, never a retry', () => {
+        // Fraud / sanctions / age / forgery. The retry button here was the bug:
+        // UnlockedRegions hardcoded isTerminalRejection's inputs to null, so this
+        // branch never rendered and every terminal user was told to try again.
+        const onRetry = jest.fn()
+        render(
+            <KycFailed
+                onRetry={onRetry}
+                isTerminal
+                rejectLabels={['SANCTIONS']}
+                onContactSupport={mockSetIsSupportModalOpen}
+            />
+        )
+
+        expect(screen.queryByText('Retry verification')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Contact support'))
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledTimes(1)
+        expect(onRetry).not.toHaveBeenCalled()
+    })
+
+    it('a terminal rejection never names the cause', () => {
+        // Naming fraud or sanctions carries compliance exposure and tips off the
+        // people it describes — KycFailedContent shows the generic card instead.
+        render(
+            <KycFailed
+                onRetry={jest.fn()}
+                isTerminal
+                rejectLabels={['FORGERY', 'SANCTIONS']}
+                onContactSupport={mockSetIsSupportModalOpen}
+            />
+        )
+
+        expect(screen.queryByTestId('reject-labels-list')).not.toBeInTheDocument()
+        expect(document.body.textContent).not.toMatch(/forgery|sanctions/i)
+    })
+
+    it('a retryable failure keeps the retry button and the per-label guidance', () => {
+        const onRetry = jest.fn()
+        render(<KycFailed onRetry={onRetry} rejectLabels={['DOCUMENT_BAD_QUALITY']} />)
+
+        expect(screen.getByTestId('reject-labels-list')).toBeInTheDocument()
+        expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Retry verification'))
+        expect(onRetry).toHaveBeenCalledTimes(1)
     })
 })

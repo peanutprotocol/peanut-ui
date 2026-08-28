@@ -79,8 +79,10 @@ jobs:
 
             # ---- BASE analysis (fetch + worktree the PR base ref)
             - name: Checkout base ref into a worktree
+              env:
+                  BASE_REF: ${{ github.base_ref }}
               run: |
-                  git fetch origin "${{ github.base_ref }}":base-ref
+                  git fetch origin "$BASE_REF":base-ref
                   git worktree add ../base-tree base-ref
 
             - name: Analyze base

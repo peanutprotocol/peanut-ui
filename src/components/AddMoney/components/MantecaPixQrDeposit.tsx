@@ -1,14 +1,15 @@
 'use client'
 
 import { type FC, useEffect, useMemo, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
-import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
+import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
 import { useTranslations } from 'next-intl'
 
 const MantecaPixQrDeposit: FC<{
@@ -54,19 +55,17 @@ const MantecaPixQrDeposit: FC<{
 
     if (status === 'completed') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={onDone} />
                 <div className="my-auto flex flex-col items-center gap-4 text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-1">
-                        <Icon name="check" size={32} />
-                    </div>
-                    <h2 className="text-2xl font-bold text-n-1">{t('pix.depositReceived')}</h2>
-                    <p className="text-grey-1">{t('pix.balanceUpdated')}</p>
+                    <IconBubble icon="check" size="m" color="green" />
+                    <h2 className="text-heading-s text-foreground-primary">{t('pix.depositReceived')}</h2>
+                    <p className="text-body-s text-foreground-secondary">{t('pix.balanceUpdated')}</p>
                     <Button variant="purple" shadowSize="4" className="w-full" onClick={onDone}>
                         {tCommon('done')}
                     </Button>
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
@@ -77,22 +76,22 @@ const MantecaPixQrDeposit: FC<{
     // screen — the webhook/poller post it server-side.
     if (status === 'processing') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={onDone} />
                 <div className="my-auto flex flex-col justify-center">
                     <CyclingLoading />
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 <div className="text-center">
-                    <p className="text-sm text-grey-1">{t('pix.payWithPix')}</p>
-                    {currencyAmount && <p className="text-2xl font-bold text-n-1">R$ {currencyAmount}</p>}
+                    <p className="text-body-s text-foreground-secondary">{t('pix.payWithPix')}</p>
+                    {currencyAmount && <p className="text-heading-s text-foreground-primary">R$ {currencyAmount}</p>}
                 </div>
 
                 {!qr ? (
@@ -102,28 +101,30 @@ const MantecaPixQrDeposit: FC<{
                         <QRCodeWrapper url={qr} isBlurred={isExpired} disabled={isExpired} className="max-w-[280px]" />
 
                         {countdownLabel && (
-                            <p className="text-center text-sm text-grey-1">
+                            <p className="text-center text-body-s text-foreground-secondary">
                                 {t('pix.expiresIn', { time: countdownLabel })}
                             </p>
                         )}
 
                         {isExpired ? (
                             <div className="flex flex-col gap-3 text-center">
-                                <p className="text-sm text-grey-1">{t('pix.qrExpired')}</p>
+                                <p className="text-body-s text-foreground-secondary">{t('pix.qrExpired')}</p>
                                 <Button variant="stroke" className="w-full" onClick={onBack}>
                                     {t('pix.goBack')}
                                 </Button>
                             </div>
                         ) : (
                             <div className="flex flex-col gap-3">
-                                <p className="text-center text-sm text-grey-1">{t('pix.scanWithBankApp')}</p>
+                                <p className="text-center text-body-s text-foreground-secondary">
+                                    {t('pix.scanWithBankApp')}
+                                </p>
                                 <CopyToClipboard textToCopy={qr} type="button" className="w-full" />
                             </div>
                         )}
                     </>
                 )}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }
 

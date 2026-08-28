@@ -5,12 +5,13 @@
  * CORS + the per-IP rate limiter on /tokens/* are the gate.
  */
 
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 import { type ITokenPriceData, type IUserBalance } from '@/interfaces/interfaces'
 
 async function getJson<T>(path: string, errorLabel: string): Promise<T | null> {
-    const response = await fetchWithSentry(`${PEANUT_API_URL}${path}`, { method: 'GET' })
+    // includeAuth: false — public endpoints; a rate lookup must not queue
+    // behind auth hydration and sends no token either way.
+    const response = await apiFetch(path, { method: 'GET', includeAuth: false })
     if (response.status === 404) return null
     if (!response.ok) {
         const text = await response.text().catch(() => '')

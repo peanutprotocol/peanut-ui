@@ -30,7 +30,7 @@ export function ScarcityCounter({ label }: { label: (count: number) => string })
 
     return (
         <motion.span
-            className="mx-1 inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1"
+            className="mx-1 inline-block bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack tracking-wider whitespace-nowrap text-primary-1 uppercase"
             animate={ticked && !prefersReducedMotion ? { scale: [1, 1.18, 1] } : {}}
             transition={{ duration: 0.5, ease: 'easeOut' }}
         >

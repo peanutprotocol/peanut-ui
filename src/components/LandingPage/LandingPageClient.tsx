@@ -283,7 +283,7 @@ export function LandingPageClient({
                         <div className="flex flex-col items-center">
                             <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
                             {heroConfig.primaryCta.subtext && (
-                                <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">
+                                <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">
                                     {heroConfig.primaryCta.subtext}
                                 </span>
                             )}

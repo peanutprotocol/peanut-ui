@@ -1,6 +1,7 @@
 'use client'
 
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -16,8 +17,8 @@ import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
+import Loading from '@/components/Global/Loading'
+import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
 import AmountInput from '@/components/Global/AmountInput'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -31,7 +32,6 @@ import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { MANTECA_QR_DEPOSIT_ADDRESS_AR, MANTECA_QR_DEPOSIT_ADDRESS_NON_AR } from '@/constants/manteca.consts'
@@ -40,6 +40,7 @@ import { isPixRecurringCode } from '@/utils/withdraw.utils'
 import { formatUnits, parseUnits } from 'viem'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { getCurrencyPrice } from '@/app/actions/currency'
@@ -137,8 +138,7 @@ export default function QRPayPage() {
     const [currencyAmount, setCurrencyAmount] = useState<string | undefined>(undefined)
     const [qrPayment, setQrPayment] = useState<QrPayment | null>(null)
     const [currency, setCurrency] = useState<{ code: string; symbol: string; price: number } | undefined>(undefined)
-    const { openTransactionDetails, selectedTransaction, isDrawerOpen, closeTransactionDetails } =
-        useTransactionDetailsDrawer()
+    const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
 
     const paymentProcessor: PaymentProcessor | null = useMemo(() => {
@@ -533,6 +533,44 @@ export default function QRPayPage() {
                 return null
         }
     }, [qrType])
+
+    // receipt transaction for the success drawer — built up-front (not in the
+    // cta's onClick) because the drawer opens off the url's `?tx=` match.
+    const receiptTransaction: TransactionDetails | null = useMemo(() => {
+        if (!qrPayment || !currency) return null
+        const now = new Date()
+        return {
+            // Manteca synthetic id — the only key /receipt/<id>
+            // resolves, and what Activity rows already carry.
+            // `externalId` is UUID-shaped, so it slips past the
+            // id-shape gate and 404s silently instead of erroring.
+            id: qrPayment.id,
+            direction: 'qr_payment',
+            userName: qrPayment.details.merchant.name,
+            fullName: qrPayment.details.merchant.name,
+            amount: Number(usdAmount),
+            currency: {
+                amount: qrPayment.details.paymentAssetAmount,
+                code: currency.code,
+            },
+            initials: 'QR',
+            currencySymbol: currency.symbol,
+            status: 'completed',
+            date: now,
+            createdAt: now,
+            extraDataForDrawer: {
+                originalType: 'TRANSACTION_INTENT',
+                originalUserRole: EHistoryUserRole.SENDER,
+                kind: 'QR_PAY',
+                provider: 'MANTECA',
+                avatarUrl: methodIcon,
+                receipt: {
+                    exchange_rate: currency.price.toString(),
+                },
+            },
+            totalAmountCollected: Number(usdAmount),
+        }
+    }, [qrPayment, currency, usdAmount, methodIcon])
 
     // Fetch Manteca payment lock immediately on QR scan (Manteca only)
     // OPTIMIZATION: We fetch payment details BEFORE KYC check completes for faster UX
@@ -1071,7 +1109,7 @@ export default function QRPayPage() {
 
     // show loading while KYC state is being determined
     if (isLoadingKycState) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     // provider rejection: user is sumsub-approved but manteca rejected
@@ -1196,7 +1234,7 @@ export default function QRPayPage() {
                             text: t('kyc.notNow'),
                             onClick: onBack,
                             variant: 'transparent',
-                            className: 'underline text-sm font-medium w-full h-fit mt-3',
+                            className: 'underline text-body-s w-full h-fit mt-3',
                         },
                     ]}
                 />
@@ -1208,13 +1246,13 @@ export default function QRPayPage() {
     // Show maintenance error if provider is disabled
     if (isProviderDisabled) {
         return (
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="alert" size={24} />
                     </div>
-                    <span className="text-lg font-bold">{t('maintenance.title')}</span>
-                    <p className="text-center font-normal text-grey-1">
+                    <span className="text-heading-card">{t('maintenance.title')}</span>
+                    <p className="text-center font-normal text-foreground-secondary">
                         {t('maintenance.description', { method: paymentMethodName })}
                     </p>
                 </Card>
@@ -1223,9 +1261,9 @@ export default function QRPayPage() {
                 </Button>
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                    className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary transition-colors hover:text-black"
                 >
-                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
                     {t('havingTrouble')}
                 </button>
             </div>
@@ -1234,9 +1272,9 @@ export default function QRPayPage() {
 
     if (!!errorInitiatingPayment) {
         return (
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="alert" size={24} />
                     </div>
                     <p className="font-medium"> {errorInitiatingPayment || t('errors.genericQrDetails')}</p>
@@ -1258,13 +1296,15 @@ export default function QRPayPage() {
 
     if (showOrderNotReadyModal) {
         return (
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
                 <Card className="flex w-full flex-col items-center gap-2 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="qr-code" size={24} />
                     </div>
-                    <span className="text-lg font-bold">{t('orderNotReady.title')}</span>
-                    <p className="max-w-52 text-center font-normal text-grey-1">{t('orderNotReady.description')}</p>
+                    <span className="text-heading-card">{t('orderNotReady.title')}</span>
+                    <p className="max-w-52 text-center font-normal text-foreground-secondary">
+                        {t('orderNotReady.description')}
+                    </p>
                 </Card>
                 <Button
                     onClick={() => {
@@ -1280,9 +1320,9 @@ export default function QRPayPage() {
                 </Button>
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 transition-colors hover:text-black"
+                    className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary transition-colors hover:text-black"
                 >
-                    <Icon name="peanut-support" size={16} className="text-grey-1" />
+                    <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
                     {t('havingTrouble')}
                 </button>
             </div>
@@ -1291,7 +1331,7 @@ export default function QRPayPage() {
 
     // show loading spinner if we're still loading payment data
     if (isLoadingPaymentData || loadingState === 'Paying') {
-        return loadingState === 'Paying' ? <CyclingLoading /> : <PeanutLoading />
+        return loadingState === 'Paying' ? <CyclingLoading /> : <Loading variant="mascot" />
     }
 
     //Success
@@ -1318,14 +1358,14 @@ export default function QRPayPage() {
             <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
                 <NavHeader title={tNav('pay')} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     {/* Only show payment card if reward was not claimed */}
                     {!perkClaimed && !qrPayment?.perk?.claimed && (
                         <Card className="flex flex-row items-center gap-3 p-4">
                             <div className="flex items-center gap-3">
                                 <div
                                     className={
-                                        'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                                        'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
                                     }
                                 >
                                     <Icon name="check" size={24} />
@@ -1333,25 +1373,25 @@ export default function QRPayPage() {
                             </div>
 
                             <div className="space-y-1">
-                                <h1 className="text-sm font-normal text-grey-1">
+                                <h1 className="text-body-s font-normal text-foreground-secondary">
                                     {t('success.youPaid', {
                                         merchant:
                                             qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName ?? '',
                                     })}
                                 </h1>
-                                <div className="text-2xl font-extrabold">
+                                <div className="text-heading-s">
                                     {currency.symbol}{' '}
                                     {formatNumberForDisplay(
                                         qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount,
                                         { maxDecimals: 2 }
                                     )}
                                 </div>
-                                <div className="text-lg font-bold">
+                                <div className="text-heading-card">
                                     ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
                                 </div>
                                 {/* Savings Message (Argentina Manteca only) */}
                                 {showSavingsMessage && savingsMessage && (
-                                    <p className="text-sm italic text-grey-1">{savingsMessage}</p>
+                                    <p className="text-body-s text-foreground-secondary italic">{savingsMessage}</p>
                                 )}
                             </div>
                         </Card>
@@ -1360,12 +1400,12 @@ export default function QRPayPage() {
                     {/* Reward Eligibility Card - Show before claiming */}
                     {rewardClaimable && (
                         <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
-                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-400">
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-lg font-bold">{t('success.earnedRewardTitle')}</h2>
-                                <p className="text-sm text-gray-600">
+                                <h2 className="text-heading-card">{t('success.earnedRewardTitle')}</h2>
+                                <p className="text-body-s">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
                                         if (amountSponsored && typeof amountSponsored === 'number') {
@@ -1384,12 +1424,12 @@ export default function QRPayPage() {
                     {/* Reward Success Banner - Show after claiming */}
                     {(perkClaimed || qrPayment?.perk?.claimed) && (
                         <Card className="flex items-start gap-3 bg-white p-4">
-                            <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 p-2">
+                            <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full p-2">
                                 <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <h2 className="text-2xl font-bold">{t('success.earnedRewardTitle')}</h2>
-                                <p className="text-base text-gray-900">
+                                <h2 className="text-heading-s">{t('success.earnedRewardTitle')}</h2>
+                                <p className="text-body-m">
                                     {(() => {
                                         const amountSponsored = qrPayment?.perk?.amountSponsored
 
@@ -1411,7 +1451,7 @@ export default function QRPayPage() {
                         <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
-                    <div className="w-full space-y-5">
+                    <div className="space-y-5 w-full">
                         {/* Show Claim Reward button if eligible and not claimed yet */}
                         {rewardClaimable ? (
                             <Button
@@ -1435,7 +1475,7 @@ export default function QRPayPage() {
                                     e.preventDefault()
                                 }}
                                 shadowSize="4"
-                                className="relative touch-manipulation select-none overflow-hidden"
+                                className="relative touch-manipulation overflow-hidden select-none"
                                 style={{
                                     WebkitTouchCallout: 'none',
                                     WebkitTapHighlightColor: 'transparent',
@@ -1480,7 +1520,7 @@ export default function QRPayPage() {
                                             })
                                             router.push(`/request?${params.toString()}`)
                                         }}
-                                        icon="split"
+                                        icon="users"
                                         shadowSize="4"
                                     >
                                         {t('success.splitThisBill')}
@@ -1491,38 +1531,9 @@ export default function QRPayPage() {
                                     shadowSize="4"
                                     disabled={false}
                                     onClick={() => {
-                                        const now = new Date()
-                                        openTransactionDetails({
-                                            // Manteca synthetic id — the only key /receipt/<id>
-                                            // resolves, and what Activity rows already carry.
-                                            // `externalId` is UUID-shaped, so it slips past the
-                                            // id-shape gate and 404s silently instead of erroring.
-                                            id: qrPayment!.id,
-                                            direction: 'qr_payment',
-                                            userName: qrPayment!.details.merchant.name,
-                                            fullName: qrPayment!.details.merchant.name,
-                                            amount: Number(usdAmount),
-                                            currency: {
-                                                amount: qrPayment!.details.paymentAssetAmount,
-                                                code: currency.code,
-                                            },
-                                            initials: 'QR',
-                                            currencySymbol: currency.symbol,
-                                            status: 'completed',
-                                            date: now,
-                                            createdAt: now,
-                                            extraDataForDrawer: {
-                                                originalType: 'TRANSACTION_INTENT',
-                                                originalUserRole: EHistoryUserRole.SENDER,
-                                                kind: 'QR_PAY',
-                                                provider: 'MANTECA',
-                                                avatarUrl: methodIcon,
-                                                receipt: {
-                                                    exchange_rate: currency.price.toString(),
-                                                },
-                                            },
-                                            totalAmountCollected: Number(usdAmount),
-                                        })
+                                        if (receiptTransaction) {
+                                            openTransactionDetails(receiptTransaction)
+                                        }
                                     }}
                                 >
                                     {t('success.seeReceipt')}
@@ -1537,18 +1548,18 @@ export default function QRPayPage() {
                         {user?.user.username && !rewardClaimable && (
                             <button
                                 onClick={() => setShowInviteFriendsModal(true)}
-                                className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                                className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary underline transition-colors hover:text-black"
                             >
-                                <Icon name="invite-heart" size={16} className="text-grey-1" />
+                                <Icon name="invite-heart" size={16} className="text-foreground-secondary" />
                                 {t('success.inviteFriendsCta')}
                             </button>
                         )}
                     </div>
                 </div>
                 <TransactionDetailsDrawer
-                    isOpen={isDrawerOpen}
+                    isOpen={isTransactionSelected(receiptTransaction?.id)}
                     onClose={closeTransactionDetails}
-                    transaction={selectedTransaction}
+                    transaction={receiptTransaction}
                 />
                 {/* Mounted only while open: the modal's shown-guard is a ref that lives
                     for the mount, so a persistent mount would swallow the MODAL_SHOWN /
@@ -1580,10 +1591,10 @@ export default function QRPayPage() {
                 <NavHeader title={tNav('pay')} />
 
                 {/* Payment Content */}
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     {/* Merchant Card */}
                     <Card className="p-4">
-                        <div className="flex items-center space-x-3">
+                        <div className="space-x-3 flex items-center">
                             <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-white">
                                 <Image
                                     src={methodIcon}
@@ -1594,10 +1605,10 @@ export default function QRPayPage() {
                                 />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                <p className="flex items-center gap-1 text-center text-body-s">
                                     <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
                                 </p>
-                                <p className="break-words text-xl font-semibold">{merchantName}</p>
+                                <p className="text-heading-xs break-words">{merchantName}</p>
                             </div>
                         </div>
                     </Card>
@@ -1627,7 +1638,9 @@ export default function QRPayPage() {
                     )}
                     {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
                     {balanceErrorMessage && !limitsValidation.isBlocking && (
-                        <ErrorAlert description={balanceErrorMessage} />
+                        <Notification priority="error" data-testid="error-alert">
+                            {balanceErrorMessage}
+                        </Notification>
                     )}
 
                     {/* Limits Warning/Error Card */}
@@ -1703,7 +1716,11 @@ export default function QRPayPage() {
                     </Button>
 
                     {/* Error State */}
-                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                    {errorMessage && (
+                        <Notification priority="error" data-testid="error-alert">
+                            {errorMessage}
+                        </Notification>
+                    )}
                 </div>
             </div>
         </>
@@ -1713,7 +1730,7 @@ export default function QRPayPage() {
 const QrPayPageLoading = ({ message }: { message: string }) => {
     const t = useAppTranslations('qrPay')
     return (
-        <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
+        <div className="my-auto space-y-4 flex h-full w-full flex-col items-center justify-center">
             <div className="relative">
                 <Image
                     src={PeanutThinking}
@@ -1721,11 +1738,11 @@ const QrPayPageLoading = ({ message }: { message: string }) => {
                     alt={t('peanutManAlt')}
                     layout="fill"
                     objectFit="contain"
-                    className="absolute z-0 h-32 w-32 -translate-y-20 "
+                    className="absolute z-0 h-32 w-32 -translate-y-20"
                 />
 
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-1 p-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                         <Icon name="clock" size={24} />
                     </div>
                     <p className="font-medium">{message}</p>

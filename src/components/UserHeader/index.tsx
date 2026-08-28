@@ -1,9 +1,9 @@
 'use client'
 
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import DotFaceAvatar from '@/components/Global/DotFaceAvatar'
 import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Tooltip } from '../Tooltip'
 import { useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
@@ -17,31 +17,36 @@ interface UserHeaderProps {
     isVerified?: boolean
 }
 
-export const UserHeader = ({ username, fullName }: UserHeaderProps) => {
-    const { user } = useAuth()
-    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
-    const nameForAvatar = user?.user.showFullName && fullName ? fullName : username
-
+export const UserHeader = ({ username }: UserHeaderProps) => {
     return (
         <Link href={`/profile`} className="block">
             <Button
                 variant="primary-soft"
                 className={twMerge(
-                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5'
+                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-1 md:h-9'
                 )}
                 shadowSize="3"
                 size="small"
             >
-                <AvatarWithBadge
-                    size="extra-small"
-                    className="h-5 w-5 text-[10px] md:h-6 md:w-6 md:text-[11px]"
-                    name={nameForAvatar}
-                />
-                <span className="whitespace-nowrap text-xs font-semibold md:text-sm">{username}</span>
+                <DotFaceAvatar username={username} className="h-[30px] w-[30px]" />
+                <span className="pr-1.5 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
             </Button>
         </Link>
     )
 }
+
+/**
+ * Default type for the name. It has to be a type TOKEN, not a bare weight
+ * class: a caller passing `text-heading-s` (ProfileHeader does) merges with a
+ * token in the same conflict group and wins outright, but it can never beat a
+ * `font-semibold`, because a font-size utility resolves its weight through
+ * `var(--tw-font-weight, …)` and any font-weight class fills that var. The
+ * profile name measured 24px at weight 600 for exactly that reason — right
+ * size off the caller's token, wrong weight off this component's default.
+ * `text-body-m-semibold` is 16/600/20, which is what the old
+ * `font-semibold md:text-base` pair already computed to.
+ */
+const LABEL_TYPE = 'text-body-m-semibold'
 
 export const VerifiedUserLabel = ({
     name,
@@ -69,13 +74,13 @@ export const VerifiedUserLabel = ({
 
     // A kyc-verified user always gets at least a single badge.
     if (isVerified) {
-        badge = <Icon name="check" size={iconSize} className="text-success-1" />
+        badge = <Icon name="check" size={iconSize} className="text-green-500" />
         tooltipContent = isAuthenticatedUserVerified ? "You're a verified user." : 'This is a verified user.'
     }
 
     // if they are also verified and the viewer has sent them money, it's upgraded to a double badge.
     if (isVerified && haveSentMoneyToUser) {
-        badge = <Icon name="double-check" size={iconSize} className="text-success-1" />
+        badge = <Icon name="double-check" size={iconSize} className="text-green-500" />
         tooltipContent = "This is a verified user and you've sent them money before."
     }
 
@@ -90,19 +95,16 @@ export const VerifiedUserLabel = ({
 
     return (
         <div className="flex min-w-0 items-center gap-1.5">
-            {isCryptoAddressComputed ? (
-                <AddressLink
-                    isLink={false}
-                    className={twMerge('font-semibold md:text-base', className)}
-                    address={username}
-                />
+            {/* The AddressLink lane only wins when the caller passed no worded
+                copy (name === username). A caller that DID word the name — the
+                receipt head's "Added from {ens}" — must not have its title
+                discarded for a raw-address username (the bug behind the
+                type-less crypto-deposit receipt). */}
+            {isCryptoAddressComputed && name === username ? (
+                <AddressLink isLink={false} className={twMerge(LABEL_TYPE, className)} address={username} />
             ) : (
                 <div
-                    className={twMerge(
-                        'line-clamp-1 min-w-0 font-semibold md:text-base',
-                        className,
-                        onNameClick && 'cursor-pointer'
-                    )}
+                    className={twMerge('line-clamp-1 min-w-0', LABEL_TYPE, className, onNameClick && 'cursor-pointer')}
                     onClick={
                         onNameClick &&
                         ((e) => {

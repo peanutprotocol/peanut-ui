@@ -20,7 +20,7 @@ const defaultClouds: CloudConfig[] = [
 
 export function CloudsCss({ clouds = defaultClouds }: { clouds?: CloudConfig[] }) {
     return (
-        <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
+        <div className="absolute top-0 left-0 h-full w-full overflow-hidden">
             {clouds.map((cloud, i) => (
                 <Image
                     key={i}

@@ -28,7 +28,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const CreateRequestLinkView = () => {
@@ -368,19 +368,11 @@ export const CreateRequestLinkView = () => {
     }, [merchantComment, tokenValue, generateLink, recipientAddress])
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
+        <div className="space-y-8 flex min-h-[inherit] w-full flex-col justify-start">
             <NavHeader onPrev={onBack} title={tNav('request')} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                {/* board order (17831:78719): card, amount, helper note, qr, message, cta */}
                 <PeanutActionCard type="request" />
-
-                {/* Before a request exists the QR already encodes the profile
-                    payment link for the entered amount, so it only stays
-                    blurred while there's neither a request nor an amount. */}
-                <QRCodeWrapper
-                    isBlurred={!requestId && !(parseFloat(tokenValue) > 0)}
-                    url={qrCodeLink}
-                    isLoading={isCreatingLink || isUpdatingRequest}
-                />
 
                 <AmountInput
                     className="w-full"
@@ -389,12 +381,20 @@ export const CreateRequestLinkView = () => {
                     onSubmit={handleTokenAmountSubmit}
                     walletBalance={peanutWalletBalance}
                     disabled={!!requestId}
-                    infoContent={
-                        <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-grey-2 p-1.5">
-                            <IconComponent name="info" size={12} className="text-grey-1" />
-                            <p className="text-[10px] font-bold text-grey-1"> {t('leaveEmptyHint')}</p>
-                        </div>
-                    }
+                />
+
+                {/* only meaningful while the amount is empty (coderabbit #2780) */}
+                {(!tokenValue || Number(tokenValue) === 0) && (
+                    <Notification priority="helper">{t('leaveEmptyHint')}</Notification>
+                )}
+
+                {/* Before a request exists the QR already encodes the profile
+                    payment link for the entered amount, so it only stays
+                    blurred while there's neither a request nor an amount. */}
+                <QRCodeWrapper
+                    isBlurred={!requestId && !(parseFloat(tokenValue) > 0)}
+                    url={qrCodeLink}
+                    isLoading={isCreatingLink || isUpdatingRequest}
                 />
 
                 <FileUploadInput
@@ -432,7 +432,9 @@ export const CreateRequestLinkView = () => {
 
                 {errorState.showError && (
                     <div className="text-start">
-                        <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                        <label className="text-body-s font-normal text-foreground-error">
+                            {errorState.errorMessage}
+                        </label>
                     </div>
                 )}
             </div>

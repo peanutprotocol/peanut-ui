@@ -32,7 +32,6 @@ const NoDataEmptyState = ({ message, cta, animSize }: NoDataEmptyStateProps) => 
                 alt="Peanutman crying 😭"
                 width={getAnimSize}
                 height={getAnimSize}
-                className=""
             />
             <div>{message}</div>
             {cta && cta}

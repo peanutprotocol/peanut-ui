@@ -1,8 +1,9 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -169,11 +170,9 @@ export const ConfirmClaimLinkView = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <div className="md:hidden">
-                <NavHeader title={tNav('claim')} onPrev={onPrev} />
-            </div>
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+        <PageStack className="justify-between">
+            <NavHeader title={tNav('claim')} onPrev={onPrev} />
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
@@ -213,13 +212,13 @@ export const ConfirmClaimLinkView = ({
                                                 sizeClass="h-6 w-6"
                                             />
                                             {chainIconUrl && (
-                                                <div className="absolute -bottom-1 -right-1">
+                                                <div className="absolute -right-1 -bottom-1">
                                                     <DisplayIcon
                                                         iconUrl={chainIconUrl}
                                                         altText={resolvedChainName || t('confirm.chainAlt')}
                                                         fallbackName={resolvedChainName || 'C'}
                                                         sizeClass="h-3.5 w-3.5"
-                                                        className="rounded-full border-2 border-white dark:border-grey-4"
+                                                        className="rounded-full border-2 border-white dark:border-gray-100"
                                                     />
                                                 </div>
                                             )}
@@ -254,8 +253,8 @@ export const ConfirmClaimLinkView = ({
                     {t('receiveNow')}
                 </Button>
 
-                {errorState.showError && <ErrorAlert description={errorState.errorMessage} />}
-            </div>
-        </div>
+                {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
+            </PageStack.Center>
+        </PageStack>
     )
 }

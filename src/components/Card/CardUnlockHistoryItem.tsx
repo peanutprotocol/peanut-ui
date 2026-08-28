@@ -13,10 +13,9 @@
 
 import { type FC, type HTMLAttributes, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import Card from '@/components/Global/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { twMerge } from 'tailwind-merge'
 import { CardUnlockDrawer } from './CardUnlockDrawer'
 import type { CardUnlockHistoryEntry } from './cardUnlock.types'
 
@@ -46,30 +45,21 @@ const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', classNam
 
     return (
         <>
-            {/* Wrap in a native <button> so the row is keyboard-activatable
-                (Enter / Space) and screen readers announce it as interactive.
-                The shared <Card> primitive doesn't forward role / tabIndex
-                / onKeyDown, so this is the cleanest a11y path. */}
-            <button
-                type="button"
+            {/* ListItem carries the row a11y (role=button, tabIndex, Enter/Space);
+                the aria-label keeps the reveal affordance announced. */}
+            <ListItem
+                position={position}
                 onClick={() => setIsDrawerOpen(true)}
+                className={className}
                 aria-label={t('openAssetAria', { title })}
-                className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-n-1"
-            >
-                <Card position={position} className={twMerge('cursor-pointer', className)}>
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-3">
-                                <Icon name="credit-card" size={18} />
-                            </div>
-                            <div className="flex-1">
-                                <p className="font-semibold">{title}</p>
-                                <p className="text-sm text-grey-1">{t(copyKeys.subtitle)}</p>
-                            </div>
-                        </div>
+                leading={
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-200">
+                        <Icon name="credit-card" size={18} />
                     </div>
-                </Card>
-            </button>
+                }
+                title={title}
+                body={t(copyKeys.subtitle)}
+            />
 
             {isDrawerOpen && (
                 <CardUnlockDrawer

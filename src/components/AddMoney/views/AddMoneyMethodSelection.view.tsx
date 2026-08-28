@@ -1,30 +1,22 @@
 'use client'
 
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Section } from '@/components/0_Bruddle/Section'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import ChooseNetworkDrawer from '../components/ChooseNetworkDrawer'
 import type { RhinoChainType } from '@/services/services.types'
-import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { OFFRAMP_MIGRATION_ROUTE } from '@/services/acquisition-navigation'
-
-const OFFRAMP_BADGE_CODE = 'OFFRAMP_USER'
-
 interface AddMoneyMethodSelectionProps {
     onBankTransferClick: () => void
 }
 
 const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectionProps) => {
     const router = useRouter()
-    const { user } = useAuth()
     const t = useTranslations('addMoney')
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-
-    // Existing OFFRAMP_USER possession carries the migration entry. Acquisition
-    // provenance is audit-only and must not weaken this established benefit.
-    const hasOfframpMigrationEntry = user?.user?.badges?.some((badge) => badge.code === OFFRAMP_BADGE_CODE) ?? false
 
     const handleNetworkSelect = (network: RhinoChainType) => {
         setIsDrawerOpen(false)
@@ -33,43 +25,37 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
 
     return (
         <>
-            <div className="flex flex-col gap-2">
-                <h2 className="text-base font-bold">{t('howWouldYouLikeToAdd')}</h2>
-                <div className="flex flex-col">
-                    {hasOfframpMigrationEntry && (
-                        <ActionListCard
-                            title={t('methods.migrateFromOfframp')}
-                            description={t('methods.migrateFromOfframpDescription')}
-                            position="first"
-                            leftIcon={
-                                <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />
-                            }
-                            onClick={() => router.push(OFFRAMP_MIGRATION_ROUTE)}
-                        />
-                    )}
-                    <ActionListCard
+            <Section title={t('howWouldYouLikeToAdd')}>
+                <ListGroup>
+                    <ListItem
                         title={t('methods.crypto')}
-                        description={t('methods.cryptoDescription')}
-                        position={hasOfframpMigrationEntry ? 'middle' : 'first'}
-                        leftIcon={<AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-yellow-1" />}
+                        body={<div>{t('methods.cryptoDescription')}</div>}
+                        chevron
+                        leading={
+                            <AvatarWithBadge
+                                icon="wallet-outline"
+                                size="extra-small"
+                                className="bg-background-icon-bubble-yellow"
+                            />
+                        }
                         onClick={() => setIsDrawerOpen(true)}
                     />
-                    <ActionListCard
+                    <ListItem
                         title={t('methods.bankTransfer')}
-                        description={t('methods.kycRequired')}
-                        position="last"
-                        leftIcon={
+                        body={<div>{t('methods.kycRequired')}</div>}
+                        chevron
+                        leading={
                             <AvatarWithBadge
                                 icon="bank"
                                 size="extra-small"
-                                className="bg-yellow-1"
+                                className="bg-background-icon-bubble-yellow"
                                 inlineStyle={{ color: 'black' }}
                             />
                         }
                         onClick={onBankTransferClick}
                     />
-                </div>
-            </div>
+                </ListGroup>
+            </Section>
 
             <ChooseNetworkDrawer
                 open={isDrawerOpen}

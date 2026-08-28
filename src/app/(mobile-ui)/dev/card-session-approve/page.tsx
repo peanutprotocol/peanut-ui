@@ -38,7 +38,7 @@ export default function CardSessionApprovePage() {
             description="One passkey tap installs both auto-balancer and withdraw policies to your kernel. After this grant, card collateral spends only need a single admin EIP-712 tap per spend."
             width="prose"
         >
-            <div className="rounded-sm border border-n-1 p-3 text-sm">
+            <div className="rounded-sm border border-border-default p-3 text-body-s">
                 <div>
                     <span className="font-bold">Card status: </span>
                     {card ? card.status : 'no card'}
@@ -67,7 +67,11 @@ export default function CardSessionApprovePage() {
                 {isGranting ? 'Working…' : 'Grant permission (one tap)'}
             </Button>
 
-            {status && <pre className="whitespace-pre-wrap rounded-sm border border-n-1 p-3 text-xs">{status}</pre>}
+            {status && (
+                <pre className="rounded-sm border border-border-default p-3 text-body-xs whitespace-pre-wrap">
+                    {status}
+                </pre>
+            )}
         </DevPageShell>
     )
 }

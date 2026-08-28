@@ -1,6 +1,7 @@
 'use client'
 
 import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import PIX from '@/assets/payment-apps/pix.svg'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -11,7 +12,6 @@ import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useRouter } from 'next/navigation'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -147,9 +147,10 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 />
 
                 {renderStepDetails()}
-                {sumsubFlow.error && <ErrorAlert description={sumsubFlow.error} />}
+                {sumsubFlow.error && <Notification priority="error">{sumsubFlow.error}</Notification>}
             </div>
             <InitiateKycModal
+                prepPath="extended"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {

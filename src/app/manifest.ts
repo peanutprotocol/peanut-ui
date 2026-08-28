@@ -20,8 +20,8 @@ export default function manifest(): MetadataRoute.Manifest {
         start_url: '/home',
         display: 'standalone',
         display_override: ['standalone'],
-        background_color: '#ffffff',
-        theme_color: '#000000',
+        background_color: '#FAF4F0',
+        theme_color: '#FAF4F0',
         icons: [
             {
                 src: '/icons/icon-192x192-maskable.png',

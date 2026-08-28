@@ -60,7 +60,7 @@ export default function SetupNotificationsModal() {
                         onClick: handleAllowClick,
                         variant: 'purple',
                         shadowSize: '4',
-                        className: 'py-2.5',
+                        className: 'py-2',
                         loading: isRequestingPermission,
                         disabled: isRequestingPermission,
                     },

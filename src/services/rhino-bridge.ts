@@ -11,9 +11,7 @@
  * Pairs with peanut-api-ts /rhino/bridge/* routes.
  */
 
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { getAuthHeaders, authReady } from '@/utils/auth-token'
+import { apiFetch } from '@/utils/api-fetch'
 
 export interface BridgeQuoteParams {
     amount: string
@@ -70,10 +68,9 @@ export interface BridgeChainConfig {
 }
 
 async function postJson<TReq, TRes>(path: string, body: TReq, errorLabel: string): Promise<TRes> {
-    await authReady()
-    const response = await fetchWithSentry(`${PEANUT_API_URL}${path}`, {
+    // apiFetch awaits authReady(), attaches the JWT, and sets Content-Type.
+    const response = await apiFetch(path, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(body),
     })
     if (!response.ok) {
@@ -84,11 +81,7 @@ async function postJson<TReq, TRes>(path: string, body: TReq, errorLabel: string
 }
 
 async function getJson<TRes>(path: string, errorLabel: string): Promise<TRes> {
-    await authReady()
-    const response = await fetchWithSentry(`${PEANUT_API_URL}${path}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-    })
+    const response = await apiFetch(path, { method: 'GET' })
     if (!response.ok) {
         const text = await response.text().catch(() => '')
         throw new Error(`${errorLabel}: ${response.status} ${text}`)

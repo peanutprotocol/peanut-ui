@@ -1,6 +1,9 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces/interfaces'
@@ -13,11 +16,10 @@ import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName, getTo
 import { type RecipientState } from '@/context/WithdrawFlowContext'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { erc20Abi, parseUnits, encodeFunctionData, formatUnits } from 'viem'
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
@@ -181,10 +183,10 @@ export default function RecoverFundsPage() {
         setIsSigning(false)
     }, [selectedBalance, recipient.address, sendTransactions, peanutAddress, t])
 
-    if (!peanutAddress) return null
-
-    if (fetchingBalances) {
-        return <PeanutLoading />
+    // wallet address not resolved yet (kernel still initializing) — show the
+    // loader instead of a blank page; balances start fetching once it lands
+    if (!peanutAddress || fetchingBalances) {
+        return <Loading variant="mascot" />
     }
 
     if (status === 'review' && (!selectedBalance || !recipient.address)) {
@@ -193,14 +195,14 @@ export default function RecoverFundsPage() {
         return null
     } else if (status === 'review') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={reset} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
                                 className={
-                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
                                 }
                             >
                                 <Image
@@ -214,10 +216,14 @@ export default function RecoverFundsPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
-                                {t('youWillReceiveTo')} <AddressLink address={recipient.address} />
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
+                                {t('youWillReceiveTo')}{' '}
+                                <AddressLink
+                                    address={recipient.address}
+                                    className="text-body-s font-normal text-foreground-secondary"
+                                />
                             </h1>
-                            <h2 className="text-2xl font-extrabold">
+                            <h2 className="text-heading-s">
                                 {t('amountInChain', {
                                     amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
                                     symbol: selectedBalance!.symbol,
@@ -238,20 +244,20 @@ export default function RecoverFundsPage() {
                     >
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tCommon('confirm')}
                     </Button>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     if (status === 'final') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <PageStack>
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
                                 className={
-                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
                                 }
                             >
                                 <Image
@@ -265,10 +271,14 @@ export default function RecoverFundsPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
-                                {t('sentTo')} <AddressLink address={recipient.address} />
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
+                                {t('sentTo')}{' '}
+                                <AddressLink
+                                    address={recipient.address}
+                                    className="text-body-s font-normal text-foreground-secondary"
+                                />
                             </h1>
-                            <h2 className="text-2xl font-extrabold">
+                            <h2 className="text-heading-s">
                                 {t('amountInChain', {
                                     amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
                                     symbol: selectedBalance!.symbol,
@@ -317,19 +327,41 @@ export default function RecoverFundsPage() {
                     >
                         {t('recoverOtherToken')}
                     </Button>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('title')} />
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <h1>{t('selectToken')}</h1>
-                <ScrollableList>
-                    {tokenBalances.length > 0 ? (
-                        tokenBalances.map((balance) => (
+            {/* nothing recoverable — the token picker, address input and review
+                button are all pointless, show the ds empty state with a way
+                back home instead */}
+            {tokenBalances.length === 0 ? (
+                <div className="my-auto">
+                    <EmptyState
+                        icon="wallet"
+                        title={t('noTokens')}
+                        description={t('noTokensDescription')}
+                        cta={
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                size="small"
+                                className="mt-2"
+                                onClick={() => router.push('/home')}
+                            >
+                                {t('goToHome')}
+                            </Button>
+                        }
+                    />
+                </div>
+            ) : (
+                <PageStack.Center className="gap-4">
+                    <h1>{t('selectToken')}</h1>
+                    <ScrollableList>
+                        {tokenBalances.map((balance) => (
                             <TokenListItem
                                 key={balance.address}
                                 balance={balance}
@@ -342,42 +374,38 @@ export default function RecoverFundsPage() {
                                     setSelectedBalance(balance)
                                 }}
                             />
-                        ))
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                            <div className="text-center text-xl font-bold text-grey-1">{t('noTokens')}</div>
-                        </div>
-                    )}
-                </ScrollableList>
-                <GeneralRecipientInput
-                    placeholder={t('recipientPlaceholder')}
-                    recipient={recipient}
-                    onUpdate={(update: GeneralRecipientUpdate) => {
-                        setRecipient(update.recipient)
-                        setErrorMessage(update.errorMessage)
-                        setInputChanging(update.isChanging)
-                    }}
-                />
-                <Button
-                    variant="purple"
-                    shadowSize="4"
-                    onClick={() => {
-                        setStatus('review')
-                    }}
-                    disabled={
-                        !!errorMessage ||
-                        inputChanging ||
-                        !recipient.address ||
-                        !selectedBalance ||
-                        selectedBalance.amount <= 0
-                    }
-                    loading={false}
-                    className="w-full"
-                >
-                    {t('review')}
-                </Button>
-                {!!errorMessage && <ErrorAlert description={errorMessage} />}
-            </div>
-        </div>
+                        ))}
+                    </ScrollableList>
+                    <GeneralRecipientInput
+                        placeholder={t('recipientPlaceholder')}
+                        recipient={recipient}
+                        onUpdate={(update: GeneralRecipientUpdate) => {
+                            setRecipient(update.recipient)
+                            setErrorMessage(update.errorMessage)
+                            setInputChanging(update.isChanging)
+                        }}
+                    />
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={() => {
+                            setStatus('review')
+                        }}
+                        disabled={
+                            !!errorMessage ||
+                            inputChanging ||
+                            !recipient.address ||
+                            !selectedBalance ||
+                            selectedBalance.amount <= 0
+                        }
+                        loading={false}
+                        className="w-full"
+                    >
+                        {t('review')}
+                    </Button>
+                    {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                </PageStack.Center>
+            )}
+        </PageStack>
     )
 }

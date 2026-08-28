@@ -1,7 +1,7 @@
 'use client'
 
 import { PEANUTMAN } from '@/assets/mascot'
-import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/PeanutLoading/words'
+import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/Loading/words'
 import en from '@/i18n/app/messages/en.json'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
@@ -30,54 +30,54 @@ export default function LoadingWordsPreview() {
         <div className="min-h-screen bg-background">
             <div className="mx-auto flex max-w-3xl flex-col gap-10 px-6 py-12">
                 <header className="flex flex-col gap-2">
-                    <h1 className="text-2xl font-bold">Loading words preview</h1>
-                    <p className="text-sm text-grey-1">
+                    <h1 className="text-heading-s">Loading words preview</h1>
+                    <p className="text-body-s text-foreground-secondary">
                         Claude-style cycling word with animated dots. Replaces the static "processing..." message during
                         payment loading.
                     </p>
                 </header>
 
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-grey-1">
-                        Production match (same as <code>PeanutLoading</code>)
+                    <h2 className="text-label-l tracking-wider text-foreground-secondary uppercase">
+                        Production match (same as <code>Loading variant=&quot;mascot&quot;</code>)
                     </h2>
-                    <div className="flex flex-col items-center justify-center gap-6 rounded-sm border border-n-1 bg-primary-3 px-6 py-16 shadow-[4px_4px_0_0_#000]">
+                    <div className="flex flex-col items-center justify-center gap-6 rounded-sm border border-border-default bg-purple-200 px-6 py-16 shadow-[4px_4px_0_0_#000]">
                         <div className="animate-spin">
                             <Image src={PEANUTMAN} alt="Peanut" className="h-10 w-10" />
                         </div>
-                        <LoadingMessage word={WORDS[index]} className="text-base font-medium" />
+                        <LoadingMessage word={WORDS[index]} className="text-body-m" />
                     </div>
                 </section>
 
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-grey-1">
+                    <h2 className="text-label-l tracking-wider text-foreground-secondary uppercase">
                         Size & weight options (same Roboto font)
                     </h2>
                     <div className="grid gap-3 md:grid-cols-3">
-                        <SizeSwatch label="sm · medium" word={WORDS[index]} className="text-sm font-medium" />
+                        <SizeSwatch label="sm · medium" word={WORDS[index]} className="text-body-s" />
                         <SizeSwatch
-                            label="base · medium (current PeanutLoading)"
+                            label={'base · medium (current Loading variant="mascot")'}
                             word={WORDS[index]}
-                            className="text-base font-medium"
+                            className="text-body-m"
                         />
-                        <SizeSwatch label="base · semibold" word={WORDS[index]} className="text-base font-semibold" />
-                        <SizeSwatch label="lg · semibold" word={WORDS[index]} className="text-lg font-semibold" />
-                        <SizeSwatch label="lg · bold" word={WORDS[index]} className="text-lg font-bold" />
-                        <SizeSwatch label="xl · bold" word={WORDS[index]} className="text-xl font-bold" />
-                        <SizeSwatch label="2xl · bold" word={WORDS[index]} className="text-2xl font-bold" />
-                        <SizeSwatch label="2xl · extrabold" word={WORDS[index]} className="text-2xl font-extrabold" />
+                        <SizeSwatch label="base · semibold" word={WORDS[index]} className="text-body-m-semibold" />
+                        <SizeSwatch label="lg · semibold" word={WORDS[index]} className="text-body-l font-semibold" />
+                        <SizeSwatch label="lg · bold" word={WORDS[index]} className="text-heading-card" />
+                        <SizeSwatch label="xl · bold" word={WORDS[index]} className="text-heading-xs" />
+                        <SizeSwatch label="2xl · bold" word={WORDS[index]} className="text-heading-s" />
+                        <SizeSwatch label="2xl · extrabold" word={WORDS[index]} className="text-heading-s" />
                         <SizeSwatch
                             label="display (Sniglet) · bold · xl"
                             word={WORDS[index]}
-                            className="font-display text-xl font-bold"
+                            className="font-display text-heading-xs"
                         />
                     </div>
                 </section>
 
                 <section className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-bold uppercase tracking-wider text-grey-1">Controls</h2>
-                        <label className="flex items-center gap-2 text-sm">
+                        <h2 className="text-label-l tracking-wider text-foreground-secondary uppercase">Controls</h2>
+                        <label className="flex items-center gap-2 text-body-s">
                             <input type="checkbox" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
                             shuffle order
                         </label>
@@ -87,10 +87,10 @@ export default function LoadingWordsPreview() {
                             <button
                                 key={w}
                                 onClick={() => setIndex(i)}
-                                className={`rounded-sm border border-n-1 px-3 py-1 text-sm transition ${
+                                className={`rounded-sm border border-border-default px-3 py-1 text-label-l transition ${
                                     i === index
-                                        ? 'bg-yellow-1 font-bold shadow-[2px_2px_0_0_#000]'
-                                        : 'bg-white hover:bg-yellow-1/40'
+                                        ? 'bg-action-secondary shadow-[2px_2px_0_0_#000]'
+                                        : 'bg-white hover:bg-action-secondary/40'
                                 }`}
                             >
                                 {w}
@@ -100,10 +100,10 @@ export default function LoadingWordsPreview() {
                 </section>
 
                 <section className="flex flex-col gap-3">
-                    <h2 className="text-sm font-bold uppercase tracking-wider text-grey-1">
+                    <h2 className="text-label-l tracking-wider text-foreground-secondary uppercase">
                         All words, static (for proofreading)
                     </h2>
-                    <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm md:grid-cols-3">
+                    <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-body-s md:grid-cols-3">
                         {WORDS.map((w) => (
                             <li key={w} className="font-medium">
                                 {w}
@@ -128,9 +128,9 @@ function LoadingMessage({ word, className = '' }: { word: string; className?: st
 
 function SizeSwatch({ label, word, className }: { label: string; word: string; className: string }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-sm border border-n-1 bg-white px-4 py-8">
+        <div className="flex flex-col items-center justify-center gap-3 rounded-sm border border-border-default bg-white px-4 py-8">
             <LoadingMessage word={word} className={className} />
-            <div className="text-[10px] uppercase tracking-wider text-grey-1">{label}</div>
+            <div className="text-[10px] tracking-wider text-foreground-secondary uppercase">{label}</div>
         </div>
     )
 }
@@ -150,5 +150,5 @@ function Dots() {
 }
 
 function DotsStatic() {
-    return <span className="text-grey-1">...</span>
+    return <span className="text-foreground-secondary">...</span>
 }

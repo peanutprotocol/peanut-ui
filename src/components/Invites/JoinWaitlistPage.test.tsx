@@ -91,11 +91,10 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
         </button>
     ),
 }))
-jest.mock('../Global/ErrorAlert', () => ({
+jest.mock('../Global/Loading', () => ({
     __esModule: true,
-    default: ({ description }: { description: string }) => <div>{description}</div>,
+    default: (props: any) => (props.variant === 'mascot' ? <div>Loading</div> : <div data-testid="loading-spinner" />),
 }))
-jest.mock('../Global/PeanutLoading', () => ({ __esModule: true, default: () => <div>Loading</div> }))
 jest.mock('@/components/0_Bruddle/BaseInput', () => ({ BaseInput: () => <input /> }))
 
 describe('JoinWaitlistPage invite onboarding boundary', () => {

@@ -1,11 +1,745 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin '@headlessui/tailwindcss' {
+    prefix: ui;
+}
+@plugin 'tailwind-scrollbar';
+
+/* v3 darkMode: ['class', '[data-theme="dark"]'] — data-theme selector strategy */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+    /* ───────────────────────────────────────────────────────────────────────
+       LEGACY PALETTE — ported verbatim from tailwind.config.js (v3) for visual
+       parity. consumer migration to the semantic tokens below is DS 06+.
+       deprecated pairs (do not use in new code):
+       - grey.* and gray.* are duplicate scales (same hex at index 1)
+       - purple.* was marked "todo: remove" in the old config
+       ─────────────────────────────────────────────────────────────────────── */
+
+    /* scales replaced (not extended) in v3 — disable v4 defaults so stock
+       shades like purple-500 stay non-existent, exactly like v3 */
+    --color-red-*: initial;
+    --color-gray-*: initial;
+    --color-purple-*: initial;
+    --color-yellow-*: initial;
+    --color-green-*: initial;
+    --color-teal-*: initial;
+    --color-violet-*: initial;
+    --color-cyan-*: initial;
+    --color-blue-*: initial;
+    --color-pink-*: initial;
+    --color-orange-*: initial;
+
+    --color-primary-1: #ff90e8;
+    --color-primary-3: #efe4ff;
+
+    --color-secondary-1: #ffc900;
+    --color-secondary-3: #90a8ed;
+    --color-secondary-4: #fff4cc;
+    --color-secondary-7: #5883ff;
+
+    --color-grey-1: #5f646d;
+    --color-grey-2: #e7e8e9;
+    --color-grey-4: #efeff0;
+
+    --color-purple-1: #ff90e8;
+    --color-purple-3: #fffae8;
+
+    --color-yellow-1: #ffc900;
+    --color-yellow-7: #ffe6b3;
+    --color-yellow-8: #fae184;
+
+    --color-green-1: #98e9ab;
+
+    --color-teal-1: #23a094;
+
+    --color-gray-1: #5f646d;
+    --color-gray-2: #9ca3af;
+    --color-gray-3: #e5e7eb;
+    --color-gray-4: #d1d5db;
+
+    --color-n-1: #000000;
+    --color-n-2: #161616;
+
+    --color-violet-3: #6340df;
+
+    --color-success-1: #16b413;
+    --color-success-3: #29cc6a;
+
+    --color-white: #ffffff;
+    --color-red: #ff0000;
+    --color-kyc-red: #c80000;
+    --color-black: #000000;
+    --color-kyc-green: #00c800;
+    --color-background: #faf4f0;
+
+    --color-error: #b3261e;
+    --color-error-1: #ffd8d8;
+    --color-error-4: #fc5555;
+
+    /* ───────────────────────────────────────────────────────────────────────
+       SEMANTIC TOKENS — 1:1 with vlad's figma variables (Peanut-UI file
+       IBevOyWuFyP3KcEYuQufi1, verified via figma MCP 2026-08-18).
+       naming: figma `group/name` → `--color-<group>-<name>` kebab-case;
+       `background/badge + notification/x` → `--color-background-badge-x`;
+       `background/iconBubble/x` → `--color-background-icon-bubble-x`.
+       light values; dark theme overrides land later under [data-theme='dark'].
+       new screens use ONLY these (+ the type/spacing/motion tokens below).
+       DEFERRED to the DS 06 consumer sweep (token board 17292:3144):
+       - the primitive palette (gray/0-950, pink/*, blue/*, ...): ~300 live
+         call-sites already use those class names as dead no-ops (v3 replaced
+         the stock scales) — defining the tokens would silently style them.
+       - the named spacing scale (xs/s/m/l/xl/2xl...): --spacing-<name> keys
+         make w-xl/w-2xl etc. resolve, and ~70 dead call-sites use exactly
+         those classes today. both need their call-sites triaged first.
+       ─────────────────────────────────────────────────────────────────────── */
+
+    --color-action-primary: #ff90e8;
+    --color-action-primary-hover: #ffa3ec;
+    --color-action-secondary: #ffc900;
+    --color-action-ghost-hover: #bd33a1;
+    --color-action-focus: #2563eb;
+
+    --color-background-default: #ffffff;
+    --color-background-page: #faf4f0;
+    --color-background-disabled: #efeff0;
+    --color-background-brand: #ff90e8;
+
+    --color-background-icon-bubble-green: #29cc6a;
+    --color-background-icon-bubble-red: #ea8282;
+    --color-background-icon-bubble-yellow: #ffc900;
+    --color-background-icon-bubble-gray: #d1d5db;
+    --color-background-icon-bubble-blue: #90a8ed;
+
+    --color-background-badge-attention: #ffe6b3;
+    --color-background-badge-info: #dbeafe;
+    --color-background-badge-error: #ffcccc;
+    --color-background-badge-success: #c7f9c6;
+    --color-background-badge-accent: #dcd6ff;
+    --color-background-badge-helper: #e7e8e9;
+
+    --color-foreground-primary: #000000;
+    --color-foreground-secondary: #5f646d;
+    --color-foreground-inverse: #ffffff;
+    --color-foreground-error: #ff3b30;
+    --color-foreground-over-color-primary: #000000;
+    --color-foreground-over-color-secondary: #00000099;
+
+    --color-border-default: #161616;
+    --color-border-subtle: #9ca3af;
+    --color-border-button: #000000;
+    --color-border-button-secondary: #000000;
+    --color-border-brand: #ff90e8; /* figma border.brand (renamed+recolored from border.accent purple) */
+    --color-border-error: #ff3b30;
+    --color-border-disabled: #e7e8e9;
+
+    --color-avatar-pink: #ffd5f6;
+    --color-avatar-pink-border: #e06ac8;
+    --color-avatar-pink-foreground: #a42089;
+    --color-avatar-yellow: #fae184;
+    --color-avatar-yellow-border: #dcae01;
+    --color-avatar-yellow-foreground: #885b00;
+    --color-avatar-orange: #ffd3b4;
+    --color-avatar-orange-border: #f69855;
+    --color-avatar-orange-foreground: #b8450a;
+    --color-avatar-blue: #dbeafe;
+    --color-avatar-blue-border: #90a8ed;
+    --color-avatar-blue-foreground: #2563eb;
+    --color-avatar-purple: #dcd6ff;
+    --color-avatar-purple-border: #ba8bff;
+    --color-avatar-purple-foreground: #9333ea;
+    --color-avatar-red: #ffcccc;
+    --color-avatar-red-border: #ea8282;
+    --color-avatar-red-foreground: #e40c0c;
+    --color-avatar-green: #c7f9c6;
+    --color-avatar-green-border: #29cc6a;
+    --color-avatar-green-foreground: #3b730c;
+
+    --color-shadow-primary: #000000;
+
+    /* figma primitive ramp (tokens node 17292:3144) — the non-semantic palette
+       the semantic tokens point at. names + values mirror figma exactly; use a
+       semantic token when one exists, a primitive when it doesn't. every family
+       here is reset above, so only these indices exist (a typo like gray-500
+       or blue-400 renders nothing instead of a stock color). amber is
+       deliberately NOT reset — landing still paints stock amber. */
+    --color-gray-0: #ffffff;
+    --color-gray-50: #faf4f0;
+    --color-gray-100: #efeff0;
+    --color-gray-200: #e7e8e9;
+    --color-gray-300: #d1d5db;
+    --color-gray-400: #9ca3af;
+    --color-gray-600: #5f646d;
+    --color-gray-700: #374151;
+    --color-gray-800: #1f2937;
+    --color-gray-900: #161616;
+    --color-gray-950: #000000;
+    --color-pink-200: #ffd5f6;
+    --color-pink-500: #ff90e8;
+    --color-pink-600: #e06ac8;
+    --color-pink-700: #bd33a1;
+    --color-pink-800: #a42089;
+    --color-yellow-200: #fae184;
+    --color-yellow-400: #fde047;
+    --color-yellow-500: #ffc900;
+    --color-yellow-600: #dcae01;
+    --color-yellow-900: #885b00;
+    --color-purple-200: #dcd6ff;
+    --color-purple-400: #ba8bff;
+    --color-purple-500: #ae7aff;
+    --color-purple-600: #9333ea;
+    --color-blue-200: #dbeafe;
+    --color-blue-300: #90a8ed;
+    --color-blue-500: #5883ff;
+    --color-blue-600: #2563eb;
+    --color-green-200: #c7f9c6;
+    --color-green-400: #88d987;
+    --color-green-500: #29cc6a;
+    --color-green-800: #3b730c;
+    --color-green-900: #2a5309;
+    --color-red-50: #ffcccc;
+    --color-red-100: #ea8282;
+    --color-red-200: #fc5555;
+    --color-red-400: #ff3b30;
+    --color-red-500: #ff0000;
+    --color-red-600: #e40c0c;
+    --color-orange-200: #ffd3b4;
+    --color-orange-400: #f69855;
+    --color-orange-800: #b8450a;
+
+    /* semantic type scale (figma Heading/Body/Label/Button, Roboto Flex) */
+    --text-heading-big-input: 3.25rem;
+    --text-heading-big-input--line-height: 4rem;
+    --text-heading-big-input--font-weight: 700;
+    --text-heading-xl: 2.625rem;
+    --text-heading-xl--line-height: 3rem;
+    --text-heading-xl--font-weight: 800;
+    --text-heading-l: 2.25rem;
+    --text-heading-l--line-height: 2.5rem;
+    --text-heading-l--font-weight: 800;
+    --text-heading-m: 1.875rem;
+    --text-heading-m--line-height: 2.25rem;
+    --text-heading-m--font-weight: 800;
+    --text-heading-s: 1.5rem;
+    --text-heading-s--line-height: 2rem;
+    --text-heading-s--font-weight: 800;
+    --text-heading-xs: 1.25rem;
+    --text-heading-xs--line-height: 1.5rem;
+    --text-heading-xs--font-weight: 800;
+    --text-heading-card: 1.125rem;
+    --text-heading-card--line-height: 1.5rem;
+    --text-heading-card--font-weight: 700;
+    --text-body-l: 1.125rem;
+    --text-body-l--line-height: 1.625rem;
+    --text-body-l--font-weight: 400;
+    --text-body-m: 1rem;
+    --text-body-m--line-height: 1.25rem;
+    --text-body-m--font-weight: 500;
+    --text-body-m-semibold: 1rem;
+    --text-body-m-semibold--line-height: 1.25rem;
+    --text-body-m-semibold--font-weight: 600;
+    --text-body-s: 0.875rem;
+    --text-body-s--line-height: 1.25rem;
+    --text-body-s--font-weight: 500;
+    --text-body-xs: 0.75rem;
+    --text-body-xs--line-height: 1rem;
+    --text-body-xs--font-weight: 400;
+    --text-label-l: 0.875rem;
+    --text-label-l--line-height: 1.25rem;
+    --text-label-l--font-weight: 700;
+    --text-label-m: 0.75rem;
+    --text-label-m--line-height: 1rem;
+    --text-label-m--font-weight: 800;
+    --text-button-l: 1.125rem;
+    --text-button-l--line-height: 1.5rem;
+    --text-button-l--font-weight: 700;
+    --text-button-m: 1rem;
+    --text-button-m--line-height: 1rem;
+    --text-button-m--font-weight: 700;
+    --text-button-s: 0.875rem;
+    --text-button-s--line-height: 0.875rem;
+    --text-button-s--font-weight: 700;
+    --text-display: 3.75rem;
+
+    /* semantic radius (figma). border weights live in @layer base :root —
+       --border-width-* is a live v4 namespace, so defining s/m/l here would
+       emit .border-s/.border-l width utilities that hijack the core logical
+       border-inline-start/left utilities (tooltip arrows use bare border-l). */
+    --radius-round: 999px;
+
+    /* motion tokens — durations from real app usage, spring from the gift
+       arrival curve. respect prefers-reduced-motion in consumers.
+       --transition-duration-* is the v4 namespace behind duration-* utilities
+       (bare --duration-* generates nothing and gets tree-shaken). */
+    --transition-duration-instant: 100ms;
+    --transition-duration-fast: 200ms;
+    --transition-duration-moderate: 300ms;
+    --transition-duration-slow: 500ms;
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-sharp: cubic-bezier(0.87, 0, 0.13, 1);
+
+    /* safe-area insets — see the :root contract below @theme. ported from the
+       v3 tailwind.config.js spacing extension (deleted in the v4 migration).
+       the env() step in the fallback chain is load-bearing: an undefined
+       custom property invalidates the whole declaration, so a
+       min-h-[calc(...)] would silently collapse to `auto`. */
+    --spacing-safe-top: var(--safe-top, env(safe-area-inset-top, 0px));
+    --spacing-safe-right: var(--safe-right, env(safe-area-inset-right, 0px));
+    --spacing-safe-bottom: var(--safe-bottom, env(safe-area-inset-bottom, 0px));
+    --spacing-safe-left: var(--safe-left, env(safe-area-inset-left, 0px));
+
+    /* ───────────────────────────────────────────────────────────────────────
+       v3-parity theme values (renames + defaults that changed in tailwind 4)
+       ─────────────────────────────────────────────────────────────────────── */
+
+    /* v3 radius scale: sm was 0.125rem (v4 made it 0.25). rest match v4. */
+    --radius-sm: 0.125rem;
+    --radius-1: 0.0625rem;
+
+    /* v3 shadow scale (v4 shifted names down one size) */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+    /* v3 blur scale (v4 shifted names down one size) */
+    --blur-sm: 4px;
+    --blur-md: 12px;
+    --blur-lg: 16px;
+    --blur-xl: 24px;
+    --blur-2xl: 40px;
+    --blur-3xl: 64px;
+
+    --drop-shadow-sm: 0 1px 1px rgb(0 0 0 / 0.05);
+    --drop-shadow-md: 0 4px 3px rgb(0 0 0 / 0.07), 0 2px 2px rgb(0 0 0 / 0.06);
+    --drop-shadow-lg: 0 10px 8px rgb(0 0 0 / 0.04), 0 4px 3px rgb(0 0 0 / 0.1);
+    --drop-shadow-xl: 0 20px 13px rgb(0 0 0 / 0.03), 0 8px 5px rgb(0 0 0 / 0.08);
+    --drop-shadow-2xl: 0 25px 25px rgb(0 0 0 / 0.15);
+
+    /* v3 default transition: 200ms linear */
+    --default-transition-duration: 200ms;
+    --default-transition-timing-function: linear;
+
+    /* fonts (v3 fontFamily port; next/font vars injected in layout) */
+    --font-sans:
+        var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display:
+        var(--font-sniglet), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-condensed: var(--font-roboto);
+    --font-condensed--font-variation-settings: 'wdth' 50;
+
+    /* v3 fontSize overrides + the text-h* scale */
+    --text-0: 0px;
+    --text-0--line-height: 0px;
+    --text-sm: 0.875rem;
+    --text-sm--line-height: 1.3125rem;
+    --text-6xl: 3rem;
+    --text-6xl--line-height: 3.25rem;
+    --text-7xl: 7rem;
+    --text-7xl--line-height: 7rem;
+    --text-8xl: 10rem;
+    --text-8xl--line-height: 10rem;
+    --text-9xl: 12rem;
+    --text-9xl--line-height: 0.9;
+    --text-h1: 3rem;
+    --text-h1--line-height: 3.5rem;
+    --text-h1--font-weight: 800;
+    --text-h2: 2.25rem;
+    --text-h2--line-height: 2.875rem;
+    --text-h2--font-weight: 800;
+    --text-h3: 1.875rem;
+    --text-h3--line-height: 2.375rem;
+    --text-h3--font-weight: 800;
+    --text-h4: 1.5rem;
+    --text-h4--line-height: 2rem;
+    --text-h4--font-weight: 800;
+    --text-h5: 1.25rem;
+    --text-h5--line-height: 1.75rem;
+    --text-h5--font-weight: 800;
+    --text-h6: 1.125rem;
+    --text-h6--line-height: 1.5rem;
+    --text-h6--font-weight: 800;
+    --text-h7: 1rem;
+    --text-h7--line-height: 1.25rem;
+    --text-h7--font-weight: 800;
+    --text-h8: 0.875rem;
+    --text-h8--line-height: 1rem;
+    --text-h8--font-weight: 800;
+    --text-h9: 0.75rem;
+    --text-h9--line-height: 0.875rem;
+    --text-h9--font-weight: 800;
+    --text-h10: 0.625rem;
+    --text-h10--line-height: 0.75rem;
+    --text-h10--font-weight: 800;
+    --text-headingLarge: 7rem;
+    --text-headingLarge--line-height: 6.5rem;
+    --text-headingMedium: 5rem;
+    --text-headingMedium--line-height: 4rem;
+    --text-heading: 3.75rem;
+    --text-heading--line-height: 2.875rem;
+
+    --font-weight-extraBlack: 1000;
+
+    /* keyframes + animations from the v3 config (only the consumed ones) */
+    --animate-pulsate: pulsate 1.5s ease-in-out infinite;
+    --animate-pulse-strong: pulse-strong 1s ease-in-out infinite;
+    --animate-blink: blink 1.5s step-end infinite;
+    --animate-accordion-down: accordion-down 0.3s cubic-bezier(0.87, 0, 0.13, 1);
+    --animate-accordion-up: accordion-up 0.3s cubic-bezier(0.87, 0, 0.13, 1);
+    --animate-star-pulsate-wiggle: starPulsateWiggle 10s ease-in-out infinite;
+
+    @keyframes pulsate {
+        0% {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+        50% {
+            transform: scale(1.05);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+    }
+    @keyframes pulse-strong {
+        0% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.3;
+        }
+        100% {
+            opacity: 1;
+        }
+    }
+    @keyframes blink {
+        0%,
+        50% {
+            opacity: 1;
+        }
+        50.01%,
+        100% {
+            opacity: 0;
+        }
+    }
+    @keyframes accordion-down {
+        from {
+            height: 0;
+        }
+        to {
+            height: var(--radix-accordion-content-height);
+        }
+    }
+    @keyframes accordion-up {
+        from {
+            height: var(--radix-accordion-content-height);
+        }
+        to {
+            height: 0;
+        }
+    }
+    @keyframes starPulsateWiggle {
+        0% {
+            transform: scale(1) rotate(0deg);
+        }
+        6% {
+            transform: scale(1.12) rotate(0deg);
+        }
+        12% {
+            transform: scale(1) rotate(0deg);
+        }
+        18% {
+            transform: scale(1.12) rotate(0deg);
+        }
+        24% {
+            transform: scale(1) rotate(0deg);
+        }
+        30% {
+            transform: scale(1.12) rotate(0deg);
+        }
+        36% {
+            transform: scale(1) rotate(0deg);
+        }
+        50% {
+            transform: scale(1) rotate(0deg);
+        }
+        52% {
+            transform: scale(1) rotate(-15deg);
+        }
+        54% {
+            transform: scale(1) rotate(15deg);
+        }
+        56% {
+            transform: scale(1) rotate(-15deg);
+        }
+        58% {
+            transform: scale(1) rotate(15deg);
+        }
+        60% {
+            transform: scale(1) rotate(0deg);
+        }
+        75% {
+            transform: scale(1) rotate(0deg);
+        }
+        100% {
+            transform: scale(1) rotate(0deg);
+        }
+    }
+}
+
+/* font utilities whose v3 theme key matches the next/font css var name —
+   defining them in @theme would shadow the next/font var on :root and
+   self-reference (font falls back to system). plain utilities instead. */
+@utility font-roboto {
+    font-family:
+        var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+@utility font-knerd-outline {
+    font-family:
+        var(--font-knerd-outline), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+@utility font-knerd-filled {
+    font-family:
+        var(--font-knerd-filled), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* v3-parity: v4's space-x/y uses `> :not(:last-child)` + logical margins —
+   a hidden last/next sibling then inserts phantom gaps the v3 selector
+   skipped (visual gate caught +32px per hidden child). the core emission is
+   :where()-wrapped (zero specificity), so these per-step overrides zero it
+   and restore the v3 sibling margin. covers every step used today; a NEW
+   step silently gets v4 semantics — prefer gap-* in new code. */
+@utility space-y-0 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0px;
+    }
+}
+@utility space-y-0.5 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.125rem;
+    }
+}
+@utility space-y-1 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.25rem;
+    }
+}
+@utility space-y-1.5 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.375rem;
+    }
+}
+@utility space-y-2 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.5rem;
+    }
+}
+@utility space-y-2.5 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.625rem;
+    }
+}
+@utility space-y-3 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.75rem;
+    }
+}
+@utility space-y-4 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 1rem;
+    }
+}
+@utility space-y-5 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 1.25rem;
+    }
+}
+@utility space-y-6 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 1.5rem;
+    }
+}
+@utility space-y-8 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 2rem;
+    }
+}
+@utility space-y-10 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 2.5rem;
+    }
+}
+@utility space-y-16 {
+    > :not(:last-child) {
+        margin-block-start: 0;
+        margin-block-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 4rem;
+    }
+}
+@utility space-x-2 {
+    > :not(:last-child) {
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-left: 0.5rem;
+    }
+}
+@utility space-x-3 {
+    > :not(:last-child) {
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+    > :not([hidden]) ~ :not([hidden]) {
+        margin-left: 0.75rem;
+    }
+}
+
+/* v3-parity: bare `rounded` was 0.25rem in v3 (v4 dropped the bare form) */
+@utility rounded {
+    border-radius: 0.25rem;
+}
+/* v3-parity: bare `shadow` (v4 renamed it shadow-sm) */
+@utility shadow {
+    --tw-shadow:
+        0 1px 3px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
+    box-shadow:
+        var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+        var(--tw-shadow);
+}
+/* v3-parity: bare `blur` was 8px */
+@utility blur {
+    --tw-blur: blur(8px);
+    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,)
+        var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
+}
+/* v3-parity: bare `drop-shadow` */
+@utility drop-shadow {
+    --tw-drop-shadow: drop-shadow(0 1px 2px rgb(0 0 0 / 0.1)) drop-shadow(0 1px 1px rgb(0 0 0 / 0.06));
+    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,)
+        var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
+}
+/* v3-parity: bare `ring` was 3px blue-500/50 (v4 made it 1px currentColor) */
+@utility ring {
+    --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(3px + var(--tw-ring-offset-width, 0px))
+        var(--tw-ring-color, rgb(59 130 246 / 0.5));
+    box-shadow:
+        var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+        var(--tw-shadow);
+}
+/* icon sizing utilities (were plugin addComponents; @utility so they stay
+   @apply-able from the button classes below) */
+@utility icon-16 {
+    width: 1rem !important;
+    height: 1rem !important;
+}
+@utility icon-18 {
+    width: 1.125rem !important;
+    height: 1.125rem !important;
+}
+@utility icon-20 {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+@utility icon-22 {
+    width: 1.375rem !important;
+    height: 1.375rem !important;
+}
+@utility icon-24 {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+}
+@utility icon-28 {
+    width: 1.75rem !important;
+    height: 1.75rem !important;
+}
+@utility tap-highlight-color {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+/* shadow-4 is used with variants (sm:shadow-4, hover:shadow-4) — a plain
+   @layer components class can't take variants in v4, so it lives here as a
+   real utility. its siblings (shadow-2, shadow-primary/secondary-*) stay in
+   the components layer below; promote one only when a variant needs it. */
+@utility shadow-4 {
+    @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
+}
 
 @layer base {
     /* Nudge browser to prefer light mode for native controls (scrollbars, inputs, etc) */
     :root {
         color-scheme: light;
+
+        /* figma border-weight tokens (var() consumers only) — kept out of
+           @theme so no border-s/m/l width utilities get generated (border-s
+           and border-l would shadow the core logical-property utilities) */
+        --border-width-s: 1.5px;
+        --border-width-m: 2px;
+        --border-width-l: 2.5px;
+
+        /* figma icon-size tokens (Size/*) — plain vars for the same reason */
+        --icon-size-xs: 16px;
+        --icon-size-s: 20px;
+        --icon-size-m: 24px;
+        --icon-size-l: 32px;
     }
 
     html,
@@ -14,11 +748,32 @@
         overscroll-behavior-y: none;
     }
 
+    html {
+        font-size: 1rem;
+    }
+
     body {
+        @apply bg-background text-base antialiased dark:bg-n-2;
         /* disable text selection */
         @apply select-none;
         /* disable tap highlight */
         -webkit-tap-highlight-color: transparent;
+    }
+
+    /* v3-preflight parity: placeholders were #9ca3af (v4 uses currentColor/50).
+       #9ca3af is 2.54:1 on white — below the 4.5:1 floor — and it is what any
+       input outside `.input` falls back to (the exchange-rate amounts, for one).
+       foreground-secondary is the DS answer at 5.95:1 on white, 5.46:1 on the
+       cream page. `.input` already sets it; this makes the floor match. */
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--color-foreground-secondary);
+    }
+
+    /* v3-preflight parity: buttons keep the pointer cursor (v4 uses default) */
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
     }
 }
 
@@ -30,19 +785,244 @@
     }
 }
 
-:root {
-    --primary-color: #ff90e8;
-    --secondary-color: #6340df;
-    --background-color: #90a8ed;
-    --accent-color: #6340df;
+/* ── component classes ported from the v3 plugin (addComponents). chains like
+   `@apply btn` are expanded inline (v4 @apply can't reference component
+   classes). these are the legacy component API — new code uses DS components. ── */
+@layer components {
+    .row {
+        @apply flex flex-row items-center gap-2;
+    }
+    .col {
+        @apply flex flex-col gap-2;
+    }
+    /* ds-06 restyle to vlad's button board (17802:61527): pill shape, M=44px default
+       (touch-target law), Roboto Flex bold via text-button-*, blue focus ring,
+       disabled = 40% opacity (was gray fill). */
+    .btn {
+        @apply inline-flex h-11 items-center justify-center rounded-round border border-border-button fill-foreground-primary px-3 text-button-m text-foreground-primary transition-colors focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:cursor-not-allowed disabled:opacity-40;
+    }
+    .btn svg {
+        @apply fill-inherit;
+        /* Legacy MUI-era icons (no `custom-size` class) keep the auto-icon-18 sizing
+           and the auto-margin between icon and text. Modern Lucide icons (added via
+           <Icon> which sets `custom-size` automatically) escape both — they manage
+           their own size via SVG width/height attrs, and call sites use Tailwind
+           `gap-*` for icon/text spacing. Keeping this branch under :not(.custom-size)
+           prevents the margin from eating SVG width inside flex wrappers (the bug
+           where the home-page action arrows rendered at 10x22 inside size-[22px]). */
+        &:not(.custom-size) {
+            @apply icon-18 first:mr-1.5 last:ml-1.5;
+        }
+    }
+    /* variant classes are deltas on top of .btn (the component always pairs them;
+       the few raw call-sites all write "btn btn-purple"). board mapping:
+       purple = button.type.primary, stroke = button.type.secondary,
+       transparent* = button.type.ghost. dark/purple-2/yellow are off-board
+       legacy — shape/type restyle inherited from .btn, colors kept until page
+       rebuilds migrate them. */
+    .btn-transparent-light {
+        @apply border-transparent fill-white text-white hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
+    }
+    .btn-transparent-dark {
+        @apply border-transparent fill-foreground-primary text-foreground-primary hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
+    }
+    .btn-purple {
+        /* board 17311:135055: hover drops the offset shadow (flat) */
+        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover hover:shadow-none active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+    }
+    .btn-dark {
+        @apply bg-n-1 fill-white text-white hover:bg-n-1/80;
+    }
+    .btn-stroke {
+        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:shadow-none active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+    }
+    .btn-shadow {
+        @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
+    }
+    .btn-square {
+        @apply !px-0;
+    }
+    .btn-square svg {
+        @apply !mr-0 !ml-0;
+    }
+    /* board sizes: l=48px, m=44px (default, on .btn), s=40px visual with a
+       pseudo-element extending the hit area to 44px (touch-target law). */
+    .btn-small {
+        @apply relative h-10 px-2 text-button-s after:absolute after:inset-x-0 after:-inset-y-0.5;
+    }
+    .btn-medium {
+        @apply h-11 px-3 text-button-m;
+    }
+    .btn-large {
+        @apply h-12 px-6 text-button-l;
+    }
+    .btn-small svg,
+    .btn-medium svg {
+        /* Legacy MUI-era icons keep the auto 16px sizing; modern Lucide icons
+           carry 'custom-size' (set by the Icon wrapper) and manage their own
+           width/height via the size prop. Symmetric with the `.btn svg` rule above. */
+        &:not(.custom-size) {
+            @apply icon-16;
+        }
+    }
+    .btn-square.btn-small {
+        @apply w-10;
+    }
+    .btn-square.btn-medium {
+        @apply w-11;
+    }
+    .label {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+    }
+    .label-stroke {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+        @apply border-n-1 dark:border-white dark:text-white;
+    }
+    .label-stroke-yellow {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+        @apply border-secondary-1 text-secondary-1;
+    }
+    .label-stroke-pink {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+        @apply border-primary-1 text-primary-1;
+    }
+    .label-stroke-purple {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+        @apply border-primary-1 text-primary-1;
+    }
+    .label-stroke-teal {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+        @apply border-teal-1 text-teal-1;
+    }
+    .label-purple {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+        @apply border-primary-1 bg-primary-1;
+    }
+    .label-teal {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+        @apply border-teal-1 bg-teal-1;
+    }
+    .label-yellow {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+        @apply border-secondary-1 bg-secondary-1;
+    }
+    .label-black {
+        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
+        @apply border-n-1 bg-n-1 text-white dark:bg-white/10;
+    }
+    .table-custom {
+        @apply table w-full border-2 border-n-1 bg-white shadow-md ring-2 ring-white dark:border-white dark:bg-n-1 dark:ring-n-1;
+    }
+    .table-select {
+        @apply table w-full border-2 border-n-1 bg-white shadow-md ring-2 ring-white dark:border-white dark:bg-n-1 dark:ring-n-1;
+        @apply [&>tbody>tr>*:nth-child(1)]:w-13 [&>tbody>tr>*:nth-child(1)]:px-0 [&>tbody>tr>*:nth-child(1)]:text-center [&>tbody>tr>*:nth-child(1)]:text-0 [&>tbody>tr>*:nth-child(2)]:pl-0 [&>thead>tr>*:nth-child(1)]:w-13 [&>thead>tr>*:nth-child(1)]:px-0 [&>thead>tr>*:nth-child(1)]:text-center [&>thead>tr>*:nth-child(1)]:text-0 [&>thead>tr>*:nth-child(2)]:pl-0;
+    }
+    .th-custom {
+        @apply table-cell h-12 px-3 py-2 text-left align-middle first:pl-5 last:pr-5;
+    }
+    .th-custom-skeleton {
+        @apply table-cell h-12 px-3 py-2 text-left align-middle;
+    }
+    .td-custom {
+        @apply table-cell h-[3.875rem] border-t border-n-1 px-3 py-2.5 align-middle text-sm first:pl-5 last:pr-5 dark:border-white;
+    }
+    .td-custom-skeleton {
+        @apply table-cell h-[3.875rem] border-t border-n-1 px-3 py-2.5 align-middle text-sm dark:border-white;
+    }
+    .card {
+        @apply relative mx-auto flex w-11/12 max-w-[27rem] flex-col items-center justify-center border border-n-1 bg-white px-4 py-6 lg:w-2/3 xl:w-1/2 dark:border-white dark:bg-n-1;
+    }
+    .card-head {
+        @apply flex min-h-[4rem] flex-col items-start justify-between border-b border-border-default px-3 py-3 sm:px-5;
+    }
+    .card-content {
+        @apply px-3 py-3 sm:px-5;
+    }
+    .card-title {
+        @apply border-b border-n-1 p-5 text-h6 dark:border-white;
+    }
+    .shadow-2 {
+        @apply shadow-[0.125rem_0.125rem_0_#000000] dark:shadow-[0.125rem_0.125rem_0_rgba(255,255,255,.25)];
+    }
+    .shadow-primary-4 {
+        @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
+    }
+    .shadow-primary-6 {
+        @apply shadow-[0.375rem_0.375rem_0_#000000] dark:shadow-[0.375rem_0.375rem_0_rgba(255,255,255,.25)];
+    }
+    .shadow-primary-8 {
+        @apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)];
+    }
+    .shadow-secondary-4 {
+        @apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)];
+    }
+    .shadow-secondary-6 {
+        @apply shadow-[0.375rem_-0.375rem_0_#000000] dark:shadow-[0.375rem_-0.375rem_0_rgba(255,255,255,.25)];
+    }
+    .shadow-secondary-8 {
+        @apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)];
+    }
+    .brutal-border {
+        @apply border-2 border-black;
+    }
+    .custom-input {
+        @apply h-12 w-full rounded-none border border-n-1 bg-transparent bg-white px-4 text-h8 font-medium transition-colors outline-none placeholder:text-sm focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1;
+    }
+    .custom-input-xs {
+        @apply h-8;
+    }
+    .btn-shadow-primary-3 {
+        @apply shadow-[0.1875rem_0.1875rem_0_#000000] dark:shadow-[0.1875rem_0.1875rem_0_rgba(255,255,255,.25)];
+    }
+    .btn-shadow-primary-4 {
+        @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
+    }
+    .btn-shadow-primary-6 {
+        @apply shadow-[0.375rem_0.375rem_0_#000000] dark:shadow-[0.375rem_0.375rem_0_rgba(255,255,255,.25)];
+    }
+    .btn-shadow-primary-8 {
+        @apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)];
+    }
+    .btn-shadow-secondary-3 {
+        @apply shadow-[0.1875rem_-0.1875rem_0_#000000] dark:shadow-[0.1875rem_-0.1875rem_0_rgba(255,255,255,.25)];
+    }
+    .btn-shadow-secondary-4 {
+        @apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)];
+    }
+    .btn-shadow-secondary-6 {
+        @apply shadow-[0.375rem_-0.375rem_0_#000000] dark:shadow-[0.375rem_-0.375rem_0_rgba(255,255,255,.25)];
+    }
+    .btn-shadow-secondary-8 {
+        @apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)];
+    }
+    /* input board 17802:61538 / set 17360:4441: black border at rest
+       (border/default), subtle border ONLY when disabled, blue ring on
+       keyboard focus, red on aria-invalid, gray fill when disabled. the
+       earlier "subtle at rest" reading was wrong — subtle is the Disabled
+       variant's border on the board. height 48px per ruling (touch law;
+       board's 40px sits under the 44px minimum). */
+    .input {
+        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
+    }
+    .bg-peanut-repeat-normal {
+        @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;
+    }
+    .bg-peanut-repeat-large {
+        @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:200px_200px] bg-repeat;
+    }
+    .bg-peanut-repeat-small {
+        @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:50px_50px] bg-repeat;
+    }
+}
 
-    /* Safe-area contract. --safe-area-inset-* is the raw source: on Android 15+
-       (targetSdk 36 forces edge-to-edge) Capacitor's built-in SystemBars plugin
-       overwrites these as an inline style on <html> with natively measured values —
-       max(systemBars, displayCutout) per edge, in CSS px. Everywhere else (web, iOS,
-       Android < 15) they keep the env() seed below, so behavior there is unchanged.
-       The names are Capacitor's; do not rename them, and do not move this rule into
-       @layer — only the inline style on <html> should outrank it. */
+/* Safe-area contract. --safe-area-inset-* is the raw source: on Android 15+
+   (targetSdk 36 forces edge-to-edge) Capacitor's built-in SystemBars plugin
+   overwrites these as an inline style on <html> with natively measured values —
+   max(systemBars, displayCutout) per edge, in CSS px. Everywhere else (web, iOS,
+   Android < 15) they keep the env() seed below, so behavior there is unchanged.
+   The names are Capacitor's; do not rename them, and do not move this rule into
+   @layer — only the inline style on <html> should outrank it. */
+:root {
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
     --safe-area-inset-right: env(safe-area-inset-right, 0px);
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -60,7 +1040,7 @@
     }
 
     .splide__pagination.splide__pagination-crypto {
-        @apply -top-10 bottom-auto left-auto right-0;
+        @apply -top-10 right-0 bottom-auto left-auto;
     }
 
     .splide__pagination .splide__pagination__page {
@@ -456,7 +1436,7 @@ Firefox input[type='number'] {
 
 /* Feature styling */
 .feature {
-    @apply mx-auto flex w-auto justify-center rounded-full border-2 border-violet-3 bg-white px-5 py-3 text-center text-[1.375rem] font-black uppercase text-violet-3 shadow-md ring-2 ring-white md:mr-auto;
+    @apply mx-auto flex w-auto justify-center rounded-full border-2 border-violet-3 bg-white px-5 py-3 text-center text-[1.375rem] font-black text-violet-3 uppercase shadow-md ring-2 ring-white md:mr-auto;
 }
 
 .feature-primary {
@@ -469,7 +1449,7 @@ Firefox input[type='number'] {
 
 /* Form styling */
 .input-text {
-    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1;
+    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium ring-2 ring-white transition-colors outline-none focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1;
 }
 
 .input-text-inset {

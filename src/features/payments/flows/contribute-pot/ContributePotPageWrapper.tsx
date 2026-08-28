@@ -10,9 +10,9 @@
  */
 
 import { ContributePotPage } from './ContributePotPage'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { requestsApi } from '@/services/requests'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useEffect, useState } from 'react'
@@ -61,7 +61,7 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )
@@ -72,7 +72,7 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
         return (
             <div className="flex w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
-                <ErrorAlert description={error || t('errors.requestNotFound')} />
+                <Notification priority="error">{error || t('errors.requestNotFound')}</Notification>
             </div>
         )
     }

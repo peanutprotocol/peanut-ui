@@ -96,16 +96,8 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: ({ description }: { description: string }) => <div data-testid="error-alert">{description}</div>,
-}))
-
-jest.mock('@/components/Global/InfoCard', () => ({
-    __esModule: true,
-    default: ({ description }: { description: React.ReactNode }) => <div data-testid="info-card">{description}</div>,
-}))
-
+// ds: no ErrorAlert/InfoCard mocks — the view renders the real 0_Bruddle
+// Notification with data-testid="error-alert" / "info-card"
 import LinkSendInitialView from '../Initial.link.send.view'
 
 // ---------- helpers ----------

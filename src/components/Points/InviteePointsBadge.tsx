@@ -21,7 +21,7 @@ const InviteePointsBadge = ({ points, inView, lifetimeEarnedUsd }: InviteePoints
         return (
             <div className="flex flex-col items-end">
                 <span className="font-semibold">${lifetimeEarnedUsd.toFixed(2)}</span>
-                <span className="text-sm font-medium text-grey-1">
+                <span className="text-body-s font-medium text-foreground-secondary">
                     +{formatPoints(animated)} {pointsLabel}
                 </span>
             </div>
@@ -29,7 +29,7 @@ const InviteePointsBadge = ({ points, inView, lifetimeEarnedUsd }: InviteePoints
     }
 
     return (
-        <p className="text-grey-1">
+        <p className="text-foreground-secondary">
             +{formatPoints(animated)} {pointsLabel}
         </p>
     )

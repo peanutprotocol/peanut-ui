@@ -141,7 +141,7 @@ export function Hero({
                     </Button>
                 </a>
                 {cta.subtext && (
-                    <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">{cta.subtext}</span>
+                    <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">{cta.subtext}</span>
                 )}
             </div>
         )
@@ -159,7 +159,7 @@ export function Hero({
     return (
         <section
             id="hero"
-            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pb-12 pt-4 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
+            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
             <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
@@ -180,7 +180,7 @@ export function Hero({
                     <Image src={Star} alt="" />
                 </AnimateOnView>
                 <AnimateOnView
-                    className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
+                    className="absolute top-[-12%] right-[1.5%] w-8 sm:top-[8%] sm:right-[6%] md:top-[8%] md:right-[5%] md:w-12 lg:right-[10%]"
                     y="28px"
                     x="-5px"
                 >
@@ -227,7 +227,7 @@ export function Hero({
                     <Image src={Star} alt="" />
                 </AnimateOnView>
                 <AnimateOnView
-                    className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
+                    className="absolute top-[-12%] right-[1.5%] w-8 sm:top-[8%] sm:right-[6%] md:top-[8%] md:right-[5%] md:w-12 lg:right-[10%]"
                     y="28px"
                     x="-5px"
                 >

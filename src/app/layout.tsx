@@ -143,6 +143,11 @@ export const viewport: Viewport = {
     userScalable: false,
     colorScheme: 'light',
     viewportFit: 'cover',
+    // Renders <meta name="theme-color">, which Android Chrome applies
+    // immediately (browser tab AND installed PWA) and which overrides a
+    // cached manifest theme_color — the manifest alone left the status
+    // strip black until Chrome's day-scale manifest refresh.
+    themeColor: '#FAF4F0',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -150,7 +155,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const apiHostname = new URL(PEANUT_API_URL).origin
 
     return (
-        <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
+        <html
+            lang="en"
+            style={{ colorScheme: 'light' }}
+            data-theme="light"
+            className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable}`}
+        >
             <head>
                 <meta name="color-scheme" content="light" />
 
@@ -265,9 +275,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         </>
                     )}
             </head>
-            <body
-                className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
-            >
+            {/* font variable classes live on <html>: @theme vars like --font-sans
+                substitute var(--font-roboto) at :root, so the next/font vars must
+                be defined there — on <body> the :root substitution fails and every
+                font-sans consumer falls back to the system font */}
+            <body className="chakra-ui-light font-sans">
                 <ClientProviders>{children}</ClientProviders>
             </body>
         </html>

@@ -4,15 +4,14 @@ import Layout from '@/components/Global/Layout'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import borderCloud from '@/assets/illustrations/border-cloud.svg'
-import Star from '@/assets/illustrations/star.svg'
-import { useEffect, useState, useMemo, useCallback } from 'react'
-import { Button } from '@/components/0_Bruddle/Button'
+import { useMemo } from 'react'
 import { QuestLeaderboard } from '../components/QuestLeaderboard'
 import { UserRankCard } from '../components/UserRankCard'
 import { QUEST_CONFIG, getQuestStatus } from '../constants'
+import { QuestHeroDecoration } from '../components/QuestHeroDecoration'
+import { QuestArrowCta } from '../components/QuestArrowCta'
 import { useAllQuestsLeaderboards } from '../hooks/useQuests'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { useAuth } from '@/context/authContext'
 
 export default function QuestsExplorePage() {
@@ -20,7 +19,6 @@ export default function QuestsExplorePage() {
     const searchParams = useSearchParams()
     const { userId, username } = useAuth()
     const useTestTimePeriod = searchParams?.get('useTestTimePeriod') === 'true'
-    const [screenWidth, setScreenWidth] = useState(1080)
     const questStatus = getQuestStatus()
     const { data: questsData, isLoading } = useAllQuestsLeaderboards(10, useTestTimePeriod)
     const isAuthenticated = !!userId
@@ -53,81 +51,10 @@ export default function QuestsExplorePage() {
         ]
     }, [questsData])
 
-    useEffect(() => {
-        const handleResize = () => {
-            setScreenWidth(window.innerWidth)
-        }
-
-        handleResize()
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
-    }, [])
-
-    const createCloudAnimation = useCallback(
-        (side: 'left' | 'right', width: number, speed: number) => {
-            const vpWidth = screenWidth || 1080
-            const totalDistance = vpWidth + width
-
-            return {
-                initial: { x: side === 'left' ? -width : vpWidth },
-                animate: { x: side === 'left' ? vpWidth : -width },
-                transition: {
-                    ease: 'linear',
-                    duration: totalDistance / speed,
-                    repeat: Infinity,
-                },
-            }
-        },
-        [screenWidth]
-    )
-
     return (
         <Layout className="enable-select !m-0 w-full !p-0">
             <section className="relative min-h-screen overflow-hidden bg-[#FFC900] px-4 py-16 md:py-24">
-                {/* Animated Clouds - Reduced for performance */}
-                <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
-                    <motion.img
-                        src={borderCloud.src}
-                        alt=""
-                        className="absolute left-0"
-                        style={{ top: '15%', width: 180 }}
-                        {...createCloudAnimation('left', 180, 35)}
-                    />
-                    <motion.img
-                        src={borderCloud.src}
-                        alt=""
-                        className="absolute right-0"
-                        style={{ top: '40%', width: 200 }}
-                        {...createCloudAnimation('right', 200, 40)}
-                    />
-                    <motion.img
-                        src={borderCloud.src}
-                        alt=""
-                        className="absolute left-0"
-                        style={{ top: '70%', width: 190 }}
-                        {...createCloudAnimation('left', 190, 38)}
-                    />
-                </div>
-
-                {/* Stars */}
-                <motion.img
-                    initial={{ opacity: 0, translateY: 20, translateX: 5 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 5 }}
-                    src={Star.src}
-                    alt=""
-                    className="absolute hidden md:block"
-                    style={{ top: '20%', left: '15%', width: 35 }}
-                />
-                <motion.img
-                    initial={{ opacity: 0, translateY: 28, translateX: -5 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 5 }}
-                    src={Star.src}
-                    alt=""
-                    className="absolute hidden md:block"
-                    style={{ top: '60%', right: '20%', width: 40 }}
-                />
+                <QuestHeroDecoration />
 
                 {/* Content */}
                 <div className="relative z-10 mx-auto max-w-7xl">
@@ -153,7 +80,7 @@ export default function QuestsExplorePage() {
                                 />
                             </div>
                             <p className="text-center text-base font-black text-black md:text-xl">QUESTS</p>
-                            <p className="text-center text-sm font-bold text-gray-700 md:text-base">
+                            <p className="text-center text-sm font-bold md:text-base">
                                 Nov 17-22, 2025 • Compete & Win up to $1500!
                             </p>
                         </div>
@@ -166,8 +93,8 @@ export default function QuestsExplorePage() {
                                 quest.backgroundColor === 'purple'
                                     ? 'bg-purple-200'
                                     : quest.backgroundColor === 'pink'
-                                      ? 'bg-pink-100'
-                                      : 'bg-blue-100'
+                                      ? 'bg-pink-200'
+                                      : 'bg-blue-200'
 
                             return (
                                 <motion.div
@@ -196,7 +123,7 @@ export default function QuestsExplorePage() {
                                             <h2 className="mb-2 text-2xl font-black text-black md:text-3xl">
                                                 {quest.title}
                                             </h2>
-                                            <p className="text-sm text-gray-700">{quest.explainer}</p>
+                                            <p className="text-sm">{quest.explainer}</p>
                                         </div>
                                     </div>
 
@@ -204,7 +131,7 @@ export default function QuestsExplorePage() {
                                     <div className="flex-1">
                                         {isLoading ? (
                                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
-                                                <PeanutLoading />
+                                                <Loading variant="mascot" />
                                             </div>
                                         ) : quest.leaderboard.length === 0 &&
                                           !quest.hasUserData &&
@@ -212,22 +139,16 @@ export default function QuestsExplorePage() {
                                           !useTestTimePeriod ? (
                                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
                                                 <div className="mb-3 text-4xl md:mb-4 md:text-5xl">⏰</div>
-                                                <p className="mb-2 text-base font-bold text-gray-700 md:text-lg">
-                                                    Coming Soon!
-                                                </p>
-                                                <p className="text-xs text-gray-500 md:text-sm">
+                                                <p className="mb-2 text-base font-bold md:text-lg">Coming Soon!</p>
+                                                <p className="text-xs md:text-sm">
                                                     Leaderboards will be available on November 17th, 2025
                                                 </p>
                                             </div>
                                         ) : quest.leaderboard.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center rounded-sm border-2 border-black bg-white py-8 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:py-12">
                                                 <div className="mb-3 text-3xl md:mb-4 md:text-4xl">🏆</div>
-                                                <p className="mb-2 text-base font-bold text-gray-700 md:text-lg">
-                                                    No entries yet
-                                                </p>
-                                                <p className="text-xs text-gray-500 md:text-sm">
-                                                    Be the first to compete!
-                                                </p>
+                                                <p className="mb-2 text-base font-bold md:text-lg">No entries yet</p>
+                                                <p className="text-xs md:text-sm">Be the first to compete!</p>
                                             </div>
                                         ) : (
                                             <div className="space-y-3">
@@ -269,55 +190,12 @@ export default function QuestsExplorePage() {
                     </div>
 
                     {/* Main CTA - Like Landing Page */}
-                    <motion.div
-                        className="relative z-20 mx-auto mb-12 mt-16 flex w-fit flex-col items-center justify-center"
-                        initial={{ opacity: 0, translateY: 4, translateX: 0, rotate: 0.75 }}
-                        animate={{ opacity: 1, translateY: 0, translateX: 0, rotate: 0, scale: 1 }}
-                        whileHover={{ translateY: 6, translateX: 0, rotate: 0.75 }}
-                        transition={{ type: 'spring', damping: 15 }}
+                    <QuestArrowCta
+                        label="SIGN UP NOW"
                         onClick={() => router.push('/setup')}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        <Button
-                            shadowSize="4"
-                            className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
-                        >
-                            SIGN UP NOW
-                        </Button>
-                        {/* Arrows like landing page */}
-                        <Image
-                            src="/arrows/small-arrow.svg"
-                            alt="Arrow"
-                            width={32}
-                            height={16}
-                            className="absolute -left-8 -top-5 block -translate-y-1/2 transform md:hidden"
-                            style={{ rotate: '8deg' }}
-                        />
-                        <Image
-                            src="/arrows/small-arrow.svg"
-                            alt="Arrow"
-                            width={32}
-                            height={16}
-                            className="absolute -right-8 -top-5 block -translate-y-1/2 scale-x-[-1] transform md:hidden"
-                            style={{ rotate: '-8deg' }}
-                        />
-                        <Image
-                            src="/arrows/small-arrow.svg"
-                            alt="Arrow"
-                            width={40}
-                            height={20}
-                            className="absolute -left-10 -top-6 hidden -translate-y-1/2 transform md:block"
-                            style={{ rotate: '8deg' }}
-                        />
-                        <Image
-                            src="/arrows/small-arrow.svg"
-                            alt="Arrow"
-                            width={40}
-                            height={20}
-                            className="absolute -right-10 -top-6 hidden -translate-y-1/2 scale-x-[-1] transform md:block"
-                            style={{ rotate: '-8deg' }}
-                        />
-                    </motion.div>
+                        className="mt-16 mb-12"
+                        buttonClassName="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
+                    />
                 </div>
             </section>
         </Layout>

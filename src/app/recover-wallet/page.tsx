@@ -21,12 +21,13 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
-import { Icon } from '@/components/Global/Icons/Icon'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import Loading from '@/components/Global/Loading'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { createKernelClientForChain, type KernelClientOptions } from '@/context/kernelClient.context'
 import {
@@ -50,7 +51,7 @@ type RescueClient = Awaited<ReturnType<typeof createKernelClientForChain>>
 // the whole tree dynamic at build time.
 export default function RecoverWalletPage() {
     return (
-        <Suspense fallback={<PeanutLoading />}>
+        <Suspense fallback={<Loading variant="mascot" />}>
             <RecoverWalletInner />
         </Suspense>
     )
@@ -177,71 +178,65 @@ function RecoverWalletInner() {
         }
     }, [client, recipient.address, balance])
 
-    if (phase === 'loading') return <PeanutLoading />
+    if (phase === 'loading') return <Loading variant="mascot" />
 
     if (phase === 'invalid') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
-                <div className="my-auto flex flex-col gap-6">
-                    <h1 className="text-2xl font-extrabold">Wallet recovery</h1>
-                    <ErrorAlert description={fatal} />
-                </div>
-            </div>
+            <PageStack>
+                <PageStack.Center>
+                    <h1 className="text-heading-s">Wallet recovery</h1>
+                    <Notification priority="error">{fatal}</Notification>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     if (phase === 'final') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
-                <div className="my-auto flex flex-col gap-6">
-                    <h1 className="text-2xl font-extrabold">Funds on the way 🎉</h1>
+            <PageStack>
+                <PageStack.Center>
+                    <h1 className="text-heading-s">Funds on the way 🎉</h1>
                     <Card className="flex flex-col gap-1 p-4">
-                        <span className="text-sm text-grey-1">
+                        <span className="text-body-s text-foreground-secondary">
                             Sent to <AddressLink address={recipient.address} />
                         </span>
-                        <span className="text-2xl font-extrabold">
+                        <span className="text-heading-s">
                             {formattedBalance} {PEANUT_WALLET_TOKEN_SYMBOL}
                         </span>
-                        <a
-                            href={`${getExplorerUrl(chainId)}/tx/${txHash}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-2 text-black underline"
-                        >
-                            <span>View on explorer</span>
-                            <Icon name="external-link" size={20} />
-                        </a>
+                        <LinkButton href={`${getExplorerUrl(chainId)}/tx/${txHash}`} external icon>
+                            View on explorer
+                        </LinkButton>
                     </Card>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     // phase === 'ready'
     const nothingToRecover = balance <= 0n
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
-            <div className="my-auto flex flex-col gap-6">
+        <PageStack>
+            <PageStack.Center>
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-extrabold">
+                    <h1 className="text-heading-s">
                         {recoveryKey?.label ? `${recoveryKey.label}, let's` : "Let's"} recover your funds
                     </h1>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Sign with the passkey on this device to move your balance to any address.
                     </p>
                 </div>
 
                 <Card className="flex flex-col gap-1 p-4">
-                    <span className="text-sm text-grey-1">
+                    <span className="text-body-s text-foreground-secondary">
                         Wallet <AddressLink address={recoveryKey!.address} />
                     </span>
-                    <span className="text-2xl font-extrabold">
+                    <span className="text-heading-s">
                         {formattedBalance} {PEANUT_WALLET_TOKEN_SYMBOL}
                     </span>
                 </Card>
 
                 {nothingToRecover ? (
-                    <ErrorAlert description="This wallet has no recoverable balance." />
+                    <Notification priority="error">This wallet has no recoverable balance.</Notification>
                 ) : (
                     <>
                         <GeneralRecipientInput
@@ -263,10 +258,10 @@ function RecoverWalletInner() {
                         >
                             {isSigning ? 'Confirm on your device…' : 'Recover funds'}
                         </Button>
-                        {!!signError && <ErrorAlert description={signError} />}
+                        {!!signError && <Notification priority="error">{signError}</Notification>}
                     </>
                 )}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

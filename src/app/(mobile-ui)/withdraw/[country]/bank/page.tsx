@@ -1,10 +1,9 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -447,7 +446,7 @@ export default function WithdrawBankPage() {
             />
 
             {view === 'INITIAL' && (
-                <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
+                <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-5">
                     <PeanutActionDetailsCard
                         countryCodeForFlag={countryCodeForFlag()}
                         avatarSize="small"
@@ -461,12 +460,9 @@ export default function WithdrawBankPage() {
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {isNonEuroSepa && bankAccount?.type !== AccountType.GB && (
-                        <InfoCard
-                            variant="info"
-                            icon="info"
-                            title={t('bank.eurTitle')}
-                            description={t('bank.eurDescription')}
-                        />
+                        <Notification priority="info" title={t('bank.eurTitle')}>
+                            {t('bank.eurDescription')}
+                        </Notification>
                     )}
 
                     <Card className="rounded-sm">
@@ -551,16 +547,13 @@ export default function WithdrawBankPage() {
                         </Button>
                     )}
                     {submittedTxHash ? (
-                        <InfoCard
-                            variant="info"
-                            icon="info"
-                            title={t('bank.transferProcessing')}
-                            description={confirmPendingCopy}
-                        />
+                        <Notification priority="info" title={t('bank.transferProcessing')}>
+                            {confirmPendingCopy}
+                        </Notification>
                     ) : (
-                        error.showError && <ErrorAlert description={error.errorMessage} />
+                        error.showError && <Notification priority="error">{error.errorMessage}</Notification>
                     )}
-                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    {balanceErrorMessage && <Notification priority="error">{balanceErrorMessage}</Notification>}
                 </div>
             )}
 

@@ -78,27 +78,29 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     a WebView there is no retractable toolbar, so there vh == dvh exactly.
 
                     The scroll area is capped to the expanded window instead of the shared
-                    80vh: 3.625rem is the drag-handle block above it (p-5 top + my-4 + the
-                    handle), and being rem-based it grows with the reader's font size, so
+                    80vh: 3.3125rem is the drag-handle block above it (p-4 top + the handle's
+                    mt-2/mb-6), and being rem-based it grows with the reader's font size, so
                     the scroll region lands on the bottom of the viewport at any setting.
                     Without this, content taller than the window is simply cut off — the
                     80vh cap is never reached, so nothing scrolls. QR_DRAWER_EXPANDED_PX
                     reaches the cap through a CSS variable because Tailwind only emits an
                     arbitrary value it can read literally in the source. */}
                 <DrawerContent
-                    className={`mt-0 h-screen touch-none p-5 supports-[height:100dvh]:h-[100dvh] ${className || ''}`}
+                    className={`mt-0 h-screen touch-none p-4 supports-[height:100dvh]:h-[100dvh] ${className || ''}`}
                     style={{ '--qr-drawer-expanded': `${QR_DRAWER_EXPANDED_PX}px` } as CSSProperties}
-                    scrollAreaClassName={`max-h-[calc(var(--qr-drawer-expanded)-3.625rem)] ${activeSnapPoint === snapPoints[0] ? 'touch-none' : ''}`}
+                    scrollAreaClassName={`max-h-[calc(var(--qr-drawer-expanded)-3.3125rem)] ${activeSnapPoint === snapPoints[0] ? 'touch-none' : ''}`}
                 >
-                    <DrawerTitle className="mb-8 space-y-2">
-                        <h2 className="text-lg font-bold">
+                    <DrawerTitle className="space-y-2 mb-8">
+                        <h2 className="text-heading-card">
                             {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
                         </h2>
                     </DrawerTitle>
-                    <div>
+                    {/* pb-1 = the button's 4px offset shadow; without it the drawer's
+                        overflow-auto scroll wrapper clips the shadow at the bottom */}
+                    <div className="pb-1">
                         <QRCodeWrapper url={url} />
-                        <div className="mx-auto mt-4 w-full p-2 text-center text-base text-gray-500">{text}</div>
-                        <Divider className="text-gray-500" text={tCommon('or')} />
+                        <div className="mx-auto mt-4 w-full p-2 text-center text-body-m">{text}</div>
+                        <Divider text={tCommon('or')} />
                         <ShareButton url={url} title={t('qrBottomDrawer.shareTitle')}>
                             {buttonText}
                         </ShareButton>

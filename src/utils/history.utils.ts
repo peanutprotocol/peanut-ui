@@ -300,9 +300,32 @@ const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
     refunded: false,
 }
 
+// Status families for the states-board amount treatment (board 17966:12128).
+// One source next to STATUS_SHOWS_SIGN so sign, strikethrough, and grey-out
+// stay in lockstep — TransactionCard consumes these instead of re-listing.
+export const PENDING_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['pending', 'processing', 'soon'])
+export const STRUCK_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['cancelled', 'failed', 'refunded'])
+
+/**
+ * Open requests — unfulfilled request links (direction `request_sent` /
+ * `request_received`) and request-pot rollups — are exempt from the pending
+ * treatment (no pending pill, no greyed amount) in both the history row and
+ * the receipt head. Per the states board (17966:12128) the greyed amount +
+ * pending badge mean "money is moving"; an open request has no money in
+ * flight. A request FULFILMENT that is settling arrives as direction
+ * `receive` / `send` and keeps the pending treatment.
+ */
+export function isOpenRequestDisplay(tx: Pick<TransactionDetails, 'direction' | 'isRequestPotLink'>): boolean {
+    return tx.direction === 'request_sent' || tx.direction === 'request_received' || !!tx.isRequestPotLink
+}
+
 // Direction → balance-change sign. A `Record` (not a switch) so the compiler
 // enforces exhaustiveness: adding a `TransactionDirection` without a sign is a
 // build error, not a silent `''` at runtime.
+// Both directions carry a sign: "-$38" out, "+$38" in. The states board
+// (17966:12128) draws incoming unsigned, but a signed inflow reads faster in
+// a mixed feed and matches what people expect from a money app — ruled by
+// Slava 2026-08-28 over the board. Vlad updates the board to match.
 const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
     send: '-',
     withdraw: '-',
@@ -316,7 +339,10 @@ const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
     request_sent: '+',
     add: '+',
     bank_deposit: '+',
-    bank_request_fulfillment: '+',
+    // NOT an inflow: p2p-send emits this for the SENDER of a bridge-fulfilled
+    // request — the viewer is paying via bank rails, so their balance drops.
+    // It sits with the inbound names purely because of its wording.
+    bank_request_fulfillment: '-',
 }
 
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */

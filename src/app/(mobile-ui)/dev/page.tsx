@@ -29,6 +29,20 @@ export default function DevToolsPage() {
             icon: 'docs',
         },
         {
+            name: 'Devices',
+            description:
+                'Viewport harness: any page in 6 phone widths at once (320–430), one session. Panes mirror route, scroll, input and clicks. Hover an element to compare its width across widths; press "o" to scan for horizontal overflow.',
+            path: '/dev/devices',
+            icon: 'switch',
+        },
+        {
+            name: 'Fixtures',
+            description:
+                'Named app states behind ?__fixture=<name>: long usernames, huge numbers, empty states, KYC gates, errors. Every API answer is faked, so any screen renders with no database, no API and no provider keys.',
+            path: '/dev/fixtures',
+            icon: 'docs',
+        },
+        {
             name: 'Debug',
             description:
                 'Sandbox-only: one-click full setup, fund USDC, fast-forward KYC, complete pending intents. Pink-banner console logs every action.',
@@ -47,7 +61,7 @@ export default function DevToolsPage() {
             description:
                 'Per funnel state: every in-app surface (verbatim copy + source file) and every lifecycle email/push, fetched live from the sandbox API journey-spec.',
             path: '/dev/journey',
-            icon: 'split',
+            icon: 'users',
         },
         {
             name: 'Peanut Welcome Club',
@@ -63,12 +77,6 @@ export default function DevToolsPage() {
                 'Force-renders every home-screen CTA in isolation (card launch banner, carousel CTAs, activation steps) ignoring auth/state/launch gating.',
             path: '/dev/home-ctas',
             icon: 'credit-card',
-        },
-        {
-            name: 'Components',
-            description: 'The component showcase — every Bruddle primitive and Global component with all variants.',
-            path: '/dev/components',
-            icon: 'docs',
         },
         {
             name: 'Rejection screen builder',
@@ -134,15 +142,17 @@ export default function DevToolsPage() {
                                 <Card className="cursor-pointer p-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex size-10 items-center justify-center rounded-sm border border-n-1 bg-primary-3">
+                                            <div className="flex size-10 items-center justify-center rounded-sm border border-border-default bg-purple-200">
                                                 <Icon name={tool.icon} size={20} />
                                             </div>
                                             <div>
-                                                <h3 className="text-sm font-bold">{tool.name}</h3>
-                                                <p className="text-xs text-grey-1">{tool.description}</p>
+                                                <h3 className="text-label-l">{tool.name}</h3>
+                                                <p className="text-body-xs text-foreground-secondary">
+                                                    {tool.description}
+                                                </p>
                                             </div>
                                         </div>
-                                        <Icon name="arrow-up-right" size={16} className="text-grey-1" />
+                                        <Icon name="arrow-up-right" size={16} className="text-foreground-secondary" />
                                     </div>
                                 </Card>
                             </LinkComponent>

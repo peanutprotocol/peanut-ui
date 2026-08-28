@@ -1,12 +1,14 @@
 'use client'
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Section } from '@/components/0_Bruddle/Section'
 import ActionModal from '@/components/Global/ActionModal'
 import Card from '@/components/Global/Card'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
-import NavigationArrow from '@/components/Global/NavigationArrow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -39,7 +41,7 @@ export default function BackupPage() {
 
     return (
         <PageContainer>
-            <div className="mb-6 space-y-4">
+            <div className="space-y-4 mb-6">
                 <NavHeader title={t('title')} onPrev={onBack} />
 
                 <EmptyState
@@ -48,126 +50,92 @@ export default function BackupPage() {
                     icon="upload-cloud"
                 />
 
-                <div className="space-y-2">
-                    <h1 className="font-bold text-black">{t('enableNow')}</h1>
+                <Section title={t('enableNow')}>
                     <Card>
-                        <ol className="list-decimal space-y-4 py-2 pl-5">
+                        <ol className="space-y-4 list-decimal py-2 pl-5">
                             {backupSteps.map((step, index) => (
                                 <li key={index}>
-                                    <p className="font-bold text-black">{step.title}</p>
-                                    <p className="text-sm text-black">{step.description}</p>
+                                    <p className="font-bold text-foreground-primary">{step.title}</p>
+                                    <p className="text-body-s text-foreground-primary">{step.description}</p>
                                 </li>
                             ))}
                         </ol>
                     </Card>
-                    <InfoCard
-                        variant="warning"
-                        title={t('noBackupWarning.title')}
-                        description={t('noBackupWarning.description')}
-                        icon="alert"
-                    />
-                </div>
+                    <Notification priority="attention" title={t('noBackupWarning.title')}>
+                        {t('noBackupWarning.description')}
+                    </Notification>
+                    {/* Passkeys saved to a third-party manager back up through
+                        that manager, not the platform steps above. */}
+                    <Notification priority="info">{t('thirdPartyNote')}</Notification>
+                </Section>
 
-                <div>
-                    <h1 className="mb-2 font-bold text-black">{t('faqHeading')}</h1>
-                    <Card position="first" onClick={() => setActiveModal('lose-phone')}>
-                        <div className="flex cursor-pointer justify-between py-1">
-                            <p className="text-sm font-medium text-black">{t('faq.losePhone')}</p>
-                            <NavigationArrow size={24} className="fill-black" />
-                        </div>
-                    </Card>
-                    <Card position="middle" onClick={() => setActiveModal('change-phone')}>
-                        <div className="flex cursor-pointer justify-between py-1">
-                            <p className="text-sm font-medium text-black">{t('faq.changePhone')}</p>
-                            <NavigationArrow size={24} className="fill-black" />
-                        </div>
-                    </Card>
-                    <Card position="last" onClick={() => setActiveModal('export-keys')}>
-                        <div className="flex cursor-pointer justify-between py-1">
-                            <p className="text-sm font-medium text-black">{t('faq.exportKeys')}</p>
-                            <NavigationArrow size={24} className="fill-black" />
-                        </div>
-                    </Card>
-                </div>
+                <Section title={t('faqHeading')}>
+                    <ListGroup>
+                        <ListItem title={t('faq.losePhone')} chevron onClick={() => setActiveModal('lose-phone')} />
+                        <ListItem title={t('faq.changePhone')} chevron onClick={() => setActiveModal('change-phone')} />
+                        <ListItem title={t('faq.exportKeys')} chevron onClick={() => setActiveModal('export-keys')} />
+                    </ListGroup>
+                </Section>
             </div>
 
-            {/* FAQ Modal: What if I lose my phone? */}
             <ActionModal
                 visible={activeModal === 'lose-phone'}
                 onClose={closeModal}
                 icon="info"
                 title={t('faq.losePhone')}
-                titleClassName="font-extrabold text-xl"
+                titleClassName="text-heading-xs"
                 content={
-                    <div className="w-full space-y-3">
-                        <InfoCard
-                            variant="success"
-                            icon="check"
-                            iconClassName="text-success"
-                            title={t('losePhoneModal.enabledTitle')}
-                            description={t('losePhoneModal.enabledDescription', { platform })}
-                        />
-                        <InfoCard
-                            variant="error"
-                            icon="cancel"
-                            title={t('losePhoneModal.noBackupTitle')}
-                            description={t('losePhoneModal.noBackupDescription')}
-                        />
+                    <div className="space-y-3 w-full">
+                        <Notification priority="success" title={t('losePhoneModal.enabledTitle')}>
+                            {t('losePhoneModal.enabledDescription', { platform })}
+                        </Notification>
+                        <Notification priority="error" title={t('losePhoneModal.noBackupTitle')}>
+                            {t('losePhoneModal.noBackupDescription')}
+                        </Notification>
                     </div>
                 }
             />
 
-            {/* FAQ Modal: What if I change phone? */}
             <ActionModal
                 visible={activeModal === 'change-phone'}
                 onClose={closeModal}
                 icon="info"
                 title={t('faq.changePhone')}
-                titleClassName="font-extrabold text-xl"
+                titleClassName="text-heading-xs"
                 content={
-                    <div className="w-full space-y-3">
-                        <ol className="list-decimal pl-5 text-left text-sm text-black">
+                    <div className="space-y-3 w-full">
+                        <ol className="list-decimal pl-5 text-left text-body-s text-foreground-primary">
                             <li>{t('changePhoneModal.step1')}</li>
                             <li>{t('changePhoneModal.step2', { platform })}</li>
                             <li>{t('changePhoneModal.step3')}</li>
                         </ol>
-                        <InfoCard
-                            variant="success"
-                            icon="check"
-                            iconClassName="text-success"
-                            title={t('changePhoneModal.iphoneToIphoneTitle')}
-                            description={t('changePhoneModal.iphoneToIphoneDescription')}
-                        />
-                        <InfoCard
-                            variant="success"
-                            icon="check"
-                            iconClassName="text-success"
-                            title={t('changePhoneModal.androidToAndroidTitle')}
-                            description={t('changePhoneModal.androidToAndroidDescription')}
-                        />
-                        <InfoCard
-                            variant="warning"
-                            icon="alert"
-                            title={t('changePhoneModal.crossPlatformTitle')}
-                            description={t('changePhoneModal.crossPlatformDescription')}
-                        />
+                        <Notification priority="success" title={t('changePhoneModal.iphoneToIphoneTitle')}>
+                            {t('changePhoneModal.iphoneToIphoneDescription')}
+                        </Notification>
+                        <Notification priority="success" title={t('changePhoneModal.androidToAndroidTitle')}>
+                            {t('changePhoneModal.androidToAndroidDescription')}
+                        </Notification>
+                        <Notification priority="attention" title={t('changePhoneModal.crossPlatformTitle')}>
+                            {t('changePhoneModal.crossPlatformDescription')}
+                        </Notification>
                     </div>
                 }
             />
 
-            {/* FAQ Modal: Why can't I export my private key? */}
             <ActionModal
                 visible={activeModal === 'export-keys'}
                 onClose={closeModal}
                 icon="info"
                 title={t('faq.exportKeys')}
-                titleClassName="font-extrabold text-xl"
+                titleClassName="text-heading-xs"
                 content={
-                    <div className="w-full space-y-4 text-left">
+                    <div className="space-y-4 w-full text-left">
                         <div>
-                            <h4 className="font-bold text-black">{t('exportKeysModal.saferTitle')}</h4>
-                            <p className="mt-1 text-sm text-black">{t('exportKeysModal.saferIntro')}</p>
-                            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-black">
+                            <h4 className="font-bold text-foreground-primary">{t('exportKeysModal.saferTitle')}</h4>
+                            <p className="mt-1 text-body-s text-foreground-primary">
+                                {t('exportKeysModal.saferIntro')}
+                            </p>
+                            <ul className="space-y-1 mt-2 list-disc pl-5 text-body-s text-foreground-primary">
                                 <li>{t('exportKeysModal.bullets.screenshot')}</li>
                                 <li>{t('exportKeysModal.bullets.textMessage')}</li>
                                 <li>{t('exportKeysModal.bullets.noteApp')}</li>
@@ -175,11 +143,13 @@ export default function BackupPage() {
                             </ul>
                         </div>
                         <div>
-                            <h4 className="font-bold text-black">{t('exportKeysModal.tradeoffTitle')}</h4>
-                            <p className="mt-1 text-sm text-black">{t('exportKeysModal.tradeoffDescription')}</p>
+                            <h4 className="font-bold text-foreground-primary">{t('exportKeysModal.tradeoffTitle')}</h4>
+                            <p className="mt-1 text-body-s text-foreground-primary">
+                                {t('exportKeysModal.tradeoffDescription')}
+                            </p>
                         </div>
-                        <div className="flex items-start gap-2 text-xs text-gray-1">
-                            <span className="mt-0.5 flex size-4 flex-shrink-0 items-center justify-center rounded-full border border-gray-1">
+                        <div className="flex items-start gap-2 text-body-xs text-foreground-secondary">
+                            <span className="mt-0.5 flex size-4 flex-shrink-0 items-center justify-center rounded-full border border-border-subtle">
                                 i
                             </span>
                             <p>{t('exportKeysModal.futureNote')}</p>

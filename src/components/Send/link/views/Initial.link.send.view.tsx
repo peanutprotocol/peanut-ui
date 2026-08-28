@@ -1,8 +1,7 @@
 'use client'
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -256,7 +255,7 @@ const LinkSendInitialView = () => {
     )
 
     return (
-        <div className="w-full space-y-4">
+        <div className="space-y-4 w-full">
             <PeanutActionCard type="send" />
 
             <AmountInput
@@ -274,11 +273,9 @@ const LinkSendInitialView = () => {
             />
 
             {isBelowFiatClaimMinimum && (
-                <InfoCard
-                    variant="warning"
-                    icon="info"
-                    description={t('link.minFiatClaimWarning', { amount: MIN_FIAT_CLAIM_AMOUNT })}
-                />
+                <Notification priority="attention" data-testid="info-card">
+                    {t('link.minFiatClaimWarning', { amount: MIN_FIAT_CLAIM_AMOUNT })}
+                </Notification>
             )}
 
             <div className="flex flex-col gap-4">
@@ -296,7 +293,11 @@ const LinkSendInitialView = () => {
                         {isLoading ? tLoading('creatingLink') : t('link.createLink')}
                     </Button>
                 )}
-                {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}
+                {errorState?.showError && (
+                    <Notification priority="error" data-testid="error-alert">
+                        {errorState.errorMessage}
+                    </Notification>
+                )}
             </div>
         </div>
     )

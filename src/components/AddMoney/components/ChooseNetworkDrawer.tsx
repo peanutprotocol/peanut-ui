@@ -1,12 +1,8 @@
 'use client'
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/Global/Drawer'
-import { ActionListCard } from '@/components/ActionListCard'
-import EvmChainChips from './EvmChainChips'
-import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
-import { useChainRollout } from '@/hooks/useChainRollout'
+import NetworkList from './NetworkList'
 import type { RhinoChainType } from '@/services/services.types'
-import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 
 interface ChooseNetworkDrawerProps {
@@ -15,74 +11,18 @@ interface ChooseNetworkDrawerProps {
     onSelect: (network: RhinoChainType) => void
 }
 
+/** drawer shell around the shared NetworkList (F-22: one list, two shells). */
 const ChooseNetworkDrawer = ({ open, onClose, onSelect }: ChooseNetworkDrawerProps) => {
-    // Count only rolled-out chains — the chips below are gated the same way,
-    // and "12 Networks" above 10 visible chips would be a lie.
-    const isChainRolledOut = useChainRollout()
     const t = useTranslations('addMoney.networkDrawer')
-    const evmChainCount = SUPPORTED_EVM_CHAINS.filter(isChainRolledOut).length
     return (
         <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DrawerContent className="pt-4">
                 <DrawerHeader className="pt-0 text-center">
-                    <DrawerTitle className="text-lg font-bold">{t('title')}</DrawerTitle>
+                    <DrawerTitle className="font-bold text-foreground-primary">{t('title')}</DrawerTitle>
                     <DrawerDescription>{t('description')}</DrawerDescription>
                 </DrawerHeader>
-
                 <div className="flex flex-col px-4 pb-6">
-                    {/* evm - card with expanded networks */}
-                    <div className="overflow-hidden rounded-t-sm border border-black bg-white ">
-                        <ActionListCard
-                            title="EVM"
-                            description={t('evmDescription', { count: evmChainCount })}
-                            position="single"
-                            className="border-0"
-                            leftIcon={
-                                <Image
-                                    src={CHAIN_LOGOS.ETHEREUM}
-                                    alt="EVM"
-                                    width={32}
-                                    height={32}
-                                    className="rounded-full"
-                                />
-                            }
-                            onClick={() => onSelect('EVM')}
-                        />
-                        {/* expanded chain list */}
-                        <div onClick={() => onSelect('EVM')} className="mx-4 border-t border-dashed border-black py-3">
-                            <div className="flex flex-wrap gap-2">
-                                <EvmChainChips />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* solana */}
-                    <ActionListCard
-                        title="Solana"
-                        description={t('supportedTokens', { count: getSupportedTokens('SOL').length })}
-                        position="middle"
-                        leftIcon={
-                            <Image
-                                src={CHAIN_LOGOS.SOLANA}
-                                alt="Solana"
-                                width={32}
-                                height={32}
-                                className="rounded-full"
-                            />
-                        }
-                        onClick={() => onSelect('SOL')}
-                    />
-
-                    {/* tron */}
-                    <ActionListCard
-                        title="Tron"
-                        description={t('supportedTokens', { count: getSupportedTokens('TRON').length })}
-                        position="last"
-                        leftIcon={
-                            <Image src={CHAIN_LOGOS.TRON} alt="Tron" width={32} height={32} className="rounded-full" />
-                        }
-                        onClick={() => onSelect('TRON')}
-                    />
+                    <NetworkList onSelect={onSelect} showEvmChips />
                 </div>
             </DrawerContent>
         </Drawer>

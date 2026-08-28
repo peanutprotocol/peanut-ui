@@ -1,6 +1,6 @@
 'use client'
 
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
 import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/local-rail-countries'
@@ -43,16 +43,13 @@ function LocalRailNudgeBody({ iso2, local }: { iso2: string; local: (typeof LOCA
     if (!percent) return null
 
     return (
-        <InfoCard
-            variant="info"
-            icon="info"
-            title={t('nudge.localRailTitle')}
-            description={t('nudge.localRailDescription', {
+        <Notification priority="info" title={t('nudge.localRailTitle')}>
+            {t('nudge.localRailDescription', {
                 iso2,
                 country: localizedCountryName(locale, iso2, local.countryName),
                 rail: local.rail,
                 percent,
             })}
-        />
+        </Notification>
     )
 }

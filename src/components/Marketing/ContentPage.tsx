@@ -42,9 +42,9 @@ export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_L
             <JsonLd data={breadcrumbSchema} />
             {article && <JsonLd data={articleSchema({ inLanguage: locale, ...article })} />}
             <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
-                <article className="content-page select-text bg-background">
+                <article className="content-page bg-background select-text">
                     {children}
-                    <nav aria-label="Breadcrumb" className="mx-auto max-w-[640px] px-6 pb-8 pt-4 md:px-4">
+                    <nav aria-label="Breadcrumb" className="mx-auto max-w-[640px] px-6 pt-4 pb-8 md:px-4">
                         <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
                             {breadcrumbs.map((crumb, i) => (
                                 <li key={crumb.href} className="flex items-center gap-1">
