@@ -169,13 +169,14 @@ jobs:
             # Two steps on purpose: only the fetch may see the cross-repo
             # token. The import runs scripts/import-be-baseline.mjs from the PR
             # checkout, which a PR is free to edit, so it must not be able to
-            # read PEANUT_ALL_READ_TOKEN out of process.env. `base_ref` goes
+            # read the token out of process.env. `base_ref` goes
             # through env rather than being interpolated into the script, so a
             # branch name can never be shell.
             - name: Fetch BE render-snapshot baseline
               id: be_baseline
               env:
-                  GH_TOKEN: ${{ secrets.PEANUT_ALL_READ_TOKEN }}
+                  # contents:read, which is all the contents API needs here.
+                  GH_TOKEN: ${{ secrets.MONO_READ_TOKEN }}
                   BE_REF: ${{ github.base_ref || 'dev' }}
               run: |
                   set -euo pipefail
@@ -185,7 +186,7 @@ jobs:
                   # explicit about the two cases instead — no token is a skip,
                   # a broken fetch with a token is a failure.
                   if [ -z "${GH_TOKEN:-}" ]; then
-                      echo "::warning::No token for the BE baseline fetch — PEANUT_ALL_READ_TOKEN is not a secret in this repo (MONO_READ_TOKEN is). Skipping; SNAPSHOT_MODE=verify reads the committed render-baseline.json, so unit tests are unaffected."
+                      echo "::warning::No token for the BE baseline fetch — skipping, so the baseline-vs-BE drift checks cannot run. The FE-side snapshot assertions are unaffected."
                       echo 'fetched=false' >> "$GITHUB_OUTPUT"
                       exit 0
                   fi
