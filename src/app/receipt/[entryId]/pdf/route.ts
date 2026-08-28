@@ -3,6 +3,7 @@ import { captureException } from '@sentry/nextjs'
 import { createTranslator } from 'next-intl'
 import { getHistoryEntry } from '@/app/actions/history'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
+import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { isFinalState } from '@/utils/history.utils'
 import { APP_LOCALES, resolveLocale } from '@/i18n/app/config'
@@ -22,6 +23,10 @@ const RENDER_CACHE_MAX = 32
 const FINAL_TTL_MS = 60_000
 const PENDING_TTL_MS = 10_000
 const renderCache = new Map<string, { bytes: Buffer; expiresAt: number }>()
+// A cold key is the dangerous case: without this, N simultaneous requests all
+// read the empty map and each run a full render before any of them writes. One
+// render per key is in flight at a time; everyone else awaits it.
+const inFlight = new Map<string, Promise<Buffer>>()
 
 function readRenderCache(key: string): Buffer | undefined {
     const hit = renderCache.get(key)
@@ -75,6 +80,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     try {
         const { transactionDetails } = mapTransactionDataForDrawer(entry)
+        // resolveReceiptKind accepts every kind the history strategies know,
+        // which is wider than the set the receipt page serves — and this route
+        // is public and unauthenticated. Gate on the SAME whitelist the page
+        // and the download affordance use, so holding an entry id for an
+        // excluded kind (e.g. a direct transfer, or a legacy ?t= index) cannot
+        // pull a full PDF receipt the product does not publish.
+        if (!hasReceiptPage(transactionDetails)) {
+            return notFound()
+        }
         // The PDF bytes vary by locale, so the locale must be part of the
         // cache key — i.e. part of the URL. The affordance always passes
         // ?locale=<AppLocale>; an unknown/missing param falls back to the
@@ -90,7 +104,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const cacheKey = `${entryId}|${kind}|${locale}`
         let pdf = readRenderCache(cacheKey)
         if (!pdf) {
-            pdf = await renderReceiptPdf(model)
+            let pending = inFlight.get(cacheKey)
+            if (!pending) {
+                pending = renderReceiptPdf(model)
+                inFlight.set(cacheKey, pending)
+                // drop the slot on rejection too, or one failure poisons the key
+                pending.finally(() => inFlight.delete(cacheKey)).catch(() => {})
+            }
+            pdf = await pending
             writeRenderCache(cacheKey, pdf, isFinal ? FINAL_TTL_MS : PENDING_TTL_MS)
         }
 

@@ -43,7 +43,7 @@ const get = async (entryId: string, query: string, cookieLocale?: string) => {
 describe('GET /receipt/[entryId]/pdf', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockMap.mockReturnValue({ transactionDetails: { id: 'entry-1' } })
+        mockMap.mockReturnValue({ transactionDetails: { id: 'entry-1', extraDataForDrawer: { kind: 'OFFRAMP' } } })
         mockBuildModel.mockReturnValue({ fileName: 'peanut-receipt-entry-1.pdf' })
         mockRender.mockResolvedValue(Buffer.from('%PDF-1.7 fake-pdf-bytes'))
     })
@@ -116,6 +116,41 @@ describe('GET /receipt/[entryId]/pdf', () => {
         await get('entry-b', 'kind=OFFRAMP&locale=en')
 
         expect(mockRender).toHaveBeenCalledTimes(2)
+    })
+
+    // The route is public: resolveReceiptKind resolves more kinds than the
+    // receipt page publishes, so without the whitelist an entry id for an
+    // excluded kind would yield a full PDF.
+    test('404s for a kind the receipt page does not serve', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind: 'DIRECT_TRANSFER' })
+        mockMap.mockReturnValueOnce({
+            transactionDetails: { id: 'entry-excluded', extraDataForDrawer: { kind: 'DIRECT_TRANSFER' } },
+        } as never)
+        mockRender.mockClear()
+
+        const response = await get('entry-excluded', 'kind=DIRECT_TRANSFER')
+
+        expect(response.status).toBe(404)
+        expect(mockRender).not.toHaveBeenCalled()
+    })
+
+    test('coalesces concurrent renders of the same receipt', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
+        mockRender.mockClear()
+        let release: (v: Buffer) => void = () => {}
+        mockRender.mockReturnValueOnce(new Promise<Buffer>((r) => (release = r)) as never)
+
+        const all = Promise.all([
+            get('entry-concurrent', 'kind=OFFRAMP&locale=en&_=1'),
+            get('entry-concurrent', 'kind=OFFRAMP&locale=en&_=2'),
+            get('entry-concurrent', 'kind=OFFRAMP&locale=en&_=3'),
+        ])
+        release(Buffer.from('%PDF-1.3 concurrent'))
+        const responses = await all
+
+        expect(responses.map((r) => r.status)).toEqual([200, 200, 200])
+        // without the in-flight map each cold request would start its own render
+        expect(mockRender).toHaveBeenCalledTimes(1)
     })
 
     test('500s and reports when rendering fails', async () => {
