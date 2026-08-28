@@ -43,7 +43,7 @@ const UnlockMethodModal = ({
             description={<KycPrepChecklist path={path} />}
             descriptionClassName="text-black"
             icon="shield"
-            iconContainerClassName="bg-primary-1"
+            iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
             ctas={[
                 {

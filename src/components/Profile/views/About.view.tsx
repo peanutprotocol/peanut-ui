@@ -35,21 +35,23 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
         <div className="space-y-4 mb-6">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <p className="text-sm">{t('intro')}</p>
+            <p className="text-body-s">{t('intro')}</p>
 
             <div>
                 <h1 className="mb-2 font-bold text-black">{t('policiesHeading')}</h1>
                 {POLICY_LINKS.map((doc, index) => (
                     <Card key={doc.href} position={cardPosition(index, POLICY_LINKS.length)}>
                         <DocsLink href={doc.href} className="flex cursor-pointer justify-between py-1">
-                            <span className="text-sm font-medium text-black">{doc.name}</span>
+                            <span className="text-body-s font-medium text-black">{doc.name}</span>
                             <NavigationArrow size={24} className="fill-black" />
                         </DocsLink>
                     </Card>
                 ))}
             </div>
 
-            <p className="text-center text-xs text-grey-1">{t('version', { version: appVersion })}</p>
+            <p className="text-center text-body-xs text-foreground-secondary">
+                {t('version', { version: appVersion })}
+            </p>
         </div>
     )
 }

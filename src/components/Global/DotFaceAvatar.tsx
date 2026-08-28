@@ -132,7 +132,10 @@ const DotFaceAvatar = ({ username, size, className }: { username: string; size?:
 
     return (
         <span
-            className={twMerge('inline-flex shrink-0 items-center justify-center text-n-1 dark:text-white', className)}
+            className={twMerge(
+                'inline-flex shrink-0 items-center justify-center text-foreground-primary dark:text-white',
+                className
+            )}
             style={size ? { width: size, height: size } : undefined}
             data-testid="dot-face-avatar"
         >

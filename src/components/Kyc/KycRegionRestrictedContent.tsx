@@ -41,8 +41,8 @@ export const KycRegionRestrictedContent = () => {
 
     return (
         <div className="space-y-3 text-center">
-            <p className="text-sm text-grey-1">{t('description')}</p>
-            <p className="text-sm text-grey-1">{t('stillAvailable')}</p>
+            <p className="text-body-s text-foreground-secondary">{t('description')}</p>
+            <p className="text-body-s text-foreground-secondary">{t('stillAvailable')}</p>
         </div>
     )
 }

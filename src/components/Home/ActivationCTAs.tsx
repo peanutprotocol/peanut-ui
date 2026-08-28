@@ -238,7 +238,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         if (isRegionRestricted) {
             return {
                 icon: 'globe-lock',
-                iconBg: 'bg-primary-1',
+                iconBg: 'bg-action-primary',
                 title: tRegion('title'),
                 description: tRegion('homeDescription'),
                 ctaLabel: tRegion('cta'),

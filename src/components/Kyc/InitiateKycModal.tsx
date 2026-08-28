@@ -160,7 +160,7 @@ export const InitiateKycModal = ({
                 title={t('degraded.title')}
                 description={t('degraded.description')}
                 icon="alert"
-                iconContainerClassName="bg-yellow-1"
+                iconContainerClassName="bg-background-icon-bubble-yellow"
                 ctas={[
                     {
                         text: t('degraded.notifyMe'),

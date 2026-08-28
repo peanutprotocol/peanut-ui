@@ -115,7 +115,7 @@ const GettingStartedChecklist = () => {
 
     return (
         <div>
-            <p className="mb-2 text-sm font-bold">{t('title')}</p>
+            <p className="mb-2 text-body-s font-bold">{t('title')}</p>
             <Card position="single" className="overflow-hidden p-0">
                 {items.map((item) => {
                     const tappable = !item.done && !!item.onTap
@@ -126,24 +126,29 @@ const GettingStartedChecklist = () => {
                             disabled={!tappable}
                             onClick={item.onTap}
                             className={twMerge(
-                                'flex w-full items-center gap-3 border-t border-n-1 px-4 py-3 text-left first:border-t-0 dark:border-white',
+                                'flex w-full items-center gap-3 border-t border-border-default px-4 py-3 text-left first:border-t-0 dark:border-white',
                                 !tappable && 'cursor-default'
                             )}
                         >
                             <span
                                 className={twMerge(
-                                    'flex size-5 shrink-0 items-center justify-center rounded-full border border-n-1',
-                                    item.done && 'bg-green-1'
+                                    'flex size-5 shrink-0 items-center justify-center rounded-full border border-border-default',
+                                    item.done && 'bg-background-badge-success'
                                 )}
                             >
                                 {item.done && <Icon name="check" className="size-3" />}
                             </span>
                             <span className="min-w-0">
-                                <span className={twMerge('block text-sm font-bold', item.done && 'text-grey-1')}>
+                                <span
+                                    className={twMerge(
+                                        'block text-body-s font-bold',
+                                        item.done && 'text-foreground-secondary'
+                                    )}
+                                >
                                     {item.label}
                                 </span>
                                 {((item.done && item.id === 'create-account') || (!item.done && item.sub)) && (
-                                    <span className="block text-xs text-grey-1">{item.sub}</span>
+                                    <span className="block text-body-xs text-foreground-secondary">{item.sub}</span>
                                 )}
                             </span>
                             {tappable && <Icon name="chevron-down" className="ml-auto size-4 shrink-0 -rotate-90" />}

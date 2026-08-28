@@ -114,12 +114,12 @@ function limitSummariesForGroup(
 }
 
 const CHIP_CLASSES: Record<UnlockChip, string> = {
-    active: 'bg-green-1',
-    alwaysOn: 'bg-green-1',
-    unlock: 'bg-primary-4',
-    processing: 'bg-grey-2',
-    attention: 'bg-secondary-1',
-    notAvailable: 'bg-white text-grey-1',
+    active: 'bg-background-badge-success',
+    alwaysOn: 'bg-background-badge-success',
+    unlock: 'bg-background-badge-accent',
+    processing: 'bg-background-badge-helper',
+    attention: 'bg-background-badge-attention',
+    notAvailable: 'bg-background-default text-foreground-secondary',
 }
 
 type BankRegionPath = 'europe' | 'north-america' | 'latam'
@@ -328,12 +328,12 @@ const UnlockPayments = () => {
 
     return (
         <div className="space-y-8 flex min-h-[inherit] flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
             <div className="my-auto">
-                <p className="text-sm">{t('description')}</p>
+                <p className="text-body-s">{t('description')}</p>
 
                 {/* Residence anchor: explains WHY the list looks the way it does. */}
-                <div className="mt-4 flex items-center gap-2 rounded-sm border border-n-1 bg-white p-3 text-sm dark:border-white dark:bg-n-1">
+                <div className="mt-4 flex items-center gap-2 rounded-sm border border-border-default bg-background-default p-3 text-body-s dark:border-white dark:bg-foreground-primary">
                     <Icon name="globe" className="size-4 shrink-0" />
                     <span className="font-bold">
                         {residenceCountryName
@@ -343,8 +343,10 @@ const UnlockPayments = () => {
                     {residenceIso2 && (
                         <span
                             className={twMerge(
-                                'ml-auto shrink-0 rounded-full border border-n-1 px-2 py-0.5 text-[10px] font-bold uppercase',
-                                residence?.verified ? 'bg-green-1 text-n-1' : 'text-grey-1'
+                                'ml-auto shrink-0 rounded-full border border-border-default px-2 py-0.5 text-body-xs font-bold uppercase',
+                                residence?.verified
+                                    ? 'bg-background-badge-success text-foreground-primary'
+                                    : 'text-foreground-secondary'
                             )}
                         >
                             {residence?.verified ? t('residence.verified') : t('residence.unverified')}
@@ -353,7 +355,7 @@ const UnlockPayments = () => {
                     <button
                         type="button"
                         className={twMerge(
-                            'shrink-0 text-xs underline underline-offset-2',
+                            'shrink-0 text-body-xs underline underline-offset-2',
                             !residenceIso2 && 'ml-auto'
                         )}
                         onClick={() => setIsChangeModalOpen(true)}
@@ -362,13 +364,13 @@ const UnlockPayments = () => {
                     </button>
                 </div>
                 {residence?.verified && residence?.declared && residence.declared !== residence.verified && (
-                    <p className="mt-1 text-xs text-grey-1">
+                    <p className="mt-1 text-body-xs text-foreground-secondary">
                         {t('residence.pendingReverify', { country: declaredCountryName ?? residence.declared })}
                     </p>
                 )}
 
                 {isKycDegraded && (
-                    <div className="mt-3 flex items-start gap-2 rounded-sm border border-n-1 bg-secondary-4 p-3 text-xs text-n-1 dark:bg-n-1 dark:text-white">
+                    <div className="mt-3 flex items-start gap-2 rounded-sm border border-border-default bg-background-badge-attention p-3 text-body-xs text-foreground-primary dark:bg-foreground-primary dark:text-white">
                         <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
                         <span>
                             <span className="block font-bold">{t('degraded.title')}</span>
@@ -388,7 +390,7 @@ const UnlockPayments = () => {
                 )}
 
                 {isIdentityInReview && !isKycDegraded && (
-                    <div className="mt-3 flex items-start gap-2 rounded-sm border border-n-1 bg-white p-3 text-xs dark:bg-n-1">
+                    <div className="mt-3 flex items-start gap-2 rounded-sm border border-border-default bg-background-default p-3 text-body-xs dark:bg-foreground-primary">
                         <Icon name="clock" className="mt-0.5 size-4 shrink-0" />
                         <span>
                             <span className="block font-bold">
@@ -443,17 +445,21 @@ const UnlockPayments = () => {
 
                 <Link
                     href="/limits"
-                    className="mt-3 flex items-center justify-between rounded-sm border border-n-1 bg-white px-3 py-2.5 text-sm dark:border-white dark:bg-n-1"
+                    className="mt-3 flex items-center justify-between rounded-sm border border-border-default bg-background-default px-3 py-2.5 text-body-s dark:border-white dark:bg-foreground-primary"
                 >
                     <span className="flex items-center gap-2">
                         <Icon name="meter" className="size-4 shrink-0" />
                         {t('limits.viewAll')}
                     </span>
-                    <span className="text-xs underline underline-offset-2">{t('limits.details')}</span>
+                    <span className="text-body-xs underline underline-offset-2">{t('limits.details')}</span>
                 </Link>
 
-                {showBankRestrictionNote && <p className="mt-3 text-xs text-grey-1">{t('bankNotAvailableNote')}</p>}
-                {showCardRestrictionNote && <p className="mt-3 text-xs text-grey-1">{t('cardNotAvailableNote')}</p>}
+                {showBankRestrictionNote && (
+                    <p className="mt-3 text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
+                )}
+                {showCardRestrictionNote && (
+                    <p className="mt-3 text-body-xs text-foreground-secondary">{t('cardNotAvailableNote')}</p>
+                )}
             </div>
 
             {/* Region-restricted users get the one honest region screen instead
@@ -531,7 +537,7 @@ const UnlockPayments = () => {
                           : tRegions('providerRejection.unavailableDescription')
                 }
                 icon="alert"
-                iconContainerClassName="bg-yellow-1"
+                iconContainerClassName="bg-background-icon-bubble-yellow"
                 ctas={[
                     providerRejectionForRegion.state === 'fixable'
                         ? {
@@ -575,7 +581,7 @@ const UnlockPayments = () => {
                 }
                 description={flow.error || tCommon('genericError')}
                 icon="alert"
-                iconContainerClassName="bg-yellow-1"
+                iconContainerClassName="bg-background-icon-bubble-yellow"
                 ctas={
                     failedRegionRetriable
                         ? [
@@ -637,11 +643,11 @@ const UnlockGroupCard = ({
 }) => {
     const t = useTranslations('profile.unlockPayments')
     return (
-        <div className="overflow-hidden rounded-sm border border-n-1 bg-white dark:border-white dark:bg-n-1">
-            <div className="bg-grey-3 flex items-center gap-2 border-b border-n-1 px-3 py-2 text-sm font-bold dark:border-white dark:bg-n-2">
+        <div className="overflow-hidden rounded-sm border border-border-default bg-background-default dark:border-white dark:bg-foreground-primary">
+            <div className="flex items-center gap-2 border-b border-border-default bg-background-badge-helper px-3 py-2 text-body-s font-bold dark:border-white dark:bg-foreground-primary">
                 <span>{t(`groups.${group.labelKey}`)}</span>
                 {group.isYourRegion && (
-                    <span className="bg-secondary-9 ml-auto rounded-full border border-n-1 px-2 py-0.5 text-[9px] font-bold text-n-1 uppercase">
+                    <span className="ml-auto rounded-full border border-border-default bg-background-badge-accent px-2 py-0.5 text-label-m font-bold text-foreground-primary uppercase">
                         {t('yourRegion')}
                     </span>
                 )}
@@ -658,17 +664,17 @@ const UnlockGroupCard = ({
                         disabled={!tappable}
                         onClick={() => onRowClick(row)}
                         className={twMerge(
-                            'flex w-full items-center gap-2 border-t border-n-1 px-3 py-2.5 text-left text-sm first:border-t-0 dark:border-white',
+                            'flex w-full items-center gap-2 border-t border-border-default px-3 py-2.5 text-left text-body-s first:border-t-0 dark:border-white',
                             !tappable && 'cursor-default'
                         )}
                     >
                         <Icon name={row.icon as IconName} className="size-4 shrink-0" />
-                        <span className={twMerge(row.chip === 'notAvailable' && 'text-grey-1')}>
+                        <span className={twMerge(row.chip === 'notAvailable' && 'text-foreground-secondary')}>
                             {t(`rows.${row.labelKey}`)}
                         </span>
                         <span
                             className={twMerge(
-                                'ml-auto shrink-0 rounded-full border border-n-1 px-2 py-0.5 text-[10px] font-bold text-n-1 uppercase',
+                                'ml-auto shrink-0 rounded-full border border-border-default px-2 py-0.5 text-body-xs font-bold text-foreground-primary uppercase',
                                 CHIP_CLASSES[row.chip]
                             )}
                         >
@@ -681,18 +687,18 @@ const UnlockGroupCard = ({
                 Everywhere group always states that — it is the one limit that
                 exists before any unlock. */}
             {group.id === 'everywhere' && (
-                <div className="border-t border-n-1 bg-primary-3 px-3 py-2 dark:border-white dark:bg-n-2">
-                    <p className="text-[11px] text-grey-1 dark:text-white">{t('limits.p2pNoLimit')}</p>
+                <div className="border-t border-border-default bg-background-badge-accent px-3 py-2 dark:border-white dark:bg-foreground-primary">
+                    <p className="text-body-xs text-foreground-secondary dark:text-white">{t('limits.p2pNoLimit')}</p>
                 </div>
             )}
             {limitSummariesForGroup(group, mantecaLimits, bridgeLimits).map((summary) => (
                 <div
                     key={summary.kind === 'manteca' ? summary.asset : 'bridge'}
-                    className="border-t border-n-1 bg-primary-3 px-3 py-2 dark:border-white dark:bg-n-2"
+                    className="border-t border-border-default bg-background-badge-accent px-3 py-2 dark:border-white dark:bg-foreground-primary"
                 >
                     {summary.kind === 'manteca' ? (
                         <>
-                            <p className="mb-1 text-[11px] text-grey-1 dark:text-white">
+                            <p className="mb-1 text-body-xs text-foreground-secondary dark:text-white">
                                 {t('limits.monthlyLeft', {
                                     remaining: formatAmountWithCurrency(summary.monthlyRemaining, summary.asset),
                                     limit: formatAmountWithCurrency(summary.monthlyLimit, summary.asset),
@@ -713,7 +719,7 @@ const UnlockGroupCard = ({
                             />
                         </>
                     ) : (
-                        <p className="text-[11px] text-grey-1 dark:text-white">
+                        <p className="text-body-xs text-foreground-secondary dark:text-white">
                             {t('limits.perTransfer', { amount: summary.perTransaction })}
                         </p>
                     )}

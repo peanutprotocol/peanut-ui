@@ -158,7 +158,7 @@ const MantecaDepositShareDetails = ({
                 </Card>
             </div>
 
-            <p className="text-xs text-grey-1">{t('manteca.etaInstant')}</p>
+            <p className="text-body-xs text-foreground-secondary">{t('manteca.etaInstant')}</p>
 
             <ShareButton
                 generateText={async () => generateShareText()}

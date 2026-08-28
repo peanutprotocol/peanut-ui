@@ -20,14 +20,14 @@ const PasskeyInfoModal = ({ visible, onClose }: { visible: boolean; onClose: () 
             onClose={onClose}
             title={t('title')}
             icon="lock"
-            iconContainerClassName="bg-primary-1"
+            iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
             description={
-                <div className="flex flex-col gap-3 text-left text-sm">
+                <div className="flex flex-col gap-3 text-left text-body-s">
                     <p>{t('what')}</p>
                     <p>{t('backup')}</p>
                     <p>{t('privacy')}</p>
-                    <p className="text-xs text-grey-1">
+                    <p className="text-body-xs text-foreground-secondary">
                         <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                             {t('fullGuide')}
                         </DocsLink>

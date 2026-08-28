@@ -130,11 +130,15 @@ const ResidenceChangeModal = ({
                         onValueChange={setSelected}
                     />
                     {cooldownActive && cooldownDate && (
-                        <p className="text-xs text-grey-1">{t('cooldownNote', { until: cooldownDate })}</p>
+                        <p className="text-body-xs text-foreground-secondary">
+                            {t('cooldownNote', { until: cooldownDate })}
+                        </p>
                     )}
-                    {differsFromVerified && <p className="text-xs text-grey-1">{t('verifiedMismatchNote')}</p>}
+                    {differsFromVerified && (
+                        <p className="text-body-xs text-foreground-secondary">{t('verifiedMismatchNote')}</p>
+                    )}
                     {(selectedRestrictions.banking || selectedRestrictions.card) && (
-                        <p className="text-xs text-grey-1">
+                        <p className="text-body-xs text-foreground-secondary">
                             {selectedRestrictions.banking && selectedRestrictions.card
                                 ? t('fullRestrictionNote')
                                 : selectedRestrictions.card
@@ -142,12 +146,12 @@ const ResidenceChangeModal = ({
                                   : t('bankingRestrictionNote')}
                         </p>
                     )}
-                    {error && <p className="text-xs text-error">{error}</p>}
+                    {error && <p className="text-body-xs text-error">{error}</p>}
                 </div>
             }
             descriptionClassName="text-black"
             icon="globe"
-            iconContainerClassName="bg-primary-1"
+            iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
             ctas={[
                 {

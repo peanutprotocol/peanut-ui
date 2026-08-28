@@ -114,8 +114,8 @@ const ResidenceStep = () => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-xl font-extrabold">{t('residenceStep.partial.title')}</h2>
-                    <p className="text-sm text-grey-1">
+                    <h2 className="text-heading-xs font-extrabold">{t('residenceStep.partial.title')}</h2>
+                    <p className="text-body-s text-foreground-secondary">
                         {partialRestriction === 'card'
                             ? t('residenceStep.partial.cardDescription')
                             : t('residenceStep.partial.bankingDescription')}
@@ -127,7 +127,7 @@ const ResidenceStep = () => {
                     </Button>
                     <button
                         type="button"
-                        className="mt-1 text-center text-sm underline underline-offset-2"
+                        className="mt-1 text-center text-body-s underline underline-offset-2"
                         onClick={() => setView('select')}
                     >
                         {t('residenceStep.restricted.changeCountry')}
@@ -141,8 +141,8 @@ const ResidenceStep = () => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-xl font-extrabold">{t('residenceStep.restricted.title')}</h2>
-                    <p className="text-sm text-grey-1">{t('residenceStep.restricted.description')}</p>
+                    <h2 className="text-heading-xs font-extrabold">{t('residenceStep.restricted.title')}</h2>
+                    <p className="text-body-s text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
                     {view === 'notify' && (
                         <div className="mt-2 flex flex-col gap-2">
                             <BaseInput
@@ -153,11 +153,11 @@ const ResidenceStep = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
-                            {emailError && <p className="text-sm text-error">{emailError}</p>}
+                            {emailError && <p className="text-body-s text-error">{emailError}</p>}
                         </div>
                     )}
                     {view === 'notify-done' && (
-                        <p className="text-sm font-bold">{t('residenceStep.restricted.notifyDone')}</p>
+                        <p className="text-body-s font-bold">{t('residenceStep.restricted.notifyDone')}</p>
                     )}
                 </div>
                 <div className="flex w-full flex-col gap-2">
@@ -177,7 +177,7 @@ const ResidenceStep = () => {
                     )}
                     <button
                         type="button"
-                        className="mt-1 text-center text-sm underline underline-offset-2"
+                        className="mt-1 text-center text-body-s underline underline-offset-2"
                         onClick={() => setView('select')}
                     >
                         {t('residenceStep.restricted.changeCountry')}
@@ -192,7 +192,7 @@ const ResidenceStep = () => {
             <div className="flex w-full flex-col gap-2">
                 {/* Rendered here, not by the step chrome, so the heads-up
                     sub-views don't repeat it (descriptionInView on the step). */}
-                <p className="mb-1 text-sm text-grey-1">{t('steps.residence.description')}</p>
+                <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
                 <BaseSelect
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}
@@ -201,7 +201,7 @@ const ResidenceStep = () => {
                 />
                 <button
                     type="button"
-                    className="self-start text-left text-sm underline underline-offset-2"
+                    className="self-start text-left text-body-s underline underline-offset-2"
                     aria-expanded={showSecondCountry}
                     onClick={() => {
                         // Collapsing must also clear the stored pick — an
@@ -240,16 +240,19 @@ const ResidenceStep = () => {
                                     const summary = residenceAvailability(restrictionSets, iso2)
                                     const label = countryOptions.find((option) => option.value === iso2)?.label ?? iso2
                                     return (
-                                        <div key={iso2} className="rounded-sm border border-n-1 bg-white p-3">
-                                            <p className="mb-1 text-xs font-bold">
+                                        <div
+                                            key={iso2}
+                                            className="rounded-sm border border-border-default bg-background-default p-3"
+                                        >
+                                            <p className="mb-1 text-body-xs font-bold">
                                                 {t('residenceStep.compare.cardTitle', { country: label })}
                                             </p>
-                                            <ul className="space-y-0.5 text-xs text-grey-1">
+                                            <ul className="space-y-0.5 text-body-xs text-foreground-secondary">
                                                 {summary.available.map((item) => (
                                                     <li key={item}>{t(`residenceStep.compare.items.${item}`)}</li>
                                                 ))}
                                                 {summary.unavailable.map((item) => (
-                                                    <li key={item} className="text-grey-1 line-through">
+                                                    <li key={item} className="text-foreground-secondary line-through">
                                                         {t(`residenceStep.compare.missing.${item}`)}
                                                     </li>
                                                 ))}
@@ -258,8 +261,10 @@ const ResidenceStep = () => {
                                     )
                                 })}
                             </div>
-                            <div className="rounded-sm border border-n-1 bg-white p-3 text-xs text-grey-1">
-                                <p className="mb-1 font-bold text-n-1">{t('residenceStep.compare.guideTitle')}</p>
+                            <div className="rounded-sm border border-border-default bg-background-default p-3 text-body-xs text-foreground-secondary">
+                                <p className="mb-1 font-bold text-foreground-primary">
+                                    {t('residenceStep.compare.guideTitle')}
+                                </p>
                                 <p>{t('residenceStep.compare.guideDeclaration')}</p>
                                 <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
                                 <p className="mt-1">{t('residenceStep.compare.guideSecond')}</p>

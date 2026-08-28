@@ -66,7 +66,7 @@ export default function BackupPage() {
                     </Notification>
                     {/* Passkeys saved to a third-party manager back up through
                         that manager, not the platform steps above. */}
-                    <p className="text-body-xs text-foreground-secondary">{t('thirdPartyNote')}</p>
+                    <Notification priority="info">{t('thirdPartyNote')}</Notification>
                 </Section>
 
                 <Section title={t('faqHeading')}>
