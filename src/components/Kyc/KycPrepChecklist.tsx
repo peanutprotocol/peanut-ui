@@ -36,9 +36,11 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
                     </div>
                 ))}
             </div>
-            <div className="rounded-sm border border-border-default p-3 dark:border-white">
-                <span className="block text-body-xs font-bold tracking-wide uppercase">{t('howLongLabel')}</span>
-                <span className="block text-body-xs">{t(`howLong.${path}`)}</span>
+            {/* Plain prose, not a card: the framed box read as a third
+                requirement alongside the two above it, when it is only a note. */}
+            <div className="flex flex-col gap-0.5">
+                <span className="text-body-xs font-bold tracking-wide uppercase">{t('howLongLabel')}</span>
+                <span className="text-body-xs text-foreground-secondary">{t(`howLong.${path}`)}</span>
             </div>
             <p className="text-body-xs text-foreground-secondary">{t('extraDocNote')}</p>
         </div>
