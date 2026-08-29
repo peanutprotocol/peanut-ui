@@ -134,15 +134,12 @@
             "title": "Get started",
             "createAccount": "Create your account",
             "createAccountDone": "Done. Your money has a username now",
-            "addMoneyPix": "Add money with PIX",
-            "addMoneySepa": "Add money via SEPA",
-            "addMoneySpei": "Add money via SPEI",
-            "addMoneyBank": "Add money from your bank",
-            "kycNote": "Bank deposits need a one-time ID check · about 10 min",
             "getCard": "Get your Peanut card",
             "addMoney": "Add money",
             "firstPayment": "Make your first payment",
-            "firstPaymentNote": "Send a few dollars to any @username. It lands in seconds."
+            "firstPaymentNote": "Send a few dollars to any @username. It lands in seconds.",
+            "addMoneyRoutes": "Bank transfer or crypto",
+            "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check"
         },
         "autoBalance": {
             "title": "Finish setting up your card",

@@ -9,7 +9,6 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef } from 'react'
@@ -52,20 +51,11 @@ const GettingStartedChecklist = () => {
     const milestone = user?.user?.activationMilestone ?? 'registered'
     const isVerified = milestone === 'verified' || milestone === 'funded' || milestone === 'activated'
     const isFunded = milestone === 'funded' || milestone === 'activated'
-    const residenceIso2 = user?.residence?.verified ?? user?.residence?.declared ?? null
     const hasActiveCard = !!findActiveCard(overview)
     // While eligibility is loading (undefined) the slot shows the first-payment
     // step — always a valid action — and upgrades to the card once the server
     // confirms. Never show a card step the user might not be allowed to take.
     const cardAvailable = !restrictions.card && isEligible === true
-
-    const addMoneyLabel = useMemo(() => {
-        if (residenceIso2 === 'BR') return t('addMoneyPix')
-        if (residenceIso2 === 'MX') return t('addMoneySpei')
-        if (residenceIso2 === 'US') return t('addMoneyBank')
-        if (residenceIso2 && isBridgeSupportedCountry(residenceIso2)) return t('addMoneySepa')
-        return t('addMoney')
-    }, [residenceIso2, t])
 
     const items: ChecklistItem[] = useMemo(() => {
         const tap = (id: ChecklistItemId, action: () => void) => () => {
@@ -90,14 +80,17 @@ const GettingStartedChecklist = () => {
             { id: 'create-account', label: t('createAccount'), sub: t('createAccountDone'), done: true },
             {
                 id: 'add-money',
-                label: addMoneyLabel,
-                sub: !isVerified ? t('kycNote') : undefined,
+                // The row opens /add-money, which offers bank transfer AND
+                // crypto — naming one rail promised a route the chooser doesn't
+                // take you straight to.
+                label: t('addMoney'),
+                sub: isVerified ? t('addMoneyRoutes') : t('addMoneyRoutesKyc'),
                 done: isFunded,
                 onTap: tap('add-money', () => router.push('/add-money')),
             },
             thirdItem,
         ]
-    }, [addMoneyLabel, cardAvailable, hasActiveCard, isFunded, isVerified, milestone, router, setIsQRScannerOpen, t])
+    }, [cardAvailable, hasActiveCard, isFunded, isVerified, milestone, router, setIsQRScannerOpen, t])
 
     const allDone = items.every((item) => item.done)
 
