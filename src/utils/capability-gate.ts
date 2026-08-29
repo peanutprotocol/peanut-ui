@@ -427,7 +427,7 @@ export function getGateReasonCode(gate: GateState): string | undefined {
 /**
  * Gates the verify step can actually DO something about. Deliberately an
  * allow-list: `pending` and `waiting-on-provider` resolve to the default
- * "Unlock now" screen, so routing them there would offer a fresh
+ * "Unlock now" screen, so treating them as verification would offer a fresh
  * Sumsub run to someone whose only correct move is to wait — and a gate kind
  * added later falls through to the amount step, which is where it behaved
  * before, rather than onto a screen that cannot render it.
@@ -441,18 +441,35 @@ const VERIFIABLE_GATE_KINDS = new Set<GateState['kind']>([
     'provide-email',
 ])
 
+/** Whether the user can act on this gate themselves, rather than only wait. */
+export function isVerifiableGate(kind: GateState['kind']): boolean {
+    return VERIFIABLE_GATE_KINDS.has(kind)
+}
+
+export type DepositStep = 'verify' | 'inputAmount' | 'showDetails'
+
 /**
- * Which step a deposit flow opens on.
+ * The step a deposit flow belongs on, or `null` to leave it where it is.
  *
  * Verification comes before the amount: asking for a number and only then
  * revealing an ID check wastes the entry, and a user who cannot pass the check
- * should never have typed one. `null` means the gate has not resolved yet —
- * entering on the amount and then jumping would flash the wrong screen.
+ * should never have typed one. This runs on every gate change, not only at
+ * entry, so a bookmarked `?step=inputAmount` cannot walk around the ordering
+ * and a cleared gate does not strand anyone on a requirement they have met.
+ *
+ * Two states it must not touch: a gate that has not resolved (entering on the
+ * amount and then jumping would flash the wrong screen), and `showDetails`,
+ * which is a live onramp with a transfer id behind it.
  *
  * `accept-tos` is not an identity check. It is a one-tap consent the amount
  * step already guards inline, so it does not earn a screen of its own.
  */
-export function initialDepositStep(gateKind: GateState['kind']): 'verify' | 'inputAmount' | null {
+export function nextDepositStep(
+    current: DepositStep | null | undefined,
+    gateKind: GateState['kind']
+): 'verify' | 'inputAmount' | null {
     if (gateKind === 'loading') return null
-    return VERIFIABLE_GATE_KINDS.has(gateKind) ? 'verify' : 'inputAmount'
+    if (current === 'showDetails') return null
+    const target = isVerifiableGate(gateKind) ? 'verify' : 'inputAmount'
+    return current === target ? null : target
 }

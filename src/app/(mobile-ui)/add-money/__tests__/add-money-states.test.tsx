@@ -748,6 +748,7 @@ type Gate =
     | 'needs-identity'
     | 'needs-enrollment'
     | 'waiting-on-provider'
+    | 'pending'
 
 function setGate(kind: Gate) {
     let rails: any[] = []
@@ -833,6 +834,12 @@ function setGate(kind: Gate) {
         case 'needs-identity':
             rails = []
             gateState = { kind: 'needs-identity' }
+            break
+        // the rail is provisioning: nothing for the user to do but wait
+        case 'pending':
+            rails = []
+            isKycApproved = true
+            gateState = { kind: 'pending' }
             break
         case 'waiting-on-provider':
             // provider reviewing submitted info (e.g. eea-uplift docs) — user
@@ -1288,6 +1295,18 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
     // never re-renders here.
     // The verify CTA starts the Sumsub run, so the SDK host has to be mounted in
     // that branch — without it the button starts a flow with nowhere to render.
+    // A provisioning rail has nothing for the user to do; offering "Unlock now"
+    // would start another Sumsub run against a gate that only time clears.
+    test('a pending gate gets the wait modal from Continue, never a KYC invite', async () => {
+        resetQueryState({ step: 'inputAmount', amount: '10' })
+        setGate('pending')
+        renderWithProviders(<OnrampBankPage />)
+
+        fireEvent.click(screen.getByText('Continue'))
+
+        await waitFor(() => expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument())
+    })
+
     test('the verify step mounts the KYC host its own CTA needs', () => {
         resetQueryState({ step: 'verify', amount: '' })
         setGate('needs-identity')

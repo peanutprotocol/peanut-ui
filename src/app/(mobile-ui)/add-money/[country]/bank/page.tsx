@@ -15,7 +15,8 @@ import {
     resolveKycModalVariant,
     getGateUserMessage,
     getGateReasonCode,
-    initialDepositStep,
+    nextDepositStep,
+    isVerifiableGate,
 } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
@@ -229,21 +230,17 @@ function BridgeBankOnrampPage() {
         currency: 'USD',
     })
 
-    // Verification precedes the amount — see initialDepositStep for the rule.
+    /*
+     * One rule for where this flow belongs — see nextDepositStep. Runs on every
+     * gate change rather than at entry only, so a bookmarked
+     * `?step=inputAmount` cannot walk around verification-first, and a gate
+     * that clears does not strand anyone on a requirement they have met.
+     */
     useEffect(() => {
-        if (urlState.step) return
         if (user === null) return
-        const step = initialDepositStep(gate.kind)
-        if (!step) return
-        setUrlState({ step })
+        const step = nextDepositStep(urlState.step, gate.kind)
+        if (step) setUrlState({ step })
     }, [user, urlState.step, setUrlState, gate.kind])
-
-    // The gate stopped calling for verification while the user sat here — move
-    // them on rather than leaving them on a requirement that no longer applies.
-    useEffect(() => {
-        if (urlState.step !== 'verify') return
-        if (initialDepositStep(gate.kind) === 'inputAmount') setUrlState({ step: 'inputAmount' })
-    }, [urlState.step, gate.kind, setUrlState])
 
     const validateAmount = useCallback(
         (amountStr: string): boolean => {
@@ -306,12 +303,16 @@ function BridgeBankOnrampPage() {
             // capabilities still loading — silently no-op instead of flashing
             // a misleading needs_kyc modal.
             if (gate.kind === 'loading') return
-            // `waiting-on-provider` means bridge is re-reviewing submitted info
-            // (e.g. right after an eea uplift) — the user has nothing to do but
-            // wait. Show the pending modal instead of a dead button, and re-arm
-            // the capability poller so we pick up bridge's latest status live and
-            // the modal auto-dismisses the moment the gate clears.
-            if (gate.kind === 'waiting-on-provider') {
+            /*
+             * Every gate the user cannot act on: `waiting-on-provider` is bridge
+             * re-reviewing submitted info (e.g. right after an eea uplift) and
+             * `pending` is a rail still provisioning. Neither has anything for
+             * the user to do, and the KYC modal below would invite both into
+             * another Sumsub run. Show the pending modal instead of a dead
+             * button, and re-arm the capability poller so we pick up bridge's
+             * latest status live and it auto-dismisses when the gate clears.
+             */
+            if (!isVerifiableGate(gate.kind) && gate.kind !== 'accept-tos') {
                 pendingModal.open()
                 return
             }
