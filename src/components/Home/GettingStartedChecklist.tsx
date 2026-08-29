@@ -66,6 +66,7 @@ const GettingStartedChecklist = () => {
             ? {
                   id: 'get-card',
                   label: t('getCard'),
+                  sub: t('getCardNote'),
                   done: hasActiveCard,
                   onTap: tap('get-card', () => router.push('/card')),
               }

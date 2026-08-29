@@ -139,7 +139,8 @@
             "firstPayment": "Make your first payment",
             "firstPaymentNote": "Send a few dollars to any @username. It lands in seconds.",
             "addMoneyRoutes": "Bank transfer or crypto",
-            "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check"
+            "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
+            "getCardNote": "Your dollars, in pink, wherever Visa is accepted."
         },
         "autoBalance": {
             "title": "Finish setting up your card",

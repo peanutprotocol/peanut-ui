@@ -298,7 +298,9 @@ export const BottomNav = () => {
                         initial={false}
                         animate={{ x: restingX(activeBox), width: activeBox.width + 2 }}
                         transition={reduceMotion ? { duration: 0 } : PILL_SPRING}
-                        className="absolute -top-0.5 -bottom-0.5 left-0 z-0 touch-none rounded-round border border-border-default bg-background-default"
+                        // -1px, not -2px: the bar's own border is 1px, so a 1px inset puts the
+                        // pill's outer edge exactly on the bar's — at 2px it stood proud of it.
+                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default"
                     />
                 )}
             </div>

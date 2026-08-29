@@ -489,7 +489,7 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: any) =>
         props.visible ? (
-            <div data-testid="initiate-kyc-modal">
+            <div data-testid="initiate-kyc-modal" data-presentation={props.presentation ?? 'modal'}>
                 <button data-testid="kyc-verify-button" onClick={props.onVerify}>
                     Verify
                 </button>
@@ -1281,6 +1281,18 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         setParams({ country: 'germany' })
         resetQueryState({ step: 'inputAmount', amount: '' })
         setGate('ready')
+    })
+
+    // The entry decision itself is unit-tested on initialDepositStep: this
+    // harness's nuqs mock is not reactive, so an effect-driven step change
+    // never re-renders here.
+    test('the verify step is the KYC screen, not the amount input', () => {
+        resetQueryState({ step: 'verify', amount: '' })
+        setGate('needs-identity')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.getByTestId('initiate-kyc-modal')).toHaveAttribute('data-presentation', 'page')
+        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
     })
 
     test('inputAmount step shows amount input and Continue button', () => {

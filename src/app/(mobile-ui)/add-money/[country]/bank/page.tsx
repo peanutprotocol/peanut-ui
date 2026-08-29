@@ -11,7 +11,12 @@ import { formatAmount } from '@/utils/general.utils'
 import { countryData } from '@/components/AddMoney/consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
+import {
+    resolveKycModalVariant,
+    getGateUserMessage,
+    getGateReasonCode,
+    initialDepositStep,
+} from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
@@ -50,7 +55,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 
 // Step type for URL state
-type BridgeBankStep = 'inputAmount' | 'showDetails'
+type BridgeBankStep = 'verify' | 'inputAmount' | 'showDetails'
 
 // The Bridge SEPA bank deposit page. Only mounted for non-Manteca countries — the
 // default export below bounces BR/AR away before this ever renders, so none of its
@@ -70,7 +75,7 @@ function BridgeBankOnrampPage() {
     // amounts of this same screen instead of leaving it. The URL stays shareable either
     // way. Enforced by the no-restricted-syntax guard in eslint.config.js.
     const [urlState, setUrlState] = useQueryStates({
-        step: parseAsStringEnum<BridgeBankStep>(['inputAmount', 'showDetails']),
+        step: parseAsStringEnum<BridgeBankStep>(['verify', 'inputAmount', 'showDetails']),
         amount: parseAsString,
     })
 
@@ -221,12 +226,21 @@ function BridgeBankOnrampPage() {
         currency: 'USD',
     })
 
-    // Default to inputAmount step when no step in URL
+    // Verification precedes the amount — see initialDepositStep for the rule.
     useEffect(() => {
         if (urlState.step) return
         if (user === null) return
-        setUrlState({ step: 'inputAmount' })
-    }, [user, urlState.step, setUrlState])
+        const step = initialDepositStep(gate.kind)
+        if (!step) return
+        setUrlState({ step })
+    }, [user, urlState.step, setUrlState, gate.kind])
+
+    // KYC cleared while the user sat on the verify step — move them on rather
+    // than leaving them looking at a requirement they have already met.
+    useEffect(() => {
+        if (urlState.step !== 'verify') return
+        if (gate.kind === 'ready' || gate.kind === 'accept-tos') setUrlState({ step: 'inputAmount' })
+    }, [urlState.step, gate.kind, setUrlState])
 
     const validateAmount = useCallback(
         (amountStr: string): boolean => {
@@ -266,6 +280,21 @@ function BridgeBankOnrampPage() {
             validateAmount(rawTokenAmount)
         }
     }, [rawTokenAmount, validateAmount, setError])
+
+    const handleVerify = async () => {
+        if (gate.kind === 'restart-identity') {
+            await sumsubFlow.handleRestartIdentity()
+        } else if (gate.kind === 'fixable-rejection') {
+            await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+        } else {
+            await sumsubFlow.handleInitiateKyc(
+                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                undefined,
+                gate.kind === 'needs-enrollment' || undefined,
+                selectedCountry?.id
+            )
+        }
+    }
 
     const handleAmountContinue = () => {
         if (!validateAmount(rawTokenAmount)) return
@@ -403,6 +432,26 @@ function BridgeBankOnrampPage() {
         return <AddMoneyBankDetails onBack={() => setUrlState({ step: 'inputAmount' })} />
     }
 
+    if (urlState.step === 'verify') {
+        return (
+            <InitiateKycModal
+                visible
+                presentation="page"
+                navTitle={t('title')}
+                onBack={onBack}
+                onClose={onBack}
+                onVerify={handleVerify}
+                onContactSupport={() => setIsSupportModalOpen(true)}
+                isLoading={sumsubFlow.isLoading}
+                error={sumsubFlow.error}
+                variant={resolveKycModalVariant(gate)}
+                providerMessage={getGateUserMessage(gate)}
+                reasonCode={getGateReasonCode(gate)}
+                regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
+            />
+        )
+    }
+
     if (urlState.step === 'inputAmount') {
         const showLimitsCard = limitsValidation.isBlocking || limitsValidation.isWarning
 
@@ -492,20 +541,7 @@ function BridgeBankOnrampPage() {
                         setShowKycModal(false)
                         resetUpliftFunnel()
                     }}
-                    onVerify={async () => {
-                        if (gate.kind === 'restart-identity') {
-                            await sumsubFlow.handleRestartIdentity()
-                        } else if (gate.kind === 'fixable-rejection') {
-                            await sumsubFlow.handleSelfHealResubmit('BRIDGE')
-                        } else {
-                            await sumsubFlow.handleInitiateKyc(
-                                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
-                                undefined,
-                                gate.kind === 'needs-enrollment' || undefined,
-                                selectedCountry?.id
-                            )
-                        }
-                    }}
+                    onVerify={handleVerify}
                     onContactSupport={() => {
                         setShowKycModal(false)
                         resetUpliftFunnel()

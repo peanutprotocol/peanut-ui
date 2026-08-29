@@ -10,6 +10,9 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
+import NavHeader from '@/components/Global/NavHeader'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 
@@ -32,6 +35,18 @@ interface InitiateKycModalProps {
     /** Which prep checklist the SDK-bound variants show: extended for the
      *  Manteca (BR/AR) flows, standard elsewhere. */
     prepPath?: 'standard' | 'extended'
+    /**
+     * 'modal' overlays the caller; 'page' renders the same decision as a flow
+     * step. The prep content is a screen's worth — two requirement cards, a
+     * duration card, a caveat and a CTA — which overflowed the dialog on a
+     * short viewport. Both forms share every branch below on purpose: the
+     * degraded-outage and region-restricted short-circuits are the invariant
+     * this component exists to centralize.
+     */
+    presentation?: 'modal' | 'page'
+    /** page form only — the step's back affordance and header title */
+    onBack?: () => void
+    navTitle?: string
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
@@ -52,6 +67,9 @@ export const InitiateKycModal = ({
     reasonCode,
     regionName,
     prepPath = 'standard',
+    presentation = 'modal',
+    onBack,
+    navTitle,
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -187,28 +205,60 @@ export const InitiateKycModal = ({
         return <KycRegionRestrictedModal visible={visible} onClose={onClose} />
     }
 
+    // The variants that lead into a fresh SDK run (the plain unlock offer and
+    // the cross-region unlock) carry the prep checklist, so no path reaches the
+    // vendor without it. Every other variant is an error/action state where the
+    // list would be noise.
+    const showPrepChecklist = (variant === 'default' || variant === 'cross_region') && !error
+    const description = showPrepChecklist ? (
+        <div className="flex flex-col gap-3">
+            <p>{getDescription()}</p>
+            <KycPrepChecklist path={prepPath} />
+        </div>
+    ) : (
+        getDescription()
+    )
+    const iconName = (error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName
+    const iconBubbleClass = isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-action-secondary' : ''
+    const footer =
+        isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
+            <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+        )
+
+    if (presentation === 'page') {
+        if (!visible) return null
+        return (
+            <div className="flex flex-col gap-6">
+                <NavHeader title={navTitle ?? getTitle()} onPrev={onBack} />
+                <div className="flex flex-col items-center gap-4 text-center">
+                    <IconBubble icon={iconName} size="l" className={iconBubbleClass} />
+                    <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>
+                    <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                </div>
+                <Button
+                    variant="purple"
+                    shadowSize="4"
+                    onClick={cta.onClick}
+                    disabled={isLoading && !isBlocked}
+                    className="h-11 w-full"
+                    {...(cta.icon ? { icon: cta.icon } : {})}
+                >
+                    {cta.text}
+                </Button>
+                {footer}
+            </div>
+        )
+    }
+
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
             title={getTitle()}
-            description={
-                // The variants that lead into a fresh SDK run (the plain unlock
-                // offer and the cross-region unlock) carry the prep checklist,
-                // so no path reaches the vendor without it. Every other variant
-                // is an error/action state where the list would be noise.
-                (variant === 'default' || variant === 'cross_region') && !error ? (
-                    <div className="flex flex-col gap-3">
-                        <p>{getDescription()}</p>
-                        <KycPrepChecklist path={prepPath} />
-                    </div>
-                ) : (
-                    getDescription()
-                )
-            }
+            description={description}
             preventClose
-            icon={(error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName}
-            iconContainerClassName={isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-action-secondary' : ''}
+            icon={iconName}
+            iconContainerClassName={iconBubbleClass}
             modalPanelClassName="max-w-full m-2"
             ctaClassName="grid grid-cols-1 gap-3"
             ctas={[
@@ -222,11 +272,7 @@ export const InitiateKycModal = ({
                     className: 'h-11',
                 },
             ]}
-            footer={
-                isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
-                    <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
-                )
-            }
+            footer={footer}
         />
     )
 }

@@ -423,3 +423,19 @@ export function getGateAdvisory(gate: GateState): GateAdvisory | undefined {
 export function getGateReasonCode(gate: GateState): string | undefined {
     return 'reason' in gate ? gate.reason?.code : undefined
 }
+
+/**
+ * Which step a deposit flow opens on.
+ *
+ * Verification comes before the amount: asking for a number and only then
+ * revealing an ID check wastes the entry, and a user who cannot pass the check
+ * should never have typed one. `null` means the gate has not resolved yet —
+ * entering on the amount and then jumping would flash the wrong screen.
+ *
+ * `accept-tos` is not an identity check. It is a one-tap consent the amount
+ * step already guards inline, so it does not earn a screen of its own.
+ */
+export function initialDepositStep(gateKind: GateState['kind']): 'verify' | 'inputAmount' | null {
+    if (gateKind === 'loading') return null
+    return gateKind === 'ready' || gateKind === 'accept-tos' ? 'inputAmount' : 'verify'
+}

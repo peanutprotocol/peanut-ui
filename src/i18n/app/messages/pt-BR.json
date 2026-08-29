@@ -139,7 +139,8 @@
             "firstPayment": "Faça seu primeiro pagamento",
             "firstPaymentNote": "Envie alguns dólares para qualquer @usuário. Chega em segundos.",
             "addMoneyRoutes": "Transferência bancária ou cripto",
-            "addMoneyRoutesKyc": "Transferência bancária ou cripto · o banco exige uma verificação de identidade única"
+            "addMoneyRoutesKyc": "Transferência bancária ou cripto · o banco exige uma verificação de identidade única",
+            "getCardNote": "Seus dólares, em rosa, onde a Visa for aceita."
         },
         "autoBalance": {
             "title": "Termine de configurar seu cartão",
