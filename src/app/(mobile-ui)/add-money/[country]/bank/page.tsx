@@ -66,6 +66,9 @@ function BridgeBankOnrampPage() {
     const locale = useLocale()
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
+    // Same words as the profile surface of the same name, reused rather than
+    // restated so the two cannot drift.
+    const tUnlock = useTranslations('profile.unlockPayments')
 
     // URL state - persisted in query params
     // Example: /add-money/mexico/bank?step=inputAmount&amount=500
@@ -437,7 +440,7 @@ function BridgeBankOnrampPage() {
             <InitiateKycModal
                 visible
                 presentation="page"
-                navTitle={t('title')}
+                navTitle={tUnlock('title')}
                 onBack={onBack}
                 onClose={onBack}
                 onVerify={handleVerify}

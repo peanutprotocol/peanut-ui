@@ -227,12 +227,24 @@ export const InitiateKycModal = ({
 
     if (presentation === 'page') {
         if (!visible) return null
+        /*
+         * On the happy path the screen title is the header and nothing repeats
+         * it. Every other variant IS its title — "We need extra documents",
+         * "Verify with a different document" — and that belongs under the icon
+         * where it can wrap; NavHeader truncates at the width between its two
+         * side buttons.
+         */
+        const titleIsGeneric = variant === 'default' && !error
+        const headerTitle = navTitle ?? getTitle()
         return (
             <div className="flex flex-col gap-6">
-                <NavHeader title={navTitle ?? getTitle()} onPrev={onBack} />
+                <NavHeader title={headerTitle} onPrev={onBack} />
+                {/* NavHeader's title is a div, so without this the page has no
+                    heading at all whenever the visible one is dropped. */}
+                {titleIsGeneric && <h1 className="sr-only">{headerTitle}</h1>}
                 <div className="flex flex-col items-center gap-4 text-center">
                     <IconBubble icon={iconName} size="l" className={iconBubbleClass} />
-                    <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>
+                    {!titleIsGeneric && <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>}
                     <div className="w-full text-body-s text-foreground-secondary">{description}</div>
                 </div>
                 <Button
