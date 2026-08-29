@@ -238,11 +238,11 @@ function BridgeBankOnrampPage() {
         setUrlState({ step })
     }, [user, urlState.step, setUrlState, gate.kind])
 
-    // KYC cleared while the user sat on the verify step — move them on rather
-    // than leaving them looking at a requirement they have already met.
+    // The gate stopped calling for verification while the user sat here — move
+    // them on rather than leaving them on a requirement that no longer applies.
     useEffect(() => {
         if (urlState.step !== 'verify') return
-        if (gate.kind === 'ready' || gate.kind === 'accept-tos') setUrlState({ step: 'inputAmount' })
+        if (initialDepositStep(gate.kind) === 'inputAmount') setUrlState({ step: 'inputAmount' })
     }, [urlState.step, gate.kind, setUrlState])
 
     const validateAmount = useCallback(
@@ -437,21 +437,27 @@ function BridgeBankOnrampPage() {
 
     if (urlState.step === 'verify') {
         return (
-            <InitiateKycModal
-                visible
-                presentation="page"
-                navTitle={tUnlock('title')}
-                onBack={onBack}
-                onClose={onBack}
-                onVerify={handleVerify}
-                onContactSupport={() => setIsSupportModalOpen(true)}
-                isLoading={sumsubFlow.isLoading}
-                error={sumsubFlow.error}
-                variant={resolveKycModalVariant(gate)}
-                providerMessage={getGateUserMessage(gate)}
-                reasonCode={getGateReasonCode(gate)}
-                regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
-            />
+            <>
+                {/* The verify CTA starts the Sumsub run, so its host has to be
+                    mounted in THIS branch — the inputAmount branch below is not
+                    rendered here, and without this the button was a dead end. */}
+                <SumsubKycModals flow={sumsubFlow} />
+                <InitiateKycModal
+                    visible
+                    presentation="page"
+                    navTitle={tUnlock('title')}
+                    onBack={onBack}
+                    onClose={onBack}
+                    onVerify={handleVerify}
+                    onContactSupport={() => setIsSupportModalOpen(true)}
+                    isLoading={sumsubFlow.isLoading}
+                    error={sumsubFlow.error}
+                    variant={resolveKycModalVariant(gate)}
+                    providerMessage={getGateUserMessage(gate)}
+                    reasonCode={getGateReasonCode(gate)}
+                    regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
+                />
+            </>
         )
     }
 

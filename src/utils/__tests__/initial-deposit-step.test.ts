@@ -5,13 +5,20 @@ describe('initialDepositStep', () => {
         expect(initialDepositStep('loading')).toBeNull()
     })
 
-    it('sends an unverified user to verification before it asks for a number', () => {
+    it('sends a user who can act on their verification there before asking for a number', () => {
         expect(initialDepositStep('needs-identity')).toBe('verify')
         expect(initialDepositStep('needs-enrollment')).toBe('verify')
         expect(initialDepositStep('fixable-rejection')).toBe('verify')
         expect(initialDepositStep('blocked-rejection')).toBe('verify')
         expect(initialDepositStep('restart-identity')).toBe('verify')
-        expect(initialDepositStep('waiting-on-provider')).toBe('verify')
+        expect(initialDepositStep('provide-email')).toBe('verify')
+    })
+
+    // These resolve to the default "Unlock now" screen, which would offer a
+    // fresh Sumsub run to someone whose only correct move is to wait.
+    it('keeps wait-only gates off the verification screen', () => {
+        expect(initialDepositStep('pending')).toBe('inputAmount')
+        expect(initialDepositStep('waiting-on-provider')).toBe('inputAmount')
     })
 
     it('opens a verified user straight on the amount', () => {

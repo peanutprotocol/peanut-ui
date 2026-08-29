@@ -425,6 +425,23 @@ export function getGateReasonCode(gate: GateState): string | undefined {
 }
 
 /**
+ * Gates the verify step can actually DO something about. Deliberately an
+ * allow-list: `pending` and `waiting-on-provider` resolve to the default
+ * "Unlock now" screen, so routing them there would offer a fresh
+ * Sumsub run to someone whose only correct move is to wait — and a gate kind
+ * added later falls through to the amount step, which is where it behaved
+ * before, rather than onto a screen that cannot render it.
+ */
+const VERIFIABLE_GATE_KINDS = new Set<GateState['kind']>([
+    'needs-identity',
+    'needs-enrollment',
+    'fixable-rejection',
+    'restart-identity',
+    'blocked-rejection',
+    'provide-email',
+])
+
+/**
  * Which step a deposit flow opens on.
  *
  * Verification comes before the amount: asking for a number and only then
@@ -437,5 +454,5 @@ export function getGateReasonCode(gate: GateState): string | undefined {
  */
 export function initialDepositStep(gateKind: GateState['kind']): 'verify' | 'inputAmount' | null {
     if (gateKind === 'loading') return null
-    return gateKind === 'ready' || gateKind === 'accept-tos' ? 'inputAmount' : 'verify'
+    return VERIFIABLE_GATE_KINDS.has(gateKind) ? 'verify' : 'inputAmount'
 }

@@ -483,7 +483,7 @@ jest.mock('@/components/Payment/PaymentInfoRow', () => ({
 }))
 
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
-    SumsubKycModals: () => null,
+    SumsubKycModals: () => <div data-testid="sumsub-kyc-host" />,
 }))
 
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
@@ -1286,6 +1286,16 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
     // The entry decision itself is unit-tested on initialDepositStep: this
     // harness's nuqs mock is not reactive, so an effect-driven step change
     // never re-renders here.
+    // The verify CTA starts the Sumsub run, so the SDK host has to be mounted in
+    // that branch — without it the button starts a flow with nowhere to render.
+    test('the verify step mounts the KYC host its own CTA needs', () => {
+        resetQueryState({ step: 'verify', amount: '' })
+        setGate('needs-identity')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.getByTestId('sumsub-kyc-host')).toBeInTheDocument()
+    })
+
     test('the verify step is the KYC screen, not the amount input', () => {
         resetQueryState({ step: 'verify', amount: '' })
         setGate('needs-identity')
