@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
+import { saveToLocalStorage } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
 
 const WALLET = '0x1111111111111111111111111111111111111111'
@@ -45,6 +46,7 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 describe('SignTestTransaction — the account-ready screen', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        localStorage.clear()
         accounts = []
         mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
         // addAccount refetches the user, so the account appears while this
@@ -65,5 +67,23 @@ describe('SignTestTransaction — the account-ready screen', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /go to my account/i }))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    it('consumes the stored route once, however fast the CTA is tapped', async () => {
+        // handleRedirect clears the stored route, so a second tap would fall
+        // back to /home and race the first push.
+        saveToLocalStorage('redirect', '/receipt?id=abc')
+
+        renderWithIntl(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await screen.findByText(/works right now/i)
+
+        const cta = screen.getByRole('button', { name: /go to my account/i })
+        fireEvent.click(cta)
+        fireEvent.click(cta)
+        fireEvent.click(cta)
+
+        expect(mockRouterPush).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).toHaveBeenCalledWith('/receipt?id=abc')
     })
 })
