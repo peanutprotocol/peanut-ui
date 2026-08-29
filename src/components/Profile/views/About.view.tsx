@@ -4,6 +4,7 @@ import Card from '@/components/Global/Card'
 import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
+import { useAppVersion } from '@/hooks/useAppVersion'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 
@@ -30,6 +31,8 @@ const cardPosition = (index: number, total: number) =>
 export const AboutView = ({ appVersion }: { appVersion: string }) => {
     const t = useTranslations('profile.about')
     const onBack = useSafeBack('/profile', { replace: true })
+    // the bundled version is only the web value and the pre-bridge fallback
+    const version = useAppVersion(appVersion)
 
     return (
         <div className="space-y-4 mb-6">
@@ -49,9 +52,7 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                 ))}
             </div>
 
-            <p className="text-center text-body-xs text-foreground-secondary">
-                {t('version', { version: appVersion })}
-            </p>
+            <p className="text-center text-body-xs text-foreground-secondary">{t('version', { version })}</p>
         </div>
     )
 }

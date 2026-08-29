@@ -217,10 +217,11 @@ export const BottomNav = () => {
                         e.stopPropagation()
                     }
                 }}
-                // solid bar + soft elevation shadow (final take, 2026-08-27 —
-                // replaces the gradient/blur/dissolve experiments). no DS token
+                // Soft elevation (contrast study option E, ruled 2026-08-29):
+                // the lift shadow plus a tight contact shadow, carried by the bar
+                // AND the QR circle so the pair reads as one plane. No DS token
                 // carries a soft .35-alpha shadow — arbitrary value on purpose.
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-[0_10px_22px_-6px_rgb(0_0_0/0.35)]"
+                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-[0_10px_22px_-6px_rgb(0_0_0/0.35),0_2px_6px_rgb(0_0_0/0.18)]"
             >
                 <Link
                     href="/home"
@@ -310,7 +311,7 @@ export const BottomNav = () => {
                     triggerHaptic()
                     setIsQRScannerOpen(true)
                 }}
-                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary transition-transform duration-instant active:scale-95 disabled:opacity-40"
+                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary shadow-[0_10px_22px_-6px_rgb(0_0_0/0.35),0_2px_6px_rgb(0_0_0/0.18)] transition-transform duration-instant active:scale-95 disabled:opacity-40"
             >
                 <Icon name="qr-code" size={24} />
             </button>
