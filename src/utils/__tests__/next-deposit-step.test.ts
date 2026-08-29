@@ -1,4 +1,4 @@
-import { isVerifiableGate, nextDepositStep } from '../capability-gate'
+import { isDepositStepReady, isVerifiableGate, nextDepositStep } from '../capability-gate'
 
 describe('nextDepositStep', () => {
     it('holds until the gate resolves — entering on the amount and jumping would flash the wrong screen', () => {
@@ -52,5 +52,25 @@ describe('nextDepositStep', () => {
     it('never moves a flow that is already showing bank details', () => {
         expect(nextDepositStep('showDetails', 'needs-identity')).toBeNull()
         expect(nextDepositStep('showDetails', 'ready')).toBeNull()
+    })
+})
+
+// A pending user can reload a persisted ?step=verify. Rendering it before
+// the gate answers shows the default "Unlock now" and its CTA starts a
+// Sumsub run their real gate would never have offered.
+describe('isDepositStepReady', () => {
+    it('renders nothing off an unresolved gate', () => {
+        expect(isDepositStepReady('verify', 'loading')).toBe(false)
+        expect(isDepositStepReady('inputAmount', 'loading')).toBe(false)
+        expect(isDepositStepReady(undefined, 'loading')).toBe(false)
+    })
+
+    it('lets a live onramp through — it holds its own transfer id and reads no gate', () => {
+        expect(isDepositStepReady('showDetails', 'loading')).toBe(true)
+    })
+
+    it('opens up once the gate answers', () => {
+        expect(isDepositStepReady('verify', 'needs-identity')).toBe(true)
+        expect(isDepositStepReady('inputAmount', 'ready')).toBe(true)
     })
 })

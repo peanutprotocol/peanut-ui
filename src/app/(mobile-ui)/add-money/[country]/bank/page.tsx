@@ -16,6 +16,7 @@ import {
     getGateUserMessage,
     getGateReasonCode,
     nextDepositStep,
+    isDepositStepReady,
     isVerifiableGate,
 } from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -425,6 +426,12 @@ function BridgeBankOnrampPage() {
 
     // Still determining initial step
     if (!urlState.step) {
+        return <Loading variant="mascot" />
+    }
+
+    // A persisted step is not evidence of anything until the gate answers —
+    // see isDepositStepReady.
+    if (!isDepositStepReady(urlState.step, gate.kind)) {
         return <Loading variant="mascot" />
     }
 

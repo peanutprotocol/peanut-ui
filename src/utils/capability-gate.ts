@@ -464,6 +464,24 @@ export type DepositStep = 'verify' | 'inputAmount' | 'showDetails'
  * `accept-tos` is not an identity check. It is a one-tap consent the amount
  * step already guards inline, so it does not earn a screen of its own.
  */
+/**
+ * Whether a deposit step may render yet.
+ *
+ * A persisted `?step=verify` is not evidence the user needs verifying — a
+ * `pending` user can reload one. Until the gate answers, that step would render
+ * the default "Unlock now" screen and its CTA would start a Sumsub run for
+ * someone whose gate, once it arrives, only time can clear. So nothing renders
+ * off an unresolved gate; `nextDepositStep` normalizes the step the moment it
+ * resolves.
+ *
+ * `showDetails` is exempt: it is a live onramp holding its own transfer id, and
+ * does not read the gate at all.
+ */
+export function isDepositStepReady(current: DepositStep | null | undefined, gateKind: GateState['kind']): boolean {
+    if (current === 'showDetails') return true
+    return gateKind !== 'loading'
+}
+
 export function nextDepositStep(
     current: DepositStep | null | undefined,
     gateKind: GateState['kind']
