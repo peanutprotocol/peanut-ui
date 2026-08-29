@@ -2,7 +2,7 @@ import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import Image from 'next/image'
 import { type CSSProperties } from 'react'
 
-type CloudConfig = {
+export type CloudConfig = {
     top: string
     width: number
     speed: string

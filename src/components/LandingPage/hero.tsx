@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useCallback, useRef, type CSSProperties } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import { CloudsCss } from './CloudsCss'
+import { CloudsCss, type CloudConfig } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
@@ -80,6 +80,21 @@ function PeanutMascot() {
         />
     )
 }
+
+/*
+ * The hero's own cloud bands. The shared default spreads five clouds over the
+ * whole section (down to 80%), which drifts them straight through the copy
+ * block — a white cloud behind the white CTA pill erases the button for the
+ * length of the loop. The copy starts around 54% of the hero, so the bands stop
+ * at 37%: clouds stay in the sky above the artwork, the same shape
+ * CloudsBackground's `minimal` config uses on the setup hero.
+ */
+const heroClouds: CloudConfig[] = [
+    { top: '10%', width: 180, speed: '38s', direction: 'ltr' },
+    { top: '19%', width: 200, speed: '40s', direction: 'rtl' },
+    { top: '28%', width: 220, speed: '44s', direction: 'ltr' },
+    { top: '37%', width: 190, speed: '36s', direction: 'rtl' },
+]
 
 type HeroProps = {
     strings: LandingStrings
@@ -161,7 +176,7 @@ export function Hero({
             id="hero"
             className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
-            <CloudsCss />
+            <CloudsCss clouds={heroClouds} />
             <div className="relative mt-10 w-full md:mt-0">
                 {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports */}
                 <Image
