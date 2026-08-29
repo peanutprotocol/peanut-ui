@@ -1322,6 +1322,24 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
     })
 
+    // Effects run after paint: a step the effect is about to rewrite would
+    // otherwise get a frame with a live CTA on it.
+    test('a resolved gate that wants another step never paints the stale one', () => {
+        resetQueryState({ step: 'verify', amount: '' })
+        setGate('pending')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    test('a stale amount step does not paint ahead of required verification', () => {
+        resetQueryState({ step: 'inputAmount', amount: '10' })
+        setGate('needs-identity')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+    })
+
     // A provisioning rail has nothing for the user to do; offering "Unlock now"
     // would start another Sumsub run against a gate that only time clears.
     test('a pending gate gets the wait modal from Continue, never a KYC invite', async () => {
@@ -1398,6 +1416,9 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
     })
 
+    // Was: the amount step showed, and Continue raised the KYC modal. The flow
+    // asks first now, so the same property — no deposit confirmation without
+    // KYC — is enforced a step earlier, before a number is ever typed.
     test('fresh user needs KYC before Bridge deposit confirmation', async () => {
         mockUseKycStatus.mockReturnValue({
             isUserKycApproved: false,
@@ -1408,12 +1429,9 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         renderWithProviders(<OnrampBankPage />)
 
-        const continueButton = screen.getByText('Continue')
-        await act(async () => {
-            fireEvent.click(continueButton)
-        })
-
-        expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+        expect(screen.queryByText('Continue')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('onramp-confirmation-modal')).not.toBeInTheDocument()
+        await waitFor(() => expect(mockSetQueryState).toHaveBeenCalledWith({ step: 'verify' }))
     })
 
     test('KYC approved shows confirmation modal on Continue', async () => {

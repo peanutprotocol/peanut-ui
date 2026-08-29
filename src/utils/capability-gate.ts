@@ -468,18 +468,21 @@ export type DepositStep = 'verify' | 'inputAmount' | 'showDetails'
  * Whether a deposit step may render yet.
  *
  * A persisted `?step=verify` is not evidence the user needs verifying — a
- * `pending` user can reload one. Until the gate answers, that step would render
- * the default "Unlock now" screen and its CTA would start a Sumsub run for
- * someone whose gate, once it arrives, only time can clear. So nothing renders
- * off an unresolved gate; `nextDepositStep` normalizes the step the moment it
- * resolves.
+ * `pending` user can reload one. Nothing renders until the gate has answered
+ * AND the step matches that answer, because either gap puts the default
+ * "Unlock now" screen on the page with a live CTA that would start a Sumsub
+ * run for someone whose gate only time can clear.
  *
  * `showDetails` is exempt: it is a live onramp holding its own transfer id, and
  * does not read the gate at all.
  */
 export function isDepositStepReady(current: DepositStep | null | undefined, gateKind: GateState['kind']): boolean {
     if (current === 'showDetails') return true
-    return gateKind !== 'loading'
+    // Answered is not enough — the step must be the one the answer calls for.
+    // Effects run after paint, so a step the effect is about to rewrite still
+    // gets a frame on screen: long enough on a slow device to tap an "Unlock
+    // now" that the real gate never offered.
+    return gateKind !== 'loading' && nextDepositStep(current, gateKind) === null
 }
 
 export function nextDepositStep(

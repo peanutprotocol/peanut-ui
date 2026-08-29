@@ -69,8 +69,22 @@ describe('isDepositStepReady', () => {
         expect(isDepositStepReady('showDetails', 'loading')).toBe(true)
     })
 
-    it('opens up once the gate answers', () => {
+    it('opens up once the gate answers and the step matches it', () => {
         expect(isDepositStepReady('verify', 'needs-identity')).toBe(true)
         expect(isDepositStepReady('inputAmount', 'ready')).toBe(true)
+    })
+
+    /*
+     * Effects run after paint, so a step the effect is about to rewrite still
+     * gets a frame: long enough on a slow device to tap an Unlock CTA the real
+     * gate never offered, or to see an amount field before required
+     * verification.
+     */
+    it('stays shut when the answer calls for a different step', () => {
+        expect(isDepositStepReady('verify', 'pending')).toBe(false)
+        expect(isDepositStepReady('verify', 'waiting-on-provider')).toBe(false)
+        expect(isDepositStepReady('verify', 'ready')).toBe(false)
+        expect(isDepositStepReady('verify', 'accept-tos')).toBe(false)
+        expect(isDepositStepReady('inputAmount', 'needs-identity')).toBe(false)
     })
 })
