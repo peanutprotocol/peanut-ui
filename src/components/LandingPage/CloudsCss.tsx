@@ -1,5 +1,6 @@
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import Image from 'next/image'
+import { twMerge } from '@/utils/tw'
 import { type CSSProperties } from 'react'
 
 export type CloudConfig = {
@@ -18,9 +19,9 @@ const defaultClouds: CloudConfig[] = [
     { top: '65%', width: 190, speed: '36s', direction: 'rtl' },
 ]
 
-export function CloudsCss({ clouds = defaultClouds }: { clouds?: CloudConfig[] }) {
+export function CloudsCss({ clouds = defaultClouds, className }: { clouds?: CloudConfig[]; className?: string }) {
     return (
-        <div className="absolute top-0 left-0 h-full w-full overflow-hidden">
+        <div className={twMerge('absolute top-0 left-0 h-full w-full overflow-hidden', className)}>
             {clouds.map((cloud, i) => (
                 <Image
                     key={i}

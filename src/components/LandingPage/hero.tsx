@@ -82,18 +82,23 @@ function PeanutMascot() {
 }
 
 /*
- * The hero's own cloud bands. The shared default spreads five clouds over the
- * whole section (down to 80%), which drifts them straight through the copy
- * block — a white cloud behind the white CTA pill erases the button for the
- * length of the loop. The copy starts around 54% of the hero, so the bands stop
- * at 37%: clouds stay in the sky above the artwork, the same shape
- * CloudsBackground's `minimal` config uses on the setup hero.
+ * The hero's own cloud bands, PHONE ONLY — three, against the default five.
+ * A phone is a third of the width, so five read as overcast rather than sky.
+ *
+ * The shared default spreads five clouds over the whole section (down to 80%),
+ * which on a phone drifts them straight through the CTA — a white cloud behind
+ * the white pill erases the button for the length of the loop. These stop at
+ * 56%, which puts the lowest one across the headline's second line and leaves
+ * the CTA in clear sky. The headline can take it: 38px black extrabold reads
+ * over white. The button cannot, being white itself.
+ *
+ * Desktop keeps the default. The hero is far wider than its centred copy, so
+ * the low bands ride the gutters either side of it instead of crossing it.
  */
 const heroClouds: CloudConfig[] = [
-    { top: '10%', width: 180, speed: '38s', direction: 'ltr' },
-    { top: '19%', width: 200, speed: '40s', direction: 'rtl' },
-    { top: '28%', width: 220, speed: '44s', direction: 'ltr' },
-    { top: '37%', width: 190, speed: '36s', direction: 'rtl' },
+    { top: '18%', width: 180, speed: '38s', direction: 'ltr' },
+    { top: '35%', width: 220, speed: '44s', direction: 'rtl' },
+    { top: '52.8%', width: 190, speed: '36s', direction: 'ltr' },
 ]
 
 type HeroProps = {
@@ -176,7 +181,8 @@ export function Hero({
             id="hero"
             className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
-            <CloudsCss clouds={heroClouds} />
+            <CloudsCss clouds={heroClouds} className="md:hidden" />
+            <CloudsCss className="hidden md:block" />
             <div className="relative mt-10 w-full md:mt-0">
                 {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports */}
                 <Image
