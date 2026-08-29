@@ -3299,7 +3299,8 @@
             "subtitle": "This is the final step!",
             "description": "Add Peanut to your home screen to unlock your wallet and start using it.",
             "tapShare": "Tap the <share>Share icon</share> on your browser",
-            "thenTapAddToHomeScreen": "and then on <bold>“Add To Home Screen”</bold>"
+            "thenTapAddToHomeScreen": "and then on <bold>“Add To Home Screen”</bold>",
+            "continueInBrowser": "Continue in the browser"
         },
         "pointsCard": {
             "earned": "You've earned {count, plural, one {# point} other {# points}}!"

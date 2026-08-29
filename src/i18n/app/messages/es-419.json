@@ -3299,7 +3299,8 @@
             "subtitle": "¡Este es el último paso!",
             "description": "Agrega Peanut a tu pantalla de inicio para desbloquear tu billetera y empezar a usarla.",
             "tapShare": "Toca el <share>ícono Compartir</share> en tu navegador",
-            "thenTapAddToHomeScreen": "y luego <bold>“Agregar a inicio”</bold>"
+            "thenTapAddToHomeScreen": "y luego <bold>“Agregar a inicio”</bold>",
+            "continueInBrowser": "Continuar en el navegador"
         },
         "pointsCard": {
             "earned": "¡Ganaste {count, plural, one {# punto} other {# puntos}}!"

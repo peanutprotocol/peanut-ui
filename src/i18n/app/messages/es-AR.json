@@ -1407,7 +1407,8 @@
         "forceIosPwaInstall": {
             "title": "Viví la experiencia completa",
             "description": "Agregá Peanut a tu pantalla de inicio para desbloquear tu billetera y empezar a usarla.",
-            "tapShare": "Tocá el <share>ícono Compartir</share> en tu navegador"
+            "tapShare": "Tocá el <share>ícono Compartir</share> en tu navegador",
+            "continueInBrowser": "Seguí en el navegador"
         },
         "userCard": {
             "payWhatYouWant": "Pagá lo que quieras",

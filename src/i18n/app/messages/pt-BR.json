@@ -3299,7 +3299,8 @@
             "subtitle": "Este é o último passo!",
             "description": "Adicione o Peanut à sua tela de início para desbloquear sua carteira e começar a usá-la.",
             "tapShare": "Toque no <share>ícone Compartilhar</share> do seu navegador",
-            "thenTapAddToHomeScreen": "e depois em <bold>“Adicionar à Tela de Início”</bold>"
+            "thenTapAddToHomeScreen": "e depois em <bold>“Adicionar à Tela de Início”</bold>",
+            "continueInBrowser": "Continuar no navegador"
         },
         "pointsCard": {
             "earned": "Você ganhou {count, plural, one {# ponto} other {# pontos}}!"
