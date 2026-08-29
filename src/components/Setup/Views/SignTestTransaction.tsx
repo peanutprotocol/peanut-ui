@@ -72,12 +72,15 @@ const SignTestTransaction = () => {
     useEffect(() => {
         // Login flow only: an account that existed before this screen redirects
         // straight in. A signup that just created its account stays for the
-        // account-ready screen and redirects from its CTA instead.
-        if (accountExists && !creatingAccountRef.current) {
+        // account-ready screen and redirects from its CTA instead — nothing may
+        // navigate off that screen on its own, so it is a hard guard here and
+        // not only the creating-account ref.
+        if (accountReady || creatingAccountRef.current) return
+        if (accountExists) {
             console.log('[SignTestTransaction] Account exists, redirecting to the app')
             handleRedirect()
         }
-    }, [accountExists])
+    }, [accountExists, accountReady])
 
     const handleTestTransaction = async () => {
         if (!address) {
