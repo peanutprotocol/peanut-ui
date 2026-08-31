@@ -280,7 +280,9 @@ const AmountInput = ({
                     {/* Input with fake caret */}
                     <div className="relative">
                         <input
-                            className={`h-12 max-w-80 bg-transparent text-heading-big-input text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-foreground-secondary disabled:text-foreground-secondary disabled:opacity-100 disabled:[-webkit-text-fill-color:var(--color-foreground-secondary)]`}
+                            // h-16, not h-12: text-heading-big-input is 52px on a 64px line box, so a
+                            // 48px input clipped the digits at the baseline
+                            className={`h-16 max-w-80 bg-transparent text-heading-big-input text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-foreground-secondary disabled:text-foreground-secondary disabled:opacity-100 disabled:[-webkit-text-fill-color:var(--color-foreground-secondary)]`}
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 isEditingRef.current = true
@@ -313,7 +315,7 @@ const AmountInput = ({
                         />
                         {/* Fake blinking caret shown when not focused and input is empty */}
                         {!isFocused && !displayValue && (
-                            <div className="pointer-events-none absolute top-1/2 left-0 h-12 w-[1px] -translate-y-1/2 animate-blink bg-action-primary" />
+                            <div className="pointer-events-none absolute top-1/2 left-0 h-16 w-[1px] -translate-y-1/2 animate-blink bg-action-primary" />
                         )}
                     </div>
                 </div>

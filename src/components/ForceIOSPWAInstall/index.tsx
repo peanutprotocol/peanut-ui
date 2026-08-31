@@ -2,12 +2,16 @@
 import Image from 'next/image'
 import starImage from '@/assets/icons/star.png'
 import { Icon } from '../Global/Icons/Icon'
+import { Button } from '@/components/0_Bruddle/Button'
 import { twMerge } from '@/utils/tw'
 import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
+import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 import { useTranslations } from 'next-intl'
 
 const ForceIOSPWAInstall = () => {
     const t = useTranslations('global')
+    const dispatch = useAppDispatch()
     const { browserType, isLoading } = useGetBrowserType()
 
     const STAR_POSITIONS = [
@@ -34,8 +38,10 @@ const ForceIOSPWAInstall = () => {
     const videoSource = getVideoSource()
 
     return (
-        <main className="h-[100dvh] w-full">
-            <section className="relative flex h-1/2 w-full items-center justify-center overflow-hidden bg-blue-300 p-10">
+        <main className="flex h-[100dvh] w-full flex-col">
+            {/* Hero takes the leftover height and the preview scales into it —
+                a fixed half-and-half split cropped the phone on short screens. */}
+            <section className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden bg-blue-300 px-6 py-6 pt-[calc(1.5rem_+_var(--safe-top))]">
                 {STAR_POSITIONS.map((positions, index) => (
                     <Image
                         key={index}
@@ -49,13 +55,20 @@ const ForceIOSPWAInstall = () => {
                 ))}
 
                 {!isLoading && (
-                    <video className="h-96 w-96 object-contain" autoPlay loop muted playsInline key={videoSource}>
+                    <video
+                        className="h-full max-h-96 w-full max-w-96 object-contain"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        key={videoSource}
+                    >
                         <source src={videoSource} type="video/quicktime" />
                         {t('forceIosPwaInstall.videoUnsupported')}
                     </video>
                 )}
             </section>
-            <section className="flex h-1/2 w-full flex-col gap-4 bg-white p-4">
+            <section className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto bg-white p-4 pb-[calc(1rem_+_var(--safe-bottom))]">
                 <h1 className="text-heading-m">{t('forceIosPwaInstall.title')}</h1>
                 <h2 className="text-body-m">{t('forceIosPwaInstall.subtitle')}</h2>
                 <h3>{t('forceIosPwaInstall.description')}</h3>
@@ -73,6 +86,11 @@ const ForceIOSPWAInstall = () => {
                         bold: (chunks) => <span className="font-bold">{chunks}</span>,
                     })}
                 </p>
+                {/* Installing is a nudge, not a gate: without this the screen has
+                    no control at all and a user who can't install is stranded. */}
+                <Button variant="stroke" onClick={() => dispatch(setupActions.setShowIosPwaInstallScreen(false))}>
+                    {t('forceIosPwaInstall.continueInBrowser')}
+                </Button>
             </section>
         </main>
     )

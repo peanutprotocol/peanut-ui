@@ -423,3 +423,74 @@ export function getGateAdvisory(gate: GateState): GateAdvisory | undefined {
 export function getGateReasonCode(gate: GateState): string | undefined {
     return 'reason' in gate ? gate.reason?.code : undefined
 }
+
+/**
+ * Gates the verify step can actually DO something about. Deliberately an
+ * allow-list: `pending` and `waiting-on-provider` resolve to the default
+ * "Unlock now" screen, so treating them as verification would offer a fresh
+ * Sumsub run to someone whose only correct move is to wait — and a gate kind
+ * added later falls through to the amount step, which is where it behaved
+ * before, rather than onto a screen that cannot render it.
+ */
+const VERIFIABLE_GATE_KINDS = new Set<GateState['kind']>([
+    'needs-identity',
+    'needs-enrollment',
+    'fixable-rejection',
+    'restart-identity',
+    'blocked-rejection',
+    'provide-email',
+])
+
+/** Whether the user can act on this gate themselves, rather than only wait. */
+export function isVerifiableGate(kind: GateState['kind']): boolean {
+    return VERIFIABLE_GATE_KINDS.has(kind)
+}
+
+export type DepositStep = 'verify' | 'inputAmount' | 'showDetails'
+
+/**
+ * The step a deposit flow belongs on, or `null` to leave it where it is.
+ *
+ * Verification comes before the amount: asking for a number and only then
+ * revealing an ID check wastes the entry, and a user who cannot pass the check
+ * should never have typed one. This runs on every gate change, not only at
+ * entry, so a bookmarked `?step=inputAmount` cannot walk around the ordering
+ * and a cleared gate does not strand anyone on a requirement they have met.
+ *
+ * Two states it must not touch: a gate that has not resolved (entering on the
+ * amount and then jumping would flash the wrong screen), and `showDetails`,
+ * which is a live onramp with a transfer id behind it.
+ *
+ * `accept-tos` is not an identity check. It is a one-tap consent the amount
+ * step already guards inline, so it does not earn a screen of its own.
+ */
+/**
+ * Whether a deposit step may render yet.
+ *
+ * A persisted `?step=verify` is not evidence the user needs verifying — a
+ * `pending` user can reload one. Nothing renders until the gate has answered
+ * AND the step matches that answer, because either gap puts the default
+ * "Unlock now" screen on the page with a live CTA that would start a Sumsub
+ * run for someone whose gate only time can clear.
+ *
+ * `showDetails` is exempt: it is a live onramp holding its own transfer id, and
+ * does not read the gate at all.
+ */
+export function isDepositStepReady(current: DepositStep | null | undefined, gateKind: GateState['kind']): boolean {
+    if (current === 'showDetails') return true
+    // Answered is not enough — the step must be the one the answer calls for.
+    // Effects run after paint, so a step the effect is about to rewrite still
+    // gets a frame on screen: long enough on a slow device to tap an "Unlock
+    // now" that the real gate never offered.
+    return gateKind !== 'loading' && nextDepositStep(current, gateKind) === null
+}
+
+export function nextDepositStep(
+    current: DepositStep | null | undefined,
+    gateKind: GateState['kind']
+): 'verify' | 'inputAmount' | null {
+    if (gateKind === 'loading') return null
+    if (current === 'showDetails') return null
+    const target = isVerifiableGate(gateKind) ? 'verify' : 'inputAmount'
+    return current === target ? null : target
+}

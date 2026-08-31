@@ -33,7 +33,9 @@ export const useAccountSetup = () => {
     }
 
     /**
-     * finalize account setup by adding account to db and navigating
+     * finalize account setup by adding account to db. Navigation is the
+     * caller's: signup pauses on the account-ready screen and redirects from
+     * its CTA, so redirecting here raced it off the screen.
      */
     const finalizeAccountSetup = async (address: string) => {
         console.log('[useAccountSetup] Starting account finalization', { address, userId: user?.user.userId })
@@ -87,8 +89,6 @@ export const useAccountSetup = () => {
                     throw error
                 }
             }
-
-            handleRedirect()
 
             return true
         } catch (e) {

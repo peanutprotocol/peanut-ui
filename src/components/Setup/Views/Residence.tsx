@@ -37,16 +37,20 @@ const ResidenceStep = () => {
 
     const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
 
+    // The geo guess, only if it is actually offered in the list.
+    const geoSuggestion = useMemo(() => {
+        if (!geoCountryCode) return undefined
+        const suggested = geoCountryCode.toUpperCase()
+        return countryOptions.some((option) => option.value === suggested) ? suggested : undefined
+    }, [geoCountryCode, countryOptions])
+
     // Geo is a suggestion only: preselect the dropdown when nothing is chosen
     // yet, never auto-advance, and never trigger the restricted screen from it.
     useEffect(() => {
-        if (residenceCountry || !geoCountryCode) return
-        const suggested = geoCountryCode.toUpperCase()
-        if (countryOptions.some((o) => o.value === suggested)) {
-            wasPrefilledRef.current = true
-            dispatch(setupActions.setResidenceCountry(suggested))
-        }
-    }, [geoCountryCode, residenceCountry, countryOptions, dispatch])
+        if (residenceCountry || !geoSuggestion) return
+        wasPrefilledRef.current = true
+        dispatch(setupActions.setResidenceCountry(geoSuggestion))
+    }, [geoSuggestion, residenceCountry, dispatch])
 
     const onResidenceChange = (value: string) => {
         wasPrefilledRef.current = false
@@ -196,7 +200,10 @@ const ResidenceStep = () => {
                 <BaseSelect
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}
-                    value={residenceCountry || undefined}
+                    // Falls back to the suggestion for the one frame between
+                    // mount and the effect below committing it, so the field
+                    // opens already filled instead of visibly changing itself.
+                    value={residenceCountry || geoSuggestion}
                     onValueChange={onResidenceChange}
                 />
                 <button

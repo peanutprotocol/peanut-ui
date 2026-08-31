@@ -134,15 +134,13 @@
             "title": "Começar",
             "createAccount": "Crie sua conta",
             "createAccountDone": "Pronto. Seu dinheiro já tem um usuário",
-            "addMoneyPix": "Adicione dinheiro com PIX",
-            "addMoneySepa": "Adicione dinheiro via SEPA",
-            "addMoneySpei": "Adicione dinheiro via SPEI",
-            "addMoneyBank": "Adicione dinheiro do seu banco",
-            "kycNote": "Depósitos bancários exigem uma verificação de identidade única · cerca de 10 min",
             "getCard": "Peça seu cartão Peanut",
             "addMoney": "Adicionar dinheiro",
             "firstPayment": "Faça seu primeiro pagamento",
-            "firstPaymentNote": "Envie alguns dólares para qualquer @usuário. Chega em segundos."
+            "firstPaymentNote": "Envie alguns dólares para qualquer @usuário. Chega em segundos.",
+            "addMoneyRoutes": "Transferência bancária ou cripto",
+            "addMoneyRoutesKyc": "Transferência bancária ou cripto · o banco exige uma verificação de identidade única",
+            "getCardNote": "Seus dólares, em rosa, onde a Visa for aceita."
         },
         "autoBalance": {
             "title": "Termine de configurar seu cartão",
@@ -3319,7 +3317,8 @@
             "subtitle": "Este é o último passo!",
             "description": "Adicione o Peanut à sua tela de início para desbloquear sua carteira e começar a usá-la.",
             "tapShare": "Toque no <share>ícone Compartilhar</share> do seu navegador",
-            "thenTapAddToHomeScreen": "e depois em <bold>“Adicionar à Tela de Início”</bold>"
+            "thenTapAddToHomeScreen": "e depois em <bold>“Adicionar à Tela de Início”</bold>",
+            "continueInBrowser": "Continuar no navegador"
         },
         "pointsCard": {
             "earned": "Você ganhou {count, plural, one {# ponto} other {# pontos}}!"

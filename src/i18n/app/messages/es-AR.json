@@ -48,15 +48,11 @@
             "title": "Empezar",
             "createAccount": "Creá tu cuenta",
             "createAccountDone": "Listo. Tu plata ya tiene un usuario",
-            "addMoneyPix": "Agregá dinero con PIX",
-            "addMoneySepa": "Agregá dinero por SEPA",
-            "addMoneySpei": "Agregá dinero por SPEI",
-            "addMoneyBank": "Agregá dinero desde tu banco",
-            "kycNote": "Los depósitos bancarios requieren una verificación de identidad única · unos 10 min",
             "getCard": "Conseguí tu tarjeta Peanut",
             "addMoney": "Agregar dinero",
             "firstPayment": "Hacé tu primer pago",
-            "firstPaymentNote": "Mandá unos dólares a cualquier @usuario. Llegan en segundos."
+            "firstPaymentNote": "Mandá unos dólares a cualquier @usuario. Llegan en segundos.",
+            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco pide una verificación de identidad por única vez"
         },
         "autoBalance": {
             "title": "Terminá de configurar tu tarjeta",
@@ -1421,7 +1417,8 @@
         "forceIosPwaInstall": {
             "title": "Viví la experiencia completa",
             "description": "Agregá Peanut a tu pantalla de inicio para desbloquear tu billetera y empezar a usarla.",
-            "tapShare": "Tocá el <share>ícono Compartir</share> en tu navegador"
+            "tapShare": "Tocá el <share>ícono Compartir</share> en tu navegador",
+            "continueInBrowser": "Seguí en el navegador"
         },
         "userCard": {
             "payWhatYouWant": "Pagá lo que quieras",
