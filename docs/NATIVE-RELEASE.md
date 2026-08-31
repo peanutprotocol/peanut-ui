@@ -352,6 +352,13 @@ Leaving the channel unsets it **and** calls `reset()` back to the store bundle: 
 versions outrank every production one, so no production OTA could ever replace a beta
 bundle on its own.
 
+One asymmetry to know before forcing anyone from the dashboard: `unsetChannel()` is
+local-only in the plugin (it drops a stored preference and returns ok), so a **dashboard
+device override survives it** and Capgo keeps serving beta. The switch detects that —
+it re-reads the effective channel and says an admin has to remove the override rather
+than resetting into an exit that undoes itself on the next launch — but the removal is
+dashboard-side. Self-assignment is the cleaner enrolment path for that reason.
+
 ---
 
 ## 10. Pre-submission verification

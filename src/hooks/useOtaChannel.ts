@@ -5,6 +5,7 @@ import { isNativeBridge } from '@/utils/capacitor'
 import {
     BETA_OTA_CHANNEL,
     OtaChannelClosedError,
+    OtaChannelOverrideError,
     OtaResetFailedError,
     type OtaChannelStatus,
 } from '@/utils/capgo-updater'
@@ -19,6 +20,8 @@ import {
  *   UI to catch up
  * - `left-still-beta`: channel unset, but the beta bundle is still running and
  *   no production OTA can replace it — the app has to be reinstalled
+ * - `left-override`: Capgo still routes this device to beta — someone assigned
+ *   it from the dashboard, and only the dashboard can take it back
  * - `closed`: the channel does not accept self-assignment
  * - `failed`: the switch itself failed (offline, rate limited, misconfigured)
  */
@@ -28,6 +31,7 @@ export type OtaChannelSwitchResult =
     | 'join-no-bundle'
     | 'left'
     | 'left-still-beta'
+    | 'left-override'
     | 'closed'
     | 'failed'
 
@@ -81,6 +85,7 @@ export function useOtaChannel(): UseOtaChannel {
                 return outcome === 'up-to-date' ? 'joined' : 'join-no-bundle'
             } catch (err) {
                 console.warn('[capgo] channel switch failed:', err)
+                if (err instanceof OtaChannelOverrideError) return 'left-override'
                 if (err instanceof OtaResetFailedError) return 'left-still-beta'
                 return err instanceof OtaChannelClosedError ? 'closed' : 'failed'
             } finally {

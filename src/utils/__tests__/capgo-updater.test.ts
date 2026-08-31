@@ -12,6 +12,7 @@ const mockUpdater = {
     next: jest.fn().mockResolvedValue(undefined),
     setChannel: jest.fn(),
     unsetChannel: jest.fn().mockResolvedValue(undefined),
+    getChannel: jest.fn(),
     reset: jest.fn().mockResolvedValue(undefined),
 }
 
@@ -90,6 +91,7 @@ describe('beta channel opt-in', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockUpdater.setChannel.mockResolvedValue({ status: 'ok' })
+        mockUpdater.getChannel.mockResolvedValue({ channel: null, status: 'default' })
         mockUpdater.getLatest.mockRejectedValue(new Error('No new version available'))
     })
 
@@ -204,6 +206,23 @@ describe('beta channel opt-in', () => {
 
     // Channel unset + beta bundle still running is the one state no OTA can
     // repair, so a failed reset must not be reported as a clean exit.
+    // unsetChannel() is local-only on both platforms (it drops a stored key), so a
+    // device forced onto the channel from the dashboard stays there — resetting
+    // would undo itself on the next launch and reload away the explanation.
+    it('refuses to claim an exit while Capgo still routes the device to beta', async () => {
+        const { leaveBetaOtaChannel, OtaChannelOverrideError } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockResolvedValue({ channel: 'staging', status: 'override' })
+        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelOverrideError)
+        expect(mockUpdater.reset).not.toHaveBeenCalled()
+    })
+
+    it('still resets when the effective channel cannot be read', async () => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(leaveBetaOtaChannel()).resolves.toBeUndefined()
+        expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
     it('retries a failed reset and reports the device is still on beta code', async () => {
         const { leaveBetaOtaChannel, OtaResetFailedError } = await import('../capgo-updater')
         mockUpdater.reset.mockRejectedValue(new Error('reset failed'))

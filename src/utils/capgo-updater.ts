@@ -246,6 +246,13 @@ export async function joinBetaOtaChannel(): Promise<OtaCheckOutcome> {
 // the two: production versions sort below it, so nothing will ever replace it.
 export class OtaResetFailedError extends Error {}
 
+// A device Capgo itself routes to the beta channel — forced from the dashboard,
+// which is the documented way to enrol someone outside the cohort. unsetChannel()
+// only clears the plugin's local preference (verified in the plugin source: both
+// platforms just drop a stored key and return ok), so this assignment outlives it
+// and nothing in the app can undo it.
+export class OtaChannelOverrideError extends Error {}
+
 // Beta bundles carry a higher version than production's, so no production OTA
 // can ever overwrite one: reset() back to the store bundle is the only way out,
 // and it reloads the app on the spot. reset() resolving is therefore the unusual
@@ -259,6 +266,16 @@ export async function leaveBetaOtaChannel(): Promise<void> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     return queueOtaWork(async () => {
         await CapacitorUpdater.unsetChannel({})
+
+        // getChannel() asks the backend what it will actually serve. Still the
+        // beta channel means a server-side assignment survived the unset, so
+        // resetting here would undo itself on the next launch — and take the
+        // explanation with it, since reset() reloads the app.
+        const effective = await CapacitorUpdater.getChannel().catch(() => null)
+        if (effective?.channel === BETA_OTA_CHANNEL) {
+            throw new OtaChannelOverrideError(`${BETA_OTA_CHANNEL} is still assigned to this device`)
+        }
+
         try {
             await CapacitorUpdater.reset()
         } catch {

@@ -88,6 +88,16 @@ it('confirms the exit when the app did not reload', async () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('released version')))
 })
 
+it('sends dashboard-assigned testers to an admin, since the app cannot unassign them', async () => {
+    setup({
+        isBeta: true,
+        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123' },
+        ...switching('left-override'),
+    })
+    fireEvent.click(screen.getByRole('switch'))
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Capgo dashboard')))
+})
+
 it('tells the tester to get the channel opened when Capgo refuses', async () => {
     setup(switching('closed'))
     fireEvent.click(screen.getByRole('switch'))

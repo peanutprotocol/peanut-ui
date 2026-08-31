@@ -536,6 +536,7 @@
                 "deviceCopyFailed": "Could not copy the device ID.",
                 "leftStillBeta": "Left beta updates, but the app is still running the beta build. Reinstall it from the store to get back to the released version.",
                 "left": "Beta updates off. This device is back on the released version.",
+                "leftOverride": "This device was put on beta from the Capgo dashboard, so the app cannot take it off. Ask an admin to remove the device's channel override.",
                 "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
                 "failed": "Could not change the update channel."
             }
