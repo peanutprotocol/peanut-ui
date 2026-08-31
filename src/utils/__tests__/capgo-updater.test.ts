@@ -216,9 +216,25 @@ describe('beta channel opt-in', () => {
         expect(mockUpdater.reset).not.toHaveBeenCalled()
     })
 
-    it('still resets when the effective channel cannot be read', async () => {
+    // Resetting on an unreadable answer is the forced tester's worst case: the app
+    // reloads onto the store bundle, the reload eats the explanation, and the
+    // surviving override routes the device back to beta on the next check.
+    it.each([
+        ['the request fails', () => mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))],
+        [
+            'the plugin is rate limited',
+            () => mockUpdater.getChannel.mockResolvedValue({ error: 'rate_limit_exceeded' }),
+        ],
+    ])('treats an unreadable effective channel as indeterminate when %s', async (_case, arrange) => {
+        const { leaveBetaOtaChannel, OtaChannelUnknownError } = await import('../capgo-updater')
+        arrange()
+        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelUnknownError)
+        expect(mockUpdater.reset).not.toHaveBeenCalled()
+    })
+
+    it('resets once Capgo confirms no channel is assigned', async () => {
         const { leaveBetaOtaChannel } = await import('../capgo-updater')
-        mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))
+        mockUpdater.getChannel.mockResolvedValue({ channel: '', status: 'default' })
         await expect(leaveBetaOtaChannel()).resolves.toBeUndefined()
         expect(mockUpdater.reset).toHaveBeenCalled()
     })

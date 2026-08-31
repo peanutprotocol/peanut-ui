@@ -253,6 +253,11 @@ export class OtaResetFailedError extends Error {}
 // and nothing in the app can undo it.
 export class OtaChannelOverrideError extends Error {}
 
+// Capgo could not say which channel it will serve. Resetting on that guess is how
+// a forced tester gets reloaded onto the store bundle and quietly routed back to
+// beta on the next check, with the reload having eaten the explanation.
+export class OtaChannelUnknownError extends Error {}
+
 // Beta bundles carry a higher version than production's, so no production OTA
 // can ever overwrite one: reset() back to the store bundle is the only way out,
 // and it reloads the app on the spot. reset() resolving is therefore the unusual
@@ -267,12 +272,14 @@ export async function leaveBetaOtaChannel(): Promise<void> {
     return queueOtaWork(async () => {
         await CapacitorUpdater.unsetChannel({})
 
-        // getChannel() asks the backend what it will actually serve. Still the
-        // beta channel means a server-side assignment survived the unset, so
-        // resetting here would undo itself on the next launch — and take the
-        // explanation with it, since reset() reloads the app.
+        // getChannel() asks the backend what it will actually serve, and only a
+        // successful, channel-bearing answer licenses the reset. Offline, rate
+        // limited, or an error field means indeterminate — not "clear".
         const effective = await CapacitorUpdater.getChannel().catch(() => null)
-        if (effective?.channel === BETA_OTA_CHANNEL) {
+        if (!effective || effective.error) {
+            throw new OtaChannelUnknownError(effective?.error ?? 'the effective channel could not be read')
+        }
+        if (effective.channel === BETA_OTA_CHANNEL) {
             throw new OtaChannelOverrideError(`${BETA_OTA_CHANNEL} is still assigned to this device`)
         }
 

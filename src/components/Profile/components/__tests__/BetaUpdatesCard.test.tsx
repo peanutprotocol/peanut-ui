@@ -98,6 +98,17 @@ it('sends dashboard-assigned testers to an admin, since the app cannot unassign 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Capgo dashboard')))
 })
 
+it('keeps the switch on when the exit could not be confirmed', async () => {
+    setup({
+        isBeta: true,
+        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123' },
+        ...switching('left-unconfirmed'),
+    })
+    fireEvent.click(screen.getByRole('switch'))
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('still on the beta build')))
+    expect(screen.getByRole('switch')).toBeChecked()
+})
+
 it('tells the tester to get the channel opened when Capgo refuses', async () => {
     setup(switching('closed'))
     fireEvent.click(screen.getByRole('switch'))

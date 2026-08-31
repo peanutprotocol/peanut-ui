@@ -537,6 +537,7 @@
                 "leftStillBeta": "Você saiu das atualizações beta, mas o app ainda está rodando a versão beta. Reinstale pela loja para voltar à versão publicada.",
                 "left": "Atualizações beta desativadas. Este aparelho voltou para a versão publicada.",
                 "leftOverride": "Este aparelho foi colocado em beta pelo painel do Capgo, então o app não consegue tirá-lo. Peça a um administrador para remover a atribuição de canal do aparelho.",
+                "leftUnconfirmed": "Não foi possível falar com o Capgo para confirmar a mudança, então este aparelho continua na versão beta. Tente de novo quando estiver online.",
                 "closed": "O canal {channel} ainda não aceita testadores. Peça a um administrador para permitir a autoatribuição no Capgo.",
                 "failed": "Não foi possível alterar o canal de atualizações."
             }

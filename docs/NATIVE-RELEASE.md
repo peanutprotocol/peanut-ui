@@ -357,7 +357,9 @@ local-only in the plugin (it drops a stored preference and returns ok), so a **d
 device override survives it** and Capgo keeps serving beta. The switch detects that —
 it re-reads the effective channel and says an admin has to remove the override rather
 than resetting into an exit that undoes itself on the next launch — but the removal is
-dashboard-side. Self-assignment is the cleaner enrolment path for that reason.
+dashboard-side. Self-assignment is the cleaner enrolment path for that reason. When Capgo
+cannot be reached to answer that question, the switch refuses to reset at all and asks the
+tester to retry online: only a confirmed answer licenses the reset.
 
 ---
 

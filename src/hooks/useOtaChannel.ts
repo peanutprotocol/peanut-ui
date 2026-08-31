@@ -6,6 +6,7 @@ import {
     BETA_OTA_CHANNEL,
     OtaChannelClosedError,
     OtaChannelOverrideError,
+    OtaChannelUnknownError,
     OtaResetFailedError,
     type OtaChannelStatus,
 } from '@/utils/capgo-updater'
@@ -22,6 +23,8 @@ import {
  *   no production OTA can replace it — the app has to be reinstalled
  * - `left-override`: Capgo still routes this device to beta — someone assigned
  *   it from the dashboard, and only the dashboard can take it back
+ * - `left-unconfirmed`: Capgo could not be reached to confirm the exit, so the
+ *   device is still on the beta bundle and the switch stays on
  * - `closed`: the channel does not accept self-assignment
  * - `failed`: the switch itself failed (offline, rate limited, misconfigured)
  */
@@ -32,6 +35,7 @@ export type OtaChannelSwitchResult =
     | 'left'
     | 'left-still-beta'
     | 'left-override'
+    | 'left-unconfirmed'
     | 'closed'
     | 'failed'
 
@@ -87,6 +91,7 @@ export function useOtaChannel(): UseOtaChannel {
                 return outcome === 'up-to-date' ? 'joined' : 'join-no-bundle'
             } catch (err) {
                 console.warn('[capgo] channel switch failed:', err)
+                if (err instanceof OtaChannelUnknownError) return 'left-unconfirmed'
                 if (err instanceof OtaChannelOverrideError) return 'left-override'
                 if (err instanceof OtaResetFailedError) return 'left-still-beta'
                 return err instanceof OtaChannelClosedError ? 'closed' : 'failed'

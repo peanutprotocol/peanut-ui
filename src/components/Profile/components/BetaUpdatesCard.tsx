@@ -70,6 +70,9 @@ export const BetaUpdatesCard = () => {
             case 'left-override':
                 toast.error(t('leftOverride'))
                 break
+            case 'left-unconfirmed':
+                toast.error(t('leftUnconfirmed'))
+                break
             // Only reached when reset() did not reload — a device already on the
             // store bundle. Otherwise the app is gone before this runs.
             case 'left':
