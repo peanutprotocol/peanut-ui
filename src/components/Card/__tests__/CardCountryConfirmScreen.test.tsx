@@ -18,6 +18,7 @@ const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper 
 // NavHeader reads useAuth; stub it so the presentational screen renders alone.
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
+    useOptionalAuth: () => undefined,
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,

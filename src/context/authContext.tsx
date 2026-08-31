@@ -405,3 +405,10 @@ export const useAuth = (): AuthContextType => {
     }
     return context
 }
+
+/**
+ * Tolerant read for surfaces that render both inside and outside the app
+ * provider tree — marketing routes mount no AuthProvider (ClientProviders
+ * skips AppGlobals there), so components shared with them cannot throw.
+ */
+export const useOptionalAuth = (): AuthContextType | undefined => useContext(AuthContext)

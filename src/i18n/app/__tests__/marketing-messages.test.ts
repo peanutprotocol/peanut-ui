@@ -30,7 +30,8 @@ describe('marketing message catalogs', () => {
     it('covers every namespace the marketing routes use', () => {
         // Guards the generator's list against a new namespace being introduced
         // on the landing page without being added here.
-        expect(new Set(namespaces)).toEqual(new Set(['common', 'errors', 'migration', 'shhhhh']))
+        // navigation: NavHeader (the BackToAppBar on content pages) reads it
+        expect(new Set(namespaces)).toEqual(new Set(['common', 'errors', 'migration', 'navigation', 'shhhhh']))
     })
 
     it('is a small fraction of the full catalog', () => {

@@ -59,7 +59,7 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 
 let mockUser: { residence?: { declared: string | null; verified: string | null }; user?: { userId: string } } | null =
     null
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }), useOptionalAuth: () => undefined }))
 
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ isEligible: true, hasCardAccess: true }),

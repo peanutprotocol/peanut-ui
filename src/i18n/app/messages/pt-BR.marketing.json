@@ -142,6 +142,27 @@
             "pickStore": "Escolha sua loja e baixe o app."
         }
     },
+    "navigation": {
+        "home": "Início",
+        "send": "Enviar",
+        "request": "Cobrar",
+        "add": "Adicionar",
+        "withdraw": "Sacar",
+        "history": "Histórico",
+        "docs": "Docs",
+        "support": "Suporte",
+        "logout": "Sair",
+        "loggingOut": "Saindo...",
+        "dashboard": "Painel",
+        "pay": "Pagar",
+        "cashout": "Saque",
+        "claim": "Resgatar",
+        "peanutLogoAlt": "Logo da Peanut",
+        "receipt": "Recibo",
+        "supportUnread": "Nova resposta do suporte",
+        "card": "Cartão",
+        "scanQr": "Escanear QR"
+    },
     "shhhhh": {
         "hero": {
             "wordmark": "shhhhh.",

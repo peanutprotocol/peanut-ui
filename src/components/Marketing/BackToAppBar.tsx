@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import Cookies from 'js-cookie'
-import { type Locale } from '@/i18n/types'
+import NavHeader from '@/components/Global/NavHeader'
+import { useSafeBack } from '@/hooks/useSafeBack'
 
 // Mirrors JWT_COOKIE_KEY in src/utils/auth-token.ts. Importing that module
 // would drag the auth/capacitor machinery into every marketing page bundle
@@ -11,24 +11,18 @@ import { type Locale } from '@/i18n/types'
 // every web user.
 const JWT_COOKIE_KEY = 'jwt-token'
 
-// Inlined for the same reason as LocaleSuggestion's STRINGS: importing the
-// catalogs would ship every locale's messages for one string.
-const STRINGS: Record<Locale, string> = {
-    en: 'Back to app',
-    'es-419': 'Volver a la app',
-    'es-ar': 'Volver a la app',
-    'pt-br': 'Voltar ao app',
-}
-
 /**
- * Slim sticky bar shown to logged-in visitors on marketing/content pages.
- * Opening help or a landing page from inside the app drops all app chrome
- * (bottom nav, banner) — without a visible way back, users read it as being
- * stranded. The cookie is read after mount: these pages are SSG and the bar
- * must not be in the prerendered markup.
+ * The /shhhhh back affordance, applied to every marketing/content page: the
+ * design-system NavHeader circle button overlaying the top-left of the hero.
+ * Shown only to logged-in web visitors — opening help or a landing page from
+ * inside the app drops all app chrome (bottom nav, banner), and without a
+ * visible way back users read it as being stranded. The cookie is read after
+ * mount: these pages are SSG and the button must not be in the prerendered
+ * markup, so SEO pages stay untouched for logged-out visitors.
  */
-export function BackToAppBar({ locale }: { locale: Locale }) {
+export function BackToAppBar() {
     const [loggedIn, setLoggedIn] = useState(false)
+    const onBack = useSafeBack('/home')
 
     useEffect(() => {
         setLoggedIn(Boolean(Cookies.get(JWT_COOKIE_KEY)))
@@ -37,14 +31,8 @@ export function BackToAppBar({ locale }: { locale: Locale }) {
     if (!loggedIn) return null
 
     return (
-        <div className="sticky top-0 z-30 border-b border-n-1 bg-white">
-            <Link
-                href="/home"
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-body-s font-semibold text-n-1"
-            >
-                <span aria-hidden>←</span>
-                {STRINGS[locale]}
-            </Link>
+        <div className="absolute top-4 left-4 z-30">
+            <NavHeader onPrev={onBack} hideLabel />
         </div>
     )
 }

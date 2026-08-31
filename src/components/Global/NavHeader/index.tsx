@@ -6,7 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Link from 'next/link'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Icons/Icon'
-import { useAuth } from '@/context/authContext'
+import { useOptionalAuth } from '@/context/authContext'
 
 interface NavHeaderProps {
     onPrev?: () => void
@@ -47,7 +47,9 @@ const NavHeader = ({
     rightElement,
     hideBackBtn = false,
 }: NavHeaderProps) => {
-    const { logoutUser, isLoggingOut } = useAuth()
+    // marketing routes mount NavHeader without the app provider tree; auth is
+    // only needed for the logout button, so read it tolerantly
+    const auth = useOptionalAuth()
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)
@@ -105,10 +107,10 @@ const NavHeader = ({
             )}
 
             {rightElement}
-            {showLogoutBtn && (
+            {showLogoutBtn && auth && (
                 <Button
-                    onClick={() => logoutUser()}
-                    loading={isLoggingOut}
+                    onClick={() => auth.logoutUser()}
+                    loading={auth.isLoggingOut}
                     variant="stroke"
                     icon="logout"
                     aria-label={tNav('logout')}
