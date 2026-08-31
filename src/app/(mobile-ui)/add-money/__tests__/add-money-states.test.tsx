@@ -1342,6 +1342,11 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
     // A provisioning rail has nothing for the user to do; offering "Unlock now"
     // would start another Sumsub run against a gate that only time clears.
+    /*
+     * Assert what DOES appear, not only what doesn't: the first version of this
+     * test checked the KYC modal was absent, which passed while Continue was a
+     * dead button opening nothing at all.
+     */
     test('a pending gate gets the wait modal from Continue, never a KYC invite', async () => {
         resetQueryState({ step: 'inputAmount', amount: '10' })
         setGate('pending')
@@ -1349,7 +1354,8 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         fireEvent.click(screen.getByText('Continue'))
 
-        await waitFor(() => expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText("We're reviewing your details")).toBeInTheDocument())
+        expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
     })
 
     test('the verify step mounts the KYC host its own CTA needs', () => {
