@@ -91,7 +91,11 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                 <Portal>
                     <Content
                         className={twMerge(
-                            'relative z-50 max-h-80 overflow-hidden rounded-sm border border-border-default bg-white shadow-lg'
+                            // Cap at the smaller of the design height and the room
+                            // Radix measured (which honours collisionPadding below),
+                            // so a long list shrinks and scrolls instead of running
+                            // under the nav.
+                            'relative z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-hidden rounded-sm border border-border-default bg-white shadow-lg'
                         )}
                         position="popper"
                         sideOffset={4}
