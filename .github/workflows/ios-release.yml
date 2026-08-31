@@ -299,7 +299,9 @@ jobs:
               # `uploadSymbols` in ExportOptions.plist goes to App Store Connect only —
               # Sentry sunset its ASC fetch in 2024. Needs a SENTRY_AUTH_TOKEN repo
               # secret (org peanut-c34d84c05, project peanut-ui, scope project:releases).
-              # Until it exists this step warns and the release still ships.
+              # Until it exists this step warns and the release still ships. sentry-cli
+              # is a pinned devDependency so it comes from the lockfile, not a fresh
+              # registry fetch inside the signing job.
               env:
                   SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
                   SENTRY_ORG: peanut-c34d84c05
@@ -309,7 +311,7 @@ jobs:
                       echo "::warning::SENTRY_AUTH_TOKEN not set — dSYMs not uploaded; native iOS crashes will be unsymbolicated in Sentry"
                       exit 0
                   fi
-                  pnpm dlx @sentry/cli@2.39.1 debug-files upload build/ios/App.xcarchive/dSYMs
+                  pnpm exec sentry-cli debug-files upload build/ios/App.xcarchive/dSYMs
 
             - name: Verify push entitlements + Sentry DSN in exported IPA
               run: |
@@ -321,16 +323,15 @@ jobs:
                       echo "::error::exported ipa aps-environment is '${APS:-missing}', expected production — push would be dead in this build"
                       exit 1
                   fi
-                  # An empty or unexpanded SentryDSN ships a build with native crash
-                  # reporting silently off — the iOS analogue of the gradle warning.
+                  # An empty, unexpanded, or malformed SentryDSN ships a build with native
+                  # crash reporting silently off (sentry-cocoa disables itself on a DSN it
+                  # cannot parse) — the iOS analogue of the gradle warning.
                   DSN=$(plutil -extract SentryDSN raw -o - /tmp/ipa-check/Payload/App.app/Info.plist 2>/dev/null || true)
-                  case "$DSN" in
-                      ''|'$('*)
-                          echo "::error::exported ipa SentryDSN is '${DSN:-missing}' — native crash reporting would be dead in this build"
-                          exit 1
-                          ;;
-                  esac
-                  echo "SentryDSN present"
+                  if ! printf '%s' "$DSN" | grep -Eq '^https://[0-9a-f]+@[a-z0-9.-]+\.sentry\.io/[0-9]+$'; then
+                      echo "::error::exported ipa SentryDSN is ${DSN:+malformed}${DSN:-missing} — native crash reporting would be dead in this build"
+                      exit 1
+                  fi
+                  echo "SentryDSN present and well-formed"
 
             - name: Upload to TestFlight
               uses: apple-actions/upload-testflight-build@1ad58030672057aa084b4e96beb6f7a8c627f9e6 # v5
