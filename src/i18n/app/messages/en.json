@@ -971,6 +971,7 @@
         "shareAmountRequest": "Share ${amount} request",
         "billSplitFor": "Bill split for {merchant}",
         "linkCreatedToast": "Link created successfully!",
+        "linkCreatedAndCopiedToast": "Link created and copied to clipboard!",
         "requestUpdatedToast": "Request updated successfully!",
         "recipientPlaceholder": "Enter a username, an address or ENS",
         "errors": {

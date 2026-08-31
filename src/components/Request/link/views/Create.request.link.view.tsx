@@ -21,6 +21,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { type IToken } from '@/interfaces/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { requestsApi } from '@/services/requests'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -193,7 +194,8 @@ export const CreateRequestLinkView = () => {
                 // Update the last saved state
                 lastSavedAttachmentRef.current = { ...attachmentOptions }
 
-                toast.success(t('linkCreatedToast'))
+                const copied = await copyTextToClipboard(link)
+                toast.success(copied ? t('linkCreatedAndCopiedToast') : t('linkCreatedToast'))
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 return link
             } catch (error) {

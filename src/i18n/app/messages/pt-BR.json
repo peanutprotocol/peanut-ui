@@ -971,6 +971,7 @@
         "shareAmountRequest": "Compartilhar cobrança de ${amount}",
         "billSplitFor": "Divisão de conta em {merchant}",
         "linkCreatedToast": "Link criado com sucesso!",
+        "linkCreatedAndCopiedToast": "Link criado e copiado para a área de transferência!",
         "requestUpdatedToast": "Cobrança atualizada com sucesso!",
         "recipientPlaceholder": "Insira um nome de usuário, um endereço ou ENS",
         "errors": {

@@ -123,6 +123,11 @@ jest.mock('@/interfaces/peanut-sdk-types', () => ({
     EPeanutLinkType: { native: 0, erc20: 1 },
 }))
 
+const mockCopyTextToClipboard = jest.fn<Promise<boolean>, [string]>()
+jest.mock('@/utils/clipboard.utils', () => ({
+    copyTextToClipboard: (text: string) => mockCopyTextToClipboard(text),
+}))
+
 // Mock Toast
 const mockToastSuccess = jest.fn()
 const mockToastError = jest.fn()
@@ -359,6 +364,8 @@ function renderDirectRequest() {
 // ---------- default mock values ----------
 
 function applyDefaults() {
+    mockCopyTextToClipboard.mockResolvedValue(true)
+
     mockUseAuth.mockReturnValue({
         user: { user: { username: 'test-user', userId: 'user-1' } },
         isFetchingUser: false,
@@ -660,7 +667,24 @@ describe('GROUP 2: Link Creation', () => {
         })
     })
 
-    test('success toast is shown after link creation', async () => {
+    test('the new link lands on the clipboard and the success toast says so', async () => {
+        renderCreateRequest()
+
+        const field = screen.getByTestId('amount-field')
+        fireEvent.change(field, { target: { value: '10' } })
+
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Create request' }))
+        })
+
+        await waitFor(() => {
+            expect(mockCopyTextToClipboard).toHaveBeenCalledWith('https://peanut.me/request/pay?id=req-uuid-1')
+            expect(mockToastSuccess).toHaveBeenCalledWith('Link created and copied to clipboard!')
+        })
+    })
+
+    test('a refused clipboard falls back to the plain link-created toast', async () => {
+        mockCopyTextToClipboard.mockResolvedValue(false)
         renderCreateRequest()
 
         const field = screen.getByTestId('amount-field')
