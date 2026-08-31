@@ -163,10 +163,18 @@ export interface OtaChannelStatus {
 // sends people chasing a dashboard toggle that is already correct.
 export class OtaChannelClosedError extends Error {}
 
-const CLOSED_CHANNEL_CODES = ['channel_private', 'disabled_by_config', 'channel_not_found', 'cannot_set_channel']
+// Both platforms reject setChannel() with a CapacitorException carrying
+// `data.error`: iOS normalises the private-channel case to `channel_private`,
+// Android passes the backend's own code straight through. `disabled_by_config`
+// (allowSetDefaultChannel off) and `channel_not_found` arrive in the message.
+const CLOSED_CHANNEL_CODES = [
+    'channel_private',
+    'cannot_update_via_private_channel',
+    'channel_self_set_not_allowed',
+    'disabled_by_config',
+    'channel_not_found',
+]
 
-// The plugin reports the reason as a CapacitorException `data.error` code on iOS
-// and folds it into the message on Android; check both.
 function isClosedChannel(reason: unknown): boolean {
     const code = (reason as { data?: { error?: unknown } } | null)?.data?.error
     const message = reason instanceof Error ? reason.message : String(reason ?? '')
@@ -207,11 +215,26 @@ export async function joinBetaOtaChannel(): Promise<OtaCheckOutcome> {
     return checkAndStageUpdate()
 }
 
+// A device that unset its channel but kept the beta bundle is the worst state of
+// the two: production versions sort below it, so nothing will ever replace it.
+export class OtaResetFailedError extends Error {}
+
 // Beta bundles carry a higher version than production's, so no production OTA
 // can ever overwrite one: reset() back to the store bundle is the only way out,
-// and it reloads the app on the spot.
+// and it reloads the app on the spot. reset() resolving is therefore the unusual
+// path (the device was already on the builtin bundle) — a rejection means the
+// channel is gone but the beta code is still running, so retry once and say so
+// rather than reporting a clean exit.
 export async function leaveBetaOtaChannel(): Promise<void> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     await CapacitorUpdater.unsetChannel({})
-    await CapacitorUpdater.reset()
+    try {
+        await CapacitorUpdater.reset()
+    } catch {
+        try {
+            await CapacitorUpdater.reset()
+        } catch (err) {
+            throw new OtaResetFailedError(err instanceof Error ? err.message : String(err ?? ''))
+        }
+    }
 }

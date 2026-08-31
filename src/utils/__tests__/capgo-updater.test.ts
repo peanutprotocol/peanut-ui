@@ -122,15 +122,18 @@ describe('beta channel opt-in', () => {
         expect(mockUpdater.getLatest).not.toHaveBeenCalled()
     })
 
-    it('reads the reason off a CapacitorException data code', async () => {
-        const { joinBetaOtaChannel, OtaChannelClosedError } = await import('../capgo-updater')
-        mockUpdater.setChannel.mockRejectedValue(
-            Object.assign(new Error('setChannel failed'), {
-                data: { error: 'channel_private' },
-            })
-        )
-        await expect(joinBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelClosedError)
-    })
+    // iOS normalises the private-channel case to `channel_private`; Android
+    // rejects with the backend's own codes, which read nothing like it.
+    it.each(['channel_private', 'cannot_update_via_private_channel', 'channel_self_set_not_allowed'])(
+        'reads %s off a CapacitorException data code',
+        async (code) => {
+            const { joinBetaOtaChannel, OtaChannelClosedError } = await import('../capgo-updater')
+            mockUpdater.setChannel.mockRejectedValue(
+                Object.assign(new Error('setChannel failed'), { data: { error: code } })
+            )
+            await expect(joinBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelClosedError)
+        }
+    )
 
     // A timeout must not send the tester chasing a dashboard toggle that is
     // already correct.
@@ -153,5 +156,20 @@ describe('beta channel opt-in', () => {
         await leaveBetaOtaChannel()
         expect(mockUpdater.unsetChannel).toHaveBeenCalled()
         expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
+    // Channel unset + beta bundle still running is the one state no OTA can
+    // repair, so a failed reset must not be reported as a clean exit.
+    it('retries a failed reset and reports the device is still on beta code', async () => {
+        const { leaveBetaOtaChannel, OtaResetFailedError } = await import('../capgo-updater')
+        mockUpdater.reset.mockRejectedValue(new Error('reset failed'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaResetFailedError)
+        expect(mockUpdater.reset).toHaveBeenCalledTimes(2)
+    })
+
+    it('accepts a reset that only succeeds on the retry', async () => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        mockUpdater.reset.mockRejectedValueOnce(new Error('reset failed')).mockResolvedValueOnce(undefined)
+        await expect(leaveBetaOtaChannel()).resolves.toBeUndefined()
     })
 })

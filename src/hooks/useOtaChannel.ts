@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { isNativeBridge } from '@/utils/capacitor'
-import { BETA_OTA_CHANNEL, OtaChannelClosedError, type OtaChannelStatus } from '@/utils/capgo-updater'
+import {
+    BETA_OTA_CHANNEL,
+    OtaChannelClosedError,
+    OtaResetFailedError,
+    type OtaChannelStatus,
+} from '@/utils/capgo-updater'
 
 /**
  * - `staged`: on the channel, beta bundle downloaded, waiting for a restart
@@ -10,10 +15,19 @@ import { BETA_OTA_CHANNEL, OtaChannelClosedError, type OtaChannelStatus } from '
  * - `join-no-bundle`: on the channel, but the bundle could not be fetched — the
  *   `disable_auto_update_under_native` case after a native release lands here
  * - `left`: back on the default channel and the store bundle
+ * - `left-still-beta`: channel unset, but the beta bundle is still running and
+ *   no production OTA can replace it — the app has to be reinstalled
  * - `closed`: the channel does not accept self-assignment
  * - `failed`: the switch itself failed (offline, rate limited, misconfigured)
  */
-export type OtaChannelSwitchResult = 'staged' | 'joined' | 'join-no-bundle' | 'left' | 'closed' | 'failed'
+export type OtaChannelSwitchResult =
+    | 'staged'
+    | 'joined'
+    | 'join-no-bundle'
+    | 'left'
+    | 'left-still-beta'
+    | 'closed'
+    | 'failed'
 
 export interface UseOtaChannel {
     supported: boolean
@@ -61,6 +75,7 @@ export function useOtaChannel(): UseOtaChannel {
                 return outcome === 'up-to-date' ? 'joined' : 'join-no-bundle'
             } catch (err) {
                 console.warn('[capgo] channel switch failed:', err)
+                if (err instanceof OtaResetFailedError) return 'left-still-beta'
                 return err instanceof OtaChannelClosedError ? 'closed' : 'failed'
             } finally {
                 setBusy(false)

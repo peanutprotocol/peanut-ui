@@ -54,6 +54,27 @@ it('stays hidden for accounts outside the internal cohort', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
 })
 
+// Offboarding a tester (or a flag that fails to load) must not take the exit
+// with it: the device is already on staging, and nothing else can bring it back.
+it('keeps the exit reachable for a device already on the channel', async () => {
+    flags.enabled = []
+    setup({ isBeta: true, status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123' } })
+    const toggle = screen.getByRole('switch')
+    expect(toggle).toBeEnabled()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(channel.current.setBeta).toHaveBeenCalledWith(false))
+})
+
+it('says the app is still on beta code when the reset half of the exit fails', async () => {
+    setup({
+        isBeta: true,
+        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123' },
+        ...switching('left-still-beta'),
+    })
+    fireEvent.click(screen.getByRole('switch'))
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Reinstall')))
+})
+
 it('tells the tester to get the channel opened when Capgo refuses', async () => {
     setup(switching('closed'))
     fireEvent.click(screen.getByRole('switch'))

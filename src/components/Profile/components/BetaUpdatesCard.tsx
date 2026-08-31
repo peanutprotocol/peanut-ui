@@ -14,10 +14,15 @@ import { useTranslations } from 'next-intl'
  * points the device at the `staging` Capgo channel, which every merge to `dev`
  * publishes to; leaving drops it back to the store bundle.
  *
- * The tap gesture hides the control; the PostHog flag decides who may use it.
- * `staging` carries unreleased code against production money, so eligibility is
- * a cohort someone maintains — not a gesture any customer can stumble into once
- * self-assignment is enabled on the channel.
+ * The tap gesture hides the control; the PostHog cohort keeps customers from
+ * joining once self-assignment is open on the channel. Neither is a security
+ * boundary — `setChannel` talks to Capgo directly — they keep `staging` off the
+ * devices of people who did not mean to be there.
+ *
+ * A device already ON the channel keeps the card whatever the cohort says: the
+ * off switch is the only way back to the store bundle, and hiding it when
+ * someone is offboarded (or the flag fails to load) would strand them on beta
+ * code forever.
  */
 export const BETA_OTA_FLAG = 'beta-ota-channel'
 
@@ -29,7 +34,17 @@ export const BetaUpdatesCard = () => {
 
     // nonProdBypass: previews and local builds are already non-production by
     // definition, and QA needs the switch there without a cohort edit.
-    if (!supported || !isEnabled(BETA_OTA_FLAG, { nonProdBypass: true })) return null
+    const mayJoin = isEnabled(BETA_OTA_FLAG, { nonProdBypass: true })
+    if (!supported || (!mayJoin && !isBeta)) return null
+
+    const copyDeviceId = async (deviceId: string) => {
+        try {
+            await copyTextToClipboardWithFallback(deviceId)
+            toast.info(t('deviceCopied'))
+        } catch {
+            toast.error(t('deviceCopyFailed'))
+        }
+    }
 
     const onToggle = async (beta: boolean) => {
         switch (await setBeta(beta)) {
@@ -48,6 +63,9 @@ export const BetaUpdatesCard = () => {
             case 'failed':
                 toast.error(t('failed'))
                 break
+            case 'left-still-beta':
+                toast.error(t('leftStillBeta'))
+                break
             // 'left' reloads the app onto the store bundle — no toast survives it.
         }
     }
@@ -61,7 +79,12 @@ export const BetaUpdatesCard = () => {
                         {t('description', { channel: BETA_OTA_CHANNEL })}
                     </p>
                 </div>
-                <Toggle checked={isBeta} disabled={busy} onChange={onToggle} aria-label={t('heading')} />
+                <Toggle
+                    checked={isBeta}
+                    disabled={busy || (!mayJoin && !isBeta)}
+                    onChange={onToggle}
+                    aria-label={t('heading')}
+                />
             </div>
 
             <dl className="space-y-1 text-body-xs text-foreground-secondary">
@@ -80,11 +103,7 @@ export const BetaUpdatesCard = () => {
                             <button
                                 type="button"
                                 className="text-left break-all underline"
-                                onClick={() =>
-                                    copyTextToClipboardWithFallback(status.deviceId!).then(() =>
-                                        toast.info(t('deviceCopied'))
-                                    )
-                                }
+                                onClick={() => void copyDeviceId(status.deviceId!)}
                             >
                                 {status.deviceId}
                             </button>
