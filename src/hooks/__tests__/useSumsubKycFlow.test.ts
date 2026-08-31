@@ -411,6 +411,37 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(result.current.isActionFlow).toBe(true)
         expect(result.current.isMultiLevel).toBe(false)
     })
+
+    // Cross-region EU uplift is NOT an applicant action: the backend moves the
+    // applicant to bridge-requirements, whose EEA branch is the
+    // bridge-eea-uplift questionnaire — the SDK must hold open through it.
+    it('cross-region EU uplift (bridge-uplift) stays multi-level', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'bridge-uplift' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU', undefined, true, 'DE')
+        })
+
+        expect(result.current.isActionFlow).toBe(false)
+        expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    it('bridge-uplift toward NA keeps NA single-level', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'bridge-uplift' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('NA', undefined, true, 'US')
+        })
+
+        expect(result.current.isActionFlow).toBe(false)
+        expect(result.current.isMultiLevel).toBe(false)
+    })
 })
 
 // The companion backend change maps the follow-up level's `init` state to
@@ -492,6 +523,28 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
 
         expect(result.current.showWrapper).toBe(false)
         expect(result.current.isVerificationProgressModalOpen).toBe(true)
+    })
+
+    // The counterpart: a MANUAL close always replays. handleSdkComplete is the
+    // only close that can honestly claim a submission — the wrapper cannot tell
+    // "submitted the required follow-up" from "submitted level 1 and walked
+    // away" (a second onApplicantSubmitted is deduped as the idCheck twin, not
+    // read as a new level), so a close that consumed on its say-so would swallow
+    // a real ACTION_REQUIRED and leave the user on a stale progress modal.
+    it('a manual close replays the deferred transition', async () => {
+        const { result } = await openSdkOverProgressModal('EU')
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+
+        act(() => {
+            result.current.handleClose()
+        })
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
     })
 
     // Boundary: the suppression is scoped to an OPEN SDK. Once the user is out of

@@ -135,6 +135,44 @@ describe('SumsubNativeSdk', () => {
         await waitFor(() => expect(props.onComplete).toHaveBeenCalled())
     })
 
+    // Multi-level: the Level-1 Pending is NOT a finished workflow. Backing out of
+    // Level 2 resolves launch() on a non-submitted status, and reporting that as a
+    // completion let both flow hooks consume the deferred ACTION_REQUIRED, leaving
+    // the applicant on a stale "verifying" modal.
+    it('multi-level reports a Level-1-then-backed-out exit as a close, not a completion', async () => {
+        let resolveLaunch: (value: unknown) => void = () => {}
+        launch.mockReturnValue(new Promise((resolve) => (resolveLaunch = resolve)))
+        const props = { ...baseProps(), isMultiLevel: true, onSubmitted: jest.fn() }
+        const { rerender } = render(<SumsubNativeSdk visible={false} {...props} />)
+        await act(async () => {
+            rerender(<SumsubNativeSdk visible {...props} />)
+        })
+
+        await act(async () => {
+            statusHandler?.({ newStatus: 'Pending' })
+            resolveLaunch({ success: true, status: 'Initial' })
+        })
+
+        await waitFor(() => expect(props.onClose).toHaveBeenCalled())
+        expect(props.onComplete).not.toHaveBeenCalled()
+        // the level they did finish still reaches the funnel
+        expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+    })
+
+    // ...but a genuinely finished multi-level workflow still completes: the plugin
+    // dismisses after the last level and the closing status is a submitted one.
+    it('multi-level completes when the closing status is itself a submission', async () => {
+        launch.mockResolvedValue({ success: true, status: 'Pending' })
+        const props = { ...baseProps(), isMultiLevel: true }
+        const { rerender } = render(<SumsubNativeSdk visible={false} {...props} />)
+        await act(async () => {
+            rerender(<SumsubNativeSdk visible {...props} />)
+        })
+
+        await waitFor(() => expect(props.onComplete).toHaveBeenCalled())
+        expect(props.onClose).not.toHaveBeenCalled()
+    })
+
     it('closes without completing when the user backs out', async () => {
         launch.mockResolvedValue({ success: true, status: 'Initial' })
         const props = baseProps()

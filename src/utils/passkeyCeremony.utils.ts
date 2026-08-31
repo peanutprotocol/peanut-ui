@@ -1,4 +1,4 @@
-import { captureException } from '@sentry/nextjs'
+import { captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
 
