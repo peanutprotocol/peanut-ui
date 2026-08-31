@@ -385,6 +385,36 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
         })
     })
 
+    // GET /send-links/:pubKey answers a cache hit with the raw Prisma row, which
+    // carries `intents` instead of the projected `claim` + `events`. Claim.tsx read
+    // `events[0]` unguarded and took the whole page down (PEANUT-UI-SJ0).
+    test('CANCELLED link renders when the API omits claim/events (cache-hit shape)', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { user: { userId: 'sender-123' } },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+
+        const {
+            events: _events,
+            claim: _claim,
+            ...unprojected
+        } = makeSendLink({
+            status: 'CANCELLED',
+            sender: { userId: 'sender-123', username: 'alice' },
+        })
+        mockSendLinksApi.get.mockResolvedValue(unprojected)
+
+        renderClaim()
+
+        // Gates on the receipt, which only renders once the transaction memo has
+        // produced a value — asserting on ClaimedView settles too early to catch
+        // a throw inside the memo.
+        await waitFor(() => {
+            expect(screen.getByTestId('transaction-details-receipt')).toBeInTheDocument()
+        })
+    })
+
     test('CLAIMING link (in progress) shows as already claimed', async () => {
         const link = makeSendLink({ status: 'CLAIMING' })
         mockSendLinksApi.get.mockResolvedValue(link)
