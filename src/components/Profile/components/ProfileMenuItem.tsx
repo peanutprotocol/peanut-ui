@@ -1,11 +1,12 @@
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
-import DocsLink from '@/components/Global/DocsLink'
+import { localizeDocsHref } from '@/components/Global/DocsLink'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { Tooltip } from '@/components/Tooltip'
 import Link from 'next/link'
+import { useLocale } from 'next-intl'
 import React from 'react'
 import { type SVGProps } from 'react'
 
@@ -18,8 +19,11 @@ interface ProfileMenuItemProps {
     position?: CardPosition
     comingSoon?: boolean
     isExternalLink?: boolean
-    /** web-only content (help center, legal) — renders through DocsLink so it
-     * localizes and opens the in-app browser in Capacitor instead of 404ing */
+    /** web-only content (help center, legal). Localizes the href and navigates
+     * SAME-TAB so the marketing pages' HeroBackNav can return via history
+     * (a new tab starts with none and its back button falls to `/`). In
+     * Capacitor the useNativeAppLinks click interceptor reroutes the tap to
+     * the in-app browser, so the missing native route never 404s. */
     isDocsLink?: boolean
     endIcon?: IconName
     endIconClassName?: string
@@ -46,6 +50,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     toolTipText,
     badge,
 }) => {
+    const locale = useLocale()
     const content = (
         <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-2">
@@ -86,11 +91,11 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
 
     if (isDocsLink) {
         return (
-            <DocsLink href={href} className="block">
+            <Link href={localizeDocsHref(href, locale)} className="block">
                 <Card position={position} className="p-4 active:bg-background-disabled">
                     {content}
                 </Card>
-            </DocsLink>
+            </Link>
         )
     }
 
