@@ -140,6 +140,14 @@ function collapseNoisyFingerprint(event: ErrorEvent): void {
     }
 }
 
+const FETCH_SITE_FINGERPRINTS = ['network-error', 'timeout']
+const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
+
+function isFetchSiteMutationFailure(event: ErrorEvent): boolean {
+    const [kind, , method] = event.fingerprint ?? []
+    return FETCH_SITE_FINGERPRINTS.includes(kind) && MUTATING_METHODS.includes((method || '').toUpperCase())
+}
+
 /*
  * A frame that did not come from our bundle and did not come from a URL we can
  * name. Extensions are the obvious case, but the ones that actually cost us are
@@ -204,28 +212,31 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     if (isActionableCapgoError(searchTexts)) return false
 
     /*
-     * Rescue the explicit fetch-site capture, for the same reason the Capgo
-     * carve-out sits here: once the loop below returns true nothing can take it
-     * back.
+     * Rescue the fetch-site capture for MUTATIONS only, and here rather than
+     * lower down for the same reason as the Capgo carve-out: once the loop
+     * below returns true nothing can take it back.
      *
-     * `fetchWithSentry` catches a failed request, sets fingerprint
-     * ['network-error', url, method], captures WITH full context (url, method,
-     * sanitized headers and body, feature tag), and only then rethrows a
-     * ServiceUnavailableError for the UI. `alreadyReported` drops that rethrow
-     * on the stated grounds that "the underlying failure is already captured at
-     * the fetch site" — but it was not: `networkIssues` ate that capture too, on
-     * the engine's own `Failed to fetch` / `Load failed` copy. Both halves of
-     * every browser-native request failure were therefore discarded, and Sentry
-     * recorded 0 of them in 30d while PostHog (whose mirror runs as an
-     * integration processEvent hook, upstream of beforeSend) held ~7.4k/week
-     * across 590 users.
+     * `fetchWithSentry` sets fingerprint [kind, url, method] and captures with
+     * full context before rethrowing a wrapper for the UI. `alreadyReported`
+     * drops that rethrow on the grounds that the fetch-site capture survived —
+     * it did not, `networkIssues` matched the engine's own `Failed to fetch` /
+     * `Load failed` copy and ate it too. So a POST that dies on the network is
+     * invisible: the user gets "contact support" and we get nothing, which is
+     * the exact failure `criticalFlowTags` was added to prevent and never did
+     * (3 call sites, 0 events in 30d).
      *
-     * The fingerprint is the discriminator, not the message: it is set only by
-     * our own wrapper, so this can never rescue an incidental network TypeError
-     * from a third-party SDK. It also groups the survivors per endpoint instead
-     * of per minified call site.
+     * Restricted to mutating methods on purpose. Failed GETs are 78% of this
+     * population and land on /home — balance and price polls that retry and
+     * succeed, whose rate belongs in PostHog (grouped, rate-limited) and not as
+     * ~7k individual Sentry events a week. A failed mutation is different in
+     * kind: it is a user losing progress in a flow that moves money, it cannot
+     * be silently retried, and there are few of them.
+     *
+     * Keyed on the fingerprint, never the message, so it can only ever rescue
+     * our own wrapper and not an incidental network TypeError from a
+     * third-party SDK.
      */
-    if (event.fingerprint?.[0] === 'network-error') return false
+    if (isFetchSiteMutationFailure(event)) return false
 
     // Check all ignore patterns
     for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {

@@ -221,9 +221,9 @@ describe('shouldIgnoreError — OneSignal worker-messenger noise', () => {
 })
 
 describe('shouldIgnoreError — fetch-site network captures', () => {
-    function fetchSiteCapture(value: string): ErrorEvent {
+    function fetchSiteCapture(value: string, method = 'POST', kind = 'network-error'): ErrorEvent {
         return {
-            fingerprint: ['network-error', 'https://api.peanut.me/users/me', 'GET'],
+            fingerprint: [kind, 'https://api.peanut.me/charges', method],
             exception: { values: [{ type: 'TypeError', value }] },
         } as unknown as ErrorEvent
     }
@@ -231,11 +231,26 @@ describe('shouldIgnoreError — fetch-site network captures', () => {
     // Both engine spellings, because the split is per-engine: WebKit says
     // `Load failed`, Chromium (so every Android WebView) says `Failed to fetch`.
     it.each(['Failed to fetch', 'Load failed', 'Network Error'])(
-        'keeps the explicit fetchWithSentry capture for %s',
+        'keeps a failed mutation for %s — the user lost progress in a money flow',
         (value) => {
             expect(shouldIgnoreError(fetchSiteCapture(value))).toBe(false)
         }
     )
+
+    it.each(['PUT', 'PATCH', 'DELETE', 'post'])('keeps a failed %s', (method) => {
+        expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', method))).toBe(false)
+    })
+
+    it('keeps a mutation that timed out (the other fetch-site fingerprint)', () => {
+        expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', 'POST', 'timeout'))).toBe(false)
+    })
+
+    // 78% of this population is failed GETs on /home — balance and price polls
+    // that retry and succeed. Their rate belongs in PostHog, not as individual
+    // Sentry events.
+    it.each(['GET', 'HEAD'])('still ignores a failed %s', (method) => {
+        expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', method))).toBe(true)
+    })
 
     it('still ignores the same message without the fetch-site fingerprint', () => {
         expect(shouldIgnoreError(eventWith({ type: 'TypeError', value: 'Failed to fetch' }))).toBe(true)
