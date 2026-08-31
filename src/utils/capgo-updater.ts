@@ -56,7 +56,7 @@ export async function initCapgoUpdater(
     let updateCheckTimer: ReturnType<typeof setTimeout> | undefined
     if (!isDemoMode()) {
         updateCheckTimer = setTimeout(
-            () => void checkAndStageUpdate(onUpdateAvailable, onUpdateFailed),
+            () => void queueUpdateCheck(onUpdateAvailable, onUpdateFailed),
             UPDATE_CHECK_DELAY_MS
         )
     }
@@ -73,6 +73,26 @@ const UPDATE_CHECK_DELAY_MS = 5_000
 // opt-in needs it, because "channel switched" and "beta bundle waiting" are not
 // the same thing and a tester told to restart for nothing chases a ghost.
 export type OtaCheckOutcome = 'staged' | 'up-to-date' | 'failed'
+
+// One check at a time, whoever asks. The launch check can still be downloading
+// when a tester joins the beta channel, and two overlapping checks both call
+// next(): the bundle that boots is whichever write lands last, which may be the
+// one resolved against the channel the device just left. Queueing rather than
+// sharing the in-flight promise matters — the join needs a check made AFTER its
+// setChannel, not the launch check's verdict on the old channel.
+let pendingCheck: Promise<void> = Promise.resolve()
+
+function queueUpdateCheck(
+    onUpdateAvailable?: (bundle: BundleInfo) => void,
+    onUpdateFailed?: (error: string) => void
+): Promise<OtaCheckOutcome> {
+    const outcome = pendingCheck.then(() => checkAndStageUpdate(onUpdateAvailable, onUpdateFailed))
+    pendingCheck = outcome.then(
+        () => undefined,
+        () => undefined
+    )
+    return outcome
+}
 
 async function checkAndStageUpdate(
     onUpdateAvailable?: (bundle: BundleInfo) => void,
@@ -212,7 +232,7 @@ export async function joinBetaOtaChannel(): Promise<OtaCheckOutcome> {
         if (isClosedChannel(result.error)) throw new OtaChannelClosedError(result.error)
         throw new Error(result.error)
     }
-    return checkAndStageUpdate()
+    return queueUpdateCheck()
 }
 
 // A device that unset its channel but kept the beta bundle is the worst state of

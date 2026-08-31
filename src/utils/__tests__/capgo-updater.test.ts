@@ -93,6 +93,30 @@ describe('beta channel opt-in', () => {
         mockUpdater.getLatest.mockRejectedValue(new Error('No new version available'))
     })
 
+    // The launch check can still be downloading when the tester joins. Two
+    // overlapping checks both call next(), and the bundle that boots is whichever
+    // write lands last — possibly the one resolved against the old channel.
+    it('waits for an in-flight launch check instead of racing it', async () => {
+        const { joinBetaOtaChannel } = await import('../capgo-updater')
+        let releaseLaunchCheck: (value: { url?: string; version?: string }) => void = () => {}
+        mockUpdater.getLatest.mockReturnValueOnce(new Promise((resolve) => (releaseLaunchCheck = resolve)))
+
+        await initCapgoUpdater()
+        await jest.advanceTimersByTimeAsync(5_000)
+        expect(mockUpdater.getLatest).toHaveBeenCalledTimes(1)
+
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://bundles/beta', version: '1.1.10846' })
+        mockUpdater.download.mockResolvedValue({ id: 'beta-bundle' })
+        const joined = joinBetaOtaChannel()
+        await jest.advanceTimersByTimeAsync(0)
+        expect(mockUpdater.getLatest).toHaveBeenCalledTimes(1)
+
+        releaseLaunchCheck({})
+        await expect(joined).resolves.toBe('staged')
+        expect(mockUpdater.getLatest).toHaveBeenCalledTimes(2)
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'beta-bundle' })
+    })
+
     it('joins the staging channel and stages its bundle straight away', async () => {
         const { joinBetaOtaChannel, BETA_OTA_CHANNEL } = await import('../capgo-updater')
         mockUpdater.getLatest.mockResolvedValue({ url: 'https://bundles/1.1.10846', version: '1.1.10846' })
