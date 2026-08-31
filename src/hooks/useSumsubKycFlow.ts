@@ -8,6 +8,7 @@ import {
     initiateSelfHealResubmission,
     restartIdentityVerification,
     startKycAction,
+    isTerminalActionCode,
     type SumsubActionErrorCode,
 } from '@/app/actions/sumsub'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
@@ -44,7 +45,11 @@ const KYC_POLL_SCHEDULE: ReadonlyArray<{ untilMs: number; delayMs: number }> = [
 const KYC_POLL_MAX_DELAY_MS = 60_000
 
 /** `code` from a sumsub action's canned English fallback → kyc.* catalog key.
- *  Backend prose arrives without a code and renders as-is (#2554). */
+ *  Backend prose arrives without a code and renders as-is (#2554).
+ *
+ *  Partial on purpose: a code with no catalog entry keeps the backend's own
+ *  message, which is what we want for refusals the backend explains better
+ *  than a generic string could (an unsupported country names the country). */
 const ACTION_ERROR_KEYS = {
     initiate_failed: 'errorInitiateFailed',
     restart_failed: 'errorRestartFailed',
@@ -52,7 +57,32 @@ const ACTION_ERROR_KEYS = {
     start_action_failed: 'errorStartActionFailed',
     invalid_response: 'errorInvalidResponse',
     unexpected: 'unexpectedError',
-} as const satisfies Record<SumsubActionErrorCode, string>
+} as const satisfies Partial<Record<SumsubActionErrorCode, string>>
+
+/**
+ * A workflow is multi-level when Sumsub can show a SECOND level in the same
+ * session, after the first submit:
+ *   - LATAM → `general`, which branches AR/BR applicants to `manteca-requirements`
+ *   - EU → `bridge-requirements`, which branches EEA applicants to the
+ *     `bridge-eea-uplift` questionnaire
+ *
+ * NA is deliberately NOT here, even though it shares the `bridge-requirements`
+ * workflow. NA second levels exist but are rare organic branches — the workflow
+ * routes to `source-of-funds` (applicant age >= 60) and `proof-of-address` (POI
+ * country in the higher-risk list); see peanut-api-ts `level-registry.ts`.
+ * Marking NA multi-level would hold EVERY US applicant in an open SDK on
+ * Sumsub's "documents submitted" screen until approval to serve those rare
+ * branches. The branch cohort gets the ACTION_REQUIRED drawer round-trip
+ * instead, which converges. EU differs: every EEA applicant branches to the
+ * uplift questionnaire, so the hold serves the whole cohort.
+ *
+ * ROW and STANDARD are single-level. Applicant actions are always single-level,
+ * whatever the region — see the `isActionFlow` check at the initiate open.
+ *
+ * This list is hand-rolled workflow knowledge and will drift. The durable fix is
+ * for the initiate response to report the level / multi-level flag itself.
+ */
+const isMultiLevelIntent = (intent: KYCRegionIntent | undefined): boolean => intent === 'LATAM' || intent === 'EU'
 
 const getKycPollDelayMs = (elapsedMs: number): number => {
     for (const { untilMs, delayMs } of KYC_POLL_SCHEDULE) {
@@ -70,7 +100,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // codeless results keep the backend's display-ready prose.
     const actionErrorMessage = useCallback(
         (result: { error?: string; code?: SumsubActionErrorCode }): string | null =>
-            result.code ? t(ACTION_ERROR_KEYS[result.code]) : (result.error ?? null),
+            (result.code && result.code in ACTION_ERROR_KEYS
+                ? t(ACTION_ERROR_KEYS[result.code as keyof typeof ACTION_ERROR_KEYS])
+                : result.error) ?? null,
         [t]
     )
 
@@ -78,11 +110,23 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // Some initiate failures are terminal: the user has no action that could
+    // change the outcome, so offering a retry is worse than offering nothing.
+    // Callers must suppress their retry CTA on this rather than inferring
+    // retriability from the region, which cannot tell the two apart.
+    const [isTerminalError, setIsTerminalError] = useState(false)
     const [isVerificationProgressModalOpen, setIsVerificationProgressModalOpen] = useState(false)
     const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
     const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
     // true when the SDK is showing an applicant action (not a standard level)
     const [isActionFlow, setIsActionFlow] = useState(false)
+    // true when the open SDK session runs a multi-level workflow, so the SDK must
+    // stay open past the first submit and show the follow-up level. Raised by the
+    // initiate open (the only path that can start one) and cleared by both close
+    // handlers, so "closed" always means false. It depends on the intent that open
+    // actually used — most entry points pass it to handleInitiateKyc rather than
+    // as the `regionIntent` prop, so the prop alone is not the effective intent.
+    const [isMultiLevel, setIsMultiLevel] = useState(false)
     const prevStatusRef = useRef(liveKycStatus)
     const showWrapperRef = useRef(showWrapper)
     showWrapperRef.current = showWrapper
@@ -99,6 +143,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const userInitiatedRef = useRef(false)
     // tracks self-heal provider for token refresh — null when in regular KYC flow
     const selfHealProviderRef = useRef<'BRIDGE' | 'MANTECA' | null>(null)
+    // The capability nextAction key behind an in-flight start-action flow.
+    // Mutually exclusive with selfHealProviderRef, and needed by refreshToken:
+    // POST /users/identity ignores levelName and no-ops for an already-approved
+    // user, so an RFI token can only be re-minted through start-action.
+    const actionKeyRef = useRef<string | null>(null)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -116,14 +165,38 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     // react to status transitions
     useEffect(() => {
+        // Hold an ACTION_REQUIRED transition while a multi-level SDK session is
+        // open: the follow-up questionnaire IS the required action, so acting on it
+        // here would tear the flow down under the user.
+        //
+        // This returns BEFORE prevStatusRef is advanced, so the transition is
+        // deferred, not consumed. When the SDK closes, `showWrapper` changes, this
+        // effect re-runs and the branches below evaluate the same transition for
+        // real. Advancing the ref first would swallow it: a user who abandoned
+        // mid-questionnaire (the SDK can sit on top of an open progress modal)
+        // would then sit on a stale "verifying" modal forever.
+        //
+        // The one close that must NOT replay it is a submission — the user just
+        // acted, so the held transition is stale for what they submitted.
+        // handleSdkComplete consumes it by advancing prevStatusRef itself.
+        //
+        // Both flags are committed state rather than refs, so an interrupted render
+        // can never leak a value this guard acts on.
+        if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
+
         const prevStatus = prevStatusRef.current
         prevStatusRef.current = liveKycStatus
 
         if (prevStatus !== 'APPROVED' && liveKycStatus === 'APPROVED') {
-            // if SDK is still open (LATAM multi-level), close it now —
+            // if SDK is still open (multi-level), close it now —
             // applicantWorkflowCompleted has fired, all levels are done.
             if (showWrapperRef.current) {
                 setShowWrapper(false)
+                // this is the third and last path that closes the SDK, so clearing
+                // here is what makes "closed ⇒ single-level" hold everywhere. A
+                // later action open (self-heal, restart-identity, start-action)
+                // would otherwise inherit a stale true and never close on submit.
+                setIsMultiLevel(false)
                 setIsVerificationProgressModalOpen(true)
                 userInitiatedRef.current = true
             }
@@ -140,7 +213,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             // close modal for any non-success terminal state (REJECTED, ACTION_REQUIRED, FAILED, etc.)
             setIsVerificationProgressModalOpen(false)
         }
-    }, [liveKycStatus, onKycSuccess])
+    }, [liveKycStatus, onKycSuccess, showWrapper, isMultiLevel])
 
     // fetch current status to recover from missed websocket events.
     // skip when regionIntent is undefined to avoid creating an applicant with the wrong template
@@ -245,8 +318,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             userInitiatedRef.current = true
             initiatingRef.current = true
             selfHealProviderRef.current = null
+            actionKeyRef.current = null
             setIsLoading(true)
             setError(null)
+            setIsTerminalError(false)
 
             // for cross-region: pre-set prevStatusRef to APPROVED so the fetchCurrentStatus
             // effect (which also fires when regionIntent changes) doesn't trigger onKycSuccess
@@ -263,6 +338,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     crossRegion,
                     targetCountry,
                 })
+
+                // A refusal no retry can change — no resolvable country for this
+                // entry point, or a permanent restriction like Manteca's
+                // US-nationality rule. Retrying sends the identical request and
+                // gets the identical answer, so mark it terminal and let the
+                // modal offer support instead of a button that cannot work.
+                if (isTerminalActionCode(response.code)) {
+                    userInitiatedRef.current = false
+                    setIsTerminalError(true)
+                    setError(response.error || t('errorInitiateFailed'))
+                    return false
+                }
 
                 if (response.error) {
                     // same race the unsupported-region branch closes below: restoring
@@ -287,7 +374,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 // terminal error (the user is approved but has no rail — NOT a success).
                 if (response.data?.actionType === 'unsupported-region') {
                     userInitiatedRef.current = false
+                    setIsTerminalError(true)
                     setError(t('unsupportedRegionError'))
+                    setIsTerminalError(true)
                     return false
                 }
 
@@ -316,6 +405,21 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return false
                 }
 
+                // approved, but every rail for this region is dead — a payload-build
+                // failure can mark all four Bridge rails FAILED at once, and nothing
+                // in the product re-enables them. Identical on the wire to "you're
+                // done" until the backend started saying so, which is why a stranded
+                // user pressed Verify, saw no SDK, no error and nothing at all, and
+                // support told them to press it again (TASK-21882). Same shape as
+                // 'unsupported-region' above: bail terminally, before the status sync.
+                if (response.data?.actionType === 'rails-unavailable') {
+                    userInitiatedRef.current = false
+                    setIsTerminalError(true)
+                    setError(t('railsUnavailableError'))
+                    setIsTerminalError(true)
+                    return false
+                }
+
                 // if already approved (or reverifying) and no token returned, kyc is done.
                 // set prevStatusRef so the transition effect doesn't fire onKycSuccess a second time.
                 // when a token IS returned (e.g. cross-region action or additional-docs), we still need to show the SDK.
@@ -332,6 +436,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // not just this one — reaches the right SDK.
                     setAccessToken(response.data.token)
                     setIsActionFlow(!!response.data.actionType)
+                    setIsMultiLevel(!response.data.actionType && isMultiLevelIntent(effectiveIntent))
                     setShowWrapper(true)
                     return true
                 } else {
@@ -357,21 +462,40 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleSdkComplete = useCallback(() => {
         userInitiatedRef.current = true
         selfHealProviderRef.current = null
+        actionKeyRef.current = null
+        // Consume a deferred ACTION_REQUIRED (see the transition effect): this
+        // close IS a submission, so the held transition is stale — replaying it
+        // would close the progress modal this handler opens (in-session resubmit
+        // after a RED decline). The manual close keeps the replay: abandoning
+        // really does leave the action required.
+        if (liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
         setShowWrapper(false)
         setIsActionFlow(false)
+        setIsMultiLevel(false)
         setIsVerificationProgressModalOpen(true)
-    }, [])
+    }, [liveKycStatus])
 
     // called when user manually closes the sdk modal
     const handleClose = useCallback(() => {
         setShowWrapper(false)
         setIsActionFlow(false)
+        setIsMultiLevel(false)
         onManualClose?.()
     }, [onManualClose])
 
     // token refresh function passed to the sdk for when the token expires.
-    // uses self-heal provider ref when in self-heal mode, otherwise regular KYC endpoint.
+    // routes by how the flow started: start-action key, self-heal provider, or
+    // the regular KYC endpoint.
     const refreshToken = useCallback(async (): Promise<string> => {
+        if (actionKeyRef.current) {
+            const response = await startKycAction(actionKeyRef.current)
+            if (response.error || !response.data?.token) {
+                throw new Error(response.error || 'Failed to refresh action token')
+            }
+            setAccessToken(response.data.token)
+            return response.data.token
+        }
+
         if (selfHealProviderRef.current) {
             const response = await initiateSelfHealResubmission(selfHealProviderRef.current)
             if (response.error || !response.data?.token) {
@@ -405,6 +529,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     }, [router])
 
     const resetError = useCallback(() => {
+        setIsTerminalError(false)
         setError(null)
     }, [])
 
@@ -415,12 +540,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleRestartIdentity = useCallback(async () => {
         setIsLoading(true)
         setError(null)
+        setIsTerminalError(false)
         userInitiatedRef.current = true
         // Clear any prior self-heal context so refreshToken (below) doesn't
         // mistakenly hit the self-heal endpoint after a restart-identity flow
         // (CodeRabbit caught: stale selfHealProviderRef would route the next
         // refresh through initiateSelfHealResubmission instead of the regular path).
         selfHealProviderRef.current = null
+        actionKeyRef.current = null
 
         try {
             const response = await restartIdentityVerification()
@@ -431,6 +558,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             }
             if (response.data?.token) {
                 setAccessToken(response.data.token)
+                // The restart reopens the SAME workflow the original initiate ran
+                // (the token targets the applicant's existing level), so re-derive
+                // the multi-level flag. Left false, a restarted LATAM `general`
+                // session would close on first submit — before the
+                // manteca-requirements questionnaire. Best-effort: the ref is
+                // undefined when this hook instance never initiated, which keeps
+                // today's single-level behavior.
+                setIsMultiLevel(isMultiLevelIntent(regionIntentRef.current))
                 setShowWrapper(true)
             } else {
                 userInitiatedRef.current = false
@@ -455,6 +590,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setError(null)
             userInitiatedRef.current = true
             selfHealProviderRef.current = provider
+            actionKeyRef.current = null
 
             try {
                 const response = await initiateSelfHealResubmission(provider, requirementKey)
@@ -462,6 +598,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (response.error) {
                     userInitiatedRef.current = false
                     selfHealProviderRef.current = null
+                    actionKeyRef.current = null
                     setError(actionErrorMessage(response))
                     return
                 }
@@ -472,11 +609,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 } else {
                     userInitiatedRef.current = false
                     selfHealProviderRef.current = null
+                    actionKeyRef.current = null
                     setError(t('errorResubmitFailed'))
                 }
             } catch (e: unknown) {
                 userInitiatedRef.current = false
                 selfHealProviderRef.current = null
+                actionKeyRef.current = null
                 const message = e instanceof Error ? e.message : t('unexpectedError')
                 setError(message)
             } finally {
@@ -497,6 +636,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setError(null)
             userInitiatedRef.current = true
             selfHealProviderRef.current = null
+            actionKeyRef.current = null
 
             try {
                 const response = await startKycAction(key)
@@ -506,6 +646,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return
                 }
                 levelNameRef.current = response.data.levelName
+                actionKeyRef.current = key
                 setAccessToken(response.data.token)
                 setIsActionFlow(true)
                 setShowWrapper(true)
@@ -520,9 +661,24 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [t, actionErrorMessage]
     )
 
+    // Launch the fix for a `fixable` provider rejection. Manteca RFIs (PEP/FEP,
+    // source of funds) are their own Sumsub levels, keyed by the verdict's
+    // `sumsub:*` action — the legacy resubmit route only mints the generic
+    // ID-reupload action, which Sumsub opens on its "already verified" screen and
+    // the user loops back to the same modal. Bridge stays on resubmit: that route
+    // resolves the level itself and stamps the externalActionId its webhook keys on.
+    const handleFixableRejection = useCallback(
+        (rejection: { provider: 'BRIDGE' | 'MANTECA'; actionKey?: string | null }) =>
+            rejection.provider === 'MANTECA' && rejection.actionKey
+                ? handleStartAction(rejection.actionKey)
+                : handleSelfHealResubmit(rejection.provider),
+        [handleStartAction, handleSelfHealResubmit]
+    )
+
     return {
         isLoading,
         error,
+        isTerminalError,
         showWrapper,
         accessToken,
         liveKycStatus,
@@ -531,6 +687,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         handleRestartIdentity,
         handleSelfHealResubmit,
         handleStartAction,
+        handleFixableRejection,
         handleSdkComplete,
         handleClose,
         refreshToken,
@@ -539,5 +696,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         closeVerificationModalAndGoHome,
         resetError,
         isActionFlow,
+        isMultiLevel,
     }
 }

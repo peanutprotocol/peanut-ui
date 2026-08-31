@@ -1,8 +1,12 @@
 import type { MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
+import { GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS, ROBOTS_DISALLOWED_PATHS } from '@/constants/seo-route-policy'
 
-const IS_PRODUCTION_DOMAIN = BASE_URL === 'https://peanut.me'
+// Read the raw env, not BASE_URL: its 'https://peanut.me' fallback would serve
+// the production crawl policy from a preview built without the variable. Same
+// gate as the root layout's noindex.
+const IS_PRODUCTION_DOMAIN = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') === 'https://peanut.me'
 
 // Paths kept out of the index: the API surface, the SDK bundle, and the
 // auth-gated app routes. Used by the `*`, Googlebot, and AI-crawler groups;
@@ -10,34 +14,6 @@ const IS_PRODUCTION_DOMAIN = BASE_URL === 'https://peanut.me'
 // footgun when editing: a crawler only ever obeys the single most specific
 // group that matches it, so a named group that omits a path silently opts
 // that crawler out of it.
-const DISALLOWED_PATHS = [
-    '/api/',
-    '/sdk/',
-    // Auth-gated app routes
-    '/home',
-    '/profile',
-    '/settings',
-    '/send',
-    '/request',
-    '/setup',
-    '/claim',
-    '/pay',
-    '/dev/',
-    '/qr',
-    '/history',
-    '/points',
-    '/rewards',
-    '/invite',
-    '/kyc',
-    '/maintenance',
-    '/quests',
-    '/receipt',
-    '/crisp-proxy',
-    '/card-payment',
-    '/add-money',
-    '/withdraw',
-]
-
 export default function robots(): MetadataRoute.Robots {
     // Block indexing on staging, preview deploys, and non-production domains
     if (!IS_PRODUCTION_DOMAIN) {
@@ -45,6 +21,8 @@ export default function robots(): MetadataRoute.Robots {
             rules: [{ userAgent: '*', disallow: ['/'] }],
         }
     }
+
+    const disallowedPaths = [...ROBOTS_DISALLOWED_PATHS]
 
     return {
         rules: [
@@ -67,8 +45,8 @@ export default function robots(): MetadataRoute.Robots {
             // `/api/og` allow still wins over `/api/` by longest-match.
             {
                 userAgent: 'Googlebot',
-                allow: ['/api/og'],
-                disallow: DISALLOWED_PATHS,
+                allow: ['/api/og', ...GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS],
+                disallow: disallowedPaths,
             },
 
             // AI search engine crawlers — explicitly welcome on all marketing
@@ -85,7 +63,7 @@ export default function robots(): MetadataRoute.Robots {
                     'Applebot-Extended',
                 ],
                 allow: ['/'],
-                disallow: DISALLOWED_PATHS,
+                disallow: disallowedPaths,
             },
 
             // Default rules for all crawlers
@@ -96,16 +74,19 @@ export default function robots(): MetadataRoute.Robots {
                     '/careers',
                     '/privacy',
                     '/terms',
+                    // Exact app shells currently present in search indexes.
+                    // Narrow crawling lets engines process and refresh noindex.
+                    ...GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS,
                     // SEO routes (all locale-prefixed)
                     ...SUPPORTED_LOCALES.map((l) => `/${l}/`),
                 ],
-                disallow: DISALLOWED_PATHS,
+                disallow: disallowedPaths,
             },
 
-            // Rate-limit aggressive SEO crawlers
-            { userAgent: 'AhrefsBot', crawlDelay: 10 },
-            { userAgent: 'SemrushBot', crawlDelay: 10 },
-            { userAgent: 'MJ12bot', crawlDelay: 10 },
+            // A named group does not inherit `*`, so repeat the shared blocks.
+            { userAgent: 'AhrefsBot', disallow: disallowedPaths, crawlDelay: 10 },
+            { userAgent: 'SemrushBot', disallow: disallowedPaths, crawlDelay: 10 },
+            { userAgent: 'MJ12bot', disallow: disallowedPaths, crawlDelay: 10 },
         ],
         sitemap: `${BASE_URL}/sitemap.xml`,
     }

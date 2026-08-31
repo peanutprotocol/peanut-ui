@@ -1,12 +1,13 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import { useCurrency } from '@/hooks/useCurrency'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, type LimitCurrency } from '@/features/limits/utils'
 import type { LimitValidationResult } from '@/features/limits/hooks/useLimitsValidation'
@@ -54,8 +55,17 @@ const InputAmountStep = ({
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
 
+    // The rate fetch can hold this screen for tens of seconds on a slow mobile
+    // network. Keep the header mounted so "back" always works instead of the
+    // page reading as frozen (#1848).
     if (currencyData?.isLoading) {
-        return <PeanutLoading />
+        // dev keeps the header mounted so back always works during the load
+        return (
+            <div className="space-y-8 flex min-h-[inherit] flex-col justify-start">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <Loading variant="mascot" />
+            </div>
+        )
     }
 
     // FX fetch failed (e.g. provider outage): price is null but not loading.
@@ -73,11 +83,11 @@ const InputAmountStep = ({
         : null
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
+        <div className="space-y-8 flex min-h-[inherit] flex-col justify-start">
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {maintenanceBanner}
-                <div className="text-sm font-bold">{t('howMuchToAdd')}</div>
+                <div className="text-body-s font-bold">{t('howMuchToAdd')}</div>
 
                 <AmountInput
                     initialAmount={tokenAmount}
@@ -102,7 +112,7 @@ const InputAmountStep = ({
                 {/* limits warning/error card */}
                 {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
-                <div className="flex items-center gap-2 text-xs text-grey-1">
+                <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
                     <Icon name="info" width={16} height={16} />
                     <span>{t('mustMatchBankTransfer')}</span>
                 </div>
@@ -123,10 +133,14 @@ const InputAmountStep = ({
                     {tCommon('continue')}
                 </Button>
                 {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
-                {error && !limitsValidation?.isBlocking && <ErrorAlert description={error} />}
-                {rateUnavailable && !error && !limitsValidation?.isBlocking && (
-                    <ErrorAlert description={t('errors.rateUnavailable')} />
+                {error && !limitsValidation?.isBlocking && (
+                    <Notification priority="error" data-testid="error-alert">
+                        {error}
+                    </Notification>
                 )}
+                {/* not gated on `error`/limits like the alert above: the retry is the only
+                    way to clear the rate block that disables Continue (dev #2843) */}
+                {rateUnavailable && <RateUnavailable onRetry={() => currencyData?.refetch()} />}
             </div>
         </div>
     )

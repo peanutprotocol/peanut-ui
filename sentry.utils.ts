@@ -2,6 +2,33 @@
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
 
 import type { ErrorEvent } from '@sentry/nextjs'
+import { PAYMENT_NETWORK_PATH, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+
+interface RoutableSentryEvent {
+    request?: { url?: string }
+    transaction?: string
+}
+
+function sentryValueTargetsPaymentNetwork(value: string | undefined): boolean {
+    if (!value) return false
+    try {
+        if (value.startsWith('/') || /^[a-z][a-z\d+.-]*:\/\//i.test(value)) {
+            return isPaymentNetworkExplorerPath(new URL(value, 'https://peanut.invalid').pathname)
+        }
+    } catch {}
+    const pathIndex = value.indexOf(PAYMENT_NETWORK_PATH)
+    if (pathIndex < 0) return false
+    const routeLikeValue = value.slice(pathIndex).split(/\s/, 1)[0]
+    try {
+        return isPaymentNetworkExplorerPath(new URL(routeLikeValue, 'https://peanut.invalid').pathname)
+    } catch {
+        return false
+    }
+}
+
+export function isPaymentNetworkSentryEvent(event: RoutableSentryEvent): boolean {
+    return sentryValueTargetsPaymentNetwork(event.request?.url) || sentryValueTargetsPaymentNetwork(event.transaction)
+}
 
 import { CRITICAL_FLOW_TAG } from '@/utils/sentry-critical-flow'
 
@@ -113,6 +140,48 @@ function collapseNoisyFingerprint(event: ErrorEvent): void {
     }
 }
 
+const FETCH_SITE_FINGERPRINTS = ['network-error', 'timeout']
+const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
+
+/*
+ * Exported so fetchWithSentry's outage dedupe and the rescue below cannot drift
+ * apart on what counts as a mutation. They have to agree: if the dedupe ever
+ * suppresses a request this rescue would have kept, the event is gone before
+ * `beforeSend` runs and the rescue is silently inert.
+ */
+export function isMutatingMethod(method: string | undefined): boolean {
+    return MUTATING_METHODS.includes((method || '').toUpperCase())
+}
+
+function isFetchSiteMutationFailure(event: ErrorEvent): boolean {
+    const [kind, , method] = event.fingerprint ?? []
+    return FETCH_SITE_FINGERPRINTS.includes(kind) && isMutatingMethod(method)
+}
+
+/*
+ * A frame that did not come from our bundle and did not come from a URL we can
+ * name. Extensions are the obvious case, but the ones that actually cost us are
+ * the injected content scripts that carry NO scheme at all: PEANUT-UI-SNS threw
+ * ~3.7k unhandled rejections from `app:///executors/200.js` (a wallet-style
+ * injector reading `M_ID` off an undefined global), which the scheme-only check
+ * could not see, so it had to be archived by hand.
+ *
+ * `app:///` is Sentry's own rewrite for a script whose origin it cannot resolve.
+ * Our first-party frames always resolve to `/_next/`, so keying on the executors
+ * path is safe — deliberately not "any app:/// frame", which would swallow real
+ * bundles whose sourcemap upload lagged a deploy.
+ */
+const THIRD_PARTY_SCRIPT_FRAMES = [
+    'chrome-extension://',
+    'moz-extension://',
+    'safari-extension://',
+    'app:///executors/',
+]
+
+export function isThirdPartyScriptFrame(filename: string): boolean {
+    return THIRD_PARTY_SCRIPT_FRAMES.some((pattern) => filename.includes(pattern))
+}
+
 /**
  * Check if error message matches any ignored pattern
  */
@@ -152,6 +221,33 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
      */
     if (isActionableCapgoError(searchTexts)) return false
 
+    /*
+     * Rescue the fetch-site capture for MUTATIONS only, and here rather than
+     * lower down for the same reason as the Capgo carve-out: once the loop
+     * below returns true nothing can take it back.
+     *
+     * `fetchWithSentry` sets fingerprint [kind, url, method] and captures with
+     * full context before rethrowing a wrapper for the UI. `alreadyReported`
+     * drops that rethrow on the grounds that the fetch-site capture survived —
+     * it did not, `networkIssues` matched the engine's own `Failed to fetch` /
+     * `Load failed` copy and ate it too. So a POST that dies on the network is
+     * invisible: the user gets "contact support" and we get nothing, which is
+     * the exact failure `criticalFlowTags` was added to prevent and never did
+     * (3 call sites, 0 events in 30d).
+     *
+     * Restricted to mutating methods on purpose. Failed GETs are 78% of this
+     * population and land on /home — balance and price polls that retry and
+     * succeed, whose rate belongs in PostHog (grouped, rate-limited) and not as
+     * ~7k individual Sentry events a week. A failed mutation is different in
+     * kind: it is a user losing progress in a flow that moves money, it cannot
+     * be silently retried, and there are few of them.
+     *
+     * Keyed on the fingerprint, never the message, so it can only ever rescue
+     * our own wrapper and not an incidental network TypeError from a
+     * third-party SDK.
+     */
+    if (isFetchSiteMutationFailure(event)) return false
+
     // Check all ignore patterns
     for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {
         if (isCriticalFlow && group !== 'userRejected') continue
@@ -172,11 +268,7 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
     for (const frame of frames) {
         const filename = frame.filename || ''
-        if (
-            filename.includes('chrome-extension://') ||
-            filename.includes('moz-extension://') ||
-            filename.includes('safari-extension://')
-        ) {
+        if (isThirdPartyScriptFrame(filename)) {
             return true
         }
     }
@@ -419,5 +511,18 @@ export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
     }
     collapseNoisyFingerprint(event)
     cleanSensitiveHeaders(event)
+    // Whether the device believed it was online at capture time — the free
+    // half of the TASK-21956 network triage (navigator is absent server-side).
+    if (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean') {
+        event.tags = { net_online: String(navigator.onLine), ...event.tags }
+    }
     return event
+}
+
+export function beforeSendRouteAwareHandler(event: ErrorEvent): ErrorEvent | null {
+    return isPaymentNetworkSentryEvent(event) ? null : beforeSendHandler(event)
+}
+
+export function beforeSendRouteAwareTransaction<T extends RoutableSentryEvent>(event: T): T | null {
+    return isPaymentNetworkSentryEvent(event) ? null : event
 }

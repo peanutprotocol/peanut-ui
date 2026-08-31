@@ -7,10 +7,10 @@ import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
-import PeriodToggle from '../components/PeriodToggle'
-import LimitsProgressBar from '../components/LimitsProgressBar'
+import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
+import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import Image from 'next/image'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import {
     getLimitData,
     getLimitColorClass,
@@ -29,17 +29,18 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
  */
 const MantecaLimitsView = () => {
     const t = useTranslations('limits.provider')
+    const tPeriod = useTranslations('limits.period')
     const onBack = useSafeBack('/limits')
-    const { mantecaLimits, isLoading, error } = useLimits()
+    const { mantecaLimits, isLoading, error, refetch, isRefetching } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
 
     return (
-        <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+        <div className="space-y-6 flex min-h-[inherit] flex-col">
+            <NavHeader title={t('title')} onPrev={onBack} />
 
-            {isLoading && <PeanutLoading coverFullScreen />}
+            {isLoading && <Loading variant="mascot" coverFullScreen />}
 
-            {error && <LimitsError />}
+            {error && <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />}
 
             {!isLoading && !error && mantecaLimits && mantecaLimits.length > 0 && (
                 <>
@@ -67,21 +68,32 @@ const MantecaLimitsView = () => {
                                                     className="size-5 rounded-full object-cover"
                                                 />
                                             )}
-                                            <span className="text-xs text-grey-1">
+                                            <span className="text-body-xs text-foreground-secondary">
                                                 {t('totalAllowed', { asset: limit.asset })}
                                             </span>
                                         </div>
-                                        <PeriodToggle value={period} onChange={setPeriod} />
+                                        <SegmentedControl
+                                            options={[
+                                                { value: 'monthly', label: tPeriod('monthly') },
+                                                { value: 'yearly', label: tPeriod('yearly') },
+                                            ]}
+                                            value={period}
+                                            onChange={(v) => setPeriod(v as LimitsPeriod)}
+                                            aria-label={tPeriod('selectAriaLabel')}
+                                        />
                                     </div>
 
-                                    <div className="text-2xl font-bold">
+                                    <div className="text-heading-s text-foreground-primary">
                                         {formatAmountWithCurrency(limitData.limit, limit.asset)}
                                     </div>
 
-                                    <LimitsProgressBar total={limitData.limit} remaining={limitData.remaining} />
+                                    <ProgressBar
+                                        value={remainingPercent}
+                                        fillClassName={getLimitColorClass(remainingPercent, 'bg')}
+                                    />
 
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-grey-1">{t('remaining', { period })}</span>
+                                    <div className="flex items-center justify-between text-body-s">
+                                        <span className="text-foreground-secondary">{t('remaining', { period })}</span>
                                         <span className={`font-medium ${getLimitColorClass(remainingPercent, 'text')}`}>
                                             {formatAmountWithCurrency(limitData.remaining, limit.asset)}
                                         </span>
@@ -90,7 +102,7 @@ const MantecaLimitsView = () => {
                             )
                         })}
                         {/* info text */}
-                        <div className="flex items-center justify-center gap-2 text-xs text-grey-1">
+                        <div className="flex items-center justify-center gap-2 text-body-xs text-foreground-secondary">
                             <Icon name="info" size={16} />
                             <p>{t('appliesTo')}</p>
                         </div>

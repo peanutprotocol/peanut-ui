@@ -219,3 +219,80 @@ describe('shouldIgnoreError — OneSignal worker-messenger noise', () => {
         expect(shouldIgnoreError(eventWith({ message: '[WM] No SW registration for postMessage' }))).toBe(true)
     })
 })
+
+describe('shouldIgnoreError — fetch-site network captures', () => {
+    function fetchSiteCapture(value: string, method = 'POST', kind = 'network-error'): ErrorEvent {
+        return {
+            fingerprint: [kind, 'https://api.peanut.me/charges', method],
+            exception: { values: [{ type: 'TypeError', value }] },
+        } as unknown as ErrorEvent
+    }
+
+    // Both engine spellings, because the split is per-engine: WebKit says
+    // `Load failed`, Chromium (so every Android WebView) says `Failed to fetch`.
+    it.each(['Failed to fetch', 'Load failed', 'Network Error'])(
+        'keeps a failed mutation for %s — the user lost progress in a money flow',
+        (value) => {
+            expect(shouldIgnoreError(fetchSiteCapture(value))).toBe(false)
+        }
+    )
+
+    it.each(['PUT', 'PATCH', 'DELETE', 'post'])('keeps a failed %s', (method) => {
+        expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', method))).toBe(false)
+    })
+
+    it('keeps a mutation that timed out (the other fetch-site fingerprint)', () => {
+        expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', 'POST', 'timeout'))).toBe(false)
+    })
+
+    // 78% of this population is failed GETs on /home — balance and price polls
+    // that retry and succeed. Their rate belongs in PostHog, not as individual
+    // Sentry events.
+    it.each(['GET', 'HEAD'])('still ignores a failed %s', (method) => {
+        expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', method))).toBe(true)
+    })
+
+    it('still ignores the same message without the fetch-site fingerprint', () => {
+        expect(shouldIgnoreError(eventWith({ type: 'TypeError', value: 'Failed to fetch' }))).toBe(true)
+    })
+
+    it('does not rescue an unrelated fingerprint that merely mentions the network', () => {
+        const event = {
+            fingerprint: ['onesignal-op-failed', 'update-subscription'],
+            exception: { values: [{ type: 'TypeError', value: 'Failed to fetch' }] },
+        } as unknown as ErrorEvent
+        expect(shouldIgnoreError(event)).toBe(true)
+    })
+})
+
+describe('shouldIgnoreError — injected third-party scripts', () => {
+    function framedEvent(filename: string): ErrorEvent {
+        return {
+            exception: {
+                values: [
+                    {
+                        type: 'TypeError',
+                        value: "Cannot read properties of undefined (reading 'M_ID')",
+                        stacktrace: { frames: [{ filename }] },
+                    },
+                ],
+            },
+        } as unknown as ErrorEvent
+    }
+
+    // The scheme-bearing cases were always caught; `app:///executors/` is the
+    // one that forced PEANUT-UI-SNS to be archived by hand.
+    it.each([
+        'chrome-extension://abcdef/inject.js',
+        'moz-extension://abcdef/inject.js',
+        'safari-extension://abcdef/inject.js',
+        'app:///executors/200.js',
+    ])('ignores a frame from %s', (filename) => {
+        expect(shouldIgnoreError(framedEvent(filename))).toBe(true)
+    })
+
+    it('does not ignore our own bundle, including an unresolved app:/// frame', () => {
+        expect(shouldIgnoreError(framedEvent('/_next/static/chunks/main-abc123.js'))).toBe(false)
+        expect(shouldIgnoreError(framedEvent('app:///_next/static/chunks/main-abc123.js'))).toBe(false)
+    })
+})

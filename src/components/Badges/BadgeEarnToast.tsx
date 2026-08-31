@@ -85,7 +85,8 @@ export default function BadgeEarnToast() {
             id: toastId,
             type: 'success',
             duration: 6000,
-            className: 'border-yellow-1',
+            className: 'border-action-secondary bg-background-default',
+            hideIcon: true,
             content: (
                 <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
                     <BadgeImage
@@ -96,7 +97,7 @@ export default function BadgeEarnToast() {
                         className="size-7 shrink-0 object-contain"
                         unoptimized
                     />
-                    <span className="text-sm font-bold">
+                    <span className="text-label-l">
                         {label} <span className="font-medium underline">{t('toastTapToView')}</span>
                     </span>
                 </button>

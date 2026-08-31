@@ -6,12 +6,18 @@
  * through the FE transformer + receipt view model, and asserts byte-equal
  * output. Any drift in the FE rendering of a wire payload fails CI.
  *
+ * The committed baseline can also go STALE against the BE, which verifying
+ * the FE transformer against it cannot detect: if the backend adds, drops or
+ * reshapes an entry, this fixture keeps happily asserting the old world. The
+ * drift block at the bottom closes that, and runs whenever CI has fetched the
+ * BE's living fixture into `be-entries.json`.
+ *
  * Fixture format: `Array<{ entry: HistoryEntry; expected: SnapshotRow }>`
  * where `SnapshotRow` captures the receipt-visible fields the contract
  * must preserve (direction, userName, kind, provider, etc.). Loose-typed
  * at the boundary — the assertion is `expect(actual).toEqual(expected)`.
  */
-import { readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
 import type { HistoryEntry } from '@/utils/history.utils'
@@ -112,5 +118,56 @@ describe('render snapshot — TRANSACTION_INTENT wire shape', () => {
         if (expected.bankAccountDetailsDefined !== undefined) {
             expect(!!transactionDetails.bankAccountDetails).toBe(expected.bankAccountDetailsDefined)
         }
+    })
+})
+
+// Key-order-insensitive so a serializer change on either side is not drift.
+const canonical = (value: unknown): string =>
+    JSON.stringify(value, (_k, v) =>
+        v && typeof v === 'object' && !Array.isArray(v)
+            ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)))
+            : v
+    )
+
+/*
+ * Staleness gate. `be-entries.json` is gitignored and only exists when CI
+ * fetched the BE's living fixture (see the unit job in tests.yml), so this is
+ * inert locally and on any run without a cross-repo token — it can only ever
+ * add a failure when the real BE data is in hand, never mask one.
+ */
+const beEntriesPresent = existsSync(BE_ENTRIES_PATH)
+const describeDrift = beEntriesPresent ? describe : describe.skip
+
+describeDrift('render snapshot — committed baseline vs the BE fixture', () => {
+    // Read inside the hook, not the describe body: a skipped describe still
+    // evaluates its callback, so a top-level read would crash collection on
+    // every machine that has no fetched fixture.
+    let beById: Map<string, HistoryEntry>
+    let baselineById: Map<string, HistoryEntry>
+    const REBAKE = 'Re-bake with `SNAPSHOT_MODE=write pnpm jest render-snapshot` and commit the result.'
+
+    beforeAll(() => {
+        const be = JSON.parse(readFileSync(BE_ENTRIES_PATH, 'utf8')) as Array<{ caseId: string; entry: HistoryEntry }>
+        beById = new Map(be.map((c) => [c.caseId, c.entry]))
+        baselineById = new Map(loadFixture().map((c) => [c.name, c.entry]))
+    })
+
+    it('covers every case the BE publishes', () => {
+        const missing = [...beById.keys()].filter((id) => !baselineById.has(id))
+        expect(missing.length === 0 ? '' : `baseline is missing BE cases: ${missing.join(', ')}. ${REBAKE}`).toBe('')
+    })
+
+    it('carries no case the BE has dropped', () => {
+        const extra = [...baselineById.keys()].filter((id) => !beById.has(id))
+        expect(
+            extra.length === 0 ? '' : `baseline has cases the BE no longer publishes: ${extra.join(', ')}. ${REBAKE}`
+        ).toBe('')
+    })
+
+    it('holds the same wire payload as the BE for every shared case', () => {
+        const changed = [...beById.entries()]
+            .filter(([id, entry]) => baselineById.has(id) && canonical(baselineById.get(id)) !== canonical(entry))
+            .map(([id]) => id)
+        expect(changed.length === 0 ? '' : `BE reshaped these entries: ${changed.join(', ')}. ${REBAKE}`).toBe('')
     })
 })

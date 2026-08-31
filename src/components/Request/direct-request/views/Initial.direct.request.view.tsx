@@ -1,10 +1,11 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import AmountInput from '@/components/Global/AmountInput'
 import ValidationErrorView, { type ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
@@ -171,7 +172,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     if (isRecipientUserLoading || authUser === undefined) {
         return (
             <div className="flex min-h-[inherit] w-full items-center justify-center">
-                <PeanutLoading />
+                <Loading variant="mascot" />
             </div>
         )
     }
@@ -180,7 +181,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         return (
             <div className="flex flex-col items-center justify-center gap-8">
                 {!!authUser?.user.userId ? <NavHeader onPrev={onBack} title={tNav('request')} /> : null}
-                <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4 md:w-6/12">
+                <div className="my-auto space-y-4 flex h-full w-full flex-col items-center justify-center md:w-6/12">
                     <ValidationErrorView {...validationError} />
                 </div>
             </div>
@@ -194,10 +195,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 {!!authUser?.user.userId ? (
                     <NavHeader onPrev={() => resetRequestState()} title={tNav('request')} />
                 ) : (
-                    <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
+                    <div className="text-center text-heading-xs md:hidden">{tNav('request')}</div>
                 )}
 
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <PageStack.Center className="gap-4">
                     <PaymentSuccessView
                         user={recipientUser}
                         amount={formatAmount(currentInputValue)}
@@ -205,7 +206,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         type="REQUEST"
                         redirectTo="/request"
                     />
-                </div>
+                </PageStack.Center>
             </div>
         )
     }
@@ -215,10 +216,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             {!!authUser?.user.userId ? (
                 <NavHeader onPrev={onBack} title={tNav('request')} />
             ) : (
-                <div className="text-center text-xl font-extrabold md:hidden">{tNav('request')}</div>
+                <div className="text-center text-heading-xs md:hidden">{tNav('request')}</div>
             )}
 
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <PageStack.Center className="gap-4">
                 <UserCard
                     type="request"
                     recipientType={'USERNAME'}
@@ -301,9 +302,9 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         </Button>
                     )}
 
-                    {errorState.errorMessage && <ErrorAlert description={errorState.errorMessage} />}
+                    {errorState.errorMessage && <Notification priority="error">{errorState.errorMessage}</Notification>}
                 </div>
-            </div>
+            </PageStack.Center>
         </div>
     )
 }

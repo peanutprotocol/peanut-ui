@@ -190,15 +190,6 @@ jest.mock('@/components/Global/NavHeader', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="error-alert" role="alert">
-            {props.description}
-        </div>
-    ),
-}))
-
 jest.mock('@/components/0_Bruddle/Button', () => ({
     Button: (props: any) => (
         <button

@@ -34,6 +34,9 @@ let nextConfig = {
         NEXT_PUBLIC_IS_NATIVE_BUILD: 'true',
         // required for isCapacitor() detection — ensures all API calls use direct backend URLs
         NEXT_PUBLIC_CAPACITOR_BUILD: 'true',
+        // native builds never run on Vercel; define the literal so the /dev
+        // build-time gates fold to false and dev-only data is tree-shaken out
+        NEXT_PUBLIC_VERCEL_ENV: '',
     },
 
     // Transpile packages for better compatibility

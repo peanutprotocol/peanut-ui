@@ -35,6 +35,65 @@ export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeC
 }
 
 /**
+ * The support-agent sidebar, as ordered key/value rows.
+ *
+ * ONE definition feeds every sink — the web widget's `session:data`, the proxy
+ * iframe (which receives the whole `CrispUserData` object and calls
+ * `setCrispUserData`), and the native `setString` loop. They used to be written
+ * out by hand per sink and had already drifted: native sent two keys where web
+ * sent seven, so the agents helping *app* users saw the least.
+ *
+ * Values are always present, empty string when absent, so a previous user's
+ * value can never linger on a device-local Crisp session.
+ */
+export function supportSessionFields(userData: CrispUserData, supportTopic?: string): Array<[string, string]> {
+    const { emailOnFile } = userData
+    return [
+        ['username', userData.username || ''],
+        ['user_id', userData.userId || ''],
+        ['full_name', userData.fullName || ''],
+        ['wallet_address', userData.walletAddressLink || ''],
+        ['bridge_user_id', userData.bridgeCustomerLink || ''],
+        ['manteca_user_id', userData.mantecaUserId || ''],
+        ['posthog_person', userData.posthogPersonLink || ''],
+        ['sentry_issues', userData.sentryIssuesLink || ''],
+        ['identity_status', userData.identityStatus || ''],
+        ['email_on_file', emailOnFile === undefined ? '' : emailOnFile ? 'yes' : 'no'],
+        ['verification_gates', userData.verificationGates || ''],
+        ['verification_rails', userData.verificationRails || ''],
+        ['failure_reason', userData.failureReason || ''],
+        ['pending_actions', userData.pendingActions || ''],
+        ['balance', userData.balance || ''],
+        ['account_stats', userData.accountStats || ''],
+        ['card', userData.card || ''],
+        ['linked_accounts', userData.linkedAccounts || ''],
+        ['app_context', userData.appContext || ''],
+        ['segments', (userData.segments ?? []).join(' ')],
+        /*
+         * Why the prefill is a data row and not only the composer text.
+         *
+         * On web the prefill populates the user's composer and reaches the agent
+         * as a message. On native it cannot: `sendMessage` is `unimplemented` in
+         * this plugin on BOTH iOS and Android, so every "contact support about X"
+         * entry point lost its context in the app — silently, and with an
+         * unhandled rejection behind it. Carrying the topic here delivers it
+         * through a method both platforms actually implement, and on web it
+         * survives the user deleting the prefilled text before sending.
+         */
+        ['support_topic', supportTopic || ''],
+    ]
+}
+
+/**
+ * Same rows, for the native SDK's one-key-at-a-time `setString`.
+ *
+ * `segments` is a data row on native rather than real segments: the native SDK
+ * holds a single segment (assignment, not append), so the list would collapse
+ * to whichever call ran last. The primary one is set separately by the caller.
+ */
+export const nativeCrispFields = supportSessionFields
+
+/**
  * Sets Crisp user identification and session metadata on a $crisp instance
  *
  * This is used for the main window Crisp widget (not iframe).
@@ -48,27 +107,19 @@ export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeC
 export function setCrispUserData(
     crispInstance: CrispInstance,
     userData: CrispUserData,
-    prefilledMessage?: string
+    prefilledMessage?: string,
+    /*
+     * The topic as metadata, separate from the composer text above it.
+     * A routine metadata refresh deliberately omits `prefilledMessage` so it
+     * cannot overwrite what the user is typing — but the sidebar row must
+     * survive that refresh, or a balance update erases the reason they opened
+     * support. Defaults to the composer value for callers that have only one.
+     */
+    supportTopic: string | undefined = prefilledMessage
 ): void {
     if (!crispInstance) return
 
-    const {
-        username,
-        userId,
-        email,
-        fullName,
-        avatar,
-        walletAddressLink,
-        bridgeCustomerLink,
-        mantecaUserId,
-        posthogPersonLink,
-        identityStatus,
-        emailOnFile,
-        verificationGates,
-        verificationRails,
-        failureReason,
-        pendingActions,
-    } = userData
+    const { username, email, fullName, avatar } = userData
 
     if (email) {
         crispInstance.push(['set', 'user:email', [email]])
@@ -84,29 +135,36 @@ export function setCrispUserData(
     }
 
     // Session metadata for support agents - must be 3 levels of nested arrays
-    crispInstance.push([
-        'set',
-        'session:data',
-        [
-            [
-                ['username', username || ''],
-                ['user_id', userId || ''],
-                ['full_name', fullName || ''],
-                ['wallet_address', walletAddressLink || ''],
-                ['bridge_user_id', bridgeCustomerLink || ''],
-                ['manteca_user_id', mantecaUserId || ''],
-                ['posthog_person', posthogPersonLink || ''],
-                ['identity_status', identityStatus || ''],
-                ['email_on_file', emailOnFile === undefined ? '' : emailOnFile ? 'yes' : 'no'],
-                ['verification_gates', verificationGates || ''],
-                ['verification_rails', verificationRails || ''],
-                ['failure_reason', failureReason || ''],
-                ['pending_actions', pendingActions || ''],
-            ],
-        ],
-    ])
+    crispInstance.push(['set', 'session:data', [supportSessionFields(userData, supportTopic)]])
 
-    if (prefilledMessage) {
+    /*
+     * The app does NOT write Crisp segments. Deliberate — do not add it back.
+     *
+     * Segments are a field people write by hand, and one of them backs an OKR:
+     * agents tag translation reports `translation-issue`, and the monthly count
+     * only sees a conversation that still carries the tag
+     * (mono/ops/playbook/translation-issue-tag.md). Ops tags incidents the same
+     * way. Crisp has no partial write — a set replaces the whole list — so any
+     * automatic write erases whatever a human put there, and this runs on every
+     * snapshot change, not just on open.
+     *
+     * Appending instead is not the answer either: the app's own flags then go
+     * stale, and a user who was briefly offline routes as `offline` for good.
+     *
+     * The flags still reach the agent, as the `segments` row in the sidebar
+     * above. What the app gives up is filtering the inbox by its own state,
+     * which has never existed. See TASK-21968.
+     */
+
+    /*
+     * `undefined` means "leave the composer alone" — a routine metadata refresh
+     * must not overwrite what the user is typing. An empty STRING is a real
+     * instruction: clear it. Without that distinction, opening support from an
+     * error CTA, closing without sending, then reopening from the nav left the
+     * old error text sitting in the composer, because the iframe stays mounted
+     * and a falsy check skips the clear.
+     */
+    if (prefilledMessage !== undefined) {
         crispInstance.push(['set', 'message:text', [prefilledMessage]])
     }
 }

@@ -29,7 +29,7 @@ export default function ShadowsPage() {
                                 <Button variant="purple" shadowSize={s}>
                                     shadow {s}
                                 </Button>
-                                <p className="mt-1 text-xs text-grey-1">
+                                <p className="mt-1 text-body-xs text-foreground-secondary">
                                     {s === '4'
                                         ? '160 usages'
                                         : s === '3'
@@ -53,7 +53,7 @@ export default function ShadowsPage() {
                     <div className="space-y-3">
                         {(['4', '6', '8'] as const).map((s) => (
                             <Card key={s} shadowSize={s} className="p-4">
-                                <p className="text-sm font-bold">shadowSize=&quot;{s}&quot;</p>
+                                <p className="text-label-l">shadowSize=&quot;{s}&quot;</p>
                             </Card>
                         ))}
                     </div>
@@ -67,7 +67,10 @@ export default function ShadowsPage() {
             <DocSection title="Tailwind Shadow Classes">
                 <div className="flex flex-wrap gap-3">
                     {['shadow-2', 'shadow-4', 'shadow-sm', 'shadow-lg'].map((cls) => (
-                        <div key={cls} className={`${cls} rounded-sm border border-n-1 px-3 py-2 text-xs font-bold`}>
+                        <div
+                            key={cls}
+                            className={`${cls} rounded-sm border border-border-default px-3 py-2 text-label-m`}
+                        >
                             .{cls}
                         </div>
                     ))}

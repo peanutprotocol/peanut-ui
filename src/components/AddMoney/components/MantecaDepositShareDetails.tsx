@@ -1,5 +1,6 @@
 'use client'
 
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import NavHeader from '@/components/Global/NavHeader'
 import { useParams } from 'next/navigation'
 import { useMemo } from 'react'
@@ -11,7 +12,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
     MANTECA_ARG_DEPOSIT_NAME,
@@ -93,10 +94,10 @@ const MantecaDepositShareDetails = ({
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
                 {/* Amount Display Card */}
                 <Card className="p-4">
-                    <div className="flex items-center space-x-3">
+                    <div className="space-x-3 flex items-center">
                         <div className="relative h-12 w-12">
                             <Image
                                 src={getFlagUrl(countryCodeForFlag)}
@@ -105,27 +106,24 @@ const MantecaDepositShareDetails = ({
                                 height={48}
                                 className="h-12 w-12 rounded-full object-cover"
                             />
-                            <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
-                                <Icon name="bank" size={12} />
-                            </div>
+                            <IconBubble icon="bank" size="xs" color="yellow" className="absolute -right-1 -bottom-1" />
                         </div>
                         <div>
-                            <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                            <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
                                 <Icon name="arrow-down" size={10} /> {t('manteca.youreAdding')}
                             </p>
-                            <p className="text-2xl font-bold">
+                            <p className="text-heading-s text-foreground-primary">
                                 {currencySymbol} {formatCurrency(depositAmount)}
                             </p>
-                            <div className="text-lg font-bold">≈ {formatCurrency(usdAmount)} USD</div>
+                            <div className="text-heading-card text-foreground-primary">
+                                ≈ {formatCurrency(usdAmount)} USD
+                            </div>
                         </div>
                     </div>
                 </Card>
-                <InfoCard
-                    variant="warning"
-                    icon="alert"
-                    title={t('manteca.sendOnlyOwnAccountTitle')}
-                    description={t('manteca.sendOnlyOwnAccountDescription')}
-                />
+                <Notification priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
+                    {t('manteca.sendOnlyOwnAccountDescription')}
+                </Notification>
                 <h2 className="font-bold">{t('manteca.accountDetails')}</h2>
                 <Card className="space-y-0 rounded-sm px-4">
                     {depositAddress && (
@@ -159,6 +157,8 @@ const MantecaDepositShareDetails = ({
                     />
                 </Card>
             </div>
+
+            <p className="text-body-xs text-foreground-secondary">{t('manteca.etaInstant')}</p>
 
             <ShareButton
                 generateText={async () => generateShareText()}

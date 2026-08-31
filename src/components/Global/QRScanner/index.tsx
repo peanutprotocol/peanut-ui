@@ -61,7 +61,7 @@ function PinkCorner({ className }: { className?: string }) {
                 stroke="currentColor"
                 strokeWidth="5"
                 strokeLinecap="round"
-                className="text-primary-1"
+                className="text-action-primary"
             />
         </svg>
     )
@@ -71,7 +71,7 @@ function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name
     return (
         <div className="flex max-w-26 items-center gap-1">
             <Image src={src} alt={alt} height={24} priority />
-            <span className="break-normal text-left text-xs font-black uppercase leading-none tracking-wider text-white">
+            <span className="text-left text-body-xs leading-none font-black tracking-wider break-normal text-white uppercase">
                 {name}
             </span>
         </div>
@@ -82,18 +82,18 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     const t = useTranslations('global')
     return (
         // portalled overlay escapes the layout's safe-area padding; max() keeps the old 2.5rem on web
-        <div className="fixed left-0 top-0 z-50 grid w-full grid-flow-col items-center pb-2 pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] text-center text-white">
+        <div className="fixed top-0 left-0 z-50 grid w-full grid-flow-col items-center pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] pb-2 text-center text-white">
             <Button
                 variant="transparent-light"
-                className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                 onClick={onClose}
             >
                 <Icon name="cancel" size={18} fill="white" />
             </Button>
-            <span className="text-3xl font-extrabold">{t('qrScanner.scanToPay')}</span>
+            <span className="text-heading-m text-foreground-inverse">{t('qrScanner.scanToPay')}</span>
             <Button
                 variant="transparent-light"
-                className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                 onClick={onToggleCamera}
             >
                 <Icon name="camera-flip" fill="white" height={24} width={24} />
@@ -123,7 +123,7 @@ function PasteActions({
                 className="justify mx-auto mt-10 flex items-center gap-1.5 text-center text-white underline underline-offset-2"
             >
                 <Icon name="paste" fill="white" height={16} width={16} />
-                <span className="text-sm">{t('qrScanner.clickToPaste')}</span>
+                <span className="text-body-s">{t('qrScanner.clickToPaste')}</span>
             </button>
             {detectedAddress ? (
                 <button
@@ -131,7 +131,7 @@ function PasteActions({
                     className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
                 >
                     <Icon name="wallet" fill="white" height={16} width={16} />
-                    <span className="text-sm font-semibold">{printableAddress(detectedAddress)}</span>
+                    <span className="text-body-s font-semibold">{printableAddress(detectedAddress)}</span>
                 </button>
             ) : showPasteChip ? (
                 <button
@@ -139,7 +139,7 @@ function PasteActions({
                     className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
                 >
                     <Icon name="paste" fill="white" height={16} width={16} />
-                    <span className="text-sm font-semibold">{t('qrScanner.useCopiedCode')}</span>
+                    <span className="text-body-s font-semibold">{t('qrScanner.useCopiedCode')}</span>
                 </button>
             ) : null}
         </>
@@ -232,14 +232,20 @@ function ErrorView({
     const tCommon = useTranslations('common')
     return (
         <div className="p-4 text-center text-white">
-            <p className="text-red-500">{message}</p>
+            <p className="text-foreground-error">{message}</p>
             <div className="mt-4 flex items-center justify-center gap-2">
                 {onRetry && (
-                    <button onClick={onRetry} className="rounded bg-white px-4 py-2 text-black">
+                    <button
+                        onClick={onRetry}
+                        className="rounded-sm bg-background-default px-4 py-2 text-foreground-primary"
+                    >
                         {tCommon('retry')}
                     </button>
                 )}
-                <button onClick={onClose} className="rounded bg-white px-4 py-2 text-black">
+                <button
+                    onClick={onClose}
+                    className="rounded-sm bg-background-default px-4 py-2 text-foreground-primary"
+                >
                     {tCommon('close')}
                 </button>
             </div>
@@ -346,7 +352,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     if (!isScanning) return null
 
     return createPortal(
-        <div className="qr-scanner-container fixed left-0 top-0 z-50 flex h-full w-full flex-col bg-black">
+        <div className="qr-scanner-container fixed top-0 left-0 z-50 flex h-full w-full flex-col bg-black">
             {/* modal uses !z-[60] to appear above this z-50 scanner portal (Dialog portals to body) */}
             {isPermissionDenied ? (
                 /*
@@ -381,7 +387,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     {!isCameraReady && (
                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black">
                             <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                            <span className="text-sm text-white/80">{t('qrScanner.startingCamera')}</span>
+                            <span className="text-body-s text-white/80">{t('qrScanner.startingCamera')}</span>
                         </div>
                     )}
                     <ScannerControls onClose={close} onToggleCamera={toggleCamera} />

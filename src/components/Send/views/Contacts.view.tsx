@@ -1,30 +1,27 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { sendUrl } from '@/utils/native-routes'
 import NavHeader from '@/components/Global/NavHeader'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useContacts } from '@/hooks/useContacts'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useState, useEffect } from 'react'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { SearchInput } from '@/components/SearchInput'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useDebounce } from '@/hooks/useDebounce'
 import { ContactsListSkeleton } from '@/components/Common/ContactsListSkeleton'
 import { useTranslations } from 'next-intl'
 
-export default function ContactsView() {
+export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const t = useTranslations('send')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const router = useRouter()
-    const searchParams = useSearchParams()
-    const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
-    const isSendingToContacts = searchParams.get('view') === 'contacts'
     const [searchQuery, setSearchQuery] = useState('')
     const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
@@ -64,16 +61,6 @@ export default function ContactsView() {
         router.push(`${window.location.pathname}?view=link`)
     }
 
-    const handlePrev = () => {
-        // when in sub-views (link or contacts), go back to base send page
-        // otherwise, go to home
-        if (isSendingByLink || isSendingToContacts) {
-            router.push('/send')
-        } else {
-            router.push('/home')
-        }
-    }
-
     const handleLinkCtaClick = () => {
         redirectToSendByLink()
     }
@@ -85,14 +72,14 @@ export default function ContactsView() {
 
     // only show full loading on initial load (before any data has been fetched)
     if (isFetchingContacts && !hasLoadedOnce) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     // handle error state before checking for empty contacts
     if (!!isError) {
         return (
-            <div className="flex min-h-[inherit] flex-col space-y-8">
-                <NavHeader title={tNav('send')} onPrev={handlePrev} />
+            <div className="space-y-8 flex min-h-[inherit] flex-col">
+                <NavHeader title={tNav('send')} onPrev={onPrev} />
                 <div className="flex flex-1 items-center justify-center">
                     <EmptyState
                         title={t('contacts.errorTitle')}
@@ -121,15 +108,15 @@ export default function ContactsView() {
     const hasNoSearchResults = isSearching && contacts.length === 0
 
     return (
-        <div className="flex min-h-[inherit] flex-col space-y-8">
-            <NavHeader title={tNav('send')} onPrev={handlePrev} />
+        <div className="space-y-8 flex min-h-[inherit] flex-col">
+            <NavHeader title={tNav('send')} onPrev={onPrev} />
 
             {hasContacts ? (
                 <div className="space-y-4">
                     {/* search input - always show when there are contacts or when searching */}
                     <SearchInput
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={setSearchQuery}
                         onClear={() => setSearchQuery('')}
                         placeholder={t('contacts.searchPlaceholder')}
                     />
@@ -140,15 +127,15 @@ export default function ContactsView() {
                         <ContactsListSkeleton count={5} />
                     ) : contacts.length > 0 ? (
                         <div className="space-y-2">
-                            <h2 className="text-base font-bold">{t('contacts.yourContacts')}</h2>
-                            <div className="flex-1 space-y-0 overflow-y-auto">
+                            <h2 className="text-body-m font-bold">{t('contacts.yourContacts')}</h2>
+                            <div className="space-y-0 flex-1 overflow-y-auto">
                                 {contacts.map((contact, index) => {
                                     const isVerified = contact.isVerified
                                     const displayName = contact.showFullName
                                         ? contact.fullName || contact.username
                                         : contact.username
                                     return (
-                                        <ActionListCard
+                                        <ListItem
                                             position={
                                                 contacts.length === 1
                                                     ? 'single'
@@ -169,8 +156,9 @@ export default function ContactsView() {
                                                     )}
                                                 />
                                             }
-                                            description={`@${contact.username}`}
-                                            leftIcon={<AvatarWithBadge size="extra-small" name={displayName} />}
+                                            body={`@${contact.username}`}
+                                            leading={<AvatarWithBadge size="extra-small" name={displayName} />}
+                                            chevron
                                             onClick={() => handleUserSelect(contact.username)}
                                         />
                                     )
@@ -180,9 +168,7 @@ export default function ContactsView() {
                             {/* infinite scroll loader */}
                             <div ref={loaderRef} className="w-full py-4">
                                 {isFetchingNextPage && (
-                                    <div className="w-full text-center text-sm text-gray-500">
-                                        {t('contacts.loadingMore')}
-                                    </div>
+                                    <div className="w-full text-center text-body-s">{t('contacts.loadingMore')}</div>
                                 )}
                             </div>
                         </div>

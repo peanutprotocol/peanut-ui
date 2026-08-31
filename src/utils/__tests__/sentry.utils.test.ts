@@ -24,6 +24,7 @@ jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
 
 jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
+    hasRecentFailure: jest.fn(() => false),
 }))
 
 describe('fetchWithSentry — expected-response suppression', () => {
@@ -442,5 +443,73 @@ describe('fetch timeout budgets', () => {
             )
             expect(reportedTimeoutMs()).toBe(1234)
         })
+    })
+})
+
+describe('fetchWithSentry — one report per endpoint per outage window', () => {
+    const { hasRecentFailure, reportNetworkError } = require('../connectivity') as {
+        hasRecentFailure: jest.Mock
+        reportNetworkError: jest.Mock
+    }
+    let infoSpy: jest.SpyInstance
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    })
+
+    afterEach(() => infoSpy.mockRestore())
+
+    it('captures the first failure for an endpoint', async () => {
+        hasRecentFailure.mockReturnValue(false)
+        await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(
+            'Something went wrong. Please try again.'
+        )
+        expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+    })
+
+    /*
+     * The amplifier this exists to kill: React Query retries the route, several
+     * mounted hooks fetch it, and a poll keeps firing while the device is
+     * offline. The user still gets the same thrown error — only the duplicate
+     * report is dropped.
+     */
+    it('skips the capture when the endpoint already failed inside the window', async () => {
+        hasRecentFailure.mockReturnValue(true)
+        await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(
+            'Something went wrong. Please try again.'
+        )
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+    })
+
+    /*
+     * The dedupe window is keyed by url alone, and REST puts both verbs on one
+     * path: /home polls `GET /charges` while the pay flow issues `POST /charges`.
+     * Suppressing the POST because the poll failed first would hide exactly the
+     * failure this change exists to surface — its capture never happens, so the
+     * shouldIgnoreError rescue never runs and `alreadyReported` eats the rethrow.
+     */
+    it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+        'still captures a failed %s after a GET to the same url failed in the window',
+        async (method) => {
+            hasRecentFailure.mockReturnValue(true)
+            await expect(fetchWithSentry('https://api.peanut.me/charges', { method })).rejects.toThrow(
+                'Something went wrong. Please try again.'
+            )
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('still dedupes a repeated GET to the same url', async () => {
+        hasRecentFailure.mockReturnValue(true)
+        await expect(fetchWithSentry('https://api.peanut.me/charges', { method: 'GET' })).rejects.toThrow()
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+    })
+
+    it('still records the failure for the connectivity banner either way', async () => {
+        hasRecentFailure.mockReturnValue(true)
+        await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow()
+        expect(reportNetworkError).toHaveBeenCalledWith('https://api.peanut.me/users/me')
     })
 })

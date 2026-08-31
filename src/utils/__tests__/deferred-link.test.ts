@@ -49,6 +49,14 @@ jest.mock('@capacitor/preferences', () => ({
     Preferences: { set: (o: unknown) => preferencesSet(o) },
 }))
 
+const posthogCapture = jest.fn()
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: {
+        capture: (...args: unknown[]) => posthogCapture(...args),
+    },
+}))
+
 const mockIsAndroidNative = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 const mockIsIOSNative = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockClipboardHasStrings = clipboardHasStrings as jest.MockedFunction<typeof clipboardHasStrings>
@@ -345,5 +353,79 @@ describe('restoreDeferredContext', () => {
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'test')
         expect(clipboardWrite).toHaveBeenCalled()
+    })
+})
+
+// The point of these: an empty clipboard and a declined paste prompt both yield
+// no payload, so without distinct outcomes a hand-off that never works is
+// indistinguishable from one nobody used.
+describe('restore telemetry', () => {
+    const lastRestoreEvent = () =>
+        posthogCapture.mock.calls.filter((c) => c[0] === 'deferred_link_restored').at(-1)?.[1]
+
+    it('reports a successful restore with which fields came back, and no payload content', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&lang=pt-BR&invite=abc&dest=%2Fhome' })
+
+        await restoreDeferredContext()
+
+        expect(lastRestoreEvent()).toEqual({
+            channel: 'referrer',
+            outcome: 'restored',
+            has_dest: true,
+            has_locale: true,
+            has_invite: true,
+            has_campaign: false,
+        })
+        // the inviter and destination must never reach analytics
+        expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('abc')
+        expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('/home')
+    })
+
+    it('separates an organic install from a declined iOS paste prompt', async () => {
+        // organic iOS install: nothing url-like on the clipboard, no prompt raised
+        mockIsIOSNative.mockReturnValue(true)
+        mockClipboardHasStrings.mockResolvedValue(false)
+        await restoreDeferredContext()
+        expect(lastRestoreEvent()).toEqual({ channel: 'clipboard', outcome: 'no_handoff' })
+
+        posthogCapture.mockClear()
+        localStorage.clear()
+        mockClipboardHasStrings.mockResolvedValue(true)
+        mockClipboardHasProbableWebUrl.mockResolvedValue(true)
+        clipboardRead.mockRejectedValue(new Error('user declined'))
+
+        await restoreDeferredContext()
+        expect(lastRestoreEvent()).toEqual({ channel: 'clipboard', outcome: 'clipboard_unavailable' })
+    })
+
+    it('does not count a transient android referrer failure, and keeps the one-shot for the next launch', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: null })
+        await restoreDeferredContext()
+        expect(lastRestoreEvent()).toBeUndefined()
+
+        // the read stayed unconsumed, so the next launch retries and can still restore
+        getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&dest=%2Fhome' })
+        await restoreDeferredContext()
+        expect(lastRestoreEvent()).toMatchObject({ channel: 'referrer', outcome: 'restored' })
+    })
+
+    it('reports a present-but-unmarked referrer as marker_missing, not no_handoff', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: 'utm_source=google-play&utm_medium=organic' })
+
+        await restoreDeferredContext()
+        expect(lastRestoreEvent()).toEqual({ channel: 'referrer', outcome: 'marker_missing' })
+    })
+
+    it('does not lose the restored context when posthog throws', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&dest=%2Fhome' })
+        posthogCapture.mockImplementation(() => {
+            throw new Error('posthog not initialised')
+        })
+
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
     })
 })

@@ -35,8 +35,10 @@ function applyUserData(payload: CrispInitPayload | null, withPrefill: boolean) {
     const prefill = withPrefill ? payload?.prefilledMessage : undefined
     // skip the all-empty push for anonymous visitors — nothing to show agents
     if (payload?.userData && Object.values(payload.userData).some(Boolean)) {
-        setCrispUserData(window.$crisp, payload.userData, prefill)
-    } else if (prefill) {
+        // `prefill` is guarded (composer); the topic is not (metadata) — see setCrispUserData.
+        setCrispUserData(window.$crisp, payload.userData, prefill, payload?.prefilledMessage)
+    } else if (prefill !== undefined) {
+        // same distinction as setCrispUserData: '' clears, undefined leaves alone
         window.$crisp.push(['set', 'message:text', [prefill]])
     }
 }
@@ -225,5 +227,5 @@ export default function CrispProxyPage() {
         }
     }, [])
 
-    return <div className="h-full w-full" style={{ height: '100vh', width: '100vw', overflow: 'hidden' }} />
+    return <div className="h-screen w-screen overflow-hidden" />
 }

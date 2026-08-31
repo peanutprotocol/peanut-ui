@@ -1,7 +1,9 @@
 {
     "common": {
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
-        "tryDifferentCountry": "Probá con otro país."
+        "tryDifferentCountry": "Probá con otro país.",
+        "slideToProceed": "Deslizá para continuar",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",
@@ -11,6 +13,7 @@
         "notDeployedOnChain": "Bulk no está disponible en esta red, probá con otra red.",
         "userRejectedRequest": "Confirmá la solicitud en tu billetera.",
         "networkError": "Ocurrió un error de red. Actualizá la página e intentalo de nuevo.",
+        "connectionLost": "Se perdió la conexión. Revisá tu conexión a internet e intentá de nuevo.",
         "nonceExpired": "El nonce expiró, intentalo de nuevo.",
         "walletNotConnected": "Asegurate de que tu billetera esté conectada.",
         "gasExceedsAllowance": "El gas requerido supera tu saldo. Confirmá que tenés fondos suficientes.",
@@ -37,7 +40,8 @@
         "cardApprovalCancelled": "Aprobación cancelada: podés volver a intentarlo cuando quieras.",
         "cardApprovalFailed": "No se pudo aprobar la tarjeta. Intentalo de nuevo.",
         "logoutFailed": "No pudimos cerrar tu sesión. Intentalo de nuevo.",
-        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo."
+        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo.",
+        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento."
     },
     "migration": {
         "downloadPrompt": {

@@ -481,7 +481,7 @@ describe('badge badge campaign claims contract', () => {
             destinationForConfirmedBadgeCampaignAcquisition([
                 { badgeCampaign: 'opaque', outcome: 'already_owned', acquisition },
             ])
-        ).toBe('/add-money/crypto?network=EVM&source=offramp')
+        ).toBe('/home')
         expect(
             destinationForConfirmedBadgeCampaignAcquisition([
                 { badgeCampaign: 'opaque', outcome: 'expired', acquisition },

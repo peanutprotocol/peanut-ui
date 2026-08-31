@@ -1,7 +1,7 @@
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTranslations } from 'next-intl'
 import React, { useCallback, useRef, useState } from 'react'
-import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
+import { Drawer, DrawerContent } from '../Global/Drawer'
 import { TransactionDetailsReceipt } from './TransactionDetailsReceipt'
 
 interface TransactionDetailsDrawerProps {
@@ -47,11 +47,11 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 }
             }}
         >
-            {/* No z-index shuffle for the cancel confirmation any more: it is a vaul
+            {/* pb only — the drawer chrome owns the space above (handle 8px top / 24px below, per board).
+                No z-index shuffle for the cancel confirmation any more: it is a vaul
                 NestedRoot now, so vaul stacks it above this drawer and scales this one
                 back on its own. */}
-            <DrawerContent className="py-5">
-                <DrawerTitle className="sr-only">{t('drawerTitle')}</DrawerTitle>
+            <DrawerContent accessibleTitle={t('drawerTitle')} className="pb-4">
                 <TransactionDetailsReceipt
                     isLoading={isLoading}
                     transaction={transaction}
@@ -62,7 +62,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     isModalOpen={isModalOpen}
                     setIsModalOpen={setIsModalOpen}
                     avatarUrl={avatarUrl}
-                    className="px-5"
+                    className="px-4"
                 />
             </DrawerContent>
         </Drawer>

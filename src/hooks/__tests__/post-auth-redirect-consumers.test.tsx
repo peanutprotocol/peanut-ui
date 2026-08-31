@@ -41,7 +41,7 @@ jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 
 const FINANCIAL_REDIRECT = '/claim?step=claim&id=payment-1'
-const CAMPAIGN_REDIRECT = '/add-money/crypto?network=EVM&source=offramp'
+const CAMPAIGN_REDIRECT = '/add-money/crypto?network=EVM'
 
 describe('post-auth redirect consumers', () => {
     beforeEach(() => {
@@ -59,6 +59,21 @@ describe('post-auth redirect consumers', () => {
 
         expect(mockRouterPush).toHaveBeenCalledWith(FINANCIAL_REDIRECT)
         expect(getRedirectUrl()).toBeNull()
+    })
+
+    it('finalizing the account does not navigate — the account-ready screen owns the redirect', async () => {
+        mockAddAccount.mockResolvedValue(undefined)
+        saveToLocalStorage('redirect', CAMPAIGN_REDIRECT)
+        const { result } = renderHook(() => useAccountSetup())
+
+        await act(async () => {
+            await expect(result.current.finalizeAccountSetup('0xabc')).resolves.toBe(true)
+        })
+
+        expect(mockAddAccount).toHaveBeenCalled()
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        // the redirect is still queued for the CTA to consume
+        expect(getRedirectUrl()).toBe(CAMPAIGN_REDIRECT)
     })
 
     it('login cannot resurrect a campaign redirect after an explicit financial route consumed it', async () => {

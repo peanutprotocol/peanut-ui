@@ -8,6 +8,7 @@ import { parseAsFloat, parseAsString, useQueryStates } from 'nuqs'
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 
 export interface ExchangeRateWidgetLabels {
     youSend: string
@@ -194,14 +195,17 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // Determine delivery time text based on destination currency
     const deliveryTimeText = destinationCurrency === 'USD' ? l.arrivesHours : l.arrivesMinutes
 
+    // no exchange-rate board exists in figma (checked 2026-08-20) — container
+    // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
+    // recipe; a dedicated board can restyle the internals later.
     return (
-        <div className="btn btn-shadow-primary-4 mx-auto mt-12 flex h-fit w-full flex-col items-center justify-center gap-4 bg-white p-7 md:w-[420px]">
+        <Card shadowSize="4" className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]">
             <div className="w-full">
-                <h2 className="text-left text-sm">{l.youSend}</h2>
-                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
+                <h2 className="text-left text-body-s">{l.youSend}</h2>
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                            <div className="h-8 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -219,7 +223,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent outline-none"
+                            className="w-full bg-transparent text-body-m font-bold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -235,7 +239,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     height={160}
                                     className="size-4 rounded-full object-cover"
                                 />
-                                {sourceCurrency} <Icon name="chevron-down" className="text-gray-1" size={14} />
+                                {sourceCurrency}{' '}
+                                <Icon name="chevron-down" className="text-foreground-secondary" size={14} />
                             </button>
                         }
                     />
@@ -244,18 +249,18 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
             <button
                 onClick={swapCurrencies}
-                className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-grey-4"
+                className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-background-disabled"
                 aria-label={l.swapCurrencies}
             >
                 <Icon name="arrow-exchange" size={18} className="rotate-90 transition-transform duration-300" />
             </button>
 
             <div className="w-full">
-                <h2 className="text-left text-sm">{l.recipientGets}</h2>
-                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
+                <h2 className="text-left text-body-s">{l.recipientGets}</h2>
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                            <div className="h-8 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -279,7 +284,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent outline-none"
+                            className="w-full bg-transparent text-body-m font-bold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -294,16 +299,17 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     height={160}
                                     className="size-4 rounded-full object-cover"
                                 />
-                                {destinationCurrency} <Icon name="chevron-down" className="text-gray-1" size={14} />
+                                {destinationCurrency}{' '}
+                                <Icon name="chevron-down" className="text-foreground-secondary" size={14} />
                             </button>
                         }
                     />
                 </div>
             </div>
 
-            <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
+            <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
                 {showLoading ? (
-                    <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-grey-2" />
+                    <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-background-disabled" />
                 ) : isError ? (
                     <span>{l.rateUnavailable}</span>
                 ) : (
@@ -314,15 +320,15 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             </div>
 
             {typeof destinationAmount === 'number' && destinationAmount > 0 && (
-                <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">
+                <div className="flex w-full flex-col gap-3 rounded-sm border border-border-default px-4 py-2">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-left text-sm font-normal">{l.bankFee}</h2>
-                        <h2 className="text-left text-sm font-normal">{l.free}</h2>
+                        <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
+                        <h2 className="text-left text-body-s font-normal">{l.free}</h2>
                     </div>
 
                     <div className="flex items-center justify-between">
-                        <h2 className="text-left text-sm font-normal">{l.peanutFee}</h2>
-                        <h2 className="text-left text-sm font-normal">{l.free}</h2>
+                        <h2 className="text-left text-body-s font-normal">{l.peanutFee}</h2>
+                        <h2 className="text-left text-body-s font-normal">{l.free}</h2>
                     </div>
                 </div>
             )}
@@ -332,18 +338,18 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                 icon={ctaIcon}
                 iconSize={13}
                 shadowSize="4"
-                className="w-full text-base font-bold"
+                className="w-full text-body-m font-bold"
             >
                 {ctaLabel}
             </Button>
 
             {typeof destinationAmount === 'number' && destinationAmount > 0 && (
                 <div className="flex items-center gap-1">
-                    <Icon name="info" className="text-gray-1" size={14} />
-                    <p className="text-xs text-gray-1">{deliveryTimeText}</p>
+                    <Icon name="info" className="text-foreground-secondary" size={14} />
+                    <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>
                 </div>
             )}
-        </div>
+        </Card>
     )
 }
 

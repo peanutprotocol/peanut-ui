@@ -8,6 +8,7 @@ import {
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
 import {
+    hasReceiptPage,
     hasShareableReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
@@ -23,12 +24,6 @@ import { hasCardPaymentRowsContent } from '@/components/TransactionDetails/provi
 import { countryData } from '@/components/AddMoney/consts'
 import { getContributorsFromCharge, formatCurrency, isStableCoin } from '@/utils/general.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
-
-const ROW_GROUPS = {
-    dateRows: ['createdAt', 'cancelled', 'claimed', 'completed', 'closed'] as TransactionDetailsRowKey[],
-    txnDetails: ['tokenAndNetwork', 'txId'] as TransactionDetailsRowKey[],
-    fees: ['networkFee', 'peanutFee'] as TransactionDetailsRowKey[],
-} as const
 
 const ALL_ROWS_HIDDEN = transactionDetailsRowKeys.reduce(
     (acc, key) => {
@@ -53,18 +48,17 @@ export interface ReceiptViewModel {
      *  Manteca deposit-info row for the country-specific address label). */
     country: (typeof countryData)[number] | undefined
 
-    /** Per-row visibility config — drives both rendering and border logic. */
+    /** Per-row visibility config — drives rendering. Dividers between rows
+     *  come from the details card's `divide-y`, so no last-row border logic. */
     rowVisibilityConfig: Record<TransactionDetailsRowKey, boolean>
-
-    /** True when this row is the last visible one in the receipt — the row
-     *  uses this to suppress its bottom border so it meets the Card edge. */
-    shouldHideBorder: (rowKey: TransactionDetailsRowKey) => boolean
-
-    /** Same idea but scoped to a row group (date rows, txn details, fees). */
-    shouldHideGroupBorder: (rowKey: TransactionDetailsRowKey, groupName: keyof typeof ROW_GROUPS) => boolean
 
     /** Whether the share-receipt button should render at all. */
     shouldShowShareReceipt: boolean
+
+    /** Whether the Download-PDF affordance should render — the share gate's
+     *  conditions, narrowed to kinds the /receipt/[entryId]/pdf route serves,
+     *  and allowed on the public receipt (where sharing is moot). */
+    shouldShowDownloadPdf: boolean
 
     /** Request-pot contributor list — empty array when not a request pot. */
     requestPotContributors: ReturnType<typeof getContributorsFromCharge>
@@ -243,53 +237,29 @@ export function useReceiptViewModel(
             mantecaDepositInfo: !isPublic && isMantecaOnrampEntry(transaction) && transaction.status === 'pending',
             // Gate on whether CardPaymentRows would actually emit a sub-row;
             // otherwise an "all-data-absent" card spend leaves the slot
-            // visible-but-empty and `shouldHideBorder` mis-attributes the
-            // last-visible row.
+            // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
             closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
         }
     }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
 
-    const visibleRows = useMemo(
-        () => transactionDetailsRowKeys.filter((key) => rowVisibilityConfig[key]),
-        [rowVisibilityConfig]
-    )
-
-    const shouldHideBorder = useMemo(() => {
-        const lastVisibleRow = visibleRows[visibleRows.length - 1]
-        return (rowKey: TransactionDetailsRowKey) => rowKey === lastVisibleRow
-    }, [visibleRows])
-
-    const lastVisibleInGroups = useMemo(() => {
-        const lastIn = (groupKeys: readonly TransactionDetailsRowKey[]) => {
-            const v = groupKeys.filter((key) => rowVisibilityConfig[key])
-            return v[v.length - 1]
-        }
-        return {
-            dateRows: lastIn(ROW_GROUPS.dateRows),
-            txnDetails: lastIn(ROW_GROUPS.txnDetails),
-            fees: lastIn(ROW_GROUPS.fees),
-        }
-    }, [rowVisibilityConfig])
-
-    const shouldHideGroupBorder = useMemo(() => {
-        return (rowKey: TransactionDetailsRowKey, groupName: keyof typeof ROW_GROUPS) => {
-            const isLastInGroup = rowKey === lastVisibleInGroups[groupName]
-            const isGlobalLast = shouldHideBorder(rowKey)
-            // Last-in-group keeps its border unless it's also the global last;
-            // otherwise always hide (group rows pack visually).
-            return isLastInGroup ? isGlobalLast : true
-        }
-    }, [lastVisibleInGroups, shouldHideBorder])
-
-    const shouldShowShareReceipt = useMemo(() => {
-        if (isPublic) return false
+    // The share conditions without the isPublic suppression, so the PDF gate
+    // below can reuse them on the public receipt.
+    const meetsShareConditions = useMemo(() => {
         if (!transaction || isPendingSentLink || isPendingRequester || isPendingRequestee) return false
         if (transaction.txHash && transaction.direction !== 'receive' && transaction.direction !== 'request_sent') {
             return true
         }
         return hasShareableReceipt(transaction)
-    }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee])
+    }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
+
+    const shouldShowShareReceipt = !isPublic && meetsShareConditions
+
+    const shouldShowDownloadPdf = useMemo(() => {
+        if (!transaction || !hasReceiptPage(transaction)) return false
+        if (isPendingSentLink || isPendingRequester || isPendingRequestee) return false
+        return isPublic || meetsShareConditions
+    }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee, meetsShareConditions])
 
     const requestPotContributors = useMemo(() => {
         if (!transaction?.requestPotPayments) return []
@@ -311,9 +281,8 @@ export function useReceiptViewModel(
         isCardSpend,
         country,
         rowVisibilityConfig,
-        shouldHideBorder,
-        shouldHideGroupBorder,
         shouldShowShareReceipt,
+        shouldShowDownloadPdf,
         requestPotContributors,
         formattedTotalAmountCollected,
     }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
@@ -201,8 +202,8 @@ export const useSpendBundle = () => {
                         chargeId,
                     })
 
-                    const adminSignature = (await activeClient.account!.signTypedData(
-                        buildRainWithdrawTypedData(prep, chainIdNum)
+                    const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
+                        activeClient.account!.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                     )) as Hex
 
                     const { txHash } = await rainApi.submitWithdrawal({
@@ -325,8 +326,8 @@ export const useSpendBundle = () => {
                     })
                 }
 
-                const adminSignature = (await activeClient.account!.signTypedData(
-                    buildRainWithdrawTypedData(prep, chainIdNum)
+                const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
+                    activeClient.account!.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                 )) as Hex
 
                 // Mixed = two passkey taps. The admin EIP-712 sig (tap #1) just

@@ -2,12 +2,12 @@
  * Send-link + claim + refund regression guard.
  *
  * Protects the AppKit-removal + useCreateLink / useClaimLink cleanup in the
- * decomplexify sprint. Pure UI-level checks so they run without the Nutcracker
- * harness env (TEST_HARNESS_SECRET). Picked up by playwright.regression.config.ts
- * via the `*.regression.spec.ts` pattern? No — also in the default `flows` dir
- * so it runs from both configs. The regression config filters by filename.
+ * decomplexify sprint. Pure UI-level checks, so they need no API and no login:
+ * `?__fixture=home` supplies a fake session and fake API answers, or the app
+ * layout holds every screen on the loading mascot and the checks prove nothing.
+ * See src/dev/fixtures/active.ts.
  *
- * Full-stack flow (actually spend USDC on-chain, assert DB writes) belongs in
+ * The full flow — spend USDC on-chain, then assert the DB writes — belongs in
  * Nutcracker scenarios, not here.
  */
 
@@ -24,7 +24,7 @@ test.describe('Send-link / claim / refund regression', () => {
         })
         page.on('pageerror', (err) => errors.push(err.message))
 
-        await page.goto('/claim?c=deadbeef&v=v4&i=0&p=bogus', { waitUntil: 'domcontentloaded' })
+        await page.goto('/claim?c=deadbeef&v=v4&i=0&p=bogus&__fixture=home', { waitUntil: 'domcontentloaded' })
         await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {})
 
         const body = await page.locator('body').innerText()
@@ -40,7 +40,7 @@ test.describe('Send-link / claim / refund regression', () => {
         // The Refund component + /refund page were BYOW-only and got removed.
         // The route might be 404'd by Next.js or fall through to the app's catch-all
         // — both acceptable. What's NOT acceptable: the old UI still renders.
-        await page.goto('/refund', { waitUntil: 'domcontentloaded' })
+        await page.goto('/refund?__fixture=home', { waitUntil: 'domcontentloaded' })
         const body = await page
             .locator('body')
             .innerText()
@@ -65,7 +65,7 @@ test.describe('Send-link / claim / refund regression', () => {
         })
         page.on('pageerror', (err) => errors.push(err.message))
 
-        await page.goto('/send?view=link', { waitUntil: 'domcontentloaded' })
+        await page.goto('/send?view=link&__fixture=home', { waitUntil: 'domcontentloaded' })
         await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {})
 
         const wagmiErrors = errors.filter((e) => /useSignTypedData must be used|WagmiContext|WagmiProvider/.test(e))

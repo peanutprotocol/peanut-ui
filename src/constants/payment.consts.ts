@@ -84,6 +84,10 @@ export const CARD_FX_MARKUP_BY_CURRENCY: Record<string, number> = {
  * @param amount - amount in USD
  * @param methodId - payment method identifier
  * @returns true if amount is valid, false otherwise
+ *
+ * Deliberately fails OPEN for method ids without a static minimum: the crypto
+ * path ('exchange-or-wallet') has per-chain floors known only from the SDA
+ * response, enforced in RhinoDepositView once that response arrives.
  */
 export const validateMinimumAmount = (amount: number, methodId: string): boolean => {
     return amount >= ((CLAIM_RAIL_MINIMUMS as Record<string, number>)[methodId] ?? 0)

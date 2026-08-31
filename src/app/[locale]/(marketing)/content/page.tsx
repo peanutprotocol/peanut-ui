@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 function LandingFallback({ items, strings }: { items: ContentItem[]; strings: ContentLandingStrings }) {
     return (
         <>
-            <div className="mx-auto mb-6 mt-10 max-w-[720px] px-6 md:mt-12 md:px-4">
+            <div className="mx-auto mt-10 mb-6 max-w-[720px] px-6 md:mt-12 md:px-4">
                 <div className="h-12 w-full animate-pulse rounded-sm border border-n-1 bg-gray-200" />
             </div>
             <ContentLinkList items={items} strings={strings} grouped />

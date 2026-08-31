@@ -1,6 +1,9 @@
 'use client'
 
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -34,20 +37,19 @@ import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowCont
 import useClaimLink from '../useClaimLink'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
 import ActionModal from '@/components/Global/ActionModal'
-import { Slider } from '@/components/Slider'
 import { BankFlowManager } from './views/BankFlowManager.view'
 import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getTokenSymbol } from '@/utils/general.utils'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Image from 'next/image'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import MantecaFlowManager from './MantecaFlowManager'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
@@ -979,10 +981,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 </div>
             ) : (
                 <div className="-mt-1 md:hidden">
-                    <div className="pb-1 text-center text-2xl font-extrabold">{t('receive')}</div>
+                    <div className="pb-1 text-center text-heading-s">{t('receive')}</div>
                 </div>
             )}
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"
                     transactionType="CLAIM_LINK"
@@ -999,7 +1001,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     message={attachment.message}
                     fileUrl={attachment.attachmentUrl}
                 />
-                {errorState.showError && <ErrorAlert description={errorState.errorMessage} />}
+                {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
 
                 {/* Token Selector
                  * We don't want to show this if we're claiming to peanut wallet. Else its okay
@@ -1048,7 +1050,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         />
                     )}
                     {recipientType === 'username' && !!claimToExternalWallet && (
-                        <div className="text-xs text-grey-1">{t('initial.usdcArbitrumOnly')}</div>
+                        <div className="text-body-xs text-foreground-secondary">{t('initial.usdcArbitrumOnly')}</div>
                     )}
                 </div>
 
@@ -1066,7 +1068,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 !isValidRecipient ||
                                 (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
                             }
-                            className="text-sm md:text-base"
+                            className="text-body-s md:text-body-m"
                         >
                             {getButtonText()}
                         </Button>
@@ -1081,7 +1083,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         />
                     )}
                 </div>
-            </div>
+            </PageStack.Center>
             <ActionModal
                 visible={showConfirmationModal}
                 onClose={() => setShowConfirmationModal(false)}
@@ -1093,32 +1095,31 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     </div>
                 }
                 icon="alert"
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName="bg-action-secondary"
                 footer={
-                    <div className="w-full space-y-3">
-                        <Slider
-                            onValueChange={(v) => {
-                                if (!v) return
+                    <div className="space-y-3 w-full">
+                        <SlideToConfirm
+                            label={tCommon('slideToProceed')}
+                            onConfirm={() => {
                                 // for cross-chain claims, advance to the confirm screen first
                                 if (isXChain) {
                                     setShowConfirmationModal(false)
                                     onNext()
                                 } else {
-                                    // direct on-chain claim – initiate immediately
+                                    // direct on-chain claim - initiate immediately
                                     handleClaimLink(true)
                                 }
                             }}
                         />
-                        <Button
-                            variant="transparent"
-                            className="h-fit p-0 text-sm underline"
+                        <LinkButton
+                            className="self-center"
                             onClick={() => {
                                 setShowConfirmationModal(false)
                                 setClaimToExternalWallet(false)
                             }}
                         >
                             {t('addressCompatible.claimToPeanut')}
-                        </Button>
+                        </LinkButton>
                     </div>
                 }
                 preventClose={false}

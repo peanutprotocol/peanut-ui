@@ -1,4 +1,5 @@
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
+import { isNativeFetchRejection } from '@/utils/network-triage'
 
 /** Safely extract a string-form of an unknown error + its `.message` if any.
  *  Lets the matchers below use `string` methods without unsafe property access
@@ -79,6 +80,7 @@ export type FriendlyErrorCode =
     | 'sendLinkAlreadyClaimed'
     | 'lowLiquidity'
     | 'networkBusyTimeout'
+    | 'connectionLost'
     | 'sessionExpired'
     | 'connectionTimeout'
     | 'genericSupport'
@@ -151,10 +153,49 @@ const cooldownMinutes = (error: unknown): number | null => {
     return Math.max(1, Math.ceil(sec / 60))
 }
 
+/** A backend-authored ApiError message worth showing verbatim: short single-line
+ *  prose, not a technical dump (URL, JSON/HTML body, stack) and not one of our
+ *  own "Failed to …" fetch fallbacks. */
+const displayableApiErrorMessage = (error: unknown): string | null => {
+    if (apiErrorStatus(error) === undefined) return null
+    const message = (error as { message?: unknown }).message
+    if (typeof message !== 'string') return null
+    const trimmed = message.trim()
+    if (!trimmed || trimmed.length > 200 || trimmed.includes('\n')) return null
+    // no links, scheme-prefixed or bare (www.evil.com / evil.com/path)
+    if (/https?:\/\//i.test(trimmed)) return null
+    if (/(?:^|[\s(["'])(?:[a-z0-9][a-z0-9-]*\.)+[a-z]{2,}(?=$|[\s)\]"'.,!?:;/])/i.test(trimmed)) return null
+    if (trimmed.startsWith('{') || trimmed.startsWith('<')) return null
+    if (/^failed to /i.test(trimmed)) return null
+    return trimmed
+}
+
+const isGenericSupport = (result: FriendlyError): boolean => result.kind === 'code' && result.code === 'genericSupport'
+
 /** UI-friendly error classifier. Matches substrings on common wallet / viem /
  *  Peanut API error messages and returns a display code (or verbatim backend
- *  text). Preserves the exact precedence of the original `ErrorHandler`. */
+ *  text). Preserves the exact precedence of the original `ErrorHandler`.
+ *
+ *  When nothing matches, before giving up on `genericSupport` it re-runs the
+ *  matchers on ONE level of `.cause` (fetch wrappers rethrow with the real
+ *  failure attached there), then surfaces a displayable backend-authored
+ *  ApiError message verbatim rather than discarding the actual reason. */
 export const friendlyError = (error: unknown): FriendlyError => {
+    const classified = classifyError(error)
+    if (!isGenericSupport(classified)) return classified
+
+    const cause = error && typeof error === 'object' ? (error as { cause?: unknown }).cause : undefined
+    if (cause !== undefined && cause !== null) {
+        const fromCause = classifyError(cause)
+        if (!isGenericSupport(fromCause)) return fromCause
+    }
+
+    const backendMessage = displayableApiErrorMessage(error) ?? displayableApiErrorMessage(cause)
+    if (backendMessage) return passthrough(backendMessage)
+    return code('genericSupport')
+}
+
+const classifyError = (error: unknown): FriendlyError => {
     const { text, message, name } = extractErrorParts(error)
 
     // Wire code first: it's locale-independent and immune to backend copy
@@ -276,5 +317,24 @@ export const friendlyError = (error: unknown): FriendlyError => {
         text.includes('timed out after')
     )
         return code('networkBusyTimeout')
+    // Browser-native fetch rejection — the request never reached a server, so
+    // there is no status and no wire code to key off, only the engine's own
+    // TypeError copy: `Failed to fetch` (Chromium, so every Android WebView),
+    // `Load failed` (WebKit), `NetworkError when attempting to fetch resource.`
+    // (Gecko). None of them match the ethers-style uppercase `NETWORK_ERROR`
+    // above, so a device that simply lost connectivity mid-send dead-ended on
+    // "contact support" — the one failure whose real advice is "you're offline,
+    // try again" (TASK-21956). Last before the fallback so it can never shadow
+    // a more specific classification.
+    //
+    // Matched on the native `TypeError` name AND the engine message EXACTLY,
+    // never as a substring: 21 of our own services throw
+    // `Failed to fetch <thing>: <status>` (e.g. chargesApi.get on a 500) for a
+    // response that very much DID arrive, and those carry no `status` to be
+    // caught by the ApiError branch above. A substring match would tell a user
+    // whose connection is fine that they are offline — the same mislabelling
+    // this whole change exists to remove, pointed the other way. The predicate
+    // is shared with network-triage.ts so the copy and the probes can't drift.
+    if (isNativeFetchRejection(name, message)) return code('connectionLost')
     return code('genericSupport')
 }

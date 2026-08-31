@@ -2,6 +2,10 @@
 # projects, plists, resources) isn't worth AI review and pushes large
 # mobile PRs over the 150-file review limit.
 reviews:
+    # dev is the integration branch PRs actually target; without this,
+    # CodeRabbit refuses to review them even on a manual trigger.
+    base_branches:
+        - dev
     path_filters:
         - '!ios/**'
         - '!android/**'

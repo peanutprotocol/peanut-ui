@@ -1,6 +1,20 @@
-import { PEANUTMAN_MOBILE, PeanutPointing, PeanutThinking, PeanutTooCool, PeanutWhistling } from '@/assets/mascot'
+import {
+    PEANUTMAN_MOBILE,
+    PeanutPointing,
+    PeanutThinking,
+    PeanutTooCool,
+    PeanutWavingHello,
+    PeanutWhistling,
+} from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import { InstallPWA, SetupPasskey, SignupStep, LandingStep, SignTestTransaction } from '@/components/Setup/Views'
+import {
+    InstallPWA,
+    SetupPasskey,
+    SignupStep,
+    LandingStep,
+    ResidenceStep,
+    SignTestTransaction,
+} from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
 
 export const setupSteps: ISetupStep[] = [
@@ -21,8 +35,8 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: false,
         showSkipButton: false,
         imageClassName: 'w-[50%] md:w-[30%] h-auto',
-        titleClassName: 'text-2xl',
-        contentClassName: 'flex flex-col items-center justify-center gap-5',
+        titleClassName: 'text-heading-s',
+        contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
     {
         screenId: 'pwa-install',
@@ -40,7 +54,7 @@ export const setupSteps: ISetupStep[] = [
         component: LandingStep,
         showBackButton: false,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-5',
+        contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
     {
         screenId: 'welcome',
@@ -49,7 +63,7 @@ export const setupSteps: ISetupStep[] = [
         component: JoinWaitlist,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-5',
+        contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
     {
         screenId: 'signup',
@@ -58,6 +72,18 @@ export const setupSteps: ISetupStep[] = [
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
+    },
+    {
+        screenId: 'residence',
+        layoutType: 'signup',
+        image: PeanutWavingHello.src,
+        component: ResidenceStep,
+        showBackButton: true,
+        showSkipButton: false,
+        // The heads-up sub-views replace the intro copy; the select view
+        // renders the description itself.
+        descriptionInView: true,
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
     },
     {
@@ -67,7 +93,7 @@ export const setupSteps: ISetupStep[] = [
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
     {
         screenId: 'sign-test-transaction',
@@ -76,6 +102,9 @@ export const setupSteps: ISetupStep[] = [
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-5',
+        // The view renders the description itself: the confirm prompt before
+        // signing, the account-ready celebration after.
+        descriptionInView: true,
+        contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
 ]

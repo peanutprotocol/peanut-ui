@@ -3,9 +3,18 @@
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import ActionModal from '@/components/Global/ActionModal'
+import { useKycDegraded } from '@/hooks/useKycDegraded'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
+import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
+import NavHeader from '@/components/Global/NavHeader'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 
 interface InitiateKycModalProps {
     visible: boolean
@@ -23,6 +32,21 @@ interface InitiateKycModalProps {
     reasonCode?: string
     /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
     regionName?: string
+    /** Which prep checklist the SDK-bound variants show: extended for the
+     *  Manteca (BR/AR) flows, standard elsewhere. */
+    prepPath?: 'standard' | 'extended'
+    /**
+     * 'modal' overlays the caller; 'page' renders the same decision as a flow
+     * step. The prep content is a screen's worth — two requirement cards, a
+     * duration card, a caveat and a CTA — which overflowed the dialog on a
+     * short viewport. Both forms share every branch below on purpose: the
+     * degraded-outage and region-restricted short-circuits are the invariant
+     * this component exists to centralize.
+     */
+    presentation?: 'modal' | 'page'
+    /** page form only — the step's back affordance and header title */
+    onBack?: () => void
+    navTitle?: string
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
@@ -42,10 +66,25 @@ export const InitiateKycModal = ({
     providerMessage,
     reasonCode,
     regionName,
+    prepPath = 'standard',
+    presentation = 'modal',
+    onBack,
+    navTitle,
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
+    // Enforced HERE rather than at each call site on purpose. Six gates open this
+    // modal (add-money, withdraw, the two bank pages, and both Manteca flow
+    // managers), and each one computes its variant from a rail gate that cannot
+    // see WHY identity failed: a region-restricted user reads as `needs-identity`
+    // (no rail + unverified) and would be offered "Unlock now" → the Sumsub SDK
+    // → the same guaranteed rejection, or as `blocked-rejection` → contact
+    // support. Both contradict the region screen. Short-circuiting at the one
+    // component they all share makes the invariant impossible for a future call
+    // site to miss.
+    const { isRegionRestricted } = useIdentityVerification()
+    const isKycDegraded = useKycDegraded()
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
     const isProviderRejection = variant === 'provider_rejection'
@@ -82,7 +121,7 @@ export const InitiateKycModal = ({
         return t('initiate.descriptionDefault')
     }
 
-    const getCta = () => {
+    const getCta = (): { text: string; onClick: () => void; icon?: IconName } => {
         if (error || isBlocked) {
             return {
                 text: tCommon('contactSupport'),
@@ -102,14 +141,14 @@ export const InitiateKycModal = ({
             return {
                 text: isLoading ? tCommon('loading') : t('initiate.titleRestartIdentity'),
                 onClick: onVerify,
-                icon: 'upload' as IconName,
+                icon: 'upload-cloud',
             }
         }
         if (isProviderRejection) {
             return {
                 text: isLoading ? tCommon('loading') : t('initiate.ctaUploadDocument'),
                 onClick: onVerify,
-                icon: 'upload' as IconName,
+                icon: 'upload-cloud',
             }
         }
         if (isCrossRegion) {
@@ -121,21 +160,117 @@ export const InitiateKycModal = ({
         return {
             text: isLoading ? tCommon('loading') : t('initiate.ctaUnlockNow'),
             onClick: onVerify,
-            icon: 'check-circle' as IconName,
+            icon: 'check-circle',
         }
     }
 
     const cta = getCta()
+
+    // Outage outranks everything, including the region screen: whatever the
+    // user's state, opening the SDK during a verification outage burns an
+    // attempt against a wall. Same choke-point rationale as the region check
+    // below — six gates share this modal, so the invariant lives here once.
+    if (isKycDegraded) {
+        return (
+            <ActionModal
+                visible={visible}
+                onClose={onClose}
+                title={t('degraded.title')}
+                description={t('degraded.description')}
+                icon="alert"
+                iconContainerClassName="bg-background-icon-bubble-yellow"
+                ctas={[
+                    {
+                        text: t('degraded.notifyMe'),
+                        variant: 'purple',
+                        shadowSize: '4',
+                        onClick: () => {
+                            posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
+                            // cohort tag: ops pushes to exactly these users when
+                            // the flag flips back off
+                            posthog.setPersonProperties({ kyc_down_notify_requested: true })
+                            onClose()
+                        },
+                    },
+                    { text: tCommon('gotIt'), variant: 'stroke', onClick: onClose },
+                ]}
+            />
+        )
+    }
+
+    // Render the ONE definition of this screen rather than a second copy of it:
+    // a local re-implementation could drift from the drawer/profile surface, and
+    // "these two never disagree" is the property this whole change rests on.
+    if (isRegionRestricted) {
+        return <KycRegionRestrictedModal visible={visible} onClose={onClose} />
+    }
+
+    // The variants that lead into a fresh SDK run (the plain unlock offer and
+    // the cross-region unlock) carry the prep checklist, so no path reaches the
+    // vendor without it. Every other variant is an error/action state where the
+    // list would be noise.
+    const showPrepChecklist = (variant === 'default' || variant === 'cross_region') && !error
+    const description = showPrepChecklist ? (
+        <div className="flex flex-col gap-3">
+            <p>{getDescription()}</p>
+            <KycPrepChecklist path={prepPath} />
+        </div>
+    ) : (
+        getDescription()
+    )
+    const iconName = (error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName
+    const iconBubbleClass = isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-action-secondary' : ''
+    const footer =
+        isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
+            <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+        )
+
+    if (presentation === 'page') {
+        if (!visible) return null
+        /*
+         * On the happy path the screen title is the header and nothing repeats
+         * it. Every other variant IS its title — "We need extra documents",
+         * "Verify with a different document" — and that belongs under the icon
+         * where it can wrap; NavHeader truncates at the width between its two
+         * side buttons.
+         */
+        const titleIsGeneric = variant === 'default' && !error
+        const headerTitle = navTitle ?? getTitle()
+        return (
+            <div className="flex flex-col gap-6">
+                <NavHeader title={headerTitle} onPrev={onBack} />
+                {/* NavHeader's title is a div, so without this the page has no
+                    heading at all whenever the visible one is dropped. */}
+                {titleIsGeneric && <h1 className="sr-only">{headerTitle}</h1>}
+                <div className="flex flex-col items-center gap-4 text-center">
+                    <IconBubble icon={iconName} size="l" className={iconBubbleClass} />
+                    {!titleIsGeneric && <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>}
+                    <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                </div>
+                <Button
+                    variant="purple"
+                    shadowSize="4"
+                    onClick={cta.onClick}
+                    disabled={isLoading && !isBlocked}
+                    className="h-11 w-full"
+                    {...(cta.icon ? { icon: cta.icon } : {})}
+                >
+                    {cta.text}
+                </Button>
+                {footer}
+            </div>
+        )
+    }
 
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
             title={getTitle()}
-            description={getDescription()}
+            description={description}
             preventClose
-            icon={(error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName}
-            iconContainerClassName={isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-yellow-1' : ''}
+            icon={iconName}
+            iconContainerClassName={iconBubbleClass}
             modalPanelClassName="max-w-full m-2"
             ctaClassName="grid grid-cols-1 gap-3"
             ctas={[
@@ -149,11 +284,7 @@ export const InitiateKycModal = ({
                     className: 'h-11',
                 },
             ]}
-            footer={
-                isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
-                    <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
-                )
-            }
+            footer={footer}
         />
     )
 }

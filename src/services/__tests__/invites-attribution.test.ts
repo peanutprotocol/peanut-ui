@@ -103,7 +103,7 @@ describe('invite attribution contract', () => {
             claims: [{ badgeCampaign: 'offramp', outcome: 'already_owned' }],
         })
         expect(settleAcceptedInviteAcquisition(result.legacyAcquisition!, result.claims)).toEqual({
-            destination: '/add-money/crypto?network=EVM&source=offramp',
+            destination: '/home',
             pending: [],
         })
         expect(getPendingBadgeCampaigns()).toEqual([])

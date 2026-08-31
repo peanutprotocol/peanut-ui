@@ -12,9 +12,9 @@
  */
 
 import { useUserByUsername } from '@/hooks/useUserByUsername'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { AccountType } from '@/interfaces/interfaces'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useMemo } from 'react'
@@ -54,7 +54,7 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.send')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )
@@ -65,7 +65,7 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
         return (
             <div className="flex w-full flex-col gap-4">
                 <NavHeader title={t('headers.send')} onPrev={onBack} />
-                <ErrorAlert description={error || t('errors.userNotFound', { username })} />
+                <Notification priority="error">{error || t('errors.userNotFound', { username })}</Notification>
             </div>
         )
     }

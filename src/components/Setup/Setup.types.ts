@@ -2,6 +2,7 @@ export type ScreenId =
     | 'landing'
     | 'welcome'
     | 'signup'
+    | 'residence'
     | 'passkey-permission'
     | 'passkey-success'
     | 'notification-permission'
@@ -19,6 +20,7 @@ export type ScreenProps = {
     landing: undefined
     welcome: undefined
     signup: undefined
+    residence: undefined
     'passkey-permission': {
         handle: string
     }
@@ -47,6 +49,11 @@ export interface ISetupStep {
     component: React.ComponentType<StepComponentProps>
     showBackButton?: boolean
     showSkipButton?: boolean
+    /**
+     * The step component renders the description itself (e.g. only on one of
+     * its sub-views), so the chrome must not also render it.
+     */
+    descriptionInView?: boolean
     imageClassName?: string
     titleClassName?: string
     contentClassName?: string

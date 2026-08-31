@@ -1,13 +1,31 @@
+import { APP_RELEASE } from '@/constants/app-release'
 import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { whenIdle } from '@/utils/defer-analytics'
+import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+
+// Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
+// there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
+if (
+    process.env.NODE_ENV !== 'development' &&
+    process.env.NEXT_PUBLIC_GA_KEY &&
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true' &&
+    process.env.NEXT_PUBLIC_PERF_BARE !== 'true'
+) {
+    installPaymentNetworkGoogleAnalyticsGuard()
+}
 
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
 const PERF_BARE = process.env.NEXT_PUBLIC_PERF_BARE === 'true'
 
-if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !PERF_BARE) {
+if (
+    typeof window !== 'undefined' &&
+    process.env.NODE_ENV !== 'development' &&
+    !PERF_BARE &&
+    !isPaymentNetworkExplorerPath(window.location.pathname)
+) {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
 
@@ -20,7 +38,16 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
         ui_host: posthogHost,
         person_profiles: 'identified_only',
         capture_pageview: true,
+        // Registered here, not from the async device-context effect: PostHog
+        // captures the initial $pageview during init, and super properties are
+        // persisted — so a late register left the first open after an OTA
+        // carrying the PREVIOUS bundle's release. `loaded` runs before that
+        // first capture, which is the whole point of the denominator.
+        loaded: (ph) => ph.register({ app_release: APP_RELEASE }),
         capture_pageleave: true,
+        // The payment explorer contains team-only identity and relationship data.
+        // Drop every event on client navigation; direct loads skip init above.
+        before_send: (event) => (isPaymentNetworkExplorerPath(window.location.pathname) ? null : event),
         // autocapture walks the DOM ancestor chain on every tap, which costs frames
         // in the in-app WebView renderer for data that 220+ explicit
         // posthog.capture calls already cover. Native keeps the explicit events only.
@@ -83,7 +110,8 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
                 // and that instrumentation overhead is visible jank in the WebView.
                 sampleRate: 1.0,
                 tracesSampleRate: 0,
-                beforeSend: beforeSendHandler,
+                beforeSend: (event) =>
+                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes

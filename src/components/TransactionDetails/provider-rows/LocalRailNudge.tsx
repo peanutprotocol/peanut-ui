@@ -1,12 +1,13 @@
 'use client'
 
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction-details.utils'
 import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/local-rail-countries'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
-import { useTranslations } from 'next-intl'
+import { localizedCountryName } from '@/utils/country-name.utils'
+import { useLocale, useTranslations } from 'next-intl'
 
 /**
  * Informational nudge on a card-spend receipt: when the merchant is in a
@@ -24,15 +25,16 @@ export function LocalRailNudge({ transaction }: { transaction: TransactionDetail
     // 'card_pay' naturally excludes them — a refund is not a payment choice.
     if (transaction.extraDataForDrawer?.transactionCardType !== 'card_pay') return null
 
-    const iso2 = extractMerchantIso2(transaction.extraDataForDrawer.cardPayment?.merchantCountry)
-    const local = iso2 ? LOCAL_RAIL_BY_COUNTRY[iso2.toUpperCase()] : undefined
-    if (!local) return null
+    const iso2 = extractMerchantIso2(transaction.extraDataForDrawer.cardPayment?.merchantCountry)?.toUpperCase()
+    const local = iso2 ? LOCAL_RAIL_BY_COUNTRY[iso2] : undefined
+    if (!iso2 || !local) return null
 
-    return <LocalRailNudgeBody local={local} />
+    return <LocalRailNudgeBody iso2={iso2} local={local} />
 }
 
-function LocalRailNudgeBody({ local }: { local: (typeof LOCAL_RAIL_BY_COUNTRY)[string] }) {
+function LocalRailNudgeBody({ iso2, local }: { iso2: string; local: (typeof LOCAL_RAIL_BY_COUNTRY)[string] }) {
     const t = useTranslations('transaction')
+    const locale = useLocale()
     const { data: cardMarkup } = useCardMarkupRate(local.currency)
     // `null` means the backend published no comparison, so show none. Only a
     // still-loading `undefined` falls back to the documented assumption.
@@ -41,15 +43,13 @@ function LocalRailNudgeBody({ local }: { local: (typeof LOCAL_RAIL_BY_COUNTRY)[s
     if (!percent) return null
 
     return (
-        <InfoCard
-            variant="info"
-            icon="info"
-            title={t('nudge.localRailTitle')}
-            description={t('nudge.localRailDescription', {
-                country: local.countryName,
+        <Notification priority="info" title={t('nudge.localRailTitle')}>
+            {t('nudge.localRailDescription', {
+                iso2,
+                country: localizedCountryName(locale, iso2, local.countryName),
                 rail: local.rail,
                 percent,
             })}
-        />
+        </Notification>
     )
 }

@@ -421,6 +421,12 @@ describe('Withdraw Utilities', () => {
             expect(isBelowRhinoMinDeposit('12.34', 5)).toBe(false)
         })
 
+        test('gates fixed-amount request payments in RhinoDepositView (number amount → string)', () => {
+            // sub-minimum crypto request payment: the SDA floor arrives per chain
+            expect(isBelowRhinoMinDeposit((0.3).toString(), 0.5)).toBe(true)
+            expect(isBelowRhinoMinDeposit((0.5).toString(), 0.5)).toBe(false)
+        })
+
         test('stays permissive while values are unknown (CTA already gated by isCalculating)', () => {
             expect(isBelowRhinoMinDeposit(null, 5)).toBe(false)
             expect(isBelowRhinoMinDeposit(undefined, 5)).toBe(false)

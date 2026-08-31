@@ -14,6 +14,8 @@ const initialState: ISetupState = {
     inviteCode: '',
     inviteType: EInviteType.DIRECT,
     showIosPwaInstallScreen: false,
+    residenceCountry: '',
+    secondResidenceCountry: '',
 }
 
 const setupSlice = createSlice({
@@ -31,6 +33,8 @@ const setupSlice = createSlice({
             state.isLoading = false
             state.steps = []
             state.inviteCode = ''
+            state.residenceCountry = ''
+            state.secondResidenceCountry = ''
         },
         nextStep: (state) => {
             state.direction = 1
@@ -62,6 +66,12 @@ const setupSlice = createSlice({
         },
         setShowIosPwaInstallScreen: (state, action: PayloadAction<boolean>) => {
             state.showIosPwaInstallScreen = action.payload
+        },
+        setResidenceCountry: (state, action: PayloadAction<string>) => {
+            state.residenceCountry = action.payload
+        },
+        setSecondResidenceCountry: (state, action: PayloadAction<string>) => {
+            state.secondResidenceCountry = action.payload
         },
     },
 })

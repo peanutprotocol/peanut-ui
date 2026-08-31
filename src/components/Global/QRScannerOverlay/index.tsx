@@ -44,8 +44,8 @@ function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
     const t = useTranslations('global')
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">{t('qrScannerOverlay.notSupportedWorking')}</span>
-            <span className="text-sm">{t('qrScannerOverlay.notSupportedGetNotified')}</span>
+            <span className="text-body-s">{t('qrScannerOverlay.notSupportedWorking')}</span>
+            <span className="text-body-s">{t('qrScannerOverlay.notSupportedGetNotified')}</span>
             <Button
                 onClick={() => {
                     setModalContent(EModalType.WILL_BE_NOTIFIED)
@@ -66,7 +66,7 @@ function WillBeNotifiedContent({ qrType, setIsModalOpen }: ModalContentProps) {
     const tCommon = useTranslations('common')
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">
+            <span className="text-body-s">
                 {t('qrScannerOverlay.willBeNotified', { qrName: NAME_BY_QR_TYPE[qrType] ?? '' })}
             </span>
             <Button
@@ -88,8 +88,8 @@ function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
     const router = useRouter()
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">{t('qrScannerOverlay.directSendCrossChain')}</span>
-            <span className="text-sm">{t('qrScannerOverlay.directSendConfirm')}</span>
+            <span className="text-body-s">{t('qrScannerOverlay.directSendCrossChain')}</span>
+            <span className="text-body-s">{t('qrScannerOverlay.directSendConfirm')}</span>
             <Checkbox
                 value={userAcknowledged}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -122,8 +122,8 @@ function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
     const toast = useToast()
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">{t('qrScannerOverlay.externalUrlIntro')}</span>
-            <span className="text-sm">{t('qrScannerOverlay.externalUrlTrust')}</span>
+            <span className="text-body-s">{t('qrScannerOverlay.externalUrlIntro')}</span>
+            <span className="text-body-s">{t('qrScannerOverlay.externalUrlTrust')}</span>
             <div className="flex items-center justify-center gap-2">
                 <Button
                     onClick={async () => {
@@ -165,7 +165,7 @@ function UnrecognizedContent({ setIsModalOpen }: ModalContentProps) {
     const t = useTranslations('global')
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">{t('qrScannerOverlay.unrecognized')}</span>
+            <span className="text-body-s">{t('qrScannerOverlay.unrecognized')}</span>
             <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
                 {t('qrScannerOverlay.okay')}
             </Button>
@@ -177,8 +177,8 @@ function PixRecurringContent({ setIsModalOpen }: ModalContentProps) {
     const t = useTranslations('global')
     return (
         <div className="flex flex-col justify-center p-6">
-            <span className="text-sm">{t('qrScannerOverlay.pixRecurringIntro')}</span>
-            <span className="text-sm">{t('qrScannerOverlay.pixRecurringBody')}</span>
+            <span className="text-body-s">{t('qrScannerOverlay.pixRecurringIntro')}</span>
+            <span className="text-body-s">{t('qrScannerOverlay.pixRecurringBody')}</span>
             <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
                 {t('qrScannerOverlay.okay')}
             </Button>

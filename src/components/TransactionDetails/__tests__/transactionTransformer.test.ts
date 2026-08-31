@@ -522,12 +522,11 @@ describe('mapTransactionDataForDrawer', () => {
             extraData: { kind: 'CARD_SPEND_AUTH', provider: 'RAIN', merchantName: 'Acme Coffee', usdAmount: '-14.68' },
         })
 
-        it('a negative auth stays pending (never "refunded") so the + sign shows', () => {
+        it('a negative auth stays pending (never "refunded") and reads as an incoming amount', () => {
             const result = mapTransactionDataForDrawer(negativeAuth).transactionDetails
             expect(result.status).toBe('pending')
             expect(result.direction).toBe('receive')
-            // 'refunded'/'failed'/'cancelled' would suppress the sign; a pending
-            // receive keeps the '+'. This is what makes the credit read as +$14.68.
+            // the point is it must NOT read as an outgoing '-' spend.
             expect(getTransactionSign(result)).toBe('+')
         })
 
@@ -556,6 +555,79 @@ describe('mapTransactionDataForDrawer', () => {
                 })
             )
             expect(pipelineAlert).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('request-link OPEN status (TASK-20560)', () => {
+        // BE forwards the raw link.status (OPEN|CLOSED) for request-link rows.
+        // OPEN used to fall to the default 'pending' arm → a paid request kept
+        // the hourglass pill forever. Completed requires the collected total to
+        // reach the positive goal (`entry.amount`) — a partial or goal-less pot
+        // is still awaiting payment.
+        const openRequest = (amount: string, totalAmountCollected: number) =>
+            baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                status: EHistoryStatus.OPEN,
+                extraData: { kind: 'P2P_REQUEST_FULFILL' },
+                isRequestLink: true,
+                amount,
+                totalAmountCollected,
+            })
+
+        it('a fully-paid open request maps to completed, with the inbound sign', () => {
+            const result = mapTransactionDataForDrawer(openRequest('25.00', 25)).transactionDetails
+            expect(result.status).toBe('completed')
+            expect(result.direction).toBe('request_received')
+            expect(getTransactionSign(result)).toBe('+')
+        })
+
+        it('float noise in the collected sum cannot leave a fully-paid request pending', () => {
+            // three $0.10 contributions: 0.1 + 0.1 + 0.1 === 0.30000000000000004
+            const result = mapTransactionDataForDrawer(openRequest('0.30', 0.1 + 0.1 + 0.1)).transactionDetails
+            expect(result.status).toBe('completed')
+        })
+
+        it('a partially-paid open pot stays pending ($1 of $100)', () => {
+            const result = mapTransactionDataForDrawer(openRequest('100', 1)).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+
+        it('a goal-less open pot stays pending even with contributions', () => {
+            const result = mapTransactionDataForDrawer(openRequest('0', 12)).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+
+        it('an unpaid open request stays pending', () => {
+            const result = mapTransactionDataForDrawer(openRequest('100', 0)).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+    })
+
+    describe('sender-side SEND_LINK claim state (TASK-20289)', () => {
+        const sentLink = (overrides: Partial<HistoryEntry> = {}) =>
+            baseEntry({
+                userRole: EHistoryUserRole.SENDER,
+                status: EHistoryStatus.COMPLETED,
+                recipientAccount: externalEoa,
+                extraData: { kind: 'SEND_LINK' },
+                ...overrides,
+            })
+
+        it('COMPLETED without claimedAt stays pending (escrowed, not yet claimed)', () => {
+            const result = mapTransactionDataForDrawer(sentLink()).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+
+        it('COMPLETED with claimedAt maps to completed', () => {
+            const result = mapTransactionDataForDrawer(
+                sentLink({ claimedAt: '2026-04-02T09:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('completed')
+        })
+
+        it('raw CLAIMED status maps to completed (BE mirror of parentSendLink.status)', () => {
+            const result = mapTransactionDataForDrawer(sentLink({ status: EHistoryStatus.CLAIMED })).transactionDetails
+            expect(result.status).toBe('completed')
         })
     })
 

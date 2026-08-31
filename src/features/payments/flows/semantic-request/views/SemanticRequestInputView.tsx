@@ -14,10 +14,11 @@
  */
 
 import { useEffect, useContext, useMemo } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
@@ -151,7 +152,7 @@ export function SemanticRequestInputView() {
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <PageStack.Center className="gap-4">
                 {/* recipient card */}
                 {recipient && (
                     <UserCard
@@ -183,7 +184,7 @@ export function SemanticRequestInputView() {
 
                 {/* hint for free transactions */}
                 {showTokenSelector && selectedTokenAddress && selectedChainID && !isUsingPeanutDefault && (
-                    <div className="pt-1 text-center text-xs text-grey-1">
+                    <div className="pt-1 text-center text-body-xs text-foreground-secondary">
                         <span>{t('input.freeTransactionsHint')}</span>
                     </div>
                 )}
@@ -196,8 +197,10 @@ export function SemanticRequestInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {isInsufficientBalance && <ErrorAlert description={t('errors.insufficientPayment')} />}
-                    {error.showError && <ErrorAlert description={error.errorMessage} />}
+                    {isInsufficientBalance && (
+                        <Notification priority="error">{t('errors.insufficientPayment')}</Notification>
+                    )}
+                    {error.showError && <Notification priority="error">{error.errorMessage}</Notification>}
                 </div>
 
                 {/* action list for non-logged in users */}
@@ -205,7 +208,7 @@ export function SemanticRequestInputView() {
                     onPayWithExternalWallet={handleOpenExternalWalletFlow}
                     isAmountEntered={isAmountEntered}
                 />
-            </div>
+            </PageStack.Center>
 
             {/* support cta */}
             {!isLoggedIn && <SupportCTA />}

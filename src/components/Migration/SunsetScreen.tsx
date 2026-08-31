@@ -2,7 +2,7 @@
 import { useEffect } from 'react'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import StoreButtons from '@/components/Migration/StoreButtons'
 import SupportDrawer from '@/components/Global/SupportDrawer'
@@ -33,18 +33,14 @@ export default function SunsetScreen() {
             <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] md:w-1/2 md:justify-center md:gap-10">
                 {/* centered on desktop to match the centered store CTA below */}
                 <div className="mx-auto flex w-full max-w-md flex-col gap-3 md:text-center">
-                    <h1 className="text-3xl font-bold text-n-1">{t('sunset.heading')}</h1>
-                    <p className="text-base text-grey-1">{t('sunset.sub')}</p>
+                    <h1 className="text-heading-m text-foreground-primary">{t('sunset.heading')}</h1>
+                    <p className="text-body-m text-foreground-secondary">{t('sunset.sub')}</p>
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4">
                     <StoreButtons surface={MIGRATION_SURFACES.SUNSET_SCREEN} />
-                    <Button
-                        variant="transparent"
-                        className="h-6 text-sm font-normal text-black underline"
-                        onClick={() => setIsSupportModalOpen(true)}
-                    >
+                    <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">
                         {t('sunset.supportLink')}
-                    </Button>
+                    </LinkButton>
                 </div>
             </section>
             {/* the layout's SupportDrawer never mounts when this screen replaces it */}

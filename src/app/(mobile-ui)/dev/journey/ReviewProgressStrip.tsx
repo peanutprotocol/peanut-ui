@@ -22,13 +22,13 @@ export default function ReviewProgressStrip({
     const percent = total > 0 ? Math.round((checked / total) * 100) : 0
 
     return (
-        <div className="sticky top-0 z-30 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border border-n-1 bg-white px-3 py-2">
-            <span className="text-sm font-bold">
+        <div className="sticky top-0 z-30 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border border-border-default bg-white px-3 py-2">
+            <span className="text-label-l">
                 Copy review: {checked}/{total || '…'} checked
             </span>
-            <div className="h-2 min-w-24 flex-1 overflow-hidden rounded-sm border border-n-1 bg-white">
+            <div className="h-2 min-w-24 flex-1 overflow-hidden rounded-sm border border-border-default bg-white">
                 <div
-                    className={done ? 'h-full bg-green-1' : 'h-full bg-yellow-1'}
+                    className={done ? 'h-full bg-green-400' : 'h-full bg-action-secondary'}
                     style={{ width: `${percent}%` }}
                     aria-hidden
                 />
@@ -38,7 +38,11 @@ export default function ReviewProgressStrip({
             ) : (
                 <DevChip tone="yellow">{total - checked} awaiting verdict</DevChip>
             )}
-            <button type="button" onClick={onReset} className="text-[10px] text-grey-1 underline hover:text-n-1">
+            <button
+                type="button"
+                onClick={onReset}
+                className="text-[10px] text-foreground-secondary underline hover:text-foreground-primary"
+            >
                 reset
             </button>
         </div>
