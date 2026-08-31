@@ -156,6 +156,41 @@ describe('ShareButton', () => {
         expect(mockToastError).not.toHaveBeenCalled()
     })
 
+    // the reservation is opened inside the click, so a failure before the text
+    // exists must still settle it — WebKit holds a pending write otherwise
+    it('settles the reserved clipboard write when the share url cannot be generated', async () => {
+        const write = jest.fn().mockReturnValue(new Promise(() => {}))
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { write, writeText: jest.fn() },
+        })
+        ;(globalThis as { ClipboardItem?: unknown }).ClipboardItem = class {
+            constructor(public data: Record<string, Promise<Blob>>) {}
+        }
+        const onError = jest.fn()
+        const onSuccess = jest.fn()
+
+        renderWithIntl(
+            <ShareButton
+                generateUrl={() => Promise.reject(new Error('offline'))}
+                onSuccess={onSuccess}
+                onError={onError}
+            >
+                Share badge
+            </ShareButton>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Share badge' }))
+
+        await waitFor(() => expect(onError).toHaveBeenCalledTimes(1))
+        expect(onSuccess).not.toHaveBeenCalled()
+        expect(mockToastError).toHaveBeenCalledTimes(1)
+
+        const item = write.mock.calls[0][0][0] as { data: Record<string, Promise<Blob>> }
+        await expect(item.data['text/plain']).rejects.toThrow()
+
+        delete (globalThis as { ClipboardItem?: unknown }).ClipboardItem
+    })
+
     it('stays quiet when the share sheet is cancelled and nothing was copied', async () => {
         Object.defineProperty(navigator, 'clipboard', {
             configurable: true,

@@ -48,8 +48,24 @@ const ShareButton = ({
         // reserved before the await: WebKit rejects a clipboard write once the
         // click's user activation is spent, and generating the url spends it
         const pendingCopy = beginClipboardCopy()
-        const shareUrl = url ?? (generateUrl ? await generateUrl() : undefined)
-        const shareText = generateText ? await generateText() : text
+
+        let shareUrl: string | undefined
+        let shareText: string | undefined
+        try {
+            shareUrl = url ?? (generateUrl ? await generateUrl() : undefined)
+            shareText = generateText ? await generateText() : text
+        } catch (error) {
+            // there is nothing to copy — release the reservation rather than
+            // leaving the browser holding a write that never settles
+            pendingCopy.cancel()
+            const err = error instanceof Error ? error : new Error(String(error))
+            console.error('Sharing error:', error)
+            Sentry.captureException(error)
+            toast.error(t('shareButton.sharingFailed'))
+            onError?.(err)
+            return
+        }
+
         let copied = false
 
         try {
