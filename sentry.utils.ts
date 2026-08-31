@@ -140,6 +140,30 @@ function collapseNoisyFingerprint(event: ErrorEvent): void {
     }
 }
 
+/*
+ * A frame that did not come from our bundle and did not come from a URL we can
+ * name. Extensions are the obvious case, but the ones that actually cost us are
+ * the injected content scripts that carry NO scheme at all: PEANUT-UI-SNS threw
+ * ~3.7k unhandled rejections from `app:///executors/200.js` (a wallet-style
+ * injector reading `M_ID` off an undefined global), which the scheme-only check
+ * could not see, so it had to be archived by hand.
+ *
+ * `app:///` is Sentry's own rewrite for a script whose origin it cannot resolve.
+ * Our first-party frames always resolve to `/_next/`, so keying on the executors
+ * path is safe — deliberately not "any app:/// frame", which would swallow real
+ * bundles whose sourcemap upload lagged a deploy.
+ */
+const THIRD_PARTY_SCRIPT_FRAMES = [
+    'chrome-extension://',
+    'moz-extension://',
+    'safari-extension://',
+    'app:///executors/',
+]
+
+export function isThirdPartyScriptFrame(filename: string): boolean {
+    return THIRD_PARTY_SCRIPT_FRAMES.some((pattern) => filename.includes(pattern))
+}
+
 /**
  * Check if error message matches any ignored pattern
  */
@@ -179,6 +203,30 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
      */
     if (isActionableCapgoError(searchTexts)) return false
 
+    /*
+     * Rescue the explicit fetch-site capture, for the same reason the Capgo
+     * carve-out sits here: once the loop below returns true nothing can take it
+     * back.
+     *
+     * `fetchWithSentry` catches a failed request, sets fingerprint
+     * ['network-error', url, method], captures WITH full context (url, method,
+     * sanitized headers and body, feature tag), and only then rethrows a
+     * ServiceUnavailableError for the UI. `alreadyReported` drops that rethrow
+     * on the stated grounds that "the underlying failure is already captured at
+     * the fetch site" — but it was not: `networkIssues` ate that capture too, on
+     * the engine's own `Failed to fetch` / `Load failed` copy. Both halves of
+     * every browser-native request failure were therefore discarded, and Sentry
+     * recorded 0 of them in 30d while PostHog (whose mirror runs as an
+     * integration processEvent hook, upstream of beforeSend) held ~7.4k/week
+     * across 590 users.
+     *
+     * The fingerprint is the discriminator, not the message: it is set only by
+     * our own wrapper, so this can never rescue an incidental network TypeError
+     * from a third-party SDK. It also groups the survivors per endpoint instead
+     * of per minified call site.
+     */
+    if (event.fingerprint?.[0] === 'network-error') return false
+
     // Check all ignore patterns
     for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {
         if (isCriticalFlow && group !== 'userRejected') continue
@@ -199,11 +247,7 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
     for (const frame of frames) {
         const filename = frame.filename || ''
-        if (
-            filename.includes('chrome-extension://') ||
-            filename.includes('moz-extension://') ||
-            filename.includes('safari-extension://')
-        ) {
+        if (isThirdPartyScriptFrame(filename)) {
             return true
         }
     }

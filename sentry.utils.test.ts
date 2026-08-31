@@ -219,3 +219,65 @@ describe('shouldIgnoreError — OneSignal worker-messenger noise', () => {
         expect(shouldIgnoreError(eventWith({ message: '[WM] No SW registration for postMessage' }))).toBe(true)
     })
 })
+
+describe('shouldIgnoreError — fetch-site network captures', () => {
+    function fetchSiteCapture(value: string): ErrorEvent {
+        return {
+            fingerprint: ['network-error', 'https://api.peanut.me/users/me', 'GET'],
+            exception: { values: [{ type: 'TypeError', value }] },
+        } as unknown as ErrorEvent
+    }
+
+    // Both engine spellings, because the split is per-engine: WebKit says
+    // `Load failed`, Chromium (so every Android WebView) says `Failed to fetch`.
+    it.each(['Failed to fetch', 'Load failed', 'Network Error'])(
+        'keeps the explicit fetchWithSentry capture for %s',
+        (value) => {
+            expect(shouldIgnoreError(fetchSiteCapture(value))).toBe(false)
+        }
+    )
+
+    it('still ignores the same message without the fetch-site fingerprint', () => {
+        expect(shouldIgnoreError(eventWith({ type: 'TypeError', value: 'Failed to fetch' }))).toBe(true)
+    })
+
+    it('does not rescue an unrelated fingerprint that merely mentions the network', () => {
+        const event = {
+            fingerprint: ['onesignal-op-failed', 'update-subscription'],
+            exception: { values: [{ type: 'TypeError', value: 'Failed to fetch' }] },
+        } as unknown as ErrorEvent
+        expect(shouldIgnoreError(event)).toBe(true)
+    })
+})
+
+describe('shouldIgnoreError — injected third-party scripts', () => {
+    function framedEvent(filename: string): ErrorEvent {
+        return {
+            exception: {
+                values: [
+                    {
+                        type: 'TypeError',
+                        value: "Cannot read properties of undefined (reading 'M_ID')",
+                        stacktrace: { frames: [{ filename }] },
+                    },
+                ],
+            },
+        } as unknown as ErrorEvent
+    }
+
+    // The scheme-bearing cases were always caught; `app:///executors/` is the
+    // one that forced PEANUT-UI-SNS to be archived by hand.
+    it.each([
+        'chrome-extension://abcdef/inject.js',
+        'moz-extension://abcdef/inject.js',
+        'safari-extension://abcdef/inject.js',
+        'app:///executors/200.js',
+    ])('ignores a frame from %s', (filename) => {
+        expect(shouldIgnoreError(framedEvent(filename))).toBe(true)
+    })
+
+    it('does not ignore our own bundle, including an unresolved app:/// frame', () => {
+        expect(shouldIgnoreError(framedEvent('/_next/static/chunks/main-abc123.js'))).toBe(false)
+        expect(shouldIgnoreError(framedEvent('app:///_next/static/chunks/main-abc123.js'))).toBe(false)
+    })
+})
