@@ -38,7 +38,10 @@ export function BackToAppBar({ locale }: { locale: Locale }) {
 
     return (
         <div className="sticky top-0 z-30 border-b border-n-1 bg-white">
-            <Link href="/home" className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-n-1">
+            <Link
+                href="/home"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-body-s font-semibold text-n-1"
+            >
                 <span aria-hidden>←</span>
                 {STRINGS[locale]}
             </Link>
