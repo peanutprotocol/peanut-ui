@@ -196,7 +196,7 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
 jest.mock('@/components/Global/ShareButton', () => ({
     __esModule: true,
     default: (props: any) => (
-        <button data-testid="share-button" onClick={() => props.generateUrl?.()}>
+        <button data-testid="share-button" data-url={props.url} onClick={() => props.generateUrl?.()}>
             {props.children}
         </button>
     ),
@@ -685,6 +685,27 @@ describe('GROUP 2: Link Creation', () => {
             expect(mockCopyTextToClipboard).toHaveBeenCalledWith('https://peanut.me/request/pay?id=req-uuid-1')
             expect(mockToastSuccess).toHaveBeenCalledWith('Link created and copied to clipboard!')
         })
+    })
+
+    test('sharing hands over the created link instead of creating a second request', async () => {
+        renderCreateRequest()
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '10' } })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Create request' }))
+        })
+
+        const shareButton = await screen.findByTestId('share-button')
+        expect(shareButton).toHaveAttribute('data-url', 'https://peanut.me/request/pay?id=req-uuid-1')
+
+        await act(async () => {
+            fireEvent.click(shareButton)
+        })
+
+        // ShareButton owns the copy from here — no second create, no second toast
+        expect(mockRequestsApi.create).toHaveBeenCalledTimes(1)
+        expect(mockCopyTextToClipboard).toHaveBeenCalledTimes(1)
+        expect(mockToastSuccess).toHaveBeenCalledTimes(1)
     })
 
     test('a refused clipboard falls back to the plain link-created toast', async () => {

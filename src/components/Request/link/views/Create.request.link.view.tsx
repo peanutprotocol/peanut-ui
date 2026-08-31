@@ -424,15 +424,17 @@ export const CreateRequestLinkView = () => {
                     </Button>
                 )}
 
+                {/* the share button waits for the link itself, not just the request id:
+                    it shares what create produced, it never creates */}
                 {requestId &&
-                    (isCreatingLink || isUpdatingRequest ? (
+                    (isCreatingLink || isUpdatingRequest || !generatedLink ? (
                         <Button disabled={true} shadowSize="4">
                             <div className="flex w-full flex-row items-center justify-center gap-2">
                                 <Loading /> {tLoading('loading')}
                             </div>
                         </Button>
                     ) : (
-                        <ShareButton generateUrl={generateLink}>
+                        <ShareButton url={generatedLink}>
                             {!tokenValue || !parseFloat(tokenValue) || parseFloat(tokenValue) === 0
                                 ? t('shareOpenRequest')
                                 : t('shareAmountRequest', { amount: tokenValue })}
