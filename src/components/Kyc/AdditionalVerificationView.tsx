@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -25,18 +24,19 @@ import { useSafeBack } from '@/hooks/useSafeBack'
  * The CTA calls `start` straight out of the click: the reserved tab depends on
  * that user gesture (see useBridgeHostedVerification).
  *
- * The task DISAPPEARING is the success signal — nothing else reports it. The
- * card this replaced got that for free by unmounting; a route has to act on
- * it, or a returning user sits on a live CTA whose only outcome is a 403.
+ * The task DISAPPEARING is the success signal — nothing else reports it, since
+ * nothing polls a requires-info rail. The card this replaced got that for free
+ * by unmounting; a route has to say something, or a returning user sits on a
+ * live CTA whose only outcome is a 403 on an action that no longer exists.
+ *
+ * It says so IN PLACE rather than navigating. nextActions re-derives on every
+ * user refetch and this screen can be polled (4s) while it is being read, so
+ * any auto-exit has to decide whether a missing task is real or one bad tick —
+ * and a wrong guess yanks a reader off the page mid-sentence. Swapping the
+ * panel costs nothing if a later tick puts the task back, so the question
+ * stops needing an answer.
  */
 const IDENTITY_ROUTE = '/profile/identity-verification'
-
-/**
- * Grace given to a task that vanishes with no return behind it. Longer than
- * useUserAutoRefresh's 4s poll on purpose: a shorter window cannot outlast the
- * tick that dropped the task, so it could never see the next one put it back.
- */
-const CONFIRM_ABSENCE_MS = 6000
 
 export const AdditionalVerificationView = (): React.JSX.Element => {
     const t = useTranslations('kyc.hostedPrep')
@@ -45,42 +45,29 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
     const router = useRouter()
     const onBack = useSafeBack(IDENTITY_ROUTE)
     const { nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
-    const { start, isStarting, error, refreshSeq } = useBridgeHostedVerification()
-    const hasHostedTask = nextActions.some((action) => action.kind === 'bridge-hosted')
+    const { start, isStarting, error } = useBridgeHostedVerification()
+    const hostedTask = nextActions.find((action) => action.kind === 'bridge-hosted')
+    // A future-dated action is advisory: those rails still work today, and this
+    // screen must not tell that user their transfers are blocked.
+    const isAdvisory = !!hostedTask?.effectiveDate
 
-    const sawHostedTask = useRef(false)
-
-    // Keyed off a LOADED capability set, not off the hook's return-listener: the
-    // no-usable-tab branch navigates the current tab away before it can arm
-    // that listener, so a user who comes back — by deep link, or by Back —
-    // remounts with nothing in memory saying they ever left. `isLoading` is what
-    // separates "the task is gone" from "the user query has not landed yet".
-    useEffect(() => {
-        if (hasHostedTask) {
-            sawHostedTask.current = true
-            return
-        }
-        if (isLoadingCapabilities) return
-        // Never present while we were here: the screen was opened without a
-        // task and has nothing to serve. Nothing to wait for.
-        if (!sawHostedTask.current) {
-            router.replace(IDENTITY_ROUTE)
-            return
-        }
-        // Present and then gone IS the success signal. Whether to trust it
-        // straight away comes down to WHY we are looking at a new capability
-        // set: a return from the vendor forced this read, so the absence is the
-        // answer we asked for and the user should not sit on a finished screen.
-        if (refreshSeq > 0) {
-            router.replace(IDENTITY_ROUTE)
-            return
-        }
-        // Nobody came back — the task dropped out of a poll while someone was
-        // reading. That can be one bad tick, so wait past the next one and let
-        // it put the task back rather than navigating out from under them.
-        const timer = setTimeout(() => router.replace(IDENTITY_ROUTE), CONFIRM_ABSENCE_MS)
-        return () => clearTimeout(timer)
-    }, [isLoadingCapabilities, hasHostedTask, refreshSeq, router])
+    // Loaded, and the task is gone: it was completed, or the partner stopped
+    // asking. Either way there is nothing here to start.
+    if (!isLoadingCapabilities && !hostedTask) {
+        return (
+            <div className="flex w-full flex-col gap-6">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <div className="flex flex-col items-center gap-3 text-center" data-testid="hosted-task-done">
+                    <IconBubble icon="check-circle" size="l" color="green" />
+                    <p className="text-body-m font-bold">{t('done.title')}</p>
+                    <p className="text-body-s text-foreground-secondary">{t('done.description')}</p>
+                </div>
+                <Button variant="purple" shadowSize="4" onClick={() => router.replace(IDENTITY_ROUTE)}>
+                    {t('done.cta')}
+                </Button>
+            </div>
+        )
+    }
 
     return (
         <div className="flex w-full flex-col gap-6">
@@ -88,7 +75,9 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
 
             <div className="flex flex-col items-center gap-3 text-center">
                 <IconBubble icon="user-id" size="l" color="yellow" />
-                <p className="text-body-s text-foreground-secondary">{t('description')}</p>
+                <p className="text-body-s text-foreground-secondary">
+                    {isAdvisory ? t('descriptionAdvisory') : t('description')}
+                </p>
             </div>
 
             <KycPrepChecklist path="hosted" />

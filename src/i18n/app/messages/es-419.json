@@ -2876,7 +2876,13 @@
         },
         "hostedPrep": {
             "title": "Qué esperar",
-            "description": "Nuestro socio de pagos necesita algunas cosas más antes de que funcionen tus transferencias bancarias."
+            "description": "Nuestro socio de pagos necesita algunas cosas más antes de que funcionen tus transferencias bancarias.",
+            "descriptionAdvisory": "Nuestro socio de pagos necesita algunas cosas más para que tus transferencias bancarias sigan funcionando.",
+            "done": {
+                "title": "Aquí ya no queda nada por hacer",
+                "description": "Este paso de verificación ya no es necesario. Tu estado actual está en tu perfil.",
+                "cta": "Ver mi estado"
+            }
         }
     },
     "identity": {

@@ -2876,7 +2876,13 @@
         },
         "hostedPrep": {
             "title": "O que esperar",
-            "description": "Nosso parceiro de pagamentos precisa de mais algumas coisas antes que suas transferências bancárias funcionem."
+            "description": "Nosso parceiro de pagamentos precisa de mais algumas coisas antes que suas transferências bancárias funcionem.",
+            "descriptionAdvisory": "Nosso parceiro de pagamentos precisa de mais algumas coisas para que suas transferências bancárias continuem funcionando.",
+            "done": {
+                "title": "Não há mais nada a fazer aqui",
+                "description": "Esta etapa de verificação não é mais necessária. Seu status atual está no seu perfil.",
+                "cta": "Ver meu status"
+            }
         }
     },
     "identity": {

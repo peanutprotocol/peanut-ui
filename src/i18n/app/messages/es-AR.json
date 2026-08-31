@@ -1248,6 +1248,11 @@
                 "title": "Terminala de una sola vez",
                 "body": "Nuestro socio no guarda tu progreso. Si cerrás la página o te levantás a buscar un documento, volvés a empezar desde el primer paso."
             }
+        },
+        "hostedPrep": {
+            "done": {
+                "title": "Acá ya no queda nada por hacer"
+            }
         }
     },
     "identity": {

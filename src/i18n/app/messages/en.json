@@ -2876,7 +2876,13 @@
         },
         "hostedPrep": {
             "title": "What to expect",
-            "description": "Our payment partner needs a few more things before your bank transfers work."
+            "description": "Our payment partner needs a few more things before your bank transfers work.",
+            "descriptionAdvisory": "Our payment partner needs a few more things to keep your bank transfers working.",
+            "done": {
+                "title": "Nothing left to do here",
+                "description": "This verification step is no longer needed. Your current status is on your profile.",
+                "cta": "See my status"
+            }
         }
     },
     "identity": {

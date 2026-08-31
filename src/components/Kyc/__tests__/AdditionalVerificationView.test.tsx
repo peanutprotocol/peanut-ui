@@ -257,67 +257,56 @@ describe('AdditionalVerificationView', () => {
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(2))
     })
 
-    it('leaves the screen once the task clears — the ONLY signal the check passed', async () => {
-        // Nothing else reports success: the ~4s auto-refresh does not run for a
-        // requires-info rail, so the refetch on return is what clears the task.
-        // The card this replaced got the exit for free by unmounting; a route
-        // has to act on it, or the user sits on a CTA whose only outcome is 403.
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+    it('replaces the CTA with a done state once the task clears — the ONLY success signal', async () => {
+        // Nothing polls a requires-info rail, so the refetch on return from the
+        // vendor is what clears the task. The card this replaced got the exit
+        // for free by unmounting; a route has to say something, or the user
+        // sits on a CTA whose only outcome is a 403.
         const { rerender } = render(<AdditionalVerificationView />)
+        expect(screen.getByRole('button', { name: /i have these, start/i })).toBeInTheDocument()
 
-        startVerification()
-        await waitFor(() => expect(mockReservedTab.location.href).toContain('withpersona'))
-        expect(mockRouterReplace).not.toHaveBeenCalled()
-
-        // The return refetch is what produced this read, so the absence is the
-        // answer we asked for — no waiting the user out on a finished screen.
-        Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
-        document.dispatchEvent(new Event('visibilitychange'))
         mockNextActions = []
         rerender(<AdditionalVerificationView />)
-        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification'))
+
+        expect(await screen.findByTestId('hosted-task-done')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /i have these, start/i })).not.toBeInTheDocument()
     })
 
-    it('a poll that drops the task with nobody returning does NOT eject the reader', async () => {
-        // useUserAutoRefresh polls every 4s for anyone with a pending rail, and
-        // nextActions re-derives on each read. The old card merely hid on a bad
-        // tick; a route would navigate the reader away mid-sentence. Nothing
-        // here came back from the vendor, so one dropped tick proves nothing.
+    it('a bad poll tick swaps the panel back, and never navigates the reader away', async () => {
+        // useUserAutoRefresh polls every 4s for anyone with a pending rail and
+        // nextActions re-derives on each read. Deciding whether a missing task
+        // is real would mean guessing; showing it in place costs nothing when a
+        // later tick puts the task back, so nothing here is a navigation.
         const { rerender } = render(<AdditionalVerificationView />)
 
         mockNextActions = []
         rerender(<AdditionalVerificationView />)
-        // Well inside CONFIRM_ABSENCE_MS, which outlasts the 4s poll on purpose.
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(await screen.findByTestId('hosted-task-done')).toBeInTheDocument()
 
         mockNextActions = [hostedAction]
         rerender(<AdditionalVerificationView />)
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        expect(await screen.findByRole('button', { name: /i have these, start/i })).toBeInTheDocument()
         expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
-    it('an in-flight capability read does not bounce the user off the screen', () => {
-        // nextActions reads empty until the user query lands. Redirecting on
-        // that would throw the user straight out of the screen they just opened.
+    it('an in-flight capability read shows the prep screen, not the done state', () => {
+        // nextActions reads empty until the user query lands. Treating that as
+        // "done" would flash the wrong panel at everyone opening the screen.
         mockNextActions = []
         mockCapabilitiesLoading = true
         render(<AdditionalVerificationView />)
 
-        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(screen.queryByTestId('hosted-task-done')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: /i have these, start/i })).toBeEnabled()
     })
 
-    it('a REMOUNT with no hosted task leaves, even though nothing armed the return listener', () => {
-        // The no-usable-tab branch assigns window.location.href and the tab
-        // navigates away, so `awaitingReturn` never gets set. A user who comes
-        // back — deep link, or Back — remounts with nothing in memory saying
-        // they left, and a loaded-but-empty capability set is the only evidence.
-        mockNextActions = []
-        mockCapabilitiesLoading = false
+    it('an ADVISORY task does not tell the user their working transfers are blocked', () => {
+        // A future-dated action means those rails still work today.
+        mockNextActions = [{ ...hostedAction, effectiveDate: '2099-01-01T00:00:00.000Z' }]
         render(<AdditionalVerificationView />)
 
-        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification')
+        expect(screen.getByText(/keep your bank transfers working/i)).toBeInTheDocument()
+        expect(screen.queryByText(/before your bank transfers work/i)).not.toBeInTheDocument()
     })
 
     it('announces a launch failure to screen readers instead of leaving focus on a dead CTA', async () => {
