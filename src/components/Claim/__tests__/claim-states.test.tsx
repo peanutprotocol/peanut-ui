@@ -407,6 +407,32 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
         })
     })
 
+    // GET /send-links/:pubKey answers a cache hit with the raw Prisma row, which
+    // carries `intents` instead of the projected `claim` + `events`. Claim.tsx read
+    // `events[0]` unguarded and took the whole page down (PEANUT-UI-SJ0).
+    test('CANCELLED link renders when the API omits claim/events (cache-hit shape)', async () => {
+        const { events: _events, claim: _claim, ...unprojected } = makeSendLink({ status: 'CANCELLED' })
+        mockSendLinksApi.get.mockResolvedValue(unprojected)
+
+        const openTransactionDetails = jest.fn()
+        mockUseTransactionDetailsDrawer.mockReturnValue({
+            openTransactionDetails,
+            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
+            isDrawerOpen: false,
+            closeTransactionDetails: jest.fn(),
+        })
+
+        renderClaim()
+
+        // Gates on the drawer effect, which only fires once the transaction memo
+        // has produced a value — asserting on the view alone settles too early to
+        // catch a throw inside the memo.
+        await waitFor(() => {
+            expect(openTransactionDetails).toHaveBeenCalled()
+        })
+        expect(screen.getByTestId('claimed-view')).toBeInTheDocument()
+    })
+
     test('CLAIMING link (in progress) shows as already claimed', async () => {
         const link = makeSendLink({ status: 'CLAIMING' })
         mockSendLinksApi.get.mockResolvedValue(link)
