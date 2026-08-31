@@ -525,12 +525,13 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
         expect(result.current.isVerificationProgressModalOpen).toBe(true)
     })
 
-    // A manual close can ALSO be a submission: after the level-2 submit the SDK
-    // sits on "documents submitted" and never runs onComplete, so tapping X is
-    // how the user leaves. The wrapper marks that close `submitted: true` and it
-    // must consume the deferred transition like handleSdkComplete — replaying it
-    // would report a stale rejection for documents the user just submitted.
-    it('a submitted manual close consumes the deferred transition — no replay', async () => {
+    // The counterpart: a MANUAL close always replays. handleSdkComplete is the
+    // only close that can honestly claim a submission — the wrapper cannot tell
+    // "submitted the required follow-up" from "submitted level 1 and walked
+    // away" (a second onApplicantSubmitted is deduped as the idCheck twin, not
+    // read as a new level), so a close that consumed on its say-so would swallow
+    // a real ACTION_REQUIRED and leave the user on a stale progress modal.
+    it('a manual close replays the deferred transition', async () => {
         const { result } = await openSdkOverProgressModal('EU')
 
         await act(async () => {
@@ -539,11 +540,11 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
         expect(result.current.isVerificationProgressModalOpen).toBe(true)
 
         act(() => {
-            result.current.handleClose({ submitted: true })
+            result.current.handleClose()
         })
 
         expect(result.current.showWrapper).toBe(false)
-        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
     })
 
     // Boundary: the suppression is scoped to an OPEN SDK. Once the user is out of

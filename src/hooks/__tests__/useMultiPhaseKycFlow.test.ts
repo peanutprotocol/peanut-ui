@@ -126,21 +126,29 @@ describe('useMultiPhaseKycFlow — KYC_REJECTED capture effect', () => {
             expect(mockFetchUser).toHaveBeenCalledTimes(1)
         })
 
-        it('a manual close after the user submitted does NOT replay a bogus rejection', async () => {
+        // A manual close ALWAYS replays, even after a submit. The wrapper cannot
+        // tell "submitted the required follow-up" from "submitted level 1 and
+        // walked away" — a second onApplicantSubmitted is deduped as the idCheck
+        // twin, not read as a new level — so trusting it would swallow a real
+        // ACTION_REQUIRED and strand the user on a stale progress modal.
+        // handleSdkComplete below is the one close that legitimately consumes.
+        it('a manual close still replays, even when the user had already submitted a level', async () => {
             const { result } = await openMultiLevelSdk()
 
+            act(() => {
+                result.current.handleSdkSubmitted()
+            })
             await act(async () => {
                 mockWs.handler?.('ACTION_REQUIRED')
             })
             expect(rejectedCaptures()).toHaveLength(0)
 
-            // level-2 submitted; SDK sat on "documents submitted"; user taps X
             act(() => {
-                result.current.handleSdkClose({ submitted: true })
+                result.current.handleSdkClose()
             })
 
-            expect(rejectedCaptures()).toHaveLength(0)
-            expect(mockFetchUser).not.toHaveBeenCalled()
+            expect(rejectedCaptures()).toHaveLength(1)
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
         })
 
         it('a submission close (handleSdkComplete) consumes the deferred status', async () => {

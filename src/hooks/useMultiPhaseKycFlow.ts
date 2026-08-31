@@ -331,18 +331,6 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent, liveKycStatus])
 
-    // SDK manual close. A submitted close (see SumsubSdkProps.onClose) consumes
-    // the deferred ACTION_REQUIRED so the capture effect above doesn't replay a
-    // bogus rejection; an abandoned close keeps the replay.
-    const handleSdkClose = useCallback(
-        (opts?: { submitted?: boolean }) => {
-            if (opts?.submitted && liveKycStatus === 'ACTION_REQUIRED')
-                prevCapturedStatusRef.current = 'ACTION_REQUIRED'
-            handleClose(opts)
-        },
-        [handleClose, liveKycStatus]
-    )
-
     // true only while a PWA-reload resume drives handleInitiateKyc, so the
     // analytics event can distinguish a resume from a genuine new initiation
     // (a resume otherwise looks identical and inflates "initiated" counts).
@@ -558,7 +546,7 @@ export const useMultiPhaseKycFlow = ({
         // SDK wrapper
         showWrapper,
         accessToken,
-        handleSdkClose,
+        handleSdkClose: handleClose,
         handleSdkComplete,
         handleSdkSubmitted,
         refreshToken,

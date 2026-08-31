@@ -365,7 +365,7 @@ const SumsubWebSdkModal = ({
     // Skip straight to onClose in that case.
     const handleCloseButton = useCallback(() => {
         if (hasSubmittedRef.current) {
-            onClose({ submitted: true })
+            onClose()
             return
         }
         setModalVariant('stop-verification')

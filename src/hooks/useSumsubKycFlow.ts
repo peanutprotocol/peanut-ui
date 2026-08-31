@@ -487,21 +487,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setIsVerificationProgressModalOpen(true)
     }, [liveKycStatus])
 
-    // Called when the user manually closes the SDK modal. A close after the
-    // user SUBMITTED (multi-level level-2 done, SDK sitting on "documents
-    // submitted") consumes the deferred ACTION_REQUIRED exactly like
-    // handleSdkComplete: the user just acted, so the held transition is stale.
-    // An abandoned close keeps the replay.
-    const handleClose = useCallback(
-        (opts?: { submitted?: boolean }) => {
-            if (opts?.submitted && liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
-            setShowWrapper(false)
-            setIsActionFlow(false)
-            setIsMultiLevel(false)
-            onManualClose?.()
-        },
-        [onManualClose, liveKycStatus]
-    )
+    // Called when the user manually closes the SDK modal. Every manual close
+    // replays a deferred ACTION_REQUIRED: the wrapper cannot tell "submitted the
+    // required follow-up" from "submitted level 1 and walked away", so treating
+    // any close as a submission would swallow a real action-required state.
+    // handleSdkComplete is the one unambiguous submission, and it consumes.
+    const handleClose = useCallback(() => {
+        setShowWrapper(false)
+        setIsActionFlow(false)
+        setIsMultiLevel(false)
+        onManualClose?.()
+    }, [onManualClose])
 
     // token refresh function passed to the sdk for when the token expires.
     // routes by how the flow started: start-action key, self-heal provider, or

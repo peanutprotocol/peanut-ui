@@ -6,14 +6,7 @@
 export interface SumsubSdkProps {
     visible: boolean
     accessToken: string | null
-    /**
-     * Manual close. `submitted: true` marks a close AFTER the user finished
-     * submitting (multi-level level-2 done, SDK sitting on "documents
-     * submitted") — the flow hooks use it to consume the deferred
-     * ACTION_REQUIRED instead of replaying it as a bogus rejection. An
-     * abandon passes nothing.
-     */
-    onClose: (opts?: { submitted?: boolean }) => void
+    onClose: () => void
     onComplete: () => void
     /**
      * Fired when a level is submitted but the SDK stays open (multi-level
