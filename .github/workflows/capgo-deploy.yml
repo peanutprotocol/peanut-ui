@@ -204,7 +204,7 @@ jobs:
               run: |
                   echo "Uploading bundle $VERSION to channel $CHANNEL"
                   COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1)"
-                  npx @capgo/cli@latest bundle upload \
+                  npx @capgo/cli@8.42.4 bundle upload \
                     --channel "$CHANNEL" \
                     --apikey "$CAPGO_API_KEY" \
                     --key-data-v2 "$CAPGO_PRIVATE_KEY" \
@@ -224,7 +224,7 @@ jobs:
                   CHANNEL: ${{ steps.channel.outputs.name }}
                   EXPECTED: ${{ steps.version.outputs.name }}
               run: |
-                  CURRENT="$(npx @capgo/cli@latest channel currentBundle "$CHANNEL" \
+                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle "$CHANNEL" \
                     --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
                   if [ "$CURRENT" != "$EXPECTED" ]; then
                     echo "ERROR: channel $CHANNEL serves '${CURRENT:-<none>}', expected $EXPECTED — nothing shipped" >&2

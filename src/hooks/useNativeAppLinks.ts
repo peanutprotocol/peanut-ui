@@ -6,7 +6,7 @@ import { focusManager } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { captureMessage } from '@/utils/sentry-lazy'
 import { isCapacitor, openExternalUrl, closeInAppBrowser, markInAppBrowserClosed } from '@/utils/capacitor'
-import { deepLinkToNativePath } from '@/utils/native-routes'
+import { deepLinkToNativePath, redactNativePath } from '@/utils/native-routes'
 import { hasDeepLinkNavigated, markDeepLinkNavigated } from '@/utils/deep-link-state'
 import { sanitizeRedirectURL, saveToCookie } from '@/utils/cookie-url.utils'
 import { toInviteCode } from '@/utils/invite-code.utils'
@@ -61,11 +61,24 @@ export function useNativeAppLinks() {
 
         // Until this instrumentation, no deep link left any trace unless it
         // threw — "links don't work" was undiagnosable from telemetry.
+        //
+        // Route family only. A claim link carries its password in
+        // `#p=<password>`, which deepLinkToNativePath deliberately preserves
+        // (native-routes.ts) because the claim page needs it — and that password
+        // derives the private claim key, so anyone reading analytics could claim
+        // the funds. The query is dropped for the same reason (charge and request
+        // ids), and path segments are normalized because identifiers travel there
+        // too: `/qr/<code>` is a bearer secret until the user claims the QR.
+        // Which route was opened and whether it navigated is the whole
+        // diagnostic value. See `redactNativePath`.
+        const redactLink = <T extends string | null>(value: T): T =>
+            (value === null ? value : redactNativePath(value)) as T
+
         const captureLink = (source: string, raw: string, mapped: string | null, outcome: string) =>
             posthog.capture('native_link_received', {
                 source,
-                raw,
-                mapped,
+                raw: redactLink(raw),
+                mapped: redactLink(mapped),
                 outcome,
                 dropped: outcome === 'dropped',
             })
