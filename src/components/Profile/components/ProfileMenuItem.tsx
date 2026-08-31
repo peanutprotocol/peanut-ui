@@ -1,6 +1,7 @@
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import Card from '@/components/Global/Card'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
+import DocsLink from '@/components/Global/DocsLink'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { Tooltip } from '@/components/Tooltip'
@@ -17,6 +18,9 @@ interface ProfileMenuItemProps {
     position?: CardPosition
     comingSoon?: boolean
     isExternalLink?: boolean
+    /** web-only content (help center, legal) — renders through DocsLink so it
+     * localizes and opens the in-app browser in Capacitor instead of 404ing */
+    isDocsLink?: boolean
     endIcon?: IconName
     endIconClassName?: string
     endText?: string
@@ -34,6 +38,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     position = 'middle',
     comingSoon = false,
     isExternalLink,
+    isDocsLink,
     endIcon,
     endIconClassName,
     endText,
@@ -76,6 +81,16 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
             <Card position={position} className="bg-background-disabled p-4">
                 {content}
             </Card>
+        )
+    }
+
+    if (isDocsLink) {
+        return (
+            <DocsLink href={href} className="block">
+                <Card position={position} className="p-4 active:bg-background-disabled">
+                    {content}
+                </Card>
+            </DocsLink>
         )
     }
 

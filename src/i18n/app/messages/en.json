@@ -296,6 +296,7 @@
             "backup": "Backup",
             "exchangeRatesAndFees": "Exchange rates and fees",
             "starAlt": "star",
+            "help": "Help",
             "about": "About Peanut"
         },
         "logOut": "Log out",
