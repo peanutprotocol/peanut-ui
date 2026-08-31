@@ -74,10 +74,6 @@ jest.mock('@/services/invites', () => ({
 jest.mock('@/services/invite-acquisition', () => ({
     settleAcceptedInviteAcquisition: (...args: unknown[]) => mockSettleAcceptedInviteAcquisition(...args),
 }))
-jest.mock('@/services/registration-acquisition', () => ({
-    persistRegistrationBadgeCampaignDestination: (...args: unknown[]) =>
-        mockPersistRegistrationBadgeCampaignDestination(...args),
-}))
 jest.mock('@/app/shhhhh/shhhhh-acquisition', () => ({
     settleShhhhhCampaignContinuation: (...args: unknown[]) => mockSettleShhhhhCampaignContinuation(...args),
 }))

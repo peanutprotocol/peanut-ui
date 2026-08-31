@@ -30,11 +30,9 @@ import {
 } from './badge-campaign-context'
 import {
     claimAndSettlePendingBadgeCampaigns,
-    destinationForConfirmedBadgeCampaignAcquisition,
     isConfirmedBadgeCampaignClaim,
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
-import { destinationForInviteAcquisition } from '@/services/invite-acquisition'
 
 function InvitePageContent() {
     const t = useTranslations('invites')
@@ -189,24 +187,12 @@ function InvitePageContent() {
                     }
 
                     // A validated caller continuation (notably a pending financial
-                    // claim) outranks acquisition navigation. The small backend-owned
-                    // destination enum is honored only after its matching claim is
-                    // confirmed; all other outcomes fall through to the normal app.
-                    const badgeCampaignDestination = destinationForConfirmedBadgeCampaignAcquisition(batch.claims)
-                    const legacyDestination = legacyAcquisition
-                        ? destinationForInviteAcquisition(legacyAcquisition, batch.claims)
-                        : '/home'
+                    // claim) outranks everything. Bespoke campaign destinations
+                    // retired with TASK-21226 — a campaign acquisition lands on
+                    // /home, a plain valid invite on the inviter's profile.
                     const destination =
                         safeRedirectUri ||
-                        (legacyDestination !== '/home'
-                            ? legacyDestination
-                            : badgeCampaignDestination !== '/home'
-                              ? badgeCampaignDestination
-                              : legacyAcquisition
-                                ? '/home'
-                                : hasValidInvite
-                                  ? profileUrl(inviteCodeData!.username!)
-                                  : '/home')
+                        (legacyAcquisition ? '/home' : hasValidInvite ? profileUrl(inviteCodeData!.username!) : '/home')
                     router.push(destination)
                 })
                 .catch((error) => {

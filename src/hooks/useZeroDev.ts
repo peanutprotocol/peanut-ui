@@ -29,7 +29,6 @@ import {
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
 import { settleAcceptedInviteAcquisition } from '@/services/invite-acquisition'
-import { persistRegistrationBadgeCampaignDestination } from '@/services/registration-acquisition'
 import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { settleShhhhhCampaignContinuation } from '@/app/shhhhh/shhhhh-acquisition'
 import { signupConsentDocuments } from '@/services/consent'
@@ -210,12 +209,11 @@ export const useZeroDev = () => {
                 const confirmed = batch.claims.filter(isConfirmedBadgeCampaignClaim)
                 const unavailable = batch.claims.filter(isUnavailableBadgeCampaignClaim)
 
-                // Explicit/UTM badge campaigns do not pass through `/invites/accept`.
-                // Shhhhh owns one compatibility continuation: only a confirmed
-                // Skip Pass replaces its safe /home marker with /card. Every
-                // other entrypoint uses backend-owned acquisition navigation.
-                const shhhhhDestination = settleShhhhhCampaignContinuation(batch.claims)
-                if (shhhhhDestination === undefined) persistRegistrationBadgeCampaignDestination(batch.claims)
+                // Explicit badge campaigns do not pass through `/invites/accept`.
+                // Shhhhh owns the one remaining compatibility continuation: only a
+                // confirmed Skip Pass replaces its safe /home marker with /card.
+                // Bespoke campaign destinations retired with TASK-21226.
+                settleShhhhhCampaignContinuation(batch.claims)
 
                 if (confirmed.length > 0) {
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
