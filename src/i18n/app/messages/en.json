@@ -3138,7 +3138,7 @@
         },
         "rainCooldownIntroModal": {
             "title": "Please wait",
-            "description": "Your card needs a short cool-down between back-to-back spends. To avoid this in the future, you can lower your card limit to be below your wallet balance; the extra will always be available.",
+            "description": "Your Peanut balance is settling after a recent payment.",
             "readMore": "Read more"
         },
         "staleCardApprovalModal": {
@@ -3314,7 +3314,7 @@
             "sendExactAmount": "Send the exact amount!"
         },
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
-        "rainCooldownPill": "Card cool-down",
+        "rainCooldownPill": "Balance settling",
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
@@ -3365,8 +3365,8 @@
         "sessionExpired": "Your session has expired. Please log in again.",
         "connectionTimeout": "Peanut is taking too long to respond — check your connection and try again.",
         "genericSupport": "There was an issue with your request. Please contact support.",
-        "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
-        "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
+        "rainCooldownRetry": "Your Peanut balance is settling after a recent payment. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
+        "rainCooldownRetryShortly": "Your Peanut balance is settling after a recent payment. Please try again shortly.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",

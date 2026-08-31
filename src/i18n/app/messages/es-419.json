@@ -3138,7 +3138,7 @@
         },
         "rainCooldownIntroModal": {
             "title": "Espera un momento",
-            "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, puedes bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible.",
+            "description": "Tu saldo en Peanut se está procesando después de un pago reciente.",
             "readMore": "Leer más"
         },
         "staleCardApprovalModal": {
@@ -3314,7 +3314,7 @@
             "sendExactAmount": "¡Envía el monto exacto!"
         },
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",
-        "rainCooldownPill": "Enfriamiento de tarjeta",
+        "rainCooldownPill": "Saldo en proceso",
         "easterEggImageAlt": "Ilustración de huevo de pascua",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
@@ -3365,8 +3365,8 @@
         "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
         "connectionTimeout": "Peanut está tardando demasiado en responder. Revisa tu conexión e inténtalo de nuevo.",
         "genericSupport": "Hubo un problema con tu solicitud. Contacta con soporte.",
-        "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
-        "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Vuelve a intentarlo en breve.",
+        "rainCooldownRetry": "Tu saldo en Peanut se está procesando después de un pago reciente. Vuelve a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
+        "rainCooldownRetryShortly": "Tu saldo en Peanut se está procesando después de un pago reciente. Vuelve a intentarlo en breve.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
