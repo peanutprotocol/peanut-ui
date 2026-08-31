@@ -37,16 +37,18 @@ export const AdditionalVerificationView = () => {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack(IDENTITY_ROUTE)
-    const { nextActions } = useCapabilities()
-    const { start, isStarting, awaitingReturn, error } = useBridgeHostedVerification()
+    const { nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
+    const { start, isStarting, error } = useBridgeHostedVerification()
     const hasHostedTask = nextActions.some((action) => action.kind === 'bridge-hosted')
 
-    // Gated on `awaitingReturn` rather than on the task alone: capabilities can
-    // read empty for a beat on a cold mount, and redirecting off that would
-    // bounce the user straight back out of the screen they just opened.
+    // Keyed off a LOADED capability set, not off this render's return-listener:
+    // the no-usable-tab branch navigates the current tab away before it can arm
+    // that listener, so a user who comes back — by deep link, or by Back —
+    // remounts with nothing in memory saying they ever left. `isLoading` is what
+    // separates "the task is gone" from "the user query has not landed yet".
     useEffect(() => {
-        if (awaitingReturn && !hasHostedTask) router.replace(IDENTITY_ROUTE)
-    }, [awaitingReturn, hasHostedTask, router])
+        if (!isLoadingCapabilities && !hasHostedTask) router.replace(IDENTITY_ROUTE)
+    }, [isLoadingCapabilities, hasHostedTask, router])
 
     return (
         <div className="flex w-full flex-col gap-6">

@@ -138,5 +138,5 @@ export function useBridgeHostedVerification() {
         return () => document.removeEventListener('visibilitychange', onReturn)
     }, [awaitingReturn, fetchUser])
 
-    return { start, isStarting, awaitingReturn, error }
+    return { start, isStarting, error }
 }

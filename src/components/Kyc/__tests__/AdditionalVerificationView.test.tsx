@@ -58,8 +58,9 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: mockRouterReplace, back: jest.fn() }),
 }))
 let mockNextActions: NextAction[] = []
+let mockCapabilitiesLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ nextActions: mockNextActions }),
+    useCapabilities: () => ({ nextActions: mockNextActions, isLoading: mockCapabilitiesLoading }),
 }))
 
 const startVerification = () => fireEvent.click(screen.getByRole('button', { name: /i have these, start/i }))
@@ -67,6 +68,7 @@ const startVerification = () => fireEvent.click(screen.getByRole('button', { nam
 describe('AdditionalVerificationView', () => {
     beforeEach(() => {
         mockNextActions = [hostedAction]
+        mockCapabilitiesLoading = false
         mockRouterReplace.mockReset()
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(null)
@@ -272,14 +274,27 @@ describe('AdditionalVerificationView', () => {
         await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification'))
     })
 
-    it('an empty capability read on a COLD mount does not bounce the user off the screen', () => {
-        // Capabilities can read empty for a beat before the user query lands.
-        // Only a return from the vendor is evidence the task is done.
+    it('an in-flight capability read does not bounce the user off the screen', () => {
+        // nextActions reads empty until the user query lands. Redirecting on
+        // that would throw the user straight out of the screen they just opened.
         mockNextActions = []
+        mockCapabilitiesLoading = true
         render(<AdditionalVerificationView />)
 
         expect(mockRouterReplace).not.toHaveBeenCalled()
         expect(screen.getByRole('button', { name: /i have these, start/i })).toBeEnabled()
+    })
+
+    it('a REMOUNT with no hosted task leaves, even though nothing armed the return listener', () => {
+        // The no-usable-tab branch assigns window.location.href and the tab
+        // navigates away, so `awaitingReturn` never gets set. A user who comes
+        // back — deep link, or Back — remounts with nothing in memory saying
+        // they left, and a loaded-but-empty capability set is the only evidence.
+        mockNextActions = []
+        mockCapabilitiesLoading = false
+        render(<AdditionalVerificationView />)
+
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification')
     })
 
     it('announces a launch failure to screen readers instead of leaving focus on a dead CTA', async () => {
