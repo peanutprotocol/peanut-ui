@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { useCallback } from 'react'
 import { Icon } from '../Icons/Icon'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { beginClipboardCopy, copyTextToClipboard } from '@/utils/clipboard.utils'
 
 type ShareButtonProps = {
     title?: string
@@ -43,42 +44,34 @@ const ShareButton = ({
     const t = useTranslations('global')
     const toast = useToast()
 
-    const copyTextToClipboardWithFallback = async (text: string) => {
-        let textArea: HTMLTextAreaElement | undefined
-
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(text)
-                return true
-            } else {
-                // Fallback for older browsers
-                textArea = document.createElement('textarea')
-                textArea.value = text
-                textArea.style.position = 'fixed'
-                textArea.style.left = '-999999px'
-                textArea.style.top = '-999999px'
-                document.body.appendChild(textArea)
-                textArea.focus()
-                textArea.select()
-                return document.execCommand('copy')
-            }
-        } catch (err) {
-            console.error('Failed to copy: ', err)
-            return false
-        } finally {
-            textArea?.remove()
-        }
-    }
-
     const handleShare = useCallback(async () => {
-        const shareUrl = url ?? (generateUrl ? await generateUrl() : undefined)
-        const shareText = generateText ? await generateText() : text
+        // reserved before the await: WebKit rejects a clipboard write once the
+        // click's user activation is spent, and generating the url spends it
+        const pendingCopy = beginClipboardCopy()
+
+        let shareUrl: string | undefined
+        let shareText: string | undefined
+        try {
+            shareUrl = url ?? (generateUrl ? await generateUrl() : undefined)
+            shareText = generateText ? await generateText() : text
+        } catch (error) {
+            // there is nothing to copy — release the reservation rather than
+            // leaving the browser holding a write that never settles
+            pendingCopy.cancel()
+            const err = error instanceof Error ? error : new Error(String(error))
+            console.error('Sharing error:', error)
+            Sentry.captureException(error)
+            toast.error(t('shareButton.sharingFailed'))
+            onError?.(err)
+            return
+        }
+
         let copied = false
 
         try {
             // ALWAYS copy to clipboard first (works on both desktop and mobile)
             const contentToCopy = shareUrl || shareText || ''
-            copied = await copyTextToClipboardWithFallback(contentToCopy)
+            copied = await pendingCopy.resolve(contentToCopy)
             if (copied) {
                 toast.info(shareUrl ? t('shareButton.linkCopied') : t('shareButton.textCopied'))
             }
@@ -106,6 +99,7 @@ const ShareButton = ({
             // already landed and toasted — the content is on the clipboard.
             if (err.name === 'AbortError') {
                 if (copied) onSuccess?.()
+                else pendingCopy.cancel()
                 return
             }
 
@@ -114,8 +108,9 @@ const ShareButton = ({
 
             // If we didn't copy earlier, try now
             if (!copied) {
+                pendingCopy.cancel()
                 const contentToCopy = shareUrl || shareText || ''
-                const fallbackCopied = await copyTextToClipboardWithFallback(contentToCopy)
+                const fallbackCopied = await copyTextToClipboard(contentToCopy)
                 if (fallbackCopied) {
                     toast.info(shareUrl ? t('shareButton.linkCopied') : t('shareButton.textCopied'))
                 } else {

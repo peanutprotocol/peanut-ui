@@ -969,6 +969,7 @@
         "shareAmountRequest": "Share ${amount} request",
         "billSplitFor": "Bill split for {merchant}",
         "linkCreatedToast": "Link created successfully!",
+        "linkCreatedAndCopiedToast": "Link created and copied to clipboard!",
         "requestUpdatedToast": "Request updated successfully!",
         "recipientPlaceholder": "Enter a username, an address or ENS",
         "errors": {
@@ -2853,15 +2854,34 @@
                 "questions": {
                     "title": "A few short questions",
                     "body": "Regulatory declarations we are required to ask for."
+                },
+                "proofOfAddress": {
+                    "title": "Proof of your address, if you have one",
+                    "body": "A utility bill, bank statement, or official letter from the last 3 months showing your name and address. Not everyone is asked for it, and there is no way to add it later."
                 }
             },
             "howLongLabel": "How long",
             "howLong": {
                 "standard": "Under 2 minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
-                "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days."
+                "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days.",
+                "hosted": "About 5 minutes with your documents in hand. If a reviewer has to look at it, 1 to 3 business days."
             },
             "extraDocNote": "Some people are asked for one more document, like a proof of address. If that is you, we will say so before the camera opens.",
-            "startCta": "I have these, start"
+            "startCta": "I have these, start",
+            "singleSession": {
+                "title": "Finish it in one go",
+                "body": "Our partner does not save your progress. If you close the page or step away to look for a document, you start again from the first step."
+            }
+        },
+        "hostedPrep": {
+            "title": "What to expect",
+            "description": "Our payment partner needs a few more things before your bank transfers work.",
+            "descriptionAdvisory": "Our payment partner needs a few more things to keep your bank transfers working.",
+            "done": {
+                "title": "Nothing left to do here",
+                "description": "This verification step is no longer needed. Your current status is on your profile.",
+                "cta": "See my status"
+            }
         }
     },
     "identity": {

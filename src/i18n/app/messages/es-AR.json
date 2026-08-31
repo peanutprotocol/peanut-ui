@@ -1226,15 +1226,29 @@
                 "questions": {
                     "title": "Unas preguntas breves",
                     "body": "Declaraciones regulatorias que estamos obligados a pedir."
+                },
+                "proofOfAddress": {
+                    "title": "Un comprobante de domicilio, si tenés uno",
+                    "body": "Una factura de servicios, un resumen bancario o una carta oficial de los últimos 3 meses con tu nombre y tu domicilio. No se lo piden a todo el mundo, y después no hay forma de agregarlo."
                 }
             },
             "howLongLabel": "Cuánto tarda",
             "howLong": {
                 "standard": "Menos de 2 minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles."
+                "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
+                "hosted": "Unos 5 minutos si tenés tus documentos a mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
-            "startCta": "Los tengo, empezar"
+            "startCta": "Los tengo, empezar",
+            "singleSession": {
+                "title": "Terminala de una sola vez",
+                "body": "Nuestro socio no guarda tu progreso. Si cerrás la página o te levantás a buscar un documento, volvés a empezar desde el primer paso."
+            }
+        },
+        "hostedPrep": {
+            "done": {
+                "title": "Acá ya no queda nada por hacer"
+            }
         }
     },
     "identity": {

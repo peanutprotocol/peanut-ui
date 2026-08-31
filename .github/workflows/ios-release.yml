@@ -231,6 +231,10 @@ jobs:
                   # upload's build number to exceed the last.
                   IOS_BUILD_NUMBER: ${{ github.run_number }}
                   IOS_VERSION_NAME: ${{ steps.version.outputs.name }}
+                  # native sentry sdk dsn — Info.plist SentryDSN <- $(SENTRY_DSN) build
+                  # setting. same project dsn the js layer bakes into the static export
+                  # above; no new secret needed (mirror of SENTRY_DSN_ANDROID).
+                  SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
               run: |
                   # MARKETING_VERSION comes from the "Resolve release versionName"
                   # step (input > tag > package.json — the same precedence
@@ -271,7 +275,8 @@ jobs:
                   # passed on the command line: global build settings leak onto the SwiftPM
                   # dependency targets (Alamofire, ZIPFoundation, …), which reject a
                   # provisioning profile and fail the archive. Only version numbers, which
-                  # are harmless to inherit, are overridden here.
+                  # are harmless to inherit, and SENTRY_DSN, a custom setting nothing else
+                  # reads, are overridden here.
                   xcodebuild \
                       -project ios/App/App.xcodeproj \
                       -scheme App \
@@ -280,6 +285,7 @@ jobs:
                       -archivePath build/ios/App.xcarchive \
                       CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
                       "${MARKETING_ARG[@]}" \
+                      SENTRY_DSN="$SENTRY_DSN" \
                       archive
 
                   xcodebuild \
@@ -288,8 +294,15 @@ jobs:
                       -exportPath build/ios \
                       -exportOptionsPlist /tmp/ExportOptions.plist
 
-            - name: Verify push entitlements in exported IPA
+            - name: Verify push entitlements + Sentry DSN in exported IPA
               run: |
+                  # Extract into a clean directory. `macos-15` is ephemeral so a stale
+                  # /tmp/ipa-check cannot survive today, but unzip without -o prompts on
+                  # existing files and skips them when stdin is at EOF — which on any
+                  # reused runner would leave the PREVIOUS build's Payload in place and
+                  # quietly verify the wrong artifact. A release gate that can pass while
+                  # reading the wrong IPA is worse than no gate.
+                  rm -rf /tmp/ipa-check
                   unzip -q build/ios/App.ipa -d /tmp/ipa-check
                   APS=$(codesign -d --entitlements :- /tmp/ipa-check/Payload/App.app 2>/dev/null \
                         | plutil -extract aps-environment raw -o - - || true)
@@ -298,6 +311,52 @@ jobs:
                       echo "::error::exported ipa aps-environment is '${APS:-missing}', expected production — push would be dead in this build"
                       exit 1
                   fi
+                  # An empty, unexpanded, or malformed SentryDSN ships a build with native
+                  # crash reporting silently off — sentry-cocoa disables itself on a DSN it
+                  # cannot parse, and nothing downstream would tell us. Stricter than the
+                  # gradle equivalent, which only logs: this runs on the actual artifact,
+                  # so it can be certain rather than advisory.
+                  #
+                  # Matched on the shape sentry-cocoa itself requires — scheme, key, host,
+                  # numeric project id — and NOT on how today's DSN happens to look. An
+                  # earlier draft required a hex key and a *.sentry.io host; both are true
+                  # of the current DSN and neither is guaranteed, so rotating the key or
+                  # moving region would have failed every iOS release for no reason.
+                  DSN=$(plutil -extract SentryDSN raw -o - /tmp/ipa-check/Payload/App.app/Info.plist 2>/dev/null || true)
+                  case "$DSN" in
+                      '$(SENTRY_DSN)')
+                          echo "::error::exported ipa SentryDSN is the literal \$(SENTRY_DSN) — the build setting never reached xcodebuild, so this build ships blind"
+                          exit 1
+                          ;;
+                  esac
+                  if ! printf '%s' "$DSN" | grep -Eq '^https://[^@/]+@[^/]+/[0-9]+$'; then
+                      echo "::error::exported ipa SentryDSN is ${DSN:+malformed}${DSN:-missing} — native crash reporting would be dead in this build"
+                      exit 1
+                  fi
+                  echo "SentryDSN present and well-formed"
+
+            - name: Upload dSYMs to Sentry
+              # Without debug symbols every native crash arrives as hex offsets.
+              # `uploadSymbols` in ExportOptions.plist goes to App Store Connect only —
+              # Sentry sunset its ASC fetch in 2024. Needs a SENTRY_AUTH_TOKEN repo
+              # secret (org peanut-c34d84c05, project peanut-ui, scope project:releases).
+              # Until it exists this step warns and the release still ships. sentry-cli
+              # is a pinned devDependency so it comes from the lockfile, not a fresh
+              # registry fetch inside the signing job.
+              #
+              # Runs after the IPA verification: a build that fails that gate is never
+              # shipped, so uploading its symbols first only leaves orphaned debug files
+              # in the project.
+              env:
+                  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+                  SENTRY_ORG: peanut-c34d84c05
+                  SENTRY_PROJECT: peanut-ui
+              run: |
+                  if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+                      echo "::warning::SENTRY_AUTH_TOKEN not set — dSYMs not uploaded; native iOS crashes will be unsymbolicated in Sentry"
+                      exit 0
+                  fi
+                  pnpm exec sentry-cli debug-files upload build/ios/App.xcarchive/dSYMs
 
             - name: Upload to TestFlight
               uses: apple-actions/upload-testflight-build@1ad58030672057aa084b4e96beb6f7a8c627f9e6 # v5
