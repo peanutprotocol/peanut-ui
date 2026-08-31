@@ -21,7 +21,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { type IToken } from '@/interfaces/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { requestsApi } from '@/services/requests'
-import { copyTextToClipboard } from '@/utils/clipboard.utils'
+import { beginClipboardCopy } from '@/utils/clipboard.utils'
 import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -194,8 +194,6 @@ export const CreateRequestLinkView = () => {
                 // Update the last saved state
                 lastSavedAttachmentRef.current = { ...attachmentOptions }
 
-                const copied = await copyTextToClipboard(link)
-                toast.success(copied ? t('linkCreatedAndCopiedToast') : t('linkCreatedToast'))
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 return link
             } catch (error) {
@@ -346,13 +344,22 @@ export const CreateRequestLinkView = () => {
         if (generatedLink) return generatedLink
         if (isCreatingLink || isUpdatingRequest) return '' // Prevent duplicate operations
 
+        // reserved before the await: WebKit rejects a clipboard write once the
+        // click's user activation is spent, and creating the request spends it
+        const pendingCopy = beginClipboardCopy()
+
         // Create new request when share button is clicked
         const link = await createRequestLink(attachmentOptions)
-        if (link) {
-            setGeneratedLink(link)
+        if (!link) {
+            pendingCopy.cancel()
+            return ''
         }
-        return link || ''
-    }, [generatedLink, qrCodeLink, tokenValue, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest])
+
+        setGeneratedLink(link)
+        const copied = await pendingCopy.resolve(link)
+        toast.success(copied ? t('linkCreatedAndCopiedToast') : t('linkCreatedToast'))
+        return link
+    }, [generatedLink, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest, toast, t])
 
     // Set wallet defaults when connected
     useMemo(() => {

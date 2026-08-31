@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { useCallback } from 'react'
 import { Icon } from '../Icons/Icon'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
-import { copyTextToClipboard } from '@/utils/clipboard.utils'
+import { beginClipboardCopy, copyTextToClipboard } from '@/utils/clipboard.utils'
 
 type ShareButtonProps = {
     title?: string
@@ -45,6 +45,9 @@ const ShareButton = ({
     const toast = useToast()
 
     const handleShare = useCallback(async () => {
+        // reserved before the await: WebKit rejects a clipboard write once the
+        // click's user activation is spent, and generating the url spends it
+        const pendingCopy = beginClipboardCopy()
         const shareUrl = url ?? (generateUrl ? await generateUrl() : undefined)
         const shareText = generateText ? await generateText() : text
         let copied = false
@@ -52,7 +55,7 @@ const ShareButton = ({
         try {
             // ALWAYS copy to clipboard first (works on both desktop and mobile)
             const contentToCopy = shareUrl || shareText || ''
-            copied = await copyTextToClipboard(contentToCopy)
+            copied = await pendingCopy.resolve(contentToCopy)
             if (copied) {
                 toast.info(shareUrl ? t('shareButton.linkCopied') : t('shareButton.textCopied'))
             }
@@ -80,6 +83,7 @@ const ShareButton = ({
             // already landed and toasted — the content is on the clipboard.
             if (err.name === 'AbortError') {
                 if (copied) onSuccess?.()
+                else pendingCopy.cancel()
                 return
             }
 
@@ -88,6 +92,7 @@ const ShareButton = ({
 
             // If we didn't copy earlier, try now
             if (!copied) {
+                pendingCopy.cancel()
                 const contentToCopy = shareUrl || shareText || ''
                 const fallbackCopied = await copyTextToClipboard(contentToCopy)
                 if (fallbackCopied) {

@@ -124,8 +124,12 @@ jest.mock('@/interfaces/peanut-sdk-types', () => ({
 }))
 
 const mockCopyTextToClipboard = jest.fn<Promise<boolean>, [string]>()
+const mockCancelClipboardCopy = jest.fn()
 jest.mock('@/utils/clipboard.utils', () => ({
-    copyTextToClipboard: (text: string) => mockCopyTextToClipboard(text),
+    beginClipboardCopy: () => ({
+        resolve: (text: string) => mockCopyTextToClipboard(text),
+        cancel: () => mockCancelClipboardCopy(),
+    }),
 }))
 
 // Mock Toast
@@ -720,6 +724,10 @@ describe('GROUP 3: Error States', () => {
             expect(screen.getByText('Failed to create link')).toBeInTheDocument()
         })
         expect(mockToastError).toHaveBeenCalledWith('Failed to create link')
+        // a link that never existed must release the reserved clipboard write
+        expect(mockCancelClipboardCopy).toHaveBeenCalled()
+        expect(mockCopyTextToClipboard).not.toHaveBeenCalled()
+        expect(mockToastSuccess).not.toHaveBeenCalled()
     })
 
     test('not connected wallet shows error when creating request', async () => {
