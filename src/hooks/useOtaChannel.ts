@@ -80,7 +80,9 @@ export function useOtaChannel(): UseOtaChannel {
                     return 'left'
                 }
                 const outcome = await joinBetaOtaChannel()
-                await refresh()
+                // Best-effort: the join already happened, and a failed status
+                // read must not report it as a failed switch.
+                await refresh().catch(() => undefined)
                 if (outcome === 'staged') return 'staged'
                 return outcome === 'up-to-date' ? 'joined' : 'join-no-bundle'
             } catch (err) {

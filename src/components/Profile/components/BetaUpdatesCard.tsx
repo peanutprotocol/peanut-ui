@@ -47,7 +47,8 @@ export const BetaUpdatesCard = () => {
     }
 
     const onToggle = async (beta: boolean) => {
-        switch (await setBeta(beta)) {
+        const result = await setBeta(beta)
+        switch (result) {
             case 'staged':
                 toast.success(t('staged'))
                 break
@@ -74,6 +75,12 @@ export const BetaUpdatesCard = () => {
             case 'left':
                 toast.success(t('left'))
                 break
+            default: {
+                // Every outcome owes the tester a sentence. This PR added three
+                // of them; a fourth added silently would toast nothing at all.
+                const unhandled: never = result
+                console.warn('[capgo] unhandled channel switch result:', unhandled)
+            }
         }
     }
 
