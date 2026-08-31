@@ -296,6 +296,13 @@ jobs:
 
             - name: Verify push entitlements + Sentry DSN in exported IPA
               run: |
+                  # Extract into a clean directory. `macos-15` is ephemeral so a stale
+                  # /tmp/ipa-check cannot survive today, but unzip without -o prompts on
+                  # existing files and skips them when stdin is at EOF — which on any
+                  # reused runner would leave the PREVIOUS build's Payload in place and
+                  # quietly verify the wrong artifact. A release gate that can pass while
+                  # reading the wrong IPA is worse than no gate.
+                  rm -rf /tmp/ipa-check
                   unzip -q build/ios/App.ipa -d /tmp/ipa-check
                   APS=$(codesign -d --entitlements :- /tmp/ipa-check/Payload/App.app 2>/dev/null \
                         | plutil -extract aps-environment raw -o - - || true)
