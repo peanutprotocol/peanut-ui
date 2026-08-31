@@ -402,7 +402,7 @@ const AmountInput = ({
                                         fillBalance()
                                     }}
                                     aria-label={t('amountInput.useFullBalance', { balance: balanceAmount })}
-                                    className="min-h-11 min-w-11 px-1 underline underline-offset-4"
+                                    className="min-h-11 min-w-11 px-1 underline underline-offset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus"
                                 >
                                     {balanceAmount}
                                 </button>
