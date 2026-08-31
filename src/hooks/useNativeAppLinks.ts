@@ -6,7 +6,8 @@ import { focusManager } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { captureMessage } from '@/utils/sentry-lazy'
 import { isCapacitor, openExternalUrl, closeInAppBrowser, markInAppBrowserClosed } from '@/utils/capacitor'
-import { deepLinkToNativePath } from '@/utils/native-routes'
+import { deepLinkToNativePath, isNativeExportPath } from '@/utils/native-routes'
+import { BASE_URL } from '@/constants/general.consts'
 import { hasDeepLinkNavigated, markDeepLinkNavigated } from '@/utils/deep-link-state'
 import { sanitizeRedirectURL, saveToCookie } from '@/utils/cookie-url.utils'
 import { toInviteCode } from '@/utils/invite-code.utils'
@@ -292,14 +293,30 @@ export function useNativeAppLinks() {
          * Android and are a silent no-op on iOS. Intercept at capture phase and
          * route through the in-app browser. Only the navigation is prevented —
          * propagation continues, so React handlers on the anchor still run.
+         *
+         * Relative anchors to routes missing from the native export (marketing,
+         * help, legal — e.g. the /shhhhh footer's links) are intercepted too:
+         * next/link would client-navigate them into the SPA's 404 → home
+         * fallback. Those open the real web page in the in-app browser, and
+         * DO stop propagation — the React handler there is next/link's
+         * router.push, which must not run.
          */
         const onDocumentClick = (e: MouseEvent) => {
-            const anchor = (e.target as Element | null)?.closest?.('a[target="_blank"]')
+            const anchor = (e.target as Element | null)?.closest?.('a[href]')
             if (!anchor) return
             const href = anchor.getAttribute('href')
-            if (!href || !/^https?:\/\//i.test(href)) return
-            e.preventDefault()
-            openExternalUrl(href).catch((err) => console.warn('failed to open external link:', err))
+            if (!href) return
+            if (/^https?:\/\//i.test(href)) {
+                if (anchor.getAttribute('target') !== '_blank') return
+                e.preventDefault()
+                openExternalUrl(href).catch((err) => console.warn('failed to open external link:', err))
+                return
+            }
+            if (href.startsWith('/') && !isNativeExportPath(href)) {
+                e.preventDefault()
+                e.stopPropagation()
+                openExternalUrl(`${BASE_URL}${href}`).catch((err) => console.warn('failed to open web-only link:', err))
+            }
         }
         document.addEventListener('click', onDocumentClick, true)
         cleanups.push(() => document.removeEventListener('click', onDocumentClick, true))

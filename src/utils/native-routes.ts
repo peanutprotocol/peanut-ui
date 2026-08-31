@@ -232,10 +232,10 @@ function mapDeepLinkPath(parsed: URL): string | null {
 
 /*
  * Route roots that exist in the native static export — src/app/(mobile-ui)/* +
- * /setup, minus what scripts/native-build.js disables. The AASA drift test in
- * __tests__/native-routes.test.ts walks the App Links path list against this
- * mapper, so a root claimed for the app but missing here fails CI instead of
- * shipping a dead deep link.
+ * /setup + /shhhhh, minus what scripts/native-build.js disables. The AASA
+ * drift test in __tests__/native-routes.test.ts walks the App Links path list
+ * against this mapper, so a root claimed for the app but missing here fails CI
+ * instead of shipping a dead deep link.
  */
 const NATIVE_EXPORT_ROOTS = new Set([
     'add-money',
@@ -262,8 +262,24 @@ const NATIVE_EXPORT_ROOTS = new Set([
     'send',
     'settings',
     'setup',
+    // card explainer — outside (mobile-ui) but not stripped by native-build,
+    // and linked from /profile, so it must resolve in-app
+    'shhhhh',
     'withdraw',
 ])
+
+/**
+ * True when the path's root segment exists in the native static export.
+ * The document click interceptor (useNativeAppLinks) uses this to catch
+ * in-app anchors to web-only routes (marketing, help, legal) that the
+ * export never built — next/link would land them on the SPA's 404 → home
+ * fallback.
+ */
+export function isNativeExportPath(path: string): boolean {
+    const root = path.split(/[?#]/)[0].split('/').filter(Boolean)[0]
+    if (!root) return true // '/' exists in the export (RootRedirect)
+    return NATIVE_EXPORT_ROOTS.has(root.toLowerCase())
+}
 
 function appendParams(base: string, params: string): string {
     if (!params) return base
