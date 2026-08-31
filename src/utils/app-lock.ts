@@ -13,6 +13,7 @@
 // gaps the guarded mode closes.
 
 import { base64URLToBytes } from './native-webauthn'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { isCapacitor } from './capacitor'
 import { raceCeremonyTimeout, waitForPasskeyShim } from './passkeyCeremony.utils'
 
@@ -47,17 +48,19 @@ export async function requestLocalUserPresence(credentialId?: string): Promise<U
         // guard class as login, TASK-21782): an un-shimmed webview get() hangs
         // silently and would strand the user behind the lock with no retry.
         if (isCapacitor()) await waitForPasskeyShim()
-        const assertion = await raceCeremonyTimeout(
-            navigator.credentials.get({
-                publicKey: {
-                    challenge,
-                    // Copy into a fresh buffer: BufferSource wants Uint8Array<ArrayBuffer>,
-                    // and base64URLToBytes is typed over the wider ArrayBufferLike.
-                    allowCredentials: [{ id: new Uint8Array(base64URLToBytes(credentialId)), type: 'public-key' }],
-                    userVerification: 'required',
-                    timeout: 60_000,
-                },
-            })
+        const assertion = await withCeremonyPurpose('app_lock', () =>
+            raceCeremonyTimeout(
+                navigator.credentials.get({
+                    publicKey: {
+                        challenge,
+                        // Copy into a fresh buffer: BufferSource wants Uint8Array<ArrayBuffer>,
+                        // and base64URLToBytes is typed over the wider ArrayBufferLike.
+                        allowCredentials: [{ id: new Uint8Array(base64URLToBytes(credentialId)), type: 'public-key' }],
+                        userVerification: 'required',
+                        timeout: 60_000,
+                    },
+                })
+            )
         )
         return assertion ? 'unlocked' : 'dismissed'
     } catch (error) {

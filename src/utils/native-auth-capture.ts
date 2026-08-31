@@ -5,7 +5,7 @@
 // works with CapacitorHttp both on (bridge-patched fetch) and off (plain
 // WebView fetch), so the same JS runs on old and new binaries.
 
-import * as Sentry from '@sentry/nextjs'
+import * as Sentry from '@/utils/sentry-lazy'
 import { isCapacitor } from './capacitor'
 import { currentCeremonyId, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
 

@@ -11,6 +11,7 @@ import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } fro
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import {
     captureCeremonyGuardError,
     guardPasskeyCeremony,
@@ -89,17 +90,19 @@ export const useZeroDev = () => {
             // so toWebAuthnKey works on all platforms (web, android, ios).
             // Same TASK-21782 guard as login: native shim gate + 60s bound —
             // signup is the tightest shim race (first tap after a fresh install).
-            const webAuthnKey = await guardPasskeyCeremony(() =>
-                toWebAuthnKey({
-                    passkeyName: _getPasskeyName(username),
-                    passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                    mode: WebAuthnMode.Register,
-                    // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
-                    // register/verify request body, so the terms+privacy versions the
-                    // signup screen displayed ride in a header the backend ledgers.
-                    passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
-                    rpID: rpId,
-                })
+            const webAuthnKey = await withCeremonyPurpose('registration', () =>
+                guardPasskeyCeremony(() =>
+                    toWebAuthnKey({
+                        passkeyName: _getPasskeyName(username),
+                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                        mode: WebAuthnMode.Register,
+                        // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
+                        // register/verify request body, so the terms+privacy versions the
+                        // signup screen displayed ride in a header the backend ledgers.
+                        passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
+                        rpID: rpId,
+                    })
+                )
             )
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
@@ -281,14 +284,16 @@ export const useZeroDev = () => {
             // never-settling toWebAuthnKey can't leave isLoggingIn true until
             // app kill. A late result is discarded and its verify token is not
             // captured (ceremony window closed) — see passkeyCeremony.utils.
-            const webAuthnKey = await guardPasskeyCeremony(() =>
-                toWebAuthnKey({
-                    passkeyName: '[]',
-                    passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                    mode: WebAuthnMode.Login,
-                    passkeyServerHeaders,
-                    rpID: rpId,
-                })
+            const webAuthnKey = await withCeremonyPurpose('login', () =>
+                guardPasskeyCeremony(() =>
+                    toWebAuthnKey({
+                        passkeyName: '[]',
+                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                        mode: WebAuthnMode.Login,
+                        passkeyServerHeaders,
+                        rpID: rpId,
+                    })
+                )
             )
 
             setWebAuthnKey(webAuthnKey)
@@ -346,10 +351,12 @@ export const useZeroDev = () => {
 
             let userOpHash: Hash
             try {
-                userOpHash = await client.sendUserOperation({
-                    account: client.account,
-                    callData: await client.account!.encodeCalls(calls),
-                })
+                userOpHash = await withCeremonyPurpose('user_op', async () =>
+                    client.sendUserOperation({
+                        account: client.account,
+                        callData: await client.account!.encodeCalls(calls),
+                    })
+                )
             } catch (error) {
                 console.error('Error sending UserOp:', error)
                 capturePasskeySignFailure(error, 'send-user-op')

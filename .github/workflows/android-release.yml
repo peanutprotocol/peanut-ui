@@ -18,6 +18,22 @@ name: Android Release (Play)
 # Plus the production NEXT_PUBLIC_* the static export bakes in (see the env step).
 
 on:
+    workflow_call:
+        inputs:
+            versionName:
+                description: 'Resolved <major>.<build>.0 version to ship'
+                required: true
+                type: string
+            track:
+                description: 'Play track'
+                required: false
+                default: 'internal'
+                type: string
+            pushDebug:
+                description: 'Enable OneSignal verbose logging in this build'
+                required: false
+                default: false
+                type: boolean
     push:
         tags: ['v*']
     workflow_dispatch:
@@ -29,7 +45,7 @@ on:
                 type: choice
                 options: [internal, alpha, beta, production]
             versionName:
-                description: 'versionName override (optional; defaults to package.json)'
+                description: 'Break-glass <major>.<build>.0 version (required; there is no package.json fallback)'
                 required: false
                 type: string
             pushDebug:
@@ -42,7 +58,16 @@ permissions:
     contents: read
 
 concurrency:
-    group: android-release-${{ github.ref }}
+    # A break-glass `v*` tag push runs outside release-native.yml's mutex, so it joins
+    # `production-release` here (which serialises iOS and Android for that path only —
+    # the price of not racing a concurrent OTA). When release-native.yml calls this
+    # workflow the parent already holds the mutex, and github.event_name is the
+    # caller's `workflow_dispatch`, so the called run keeps its own group instead of
+    # deadlocking against its parent. A direct dispatch of this workflow is
+    # indistinguishable from that, so it sits outside the mutex — deepest break-glass.
+    group: >-
+        ${{ github.event_name == 'push' && 'production-release'
+        || format('android-release-{0}', github.ref) }}
     cancel-in-progress: false
 
 jobs:
@@ -112,8 +137,68 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
-                  if [ "${{ github.event.inputs.pushDebug }}" = "true" ]; then
+                  if [ "${{ inputs.pushDebug }}" = "true" ]; then
                       echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
+                  fi
+
+            - name: Resolve release versionName
+              id: version
+              env:
+                  INPUT_VERSION: ${{ inputs.versionName || '' }}
+              run: |
+                  # release-native.yml resolves the version and passes it here, so the
+                  # input wins; a break-glass tag push falls back to the tag name minus
+                  # its leading 'v' (v1.1.0 -> 1.1.0). Either way it is validated against
+                  # the release scheme before the build starts. Resolved once, up front,
+                  # so the OTA floor check and the bundle publish below see the exact
+                  # version the binary ships with. Keep in lockstep with ios-release.yml.
+                  VERSION_NAME="$INPUT_VERSION"
+                  if [ -z "$VERSION_NAME" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
+                      VERSION_NAME="${GITHUB_REF_NAME#v}"
+                  fi
+                  if [ -z "$VERSION_NAME" ]; then
+                      echo "::error::no versionName — call this from release-native.yml, or push a vX.Y.0 tag" >&2
+                      exit 1
+                  fi
+                  node scripts/release-version.mjs validate "$VERSION_NAME" --kind native
+                  echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+                  echo "Release versionName: $VERSION_NAME"
+
+            # A binary whose versionName is ahead of the newest production OTA bundle
+            # makes Capgo's disable_auto_update_under_native rule reject every bundle
+            # on those devices — OTA goes silently dead for the whole fleet while CI
+            # stays green (TASK-21793: 102 devices, a month of refused updates). Read
+            # the floor before the long build; the publish step after the store
+            # upload closes the gap this detects. Keep in lockstep with
+            # ios-release.yml.
+            - name: Check production OTA floor
+              id: ota_floor
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  VERSION_NAME: ${{ steps.version.outputs.name }}
+              run: |
+                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \
+                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
+                  if [ -z "$CURRENT" ]; then
+                      echo "::error::cannot read the production channel's current bundle from Capgo — refusing to ship a binary that may strand the fleet's OTA path" >&2
+                      exit 1
+                  fi
+                  # Fail closed on an anomalous read. CURRENT is scraped from a CLI
+                  # whose stdout format is not contractual, so a stray version-like
+                  # token that sorts ABOVE this release would make needs_ota false,
+                  # silently skip the matching publish, and recreate TASK-21793 with
+                  # CI green. A production bundle ahead of a brand-new binary cannot
+                  # happen in the version scheme, so treat it as a bad read.
+                  if [ "$(node scripts/semver-newer.mjs "$CURRENT" "$VERSION_NAME")" = "true" ]; then
+                      echo "::error::production bundle $CURRENT sorts above the release $VERSION_NAME — impossible in the version scheme, so the channel read is unreliable; refusing to ship" >&2
+                      exit 1
+                  fi
+                  NEEDS_OTA="$(node scripts/semver-newer.mjs "$VERSION_NAME" "$CURRENT")"
+                  echo "needs_ota=$NEEDS_OTA" >> "$GITHUB_OUTPUT"
+                  if [ "$NEEDS_OTA" = "true" ]; then
+                      echo "versionName $VERSION_NAME is ahead of production bundle $CURRENT — a matching bundle ships after the store upload"
+                  else
+                      echo "versionName $VERSION_NAME is covered by production bundle $CURRENT"
                   fi
 
             - name: Build signed AAB
@@ -122,16 +207,8 @@ jobs:
                   # manifest placeholder. same project dsn the js layer bakes into
                   # the static export above; no new secret needed.
                   SENTRY_DSN_ANDROID: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+                  ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
-                  # versionName: manual dispatch input wins; else the tag name minus
-                  # its leading 'v' (v1.0.10 -> 1.0.10); else build.gradle's
-                  # package.json fallback. Keeps the Play versionName in lockstep
-                  # with the release tag without a manual package.json bump.
-                  VERSION_NAME="${{ github.event.inputs.versionName }}"
-                  if [ -z "$VERSION_NAME" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
-                      VERSION_NAME="${GITHUB_REF_NAME#v}"
-                  fi
-                  export ANDROID_VERSION_NAME="$VERSION_NAME"
                   # Monotonic (run_number always increases). +10000 clears legacy
                   # codes already on Play from earlier manual/local uploads (small
                   # console codes plus git-commit-count builds up to ~8600).
@@ -144,10 +221,46 @@ jobs:
                   serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
                   packageName: me.peanut.wallet
                   releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
-                  tracks: ${{ github.event.inputs.track || 'internal' }}
+                  tracks: ${{ inputs.track || 'internal' }}
                   status: completed
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.
+
+            # The binary that just shipped is ahead of every production OTA bundle, so
+            # its devices would refuse all existing bundles. Publish the exact JS baked
+            # into this binary (native:release leaves it in out/) under the binary's own
+            # version — the lanes can no longer drift apart. A failure here is the floor
+            # guard firing: the job goes red instead of the fleet going silently dark.
+            # Upload flags in lockstep with capgo-deploy.yml; ios-release.yml publishes
+            # the same version from the same tag, which --version-exists-ok turns into a
+            # verified no-op.
+            - name: Publish matching production OTA bundle
+              if: steps.ota_floor.outputs.needs_ota == 'true'
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
+                  VERSION: ${{ steps.version.outputs.name }}
+              run: |
+                  if [ ! -f out/index.html ]; then
+                      echo "::error::out/ is missing its static export — cannot publish the matching OTA bundle, and without it every device on the $VERSION binary refuses OTA updates" >&2
+                      exit 1
+                  fi
+                  npx @capgo/cli@8.42.4 bundle upload \
+                    --channel production \
+                    --apikey "$CAPGO_API_KEY" \
+                    --key-data-v2 "$CAPGO_PRIVATE_KEY" \
+                    --path ./out \
+                    --bundle "$VERSION" \
+                    --auto-min-update-version \
+                    --version-exists-ok \
+                    --comment "${GITHUB_SHA:0:7} — auto-published with the $VERSION native release"
+                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \
+                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
+                  if [ "$CURRENT" != "$VERSION" ]; then
+                      echo "::error::production channel serves '${CURRENT:-<none>}', expected $VERSION — devices on the $VERSION binary have no OTA path" >&2
+                      exit 1
+                  fi
+                  echo "Production channel now serves $VERSION"
 
             - name: Upload AAB as build artifact
               if: always()

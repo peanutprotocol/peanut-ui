@@ -314,7 +314,12 @@ export function readPageContentLocalizedResolved<T = Record<string, unknown>>(
 ): { content: MarkdownContent<T>; lang: string } | null {
     for (const locale of getLocaleFallbacks(lang)) {
         const content = readPageContent<T>(intent, slug, locale)
-        if (content) return { content, lang: locale }
+        // Published, not merely present — `existingPageLocale` picks the first
+        // PUBLISHED locale, so returning an unpublished file here made the hubs
+        // and the renderer disagree: links pointed at a page that rendered empty.
+        if (isPublished(content as MarkdownContent<PublishableContent> | null)) {
+            return { content: content as MarkdownContent<T>, lang: locale }
+        }
     }
     return null
 }

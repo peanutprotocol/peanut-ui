@@ -2,7 +2,9 @@
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import ErrorAlert from '@/components/Global/ErrorAlert'
+import InfoCard from '@/components/Global/InfoCard'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
+import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -10,8 +12,9 @@ import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
-import { isAmountWithinBalance } from '@/utils/balance.utils'
-import { captureException } from '@sentry/nextjs'
+import { isAmountWithinBalance, isValidSendAmount } from '@/utils/balance.utils'
+import { captureNetworkTriagedFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
@@ -23,11 +26,20 @@ import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
+// Below the smallest fiat minimum the recipient loses every fiat claim rail
+// (bank / Pix / Mercado Pago all reject at claim time) and is left with only
+// Peanut-account or wallet claims. Warn the sender here — the claim screen is
+// too late, the money is already locked in the link. The warning copy asserts
+// that conjunction, which only holds while the per-rail minimums agree — a
+// test pins them equal so a divergence forces the copy question.
+const MIN_FIAT_CLAIM_AMOUNT = Math.min(...Object.values(CLAIM_RAIL_MINIMUMS))
+
 const LinkSendInitialView = () => {
     const t = useTranslations('send')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const tErrors = useTranslations('errors')
+    const tWithdraw = useTranslations('withdraw')
     const toFriendlyError = useFriendlyError()
     const {
         attachmentOptions,
@@ -54,9 +66,25 @@ const LinkSendInitialView = () => {
         return balance === undefined ? '' : formattedSpendableBalance
     }, [balance, formattedSpendableBalance])
 
+    // Informational only — small links are legitimate (Peanut-account / wallet
+    // claims have no minimum), so this never blocks Create link.
+    const enteredAmount = parseFloat(tokenValue ?? '')
+    const isBelowFiatClaimMinimum = enteredAmount > 0 && enteredAmount < MIN_FIAT_CLAIM_AMOUNT
+
     const handleOnNext = useCallback(async () => {
         try {
-            if (isLoading || !tokenValue) return
+            if (isLoading) return
+
+            // Numeric gate, not string truthiness — "0"/"0.00" are truthy and
+            // used to reach createLink as a real zero-value on-chain link.
+            if (!tokenValue || !isValidSendAmount(tokenValue)) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: tWithdraw('errors.invalidAmount'),
+                    errorCode: 'invalidAmount',
+                })
+                return
+            }
 
             // Re-check affordability at submit too: the Retry button isn't disabled
             // on a balance error (unlike the other flows), so without this a blocked
@@ -114,24 +142,41 @@ const LinkSendInitialView = () => {
                 } catch (error) {
                     // we want to capture any errors here because we are already in the background
                     console.error(error)
-                    captureException(error)
+                    void captureNetworkTriagedFailure(error, {
+                        tags: { ...criticalFlowTags('send-link'), send_link_step: 'persist' },
+                    })
                 }
             }, 0)
         } catch (error) {
             // handle errors
             const errorString = toFriendlyError(error)
             setErrorState({ showError: true, errorMessage: errorString })
-            posthog.capture(ANALYTICS_EVENTS.SEND_LINK_FAILED, {
-                amount: tokenValue,
-                error_message: errorString,
+            // Tagged, or the noise filters drop it: a send link that dies on a
+            // failed fetch matched `networkIssues` in sentry.utils.ts and was
+            // silently discarded (TASK-21956). Fire-and-forget: the triage
+            // probes may take up to 2.5s and must not hold up `finally`.
+            // `error_message` is the LOCALIZED copy the user saw, so it can't be
+            // grouped on — error_name/error_raw carry the raw class alongside.
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('send-link'), send_link_step: 'create' },
+                extra: { amount: tokenValue, hasAttachment: !!attachmentOptions?.rawFile },
+                analytics: {
+                    event: ANALYTICS_EVENTS.SEND_LINK_FAILED,
+                    props: {
+                        amount: tokenValue,
+                        error_message: errorString,
+                        error_name: error instanceof Error ? error.name : 'unknown',
+                        error_raw: error instanceof Error ? error.message : String(error),
+                    },
+                },
             })
-            captureException(error)
         } finally {
             setLoadingState('Idle')
         }
     }, [
         isLoading,
         tokenValue,
+        tWithdraw,
         createLink,
         fetchBalance,
         queryClient,
@@ -228,6 +273,14 @@ const LinkSendInitialView = () => {
                 setAttachmentOptions={setAttachmentOptions}
             />
 
+            {isBelowFiatClaimMinimum && (
+                <InfoCard
+                    variant="warning"
+                    icon="info"
+                    description={t('link.minFiatClaimWarning', { amount: MIN_FIAT_CLAIM_AMOUNT })}
+                />
+            )}
+
             <div className="flex flex-col gap-4">
                 {errorState?.showError ? (
                     <Button shadowSize="4" icon="retry" onClick={handleOnNext} loading={isLoading} disabled={isLoading}>
@@ -238,7 +291,7 @@ const LinkSendInitialView = () => {
                         shadowSize="4"
                         onClick={handleOnNext}
                         loading={isLoading}
-                        disabled={isLoading || !tokenValue || !!errorState?.showError}
+                        disabled={isLoading || !isValidSendAmount(tokenValue) || !!errorState?.showError}
                     >
                         {isLoading ? tLoading('creatingLink') : t('link.createLink')}
                     </Button>

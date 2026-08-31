@@ -23,6 +23,7 @@ import { Banner } from '@/components/Global/Banner'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
+import { saveRedirectUrl } from '@/utils/general.utils'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
@@ -112,6 +113,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         if (isDemoMode()) enableDemoMode()
         if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current && !isDemoMode()) {
             isRedirecting.current = true
+            // Keep the target: a logged-out tap on a protected deep link
+            // (/pay-request, /card, /receipt, every push) used to be dropped
+            // here and land on /home after login. useLogin/useAccountSetup
+            // consume this via consumePostAuthRedirect.
+            saveRedirectUrl()
             router.replace('/setup')
             // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {
@@ -180,12 +186,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     return (
         <div className="flex min-h-[100dvh] w-full bg-background pt-safe-top">
-            {/* Status-bar safe zone. On Android 15+ edge-to-edge the webview draws
-                under the status bar, where bg-background would otherwise show beige.
-                Fill the inset strip (above the feedback ribbon) with black so the top
-                always reads black. Height is the natively measured inset on Android
+            {/* Status-bar safe zone. Paints the inset strip in the app background so
+                the top matches the page even where fixed children would otherwise draw
+                under the status bar. Height is the natively measured inset on Android
                 15+ and env() elsewhere, so still a no-op on web (inset = 0). */}
-            <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-black" />
+            <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-background" />
             {/* Wrapper div for desktop layout */}
             <div className="flex w-full">
                 {/* Sidebar - Fixed on desktop */}

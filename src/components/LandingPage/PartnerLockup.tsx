@@ -35,6 +35,7 @@ export function PartnerLockup({
 }) {
     return (
         <Link
+            prefetch={false}
             href={href}
             // WCAG 2.5.3 / Lighthouse label-content-name-mismatch: the
             // accessible name must contain the visible "Learn more" text, so

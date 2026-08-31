@@ -115,7 +115,12 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                             />
                         )
                         return logo.hrefKey ? (
-                            <Link key={logo.alt} href={contentHrefs[logo.hrefKey]} className={linkedTileClass}>
+                            <Link
+                                prefetch={false}
+                                key={logo.alt}
+                                href={contentHrefs[logo.hrefKey]}
+                                className={linkedTileClass}
+                            >
                                 {mark}
                             </Link>
                         ) : (

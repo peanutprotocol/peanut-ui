@@ -5,6 +5,7 @@ import { Icon, type IconName, Icon as NavIcon } from '@/components/Global/Icons/
 import IndicatorDot from '@/components/Global/IndicatorDot'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useModalsContext } from '@/context/ModalsContext'
+import { isSameRoute } from '@/constants/routes'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
 import { useUserStore } from '@/redux/hooks'
 import classNames from 'classnames'
@@ -51,11 +52,11 @@ const NavSection: React.FC<NavSectionProps> = ({ paths, pathName }) => {
                         className={classNames(
                             'flex items-center gap-3 text-white hover:cursor-pointer hover:text-white/80',
                             {
-                                'text-primary-1': pathName === href,
+                                'text-primary-1': isSameRoute(pathName, href),
                             }
                         )}
                         onClick={() => {
-                            if (pathName === href) {
+                            if (isSameRoute(pathName, href)) {
                                 router.refresh()
                             }
                         }}
@@ -89,7 +90,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                 translate="no"
                 className={classNames(
                     'notranslate flex flex-col items-center justify-center object-contain hover:cursor-pointer',
-                    { 'text-primary-1': pathName === '/home' }
+                    { 'text-primary-1': isSameRoute(pathName, '/home') }
                 )}
             >
                 <NavIcon name="home" size={24} />
@@ -111,7 +112,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ pathName }) => {
                 translate="no"
                 className={classNames(
                     'notranslate flex flex-col items-center justify-center object-contain hover:cursor-pointer',
-                    { 'text-primary-1': pathName === '/support' }
+                    { 'text-primary-1': isSameRoute(pathName, '/support') }
                 )}
             >
                 <span className="relative">

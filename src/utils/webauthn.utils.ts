@@ -249,6 +249,16 @@ export const PASSKEY_WARNINGS = {
  */
 const WEBAUTHN_ERROR_NAMES = new Set<string>(Object.values(WebAuthnErrorName))
 
+/**
+ * useZeroDev captures the raw WebAuthn failure with full context before throwing
+ * the curated PasskeyError — and for a plain user cancel it deliberately captures
+ * nothing on web. Re-reporting the wrapper at a call site adds a context-free
+ * duplicate and undoes that silence.
+ */
+export function isAlreadyReported(error: unknown): boolean {
+    return error instanceof Error && error.name === 'PasskeyError'
+}
+
 export function capturePasskeySignFailure(error: unknown, context: string): void {
     if (!(error instanceof Error) || !WEBAUTHN_ERROR_NAMES.has(error.name)) return
     posthog.capture(ANALYTICS_EVENTS.PASSKEY_SIGN_FAILED, { error_name: error.name, context })

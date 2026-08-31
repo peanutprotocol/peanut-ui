@@ -3,12 +3,13 @@
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'react'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { mantecaApi } from '@/services/manteca'
 import type { QrPayment, QrPaymentLock } from '@/services/manteca'
 import NavHeader from '@/components/Global/NavHeader'
@@ -43,7 +44,8 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { captureException } from '@sentry/nextjs'
+import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
@@ -92,7 +94,7 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
-    const t = useTranslations('qrPay')
+    const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
@@ -195,15 +197,16 @@ export default function QRPayPage() {
         }
     }, [user, isLoadingCapabilities, fetchUser])
 
-    const { kycGateState, qrKycUserMessage } = useMemo(() => {
+    const { kycGateState, qrKycUserMessage, qrKycActionKey } = useMemo(() => {
+        const noAction = null as string | null
         // Keep the gate in LOADING until either the user is hydrated OR the fallback
         // fetch has resolved. Otherwise we briefly map an empty capability shape onto
         // REQUIRES_IDENTITY_VERIFICATION for users whose auth state hasn't settled yet.
         if (isLoadingCapabilities || (!user && !userFetchSettled)) {
-            return { kycGateState: QrKycState.LOADING, qrKycUserMessage: null as string | null }
+            return { kycGateState: QrKycState.LOADING, qrKycUserMessage: noAction, qrKycActionKey: noAction }
         }
         if (canDo('pay', { provider: 'manteca' })) {
-            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: null as string | null }
+            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
         }
         // Verdict-first via the shared railVerdict collapse (rail.resolved,
         // BE-derived; legacy fallback for older/cached responses). The
@@ -236,27 +239,36 @@ export default function QRPayPage() {
                 return {
                     kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
                     qrKycUserMessage: railUserMessage(blocked.rail),
+                    qrKycActionKey: noAction,
                 }
             }
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
                 qrKycUserMessage: railUserMessage(blocked.rail),
+                qrKycActionKey: noAction,
             }
         }
         const fixable = candidates.find((candidate) => candidate.verdict.status === 'fixable')
         if (fixable) {
+            const action = fixable.verdict.nextAction
             return {
                 kycGateState: QrKycState.PROVIDER_REJECTION_FIXABLE,
                 qrKycUserMessage: railUserMessage(fixable.rail),
+                qrKycActionKey: action?.kind === 'sumsub' ? action.key : noAction,
             }
         }
         if (candidates.some(({ verdict }) => verdict.status === 'pending')) {
             return {
                 kycGateState: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
-                qrKycUserMessage: null as string | null,
+                qrKycUserMessage: noAction,
+                qrKycActionKey: noAction,
             }
         }
-        return { kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION, qrKycUserMessage: null as string | null }
+        return {
+            kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION,
+            qrKycUserMessage: noAction,
+            qrKycActionKey: noAction,
+        }
     }, [isLoadingCapabilities, canDo, railsForProvider, nextActions, user, userFetchSettled])
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
@@ -660,7 +672,9 @@ export default function QRPayPage() {
                     // minimum) — actionable copy, not a Sentry-worthy surprise.
                     setErrorMessage(pixMinAmountErrorMessage)
                 } else {
-                    captureException(error)
+                    void captureNetworkTriagedFailure(error, {
+                        tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'initiate' },
+                    })
                     setErrorMessage(t('errors.initiateUnexpected'))
                 }
                 setIsSuccess(false)
@@ -707,9 +721,21 @@ export default function QRPayPage() {
             } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
                 // Keep the flow-specific fallback — "couldn't sign" beats the
                 // generic support copy on a signing failure — and the Sentry report.
-                captureException(error)
+                void captureNetworkTriagedFailure(error, {
+                    tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'sign' },
+                })
                 setErrorMessage(t('errors.signFailed'))
             } else {
+                // A classified error is normally a deliberate non-report (backend
+                // wire code, or a user action). Network-layer failures are the
+                // exception: once `connectionLost` existed they classified HERE
+                // instead of genericSupport above, which silently ended their
+                // Sentry reporting altogether (TASK-21956).
+                if (isNetworkLayerFailure(error)) {
+                    void captureNetworkTriagedFailure(error, {
+                        tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'sign' },
+                    })
+                }
                 setErrorMessage(toFriendlyError(error), classified.kind === 'text' ? null : classified.code)
             }
             setIsSuccess(false)
@@ -779,7 +805,9 @@ export default function QRPayPage() {
             // Wrong-passkey session: backend rejected the signed UserOp with
             // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
             if (handleStaleSession(error)) return
-            captureException(error)
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'submit' },
+            })
             const errorMsg = (error as Error).message || 'Could not complete payment'
 
             // Handle specific error cases
@@ -1079,10 +1107,14 @@ export default function QRPayPage() {
                         isFixable
                             ? {
                                   text: t('kyc.uploadDocument'),
-                                  onClick: () => sumsubFlow.handleSelfHealResubmit('MANTECA'),
+                                  onClick: () =>
+                                      sumsubFlow.handleFixableRejection({
+                                          provider: 'MANTECA',
+                                          actionKey: qrKycActionKey,
+                                      }),
                                   variant: 'purple' as const,
                                   shadowSize: '4' as const,
-                                  icon: 'upload',
+                                  icon: 'upload-cloud' satisfies IconName,
                               }
                             : isRestartIdentity
                               ? {
@@ -1090,7 +1122,7 @@ export default function QRPayPage() {
                                     onClick: () => sumsubFlow.handleRestartIdentity(),
                                     variant: 'purple' as const,
                                     shadowSize: '4' as const,
-                                    icon: 'upload',
+                                    icon: 'upload-cloud' satisfies IconName,
                                 }
                               : {
                                     text: tCommon('contactSupport'),
@@ -1679,7 +1711,7 @@ export default function QRPayPage() {
 }
 
 const QrPayPageLoading = ({ message }: { message: string }) => {
-    const t = useTranslations('qrPay')
+    const t = useAppTranslations('qrPay')
     return (
         <div className="my-auto flex h-full w-full flex-col items-center justify-center space-y-4">
             <div className="relative">

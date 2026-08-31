@@ -373,8 +373,11 @@ export const CreateRequestLinkView = () => {
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 <PeanutActionCard type="request" />
 
+                {/* Before a request exists the QR already encodes the profile
+                    payment link for the entered amount, so it only stays
+                    blurred while there's neither a request nor an amount. */}
                 <QRCodeWrapper
-                    isBlurred={!requestId}
+                    isBlurred={!requestId && !(parseFloat(tokenValue) > 0)}
                     url={qrCodeLink}
                     isLoading={isCreatingLink || isUpdatingRequest}
                 />

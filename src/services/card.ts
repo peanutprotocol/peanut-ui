@@ -21,11 +21,12 @@ export interface CardInfoResponse {
     /** Rain card geography eligibility — true iff user's country is in the
      *  Rain card geo list. Not affected by waitlist state. */
     isEligible: boolean
-    /** True iff the user's KYC country is KNOWN and on Rain's prohibited-issuance
-     *  list. Distinct from `!isEligible`, which is also true when the country is
-     *  simply unknown (no KYC yet) — the card state machine blocks on this, never
-     *  on unknown. OPTIONAL: the BE that returns it deploys first; older APIs
-     *  omit it and the FE must treat that as "not blocked". */
+    /** True iff the user's residence country is KNOWN and blocked — Rain's
+     *  prohibited-issuance list OR our own GB block (TASK-20729), which is just
+     *  as permanent. Distinct from `!isEligible`, which is also true when the
+     *  country is simply unknown (no KYC yet) — the card state machine blocks on
+     *  this, never on unknown. OPTIONAL: the BE that returns it deploys first;
+     *  older APIs omit it and the FE must treat that as "not blocked". */
     geoProhibited?: boolean
     eligibilityReason?: string
     // ─── Waitlist fields (Card Waitlist Launch — M2 2026-06-01) ──

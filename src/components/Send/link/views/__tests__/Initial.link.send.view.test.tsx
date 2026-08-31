@@ -15,6 +15,7 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LinkSendFlowProvider, useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import en from '@/i18n/app/messages/en.json'
+import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 
 const COOLDOWN_MESSAGE = 'A previous withdrawal signature is still active. Try again in about 2 min.'
 
@@ -70,8 +71,12 @@ jest.mock('@/components/Global/FileUploadInput', () => ({
 
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: ({ setPrimaryAmount }: { setPrimaryAmount: (value: string) => void }) => (
-        <input data-testid="amount-input" onChange={(e) => setPrimaryAmount(e.target.value)} />
+    default: ({ setPrimaryAmount, onSubmit }: { setPrimaryAmount: (value: string) => void; onSubmit?: () => void }) => (
+        <input
+            data-testid="amount-input"
+            onChange={(e) => setPrimaryAmount(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && onSubmit?.()}
+        />
     ),
 }))
 
@@ -94,6 +99,11 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 jest.mock('@/components/Global/ErrorAlert', () => ({
     __esModule: true,
     default: ({ description }: { description: string }) => <div data-testid="error-alert">{description}</div>,
+}))
+
+jest.mock('@/components/Global/InfoCard', () => ({
+    __esModule: true,
+    default: ({ description }: { description: React.ReactNode }) => <div data-testid="info-card">{description}</div>,
 }))
 
 import LinkSendInitialView from '../Initial.link.send.view'
@@ -211,5 +221,65 @@ describe('LinkSendInitialView error ownership', () => {
         mockUseWallet.mockReturnValue(walletState(100))
         rerenderView(utils, '20')
         await waitFor(() => expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument())
+    })
+})
+
+// TASK-21724: a $3 link leaves the recipient with no bank / Pix / Mercado Pago
+// claim route (all three minimums are $5) and nothing told the sender. The
+// warning is informational — small links stay sendable.
+describe('LinkSendInitialView sub-minimum fiat-claim warning', () => {
+    test('amount below the fiat minimum shows the warning without blocking Create link', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView('3')
+        await waitFor(() =>
+            expect(screen.getByTestId('info-card')).toHaveTextContent(
+                "Amounts under $5 can't be claimed to a bank, Pix or Mercado Pago"
+            )
+        )
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        expect(screen.getByText('Create link')).toBeEnabled()
+    })
+
+    test('amount at the fiat minimum shows no warning', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView('5')
+        await waitFor(() => expect(screen.getByText('Create link')).toBeEnabled())
+        expect(screen.queryByTestId('info-card')).not.toBeInTheDocument()
+    })
+
+    test('the per-rail minimums agree — the warning copy depends on it', () => {
+        // The warning names bank, Pix and Mercado Pago as one class ("can't be
+        // claimed to a bank, Pix or Mercado Pago"), which is only true while
+        // the three minimums are equal. If this fails, a per-rail minimum
+        // diverged: revisit the warning copy (and its Math.min gate) before
+        // shipping the constant change.
+        expect(new Set(Object.values(CLAIM_RAIL_MINIMUMS)).size).toBe(1)
+    })
+})
+
+// TASK-21669: "0"/"0.00" are truthy strings — they used to pass the string-
+// truthiness guard and create a real zero-value on-chain link.
+describe('LinkSendInitialView zero-amount gate', () => {
+    test.each(['0', '0.00'])('amount %s disables Create link and submit is blocked with the error', async (amount) => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView(amount)
+        await waitFor(() => expect(screen.getByText('Create link')).toBeDisabled())
+
+        // Enter in the amount input still reaches handleOnNext — the guard must hold
+        fireEvent.keyDown(screen.getByTestId('amount-input'), { key: 'Enter' })
+        await waitFor(() =>
+            expect(screen.getByTestId('error-alert')).toHaveTextContent(en.withdraw.errors.invalidAmount)
+        )
+        expect(mockCreateLink).not.toHaveBeenCalled()
+    })
+
+    test('a positive amount keeps Create link enabled', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView('20')
+        await waitFor(() => expect(screen.getByText('Create link')).toBeEnabled())
     })
 })

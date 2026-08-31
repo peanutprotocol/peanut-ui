@@ -19,7 +19,7 @@ import type { AppLocale } from '@/i18n/app/config'
 import { notificationsApi } from '@/services/notifications'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCameraPermission } from '@/utils/camera-permission'
-import { ensureNativeCrispConfigured } from '@/utils/crisp'
+import { ensureNativeCrispConfigured, nativeCrispFields } from '@/utils/crisp'
 
 const DISMISS_THRESHOLD = 100
 
@@ -41,34 +41,57 @@ const SupportDrawer = () => {
     const locale = useLocale() as AppLocale
     const crispLocale = CRISP_LOCALE_BY_APP_LOCALE[locale] ?? 'en'
 
-    // The proxy iframe pulls this via the postMessage handshake — user data and the
-    // Crisp token never appear in its URL (postmortem F5: a query string leaks into
-    // Vercel logs, browser history, Referer headers, and analytics $current_url).
-    // A ref keeps the reply current without re-registering the message listener;
-    // written in an effect, not during render, so a discarded render can't leak
-    // an uncommitted identity to the proxy.
-    const initPayload: CrispInitPayload = {
+    /*
+     * The latest committed payload, read by both Crisp sinks.
+     *
+     * The proxy iframe pulls it via the postMessage handshake — user data and the
+     * Crisp token never appear in its URL (postmortem F5: a query string leaks into
+     * Vercel logs, browser history, Referer headers, and analytics $current_url).
+     * A ref keeps the reply current without re-registering the message listener.
+     *
+     * The native open chain reads it AFTER its awaits, because the snapshot is
+     * live: a balance can land, or verification can resolve, while Crisp
+     * configuration and the camera permission are still pending. The effect
+     * closure holds the payload from when the effect ran, so publishing that
+     * would push a balance the user no longer has — and a `balance-unavailable`
+     * segment that would route them wrongly — to the agent.
+     *
+     * Written in an effect, not during render, so a discarded render can't leak
+     * an uncommitted identity to either sink.
+     */
+    const latestPayload: CrispInitPayload = {
         locale: crispLocale,
         tokenId: crispTokenId,
         userData,
         prefilledMessage,
     }
-    const initPayloadRef = useRef<CrispInitPayload>(initPayload)
+    const latestPayloadRef = useRef<CrispInitPayload>(latestPayload)
     useEffect(() => {
-        initPayloadRef.current = initPayload
+        latestPayloadRef.current = latestPayload
     })
 
-    // The handshake pull happens once at iframe boot; later changes (email/name
-    // resolving mid-session, a new prefill) are pushed over the same channel so
-    // Crisp never keeps a stale identity. Token/locale changes remount the iframe
-    // via its key instead — those need a session re-bind, not a data update.
+    /*
+     * The handshake pull happens once at iframe boot; later changes (email/name
+     * resolving mid-session, a new prefill) are pushed over the same channel so
+     * Crisp never keeps a stale identity. Token/locale changes remount the iframe
+     * via its key instead — those need a session re-bind, not a data update.
+     *
+     * Gated on the drawer being OPEN, and that gate is the privacy promise, not
+     * an optimisation. The iframe stays mounted after the first open, so without
+     * it a connectivity flip or an auth re-render would post a fresh balance,
+     * card and verification snapshot to Crisp with the chat closed — while the
+     * privacy policy says the snapshot is shared only when the user opens
+     * support chat. The last push of a cycle stands until the next open replaces
+     * it, which is the conversation's own context and correct to leave.
+     */
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
     useEffect(() => {
+        if (!isSupportModalOpen) return
         iframeRef.current?.contentWindow?.postMessage(
-            { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
+            { type: CRISP_PROXY_INIT_MSG, payload: latestPayloadRef.current },
             window.location.origin
         )
-    }, [userData, prefilledMessage])
+    }, [isSupportModalOpen, userData, prefilledMessage])
 
     // Crisp's composer sits at the very bottom of the iframe, so the panel's bottom
     // edge is the thing the iOS keyboard covers. Only measured while the drawer is
@@ -85,10 +108,26 @@ const SupportDrawer = () => {
      * opened — and never on Capacitor, where support opens the native Crisp
      * messenger instead.
      */
+    // A logged-in user's token is computed asynchronously (SHA-256 of their userId).
+    // Until it resolves we must NOT load the proxy: a token-less load makes Crisp fall
+    // back to the shared anonymous session persisted on client.crisp.chat, which on a
+    // browser that has hosted more than one Peanut account surfaces the *previous*
+    // user's conversation. Anonymous visitors (no userId) have no token by design and
+    // load immediately.
+    const isAwaitingToken = Boolean(userData.userId) && !crispTokenId
+
     const [hasBeenOpened, setHasBeenOpened] = useState(false)
     useEffect(() => {
-        if (isSupportModalOpen) setHasBeenOpened(true)
-    }, [isSupportModalOpen])
+        /*
+         * Latched only when the drawer is open AND the token is ready — both, or
+         * the iframe first mounts while CLOSED. Open a support drawer whose token
+         * is still resolving, close it, and let the token land: latching on
+         * `isSupportModalOpen` alone leaves this true while the token gate opens,
+         * so the hidden iframe boots and handshakes with the chat shut, and the
+         * account snapshot goes to Crisp outside an open cycle.
+         */
+        if (isSupportModalOpen && !isAwaitingToken) setHasBeenOpened(true)
+    }, [isSupportModalOpen, isAwaitingToken])
 
     // Guests reach this drawer too (claim and pay links mount the same layout),
     // and they have no notifications — the call would just 401.
@@ -142,22 +181,33 @@ const SupportDrawer = () => {
         setIsCrispFailed(false)
     }, [crispTokenId, crispLocale])
 
-    // A logged-in user's token is computed asynchronously (SHA-256 of their userId).
-    // Until it resolves we must NOT load the proxy: a token-less load makes Crisp fall
-    // back to the shared anonymous session persisted on client.crisp.chat, which on a
-    // browser that has hosted more than one Peanut account surfaces the *previous*
-    // user's conversation. Anonymous visitors (no userId) have no token by design and
-    // load immediately.
-    const isAwaitingToken = Boolean(userData.userId) && !crispTokenId
-
     // in capacitor, open native crisp messenger instead of iframe.
     // Same token gate as the web iframe: for a logged-in user we must not
     // openMessenger() before the token resolves — a token-less native open
     // falls back to the device-local Crisp session, which on a shared device
     // surfaces the previous user's conversation. The effect re-runs and opens
     // once crispTokenId resolves (it's in the deps).
+    /*
+     * Opening native Crisp is a one-shot action, so this effect depends only on
+     * what defines an open cycle: the drawer being open, and the token being
+     * ready.
+     *
+     * It used to depend on `userData`, `crispTokenId` and `prefilledMessage`
+     * too — the data it publishes. That is what made it hard: the snapshot is
+     * live, so a balance landing mid-chain re-ran an effect whose tail sends a
+     * message and opens a window, and each guard against that produced the next
+     * defect (a duplicate prefill, then a stale payload, then a duplicate again
+     * across close/reopen). The data is read from `latestPayloadRef` when the
+     * chain actually publishes, so it does not belong in the deps at all.
+     *
+     * With the deps trimmed, one open cycle runs the chain exactly once and
+     * React's own cleanup handles the rest: closing or reopening tears down the
+     * previous run, and `cancelled` stops a chain from a cycle the user has
+     * left from opening a messenger they walked away from.
+     */
     useEffect(() => {
         if (!isSupportModalOpen || !isCapacitor() || isAwaitingToken) return
+        let cancelled = false
 
         ensureNativeCrispConfigured()
             .then(async ({ CapacitorCrisp }) => {
@@ -169,28 +219,71 @@ const SupportDrawer = () => {
                  * Result deliberately ignored: a denied camera must not block chat.
                  */
                 await ensureNativeCameraPermission()
+
+                // The user dismissed support while we awaited. Publishing now
+                // would push the prefill into a conversation they walked away from.
+                if (cancelled) return
+
+                /*
+                 * Read the payload here, not from the effect closure. The chain
+                 * runs once per open cycle, so a snapshot that lands during
+                 * setup gets no second chance to publish — the closure's copy
+                 * would freeze whatever was true when support was tapped, and an
+                 * agent would read a balance the user no longer has.
+                 */
+                const { userData: snapshot, tokenId, prefilledMessage: prefill } = latestPayloadRef.current
+                // Optional only on the proxy wire shape — this ref is always
+                // seeded with the current snapshot, so this never returns.
+                if (!snapshot) return
+
                 // set user data before opening
-                if (userData.email || userData.fullName) {
+                if (snapshot.email || snapshot.fullName) {
                     CapacitorCrisp.setUser({
-                        email: userData.email || undefined,
-                        nickname: userData.fullName || userData.username || undefined,
-                        avatar: userData.avatar || undefined,
+                        email: snapshot.email || undefined,
+                        nickname: snapshot.fullName || snapshot.username || undefined,
+                        avatar: snapshot.avatar || undefined,
                     })
                 }
-                if (crispTokenId) {
-                    CapacitorCrisp.setTokenID({ tokenID: crispTokenId })
+                if (tokenId) {
+                    CapacitorCrisp.setTokenID({ tokenID: tokenId })
                 }
-                // set custom data for support agents
-                if (userData.walletAddress) {
-                    CapacitorCrisp.setString({ key: 'wallet_address', value: userData.walletAddress })
+                /*
+                 * Custom data for support agents. Every key is written
+                 * unconditionally (empty string when absent) so a previous
+                 * user's values can't linger on the device-local Crisp session,
+                 * and so this list stays a mirror of the web/proxy sink — it had
+                 * drifted to two keys while web sent seven, which left native
+                 * agents (i.e. agents helping app users) with less than the
+                 * agents helping web users.
+                 */
+                for (const [key, value] of nativeCrispFields(snapshot, prefill)) {
+                    CapacitorCrisp.setString({ key, value })
                 }
-                if (userData.userId) {
-                    CapacitorCrisp.setString({ key: 'user_id', value: userData.userId })
-                }
-                if (prefilledMessage) {
-                    CapacitorCrisp.sendMessage({ value: prefilledMessage })
-                }
-
+                /*
+                 * No native segment. The plugin exposes only the one-argument
+                 * `setSegment`, which on Android calls `Crisp.setSessionSegment`
+                 * with no overwrite flag — so a segment APPENDS and a stale one
+                 * (`offline`, `balance-unavailable`, `kyc-pending`) keeps routing
+                 * the conversation after the user has left that state. A routing
+                 * tag that is wrong is worse than one that is missing.
+                 *
+                 * Nothing is lost to the agent: the `segments` data row above
+                 * carries the whole list, and `setString` assigns, so it replaces
+                 * cleanly on every open. Restore this when the plugin exposes the
+                 * SDK's overwrite overload.
+                 */
+                /*
+                 * No sendMessage on native. The plugin declares it
+                 * `unimplemented` on BOTH iOS and Android, so this never
+                 * prefilled anything in the app — it only left an unhandled
+                 * rejection ("Not implemented on ios") behind every support open
+                 * that carried a topic. The topic rides in the `support_topic`
+                 * data row above instead, which both platforms implement.
+                 *
+                 * The user's composer stays empty on native, so they still write
+                 * their own opening message — but the agent is no longer blind to
+                 * what brought them there.
+                 */
                 CapacitorCrisp.openMessenger()
                 // The chat is now in front of the user, so the badge has done its
                 // job. There is no isCrispReady on this path — the native messenger
@@ -201,17 +294,16 @@ const SupportDrawer = () => {
                 setIsSupportModalOpen(false)
             })
             .catch((err: unknown) => {
+                // ensureNativeCrispConfigured clears its own memo on failure, so
+                // reopening support genuinely re-configures rather than replaying
+                // a rejected promise.
                 console.warn('[SupportDrawer] native crisp open failed:', err)
             })
-    }, [
-        isSupportModalOpen,
-        isAwaitingToken,
-        userData,
-        crispTokenId,
-        prefilledMessage,
-        setIsSupportModalOpen,
-        clearSupportBadge,
-    ])
+
+        return () => {
+            cancelled = true
+        }
+    }, [isSupportModalOpen, isAwaitingToken, setIsSupportModalOpen, clearSupportBadge])
 
     // drag-to-dismiss state
     const panelRef = useRef<HTMLDivElement>(null)
@@ -238,6 +330,17 @@ const SupportDrawer = () => {
         setDragOffset(0)
     }, [dragOffset, setIsSupportModalOpen])
 
+    /*
+     * The open state, for the handshake listener below. That listener is
+     * registered once and never re-created, so it cannot close over
+     * `isSupportModalOpen` — it would answer with the state from drawer mount
+     * forever.
+     */
+    const isSupportOpenRef = useRef(isSupportModalOpen)
+    useEffect(() => {
+        isSupportOpenRef.current = isSupportModalOpen
+    }, [isSupportModalOpen])
+
     // listen for crisp messages once — persists across open/close cycles.
     // Registered at drawer mount, long before the iframe can mount (hasBeenOpened
     // gate), so the proxy's init request can never race past this listener.
@@ -249,11 +352,29 @@ const SupportDrawer = () => {
                 event.data?.type === CRISP_PROXY_REQUEST_INIT_MSG &&
                 event.source === iframeRef.current?.contentWindow
             ) {
+                /*
+                 * Answer only while support is open. A token or locale change
+                 * remounts an already-mounted iframe (see its key), and that
+                 * remount can happen with the drawer closed — the fresh proxy
+                 * then handshakes, and answering would publish the account
+                 * snapshot outside an open cycle, which the privacy policy says
+                 * we do not do.
+                 *
+                 * Staying silent is safe rather than fatal: the proxy re-asks
+                 * every 250ms until it boots, and the update effect above posts
+                 * the payload the moment the drawer opens, which boots it
+                 * directly. If the 8s readiness watchdog fires first the parent
+                 * shows the mail fallback, and the later CRISP_READY clears it.
+                 */
+                if (!isSupportOpenRef.current) {
+                    return
+                }
+
                 // the proxy iframe asks for its init payload — reply only to OUR
                 // mounted iframe (not any same-origin frame), and directly to it,
                 // never broadcast
                 ;(event.source as Window | null)?.postMessage(
-                    { type: CRISP_PROXY_INIT_MSG, payload: initPayloadRef.current },
+                    { type: CRISP_PROXY_INIT_MSG, payload: latestPayloadRef.current },
                     window.location.origin
                 )
             } else if (event.data?.type === 'CRISP_READY') {

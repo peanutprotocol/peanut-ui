@@ -32,11 +32,12 @@ import DisplayIcon from '../Global/DisplayIcon'
 import { Icon } from '../Global/Icons/Icon'
 import { PerkIcon } from './PerkIcon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
+import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
 import QRCodeWrapper from '../Global/QRCodeWrapper'
 import ShareButton from '../Global/ShareButton'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import CopyToClipboard from '../Global/CopyToClipboard'
-import CancelSendLinkModal from '../Global/CancelSendLinkModal'
+import CancelSendLinkDrawer from '../Global/CancelSendLinkDrawer'
 import { twMerge } from 'tailwind-merge'
 import { bankAccountLabelKey, getAccountCopyValue, type BankAccountLabelKey } from './transaction-details.utils'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -54,6 +55,7 @@ import {
     usesCompletedTimestampLabel,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
+import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
 import { useReceiptDateFormatter } from './useReceiptDateFormatter'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
@@ -73,7 +75,7 @@ import { generateInviteCodeLink } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
-import { isReferralRewardsHidden } from '@/config/appStoreCompliance'
+import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 
 type CancelLinkState = 'idle' | 'cancelling' | 'cancelled'
 
@@ -126,15 +128,16 @@ export const TransactionDetailsReceipt = ({
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
-    const [showCancelLinkModal, setShowCancelLinkModal] = useState(false)
+    const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
     const [tokenData, setTokenData] = useState<{ symbol: string; icon: string } | null>(null)
     const [isTokenDataLoading, setIsTokenDataLoading] = useState(true)
     const { setIsSupportModalOpen } = useModalsContext()
     const toast = useToast()
     const router = useRouter()
     const { isActivated } = useActivationStatus()
-    const t = useTranslations('transaction')
+    const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
+    const tNav = useTranslations('navigation')
     const formatDate = useReceiptDateFormatter()
     const bankAccountLabel = (type: string) => {
         const key = bankAccountLabelKey(type)
@@ -145,8 +148,8 @@ export const TransactionDetailsReceipt = ({
 
     // Sync modal state to parent if callback is provided
     useEffect(() => {
-        setIsModalOpen?.(showCancelLinkModal)
-    }, [showCancelLinkModal, setIsModalOpen])
+        setIsModalOpen?.(showCancelLinkDrawer)
+    }, [showCancelLinkDrawer, setIsModalOpen])
 
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on JSX + callbacks.
@@ -162,6 +165,7 @@ export const TransactionDetailsReceipt = ({
         rowVisibilityConfig,
         shouldHideBorder,
         shouldShowShareReceipt,
+        shouldShowDownloadPdf,
         requestPotContributors,
         formattedTotalAmountCollected,
     } = useReceiptViewModel(transaction, { isPublic })
@@ -301,6 +305,11 @@ export const TransactionDetailsReceipt = ({
 
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
+    // Official-receipt issue date: the settlement timestamp when there is one,
+    // else creation. `formatDate` renders an em dash for anything unparsable.
+    const issuedAtSource = transaction.completedAt ?? transaction.claimedAt ?? transaction.createdAt ?? transaction.date
+    const issuedAt = issuedAtSource ? new Date(issuedAtSource) : undefined
+
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
     // kind-keyed predicates so adding a new flow only needs a predicate update.
@@ -372,6 +381,24 @@ export const TransactionDetailsReceipt = ({
 
     return (
         <div ref={contentRef} className={twMerge('space-y-4', className)}>
+            {/* official header — only the shared/public receipt carries branding */}
+            {isPublic && (
+                <div className="flex items-center justify-between">
+                    <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="h-6 w-auto" />
+                    <div className="text-right text-xs text-grey-1">
+                        <p className="font-semibold">{t('officialReceipt.issuedBy')}</p>
+                        <a
+                            href="https://peanut.me"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline print:no-underline"
+                        >
+                            {'peanut.me'}
+                        </a>
+                    </div>
+                </div>
+            )}
+
             {/* show qr code at the top if applicable */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
                 <QRCodeWrapper url={transaction.extraDataForDrawer.link} />
@@ -438,11 +465,18 @@ export const TransactionDetailsReceipt = ({
 
             {/* details card (date, fee, memo) and more */}
             <Card position={shouldShowQrShare ? 'first' : 'single'} className="px-4 py-0" border={true}>
-                <div className="space-y-0">
+                {/* `[&>*:last-child]:border-b-0` — the last row sits directly on the
+                    card's own black border, so its dashed rule reads as a divider to
+                    nothing. `shouldHideBorder` only reaches rows this component renders
+                    itself; the deposit-instruction sub-components below expand into rows
+                    of their own, and rows can also drop out on conditions the visibility
+                    config doesn't model (a token row still awaiting its icon fetch). The
+                    container settles it for whatever actually renders last. */}
+                <div className="space-y-0 [&>*:last-child]:border-b-0">
                     {rowVisibilityConfig.createdAt && (
                         <PaymentInfoRow
                             label={t('rows.created')}
-                            value={formatDate(new Date(transaction.createdAt!.toString()))}
+                            value={formatDate(transaction.createdAt ? new Date(transaction.createdAt) : undefined)}
                             hideBottomBorder={shouldHideBorder('createdAt')}
                         />
                     )}
@@ -670,7 +704,7 @@ export const TransactionDetailsReceipt = ({
                     {/* Onramp deposit instructions for bridge_onramp transactions */}
                     {rowVisibilityConfig.depositInstructions && <BridgeDepositInstructions transaction={transaction} />}
 
-                    {rowVisibilityConfig.points && transaction.points && !isReferralRewardsHidden() && (
+                    {rowVisibilityConfig.points && transaction.points && (
                         <PaymentInfoRow
                             label={t('rows.pointsEarned')}
                             value={
@@ -728,6 +762,32 @@ export const TransactionDetailsReceipt = ({
                 </div>
             </Card>
 
+            {/* official footer — reference + issue date so the shared page
+                reads as a document, not an app screen */}
+            {isPublic && (
+                <Card position="single" className="px-4 py-0" border={true}>
+                    <div className="space-y-0 [&>*:last-child]:border-b-0">
+                        <PaymentInfoRow
+                            label={t('officialReceipt.reference')}
+                            value={
+                                <div className="flex items-center gap-2">
+                                    {/* uppercase is display-only: the raw id is a case-sensitive lookup key */}
+                                    <span className="uppercase">{shortenAddress(transaction.id, 20)}</span>
+                                    <span className="print:hidden">
+                                        <CopyToClipboard textToCopy={transaction.id} iconSize="4" />
+                                    </span>
+                                </div>
+                            }
+                        />
+                        <PaymentInfoRow
+                            label={t('officialReceipt.issuedOn')}
+                            value={formatDate(issuedAt)}
+                            hideBottomBorder
+                        />
+                    </div>
+                </Card>
+            )}
+
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse
                 path. First of the notices: it explains THIS receipt's numbers;
@@ -748,7 +808,7 @@ export const TransactionDetailsReceipt = ({
 
             {/* share and cancel buttons section (only if qr is shown) */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
-                <div className="space-y-2 pr-1">
+                <div className="space-y-2 pr-1 print:hidden">
                     {' '}
                     {/* added space-y for button separation */}
                     <ShareButton url={transaction.extraDataForDrawer.link} title={t('actions.shareLinkTitle')}>
@@ -761,7 +821,7 @@ export const TransactionDetailsReceipt = ({
                         onClose && (
                             <Button
                                 disabled={isLoading || cancelLinkState === 'cancelled'}
-                                onClick={() => setShowCancelLinkModal(true)}
+                                onClick={() => setShowCancelLinkDrawer(true)}
                                 loading={isLoading}
                                 variant={'primary-soft'}
                                 className="flex w-full items-center gap-1"
@@ -861,6 +921,10 @@ export const TransactionDetailsReceipt = ({
                 </div>
             )}
 
+            {shouldShowDownloadPdf && transaction.extraDataForDrawer?.kind && (
+                <DownloadReceiptPdfLink entryId={transaction.id} kind={transaction.extraDataForDrawer.kind} />
+            )}
+
             <CancelDepositActions
                 transaction={transaction}
                 isPendingBankRequest={isPendingBankRequest}
@@ -903,19 +967,22 @@ export const TransactionDetailsReceipt = ({
             ) : (
                 <button
                     onClick={() => setIsSupportModalOpen(true)}
-                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black"
+                    className="flex w-full items-center justify-center gap-2 text-sm font-medium text-grey-1 underline transition-colors hover:text-black print:hidden"
                 >
                     <Icon name="peanut-support" size={16} className="text-grey-1" />
                     {t('actions.reportIssue')}
                 </button>
             )}
 
-            {/* Cancel Link Modal  */}
+            {/* Cancel Link Drawer */}
 
             {setIsLoading && onClose && (
-                <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal}
-                    setshowCancelLinkModal={setShowCancelLinkModal}
+                <CancelSendLinkDrawer
+                    // Rendered inside the transaction details drawer whenever that
+                    // drawer owns the close handler — vaul needs a NestedRoot there.
+                    nested={!!setIsModalOpen}
+                    showCancelLinkDrawer={showCancelLinkDrawer}
+                    setShowCancelLinkDrawer={setShowCancelLinkDrawer}
                     amount={amountDisplay}
                     isLoading={isLoading}
                     onClick={async () => {
@@ -956,7 +1023,7 @@ export const TransactionDetailsReceipt = ({
                                 await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
                                 setIsLoading(false)
-                                setShowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelLinkState('cancelled')
                                 toast.success(t('toast.linkCancelled'))
 
@@ -972,7 +1039,7 @@ export const TransactionDetailsReceipt = ({
 
                                 // Still close drawer even if invalidation fails
                                 setIsLoading(false)
-                                setShowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelLinkState('cancelled')
                                 toast.success(t('toast.linkCancelledRefresh'))
                                 await new Promise((resolve) => setTimeout(resolve, 1500))

@@ -329,6 +329,10 @@ jest.mock('@/utils/general.utils', () => ({
     formatCurrency: jest.fn((v: any) => v?.toString() ?? '0'),
     checkIfInternalNavigation: jest.fn(() => false),
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    // real implementation: same-origin paths pass, everything else is rejected
+    sanitizeRedirectURL: jest.fn((url: string) =>
+        url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
+    ),
 }))
 
 jest.mock('@/utils/currency', () => ({
@@ -1092,6 +1096,35 @@ describe('GROUP 1: Landing / Method Selection', () => {
 
         fireEvent.click(screen.getByTestId('nav-header'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    // Entering add-money from the exchange-rate widget's "Try it!" CTA used to
+    // strand the user: back reset to /home instead of the screen they came from.
+    test('back honours ?returnTo when the flow was entered from another screen', () => {
+        mockSearchParams.set('returnTo', '/profile/exchange-rate?from=USD&to=EUR')
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
+        expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+    })
+
+    test('back ignores an off-origin ?returnTo and still resets to /home', () => {
+        mockSearchParams.set('returnTo', 'https://evil.example/phish')
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    test('back on the country list still collapses to method selection first', () => {
+        mockSearchParams.set('returnTo', '/profile/exchange-rate')
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockSetQueryState).toHaveBeenCalledWith({ method: null })
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 })
 
@@ -1894,6 +1927,76 @@ describe('GROUP 8: InputAmountStep Component', () => {
             screen.getByText('Exchange rates are temporarily unavailable. Please try again in a moment.')
         ).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeDisabled()
+    })
+
+    // #1848: the error state used to be a dead end — useCurrency only refetches
+    // when the currency changes, so the user had to leave the screen to recover.
+    test('rate fetch failure offers a retry that refetches the rate', () => {
+        const refetch = jest.fn()
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="100"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                setCurrencyAmount={jest.fn()}
+                currencyData={{ isLoading: false, isError: true, symbol: null, price: null, refetch }}
+                limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        fireEvent.click(screen.getByText('Retry'))
+
+        expect(refetch).toHaveBeenCalledTimes(1)
+    })
+
+    // The rate block disables Continue, so hiding its retry behind `error` or a
+    // blocking limits card leaves the user stuck with no way to clear it.
+    test('rate retry stays available even when another error is showing', () => {
+        const refetch = jest.fn()
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="100"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error="Something else went wrong"
+                setCurrencyAmount={jest.fn()}
+                currencyData={{ isLoading: false, isError: true, symbol: null, price: null, refetch }}
+                limitsValidation={{ isBlocking: true, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        fireEvent.click(screen.getByText('Retry'))
+
+        expect(refetch).toHaveBeenCalledTimes(1)
+    })
+
+    // A slow rate fetch can hold this screen for tens of seconds on a bad mobile
+    // connection. The header has to stay mounted or the page reads as frozen.
+    test('currency data loading keeps the back button available', () => {
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount=""
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                setCurrencyAmount={jest.fn()}
+                currencyData={{ isLoading: true, symbol: null, price: null }}
+                limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        expect(screen.getByTestId('nav-header')).toBeInTheDocument()
     })
 
     test('onSubmit called when Continue clicked', async () => {

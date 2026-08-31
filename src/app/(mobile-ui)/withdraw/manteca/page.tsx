@@ -17,6 +17,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutLoading from '@/components/Global/PeanutLoading'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -33,7 +34,8 @@ import { useModalsContext } from '@/context/ModalsContext'
 import Select from '@/components/Global/Select'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
-import { captureException } from '@sentry/nextjs'
+import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
@@ -142,9 +144,9 @@ function MantecaBankWithdrawFlow() {
     const queryClient = useQueryClient()
     // The pool→full upgrade gate reads identityVerification (Sumsub-cleared
     // the human), not rail-approval. Same fix-pattern as Profile/ProfileEdit.
-    const { rails } = useCapabilities()
+    const { rails, nextActions } = useCapabilities()
     const { isVerified: isUserIdentityVerified } = useIdentityVerification()
-    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
     const { hasPendingTransactions } = usePendingTransactions()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -152,7 +154,6 @@ function MantecaBankWithdrawFlow() {
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
-    const [isRedirectingToOnboarding, setIsRedirectingToOnboarding] = useState(false)
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -177,6 +178,7 @@ function MantecaBankWithdrawFlow() {
         code: currencyCode,
         price: currencyPrice,
         isLoading: isCurrencyLoading,
+        refetch: refetchCurrency,
     } = useCurrency(selectedCountry?.currency ?? null)
 
     // validates withdrawal against user's limits
@@ -246,39 +248,32 @@ function MantecaBankWithdrawFlow() {
     }
 
     /**
-     * Detect Manteca onboarding-incomplete errors and redirect user to complete their profile.
-     * Returns true if the error was handled (caller should return early).
+     * Detect Manteca onboarding-incomplete errors and surface an actionable
+     * message. Returns true if the error was handled (caller should return early).
      *
-     * INTENTIONAL FALLBACK — NOT a primary code path. The KYC 2.0 architecture
-     * (engineering/projects/kyc-2.0/final-plan.md) centralizes all data
-     * collection in Sumsub and submits to Manteca via the API (`submitToManteca`
-     * in peanut-api-ts). The Manteca hosted onboarding widget is dead-by-design
-     * — but we keep this last-resort redirect for the long tail of users who
-     * land in an incomplete Manteca state (partial provisioning, undelivered
-     * initial-onboarding API call). Without this escape hatch they'd be stuck
-     * at withdraw time with no actionable error.
-     *
-     * Right fix: root-cause why `submitToManteca` sometimes leaves users
-     * half-onboarded, fix that, delete this fallback + `/manteca/initiate-onboarding`
-     * route + `mantecaApi.initiateOnboarding` client. Tracked separately.
+     * This used to redirect into the Manteca hosted onboarding widget — a
+     * KYC-2.0-era dead end (Sumsub owns data collection; `submitToManteca` in
+     * peanut-api-ts owns submission) with 0 triggers in 90 days. The widget
+     * redirect and its `/manteca/initiate-onboarding` backend route are gone.
      */
     const handleOnboardingError = useCallback(
-        async (error: string): Promise<boolean> => {
-            const onboardingErrorPatterns = ['fund origin', 'profile incomplete', 'onboarding required']
+        (error: string): boolean => {
+            // 'manteca kyc' / 'manteca_kyc_required' cover the API's
+            // MANTECA_KYC_REQUIRED responses ("User needs to do manteca KYC
+            // first") — the service layer strips the `code` field, so the text
+            // is all this screen ever sees.
+            const onboardingErrorPatterns = [
+                'fund origin',
+                'profile incomplete',
+                'onboarding required',
+                'manteca kyc',
+                'manteca_kyc_required',
+            ]
             const normalizedError = error.toLowerCase()
             const isOnboardingError = onboardingErrorPatterns.some((pattern) => normalizedError.includes(pattern))
             if (!isOnboardingError) return false
 
-            setIsRedirectingToOnboarding(true)
-            try {
-                const result = await mantecaApi.initiateOnboarding({
-                    returnUrl: window.location.href,
-                })
-                window.location.href = result.url
-            } catch {
-                setErrorMessage(t('errors.completeAccountSetup'))
-                setIsRedirectingToOnboarding(false)
-            }
+            setErrorMessage(t('errors.completeAccountSetup'))
             return true
         },
         [t]
@@ -323,7 +318,7 @@ function MantecaBankWithdrawFlow() {
             })
 
             if (result.error) {
-                if (await handleOnboardingError(result.error)) return
+                if (handleOnboardingError(result.error)) return
                 setErrorMessage(result.error)
                 return
             }
@@ -337,7 +332,9 @@ function MantecaBankWithdrawFlow() {
                 setStep('review')
             }
         } catch (error) {
-            captureException(error)
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'lock-rate' },
+            })
             setErrorMessage(t('errors.lockRateFailed'))
         } finally {
             setIsLockingPrice(false)
@@ -401,9 +398,21 @@ function MantecaBankWithdrawFlow() {
                     setErrorMessage(t('errors.confirmTransaction'))
                 } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
                     // Keep the flow-specific fallback and the Sentry report.
-                    captureException(error)
+                    void captureNetworkTriagedFailure(error, {
+                        tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'sign' },
+                    })
                     setErrorMessage(t('errors.signFailed'))
                 } else {
+                    // A classified error is normally a deliberate non-report
+                    // (backend wire code, or a user action). Network-layer
+                    // failures are the exception: once `connectionLost` existed
+                    // they classified HERE instead of genericSupport above, which
+                    // silently ended their Sentry reporting (TASK-21956).
+                    if (isNetworkLayerFailure(error)) {
+                        void captureNetworkTriagedFailure(error, {
+                            tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'sign' },
+                        })
+                    }
                     setErrorMessage(toFriendlyError(error), classified.kind === 'text' ? null : classified.code)
                 }
                 setLoadingState('Idle')
@@ -460,7 +469,7 @@ function MantecaBankWithdrawFlow() {
                 if (handleStaleSession(result.message ?? result.error)) return
 
                 // handle onboarding-incomplete errors by redirecting to complete profile
-                if (await handleOnboardingError(result.message ?? result.error)) return
+                if (handleOnboardingError(result.message ?? result.error)) return
 
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
@@ -483,9 +492,21 @@ function MantecaBankWithdrawFlow() {
         } catch (error) {
             console.error('Manteca withdraw error:', error)
             if (handleStaleSession(error)) return
-            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
-                method_type: 'manteca',
-                error_message: 'Withdraw failed unexpectedly',
+            // Reported here rather than left to the console-capture integration,
+            // which the noise filters then drop: the money leg of an offramp
+            // dying was leaving no queryable Sentry record at all (TASK-21956).
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'submit' },
+                extra: { amountUsd: usdAmount, country: countryPath },
+                analytics: {
+                    event: ANALYTICS_EVENTS.WITHDRAW_FAILED,
+                    props: {
+                        method_type: 'manteca',
+                        error_message: 'Withdraw failed unexpectedly',
+                        error_name: error instanceof Error ? error.name : 'unknown',
+                        error_raw: error instanceof Error ? error.message : String(error),
+                    },
+                },
             })
             setErrorMessage(t('errors.unexpected'))
             setStep('failure')
@@ -559,7 +580,21 @@ function MantecaBankWithdrawFlow() {
         }
     }, [countryFromUrl, selectedCountry, router])
 
-    if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
+    // Both rate states keep the header mounted so back always works: a failed
+    // fetch used to fall through to a bare loader that spun forever with no way
+    // out, and a retry that stalls would land in the same place (#1848).
+    if (selectedCountry && countryConfig && (isCurrencyLoading || !currencyPrice)) {
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <NavHeader title={tNav('withdraw')} onPrev={onBack} />
+                <div className="my-auto flex flex-col justify-center">
+                    {isCurrencyLoading ? <PeanutLoading /> : <RateUnavailable onRetry={refetchCurrency} />}
+                </div>
+            </div>
+        )
+    }
+
+    if (!selectedCountry || !countryConfig) {
         return <PeanutLoading />
     }
 
@@ -658,7 +693,7 @@ function MantecaBankWithdrawFlow() {
                     if (mantecaRejection.state === 'restart-identity') {
                         await sumsubFlow.handleRestartIdentity()
                     } else if (mantecaRejection.state === 'fixable') {
-                        await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                        await sumsubFlow.handleFixableRejection(mantecaRejection)
                     } else {
                         await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                     }
@@ -865,18 +900,13 @@ function MantecaBankWithdrawFlow() {
                                 !isCompleteBankDetails ||
                                 isDestinationAddressChanging ||
                                 !isDestinationAddressValid ||
-                                isLockingPrice ||
-                                isRedirectingToOnboarding
+                                isLockingPrice
                             }
-                            loading={isDestinationAddressChanging || isLockingPrice || isRedirectingToOnboarding}
+                            loading={isDestinationAddressChanging || isLockingPrice}
                             className="w-full"
                             shadowSize="4"
                         >
-                            {isRedirectingToOnboarding
-                                ? t('manteca.redirecting')
-                                : isLockingPrice
-                                  ? t('manteca.lockingRate')
-                                  : t('review')}
+                            {isLockingPrice ? t('manteca.lockingRate') : t('review')}
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (

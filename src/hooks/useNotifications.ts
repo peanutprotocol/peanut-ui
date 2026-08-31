@@ -54,6 +54,13 @@ function subscribe(notify: () => void): () => void {
 }
 
 const getSnapshot = () => state
+
+/**
+ * Permission state without mounting `useNotifications` — that hook initializes
+ * OneSignal as a side effect, which the support snapshot has no business
+ * triggering. Reads the same module store the hook fans out from.
+ */
+export const getNotificationPermissionSnapshot = (): NotificationPermissionState => state.permissionState
 const getServerSnapshot = () => INITIAL_STATE
 
 let currentExternalId: string | null = null

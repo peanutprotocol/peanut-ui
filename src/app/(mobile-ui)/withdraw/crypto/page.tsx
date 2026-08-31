@@ -24,6 +24,8 @@ import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { captureMessage } from '@sentry/nextjs'
+import { captureNetworkTriagedFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import type { Address, Hex, TransactionReceipt } from 'viem'
@@ -41,6 +43,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { toError } from '@/utils/to-error'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -496,11 +499,24 @@ export default function WithdrawCryptoPage() {
                 method_type: 'crypto',
             })
         } catch (err) {
-            console.error('Withdrawal execution failed:', err)
+            console.error('Withdrawal execution failed:', toError(err))
             const errMsg = toFriendlyError(err)
-            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
-                method_type: 'crypto',
-                error_message: errMsg,
+            // Reported here rather than left to the console-capture integration,
+            // which the noise filters then drop: a crypto withdrawal dying was
+            // leaving no queryable Sentry record at all, and `error_message` is
+            // the LOCALIZED copy so it can't be grouped on (TASK-21956).
+            void captureNetworkTriagedFailure(err, {
+                tags: { ...criticalFlowTags('withdraw-crypto'), withdraw_step: 'execute' },
+                extra: { chargeId: chargeDetails?.uuid, usdAmount },
+                analytics: {
+                    event: ANALYTICS_EVENTS.WITHDRAW_FAILED,
+                    props: {
+                        method_type: 'crypto',
+                        error_message: errMsg,
+                        error_name: err instanceof Error ? err.name : 'unknown',
+                        error_raw: err instanceof Error ? err.message : String(err),
+                    },
+                },
             })
             setError(errMsg)
         } finally {

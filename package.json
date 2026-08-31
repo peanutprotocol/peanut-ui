@@ -45,9 +45,10 @@
         "native:build": "node scripts/native-build.js",
         "native:sync": "pnpm exec cap sync android",
         "native:release": "bash scripts/native-release.sh",
-        "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel development --path ./out",
-        "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@latest bundle upload --channel staging --path ./out",
-        "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit"
+        "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@8.42.4 bundle upload --channel development --path ./out --version-exists-ok --bundle \"$(node scripts/release-version.mjs staging)\"",
+        "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@8.42.4 bundle upload --channel staging --path ./out --version-exists-ok --bundle \"$(node scripts/release-version.mjs staging)\"",
+        "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit",
+        "generate:marketing-messages": "node scripts/generate-marketing-messages.js"
     },
     "dependencies": {
         "@capacitor/android": "8.2.0",
@@ -78,6 +79,7 @@
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slider": "^1.3.5",
         "@radix-ui/react-tabs": "^1.1.13",
+        "@react-pdf/renderer": "4.6.0",
         "@reduxjs/toolkit": "^2.5.0",
         "@sentry/nextjs": "^8.39.0",
         "@serwist/next": "^9.0.10",
@@ -197,13 +199,13 @@
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat|nuqs)([@+/]|$))"
+            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat|nuqs|@react-pdf|yoga-layout|@swc\\+helpers|@swc/helpers|color-name|color-string|fontkit|jay-peg|linebreak|png-js|restructure|unicode-properties)([@+/]|$))"
         ],
         "moduleNameMapper": {
+            "yoga-wasm-base64-esm\\.js$": "<rootDir>/src/utils/__mocks__/yoga-wasm-cjs.ts",
             "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/src/utils/__mocks__/static-image.ts",
             "^@/config/wagmi\\.config$": "<rootDir>/src/utils/__mocks__/wagmi-config.ts",
             "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
-            "^@justaname\\.id/react$": "<rootDir>/src/utils/__mocks__/justaname.ts",
             "^next/cache$": "<rootDir>/src/utils/__mocks__/next-cache.ts",
             "^@zerodev/sdk(.*)$": "<rootDir>/src/utils/__mocks__/zerodev-sdk.ts",
             "^@simplewebauthn/browser$": "<rootDir>/src/utils/__mocks__/simplewebauthn-browser.ts",

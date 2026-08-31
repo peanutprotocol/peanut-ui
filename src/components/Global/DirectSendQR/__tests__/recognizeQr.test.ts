@@ -658,7 +658,7 @@ describe('recognizeQr', () => {
                         '00020126580014br.gov.bcb.pix0136123e4567-e12b-12d1-a456-4266554400005204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
                     )
                 ).toBe(EQrType.PIX)
-                expect(scoped.recognizeQr('https://peanut.me/claim?x=1')).toBe(EQrType.PEANUT_URL)
+                expect(scoped.recognizeQr('https://peanut.me')).toBe(EQrType.PEANUT_URL)
             })
         })
     })

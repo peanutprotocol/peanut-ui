@@ -172,7 +172,14 @@
             "rewardClaimed": "Reward claimed!",
             "shareAndEarn": "Share & earn",
             "inviteFriendsToEarnMore": "Invite friends to earn more",
-            "holdToUnwrap": "Hold to unwrap your reward"
+            "holdToUnwrap": "Hold to unwrap your reward",
+            "iosCopy": {
+                "surpriseDescriptionFirst": "Check out your cashback and how to earn more.",
+                "surpriseDescriptionNext": "Check out your cashback and how to earn more.",
+                "usedPeanut": "<name>{inviteeName}</name> paid with Peanut",
+                "rewardClaimed": "Cashback claimed!",
+                "holdToUnwrap": "Hold to unwrap your cashback"
+            }
         },
         "carousel": {
             "rewardReady": "<b>+${amount}</b> reward ready!",
@@ -219,11 +226,30 @@
             "closeTitled": "Close {title}",
             "closeVerificationPrompt": "Close verification prompt",
             "closeNotificationPrompt": "Close notification prompt",
-            "claimablePerk": "Claimable perk"
+            "claimablePerk": "Claimable perk",
+            "iosCopy": {
+                "rewardReady": "<b>+${amount}</b> cashback ready!",
+                "usedPeanutTapToClaim": "<name>{inviteeName}</name> paid with Peanut. Tap to claim.",
+                "tapToClaim": "Tap to claim your cashback.",
+                "invite": {
+                    "title": "Invite friends. Earn cashback",
+                    "description": "Earn cashback every time your friends pay with Peanut."
+                },
+                "latamInvite": {
+                    "title": "Earn <b>cashback</b> on QR payments",
+                    "description": "Invite friends to <b>earn more cashback</b>. The more they pay, the more you earn!"
+                },
+                "qrPay": {
+                    "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>cashback</b>."
+                }
+            }
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}",
             "dismiss": "Dismiss {task}"
+        },
+        "iosCopy": {
+            "rewards": "Cashback"
         }
     },
     "profile": {
@@ -384,6 +410,11 @@
             "begForInvite": "Beg for an invite",
             "activityPrivateNote": "Activity is only visible for you, it is not public.",
             "noInviteTitle": "No invite, no Peanut"
+        },
+        "iosCopy": {
+            "menu": {
+                "points": "Cashback"
+            }
         }
     },
     "settings": {
@@ -396,11 +427,16 @@
             "confirmDescription": "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed.",
             "confirmCta": "Yes, delete it",
             "cancelCta": "Never mind, I'll stay",
+            "blockedTitle": "Move your money first",
+            "blockedDescription": "You still have ${amount} in your account. Deleting it is permanent — you can't get back in afterwards, and that money would stay out of reach. Send it to someone or withdraw it first.",
+            "blockedCta": "Move my money",
+            "blockedCancelCta": "Never mind",
             "doneTitle": "We'll miss you",
             "doneDescription": "Your account is off and your data will be gone within 30 days. Thanks for cracking open Peanut with us — take care out there!",
             "doneCta": "Goodbye",
             "error": "Could not delete your account. Please try again.",
             "sadPeanutAlt": "Sad peanut",
+            "pointingPeanutAlt": "Peanut pointing",
             "cryingPeanutAlt": "Crying peanut"
         }
     },
@@ -442,6 +478,11 @@
             "monthly": "Monthly",
             "yearly": "Yearly",
             "selectAriaLabel": "Select period"
+        },
+        "capNudge": {
+            "description": "You've hit your monthly limit. Verify your income to request a higher one.",
+            "cta": "Verify income",
+            "underReview": "Income verification received — our team is reviewing your limit."
         },
         "increase": {
             "cta": "Increase my limits",
@@ -717,7 +758,7 @@
     "send": {
         "linkCard": {
             "title": "Send money with a link",
-            "description": "No account needed to receive.",
+            "description": "No account needed for crypto-wallet claims. Bank, Pix and Mercado Pago need a Peanut account.",
             "cta": "Send via link"
         },
         "methods": {
@@ -750,7 +791,8 @@
             "cancelled": "Cancelled",
             "cancelSuccess": "Link cancelled successfully!",
             "cancelSuccessRefresh": "Link cancelled! Refresh to see updated balance.",
-            "cancelFailed": "Failed to cancel link. Please try again."
+            "cancelFailed": "Failed to cancel link. Please try again.",
+            "minFiatClaimWarning": "Amounts under ${amount} can't be claimed to a bank, Pix or Mercado Pago — the recipient can still claim to a Peanut account or crypto wallet."
         }
     },
     "request": {
@@ -1064,6 +1106,22 @@
             "linkCopied": "Link copied",
             "shareTitle": "My Peanut QR Code",
             "shareText": "Scan my QR code to connect with me on Peanut!"
+        },
+        "iosCopy": {
+            "success": {
+                "earnedRewardTitle": "You earned cashback!",
+                "earnedHoldToClaim": "You earned ${amount}! Hold to unwrap your cashback.",
+                "holdToClaim": "You earned cashback! Hold to unwrap.",
+                "earnedInviteFriends": "You earned ${amount}! Invite friends to earn even more cashback.",
+                "inviteFriends": "Invite friends to earn even more cashback.",
+                "claimReward": "Unwrap Cashback"
+            },
+            "claim": {
+                "inviteQrDescription": "Share anywhere. Anyone who scans can join you on Peanut."
+            },
+            "claimSuccess": {
+                "stickerDescription": "Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone who scans will be able to join Peanut with your invite."
+            }
         }
     },
     "card": {
@@ -1523,7 +1581,6 @@
             "minimumDeposit": "Minimum deposit is {amount}.",
             "selectCountryFirst": "Please select a country first.",
             "onrampDetails": "Could not get onramp details. Please try again.",
-            "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
             "bankAccountFailed": "Failed to process bank account. Please try again or contact support.",
             "bankAccountSettingUp": "Your bank account is still being set up. Please try again in a moment."
         },
@@ -1680,6 +1737,23 @@
     },
     "transaction": {
         "drawerTitle": "Transaction Details",
+        "officialReceipt": {
+            "issuedBy": "Issued by Peanut",
+            "reference": "Receipt reference",
+            "issuedOn": "Issued on",
+            "pdf": {
+                "title": "Payment Receipt",
+                "type": "Type",
+                "status": "Status",
+                "from": "From"
+            }
+        },
+        "receiptUnavailable": {
+            "title": "This receipt link is no longer available",
+            "description": "The transaction may still exist, but this shared link can't display it anymore.",
+            "loadFailedTitle": "We couldn't load this receipt",
+            "loadFailedDescription": "Please try again in a moment."
+        },
         "noGoalSet": "No goal set",
         "amountCollected": "${amount} collected",
         "contributors": "Contributors ({count})",
@@ -1804,6 +1878,7 @@
             "rejectRequest": "Reject request",
             "splitBill": "Split this bill",
             "shareReceipt": "Share Receipt",
+            "downloadPdf": "Download PDF",
             "inviteFriends": "Invite friends to earn more rewards",
             "reportIssue": "Issues with this transaction?",
             "cancelDeposit": "Cancel deposit",
@@ -1878,7 +1953,25 @@
         },
         "enjoyPeanut": "Enjoy Peanut!",
         "memoTestDeposit": "Your peanut wallet is ready to use!",
-        "adjustedSuffix": "· Adjusted"
+        "adjustedSuffix": "· Adjusted",
+        "iosCopy": {
+            "type": {
+                "reward": "Cashback"
+            },
+            "perkBanner": {
+                "title": "You earned cashback!",
+                "capped": "${amount} cashback — campaign limit reached!",
+                "received": "You received ${amount} cashback!",
+                "generic": "You received Peanut cashback!"
+            },
+            "perk": {
+                "title": "Peanut Cashback",
+                "subtitle": "Earn cashback every time your friends pay with Peanut."
+            },
+            "actions": {
+                "inviteFriends": "Invite friends to earn more cashback"
+            }
+        }
     },
     "history": {
         "title": "Activity",
@@ -1911,7 +2004,29 @@
         "loadInvitesFailed": "Error loading invites!",
         "contactSupport": "Please contact Support.",
         "friendsEarnedYou": "Your friends earned you",
-        "starAlt": "star"
+        "starAlt": "star",
+        "invitesTitle": "Rewards",
+        "lifetimeCaption": "in rewards so far",
+        "howItWorks": {
+            "title": "How rewards work",
+            "step1": "Invite friends to Peanut.",
+            "step2": "They pay with Peanut like normal.",
+            "step3": "Rewards build up in your balance.",
+            "step4": "Make any payment to claim it."
+        },
+        "iosCopy": {
+            "title": "Cashback",
+            "invitesTitle": "Your Network",
+            "noPendingRewards": "No cashback waiting right now.",
+            "lifetimeRewards": "Lifetime cashback: {amount}",
+            "earnWhenFriendsUse": "You earn cashback whenever your friends pay with Peanut!",
+            "shareInviteLinkPrompt": "Send your invite link to start earning more cashback",
+            "howItWorks": {
+                "title": "How cashback works",
+                "step3": "Cashback builds up in your balance."
+            },
+            "lifetimeCaption": "in cashback so far"
+        }
     },
     "invites": {
         "illustrationAlt": "Section illustration",
@@ -2206,6 +2321,7 @@
         "processingTitle": "Setting up your account…",
         "processingDescription": "We're confirming your ID. This usually takes less than a minute.",
         "unsupportedRegionError": "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live.",
+        "railsUnavailableError": "Your ID is verified, but we can't set up payments for your region right now. Contact support and we'll sort it out.",
         "unexpectedError": "An unexpected error occurred",
         "processingStatusValue": "We're reviewing your documents. This usually takes 5-10 min.",
         "errorSdkUnavailable": "KYC SDK not available. Please update the app.",
@@ -2290,6 +2406,7 @@
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
             "confirmError": "Something went wrong confirming your terms. Please try again.",
+            "notAcceptedYet": "It looks like the terms haven't been accepted yet. Please try again.",
             "acceptTerms": "Accept Terms",
             "notNow": "Not now"
         },
@@ -3019,7 +3136,12 @@
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
             "title": "A small update to our terms"
         },
-        "maintenanceBanner": "Maintenance mode, some functionalities won't be available. Funds safe"
+        "maintenanceBanner": "Maintenance mode, some functionalities won't be available. Funds safe",
+        "iosCopy": {
+            "inviteFriendsModal": {
+                "description": "Share your link. Every time a friend you brought makes a payment, you earn cashback."
+            }
+        }
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
@@ -3029,6 +3151,7 @@
         "notDeployedOnChain": "Bulk is not able on this chain, please try another chain.",
         "userRejectedRequest": "Please confirm the request in your wallet.",
         "networkError": "A network error occured. Please refresh and try again.",
+        "connectionLost": "Connection lost. Check your internet connection and try again.",
         "nonceExpired": "Nonce expired, please try again.",
         "walletNotConnected": "Please make sure your wallet is connected.",
         "gasExceedsAllowance": "Gas required exceeds balance. Please confirm you have enough funds.",
@@ -3066,7 +3189,8 @@
         "cardApprovalCancelled": "Approval cancelled — you can retry anytime.",
         "cardApprovalFailed": "Card approval failed — please try again.",
         "logoutFailed": "Couldn’t log out. Please try again.",
-        "loginIncomplete": "Login didn’t complete. Please try again."
+        "loginIncomplete": "Login didn’t complete. Please try again.",
+        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment."
     },
     "appLock": {
         "title": "Welcome back!",

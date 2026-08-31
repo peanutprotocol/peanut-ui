@@ -1,4 +1,5 @@
 import type { Address, Chain, Hex, PublicClient } from 'viem'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { http, pad, slice, toFunctionSelector, toHex } from 'viem'
 import type { KernelValidator } from '@zerodev/sdk/types'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
@@ -295,7 +296,9 @@ export async function createEphemeralSpendSession(args: {
         })
 
         // THE passkey tap.
-        const enableSignature = await patchedSudoValidator.signTypedData(enableTypedData)
+        const enableSignature = await withCeremonyPurpose('ephemeral_enable', () =>
+            patchedSudoValidator.signTypedData(enableTypedData)
+        )
 
         // Rebuild the account with the precomputed enable signature injected so
         // the SDK's enable-mode UserOp encoding uses OUR nonce-verified

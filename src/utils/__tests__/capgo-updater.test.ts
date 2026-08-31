@@ -1,0 +1,83 @@
+/**
+ * Log-level contract for OTA update-check failures: transient failures stay at
+ * info (invisible to Sentry's captureConsoleIntegration), known-fatal patterns
+ * and persistent streaks escalate to error.
+ */
+const mockUpdater = {
+    notifyAppReady: jest.fn().mockResolvedValue(undefined),
+    addListener: jest.fn().mockResolvedValue({ remove: jest.fn() }),
+    getLatest: jest.fn(),
+    download: jest.fn(),
+    next: jest.fn().mockResolvedValue(undefined),
+}
+
+jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: mockUpdater }))
+jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+
+import { initCapgoUpdater } from '../capgo-updater'
+
+let info: jest.SpyInstance
+let error: jest.SpyInstance
+
+beforeEach(() => {
+    jest.useFakeTimers()
+    window.localStorage.clear()
+    info = jest.spyOn(console, 'info').mockImplementation(() => {})
+    error = jest.spyOn(console, 'error').mockImplementation(() => {})
+})
+
+afterEach(() => {
+    jest.useRealTimers()
+    jest.restoreAllMocks()
+})
+
+// one simulated app launch: init + the deferred update check
+async function launch(): Promise<void> {
+    await initCapgoUpdater()
+    await jest.advanceTimersByTimeAsync(5_000)
+}
+
+it('logs a transient failure at info, not error', async () => {
+    mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
+    await launch()
+    expect(info).toHaveBeenCalledWith('[capgo] update check failed:', 'Failed to fetch')
+    expect(error).not.toHaveBeenCalled()
+})
+
+it('logs a known-fatal failure at error on the first launch', async () => {
+    mockUpdater.getLatest.mockRejectedValue(new Error('Checksum mismatch for bundle'))
+    await launch()
+    expect(error).toHaveBeenCalledWith('[capgo] update check failed:', 'Checksum mismatch for bundle')
+    expect(info).not.toHaveBeenCalled()
+})
+
+it('escalates the same failure to error on the third consecutive launch', async () => {
+    mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
+    await launch()
+    await launch()
+    expect(error).not.toHaveBeenCalled()
+    await launch()
+    expect(error).toHaveBeenCalledWith('[capgo] update check failed on 3 consecutive launches:', 'Failed to fetch')
+    expect(info).toHaveBeenCalledTimes(2)
+})
+
+it('resets the streak after a successful check', async () => {
+    mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
+    await launch()
+    await launch()
+    mockUpdater.getLatest.mockRejectedValue(new Error('No new version available'))
+    await launch()
+    mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
+    await launch()
+    expect(error).not.toHaveBeenCalled()
+    expect(info).toHaveBeenCalledTimes(3)
+})
+
+it('restarts the streak when the failure message changes', async () => {
+    mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
+    await launch()
+    await launch()
+    mockUpdater.getLatest.mockRejectedValue(new Error('Request timed out'))
+    await launch()
+    expect(error).not.toHaveBeenCalled()
+})

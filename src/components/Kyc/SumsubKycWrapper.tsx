@@ -31,6 +31,14 @@ const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-buil
 const SDK_LAUNCH_TIMEOUT_MS = 20_000
 
 /**
+ * Some SDK versions replay a resubmission as both `onApplicantResubmitted` and
+ * its `idCheck.`-prefixed twin. They arrive in the same tick; a real retry takes
+ * a user seconds at minimum, so this window separates the two without needing a
+ * per-event identity the SDK does not give us.
+ */
+const RESUBMIT_TWIN_WINDOW_MS = 1000
+
+/**
  * Every KYC entry point funnels through here, so this is the one place that
  * knows which Sumsub SDK to drive. Native gets the Cordova SDK: the WebSDK does
  * run inside the Capacitor WebView, but a Sumsub-side init failure there paints
@@ -80,6 +88,7 @@ const SumsubWebSdkModal = ({
     // Drives the close-confirmation short-circuit: if the user has already
     // submitted, tapping X closes the modal without asking "stop verification?"
     const hasSubmittedRef = useRef(false)
+    const lastResubmitSignalRef = useRef(0)
     // Watchdog bookkeeping: did sdk.launch() ever run for this open?
     const hasLaunchedRef = useRef(false)
 
@@ -110,7 +119,7 @@ const SumsubWebSdkModal = ({
 
         const handleLoaded = () => setSdkLoaded(true)
         const handleError = () => {
-            console.error('[sumsub] failed to load websdk script')
+            console.error(new Error('[sumsub] failed to load websdk script'))
             setSdkLoadError(true)
         }
 
@@ -177,10 +186,26 @@ const SumsubWebSdkModal = ({
                 stableOnComplete()
             }
             // resubmission = user retried after rejection (ACTION_REQUIRED).
-            // always close SDK regardless of multi-level — the retry is a fresh submission.
+            // Multi-level keeps the SDK open: a retry on Level 1 still owes the
+            // follow-up questionnaire, so closing here stranded the applicant
+            // looking submitted with a level outstanding.
+            //
+            // EVERY logical retry reports, unlike handleSubmitted's first-only
+            // gate. Downstream this is the attempt boundary that lets a repeated
+            // rejection be reported again, so suppressing it after the first
+            // submission swallowed the retry's own REJECTED. Only the SDK's
+            // duplicate twin event is collapsed.
             const handleResubmitted = () => {
                 console.log('[sumsub] onApplicantResubmitted fired')
                 hasSubmittedRef.current = true
+                if (isMultiLevelRef.current) {
+                    const now = Date.now()
+                    if (now - lastResubmitSignalRef.current >= RESUBMIT_TWIN_WINDOW_MS) {
+                        lastResubmitSignalRef.current = now
+                        stableOnSubmitted()
+                    }
+                    return
+                }
                 stableOnComplete()
             }
             // Applicant Actions (like rain-card-application) emit this instead

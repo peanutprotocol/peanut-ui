@@ -80,6 +80,11 @@ export const DEDICATED_ROUTES = [
     'pricing',
     'stories',
     'content',
+    // Same shape, same trap: 'status' is six lowercase letters, so /status was
+    // resolving to a payment-profile shell on a 200 instead of the status page.
+    // Also still claimable as a username server-side — the backend needs it on
+    // its reserved list too.
+    'status',
 
     // Locale prefixes (current SUPPORTED_LOCALES)
     'en',
@@ -119,15 +124,16 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
  * Matches paths that don't require authentication
  *
  * Note: Most dev tools routes are NOT public - they require both authentication and specific user authorization
- * Exception: /dev/payment-graph is public (uses API key instead of user auth)
+ * Production dev tools require a signed-in Peanut user. Each tool applies its
+ * own server-enforced role check after the normal app session gate.
  */
-export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view|dev\/payment-graph)/
+export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view)/
 
 /**
  * Regex for dev-only public routes: ALL /dev pages (index + every tool/preview).
  * Only matched when IS_DEV is true (build-time NODE_ENV==='development'), so this
  * never applies on prod/preview builds. /dev is also independently notFound()'d on
- * peanut.me by dev/layout.tsx (except full-graph/payment-graph), so dev tooling is
+ * peanut.me by dev/layout.tsx (except payment-graph/safe-area), so dev tooling is
  * doubly walled off from prod — this just removes the login-redirect friction locally.
  */
 export const DEV_ONLY_PUBLIC_ROUTES_REGEX = /^\/dev(\/|$)/
@@ -215,4 +221,17 @@ export function isPublicRoute(path: string, isDev = false): boolean {
         return true
     }
     return false
+}
+
+/**
+ * Whether `pathName` is the route `href` points at, for nav active states.
+ *
+ * The native build sets `trailingSlash: true` (next.config.native.js), so
+ * `usePathname()` there returns `/home/` while nav hrefs are written `/home`.
+ * A bare `===` silently loses every active state in the app.
+ */
+export function isSameRoute(pathName: string | null | undefined, href: string): boolean {
+    const strip = (path: string) => (path.length > 1 ? path.replace(/\/+$/, '') : path)
+    if (!pathName) return false
+    return strip(pathName) === strip(href)
 }

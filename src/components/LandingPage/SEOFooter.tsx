@@ -33,6 +33,19 @@ function FooterSection({ title, children }: { title: string; children: React.Rea
 const RESOURCES_MOVED_ELSEWHERE = new Set(['terms', 'jobs'])
 
 /**
+ * The manifest ships two pricing links into "Learn More" — the `pricing`
+ * resource (/pricing) and the `fees-pricing` article (/help/fees-pricing) —
+ * which read as a duplicate pair. The resource keeps the slot under the
+ * clearer name; the article is dropped from the footer, not deleted.
+ */
+const ARTICLES_DROPPED_AS_DUPLICATES = new Set(['fees-pricing'])
+
+/** Manifest names are authored English and rendered as-is across every locale;
+ *  this override follows suit rather than translating one item in a column of
+ *  untranslated siblings. */
+const RESOURCE_NAME_OVERRIDES: Record<string, string> = { pricing: 'Fees and Pricing' }
+
+/**
  * Every published legal document, in the order a reader needs them: the two
  * that bind all users first, then the card-programme docs. Card applicants see
  * these inline at signing time (CardTermsScreen), but app-store review and the
@@ -66,7 +79,7 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-white underline hover:text-white/70"
+                    className="text-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
                 >
                     {children}
                 </a>
@@ -75,7 +88,18 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
     }
     return (
         <li>
-            <Link href={href} className="text-xs text-white underline hover:text-white/70">
+            {/* prefetch={false}: Next prefetches every Link in the viewport, and this
+            footer maps over dozens of country/route pages. Prefetching an app
+            route also pulls its client chunks, which is how the wallet bundle and
+            the Sentry SDK were arriving on the landing page after being removed
+            from its own graph. Navigation fetches on click instead. */}
+            {/* skip-ink off + an offset: the browser default breaks the rule
+                around descenders, so the "g" in a link looked un-underlined. */}
+            <Link
+                prefetch={false}
+                href={href}
+                className="text-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
+            >
                 {children}
             </Link>
         </li>
@@ -87,7 +111,9 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
     const sendTo = (manifest.sendMoney?.to ?? []) as ManifestEntry[]
     const sendFrom = (manifest.sendMoney?.from ?? []) as ManifestEntry[]
     const compare = (manifest.compare ?? []) as ManifestEntry[]
-    const articles = ((manifest as Record<string, unknown>).articles ?? []) as ManifestEntry[]
+    const articles = (((manifest as Record<string, unknown>).articles ?? []) as ManifestEntry[]).filter(
+        (entry) => !ARTICLES_DROPPED_AS_DUPLICATES.has(entry.slug)
+    )
     const resources = (manifest.resources ?? []) as ManifestEntry[]
     const hasSendMoney = sendTo.length > 0 || sendFrom.length > 0
     // What's left of "Resources" rides on top of "Learn More" — the column
@@ -128,9 +154,12 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
                     <FooterSection title={i18n.footerLearnMoreSection}>
                         {learnMoreResources.map((entry) => (
                             <FooterLink key={`resource-${entry.slug}`} href={link(entry)} external={entry.external}>
-                                {entry.name}
+                                {RESOURCE_NAME_OVERRIDES[entry.slug] ?? entry.name}
                             </FooterLink>
                         ))}
+                        {/* Sits directly under Supported Networks, at the end of
+                            the resource links and before the articles. */}
+                        <FooterLink href={`/${locale}/status`}>{i18n.footerStatus}</FooterLink>
                         {articles.map((entry) => (
                             <FooterLink key={entry.slug} href={link(entry)}>
                                 {entry.name}

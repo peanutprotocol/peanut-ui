@@ -80,6 +80,11 @@
         "permanent": true
     },
     {
+        "source": "/status",
+        "destination": "/en/status",
+        "permanent": true
+    },
+    {
         "source": "/:slug(card-terms-us|card-terms-international|card-esign|card-privacy|card-prohibited-activities)",
         "destination": "/en/:slug",
         "permanent": false

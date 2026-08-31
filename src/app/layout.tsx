@@ -1,6 +1,6 @@
 import { ClientProviders } from './ClientProviders'
 import { type Viewport } from 'next'
-import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
+import { Roboto_Flex, Sniglet } from 'next/font/google'
 import localFont from 'next/font/local'
 import Script from 'next/script'
 import '../styles/globals.css'
@@ -100,18 +100,15 @@ const roboto = Roboto_Flex({
     axes: ['wdth'],
 })
 
-const londrina = Londrina_Solid({
-    weight: ['400', '900'],
-    subsets: ['latin'],
-    display: 'swap',
-    variable: '--font-londrina',
-})
-
+// preload: false on the decorative faces — next/font preloads every declared
+// family at High priority, and these three render below the fold (2-3 call
+// sites each) while competing with the hero image for bandwidth.
 const sniglet = Sniglet({
     weight: ['400', '800'],
     subsets: ['latin'],
     display: 'swap',
     variable: '--font-sniglet',
+    preload: false,
 })
 
 // The .woff2 files are latin + latin-ext subsets of the .ttf sources (built
@@ -123,12 +120,14 @@ const knerdOutline = localFont({
     src: '../assets/fonts/knerd-outline.woff2',
     variable: '--font-knerd-outline',
     display: 'swap',
+    preload: false,
 })
 
 const knerdFilled = localFont({
     src: '../assets/fonts/knerd-filled.woff2',
     variable: '--font-knerd-filled',
     display: 'swap',
+    preload: false,
 })
 
 const robotoFlexBold = localFont({
@@ -164,9 +163,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {/* DNS prefetch for API */}
                 <link rel="dns-prefetch" href={apiHostname} />
                 <link rel="preconnect" href={apiHostname} crossOrigin="anonymous" />
-
-                {/* Prefetch /qr-pay route - disabled in dev to avoid 9s+ compile time */}
-                {process.env.NODE_ENV !== 'development' && <link rel="prefetch" href="/qr-pay" />}
 
                 {/* Chunk-load failure recovery: MUST be a raw inline script — error boundaries
                     are lazy chunks themselves and fail to load in the exact conditions that need
@@ -249,11 +245,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true' &&
                     process.env.NEXT_PUBLIC_PERF_BARE !== 'true' && (
                         <>
+                            {/* lazyOnload, not afterInteractive: Next emits a
+                                <link rel="preload"> for afterInteractive scripts, which
+                                put 186 KB of gtag.js at High priority ahead of the LCP
+                                image. Loading it after `load` keeps the pageview and
+                                every downstream event, just off the critical path. */}
                             <Script
                                 src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
-                                strategy="afterInteractive"
+                                strategy="lazyOnload"
                             />
-                            <Script id="google-analytics" strategy="afterInteractive">
+                            <Script id="google-analytics" strategy="lazyOnload">
                                 {`
                                 window.dataLayer = window.dataLayer || [];
                                 function gtag(){dataLayer.push(arguments);}
@@ -265,7 +266,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     )}
             </head>
             <body
-                className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
+                className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
             >
                 <ClientProviders>{children}</ClientProviders>
             </body>

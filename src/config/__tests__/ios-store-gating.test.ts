@@ -4,10 +4,9 @@ jest.mock('@/utils/capacitor', () => ({
     isIOSNative: () => mockIsIOSNative(),
 }))
 
-import { isReferralRewardsHidden } from '../appStoreCompliance'
 import underMaintenanceConfig from '../underMaintenance.config'
 
-describe('iOS App Store gating', () => {
+describe('iOS cross-chain withdraw gate', () => {
     beforeEach(() => {
         mockIsIOSNative.mockReset()
     })
@@ -31,18 +30,6 @@ describe('iOS App Store gating', () => {
             expect(underMaintenanceConfig.disableXchainWithdraw).toBe(false)
             mockIsIOSNative.mockReturnValue(true)
             expect(underMaintenanceConfig.disableXchainWithdraw).toBe(true)
-        })
-    })
-
-    describe('isReferralRewardsHidden (guideline 3.1.5(ii))', () => {
-        it('hides the referral programme inside the iOS app', () => {
-            mockIsIOSNative.mockReturnValue(true)
-            expect(isReferralRewardsHidden()).toBe(true)
-        })
-
-        it('leaves web and Android untouched', () => {
-            mockIsIOSNative.mockReturnValue(false)
-            expect(isReferralRewardsHidden()).toBe(false)
         })
     })
 })

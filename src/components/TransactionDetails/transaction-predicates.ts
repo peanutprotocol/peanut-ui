@@ -60,6 +60,14 @@ export function hasShareableReceipt(transaction: TransactionDetails): boolean {
     return !!k && FIAT_RAIL_KINDS.has(k)
 }
 
+/** Kinds served by the dedicated /receipt/[entryId] page — and therefore by
+ *  its /pdf twin: the fiat rails + SEND_LINK. Single anchor for
+ *  `getReceiptUrl`'s whitelist and the Download-PDF gate. */
+export function hasReceiptPage(transaction: TransactionDetails): boolean {
+    const k = kindOf(transaction)
+    return k === 'SEND_LINK' || (!!k && FIAT_RAIL_KINDS.has(k))
+}
+
 // Renders "Completed" label for the timestamp row instead of "Sent"/"Received".
 // One-shot bank/onchain flows.
 export function usesCompletedTimestampLabel(transaction: TransactionDetails): boolean {

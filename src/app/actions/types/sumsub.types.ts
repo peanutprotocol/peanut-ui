@@ -1,4 +1,11 @@
-export type KycActionType = 'manteca' | 'bridge-direct' | 'unsupported-region'
+export type KycActionType =
+    | 'manteca'
+    | 'bridge-direct'
+    | 'bridge-uplift'
+    | 'unsupported-region'
+    // approved, but every rail for the region is dead. Distinct from a plain
+    // approved+no-token response, which the flow reads as success.
+    | 'rails-unavailable'
 
 export interface InitiateSumsubKycResponse {
     token: string | null // null when user is already APPROVED or bridge-direct

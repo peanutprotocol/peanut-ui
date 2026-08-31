@@ -2,10 +2,13 @@
 
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { Suspense, useEffect, useMemo, useState, useRef, useCallback, type ReactNode } from 'react'
-import { FAQs, Hero, Marquee, NoFees } from '@/components/LandingPage'
+// Imported directly, not through the barrel: `export *` pulls every sibling
+// into this chunk, including dropLink's nine repeat: Infinity animations,
+// which the landing page never renders.
+import { Hero } from '@/components/LandingPage/hero'
+import { Marquee } from '@/components/LandingPage/marquee'
+import { NoFees } from '@/components/LandingPage/noFees'
 import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
-import { SupportedRailsFaqAnswer } from '@/components/LandingPage/SupportedRailsFaqAnswer'
-import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
 import dynamic from 'next/dynamic'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -26,20 +29,9 @@ import type { LandingContentHrefs } from './landingContentHrefs'
 // off the critical path.
 const TweetCarousel = dynamic(() => import('@/components/LandingPage/TweetCarousel'))
 
-type FAQQuestion = {
-    id: string
-    question: string
-    answer: string
-}
-
 type LandingPageClientProps = {
     heroConfig: {
         primaryCta: CTAButton
-    }
-    faqData: {
-        heading: string
-        questions: FAQQuestion[]
-        marquee: { visible: boolean; message: string }
     }
     marqueeMessages: string[]
     locale: Locale
@@ -53,11 +45,12 @@ type LandingPageClientProps = {
     securitySlot: ReactNode
     sendInSecondsSlot: ReactNode
     footerSlot: ReactNode
+    /** The FAQ block — static copy, so it is built on the server. */
+    faqSlot: ReactNode
 }
 
 export function LandingPageClient({
     heroConfig,
-    faqData,
     marqueeMessages,
     locale,
     strings,
@@ -69,6 +62,7 @@ export function LandingPageClient({
     securitySlot,
     sendInSecondsSlot,
     footerSlot,
+    faqSlot,
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
@@ -106,31 +100,6 @@ export function LandingPageClient({
             onClick: () => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO),
         }
     }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
-
-    // Memoized: this component re-renders per scroll frame during the button
-    // animation — don't rebuild the FAQ array + rich answer element each time.
-    const faqQuestions = useMemo(() => {
-        // The questions come from the content system, which must not carry code
-        // concerns, so the article each one continues into is mapped here by id.
-        // "Why Peanut?" and "My question is not here" are left out on purpose:
-        // the first has no single article behind it, the second already links
-        // the help centre in its own answer.
-        const learnMore: Record<string, string> = {
-            '1': contentHrefs.whatAreDigitalDollars,
-            '2': contentHrefs.verification,
-            '3': contentHrefs.passkeys,
-            '4': contentHrefs.securityCustody,
-            '5': contentHrefs.feesPricing,
-            [SUPPORTED_RAILS_FAQ_ID]: contentHrefs.supportedGeographies,
-        }
-        return faqData.questions.map((q) => ({
-            ...q,
-            ...(q.id === SUPPORTED_RAILS_FAQ_ID
-                ? { answerContent: <SupportedRailsFaqAnswer strings={strings.supportedRails} /> }
-                : {}),
-            ...(learnMore[q.id] ? { learnMoreHref: learnMore[q.id] } : {}),
-        }))
-    }, [contentHrefs, faqData.questions, strings.supportedRails])
 
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
@@ -284,8 +253,8 @@ export function LandingPageClient({
         }
     }, [contentHrefs, marqueeMessages])
 
-    // Memoized for the same reason as faqQuestions above — this component
-    // re-renders per scroll frame while the send button grows.
+    // Memoized because this component re-renders per scroll frame while the
+    // send button grows.
     const doorMarqueeProps = useMemo(
         () => ({
             visible: true,
@@ -350,12 +319,7 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             <div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>
             <Marquee {...marqueeProps} />
-            <FAQs
-                heading={faqData.heading}
-                questions={faqQuestions}
-                learnMoreLabel={strings.learnMore}
-                marquee={faqData.marquee}
-            />
+            {faqSlot}
             <Marquee {...marqueeProps} />
             {footerSlot}
             <StickyMobileCTA strings={strings} />

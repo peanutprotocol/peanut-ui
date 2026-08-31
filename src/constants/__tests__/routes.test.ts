@@ -1,6 +1,13 @@
 import fs from 'fs'
 import path from 'path'
-import { DEDICATED_ROUTES, couldBeRecipient, isLocaleSegment, isReservedRoute } from '../routes'
+import {
+    DEDICATED_ROUTES,
+    couldBeRecipient,
+    isLocaleSegment,
+    isPublicRoute,
+    isReservedRoute,
+    isSameRoute,
+} from '../routes'
 
 // Guards against the "/card/foo → invalid recipient" class of bug: every
 // folder that resolves to a real Next.js route under src/app/ must be
@@ -131,5 +138,43 @@ describe('isReservedRoute', () => {
 
     test('does not flag plausible usernames', () => {
         expect(isReservedRoute('/hugo0')).toBe(false)
+    })
+})
+
+describe('payment explorer access gate', () => {
+    test('requires the normal app session in production', () => {
+        expect(isPublicRoute('/dev/payment-graph', false)).toBe(false)
+    })
+
+    test('retains local developer convenience only in development', () => {
+        expect(isPublicRoute('/dev/payment-graph', true)).toBe(true)
+    })
+})
+
+// The native build sets trailingSlash: true, so usePathname() yields '/home/'
+// while nav hrefs are written '/home'. A bare === lost every active state there.
+describe('isSameRoute', () => {
+    it('matches an exact path', () => {
+        expect(isSameRoute('/home', '/home')).toBe(true)
+        expect(isSameRoute('/support', '/support')).toBe(true)
+    })
+
+    it('matches across a trailing slash on either side', () => {
+        expect(isSameRoute('/home/', '/home')).toBe(true)
+        expect(isSameRoute('/home', '/home/')).toBe(true)
+        expect(isSameRoute('/home/', '/home/')).toBe(true)
+    })
+
+    it('does not match a different route', () => {
+        expect(isSameRoute('/history', '/home')).toBe(false)
+        expect(isSameRoute('/home/settings', '/home')).toBe(false)
+        expect(isSameRoute('/add-money', '/withdraw')).toBe(false)
+    })
+
+    it('keeps root distinct and tolerates a null pathname', () => {
+        expect(isSameRoute('/', '/')).toBe(true)
+        expect(isSameRoute('/', '/home')).toBe(false)
+        expect(isSameRoute(null, '/home')).toBe(false)
+        expect(isSameRoute(undefined, '/home')).toBe(false)
     })
 })

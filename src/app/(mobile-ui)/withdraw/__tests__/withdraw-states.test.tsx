@@ -95,6 +95,10 @@ jest.mock('@/context/tokenSelector.context', () => ({
 jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v ?? '0'),
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    // real implementation: same-origin paths pass, everything else is rejected
+    sanitizeRedirectURL: jest.fn((url: string) =>
+        url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
+    ),
 }))
 
 const mockGetCountryFromAccount = jest.fn(
@@ -189,6 +193,22 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
             {props.children}
         </button>
     ),
+}))
+
+// Native (?country=…) views are React.lazy'd. These stubs count mounts so the
+// remount regression below can see a torn-down + rebuilt subtree.
+const mockBankViewMounts = jest.fn()
+jest.mock('../_withdraw-bank', () => {
+    const NativeBankView = () => {
+        React.useEffect(() => mockBankViewMounts(), [])
+        return <div data-testid="native-bank-view" />
+    }
+    return { __esModule: true, default: NativeBankView }
+})
+
+jest.mock('@/components/AddWithdraw/AddWithdrawCountriesList', () => ({
+    __esModule: true,
+    default: () => <div data-testid="native-countries-list" />,
 }))
 
 jest.mock('@/components/AddWithdraw/AddWithdrawRouterView', () => ({
@@ -297,6 +317,30 @@ describe('GROUP 1: Method Selection', () => {
 
         fireEvent.click(screen.getByTestId('router-view-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    // The exchange-rate widget's "Try it!" CTA lands here for users with a
+    // balance; back used to reset to /home instead of the widget they came from.
+    test('Back honours ?returnTo when the flow was entered from another screen', () => {
+        renderWithdraw({ returnTo: '/profile/exchange-rate?from=USD&to=EUR' })
+
+        fireEvent.click(screen.getByTestId('router-view-back'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
+        expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+    })
+
+    test('Back ignores an off-origin ?returnTo and still resets to /home', () => {
+        renderWithdraw({ returnTo: 'https://evil.example/phish' })
+
+        fireEvent.click(screen.getByTestId('router-view-back'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    test('Back from the send flow still goes to /send, ignoring ?returnTo', () => {
+        renderWithdraw({ method: 'bank', returnTo: '/profile/exchange-rate' })
+
+        fireEvent.click(screen.getByTestId('router-view-back'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/send')
     })
 
     test('Back from bank send method selection navigates to /send', () => {
@@ -589,5 +633,42 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         fireEvent.click(screen.getByText('Continue'))
         expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/withdraw/manteca'))
         expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('country=argentina'))
+    })
+})
+
+// ============================================================
+// GROUP 7: Native sub-views (?country=…) must stay on screen
+// ============================================================
+describe('GROUP 7: Native sub-view mounting', () => {
+    // React.lazy() called inside the render body hands back a fresh, unresolved
+    // lazy every time, so each re-render re-suspended: React hid the rendered
+    // view and showed the Suspense fallback (null) until the import re-resolved.
+    // The user saw the withdraw screen blank and load a second time.
+    const isHidden = (el: HTMLElement) => {
+        let node: HTMLElement | null = el
+        while (node) {
+            if (node.style?.display === 'none') return true
+            node = node.parentElement
+        }
+        return false
+    }
+
+    test('the lazy bank view survives a re-render without blanking', async () => {
+        const { rerender } = renderWithdraw({ country: 'us', view: 'bank' })
+        expect(await screen.findByTestId('native-bank-view')).toBeInTheDocument()
+        expect(mockBankViewMounts).toHaveBeenCalledTimes(1)
+
+        const queryClient = createQueryClient()
+        rerender(
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <WithdrawPage />
+                </QueryClientProvider>
+            </IntlWrapper>
+        )
+
+        // synchronously after the re-render — no awaiting a second import
+        expect(isHidden(screen.getByTestId('native-bank-view'))).toBe(false)
+        expect(mockBankViewMounts).toHaveBeenCalledTimes(1)
     })
 })

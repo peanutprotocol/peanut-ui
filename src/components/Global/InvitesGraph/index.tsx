@@ -33,7 +33,10 @@
 import { useTranslations } from 'next-intl'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
+import { openExternalUrl } from '@/utils/capacitor'
+import { profileUrl } from '@/utils/native-routes'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { pointsApi } from '@/services/points'
 import { inferBankAccountType } from '@/utils/bridge.utils'
@@ -155,8 +158,6 @@ interface BaseProps {
 interface FullModeProps extends BaseProps {
     /** Admin API key to fetch full graph */
     apiKey: string
-    /** Password for payment mode authentication */
-    password?: string
     /** Graph mode: 'full' shows all features, 'payment' shows P2P only (no invites, fixed 120-day window) */
     mode?: GraphMode
     /** Close/back button handler */
@@ -191,6 +192,7 @@ const DEFAULT_TOP_NODES = 5000
 
 export default function InvitesGraph(props: InvitesGraphProps) {
     const t = useTranslations('global')
+    const router = useRouter()
     const {
         width,
         height,
@@ -890,13 +892,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // API only supports 'full' | 'payment' modes (user mode uses different endpoint)
             const apiMode = mode === 'payment' ? 'payment' : 'full'
             // Pass topNodes for both modes - payment mode now supports it via Performance button
-            // Pass password for payment mode authentication
             // Pass includeNewDays so backend always includes recent signups regardless of topNodes
             const result = await pointsApi.getInvitesGraph(props.apiKey, {
                 mode: apiMode,
                 topNodes: topNodes > 0 ? topNodes : undefined,
                 includeNewDays: displaySettingsRef.current.activityFilter.activityDays,
-                password: mode === 'payment' ? props.password : undefined,
             })
 
             if (result.success && result.data) {
@@ -946,7 +946,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     limit: externalNodesConfig.limit, // User-configurable limit
                     types: ['WALLET', 'BANK', 'MERCHANT'], // Fetch all types, filter client-side
                     topNodes: topNodes > 0 ? topNodes : undefined, // Match graph's top-N filter
-                    password: apiMode === 'payment' ? props.password : undefined, // Password for payment mode
                 })
 
                 if (result.success && result.data) {
@@ -1564,25 +1563,30 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 if (node.externalType === 'WALLET') {
                     // Wallet → Arbiscan
-                    window.open(`https://arbiscan.io/address/${externalId}`, '_blank')
+                    openExternalUrl(`https://arbiscan.io/address/${externalId}`).catch((e) =>
+                        console.warn('failed to open explorer link:', e)
+                    )
                 } else if (node.externalType === 'MERCHANT') {
                     // Merchant → Google search
-                    window.open(`https://www.google.com/search?q=${encodeURIComponent(node.label)}`, '_blank')
+                    openExternalUrl(`https://www.google.com/search?q=${encodeURIComponent(node.label)}`).catch((e) =>
+                        console.warn('failed to open search link:', e)
+                    )
                 }
                 // BANK → Do nothing (no useful URL for IBAN/CLABE/ACH)
                 return
             }
 
-            // User mode: Navigate to user profile in new tab
+            // User node → profile. window.open('/<user>','_blank') was dead on
+            // iOS (no popup support) and a full app reset on Android.
             if (isMinimal && node.username) {
-                window.open(`/${node.username}`, '_blank')
+                router.push(profileUrl(node.username))
                 return
             }
 
             // Full/Payment mode: User node → Select (camera follows)
             setSelectedUserId(node.id)
         },
-        [isMinimal]
+        [isMinimal, router]
     )
 
     // Right-click selects the node (camera follows)

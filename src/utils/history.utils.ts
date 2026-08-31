@@ -10,7 +10,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { shareableUrl } from '@/utils/url.utils'
 import { type StatusPillType } from '@/components/Global/StatusPill'
 import { type TransactionDirection } from '@/components/TransactionDetails/transaction-types'
-import { FIAT_RAIL_KINDS } from '@/components/TransactionDetails/transaction-predicates'
+import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -52,6 +52,7 @@ export enum EHistoryStatus {
     refunded = 'refunded',
     canceled = 'canceled', // historical DEPRECATED_SIMPLEFI rows, canceled with only one l
     expired = 'expired',
+    OPEN = 'OPEN',
     CLOSED = 'CLOSED',
 }
 
@@ -244,11 +245,11 @@ export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean
 export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
     const kind = transaction.extraDataForDrawer?.kind
     // Kinds whose receipt URL is the dedicated /receipt page (shareable,
-    // OG-augmented): the fiat rails + SEND_LINK. SEND_LINK is the deliberate
-    // extra over FIAT_RAIL_KINDS — sendlinks get a receipt page too, but their
-    // share *button* is gated by the txHash branch in useReceiptViewModel, not
-    // hasShareableReceipt. All other kinds fall back to the stamped link.
-    if (kind && (kind === 'SEND_LINK' || FIAT_RAIL_KINDS.has(kind))) {
+    // OG-augmented). SEND_LINK is the deliberate extra over FIAT_RAIL_KINDS —
+    // sendlinks get a receipt page too, but their share *button* is gated by
+    // the txHash branch in useReceiptViewModel, not hasShareableReceipt. All
+    // other kinds fall back to the stamped link.
+    if (kind && hasReceiptPage(transaction)) {
         return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`)
     }
     if (transaction.extraDataForDrawer?.link) {
@@ -304,13 +305,14 @@ const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
 // build error, not a silent `''` at runtime.
 const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
     send: '-',
-    request_received: '-',
     withdraw: '-',
     bank_withdraw: '-',
     bank_claim: '-',
     claim_external: '-',
     qr_payment: '-',
     receive: '+',
+    // a received request is money coming TO the viewer (they created it)
+    request_received: '+',
     request_sent: '+',
     add: '+',
     bank_deposit: '+',

@@ -1,4 +1,5 @@
-import * as Sentry from '@sentry/nextjs'
+import type { SeverityLevel } from '@sentry/nextjs'
+import * as Sentry from '@/utils/sentry-lazy'
 
 import { type JSONValue } from '../interfaces/interfaces'
 import { reportNetworkError } from './connectivity'
@@ -42,6 +43,10 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // to the user via the cooldown modal + floating timer. Normal UX state,
     // not an error; would otherwise flood Sentry on every retry.
     { pattern: /\/rain\/cards\/withdraw\/prepare/, statuses: [425] },
+    // /send-links/{pubKey} 404 = link not yet indexed (DB replication lag) or a
+    // mistyped/withdrawn link — both expected, surfaced by the polling/claim UI.
+    // The claim-success poller hits this every second until the claim lands.
+    { pattern: /\/send-links\/0x[0-9a-fA-F]{40}/, statuses: [404] },
 ]
 
 /**
@@ -361,7 +366,7 @@ export const resolveDefaultTimeoutMs = (
 
 const DEFAULT_TIMEOUT_MS = resolveDefaultTimeoutMs(typeof window === 'undefined')
 
-const getErrorLevelFromStatus = (status: number): Sentry.SeverityLevel => {
+const getErrorLevelFromStatus = (status: number): SeverityLevel => {
     if (status >= 500) return 'error'
     if (status >= 400) return 'warning'
     return 'info'
@@ -395,15 +400,31 @@ const sanitizeHeaders = (headers: RequestInit['headers']): Record<string, unknow
 }
 
 // Sanitize URL for fingerprinting by replacing IDs with placeholders
-const sanitizeUrl = (url: string) => {
+export const sanitizeUrl = (url: string) => {
     return (
         url
             // Replace numeric IDs in path
             .replace(/\/\d+(?=\/|$)/g, '/{id}')
             // Replace UUIDs in path
             .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi, '/{uuid}')
-            // Replace numeric IDs in query params
-            .replace(/([?&][^=&]*=)\d+/g, '$1{id}')
+            // Replace numeric IDs in query params. Anchored to the end of the
+            // value: unanchored, this ate the leading 0 of an 0x-prefixed
+            // address and left `{id}xaf88d065`, so every wallet still got its
+            // own fingerprint AND the value was unreadable.
+            .replace(/([?&][^=&]*=)\d+(?=&|$)/g, '$1{id}')
+            /*
+             * Then every remaining query value. Normalizing only the numeric ones
+             * left each enum value of a param as its own Sentry issue: one 429 on
+             * /bridge/exchange-rate was three issues (accountType=iban / clabe / gb,
+             * PEANUT-UI-SGN / SQ4 / SSA) for a single upstream fault. The param
+             * names still separate genuinely different calls, and the raw URL stays
+             * on the event as `extra.url`.
+             *
+             * The lookahead skips values the numeric pass already replaced, so
+             * fingerprints that were correct before this change keep grouping into
+             * their existing issue instead of forking a new one.
+             */
+            .replace(/([?&][^=&]*=)(?!\{id\})[^&]*/g, '$1{value}')
     )
 }
 
@@ -449,38 +470,6 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
     })
 }
 
-// One Sentry note per session when the native fallback rescues a request —
-// enough to measure how often the WebView path is being rejected without
-// producing an event per API call.
-let nativeFallbackReported = false
-const noteNativeFallback = (url: string, cause: unknown): void => {
-    if (nativeFallbackReported) return
-    nativeFallbackReported = true
-    const causeError = cause instanceof Error ? cause : null
-    Sentry.captureMessage('native http fallback engaged', {
-        level: 'warning',
-        tags: { transport: 'cap-native-http' },
-        extra: {
-            url: sanitizeUrl(url),
-            causeName: causeError?.name,
-            causeMessage: causeError?.message,
-        },
-    })
-}
-
-// One Sentry note per session when a tokenless session runs on the OS HTTP
-// client — measures how many users still sit on legacy cookie-jar auth.
-let legacyCookieTransportReported = false
-const noteLegacyCookieTransport = (url: string): void => {
-    if (legacyCookieTransportReported) return
-    legacyCookieTransportReported = true
-    Sentry.captureMessage('legacy-cookie native transport engaged', {
-        level: 'info',
-        tags: { transport: 'cap-native-http', authMode: 'legacy-cookie' },
-        extra: { url: sanitizeUrl(url) },
-    })
-}
-
 export type FetchWithSentryOptions = RequestInit & { preferNativeTransport?: boolean }
 
 export const fetchWithSentry = async (
@@ -503,7 +492,6 @@ export const fetchWithSentry = async (
     if (preferNativeTransport && canUseNativeHttp(url, options)) {
         try {
             const response = await nativeHttpRequest(url, options, timeoutMs)
-            noteLegacyCookieTransport(url)
             await reportNonOkResponse(url, options, response)
             return response
         } catch {
@@ -553,7 +541,6 @@ export const fetchWithSentry = async (
         if (canUseNativeHttp(url, options)) {
             try {
                 const response = await nativeHttpRequest(url, options, timeoutMs)
-                noteNativeFallback(url, error)
                 await reportNonOkResponse(url, options, response)
                 return response
             } catch {

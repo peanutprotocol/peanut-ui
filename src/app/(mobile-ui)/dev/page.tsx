@@ -17,8 +17,8 @@ export default function DevToolsPage() {
             icon: 'globe-lock',
         },
         {
-            name: 'Payment Graph',
-            description: 'P2P payment flow visualization',
+            name: 'Payment Network Explorer',
+            description: 'Live P2P payment relationships — team-gated, shows real usernames, points and KYC regions',
             path: '/dev/payment-graph',
             icon: 'dollar',
         },
@@ -100,6 +100,13 @@ export default function DevToolsPage() {
             name: 'Shake test',
             description: 'Tunes the shake-and-hold gesture — intensity, duration, thresholds.',
             path: '/dev/shake-test',
+            icon: 'info',
+        },
+        {
+            name: 'WebAuthn ceremony log',
+            description:
+                'Every passkey sheet this app session requested, tagged with the call path that asked — for diagnosing repeat prompts on a device.',
+            path: '/dev/ceremony-log',
             icon: 'info',
         },
         {

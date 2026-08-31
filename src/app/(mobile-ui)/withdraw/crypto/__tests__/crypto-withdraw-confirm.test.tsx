@@ -25,8 +25,10 @@ jest.mock('next/navigation', () => ({
 }))
 
 const mockCaptureMessage = jest.fn()
+const mockCaptureException = jest.fn()
 jest.mock('@sentry/nextjs', () => ({
     captureMessage: (...args: unknown[]) => mockCaptureMessage(...args),
+    captureException: (...args: unknown[]) => mockCaptureException(...args),
 }))
 
 const mockPosthogCapture = jest.fn()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { sendUrl } from '@/utils/native-routes'
 import NavHeader from '@/components/Global/NavHeader'
 import { ActionListCard } from '@/components/ActionListCard'
@@ -17,14 +17,11 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { ContactsListSkeleton } from '@/components/Common/ContactsListSkeleton'
 import { useTranslations } from 'next-intl'
 
-export default function ContactsView() {
+export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const t = useTranslations('send')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const router = useRouter()
-    const searchParams = useSearchParams()
-    const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
-    const isSendingToContacts = searchParams.get('view') === 'contacts'
     const [searchQuery, setSearchQuery] = useState('')
     const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
@@ -64,16 +61,6 @@ export default function ContactsView() {
         router.push(`${window.location.pathname}?view=link`)
     }
 
-    const handlePrev = () => {
-        // when in sub-views (link or contacts), go back to base send page
-        // otherwise, go to home
-        if (isSendingByLink || isSendingToContacts) {
-            router.push('/send')
-        } else {
-            router.push('/home')
-        }
-    }
-
     const handleLinkCtaClick = () => {
         redirectToSendByLink()
     }
@@ -92,7 +79,7 @@ export default function ContactsView() {
     if (!!isError) {
         return (
             <div className="flex min-h-[inherit] flex-col space-y-8">
-                <NavHeader title={tNav('send')} onPrev={handlePrev} />
+                <NavHeader title={tNav('send')} onPrev={onPrev} />
                 <div className="flex flex-1 items-center justify-center">
                     <EmptyState
                         title={t('contacts.errorTitle')}
@@ -122,7 +109,7 @@ export default function ContactsView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col space-y-8">
-            <NavHeader title={tNav('send')} onPrev={handlePrev} />
+            <NavHeader title={tNav('send')} onPrev={onPrev} />
 
             {hasContacts ? (
                 <div className="space-y-4">
