@@ -294,6 +294,23 @@ jobs:
                       -exportPath build/ios \
                       -exportOptionsPlist /tmp/ExportOptions.plist
 
+            - name: Upload dSYMs to Sentry
+              # Without debug symbols every native crash arrives as hex offsets.
+              # `uploadSymbols` in ExportOptions.plist goes to App Store Connect only —
+              # Sentry sunset its ASC fetch in 2024. Needs a SENTRY_AUTH_TOKEN repo
+              # secret (org peanut-c34d84c05, project peanut-ui, scope project:releases).
+              # Until it exists this step warns and the release still ships.
+              env:
+                  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+                  SENTRY_ORG: peanut-c34d84c05
+                  SENTRY_PROJECT: peanut-ui
+              run: |
+                  if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+                      echo "::warning::SENTRY_AUTH_TOKEN not set — dSYMs not uploaded; native iOS crashes will be unsymbolicated in Sentry"
+                      exit 0
+                  fi
+                  pnpm dlx @sentry/cli@2.39.1 debug-files upload build/ios/App.xcarchive/dSYMs
+
             - name: Verify push entitlements + Sentry DSN in exported IPA
               run: |
                   unzip -q build/ios/App.ipa -d /tmp/ipa-check
