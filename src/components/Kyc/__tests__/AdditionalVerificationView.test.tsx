@@ -12,7 +12,15 @@
 import React from 'react'
 import { screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
+import type { NextAction } from '@/types/capabilities'
 import { AdditionalVerificationView } from '../AdditionalVerificationView'
+
+const hostedAction: NextAction = {
+    key: 'bridge-hosted',
+    kind: 'bridge-hosted',
+    purpose: 'bridge-additional-verification',
+    requirementKey: 'kyc_approval',
+}
 
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 const mockStartHosted = jest.fn<Promise<{ url?: string; error?: string }>, []>()
@@ -45,14 +53,21 @@ jest.mock(
     }),
     { virtual: true }
 )
+const mockRouterReplace = jest.fn()
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+    useRouter: () => ({ push: jest.fn(), replace: mockRouterReplace, back: jest.fn() }),
+}))
+let mockNextActions: NextAction[] = []
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ nextActions: mockNextActions }),
 }))
 
 const startVerification = () => fireEvent.click(screen.getByRole('button', { name: /i have these, start/i }))
 
 describe('AdditionalVerificationView', () => {
     beforeEach(() => {
+        mockNextActions = [hostedAction]
+        mockRouterReplace.mockReset()
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(null)
         mockStartHosted.mockReset()
@@ -238,6 +253,45 @@ describe('AdditionalVerificationView', () => {
         // so a later real return refreshes again.
         document.dispatchEvent(new Event('visibilitychange'))
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(2))
+    })
+
+    it('leaves the screen once the task clears — the ONLY signal the check passed', async () => {
+        // Nothing else reports success: the ~4s auto-refresh does not run for a
+        // requires-info rail, so the refetch on return is what clears the task.
+        // The card this replaced got the exit for free by unmounting; a route
+        // has to act on it, or the user sits on a CTA whose only outcome is 403.
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        const { rerender } = render(<AdditionalVerificationView />)
+
+        startVerification()
+        await waitFor(() => expect(mockReservedTab.location.href).toContain('withpersona'))
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+
+        mockNextActions = []
+        rerender(<AdditionalVerificationView />)
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification'))
+    })
+
+    it('an empty capability read on a COLD mount does not bounce the user off the screen', () => {
+        // Capabilities can read empty for a beat before the user query lands.
+        // Only a return from the vendor is evidence the task is done.
+        mockNextActions = []
+        render(<AdditionalVerificationView />)
+
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: /i have these, start/i })).toBeEnabled()
+    })
+
+    it('announces a launch failure to screen readers instead of leaving focus on a dead CTA', async () => {
+        mockStartHosted.mockResolvedValue({ error: 'Action not allowed for this user' })
+        render(<AdditionalVerificationView />)
+
+        startVerification()
+        // Scoped by testid, not by role: the single-session banner is an
+        // `attention` Notification, which the DS also gives role="alert".
+        const alert = await screen.findByTestId('hosted-start-error')
+        expect(alert).toHaveAttribute('role', 'alert')
+        expect(alert).toHaveTextContent(/couldn't start the verification/i)
     })
 
     it('a browserFinished listener resolving AFTER cleanup removes itself', async () => {
