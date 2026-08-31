@@ -15,6 +15,9 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
 
+const capture = jest.fn()
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
+
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => true),
     getPlatform: jest.fn(() => 'android-native'),
@@ -136,5 +139,30 @@ describe('launch-url replay guard', () => {
         renderHook(() => useNativeAppLinks())
 
         await waitFor(() => expect(push).toHaveBeenCalledWith('/claim?i=unhandled'))
+    })
+})
+
+describe('deep-link telemetry redaction', () => {
+    // A claim link carries its password in `#p=<password>`, and
+    // deepLinkToNativePath deliberately preserves the fragment so the claim page
+    // can read it. That password derives the private claim key, so it must never
+    // reach analytics — anyone with PostHog access could otherwise claim the funds.
+    it('never sends a claim password or query to analytics', async () => {
+        launchUrl = 'https://peanut.me/claim?c=8453&v=v4.2&i=42#p=SUPERSECRET'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(capture).toHaveBeenCalled())
+        const payloads = JSON.stringify(capture.mock.calls)
+        expect(payloads).not.toContain('SUPERSECRET')
+        expect(payloads).not.toContain('#p=')
+        expect(payloads).not.toContain('c=8453')
+
+        const [, props] = capture.mock.calls.find(([name]) => name === 'native_link_received') as [
+            string,
+            Record<string, unknown>,
+        ]
+        expect(props.raw).toBe('https://peanut.me/claim')
+        expect(props.mapped).toBe('/claim')
     })
 })

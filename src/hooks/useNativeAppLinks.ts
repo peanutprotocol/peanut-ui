@@ -61,11 +61,21 @@ export function useNativeAppLinks() {
 
         // Until this instrumentation, no deep link left any trace unless it
         // threw — "links don't work" was undiagnosable from telemetry.
+        //
+        // Path only. A claim link carries its password in `#p=<password>`, which
+        // deepLinkToNativePath deliberately preserves (native-routes.ts) because
+        // the claim page needs it — and that password derives the private claim
+        // key, so anyone reading analytics could claim the funds. The query is
+        // dropped for the same reason (charge and request ids). Which route was
+        // opened and whether it navigated is the whole diagnostic value.
+        const redactLink = <T extends string | null>(value: T): T =>
+            (value === null ? value : value.split('#')[0].split('?')[0]) as T
+
         const captureLink = (source: string, raw: string, mapped: string | null, outcome: string) =>
             posthog.capture('native_link_received', {
                 source,
-                raw,
-                mapped,
+                raw: redactLink(raw),
+                mapped: redactLink(mapped),
                 outcome,
                 dropped: outcome === 'dropped',
             })
