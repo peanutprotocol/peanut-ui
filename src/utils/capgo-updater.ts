@@ -182,6 +182,24 @@ export interface OtaChannelStatus {
     channel: string | null
     bundleVersion: string | null
     deviceId: string | null
+    // The exit is only finished when the store bundle is the one running: the
+    // channel alone cannot say so, and a half-finished exit leaves a device on
+    // beta code with a default channel.
+    onBuiltinBundle: boolean
+}
+
+// A leave that started but was never confirmed. Written before the channel is
+// cleared, because after that the device looks like it is on the default channel
+// while it still runs the beta bundle — invisible, and unreachable by any
+// production OTA.
+const PENDING_EXIT_KEY = 'capgoPendingBetaExit'
+
+export function hasPendingBetaExit(): boolean {
+    return readStoredValue(PENDING_EXIT_KEY) === '1'
+}
+
+export function clearPendingBetaExit(): void {
+    removeStoredValue(PENDING_EXIT_KEY)
 }
 
 // Capgo rejects setChannel() unless the channel allows self-assignment. That is
@@ -219,6 +237,7 @@ export async function readOtaChannelStatus(): Promise<OtaChannelStatus> {
         channel: channel?.channel ?? null,
         bundleVersion: current?.bundle?.version ?? null,
         deviceId: device?.deviceId ?? null,
+        onBuiltinBundle: current?.bundle?.id === 'builtin',
     }
 }
 
@@ -270,6 +289,9 @@ export class OtaChannelUnknownError extends Error {}
 export async function leaveBetaOtaChannel(): Promise<void> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     return queueOtaWork(async () => {
+        // Before the unset, not after: everything below can fail, and once the
+        // channel is cleared nothing else records that an exit is owed.
+        writeStoredValue(PENDING_EXIT_KEY, '1')
         await CapacitorUpdater.unsetChannel({})
 
         // getChannel() asks the backend what it will actually serve, and only a
@@ -285,9 +307,13 @@ export async function leaveBetaOtaChannel(): Promise<void> {
 
         try {
             await CapacitorUpdater.reset()
+            // Usually unreachable — reset() reloads the app. The next launch
+            // clears the marker instead, once the builtin bundle is running.
+            clearPendingBetaExit()
         } catch {
             try {
                 await CapacitorUpdater.reset()
+                clearPendingBetaExit()
             } catch (err) {
                 throw new OtaResetFailedError(err instanceof Error ? err.message : String(err ?? ''))
             }

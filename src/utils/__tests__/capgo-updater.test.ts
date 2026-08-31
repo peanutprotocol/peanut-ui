@@ -90,6 +90,10 @@ it('restarts the streak when the failure message changes', async () => {
 describe('beta channel opt-in', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        // clearAllMocks wipes calls, not implementations: a rejection set by one
+        // test leaks into the next one that expects the happy path.
+        mockUpdater.reset.mockResolvedValue(undefined)
+        mockUpdater.unsetChannel.mockResolvedValue(undefined)
         mockUpdater.setChannel.mockResolvedValue({ status: 'ok' })
         mockUpdater.getChannel.mockResolvedValue({ channel: null, status: 'default' })
         mockUpdater.getLatest.mockRejectedValue(new Error('No new version available'))
@@ -230,6 +234,30 @@ describe('beta channel opt-in', () => {
         arrange()
         await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelUnknownError)
         expect(mockUpdater.reset).not.toHaveBeenCalled()
+    })
+
+    // The state this marker exists for: channel cleared, beta bundle still running,
+    // and — for a tester outside the cohort — no card left to retry from.
+    it('records the owed exit before it clears anything', async () => {
+        const { leaveBetaOtaChannel, hasPendingBetaExit } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeTruthy()
+        expect(hasPendingBetaExit()).toBe(true)
+    })
+
+    it('keeps the marker when the reset itself fails', async () => {
+        const { leaveBetaOtaChannel, hasPendingBetaExit } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockResolvedValue({ channel: '', status: 'default' })
+        mockUpdater.reset.mockRejectedValue(new Error('reset failed'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeTruthy()
+        expect(hasPendingBetaExit()).toBe(true)
+    })
+
+    it('clears the marker on a reset that resolves without reloading', async () => {
+        const { leaveBetaOtaChannel, hasPendingBetaExit } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockResolvedValue({ channel: '', status: 'default' })
+        await leaveBetaOtaChannel()
+        expect(hasPendingBetaExit()).toBe(false)
     })
 
     it('resets once Capgo confirms no channel is assigned', async () => {

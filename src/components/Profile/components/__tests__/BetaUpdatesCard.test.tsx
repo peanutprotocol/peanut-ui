@@ -27,7 +27,7 @@ jest.mock('@/hooks/useOtaChannel', () => ({ useOtaChannel: () => channel.current
 const setup = (overrides: Partial<UseOtaChannel> = {}) => {
     channel.current = {
         supported: true,
-        status: { channel: null, bundleVersion: '1.1.0', deviceId: 'abc-123' },
+        status: { channel: null, bundleVersion: '1.1.0', deviceId: 'abc-123', onBuiltinBundle: false },
         isBeta: false,
         busy: false,
         setBeta: jest.fn().mockResolvedValue('staged' satisfies OtaChannelSwitchResult),
@@ -58,7 +58,10 @@ it('stays hidden for accounts outside the internal cohort', () => {
 // with it: the device is already on staging, and nothing else can bring it back.
 it('keeps the exit reachable for a device already on the channel', async () => {
     flags.enabled = []
-    setup({ isBeta: true, status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123' } })
+    setup({
+        isBeta: true,
+        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },
+    })
     const toggle = screen.getByRole('switch')
     expect(toggle).toBeEnabled()
     fireEvent.click(toggle)
@@ -68,7 +71,7 @@ it('keeps the exit reachable for a device already on the channel', async () => {
 it('says the app is still on beta code when the reset half of the exit fails', async () => {
     setup({
         isBeta: true,
-        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123' },
+        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },
         ...switching('left-still-beta'),
     })
     fireEvent.click(screen.getByRole('switch'))
@@ -81,7 +84,7 @@ it('says the app is still on beta code when the reset half of the exit fails', a
 it('confirms the exit when the app did not reload', async () => {
     setup({
         isBeta: true,
-        status: { channel: 'staging', bundleVersion: '1.1.0', deviceId: 'abc-123' },
+        status: { channel: 'staging', bundleVersion: '1.1.0', deviceId: 'abc-123', onBuiltinBundle: false },
         ...switching('left'),
     })
     fireEvent.click(screen.getByRole('switch'))
@@ -91,7 +94,7 @@ it('confirms the exit when the app did not reload', async () => {
 it('sends dashboard-assigned testers to an admin, since the app cannot unassign them', async () => {
     setup({
         isBeta: true,
-        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123' },
+        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },
         ...switching('left-override'),
     })
     fireEvent.click(screen.getByRole('switch'))
@@ -101,7 +104,7 @@ it('sends dashboard-assigned testers to an admin, since the app cannot unassign 
 it('keeps the switch on when the exit could not be confirmed', async () => {
     setup({
         isBeta: true,
-        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123' },
+        status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },
         ...switching('left-unconfirmed'),
     })
     fireEvent.click(screen.getByRole('switch'))

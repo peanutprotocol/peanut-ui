@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { isNativeBridge } from '@/utils/capacitor'
 import {
     BETA_OTA_CHANNEL,
+    clearPendingBetaExit,
+    hasPendingBetaExit,
     OtaChannelClosedError,
     OtaChannelOverrideError,
     OtaChannelUnknownError,
@@ -24,7 +26,8 @@ import {
  * - `left-override`: Capgo still routes this device to beta — someone assigned
  *   it from the dashboard, and only the dashboard can take it back
  * - `left-unconfirmed`: Capgo could not be reached to confirm the exit, so the
- *   device is still on the beta bundle and the switch stays on
+ *   device is still on the beta bundle and the switch stays on, backed by a
+ *   stored marker that survives a restart
  * - `closed`: the channel does not accept self-assignment
  * - `failed`: the switch itself failed (offline, rate limited, misconfigured)
  */
@@ -57,9 +60,17 @@ export function useOtaChannel(): UseOtaChannel {
     const [status, setStatus] = useState<OtaChannelStatus | null>(null)
     const [busy, setBusy] = useState(false)
 
+    const [pendingExit, setPendingExit] = useState(false)
+
     const refresh = useCallback(async () => {
         const { readOtaChannelStatus } = await import('@/utils/capgo-updater')
-        setStatus(await readOtaChannelStatus())
+        const next = await readOtaChannelStatus()
+        setStatus(next)
+        // An unfinished exit is only over once the store bundle is the one
+        // running; until then the device is on beta code whatever the channel says.
+        const owed = hasPendingBetaExit() && !(next.onBuiltinBundle && next.channel !== BETA_OTA_CHANNEL)
+        if (hasPendingBetaExit() && !owed) clearPendingBetaExit()
+        setPendingExit(owed)
     }, [])
 
     // isNativeBridge() reads window, so it can only run after hydration.
@@ -102,5 +113,9 @@ export function useOtaChannel(): UseOtaChannel {
         [refresh]
     )
 
-    return { supported, status, isBeta: status?.channel === BETA_OTA_CHANNEL, busy, setBeta }
+    // A pending exit counts as being on beta: the bundle is still the beta one,
+    // and reading the channel alone would hide the card — and with it the only
+    // way to finish leaving — from anyone outside the cohort.
+    const isBeta = status?.channel === BETA_OTA_CHANNEL || pendingExit
+    return { supported, status, isBeta, busy, setBeta }
 }

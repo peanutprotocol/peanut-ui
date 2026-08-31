@@ -359,7 +359,11 @@ it re-reads the effective channel and says an admin has to remove the override r
 than resetting into an exit that undoes itself on the next launch — but the removal is
 dashboard-side. Self-assignment is the cleaner enrolment path for that reason. When Capgo
 cannot be reached to answer that question, the switch refuses to reset at all and asks the
-tester to retry online: only a confirmed answer licenses the reset.
+tester to retry online: only a confirmed answer licenses the reset. That attempt is recorded
+in local storage **before** the channel is cleared, and the switch keeps reading as "on beta"
+until the store bundle is actually the one running — otherwise a device whose channel was
+cleared but whose bundle was not looks settled while running beta code that no production OTA
+can replace, and the card that offers the retry would disappear for anyone outside the cohort.
 
 ---
 
