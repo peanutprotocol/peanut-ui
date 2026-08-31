@@ -61,6 +61,21 @@ describe('post-auth redirect consumers', () => {
         expect(getRedirectUrl()).toBeNull()
     })
 
+    it('finalizing the account does not navigate — the account-ready screen owns the redirect', async () => {
+        mockAddAccount.mockResolvedValue(undefined)
+        saveToLocalStorage('redirect', CAMPAIGN_REDIRECT)
+        const { result } = renderHook(() => useAccountSetup())
+
+        await act(async () => {
+            await expect(result.current.finalizeAccountSetup('0xabc')).resolves.toBe(true)
+        })
+
+        expect(mockAddAccount).toHaveBeenCalled()
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        // the redirect is still queued for the CTA to consume
+        expect(getRedirectUrl()).toBe(CAMPAIGN_REDIRECT)
+    })
+
     it('login cannot resurrect a campaign redirect after an explicit financial route consumed it', async () => {
         saveToLocalStorage('redirect', CAMPAIGN_REDIRECT)
         const first = renderHook(() => useLogin())

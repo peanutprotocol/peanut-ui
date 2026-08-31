@@ -2,7 +2,9 @@ import * as Sentry from '@sentry/nextjs'
 import { runCanary, scheduleTransportCanary } from '../native-canary'
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
-jest.mock('../capacitor', () => ({ isNativeBridge: jest.fn(() => true) }))
+// isCapacitor gates the binary-version read in app-version.ts, which the
+// canary tags its Sentry event with
+jest.mock('../capacitor', () => ({ isNativeBridge: jest.fn(() => true), isCapacitor: jest.fn(() => true) }))
 jest.mock('../native-auth-capture', () => ({ getUnderlyingFetch: () => null }))
 jest.mock('../native-http', () => ({ nativeHttpRequest: jest.fn() }))
 jest.mock('@capacitor/app', () => ({ App: { getInfo: async () => ({ version: '1.0.57', build: '412' }) } }), {

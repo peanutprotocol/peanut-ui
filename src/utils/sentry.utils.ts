@@ -2,7 +2,8 @@ import type { SeverityLevel } from '@sentry/nextjs'
 import * as Sentry from '@/utils/sentry-lazy'
 
 import { type JSONValue } from '../interfaces/interfaces'
-import { reportNetworkError } from './connectivity'
+import { isMutatingMethod } from '../../sentry.utils'
+import { hasRecentFailure, reportNetworkError } from './connectivity'
 import { canUseNativeHttp, nativeHttpRequest } from './native-http'
 
 /**
@@ -551,7 +552,36 @@ export const fetchWithSentry = async (
         // fetch rejected (timeout / DNS / connection refused) — the request never
         // completed, so flag a connectivity failure. keyed by sanitized url so
         // React Query retries of one slow route dedupe to a single endpoint.
-        reportNetworkError(sanitizeUrl(url))
+        /*
+         * One Sentry event per endpoint per failure window, not one per rejected
+         * request. A device that loses connectivity does not fail once: React
+         * Query retries the route, several mounted hooks fetch it, and any poll
+         * keeps firing — so /home alone produced 5,776 captures from 237 users
+         * in 7d, and the twelve worst-connected users produced 48% of ALL
+         * network volume (~300 events each) with 6-12 in a single minute.
+         *
+         * That is the amplifier, not the failure rate. Reusing the connectivity
+         * window keeps one report per endpoint per outage minute, which is what
+         * an incident actually is; the sliding window is keyed by sanitized url
+         * for exactly this dedupe and is already pruned on read.
+         */
+        const endpoint = sanitizeUrl(url)
+        /*
+         * Mutations are never deduped. The connectivity window is keyed by url
+         * alone — it exists to count distinct failing endpoints for the banner —
+         * and REST puts both verbs on one path, so a failed `GET /charges` poll
+         * would otherwise suppress the `POST /charges` that fails ten seconds
+         * later. That POST is the one failure this whole change exists to keep:
+         * its capture is what `shouldIgnoreError` rescues, and with the capture
+         * skipped the rethrown wrapper is dropped by `alreadyReported` too, so
+         * the user loses money-flow progress and we see nothing.
+         *
+         * Nothing is lost by exempting them: mutations are a small share of
+         * traffic, React Query does not auto-retry them, and each failed one is
+         * a distinct user-visible event rather than a poll repeating itself.
+         */
+        const repeatFailure = !isMutatingMethod(method) && hasRecentFailure(endpoint)
+        reportNetworkError(endpoint)
         // console.info, not error: captureConsoleIntegration would turn an
         // error-level log into a second Sentry event on top of the explicit
         // captures below.
@@ -561,21 +591,23 @@ export const fetchWithSentry = async (
             const timeoutError = new Error(`Request to ${url} timed out after ${timeoutMs}ms`)
 
             const timeoutFeatureTag = getFeatureTag(url)
-            Sentry.withScope((scope) => {
-                scope.setFingerprint(['timeout', sanitizeUrl(url), options.method || 'GET'])
-                if (timeoutFeatureTag) scope.setTag('feature', timeoutFeatureTag)
+            if (!repeatFailure) {
+                Sentry.withScope((scope) => {
+                    scope.setFingerprint(['timeout', sanitizeUrl(url), options.method || 'GET'])
+                    if (timeoutFeatureTag) scope.setTag('feature', timeoutFeatureTag)
 
-                Sentry.captureException(timeoutError, {
-                    level: 'error',
-                    extra: {
-                        url,
-                        method: options.method || 'GET',
-                        timeoutMs,
-                        requestHeaders: sanitizeHeaders(options.headers || {}),
-                        requestBody: sanitizeRequestBody(url, options.body),
-                    },
+                    Sentry.captureException(timeoutError, {
+                        level: 'error',
+                        extra: {
+                            url,
+                            method: options.method || 'GET',
+                            timeoutMs,
+                            requestHeaders: sanitizeHeaders(options.headers || {}),
+                            requestBody: sanitizeRequestBody(url, options.body),
+                        },
+                    })
                 })
-            })
+            }
 
             const userError = new Error('Peanut is taking too long to respond — check your connection and try again.')
             // distinct name from the generic catch below: this path is our own
@@ -602,23 +634,25 @@ export const fetchWithSentry = async (
         }
 
         const networkFeatureTag = getFeatureTag(url)
-        Sentry.withScope((scope) => {
-            // Set fingerprint for network errors
-            scope.setFingerprint(['network-error', sanitizeUrl(url), options.method || 'GET'])
-            if (networkFeatureTag) scope.setTag('feature', networkFeatureTag)
+        if (!repeatFailure) {
+            Sentry.withScope((scope) => {
+                // Set fingerprint for network errors
+                scope.setFingerprint(['network-error', sanitizeUrl(url), options.method || 'GET'])
+                if (networkFeatureTag) scope.setTag('feature', networkFeatureTag)
 
-            Sentry.captureException(error, {
-                extra: {
-                    url,
-                    method: options.method || 'GET',
-                    requestHeaders: sanitizeHeaders(options.headers || {}),
-                    requestBody: sanitizeRequestBody(url, options.body),
-                    errorMessage,
-                    errorName,
-                    errorStack,
-                },
+                Sentry.captureException(error, {
+                    extra: {
+                        url,
+                        method: options.method || 'GET',
+                        requestHeaders: sanitizeHeaders(options.headers || {}),
+                        requestBody: sanitizeRequestBody(url, options.body),
+                        errorMessage,
+                        errorName,
+                        errorStack,
+                    },
+                })
             })
-        })
+        }
 
         const userError = new Error('Something went wrong. Please try again.')
         userError.name = 'ServiceUnavailableError'

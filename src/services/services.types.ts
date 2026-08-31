@@ -374,7 +374,8 @@ export type SendLink = {
             }[]
         }
     }
-    events: {
+    /** Absent post-ledger-collapse: the API no longer selects the `events` relation. */
+    events?: {
         timestamp: Date
         status: SendLinkStatus
         reason?: string

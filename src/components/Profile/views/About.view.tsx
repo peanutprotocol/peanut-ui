@@ -5,6 +5,7 @@ import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { BetaUpdatesCard } from '@/components/Profile/components/BetaUpdatesCard'
+import { useAppVersion } from '@/hooks/useAppVersion'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
@@ -35,6 +36,8 @@ const TAP_WINDOW_MS = 2_000
 export const AboutView = ({ appVersion }: { appVersion: string }) => {
     const t = useTranslations('profile.about')
     const onBack = useSafeBack('/profile', { replace: true })
+    // the bundled version is only the web value and the pre-bridge fallback
+    const version = useAppVersion(appVersion)
     const [betaRevealed, setBetaRevealed] = useState(false)
     const taps = useRef(0)
     const tapWindow = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -74,7 +77,7 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
 
             {/* Five taps reveal the internal-testing channel switch. */}
             <p className="text-center text-body-xs text-foreground-secondary" onClick={onVersionTap}>
-                {t('version', { version: appVersion })}
+                {t('version', { version })}
             </p>
         </div>
     )
