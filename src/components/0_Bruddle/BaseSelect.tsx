@@ -21,6 +21,12 @@ export interface BaseSelectOption {
     value: string
 }
 
+// The bottom nav is fixed over the page (AppShell mounts it at bottom-0; the
+// bar is 68px plus the safe-area inset), so the viewport edge is not the last
+// usable pixel. Without this the popper anchors to the window bottom and the
+// final option sits under the nav, unreachable — MX_STATES ends on Zacatecas.
+const BOTTOM_NAV_CLEARANCE_PX = 112
+
 interface BaseSelectProps {
     options: BaseSelectOption[]
     placeholder?: string
@@ -90,6 +96,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                         position="popper"
                         sideOffset={4}
                         align="start"
+                        collisionPadding={{ top: 8, right: 8, bottom: BOTTOM_NAV_CLEARANCE_PX, left: 8 }}
                         style={{ width: 'var(--radix-select-trigger-width)' }}
                     >
                         <Viewport className="notranslate w-full p-1">
