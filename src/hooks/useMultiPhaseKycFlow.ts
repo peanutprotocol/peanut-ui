@@ -320,16 +320,21 @@ export const useMultiPhaseKycFlow = ({
         reportedRejectionRef.current = null
         posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
         isRealtimeFlowRef.current = true
-        // consume a deferred ACTION_REQUIRED for this hook's capture effect too —
-        // originalHandleSdkComplete does the same for the sibling's transition effect
-        if (liveKycStatus === 'ACTION_REQUIRED') prevCapturedStatusRef.current = 'ACTION_REQUIRED'
+        // Deliberately does NOT consume a deferred ACTION_REQUIRED for the capture
+        // effect. On native this callback is ambiguous in a multi-level session:
+        // SumsubNativeSdk marks Pending as submitted, so a Level-1 submit followed
+        // by backing out of Level 2 arrives here exactly like a real completion.
+        // Suppressing the capture and the user-store refresh on that path would
+        // strand the applicant on a stale progress modal. (originalHandleSdkComplete
+        // still consumes for the sibling transition effect — pre-existing, and the
+        // same ambiguity applies to it.)
         originalHandleSdkComplete()
         // for action flows (manteca, self-heal), the base status is already APPROVED
         // and won't transition — directly start the preparing/tracking phase
         if (isActionFlow) {
             handleSumsubApproved()
         }
-    }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent, liveKycStatus])
+    }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent])
 
     // true only while a PWA-reload resume drives handleInitiateKyc, so the
     // analytics event can distinguish a resume from a genuine new initiation

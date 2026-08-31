@@ -151,7 +151,13 @@ describe('useMultiPhaseKycFlow — KYC_REJECTED capture effect', () => {
             expect(mockFetchUser).toHaveBeenCalledTimes(1)
         })
 
-        it('a submission close (handleSdkComplete) consumes the deferred status', async () => {
+        // handleSdkComplete does not consume it either. On native the callback is
+        // ambiguous in a multi-level session: SumsubNativeSdk puts Pending in
+        // SUBMITTED_STATES, so a Level-1 submit followed by backing out of Level 2
+        // resolves launch() as Initial but still fires onComplete — identical to a
+        // real completion from here. Consuming on that path suppressed the capture
+        // and the user-store refresh and left a stale progress modal.
+        it('a handleSdkComplete close still captures — the native Level-1 exit looks the same', async () => {
             const { result } = await openMultiLevelSdk()
 
             await act(async () => {
@@ -163,7 +169,8 @@ describe('useMultiPhaseKycFlow — KYC_REJECTED capture effect', () => {
                 result.current.handleSdkComplete()
             })
 
-            expect(rejectedCaptures()).toHaveLength(0)
+            expect(rejectedCaptures()).toHaveLength(1)
+            expect(mockFetchUser).toHaveBeenCalledTimes(1)
         })
     })
 })
