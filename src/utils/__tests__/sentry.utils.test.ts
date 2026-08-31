@@ -483,6 +483,30 @@ describe('fetchWithSentry — one report per endpoint per outage window', () => 
         expect(Sentry.captureException).not.toHaveBeenCalled()
     })
 
+    /*
+     * The dedupe window is keyed by url alone, and REST puts both verbs on one
+     * path: /home polls `GET /charges` while the pay flow issues `POST /charges`.
+     * Suppressing the POST because the poll failed first would hide exactly the
+     * failure this change exists to surface — its capture never happens, so the
+     * shouldIgnoreError rescue never runs and `alreadyReported` eats the rethrow.
+     */
+    it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+        'still captures a failed %s after a GET to the same url failed in the window',
+        async (method) => {
+            hasRecentFailure.mockReturnValue(true)
+            await expect(fetchWithSentry('https://api.peanut.me/charges', { method })).rejects.toThrow(
+                'Something went wrong. Please try again.'
+            )
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('still dedupes a repeated GET to the same url', async () => {
+        hasRecentFailure.mockReturnValue(true)
+        await expect(fetchWithSentry('https://api.peanut.me/charges', { method: 'GET' })).rejects.toThrow()
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+    })
+
     it('still records the failure for the connectivity banner either way', async () => {
         hasRecentFailure.mockReturnValue(true)
         await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow()

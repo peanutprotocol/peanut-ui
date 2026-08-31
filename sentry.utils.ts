@@ -143,9 +143,19 @@ function collapseNoisyFingerprint(event: ErrorEvent): void {
 const FETCH_SITE_FINGERPRINTS = ['network-error', 'timeout']
 const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
 
+/*
+ * Exported so fetchWithSentry's outage dedupe and the rescue below cannot drift
+ * apart on what counts as a mutation. They have to agree: if the dedupe ever
+ * suppresses a request this rescue would have kept, the event is gone before
+ * `beforeSend` runs and the rescue is silently inert.
+ */
+export function isMutatingMethod(method: string | undefined): boolean {
+    return MUTATING_METHODS.includes((method || '').toUpperCase())
+}
+
 function isFetchSiteMutationFailure(event: ErrorEvent): boolean {
     const [kind, , method] = event.fingerprint ?? []
-    return FETCH_SITE_FINGERPRINTS.includes(kind) && MUTATING_METHODS.includes((method || '').toUpperCase())
+    return FETCH_SITE_FINGERPRINTS.includes(kind) && isMutatingMethod(method)
 }
 
 /*

@@ -2,6 +2,7 @@ import type { SeverityLevel } from '@sentry/nextjs'
 import * as Sentry from '@/utils/sentry-lazy'
 
 import { type JSONValue } from '../interfaces/interfaces'
+import { isMutatingMethod } from '../../sentry.utils'
 import { hasRecentFailure, reportNetworkError } from './connectivity'
 import { canUseNativeHttp, nativeHttpRequest } from './native-http'
 
@@ -565,7 +566,21 @@ export const fetchWithSentry = async (
          * for exactly this dedupe and is already pruned on read.
          */
         const endpoint = sanitizeUrl(url)
-        const repeatFailure = hasRecentFailure(endpoint)
+        /*
+         * Mutations are never deduped. The connectivity window is keyed by url
+         * alone — it exists to count distinct failing endpoints for the banner —
+         * and REST puts both verbs on one path, so a failed `GET /charges` poll
+         * would otherwise suppress the `POST /charges` that fails ten seconds
+         * later. That POST is the one failure this whole change exists to keep:
+         * its capture is what `shouldIgnoreError` rescues, and with the capture
+         * skipped the rethrown wrapper is dropped by `alreadyReported` too, so
+         * the user loses money-flow progress and we see nothing.
+         *
+         * Nothing is lost by exempting them: mutations are a small share of
+         * traffic, React Query does not auto-retry them, and each failed one is
+         * a distinct user-visible event rather than a poll repeating itself.
+         */
+        const repeatFailure = !isMutatingMethod(method) && hasRecentFailure(endpoint)
         reportNetworkError(endpoint)
         // console.info, not error: captureConsoleIntegration would turn an
         // error-level log into a second Sentry event on top of the explicit
