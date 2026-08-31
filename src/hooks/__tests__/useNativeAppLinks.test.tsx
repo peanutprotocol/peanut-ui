@@ -165,4 +165,35 @@ describe('deep-link telemetry redaction', () => {
         expect(props.raw).toBe('https://peanut.me/claim')
         expect(props.mapped).toBe('/claim')
     })
+
+    // The code sits in a PATH segment, so dropping query and fragment left it
+    // fully readable in `raw`. Opening the link reaches captureLink before the
+    // user claims the QR, and the claim API binds a code to the first
+    // authenticated account that presents it — so a PostHog reader could race
+    // the intended owner and take the QR permanently.
+    it('never sends an unclaimed QR code to analytics', async () => {
+        launchUrl = 'https://peanut.me/qr/aB3xK9mQ2pL7vN4z'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(capture).toHaveBeenCalled())
+        const payloads = JSON.stringify(capture.mock.calls)
+        expect(payloads).not.toContain('aB3xK9mQ2pL7vN4z')
+
+        const [, props] = capture.mock.calls.find(([name]) => name === 'native_link_received') as [
+            string,
+            Record<string, unknown>,
+        ]
+        // The route family survives — that is the whole diagnostic value.
+        expect(props.raw).toBe('https://peanut.me/qr/:id')
+    })
+
+    it('redacts the QR code on the success sub-route too', async () => {
+        launchUrl = 'https://peanut.me/qr/aB3xK9mQ2pL7vN4z/success'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(capture).toHaveBeenCalled())
+        expect(JSON.stringify(capture.mock.calls)).not.toContain('aB3xK9mQ2pL7vN4z')
+    })
 })

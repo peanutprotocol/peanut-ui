@@ -134,15 +134,13 @@
             "title": "Get started",
             "createAccount": "Create your account",
             "createAccountDone": "Done. Your money has a username now",
-            "addMoneyPix": "Add money with PIX",
-            "addMoneySepa": "Add money via SEPA",
-            "addMoneySpei": "Add money via SPEI",
-            "addMoneyBank": "Add money from your bank",
-            "kycNote": "Bank deposits need a one-time ID check · about 10 min",
             "getCard": "Get your Peanut card",
             "addMoney": "Add money",
             "firstPayment": "Make your first payment",
-            "firstPaymentNote": "Send a few dollars to any @username. It lands in seconds."
+            "firstPaymentNote": "Send a few dollars to any @username. It lands in seconds.",
+            "addMoneyRoutes": "Bank transfer or crypto",
+            "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
+            "getCardNote": "Your dollars, in pink, wherever Visa is accepted."
         },
         "autoBalance": {
             "title": "Finish setting up your card",
@@ -521,7 +519,26 @@
             "title": "About Peanut",
             "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
             "policiesHeading": "Policies",
-            "version": "Version {version}"
+            "version": "Version {version}",
+            "beta": {
+                "heading": "Beta updates",
+                "description": "Receive builds from the {channel} channel before they ship to everyone. Internal testing only.",
+                "channelLabel": "Update channel",
+                "defaultChannel": "Default",
+                "bundleLabel": "Running bundle",
+                "deviceLabel": "Device ID",
+                "deviceCopied": "Device ID copied",
+                "staged": "You are on beta updates. Restart the app to load the newest beta build.",
+                "joined": "You are on beta updates. There is no newer beta build right now.",
+                "joinedWithoutBundle": "You are on beta updates, but no beta build could be downloaded. The app will try again on the next launch.",
+                "deviceCopyFailed": "Could not copy the device ID.",
+                "leftStillBeta": "Left beta updates, but the app is still running the beta build. Reinstall it from the store to get back to the released version.",
+                "left": "Beta updates off. This device is back on the released version.",
+                "leftOverride": "This device was put on beta from the Capgo dashboard, so the app cannot take it off. Ask an admin to remove the device's channel override.",
+                "leftUnconfirmed": "Could not reach Capgo to confirm the switch, so this device is still on the beta build. Try again when you are back online.",
+                "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
+                "failed": "Could not change the update channel."
+            }
         }
     },
     "settings": {
@@ -971,6 +988,7 @@
         "shareAmountRequest": "Share ${amount} request",
         "billSplitFor": "Bill split for {merchant}",
         "linkCreatedToast": "Link created successfully!",
+        "linkCreatedAndCopiedToast": "Link created and copied to clipboard!",
         "requestUpdatedToast": "Request updated successfully!",
         "recipientPlaceholder": "Enter a username, an address or ENS",
         "errors": {
@@ -2855,15 +2873,34 @@
                 "questions": {
                     "title": "A few short questions",
                     "body": "Regulatory declarations we are required to ask for."
+                },
+                "proofOfAddress": {
+                    "title": "Proof of your address, if you have one",
+                    "body": "A utility bill, bank statement, or official letter from the last 3 months showing your name and address. Not everyone is asked for it, and there is no way to add it later."
                 }
             },
             "howLongLabel": "How long",
             "howLong": {
                 "standard": "Under 2 minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
-                "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days."
+                "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days.",
+                "hosted": "About 5 minutes with your documents in hand. If a reviewer has to look at it, 1 to 3 business days."
             },
             "extraDocNote": "Some people are asked for one more document, like a proof of address. If that is you, we will say so before the camera opens.",
-            "startCta": "I have these, start"
+            "startCta": "I have these, start",
+            "singleSession": {
+                "title": "Finish it in one go",
+                "body": "Our partner does not save your progress. If you close the page or step away to look for a document, you start again from the first step."
+            }
+        },
+        "hostedPrep": {
+            "title": "What to expect",
+            "description": "Our payment partner needs a few more things before your bank transfers work.",
+            "descriptionAdvisory": "Our payment partner needs a few more things to keep your bank transfers working.",
+            "done": {
+                "title": "Nothing left to do here",
+                "description": "This verification step is no longer needed. Your current status is on your profile.",
+                "cta": "See my status"
+            }
         }
     },
     "identity": {
@@ -3299,7 +3336,8 @@
             "subtitle": "This is the final step!",
             "description": "Add Peanut to your home screen to unlock your wallet and start using it.",
             "tapShare": "Tap the <share>Share icon</share> on your browser",
-            "thenTapAddToHomeScreen": "and then on <bold>“Add To Home Screen”</bold>"
+            "thenTapAddToHomeScreen": "and then on <bold>“Add To Home Screen”</bold>",
+            "continueInBrowser": "Continue in the browser"
         },
         "pointsCard": {
             "earned": "You've earned {count, plural, one {# point} other {# points}}!"

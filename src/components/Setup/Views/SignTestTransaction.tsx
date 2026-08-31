@@ -37,6 +37,22 @@ const SignTestTransaction = () => {
     // re-render window between account creation and the state update below.
     const [accountReady, setAccountReady] = useState(false)
     const creatingAccountRef = useRef(false)
+    /*
+     * handleRedirect CONSUMES the stored post-auth route, so it must fire once.
+     * A second tap would find nothing stored, fall back to /home and race the
+     * first push — a signup entered from /receipt would land on /home. The ref
+     * is the guard (state is async, so a same-tick double tap would pass it);
+     * the state only drives the button's disabled/loading affordance.
+     */
+    const redirectingRef = useRef(false)
+    const [isRedirecting, setIsRedirecting] = useState(false)
+
+    const goToAccount = () => {
+        if (redirectingRef.current) return
+        redirectingRef.current = true
+        setIsRedirecting(true)
+        handleRedirect()
+    }
 
     // ensure user is fetched when component mounts (important for new signups)
     useEffect(() => {
@@ -72,12 +88,15 @@ const SignTestTransaction = () => {
     useEffect(() => {
         // Login flow only: an account that existed before this screen redirects
         // straight in. A signup that just created its account stays for the
-        // account-ready screen and redirects from its CTA instead.
-        if (accountExists && !creatingAccountRef.current) {
+        // account-ready screen and redirects from its CTA instead — nothing may
+        // navigate off that screen on its own, so it is a hard guard here and
+        // not only the creating-account ref.
+        if (accountReady || creatingAccountRef.current) return
+        if (accountExists) {
             console.log('[SignTestTransaction] Account exists, redirecting to the app')
             handleRedirect()
         }
-    }, [accountExists])
+    }, [accountExists, accountReady])
 
     const handleTestTransaction = async () => {
         if (!address) {
@@ -241,7 +260,13 @@ const SignTestTransaction = () => {
                     <p className="text-body-s font-bold">{t('accountReady.laterTitle')}</p>
                     <p className="text-body-s">{t('accountReady.laterBody')}</p>
                 </div>
-                <Button onClick={handleRedirect} shadowSize="4" className="mt-2">
+                <Button
+                    onClick={goToAccount}
+                    loading={isRedirecting}
+                    disabled={isRedirecting}
+                    shadowSize="4"
+                    className="mt-2"
+                >
                     {t('accountReady.cta')}
                 </Button>
             </div>

@@ -9,6 +9,7 @@ jest.mock('@/utils/capacitor', () => ({
 const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>
 
 import {
+    redactNativePath,
     profileUrl,
     sendUrl,
     requestUrl,
@@ -622,5 +623,59 @@ describe('native-routes', () => {
             const sample = SAMPLE_BY_ROOT[root] ?? `/${root}`
             expect(deepLinkToNativePath(`https://peanut.me${sample}`)).not.toBeNull()
         })
+    })
+})
+
+describe('redactNativePath (deep-link telemetry)', () => {
+    // The BLOCKING finding: the code lives in a path segment, so stripping
+    // only query and fragment left an unclaimed, claimable QR code readable
+    // in analytics.
+    it('replaces a QR code in the path with a placeholder', () => {
+        expect(redactNativePath('https://peanut.me/qr/aB3xK9mQ2pL7vN4z')).toBe('https://peanut.me/qr/:id')
+    })
+
+    it('replaces the code but keeps a known static sub-view', () => {
+        expect(redactNativePath('/qr/aB3xK9mQ2pL7vN4z/success')).toBe('/qr/:id/success')
+    })
+
+    it('still drops the query and the fragment', () => {
+        expect(redactNativePath('/claim?c=8453&v=v4.2#p=SUPERSECRET')).toBe('/claim')
+    })
+
+    it('redacts other identifier-bearing routes', () => {
+        expect(redactNativePath('/receipt/9f1c2b3a')).toBe('/receipt/:id')
+        expect(redactNativePath('/profile/somebody')).toBe('/profile/:id')
+        expect(redactNativePath('/claim/abc123')).toBe('/claim/:id')
+    })
+
+    it('keeps a bare route family unchanged', () => {
+        expect(redactNativePath('https://peanut.me/home')).toBe('https://peanut.me/home')
+        expect(redactNativePath('/settings')).toBe('/settings')
+    })
+
+    it('keeps the country placeholder out but preserves the view', () => {
+        expect(redactNativePath('/add-money/belgium/bank')).toBe('/add-money/:id/bank')
+    })
+
+    // Fail closed: a route that is not declared must degrade to a placeholder
+    // rather than pass an unknown identifier through.
+    it('redacts an undeclared root instead of trusting it', () => {
+        expect(redactNativePath('/not-a-declared-route/secret-value')).toBe('/:id/:id')
+    })
+
+    // A locale or other prefix must not shift the root out of a positional
+    // window and turn the whole path into placeholders.
+    it('finds the route family behind a prefix segment', () => {
+        expect(redactNativePath('/es/qr/aB3xK9mQ2pL7vN4z')).toBe('/:id/qr/:id')
+    })
+
+    it('preserves a custom scheme host', () => {
+        expect(redactNativePath('peanut://qr/aB3xK9mQ2pL7vN4z')).toBe('peanut://qr/:id')
+    })
+
+    it('handles a trailing slash and an empty path', () => {
+        expect(redactNativePath('/qr/')).toBe('/qr/')
+        expect(redactNativePath('/')).toBe('/')
+        expect(redactNativePath('')).toBe('')
     })
 })

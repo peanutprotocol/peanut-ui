@@ -4,8 +4,11 @@ import Card from '@/components/Global/Card'
 import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
+import { BetaUpdatesCard } from '@/components/Profile/components/BetaUpdatesCard'
+import { useAppVersion } from '@/hooks/useAppVersion'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
+import { useRef, useState } from 'react'
 
 /**
  * The one place every policy is reachable from inside the app, mirroring the
@@ -27,9 +30,30 @@ const POLICY_LINKS: ReadonlyArray<{ name: string; href: string }> = [
 const cardPosition = (index: number, total: number) =>
     index === 0 ? ('first' as const) : index === total - 1 ? ('last' as const) : ('middle' as const)
 
+const TAPS_TO_REVEAL_BETA = 5
+const TAP_WINDOW_MS = 2_000
+
 export const AboutView = ({ appVersion }: { appVersion: string }) => {
     const t = useTranslations('profile.about')
     const onBack = useSafeBack('/profile', { replace: true })
+    // the bundled version is only the web value and the pre-bridge fallback
+    const version = useAppVersion(appVersion)
+    const [betaRevealed, setBetaRevealed] = useState(false)
+    const taps = useRef(0)
+    const tapWindow = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+    const onVersionTap = () => {
+        clearTimeout(tapWindow.current)
+        taps.current += 1
+        if (taps.current >= TAPS_TO_REVEAL_BETA) {
+            taps.current = 0
+            setBetaRevealed(true)
+            return
+        }
+        tapWindow.current = setTimeout(() => {
+            taps.current = 0
+        }, TAP_WINDOW_MS)
+    }
 
     return (
         <div className="space-y-4 mb-6">
@@ -49,8 +73,11 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                 ))}
             </div>
 
-            <p className="text-center text-body-xs text-foreground-secondary">
-                {t('version', { version: appVersion })}
+            {betaRevealed && <BetaUpdatesCard />}
+
+            {/* Five taps reveal the internal-testing channel switch. */}
+            <p className="text-center text-body-xs text-foreground-secondary" onClick={onVersionTap}>
+                {t('version', { version })}
             </p>
         </div>
     )

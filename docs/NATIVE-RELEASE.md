@@ -321,6 +321,50 @@ own `out/` under the binary's versionName, then assert the channel serves it.
 - **Boundary:** OTA ships web assets only. New plugins, Gradle, permissions, versionCode
   → Play release.
 
+### Internal testing (the `staging` channel on a real device)
+
+Every merge to `dev` already publishes to `staging`; the missing half was a way for a
+tester's device to read it. Five taps on the version line in **Profile → About** reveal a
+Beta-updates switch that calls `setChannel('staging')` — no dashboard work per tester, and
+the row also prints the device ID for the times someone has to be forced onto a channel
+from the dashboard instead.
+
+Three prerequisites, all one-time:
+
+- The account must be in the **`beta-ota-channel`** PostHog cohort, which is what keeps
+  the switch off customer devices. Read what it is, though: a client-side flag that
+  decides whether a React component renders. `setChannel` talks to Capgo directly with
+  the app key shipped in every binary, and non-prod builds skip the flag entirely, so
+  anyone running a modified client can self-assign regardless. It stops people who did
+  not mean to be on beta, not people who do. Move the join behind the backend (verify
+  the account server-side, assign the device through Capgo's API) if that ever needs to
+  be a real boundary.
+- `staging` must have **"Allow devices to self dissociate/associate"** enabled, or
+  `setChannel()` is refused and the app says so. Changing it needs a Super Admin — and
+  it is the decision that actually opens the channel: from that point any install that
+  can call the plugin can join, whatever the cohort says.
+- The tester's binary must not outrank the bundle: `disable_auto_update_under_native`
+  makes a device on versionName 1.1.x refuse anything sorting below it. Staging's
+  commit-count band sits far above production's, so this only bites right after a native
+  release.
+
+Leaving the channel unsets it **and** calls `reset()` back to the store bundle: staging
+versions outrank every production one, so no production OTA could ever replace a beta
+bundle on its own.
+
+One asymmetry to know before forcing anyone from the dashboard: `unsetChannel()` is
+local-only in the plugin (it drops a stored preference and returns ok), so a **dashboard
+device override survives it** and Capgo keeps serving beta. The switch detects that —
+it re-reads the effective channel and says an admin has to remove the override rather
+than resetting into an exit that undoes itself on the next launch — but the removal is
+dashboard-side. Self-assignment is the cleaner enrolment path for that reason. When Capgo
+cannot be reached to answer that question, the switch refuses to reset at all and asks the
+tester to retry online: only a confirmed answer licenses the reset. That attempt is recorded
+in local storage **before** the channel is cleared, and the switch keeps reading as "on beta"
+until the store bundle is actually the one running — otherwise a device whose channel was
+cleared but whose bundle was not looks settled while running beta code that no production OTA
+can replace, and the card that offers the retry would disappear for anyone outside the cohort.
+
 ---
 
 ## 10. Pre-submission verification
