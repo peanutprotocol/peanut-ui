@@ -329,8 +329,12 @@ Beta-updates switch that calls `setChannel('staging')` — no dashboard work per
 the row also prints the device ID for the times someone has to be forced onto a channel
 from the dashboard instead.
 
-Two prerequisites, both in Capgo, both one-time:
+Three prerequisites, all one-time:
 
+- The account must be in the **`beta-ota-channel`** PostHog cohort. The tap gesture only
+  hides the switch; this is what decides who may use it, because `staging` runs unreleased
+  code against production money and self-assignment is open to any device once enabled.
+  Non-prod builds bypass the flag so QA doesn't need a cohort edit.
 - `staging` must have **"Allow devices to self dissociate/associate"** enabled, or
   `setChannel()` is refused and the app says so. Changing it needs a Super Admin.
 - The tester's binary must not outrank the bundle: `disable_auto_update_under_native`

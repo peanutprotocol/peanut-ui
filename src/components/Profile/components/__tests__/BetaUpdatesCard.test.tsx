@@ -1,49 +1,80 @@
 /**
- * The card is native-only, and the failure a tester is most likely to hit is a
- * channel that has not been opened for self-assignment — that must read as a
- * concrete instruction, not a generic error.
+ * Two things keep the staging lane off customer devices: the card is native-only
+ * and it is gated on an internal PostHog cohort — the five-tap gesture only
+ * hides it. Beyond that, every join outcome has to read honestly: a tester told
+ * to restart when nothing was downloaded goes looking for a build that isn't
+ * there.
  */
 import React from 'react'
 import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import { BetaUpdatesCard } from '../BetaUpdatesCard'
+import { BETA_OTA_FLAG, BetaUpdatesCard } from '../BetaUpdatesCard'
 import type { OtaChannelSwitchResult, UseOtaChannel } from '@/hooks/useOtaChannel'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
-const toast = { success: jest.fn(), error: jest.fn(), info: jest.fn() }
+const toast = { success: jest.fn(), error: jest.fn(), info: jest.fn(), warning: jest.fn() }
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
+
+const flags = { enabled: [BETA_OTA_FLAG] as string[] }
+jest.mock('@/hooks/useFeatureFlag', () => ({
+    useFeatureFlags: () => (flag: string) => flags.enabled.includes(flag),
+}))
 
 const channel = { current: {} as UseOtaChannel }
 jest.mock('@/hooks/useOtaChannel', () => ({ useOtaChannel: () => channel.current }))
 
-const setup = (overrides: Partial<UseOtaChannel> & { setBeta?: () => Promise<OtaChannelSwitchResult> } = {}) => {
+const setup = (overrides: Partial<UseOtaChannel> = {}) => {
     channel.current = {
         supported: true,
         status: { channel: null, bundleVersion: '1.1.0', deviceId: 'abc-123' },
         isBeta: false,
         busy: false,
-        setBeta: jest.fn().mockResolvedValue('ok'),
+        setBeta: jest.fn().mockResolvedValue('staged' satisfies OtaChannelSwitchResult),
         ...overrides,
     }
     render(<BetaUpdatesCard />)
 }
 
-beforeEach(() => jest.clearAllMocks())
+const switching = (result: OtaChannelSwitchResult) => ({ setBeta: jest.fn().mockResolvedValue(result) })
+
+beforeEach(() => {
+    jest.clearAllMocks()
+    flags.enabled = [BETA_OTA_FLAG]
+})
 
 it('renders nothing off native, where there is no OTA layer at all', () => {
     setup({ supported: false })
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
 })
 
+it('stays hidden for accounts outside the internal cohort', () => {
+    flags.enabled = []
+    setup()
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+})
+
 it('tells the tester to get the channel opened when Capgo refuses', async () => {
-    setup({ setBeta: jest.fn().mockResolvedValue('closed') })
+    setup(switching('closed'))
     fireEvent.click(screen.getByRole('switch'))
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('self-assignment')))
 })
 
-it('asks for a restart once the device is on the beta channel', async () => {
-    setup()
+it('asks for a restart only when a bundle is actually waiting', async () => {
+    setup(switching('staged'))
     fireEvent.click(screen.getByRole('switch'))
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Restart')))
+})
+
+it('says so when the join downloaded nothing', async () => {
+    setup(switching('join-no-bundle'))
+    fireEvent.click(screen.getByRole('switch'))
+    await waitFor(() => expect(toast.warning).toHaveBeenCalledWith(expect.stringContaining('no beta build')))
+    expect(toast.success).not.toHaveBeenCalled()
+})
+
+it('does not promise a build when there is simply nothing newer', async () => {
+    setup(switching('joined'))
+    fireEvent.click(screen.getByRole('switch'))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('no newer beta build')))
 })

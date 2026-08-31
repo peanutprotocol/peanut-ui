@@ -530,7 +530,9 @@
                 "bundleLabel": "Pacote em uso",
                 "deviceLabel": "ID do dispositivo",
                 "deviceCopied": "ID do dispositivo copiado",
-                "joined": "Você está nas atualizações beta. Reinicie o app para carregar a versão beta mais recente.",
+                "staged": "Você está nas atualizações beta. Reinicie o app para carregar a versão beta mais recente.",
+                "joined": "Você está nas atualizações beta. No momento não há uma versão beta mais recente.",
+                "joinedWithoutBundle": "Você está nas atualizações beta, mas nenhuma versão beta pôde ser baixada. O app tentará de novo na próxima abertura.",
                 "closed": "O canal {channel} ainda não aceita testadores. Peça a um administrador para permitir a autoatribuição no Capgo.",
                 "failed": "Não foi possível alterar o canal de atualizações."
             }

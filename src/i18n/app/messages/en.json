@@ -530,7 +530,9 @@
                 "bundleLabel": "Running bundle",
                 "deviceLabel": "Device ID",
                 "deviceCopied": "Device ID copied",
-                "joined": "You are on beta updates. Restart the app to load the newest beta build.",
+                "staged": "You are on beta updates. Restart the app to load the newest beta build.",
+                "joined": "You are on beta updates. There is no newer beta build right now.",
+                "joinedWithoutBundle": "You are on beta updates, but no beta build could be downloaded. The app will try again on the next launch.",
                 "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
                 "failed": "Could not change the update channel."
             }

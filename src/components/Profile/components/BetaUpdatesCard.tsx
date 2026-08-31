@@ -3,6 +3,7 @@
 import Card from '@/components/Global/Card'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useOtaChannel } from '@/hooks/useOtaChannel'
 import { BETA_OTA_CHANNEL } from '@/utils/capgo-updater'
 import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
@@ -12,20 +13,43 @@ import { useTranslations } from 'next-intl'
  * Internal-testing switch, revealed by five taps on the version line. Joining
  * points the device at the `staging` Capgo channel, which every merge to `dev`
  * publishes to; leaving drops it back to the store bundle.
+ *
+ * The tap gesture hides the control; the PostHog flag decides who may use it.
+ * `staging` carries unreleased code against production money, so eligibility is
+ * a cohort someone maintains — not a gesture any customer can stumble into once
+ * self-assignment is enabled on the channel.
  */
+export const BETA_OTA_FLAG = 'beta-ota-channel'
+
 export const BetaUpdatesCard = () => {
     const t = useTranslations('profile.about.beta')
     const toast = useToast()
+    const isEnabled = useFeatureFlags()
     const { supported, status, isBeta, busy, setBeta } = useOtaChannel()
 
-    if (!supported) return null
+    // nonProdBypass: previews and local builds are already non-production by
+    // definition, and QA needs the switch there without a cohort edit.
+    if (!supported || !isEnabled(BETA_OTA_FLAG, { nonProdBypass: true })) return null
 
     const onToggle = async (beta: boolean) => {
-        const result = await setBeta(beta)
-        if (result === 'closed') toast.error(t('closed', { channel: BETA_OTA_CHANNEL }))
-        else if (result === 'failed') toast.error(t('failed'))
-        else if (beta) toast.success(t('joined'))
-        // Leaving reloads the app onto the store bundle, so there is no toast to see.
+        switch (await setBeta(beta)) {
+            case 'staged':
+                toast.success(t('staged'))
+                break
+            case 'joined':
+                toast.success(t('joined'))
+                break
+            case 'join-no-bundle':
+                toast.warning(t('joinedWithoutBundle'))
+                break
+            case 'closed':
+                toast.error(t('closed', { channel: BETA_OTA_CHANNEL }))
+                break
+            case 'failed':
+                toast.error(t('failed'))
+                break
+            // 'left' reloads the app onto the store bundle — no toast survives it.
+        }
     }
 
     return (

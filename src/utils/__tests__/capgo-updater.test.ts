@@ -93,11 +93,26 @@ describe('beta channel opt-in', () => {
         mockUpdater.getLatest.mockRejectedValue(new Error('No new version available'))
     })
 
-    it('joins the staging channel and pulls its bundle straight away', async () => {
+    it('joins the staging channel and stages its bundle straight away', async () => {
         const { joinBetaOtaChannel, BETA_OTA_CHANNEL } = await import('../capgo-updater')
-        await joinBetaOtaChannel()
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://bundles/1.1.10846', version: '1.1.10846' })
+        mockUpdater.download.mockResolvedValue({ id: 'beta-bundle' })
+        await expect(joinBetaOtaChannel()).resolves.toBe('staged')
         expect(mockUpdater.setChannel).toHaveBeenCalledWith({ channel: BETA_OTA_CHANNEL })
-        expect(mockUpdater.getLatest).toHaveBeenCalled()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'beta-bundle' })
+    })
+
+    // The tester is on the channel, but nothing is pending — telling them to
+    // restart would send them looking for a build that was never downloaded.
+    it('separates "joined, nothing new" from "joined, bundle waiting"', async () => {
+        const { joinBetaOtaChannel } = await import('../capgo-updater')
+        await expect(joinBetaOtaChannel()).resolves.toBe('up-to-date')
+    })
+
+    it('reports a failed download rather than a staged bundle', async () => {
+        const { joinBetaOtaChannel } = await import('../capgo-updater')
+        mockUpdater.getLatest.mockRejectedValue(new Error('disable_auto_update_under_native'))
+        await expect(joinBetaOtaChannel()).resolves.toBe('failed')
     })
 
     it('reports a channel that does not accept self-assignment', async () => {
@@ -107,7 +122,25 @@ describe('beta channel opt-in', () => {
         expect(mockUpdater.getLatest).not.toHaveBeenCalled()
     })
 
-    it('treats an error field in the response as a rejection', async () => {
+    it('reads the reason off a CapacitorException data code', async () => {
+        const { joinBetaOtaChannel, OtaChannelClosedError } = await import('../capgo-updater')
+        mockUpdater.setChannel.mockRejectedValue(
+            Object.assign(new Error('setChannel failed'), {
+                data: { error: 'channel_private' },
+            })
+        )
+        await expect(joinBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelClosedError)
+    })
+
+    // A timeout must not send the tester chasing a dashboard toggle that is
+    // already correct.
+    it('leaves a network failure as an ordinary error', async () => {
+        const { joinBetaOtaChannel, OtaChannelClosedError } = await import('../capgo-updater')
+        mockUpdater.setChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(joinBetaOtaChannel()).rejects.not.toBeInstanceOf(OtaChannelClosedError)
+    })
+
+    it('treats a closed-channel code in the response as a rejection', async () => {
         const { joinBetaOtaChannel, OtaChannelClosedError } = await import('../capgo-updater')
         mockUpdater.setChannel.mockResolvedValue({ status: 'error', error: 'disabled_by_config' })
         await expect(joinBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelClosedError)

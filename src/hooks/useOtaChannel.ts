@@ -4,7 +4,16 @@ import { useCallback, useEffect, useState } from 'react'
 import { isNativeBridge } from '@/utils/capacitor'
 import { BETA_OTA_CHANNEL, OtaChannelClosedError, type OtaChannelStatus } from '@/utils/capgo-updater'
 
-export type OtaChannelSwitchResult = 'ok' | 'closed' | 'failed'
+/**
+ * - `staged`: on the channel, beta bundle downloaded, waiting for a restart
+ * - `joined`: on the channel with nothing newer to download
+ * - `join-no-bundle`: on the channel, but the bundle could not be fetched — the
+ *   `disable_auto_update_under_native` case after a native release lands here
+ * - `left`: back on the default channel and the store bundle
+ * - `closed`: the channel does not accept self-assignment
+ * - `failed`: the switch itself failed (offline, rate limited, misconfigured)
+ */
+export type OtaChannelSwitchResult = 'staged' | 'joined' | 'join-no-bundle' | 'left' | 'closed' | 'failed'
 
 export interface UseOtaChannel {
     supported: boolean
@@ -41,11 +50,15 @@ export function useOtaChannel(): UseOtaChannel {
             setBusy(true)
             try {
                 const { joinBetaOtaChannel, leaveBetaOtaChannel } = await import('@/utils/capgo-updater')
-                // leaveBetaOtaChannel() reloads the app, so nothing after it runs.
-                if (beta) await joinBetaOtaChannel()
-                else await leaveBetaOtaChannel()
+                if (!beta) {
+                    // Reloads the app onto the store bundle: nothing after this runs.
+                    await leaveBetaOtaChannel()
+                    return 'left'
+                }
+                const outcome = await joinBetaOtaChannel()
                 await refresh()
-                return 'ok'
+                if (outcome === 'staged') return 'staged'
+                return outcome === 'up-to-date' ? 'joined' : 'join-no-bundle'
             } catch (err) {
                 console.warn('[capgo] channel switch failed:', err)
                 return err instanceof OtaChannelClosedError ? 'closed' : 'failed'

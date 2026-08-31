@@ -69,10 +69,15 @@ export async function initCapgoUpdater(
 
 const UPDATE_CHECK_DELAY_MS = 5_000
 
+// What one update check actually achieved. The launch path ignores it; the beta
+// opt-in needs it, because "channel switched" and "beta bundle waiting" are not
+// the same thing and a tester told to restart for nothing chases a ghost.
+export type OtaCheckOutcome = 'staged' | 'up-to-date' | 'failed'
+
 async function checkAndStageUpdate(
     onUpdateAvailable?: (bundle: BundleInfo) => void,
     onUpdateFailed?: (error: string) => void
-): Promise<void> {
+): Promise<OtaCheckOutcome> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     try {
         const latest = await CapacitorUpdater.getLatest()
@@ -90,14 +95,17 @@ async function checkAndStageUpdate(
             // UI out from under the user). set() reloads IMMEDIATELY; next()
             // is the deferred variant.
             await CapacitorUpdater.next({ id: bundle.id })
+            removeStoredValue(FAILURE_STREAK_KEY)
+            return 'staged'
         }
         removeStoredValue(FAILURE_STREAK_KEY)
+        return 'up-to-date'
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err ?? '')
         // "No new version available" is the normal up-to-date path, not a failure.
         if (message === 'No new version available') {
             removeStoredValue(FAILURE_STREAK_KEY)
-            return
+            return 'up-to-date'
         }
         // captureConsoleIntegration turns console.error into a Sentry event, and
         // this updater runs on every launch — transient CDN/network failures that
@@ -114,6 +122,7 @@ async function checkAndStageUpdate(
             console.info('[capgo] update check failed:', message)
         }
         onUpdateFailed?.(message)
+        return 'failed'
     }
 }
 
@@ -148,10 +157,21 @@ export interface OtaChannelStatus {
     deviceId: string | null
 }
 
-// Capgo rejects setChannel() unless the channel allows self-assignment, and the
-// plugin surfaces that as a plain Error. Distinguish it so the UI can say what
-// has to change instead of "something went wrong".
+// Capgo rejects setChannel() unless the channel allows self-assignment. That is
+// a standing configuration fact the tester can act on ("ask an admin"), unlike a
+// timeout — so it must not swallow every other rejection, or a flaky network
+// sends people chasing a dashboard toggle that is already correct.
 export class OtaChannelClosedError extends Error {}
+
+const CLOSED_CHANNEL_CODES = ['channel_private', 'disabled_by_config', 'channel_not_found', 'cannot_set_channel']
+
+// The plugin reports the reason as a CapacitorException `data.error` code on iOS
+// and folds it into the message on Android; check both.
+function isClosedChannel(reason: unknown): boolean {
+    const code = (reason as { data?: { error?: unknown } } | null)?.data?.error
+    const message = reason instanceof Error ? reason.message : String(reason ?? '')
+    return CLOSED_CHANNEL_CODES.some((closed) => code === closed || message.includes(closed))
+}
 
 export async function readOtaChannelStatus(): Promise<OtaChannelStatus> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
@@ -168,17 +188,23 @@ export async function readOtaChannelStatus(): Promise<OtaChannelStatus> {
 }
 
 // Join the beta channel and pull its bundle straight away. The bundle applies on
-// the next launch, like every other OTA — next() rather than set().
-export async function joinBetaOtaChannel(): Promise<void> {
+// the next launch, like every other OTA — next() rather than set(). The returned
+// outcome is what the switch reports: a device whose binary already outranks the
+// beta bundle joins the channel and downloads nothing.
+export async function joinBetaOtaChannel(): Promise<OtaCheckOutcome> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     let result
     try {
         result = await CapacitorUpdater.setChannel({ channel: BETA_OTA_CHANNEL })
     } catch (err) {
-        throw new OtaChannelClosedError(err instanceof Error ? err.message : String(err ?? ''))
+        if (isClosedChannel(err)) throw new OtaChannelClosedError(err instanceof Error ? err.message : String(err))
+        throw err
     }
-    if (result.error) throw new OtaChannelClosedError(result.error)
-    await checkAndStageUpdate()
+    if (result.error) {
+        if (isClosedChannel(result.error)) throw new OtaChannelClosedError(result.error)
+        throw new Error(result.error)
+    }
+    return checkAndStageUpdate()
 }
 
 // Beta bundles carry a higher version than production's, so no production OTA
