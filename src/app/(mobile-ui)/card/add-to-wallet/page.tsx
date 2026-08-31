@@ -17,7 +17,8 @@ const AddToWalletPage: FC = () => {
     }, [platform])
     return (
         <PageContainer>
-            <AddToWalletCarousel onDone={() => router.push('/card')} onPrev={onBack} />
+            {/* Done replaces: pushing would leave the tutorial in history, so Back re-enters it. */}
+            <AddToWalletCarousel onDone={() => router.replace('/card')} onPrev={onBack} />
         </PageContainer>
     )
 }
