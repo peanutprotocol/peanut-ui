@@ -519,7 +519,26 @@
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guarda tu saldo, envía a cualquier @usuario y mueve dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
             "policiesHeading": "Políticas",
-            "version": "Versión {version}"
+            "version": "Versión {version}",
+            "beta": {
+                "heading": "Actualizaciones beta",
+                "description": "Recibí compilaciones del canal {channel} antes de que lleguen a todos. Solo para pruebas internas.",
+                "channelLabel": "Canal de actualizaciones",
+                "defaultChannel": "Predeterminado",
+                "bundleLabel": "Paquete en uso",
+                "deviceLabel": "ID del dispositivo",
+                "deviceCopied": "ID del dispositivo copiado",
+                "staged": "Ya estás en actualizaciones beta. Reiniciá la app para cargar la compilación beta más reciente.",
+                "joined": "Ya estás en actualizaciones beta. Por ahora no hay una compilación beta más reciente.",
+                "joinedWithoutBundle": "Ya estás en actualizaciones beta, pero no se pudo descargar ninguna compilación beta. La app lo intentará de nuevo en el próximo inicio.",
+                "deviceCopyFailed": "No se pudo copiar el ID del dispositivo.",
+                "leftStillBeta": "Saliste de las actualizaciones beta, pero la app sigue ejecutando la compilación beta. Reinstalala desde la tienda para volver a la versión publicada.",
+                "left": "Actualizaciones beta desactivadas. Este dispositivo volvió a la versión publicada.",
+                "leftOverride": "Este dispositivo fue puesto en beta desde el panel de Capgo, así que la app no puede sacarlo. Pedile a un administrador que quite la asignación de canal del dispositivo.",
+                "leftUnconfirmed": "No se pudo contactar a Capgo para confirmar el cambio, así que este dispositivo sigue en la compilación beta. Probá de nuevo cuando tengas conexión.",
+                "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
+                "failed": "No se pudo cambiar el canal de actualizaciones."
+            }
         }
     },
     "settings": {
