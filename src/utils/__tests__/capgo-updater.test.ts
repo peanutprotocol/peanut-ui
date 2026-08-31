@@ -175,6 +175,26 @@ describe('beta channel opt-in', () => {
 
     // A staging bundle outranks every production one, so unsetting the channel
     // alone would leave the tester stuck on beta code forever.
+    // Same hazard as the join, worse outcome: a check resolved against staging
+    // that lands after the reset stages beta code on a device with no channel.
+    it('waits for an in-flight check before unsetting and resetting', async () => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        let releaseLaunchCheck: (value: { url?: string; version?: string }) => void = () => {}
+        mockUpdater.getLatest.mockReturnValueOnce(new Promise((resolve) => (releaseLaunchCheck = resolve)))
+
+        await initCapgoUpdater()
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        const left = leaveBetaOtaChannel()
+        await jest.advanceTimersByTimeAsync(0)
+        expect(mockUpdater.unsetChannel).not.toHaveBeenCalled()
+
+        releaseLaunchCheck({})
+        await left
+        expect(mockUpdater.unsetChannel).toHaveBeenCalled()
+        expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
     it('drops back to the store bundle when leaving', async () => {
         const { leaveBetaOtaChannel } = await import('../capgo-updater')
         await leaveBetaOtaChannel()

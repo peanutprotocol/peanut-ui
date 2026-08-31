@@ -75,6 +75,19 @@ it('says the app is still on beta code when the reset half of the exit fails', a
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Reinstall')))
 })
 
+// reset() normally reloads the app, so this toast is unobservable — except on a
+// device already running the store bundle, where a silent no-op would look like
+// the switch had failed.
+it('confirms the exit when the app did not reload', async () => {
+    setup({
+        isBeta: true,
+        status: { channel: 'staging', bundleVersion: '1.1.0', deviceId: 'abc-123' },
+        ...switching('left'),
+    })
+    fireEvent.click(screen.getByRole('switch'))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('released version')))
+})
+
 it('tells the tester to get the channel opened when Capgo refuses', async () => {
     setup(switching('closed'))
     fireEvent.click(screen.getByRole('switch'))

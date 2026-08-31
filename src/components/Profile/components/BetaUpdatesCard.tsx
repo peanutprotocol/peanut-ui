@@ -66,7 +66,11 @@ export const BetaUpdatesCard = () => {
             case 'left-still-beta':
                 toast.error(t('leftStillBeta'))
                 break
-            // 'left' reloads the app onto the store bundle — no toast survives it.
+            // Only reached when reset() did not reload — a device already on the
+            // store bundle. Otherwise the app is gone before this runs.
+            case 'left':
+                toast.success(t('left'))
+                break
         }
     }
 

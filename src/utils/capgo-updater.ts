@@ -74,24 +74,31 @@ const UPDATE_CHECK_DELAY_MS = 5_000
 // the same thing and a tester told to restart for nothing chases a ghost.
 export type OtaCheckOutcome = 'staged' | 'up-to-date' | 'failed'
 
-// One check at a time, whoever asks. The launch check can still be downloading
-// when a tester joins the beta channel, and two overlapping checks both call
-// next(): the bundle that boots is whichever write lands last, which may be the
-// one resolved against the channel the device just left. Queueing rather than
-// sharing the in-flight promise matters — the join needs a check made AFTER its
-// setChannel, not the launch check's verdict on the old channel.
-let pendingCheck: Promise<void> = Promise.resolve()
+// One OTA operation at a time, whoever asks. The launch check can still be
+// downloading when a tester flips the beta switch, and an unserialized check
+// calls next() with a bundle chosen for the channel the device is leaving —
+// which is how a device ends up booting beta code with the channel already
+// unset, the one state no production OTA can repair.
+//
+// Queueing rather than sharing the in-flight promise matters: the join needs a
+// check made AFTER its setChannel, not the launch check's verdict on the old
+// channel.
+let pendingOtaWork: Promise<void> = Promise.resolve()
+
+function queueOtaWork<T>(task: () => Promise<T>): Promise<T> {
+    const result = pendingOtaWork.then(task, task)
+    pendingOtaWork = result.then(
+        () => undefined,
+        () => undefined
+    )
+    return result
+}
 
 function queueUpdateCheck(
     onUpdateAvailable?: (bundle: BundleInfo) => void,
     onUpdateFailed?: (error: string) => void
 ): Promise<OtaCheckOutcome> {
-    const outcome = pendingCheck.then(() => checkAndStageUpdate(onUpdateAvailable, onUpdateFailed))
-    pendingCheck = outcome.then(
-        () => undefined,
-        () => undefined
-    )
-    return outcome
+    return queueOtaWork(() => checkAndStageUpdate(onUpdateAvailable, onUpdateFailed))
 }
 
 async function checkAndStageUpdate(
@@ -245,16 +252,21 @@ export class OtaResetFailedError extends Error {}
 // path (the device was already on the builtin bundle) — a rejection means the
 // channel is gone but the beta code is still running, so retry once and say so
 // rather than reporting a clean exit.
+//
+// Queued with the checks: a check still in flight would otherwise stage the beta
+// bundle it had already chosen right after the reset cleared it.
 export async function leaveBetaOtaChannel(): Promise<void> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
-    await CapacitorUpdater.unsetChannel({})
-    try {
-        await CapacitorUpdater.reset()
-    } catch {
+    return queueOtaWork(async () => {
+        await CapacitorUpdater.unsetChannel({})
         try {
             await CapacitorUpdater.reset()
-        } catch (err) {
-            throw new OtaResetFailedError(err instanceof Error ? err.message : String(err ?? ''))
+        } catch {
+            try {
+                await CapacitorUpdater.reset()
+            } catch (err) {
+                throw new OtaResetFailedError(err instanceof Error ? err.message : String(err ?? ''))
+            }
         }
-    }
+    })
 }

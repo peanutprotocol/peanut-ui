@@ -14,7 +14,9 @@ import {
  * - `joined`: on the channel with nothing newer to download
  * - `join-no-bundle`: on the channel, but the bundle could not be fetched — the
  *   `disable_auto_update_under_native` case after a native release lands here
- * - `left`: back on the default channel and the store bundle
+ * - `left`: back on the default channel. Usually unobservable — reset() reloads
+ *   the app — but a device already on the store bundle stays put and needs the
+ *   UI to catch up
  * - `left-still-beta`: channel unset, but the beta bundle is still running and
  *   no production OTA can replace it — the app has to be reinstalled
  * - `closed`: the channel does not accept self-assignment
@@ -65,8 +67,12 @@ export function useOtaChannel(): UseOtaChannel {
             try {
                 const { joinBetaOtaChannel, leaveBetaOtaChannel } = await import('@/utils/capgo-updater')
                 if (!beta) {
-                    // Reloads the app onto the store bundle: nothing after this runs.
+                    // Normally reloads the app onto the store bundle and nothing
+                    // after this runs — but a device already on that bundle just
+                    // resolves, and then the stale channel would snap the switch
+                    // back to on.
                     await leaveBetaOtaChannel()
+                    await refresh()
                     return 'left'
                 }
                 const outcome = await joinBetaOtaChannel()
