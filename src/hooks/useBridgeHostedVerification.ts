@@ -18,6 +18,13 @@ interface BridgeHostedVerification {
     isStarting: boolean
     /** Friendly copy for a failed launch; never the raw server detail. */
     error: string | null
+    /**
+     * How many times a RETURN from the vendor has forced a re-read. Non-zero
+     * means the capability set on screen came from a refetch we asked for
+     * because the user came back — which is what separates "the task really
+     * is done" from a poll that happened to drop it for one tick.
+     */
+    refreshSeq: number
 }
 
 export function useBridgeHostedVerification(): BridgeHostedVerification {
@@ -25,6 +32,7 @@ export function useBridgeHostedVerification(): BridgeHostedVerification {
     const [isStarting, setIsStarting] = useState(false)
     const [awaitingReturn, setAwaitingReturn] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [refreshSeq, setRefreshSeq] = useState(0)
 
     const start = useCallback(async () => {
         setError(null)
@@ -112,7 +120,9 @@ export function useBridgeHostedVerification(): BridgeHostedVerification {
     // having the task. `refetch` ignores staleness, which is the point.
     useEffect(() => {
         const onPageShow = (event: PageTransitionEvent) => {
-            if (event.persisted) void fetchUser().catch(() => undefined)
+            if (!event.persisted) return
+            setRefreshSeq((seq) => seq + 1)
+            void fetchUser().catch(() => undefined)
         }
         window.addEventListener('pageshow', onPageShow)
         return () => window.removeEventListener('pageshow', onPageShow)
@@ -128,7 +138,10 @@ export function useBridgeHostedVerification(): BridgeHostedVerification {
     // so we keep listening for as long as this screen is mounted.
     useEffect(() => {
         if (!awaitingReturn) return
-        const refresh = () => void fetchUser().catch(() => undefined)
+        const refresh = () => {
+            setRefreshSeq((seq) => seq + 1)
+            void fetchUser().catch(() => undefined)
+        }
 
         if (isNativeBridge()) {
             // Android WebViews don't reliably fire `visibilitychange` on
@@ -160,5 +173,5 @@ export function useBridgeHostedVerification(): BridgeHostedVerification {
         return () => document.removeEventListener('visibilitychange', onReturn)
     }, [awaitingReturn, fetchUser])
 
-    return { start, isStarting, error }
+    return { start, isStarting, error, refreshSeq }
 }

@@ -269,25 +269,31 @@ describe('AdditionalVerificationView', () => {
         await waitFor(() => expect(mockReservedTab.location.href).toContain('withpersona'))
         expect(mockRouterReplace).not.toHaveBeenCalled()
 
+        // The return refetch is what produced this read, so the absence is the
+        // answer we asked for — no waiting the user out on a finished screen.
+        Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+        document.dispatchEvent(new Event('visibilitychange'))
         mockNextActions = []
         rerender(<AdditionalVerificationView />)
-        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification'), {
-            timeout: 4000,
-        })
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification'))
     })
 
-    it('a single flapping snapshot does not eject someone still reading the screen', async () => {
-        // nextActions re-derives on every user refetch, and this screen can be
-        // polled while it is being read. The old card merely hid in that case;
-        // a route would actively navigate the reader away.
+    it('a poll that drops the task with nobody returning does NOT eject the reader', async () => {
+        // useUserAutoRefresh polls every 4s for anyone with a pending rail, and
+        // nextActions re-derives on each read. The old card merely hid on a bad
+        // tick; a route would navigate the reader away mid-sentence. Nothing
+        // here came back from the vendor, so one dropped tick proves nothing.
         const { rerender } = render(<AdditionalVerificationView />)
 
         mockNextActions = []
         rerender(<AdditionalVerificationView />)
+        // Well inside CONFIRM_ABSENCE_MS, which outlasts the 4s poll on purpose.
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+
         mockNextActions = [hostedAction]
         rerender(<AdditionalVerificationView />)
-
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        await new Promise((resolve) => setTimeout(resolve, 500))
         expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 

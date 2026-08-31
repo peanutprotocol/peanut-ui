@@ -31,8 +31,12 @@ import { useSafeBack } from '@/hooks/useSafeBack'
  */
 const IDENTITY_ROUTE = '/profile/identity-verification'
 
-/** Grace given to a task that vanishes mid-read before acting on it. */
-const CONFIRM_ABSENCE_MS = 1500
+/**
+ * Grace given to a task that vanishes with no return behind it. Longer than
+ * useUserAutoRefresh's 4s poll on purpose: a shorter window cannot outlast the
+ * tick that dropped the task, so it could never see the next one put it back.
+ */
+const CONFIRM_ABSENCE_MS = 6000
 
 export const AdditionalVerificationView = (): React.JSX.Element => {
     const t = useTranslations('kyc.hostedPrep')
@@ -41,7 +45,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
     const router = useRouter()
     const onBack = useSafeBack(IDENTITY_ROUTE)
     const { nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
-    const { start, isStarting, error } = useBridgeHostedVerification()
+    const { start, isStarting, error, refreshSeq } = useBridgeHostedVerification()
     const hasHostedTask = nextActions.some((action) => action.kind === 'bridge-hosted')
 
     const sawHostedTask = useRef(false)
@@ -63,13 +67,20 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
             router.replace(IDENTITY_ROUTE)
             return
         }
-        // Present and then gone IS the success signal — but nextActions
-        // re-derives on every user refetch, and this screen can be polled while
-        // someone is still reading it. Let one flapping payload put the task
-        // back before navigating out from under them.
+        // Present and then gone IS the success signal. Whether to trust it
+        // straight away comes down to WHY we are looking at a new capability
+        // set: a return from the vendor forced this read, so the absence is the
+        // answer we asked for and the user should not sit on a finished screen.
+        if (refreshSeq > 0) {
+            router.replace(IDENTITY_ROUTE)
+            return
+        }
+        // Nobody came back — the task dropped out of a poll while someone was
+        // reading. That can be one bad tick, so wait past the next one and let
+        // it put the task back rather than navigating out from under them.
         const timer = setTimeout(() => router.replace(IDENTITY_ROUTE), CONFIRM_ABSENCE_MS)
         return () => clearTimeout(timer)
-    }, [isLoadingCapabilities, hasHostedTask, router])
+    }, [isLoadingCapabilities, hasHostedTask, refreshSeq, router])
 
     return (
         <div className="flex w-full flex-col gap-6">
