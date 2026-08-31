@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -31,7 +31,10 @@ import { useSafeBack } from '@/hooks/useSafeBack'
  */
 const IDENTITY_ROUTE = '/profile/identity-verification'
 
-export const AdditionalVerificationView = () => {
+/** Grace given to a task that vanishes mid-read before acting on it. */
+const CONFIRM_ABSENCE_MS = 1500
+
+export const AdditionalVerificationView = (): React.JSX.Element => {
     const t = useTranslations('kyc.hostedPrep')
     const tPrep = useTranslations('kyc.prep')
     const tCommon = useTranslations('common')
@@ -41,13 +44,31 @@ export const AdditionalVerificationView = () => {
     const { start, isStarting, error } = useBridgeHostedVerification()
     const hasHostedTask = nextActions.some((action) => action.kind === 'bridge-hosted')
 
-    // Keyed off a LOADED capability set, not off this render's return-listener:
-    // the no-usable-tab branch navigates the current tab away before it can arm
+    const sawHostedTask = useRef(false)
+
+    // Keyed off a LOADED capability set, not off the hook's return-listener: the
+    // no-usable-tab branch navigates the current tab away before it can arm
     // that listener, so a user who comes back — by deep link, or by Back —
     // remounts with nothing in memory saying they ever left. `isLoading` is what
     // separates "the task is gone" from "the user query has not landed yet".
     useEffect(() => {
-        if (!isLoadingCapabilities && !hasHostedTask) router.replace(IDENTITY_ROUTE)
+        if (hasHostedTask) {
+            sawHostedTask.current = true
+            return
+        }
+        if (isLoadingCapabilities) return
+        // Never present while we were here: the screen was opened without a
+        // task and has nothing to serve. Nothing to wait for.
+        if (!sawHostedTask.current) {
+            router.replace(IDENTITY_ROUTE)
+            return
+        }
+        // Present and then gone IS the success signal — but nextActions
+        // re-derives on every user refetch, and this screen can be polled while
+        // someone is still reading it. Let one flapping payload put the task
+        // back before navigating out from under them.
+        const timer = setTimeout(() => router.replace(IDENTITY_ROUTE), CONFIRM_ABSENCE_MS)
+        return () => clearTimeout(timer)
     }, [isLoadingCapabilities, hasHostedTask, router])
 
     return (

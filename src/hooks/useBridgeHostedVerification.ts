@@ -12,7 +12,15 @@ import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
  * `start` must be called STRAIGHT out of a click handler — it reserves the tab
  * synchronously, inside the user-activation window (see below).
  */
-export function useBridgeHostedVerification() {
+interface BridgeHostedVerification {
+    /** Call STRAIGHT out of a click — the tab reservation needs the gesture. */
+    start: () => Promise<void>
+    isStarting: boolean
+    /** Friendly copy for a failed launch; never the raw server detail. */
+    error: string | null
+}
+
+export function useBridgeHostedVerification(): BridgeHostedVerification {
     const { fetchUser } = useAuth()
     const [isStarting, setIsStarting] = useState(false)
     const [awaitingReturn, setAwaitingReturn] = useState(false)
@@ -94,6 +102,20 @@ export function useBridgeHostedVerification() {
             return
         }
         setAwaitingReturn(true)
+    }, [fetchUser])
+
+    // The same-tab fallback navigates THIS tab away, so the listener below is
+    // never armed for it — and a Back that restores from BFCache re-runs no
+    // effects at all. `refetchOnWindowFocus` does fire on that restore, but the
+    // user query carries staleTime 5m (hooks/query/user.ts) and TanStack skips
+    // it as fresh, so a user who just finished the check would still read as
+    // having the task. `refetch` ignores staleness, which is the point.
+    useEffect(() => {
+        const onPageShow = (event: PageTransitionEvent) => {
+            if (event.persisted) void fetchUser().catch(() => undefined)
+        }
+        window.addEventListener('pageshow', onPageShow)
+        return () => window.removeEventListener('pageshow', onPageShow)
     }, [fetchUser])
 
     // Nothing polls for this cohort — the ~4s user auto-refresh only runs

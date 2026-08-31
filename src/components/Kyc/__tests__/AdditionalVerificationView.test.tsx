@@ -271,7 +271,24 @@ describe('AdditionalVerificationView', () => {
 
         mockNextActions = []
         rerender(<AdditionalVerificationView />)
-        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification'))
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification'), {
+            timeout: 4000,
+        })
+    })
+
+    it('a single flapping snapshot does not eject someone still reading the screen', async () => {
+        // nextActions re-derives on every user refetch, and this screen can be
+        // polled while it is being read. The old card merely hid in that case;
+        // a route would actively navigate the reader away.
+        const { rerender } = render(<AdditionalVerificationView />)
+
+        mockNextActions = []
+        rerender(<AdditionalVerificationView />)
+        mockNextActions = [hostedAction]
+        rerender(<AdditionalVerificationView />)
+
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
     it('an in-flight capability read does not bounce the user off the screen', () => {
@@ -307,6 +324,34 @@ describe('AdditionalVerificationView', () => {
         const alert = await screen.findByTestId('hosted-start-error')
         expect(alert).toHaveAttribute('role', 'alert')
         expect(alert).toHaveTextContent(/couldn't start the verification/i)
+    })
+
+    it('a BFCache restore refetches — refetchOnWindowFocus would be skipped as fresh', async () => {
+        // The same-tab fallback navigates this tab away without arming the
+        // return listener, and Back can restore the page without re-running a
+        // single effect. The user query has staleTime 5m, so TanStack's focus
+        // refetch is a no-op; only an explicit refetch sees the cleared task.
+        mockWindowOpen.mockReturnValue(null)
+        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+        render(<AdditionalVerificationView />)
+
+        startVerification()
+        await waitFor(() => expect(mockAssignHref).toHaveBeenCalled())
+        expect(mockFetchUser).not.toHaveBeenCalled()
+
+        const restore = new Event('pageshow') as PageTransitionEvent
+        Object.defineProperty(restore, 'persisted', { value: true })
+        window.dispatchEvent(restore)
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+    })
+
+    it('a fresh (non-BFCache) pageshow does not refetch', () => {
+        render(<AdditionalVerificationView />)
+
+        const firstLoad = new Event('pageshow') as PageTransitionEvent
+        Object.defineProperty(firstLoad, 'persisted', { value: false })
+        window.dispatchEvent(firstLoad)
+        expect(mockFetchUser).not.toHaveBeenCalled()
     })
 
     it('a browserFinished listener resolving AFTER cleanup removes itself', async () => {
