@@ -521,7 +521,19 @@
             "title": "About Peanut",
             "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
             "policiesHeading": "Policies",
-            "version": "Version {version}"
+            "version": "Version {version}",
+            "beta": {
+                "heading": "Beta updates",
+                "description": "Receive builds from the {channel} channel before they ship to everyone. Internal testing only.",
+                "channelLabel": "Update channel",
+                "defaultChannel": "Default",
+                "bundleLabel": "Running bundle",
+                "deviceLabel": "Device ID",
+                "deviceCopied": "Device ID copied",
+                "joined": "You are on beta updates. Restart the app to load the newest beta build.",
+                "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
+                "failed": "Could not change the update channel."
+            }
         }
     },
     "settings": {

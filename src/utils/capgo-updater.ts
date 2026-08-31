@@ -136,3 +136,56 @@ function recordFailureStreak(message: string): number {
     writeStoredValue(FAILURE_STREAK_KEY, JSON.stringify({ message, count }))
     return count
 }
+
+// The channel every merge to `dev` publishes to (capgo-deploy.yml). Testers opt
+// in from the About screen; every other install stays on the app's default
+// channel (production) and never sees these bundles.
+export const BETA_OTA_CHANNEL = 'staging'
+
+export interface OtaChannelStatus {
+    channel: string | null
+    bundleVersion: string | null
+    deviceId: string | null
+}
+
+// Capgo rejects setChannel() unless the channel allows self-assignment, and the
+// plugin surfaces that as a plain Error. Distinguish it so the UI can say what
+// has to change instead of "something went wrong".
+export class OtaChannelClosedError extends Error {}
+
+export async function readOtaChannelStatus(): Promise<OtaChannelStatus> {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    const [channel, current, device] = await Promise.all([
+        CapacitorUpdater.getChannel().catch(() => null),
+        CapacitorUpdater.current().catch(() => null),
+        CapacitorUpdater.getDeviceId().catch(() => null),
+    ])
+    return {
+        channel: channel?.channel ?? null,
+        bundleVersion: current?.bundle?.version ?? null,
+        deviceId: device?.deviceId ?? null,
+    }
+}
+
+// Join the beta channel and pull its bundle straight away. The bundle applies on
+// the next launch, like every other OTA — next() rather than set().
+export async function joinBetaOtaChannel(): Promise<void> {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    let result
+    try {
+        result = await CapacitorUpdater.setChannel({ channel: BETA_OTA_CHANNEL })
+    } catch (err) {
+        throw new OtaChannelClosedError(err instanceof Error ? err.message : String(err ?? ''))
+    }
+    if (result.error) throw new OtaChannelClosedError(result.error)
+    await checkAndStageUpdate()
+}
+
+// Beta bundles carry a higher version than production's, so no production OTA
+// can ever overwrite one: reset() back to the store bundle is the only way out,
+// and it reloads the app on the spot.
+export async function leaveBetaOtaChannel(): Promise<void> {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    await CapacitorUpdater.unsetChannel({})
+    await CapacitorUpdater.reset()
+}

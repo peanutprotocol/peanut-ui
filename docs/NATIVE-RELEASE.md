@@ -321,6 +321,27 @@ own `out/` under the binary's versionName, then assert the channel serves it.
 - **Boundary:** OTA ships web assets only. New plugins, Gradle, permissions, versionCode
   → Play release.
 
+### Internal testing (the `staging` channel on a real device)
+
+Every merge to `dev` already publishes to `staging`; the missing half was a way for a
+tester's device to read it. Five taps on the version line in **Profile → About** reveal a
+Beta-updates switch that calls `setChannel('staging')` — no dashboard work per tester, and
+the row also prints the device ID for the times someone has to be forced onto a channel
+from the dashboard instead.
+
+Two prerequisites, both in Capgo, both one-time:
+
+- `staging` must have **"Allow devices to self dissociate/associate"** enabled, or
+  `setChannel()` is refused and the app says so. Changing it needs a Super Admin.
+- The tester's binary must not outrank the bundle: `disable_auto_update_under_native`
+  makes a device on versionName 1.1.x refuse anything sorting below it. Staging's
+  commit-count band sits far above production's, so this only bites right after a native
+  release.
+
+Leaving the channel unsets it **and** calls `reset()` back to the store bundle: staging
+versions outrank every production one, so no production OTA could ever replace a beta
+bundle on its own.
+
 ---
 
 ## 10. Pre-submission verification
