@@ -16,6 +16,10 @@
  *     setup stops on the unsupported-browser screen before anything else.
  *
  * Files land as `<flow>-<NN>-<step>@<width>.png` so the row sorts by name.
+ *
+ * These specs navigate to an absolute `localhost` URL rather than using the
+ * config's baseURL, which is `127.0.0.1`: WebAuthn refuses an IP literal as an
+ * RP id, so passkey creation fails on that origin. Same server either way.
  */
 
 import { test, type Page } from '@playwright/test'
@@ -128,7 +132,7 @@ const pickResidence =
         await pause(400)
     }
 
-function stepsFor(country: (typeof COUNTRIES)[number]): Step[] {
+function stepsFor(country: (typeof COUNTRIES)[number], base: string): Step[] {
     // `?code=` skips the invite step, so the entry screen is the username one.
     return [
         { name: 'username' },
@@ -165,7 +169,7 @@ function stepsFor(country: (typeof COUNTRIES)[number]): Step[] {
             name: 'home',
             act: async (page: Page) => {
                 await page.evaluate(() => window.sessionStorage.clear())
-                await page.goto('/home?__fixture=home', { waitUntil: 'domcontentloaded' })
+                await page.goto(`${base}/home?__fixture=home`, { waitUntil: 'domcontentloaded' })
                 await pause(2500)
             },
         },
@@ -181,6 +185,9 @@ for (const country of COUNTRIES) {
 
         // Stands in for the platform authenticator. Setup gates on one existing
         // before it will show anything but the unsupported-browser screen.
+        // Absolute, and on localhost — see the file header.
+        const base = `http://localhost:${new URL(testInfo.project.use.baseURL!).port}`
+
         const cdp = await context.newCDPSession(page)
         await cdp.send('WebAuthn.enable')
         await cdp.send('WebAuthn.addVirtualAuthenticator', {
@@ -208,10 +215,10 @@ for (const country of COUNTRIES) {
         await page.route('**/ipapi.co/**', (route) => route.fulfill({ status: 200, body: country.iso2 }))
 
         // `code` skips the invite step, which is not part of what varies here.
-        await page.goto(`/setup?${FIXTURE_PARAM}=signed-out&code=peanut`, { waitUntil: 'domcontentloaded' })
+        await page.goto(`${base}/setup?${FIXTURE_PARAM}=signed-out&code=peanut`, { waitUntil: 'domcontentloaded' })
         await mkdir(OUT_DIR, { recursive: true })
 
-        for (const [index, step] of stepsFor(country).entries()) {
+        for (const [index, step] of stepsFor(country, base).entries()) {
             if (step.act) await step.act(page)
             await settle(page)
             await page.screenshot({
