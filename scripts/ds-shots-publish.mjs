@@ -27,7 +27,7 @@
 // publisher goes red and posts nothing, which is the wanted outcome for a
 // tampered report.
 
-import { readFileSync, statSync } from 'node:fs'
+import { closeSync, openSync, readSync } from 'node:fs'
 
 // The marker carries the head the comment describes, so a later run with no
 // report can tell a current comment (keep) from a stale one (clear) without
@@ -53,11 +53,25 @@ const fail = (why) => {
 
 const [reportPath] = process.argv.slice(2)
 if (!reportPath) fail('no report path given')
-if (statSync(reportPath).size > MAX_BYTES) fail('report too large')
+
+// One bounded read instead of stat-then-read: no size-check race (codeql
+// js/file-system-race) and never more than MAX_BYTES+1 bytes of a hostile
+// file in memory, however large it is on disk.
+let raw
+try {
+    const fd = openSync(reportPath, 'r')
+    const buf = Buffer.alloc(MAX_BYTES + 1)
+    const bytes = readSync(fd, buf, 0, MAX_BYTES + 1, 0)
+    closeSync(fd)
+    if (bytes > MAX_BYTES) fail('report too large')
+    raw = buf.toString('utf8', 0, bytes)
+} catch {
+    fail('cannot read the report file')
+}
 
 let report
 try {
-    report = JSON.parse(readFileSync(reportPath, 'utf8'))
+    report = JSON.parse(raw)
 } catch {
     fail('not valid json')
 }
