@@ -758,8 +758,8 @@
             },
             "partial": {
                 "title": "Heads up",
-                "cardDescription": "The Peanut card isn't available in your country. Everything else works: bank transfers, digital dollars, and sending to any @username.",
-                "bankingDescription": "Bank transfers aren't available in your country. Everything else works: the Peanut card, digital dollars, and sending to any @username.",
+                "cardDescription": "The Peanut card isn't available in your country. Digital dollars and sending to any @username work right away.",
+                "bankingDescription": "Bank transfers aren't available in your country. Digital dollars and sending to any @username work right away, and the Peanut card needs a quick ID check.",
                 "continue": "Continue"
             },
             "congrats": {
