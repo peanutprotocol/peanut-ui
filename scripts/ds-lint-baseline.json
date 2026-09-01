@@ -14,7 +14,7 @@
     "classNameSitesInPages": 314,
     "fontWeightOnTypeToken": 47,
     "offScaleSpacing": 204,
-    "iconOffScale": 64,
+    "iconOffScale": 81,
     "offScaleRadius": 37,
     "rawDuration": 9,
     "_meta": [
@@ -22,6 +22,11 @@
             "date": "2026-09-01",
             "metrics": ["offScaleSpacing 199 -> 204"],
             "reason": "chip round 7 on #2905: spacing metric adds the -px suffix, block-axis logical families, and custom-property shorthand; the +5 are marketing hairline gap-px dividers and one 1px nudge"
+        },
+        {
+            "date": "2026-09-01",
+            "metrics": ["iconOffScale 64 -> 81"],
+            "reason": "chip round 9 on #2905: icon metric now counts non-literal size expressions conservatively — the +17 are dynamic size maps (Button/IconBubble resolve to board steps) and variable-sized call sites held for static resolution"
         }
     ]
 }

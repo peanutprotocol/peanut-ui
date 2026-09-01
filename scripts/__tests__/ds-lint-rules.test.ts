@@ -111,6 +111,7 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
             'font-[550]',
             'font-[650.5]',
             'font-(weight:--my-weight)',
+            'font-[weight:var(--my-font-weight)]',
         ]) {
             expect(countWeightStacks(`<p className="text-body-s ${w}" />`)).toBe(1)
         }
@@ -140,6 +141,11 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks(code)).toBe(1)
     })
 
+    it('counts multiline template-literal class constants outside builders', () => {
+        const code = ['const classes = `text-body-m', '    font-semibold underline`', 'use(classes)'].join('\n')
+        expect(countWeightStacks(code)).toBe(1)
+    })
+
     it('does not count a token and a weight living in different elements', () => {
         const jsx = [
             '<p className="text-body-m">a</p>',
@@ -164,6 +170,9 @@ describe('iconOffScale', () => {
             '<Icon name="x" className="size-[18px]" />',
             '<Icon name="x" className="size-(--icon)" />',
             "<Icon name={icon} className={twMerge('h-[18px] w-[18px]', extra)} />",
+            '<Icon name="x" size={iconSize} />',
+            '<Icon name="x" size={small ? 16 : 20} />',
+            'iconSize={resolved}',
         ]) {
             expect(countMatches(text, OFF_SCALE_ICON_RE)).toBeGreaterThan(0)
         }

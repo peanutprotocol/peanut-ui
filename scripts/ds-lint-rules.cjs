@@ -39,7 +39,7 @@ function countOffScaleSpacing(text) {
 // (decimals included) + the font-(weight:…) custom-property form. bare
 // font-(--x) is a font-FAMILY custom property, not a weight — excluded.
 const WEIGHT_STACK_RE =
-    /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\(weight:[^)]+\))(?![a-zA-Z0-9-])/
+    /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\[weight:[^\]]+\]|\(weight:[^)]+\))(?![a-zA-Z0-9-])/
 const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
 
 function classNameExpressions(text) {
@@ -92,13 +92,35 @@ function builderCallRegions(text) {
     return regions
 }
 
+// a multiline template-literal class constant (text-body-m on one line,
+// font-semibold on the next, no builder call around it) renders one class
+// list, so backtick spans are regions of their own.
+function templateLiteralRegions(text) {
+    const regions = []
+    let i = text.indexOf('`')
+    while (i !== -1) {
+        let j = i + 1
+        while (j < text.length && text[j] !== '`') {
+            if (text[j] === '\\') j++
+            j++
+        }
+        if (j >= text.length) break
+        regions.push({ start: i, end: j + 1 })
+        i = text.indexOf('`', j + 1)
+    }
+    return regions
+}
+
 function countWeightStacks(text) {
     let n = 0
     const attrRegions = classNameExpressions(text)
-    const inAttr = (r) => attrRegions.some((a) => r.start >= a.start && r.end <= a.end)
-    const regions = [...attrRegions, ...builderCallRegions(text).filter((r) => !inAttr(r))].sort(
-        (a, b) => a.start - b.start
-    )
+    const outer = [...attrRegions, ...builderCallRegions(text)]
+    const contained = (r) =>
+        outer.some((a) => (a.start < r.start || a.end > r.end) && r.start >= a.start && r.end <= a.end)
+    const regions = [
+        ...outer.filter((r, idx) => !outer.some((a, ai) => ai !== idx && r.start >= a.start && r.end <= a.end)),
+        ...templateLiteralRegions(text).filter((r) => !contained(r)),
+    ].sort((a, b) => a.start - b.start)
     for (const r of regions) {
         const expr = text.slice(r.start, r.end)
         if (TYPE_TOKEN_RE.test(expr) && WEIGHT_STACK_RE.test(expr)) n++
@@ -120,8 +142,11 @@ function countWeightStacks(text) {
 // law — tailwind size-/h-/w- classes on the Icon itself, whatever the
 // className syntax (string, template literal, or brace expression): any
 // size-/h-/w- numeric class inside an <Icon …> tag span counts.
+// non-literal size expressions (size={iconSize}, size={a ? 16 : 20}) are
+// counted conservatively: the matcher cannot resolve them, and an unresolved
+// size is a hold to justify in the baseline, not a free pass.
 const OFF_SCALE_ICON_RE =
-    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?\b(?:size|h|w)-(?:[0-9]|\[|\(--)/g
+    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?\b(?:size|width|height)=\{(?![0-9]+\})[^}]*\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?![0-9]+\})[^}]*\}|<Icon\s[^>]*?\b(?:size|h|w)-(?:[0-9]|\[|\(--)/g
 
 // allowlist inversion like spacing: any rounded suffix outside the documented
 // scale (bare rounded = 4px/xs, none, sm = 2px, round, full) is drift —
