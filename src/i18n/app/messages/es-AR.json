@@ -88,7 +88,8 @@
             "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
             "tapToClaim": "Tocá para reclamar tu recompensa.",
             "card": {
-                "title": "Conseguí tu <b>Peanut Card</b>"
+                "title": "Conseguí tu <b>Peanut Card</b>",
+                "description": "Gastá tu saldo <b>donde acepten Visa</b>."
             },
             "invite": {
                 "title": "Invitá amigos. Ganá recompensas",
