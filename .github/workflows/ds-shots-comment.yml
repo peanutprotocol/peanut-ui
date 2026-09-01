@@ -112,7 +112,25 @@ jobs:
                   # be the exact commit this run tested: a PR naming its
                   # artifact after somebody else's PR posts nothing, and an
                   # out-of-order older run cannot overwrite a newer comment.
-                  HEAD=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha' 2>/dev/null || true)
+                  #
+                  # A true 404 (the number points at no PR) is that attack and
+                  # stays a no-op. Any other failure — 5xx, rate limit,
+                  # network — must fail this job loudly: swallowed, it would
+                  # exit green while an older result stands as current.
+                  set +e
+                  OUT=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha' 2>&1)
+                  STATUS=$?
+                  set -e
+                  if [ "$STATUS" -ne 0 ]; then
+                      if printf '%s' "$OUT" | grep -q 'HTTP 404'; then
+                          echo "PR #$PR does not exist — the artifact name pointed at nothing. Skipping."
+                          echo 'match=false' >> "$GITHUB_OUTPUT"
+                          exit 0
+                      fi
+                      echo "::error::PR-head lookup for #$PR failed: $OUT"
+                      exit 1
+                  fi
+                  HEAD=$OUT
                   if [ "$HEAD" != "$RUN_HEAD_SHA" ]; then
                       echo "PR #$PR head ${HEAD:-<none>} != run head $RUN_HEAD_SHA — mismatched artifact name or stale run. Skipping."
                       echo 'match=false' >> "$GITHUB_OUTPUT"
