@@ -7,6 +7,7 @@ import { useNativeAppLinks } from '../useNativeAppLinks'
 import { restoreDeferredContext } from '@/utils/deferred-link'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 import { getOneSignalAdapter } from '@/services/onesignal'
+import { BASE_URL } from '@/constants/general.consts'
 
 const push = jest.fn()
 jest.mock('next/navigation', () => ({
@@ -139,6 +140,53 @@ describe('launch-url replay guard', () => {
         renderHook(() => useNativeAppLinks())
 
         await waitFor(() => expect(push).toHaveBeenCalledWith('/claim?i=unhandled'))
+    })
+})
+
+describe('document click interceptor', () => {
+    const { openExternalUrl } = jest.requireMock('@/utils/capacitor')
+
+    const clickAnchor = (attrs: Record<string, string>) => {
+        const a = document.createElement('a')
+        Object.entries(attrs).forEach(([k, v]) => a.setAttribute(k, v))
+        a.textContent = 'link'
+        document.body.appendChild(a)
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+        a.dispatchEvent(event)
+        a.remove()
+        return event
+    }
+
+    it('opens a web-only relative href in the in-app browser instead of client-navigating', async () => {
+        renderHook(() => useNativeAppLinks())
+        const event = clickAnchor({ href: '/en/help/fees-pricing' })
+        expect(event.defaultPrevented).toBe(true)
+        expect(openExternalUrl).toHaveBeenCalledWith(`${BASE_URL}/en/help/fees-pricing`)
+    })
+
+    it('leaves relative hrefs the native export ships alone', async () => {
+        renderHook(() => useNativeAppLinks())
+        const home = clickAnchor({ href: '/home' })
+        const card = clickAnchor({ href: '/shhhhh' })
+        expect(home.defaultPrevented).toBe(false)
+        expect(card.defaultPrevented).toBe(false)
+        expect(openExternalUrl).not.toHaveBeenCalled()
+    })
+
+    it('still routes absolute target="_blank" hrefs through the in-app browser', async () => {
+        renderHook(() => useNativeAppLinks())
+        const event = clickAnchor({ href: 'https://example.com/doc', target: '_blank' })
+        expect(event.defaultPrevented).toBe(true)
+        expect(openExternalUrl).toHaveBeenCalledWith('https://example.com/doc')
+    })
+
+    it('ignores hash and non-path hrefs', async () => {
+        renderHook(() => useNativeAppLinks())
+        const hash = clickAnchor({ href: '#chat' })
+        const mail = clickAnchor({ href: 'mailto:hello@peanut.me' })
+        expect(hash.defaultPrevented).toBe(false)
+        expect(mail.defaultPrevented).toBe(false)
+        expect(openExternalUrl).not.toHaveBeenCalled()
     })
 })
 
