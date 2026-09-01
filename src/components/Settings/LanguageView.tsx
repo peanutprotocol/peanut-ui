@@ -44,7 +44,7 @@ export const LanguageView = () => {
     return (
         <div className="h-full w-full bg-background">
             <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="pt-4">
+            <div className="pt-6">
                 {APP_LOCALES.map((appLocale, index) => (
                     <ListItem
                         key={appLocale}
