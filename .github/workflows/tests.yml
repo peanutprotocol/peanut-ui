@@ -415,10 +415,13 @@ jobs:
             # when warm. Key follows the Next.js docs recipe: exact key per
             # source hash, restore-keys falls back to the newest cache for the
             # same lockfile, which is the incremental rebuild Next optimizes.
-            # Own ds-shots-next- prefix so entries are identifiable next to
-            # the ds-shots screenshot baselines in the repo's 10 GB quota.
-            - name: Cache the Next build
-              uses: actions/cache@v4
+            # Restore-only on purpose: a save on every PR push would upload a
+            # fresh 100-400 MB entry that is branch-scoped (no other PR can
+            # read it), churning the shared 10 GB cache quota and spending
+            # 1-2 min on the upload. Push runs save below instead, so every
+            # PR restores a near-fresh dev-scoped entry via restore-keys.
+            - name: Restore the Next build cache
+              uses: actions/cache/restore@v4
               with:
                   path: .next/cache
                   key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
@@ -438,6 +441,19 @@ jobs:
                   # it; CI has no .env, so set it here.
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
               run: pnpm build
+
+            # Push runs only (dev/main/DS train land several times a day), so
+            # PRs always find a near-fresh entry without per-PR churn. Right
+            # after Build rather than a post step: a capture failure must not
+            # lose the cache. A re-run finds the key taken — losing that race
+            # costs nothing, the entry is already there.
+            - name: Save the Next build cache
+              if: github.event_name == 'push'
+              continue-on-error: true
+              uses: actions/cache/save@v4
+              with:
+                  path: .next/cache
+                  key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
 
             # The capture fails a shot that still has a spinner on camera, on
             # purpose. No continue-on-error: a red step is how anyone finds out.
