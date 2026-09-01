@@ -449,7 +449,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             <span className="truncate text-body-m-semibold text-foreground-primary">
                                 {buttonSymbol || t('tokenSelector.selectAToken')}
                                 {buttonChainName && (
-                                    <span className="ml-1 text-body-s font-medium text-foreground-secondary">
+                                    <span className="ml-1 text-body-s text-foreground-secondary">
                                         {t.rich('tokenSelector.onChain', {
                                             chainName: buttonChainName,
                                             c: (chunks) => <span className="capitalize">{chunks}</span>,
@@ -461,7 +461,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             {(viewType === 'withdraw' || viewType === 'claim') &&
                                 selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
                                 selectedChainID === PEANUT_WALLET_CHAIN.id.toString() && (
-                                    <span className="text-body-xs font-normal text-foreground-secondary">
+                                    <span className="text-body-xs text-foreground-secondary">
                                         {t('tokenSelector.noFeesWithToken')}
                                     </span>
                                 )}
@@ -539,7 +539,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                         />
                                         <div className="flex items-center justify-center gap-2">
                                             <Icon name="info" size={10} className="text-foreground-secondary" />
-                                            <span className="text-body-xs font-normal text-foreground-secondary">
+                                            <span className="text-body-xs text-foreground-secondary">
                                                 {t('tokenSelector.sponsoredHint')}
                                             </span>
                                         </div>

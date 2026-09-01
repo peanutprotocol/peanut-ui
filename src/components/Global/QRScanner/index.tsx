@@ -71,7 +71,7 @@ function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name
     return (
         <div className="flex max-w-26 items-center gap-1">
             <Image src={src} alt={alt} height={24} priority />
-            <span className="text-left text-body-xs leading-none font-black tracking-wider break-normal text-white uppercase">
+            <span className="text-left text-label-m leading-none tracking-wider break-normal text-white uppercase">
                 {name}
             </span>
         </div>

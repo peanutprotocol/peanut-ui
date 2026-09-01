@@ -116,9 +116,7 @@ const InvitesPage = () => {
                     {invites?.summary?.totalLifetimeEarnedUsd !== undefined &&
                     invites.summary.totalLifetimeEarnedUsd > 0 ? (
                         <>
-                            <h2 className="text-center text-body-m font-medium text-foreground-primary">
-                                {t('friendsEarnedYou')}
-                            </h2>
+                            <h2 className="text-center text-body-m text-foreground-primary">{t('friendsEarnedYou')}</h2>
                             <span className="text-heading-m text-foreground-primary">
                                 ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
                             </span>
@@ -132,9 +130,7 @@ const InvitesPage = () => {
                         </>
                     ) : (
                         <>
-                            <h2 className="text-center text-body-m font-medium text-foreground-primary">
-                                {t('friendsEarnedYou')}
-                            </h2>
+                            <h2 className="text-center text-body-m text-foreground-primary">{t('friendsEarnedYou')}</h2>
                             <span className="flex items-center gap-2">
                                 <Image src={STAR_STRAIGHT_ICON} alt={t('starAlt')} width={20} height={20} />
                                 <span className="text-heading-m text-foreground-primary">

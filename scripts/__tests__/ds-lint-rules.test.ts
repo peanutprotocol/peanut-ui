@@ -82,6 +82,14 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const style = 'text-body-s font-bold underline'")).toBe(1)
     })
 
+    it('counts every weight utility, not just the bold family', () => {
+        for (const w of ['font-thin', 'font-light', 'font-normal', 'font-medium', 'font-black', 'font-[550]']) {
+            expect(countWeightStacks(`<p className="text-body-s ${w}" />`)).toBe(1)
+        }
+        expect(countWeightStacks('<p className="text-body-s font-sans" />')).toBe(0)
+        expect(countWeightStacks('<p className="text-body-s font-roboto" />')).toBe(0)
+    })
+
     it('counts stacks carried through *ClassName props, not just className', () => {
         const jsx = [
             '<TitleBlock',

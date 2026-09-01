@@ -32,7 +32,8 @@ function countOffScaleSpacing(text) {
 // weight split across formatted lines inside one twMerge/clsx call still
 // count; class strings held in variables outside className= are caught by a
 // per-line pass over the remaining text.
-const WEIGHT_STACK_RE = /\bfont-(?:bold|semibold|extrabold)\b/
+const WEIGHT_STACK_RE =
+    /\bfont-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|\[[0-9]+\])(?![a-z-])/
 const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
 
 function classNameExpressions(text) {

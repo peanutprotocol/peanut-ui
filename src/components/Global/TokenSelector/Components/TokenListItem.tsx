@@ -115,7 +115,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                 className={
                                     isPopularToken
                                         ? 'text-body-xs font-medium text-foreground-secondary'
-                                        : 'ml-1 text-body-s font-medium text-foreground-secondary'
+                                        : 'ml-1 text-body-s text-foreground-secondary'
                                 }
                             >
                                 {t.rich('tokenSelector.onChain', {
@@ -128,8 +128,8 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
 
                     {!isPopularToken && !!formattedBalance ? (
                         <div className="flex flex-col items-end">
-                            <div className="text-body-m font-medium text-foreground-primary">{formattedBalance}</div>
-                            <div className="text-body-xs font-normal text-foreground-secondary">
+                            <div className="text-body-m text-foreground-primary">{formattedBalance}</div>
+                            <div className="text-body-xs text-foreground-secondary">
                                 {/* token value in usd */}
                                 {balance.price && balance.price * Number(formattedBalance) > 0
                                     ? `$ ${formatAmount(balance.price * Number(formattedBalance))}`

@@ -194,7 +194,7 @@ const RhinoDepositView = ({
                                         </p>
                                     </div>
 
-                                    <p className="text-body-s font-medium text-foreground-secondary">
+                                    <p className="text-body-s text-foreground-secondary">
                                         {depositAddressData.minDepositLimitUsd} USD
                                     </p>
                                 </div>
@@ -207,7 +207,7 @@ const RhinoDepositView = ({
                                         </p>
                                     </div>
 
-                                    <p className="text-body-s font-medium text-foreground-secondary">
+                                    <p className="text-body-s text-foreground-secondary">
                                         {depositAddressData.maxDepositLimitUsd} USD
                                     </p>
                                 </div>

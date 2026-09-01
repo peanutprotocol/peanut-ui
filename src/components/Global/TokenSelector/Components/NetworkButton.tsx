@@ -60,9 +60,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
                     <AvatarWithBadge size="extra-small" name={chainName} />
                 )}
             </div>
-            <span className="text-body-s font-medium">
-                {isSearch ? t('tokenSelector.moreNetworksButton') : chainName}
-            </span>
+            <span className="text-body-s">{isSearch ? t('tokenSelector.moreNetworksButton') : chainName}</span>
         </Button>
     )
 }

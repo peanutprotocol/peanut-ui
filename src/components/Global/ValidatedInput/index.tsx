@@ -205,7 +205,7 @@ const ValidatedInput = ({
                                 : undefined
                         }
                         className={twMerge(
-                            `notranslate w-full border-0 bg-background-default pr-1 text-body-s font-medium outline-none focus:outline-none focus-visible:outline-none active:bg-background-default`,
+                            `notranslate w-full border-0 bg-background-default pr-1 text-body-s outline-none focus:outline-none focus-visible:outline-none active:bg-background-default`,
                             !!infoText ? 'pl-0' : 'pl-4'
                         )}
                         placeholder={placeholder}

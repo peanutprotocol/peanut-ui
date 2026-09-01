@@ -88,7 +88,7 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
     const renderStatusText = () => {
         if (!isClosed) return null
         return (
-            <div className="flex items-center gap-1 text-body-m font-medium">
+            <div className="flex items-center gap-1 text-body-m">
                 <Image src={COIN_ICON} alt="coin" width={18} height={18} />
                 <p>{getStatusText()}</p>
             </div>
@@ -108,13 +108,10 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
         if (isOverGoal) {
             return (
                 <div className="relative flex w-full items-center pb-2">
-                    <p
-                        className="absolute -translate-x-1/2 text-body-s font-medium"
-                        style={{ left: `${goalPercentage}%` }}
-                    >
+                    <p className="absolute -translate-x-1/2 text-body-s" style={{ left: `${goalPercentage}%` }}>
                         100%
                     </p>
-                    <p className="absolute right-0 text-body-s font-medium">{formatCurrency(progress)}</p>
+                    <p className="absolute right-0 text-body-s">{formatCurrency(progress)}</p>
                 </div>
             )
         }
