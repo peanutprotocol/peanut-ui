@@ -12,4 +12,12 @@ export type Fixture = {
     responses?: Record<string, unknown>
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
+    /**
+     * `METHOD /path` → status code, with an empty body. For screens that read
+     * a status rather than a payload: the signup username check treats 404 as
+     * "available" and 200 as "taken", and the demo API answers 200 to
+     * everything, so without this no fixture can reach the step after it.
+     * `fails` stays as the shorthand for 500.
+     */
+    status?: Record<string, number>
 }

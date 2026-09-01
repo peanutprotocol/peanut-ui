@@ -39,6 +39,11 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     const method = (options?.method ?? 'GET').toUpperCase()
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
 
+    const forcedStatus = fixture.status?.[key]
+    if (forcedStatus !== undefined) {
+        return new Response(forcedStatus === 204 ? null : '{}', { status: forcedStatus, headers: JSON_HEADERS })
+    }
+
     if (fixture.fails?.includes(key)) {
         return new Response(JSON.stringify({ error: 'fixture failure' }), { status: 500, headers: JSON_HEADERS })
     }

@@ -138,6 +138,9 @@ const HUGE_HISTORY_ENTRY = {
  * together on purpose: a capability block paired with someone else's identity
  * status is a state the backend never emits, and the gate reads both.
  */
+/** The username signup fixtures type — see the `signed-out` status override. */
+export const SIGNUP_USERNAME = 'peanutqa'
+
 function kycProfileResponse(name: keyof typeof KYC_PROFILES) {
     const profile = KYC_PROFILES[name]
     return { capabilities: profile.capabilities, identityVerification: profile.identityVerification }
@@ -390,6 +393,21 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Tapping Upload document when the applicant-action call fails.',
         responses: { 'GET /users/me': kycProfileResponse('usBridgeNeedsProofOfAddress') },
         fails: ['POST /users/kyc/start-action'],
+    },
+
+    // ---------------------------------------------------------------------
+    // Signed out. Every endpoint stays faked, but /users/me answers `null`,
+    // which is what useUserQuery reads as "no session" — so the setup flow
+    // runs instead of the app bouncing to /home on the fixture's own cookie.
+    // ---------------------------------------------------------------------
+    'signed-out': {
+        route: '/setup',
+        about: 'Signup entry with no session: the landing step of the setup flow.',
+        responses: { 'GET /users/me': null },
+        // The availability check reads the STATUS: 200 is taken, 404 is free.
+        // The demo API answers 200 to everything, so the name below is the one
+        // signup fixtures must type.
+        status: { [`HEAD /users/username/${SIGNUP_USERNAME}`]: 404 },
     },
 
     // ---------------------------------------------------------------------

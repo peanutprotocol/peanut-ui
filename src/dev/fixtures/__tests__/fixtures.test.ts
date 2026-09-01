@@ -4,11 +4,20 @@ import { FIXTURES } from '@/dev/fixtures/registry'
 
 const names = Object.keys(FIXTURES)
 
-const APP_DIR = join(process.cwd(), 'src', 'app', '(mobile-ui)')
+const APP_DIR = join(process.cwd(), 'src', 'app')
+
+// Route GROUPS — the parenthesised folders — do not appear in a URL, so a
+// fixture route can live under any of them. Checking only `(mobile-ui)` marked
+// every /setup fixture as pointing at a missing route.
+const ROUTE_GROUPS = readdirSync(APP_DIR).filter((entry) => entry.startsWith('(') && entry.endsWith(')'))
 
 // A dynamic segment is a real route: /limits/manteca is served by limits/[provider].
 function routeExists(route: string): boolean {
-    let dir = APP_DIR
+    return ROUTE_GROUPS.some((group) => routeExistsUnder(join(APP_DIR, group), route))
+}
+
+function routeExistsUnder(root: string, route: string): boolean {
+    let dir = root
     for (const segment of route.split('/').filter(Boolean)) {
         if (existsSync(join(dir, segment))) {
             dir = join(dir, segment)

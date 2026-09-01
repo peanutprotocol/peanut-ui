@@ -30,7 +30,10 @@ const WIDTHS = [
 
 // 3080-3089 only: other sessions own 3050, 3060 and 5050.
 const PORT = Number(process.env.SHOTS_PORT ?? 3080)
-const BASE = `http://127.0.0.1:${PORT}`
+// Host is overridable because WebAuthn will not accept an IP literal as an RP
+// ID: the signup specs must run on `localhost` or passkey creation fails.
+const HOST = process.env.SHOTS_HOST ?? '127.0.0.1'
+const BASE = `http://${HOST}:${PORT}`
 
 export default defineConfig({
     testDir: './e2e/shots',
