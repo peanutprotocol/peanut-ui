@@ -27,9 +27,17 @@
 #   no report + no comment                    → stay quiet
 #   any operational API failure               → red job, comment untouched
 #
-# There is deliberately NO concurrency group: supersession is enforced by
-# head-SHA binding in every path, and one branch can hold two open PRs (dev
-# and main base) whose publishers must not cancel each other.
+# Supersession is enforced by head-SHA binding, not by cancellation. The
+# concurrency group below serializes publishers for the SAME head only —
+# cancel-in-progress stays false, because one branch can hold two open PRs
+# (dev and main base) whose publishers must both run. Serialization closes
+# the read-then-write race where a no-report run could overwrite the result
+# a sibling same-head run posted between its marker read and its PATCH;
+# once serialized, either order ends correctly, because the marker-head
+# guard makes a no-report run keep any comment already posted for its head.
+# (GitHub keeps at most one run queued per group; a superseded queued run is
+# safe to lose — every run in the group is for the same head, so any
+# survivor leaves the comment consistent for that head.)
 #
 # Deploy note: workflow_run only fires once this file exists on the DEFAULT
 # branch (main). It lands on dev first, so the comment starts appearing after
@@ -45,6 +53,10 @@ permissions:
     contents: read # checkout of the default branch, for the builder script
     actions: read # list + download the triggering run's artifacts
     pull-requests: write # the sticky comment
+
+concurrency:
+    group: ds-shots-comment-${{ github.event.workflow_run.head_sha }}
+    cancel-in-progress: false
 
 jobs:
     comment:
@@ -148,8 +160,22 @@ jobs:
                   fi
                   echo 'match=true' >> "$GITHUB_OUTPUT"
 
-            # Extraction and rendering both consume attacker-controlled bytes,
-            # so either may refuse them: a broken archive fails unzip, an
+            # The download is a plain API call: a transient failure here is
+            # operational, must go red with the comment untouched, and must
+            # never be misread as a tampered artifact — so it lives OUTSIDE
+            # the continue-on-error step below.
+            - name: Download the report artifact
+              if: steps.bind.outputs.match == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  REPORT_ID: ${{ steps.art.outputs.report_id }}
+              run: |
+                  set -euo pipefail
+                  gh api "repos/$REPO/actions/artifacts/$REPORT_ID/zip" > report.zip
+
+            # Extraction and rendering consume attacker-controlled bytes, so
+            # either may refuse them: a broken archive fails unzip, an
             # out-of-contract report is rejected by the validator.
             # continue-on-error lets the run reach the fallback and upsert
             # below — the last step of the job still turns an unusable report
@@ -159,16 +185,13 @@ jobs:
               id: render
               continue-on-error: true
               env:
-                  GH_TOKEN: ${{ github.token }}
                   REPO: ${{ github.repository }}
-                  REPORT_ID: ${{ steps.art.outputs.report_id }}
                   RUN_URL: ${{ github.event.workflow_run.html_url }}
                   HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
                   RUN_ID: ${{ github.event.workflow_run.id }}
                   IMG_ID: ${{ steps.art.outputs.img_id }}
               run: |
                   set -euo pipefail
-                  gh api "repos/$REPO/actions/artifacts/$REPORT_ID/zip" > report.zip
                   # Extract the one member by exact name, to stdout: no path
                   # from the (untrusted) archive is ever written to disk, so
                   # zip-slip has nothing to work with. A missing member fails
