@@ -134,15 +134,13 @@
             "title": "Empezar",
             "createAccount": "Crea tu cuenta",
             "createAccountDone": "Listo. Tu dinero ya tiene un usuario",
-            "addMoneyPix": "Agrega dinero con PIX",
-            "addMoneySepa": "Agrega dinero por SEPA",
-            "addMoneySpei": "Agrega dinero por SPEI",
-            "addMoneyBank": "Agrega dinero desde tu banco",
-            "kycNote": "Los depósitos bancarios requieren una verificación de identidad única · unos 10 min",
             "getCard": "Consigue tu tarjeta Peanut",
             "addMoney": "Agregar dinero",
             "firstPayment": "Haz tu primer pago",
-            "firstPaymentNote": "Envía unos dólares a cualquier @usuario. Llegan en segundos."
+            "firstPaymentNote": "Envía unos dólares a cualquier @usuario. Llegan en segundos.",
+            "addMoneyRoutes": "Transferencia bancaria o cripto",
+            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco requiere una verificación de identidad por única vez",
+            "getCardNote": "Tus dólares, en rosa, donde sea que acepten Visa."
         },
         "autoBalance": {
             "title": "Termina de configurar tu tarjeta",
@@ -522,7 +520,26 @@
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guarda tu saldo, envía a cualquier @usuario y mueve dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
             "policiesHeading": "Políticas",
-            "version": "Versión {version}"
+            "version": "Versión {version}",
+            "beta": {
+                "heading": "Actualizaciones beta",
+                "description": "Recibí compilaciones del canal {channel} antes de que lleguen a todos. Solo para pruebas internas.",
+                "channelLabel": "Canal de actualizaciones",
+                "defaultChannel": "Predeterminado",
+                "bundleLabel": "Paquete en uso",
+                "deviceLabel": "ID del dispositivo",
+                "deviceCopied": "ID del dispositivo copiado",
+                "staged": "Ya estás en actualizaciones beta. Reiniciá la app para cargar la compilación beta más reciente.",
+                "joined": "Ya estás en actualizaciones beta. Por ahora no hay una compilación beta más reciente.",
+                "joinedWithoutBundle": "Ya estás en actualizaciones beta, pero no se pudo descargar ninguna compilación beta. La app lo intentará de nuevo en el próximo inicio.",
+                "deviceCopyFailed": "No se pudo copiar el ID del dispositivo.",
+                "leftStillBeta": "Saliste de las actualizaciones beta, pero la app sigue ejecutando la compilación beta. Reinstalala desde la tienda para volver a la versión publicada.",
+                "left": "Actualizaciones beta desactivadas. Este dispositivo volvió a la versión publicada.",
+                "leftOverride": "Este dispositivo fue puesto en beta desde el panel de Capgo, así que la app no puede sacarlo. Pedile a un administrador que quite la asignación de canal del dispositivo.",
+                "leftUnconfirmed": "No se pudo contactar a Capgo para confirmar el cambio, así que este dispositivo sigue en la compilación beta. Probá de nuevo cuando tengas conexión.",
+                "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
+                "failed": "No se pudo cambiar el canal de actualizaciones."
+            }
         }
     },
     "settings": {
@@ -972,6 +989,7 @@
         "shareAmountRequest": "Compartir solicitud de ${amount}",
         "billSplitFor": "División de cuenta en {merchant}",
         "linkCreatedToast": "¡Enlace creado con éxito!",
+        "linkCreatedAndCopiedToast": "¡Enlace creado y copiado al portapapeles!",
         "requestUpdatedToast": "¡Solicitud actualizada con éxito!",
         "recipientPlaceholder": "Ingresa un nombre de usuario, una dirección o ENS",
         "errors": {
@@ -2856,15 +2874,34 @@
                 "questions": {
                     "title": "Unas preguntas breves",
                     "body": "Declaraciones regulatorias que estamos obligados a pedir."
+                },
+                "proofOfAddress": {
+                    "title": "Un comprobante de domicilio, si tienes uno",
+                    "body": "Una factura de servicios, un estado de cuenta bancario o una carta oficial de los últimos 3 meses con tu nombre y tu domicilio. No se lo piden a todo el mundo, y después no hay forma de agregarlo."
                 }
             },
             "howLongLabel": "Cuánto tarda",
             "howLong": {
                 "standard": "Menos de 2 minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
-                "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles."
+                "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
+                "hosted": "Unos 5 minutos si tienes tus documentos a la mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
             },
             "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
-            "startCta": "Los tengo, empezar"
+            "startCta": "Los tengo, empezar",
+            "singleSession": {
+                "title": "Termínala de una sola vez",
+                "body": "Nuestro socio no guarda tu progreso. Si cierras la página o te levantas a buscar un documento, vuelves a empezar desde el primer paso."
+            }
+        },
+        "hostedPrep": {
+            "title": "Qué esperar",
+            "description": "Nuestro socio de pagos necesita algunas cosas más antes de que funcionen tus transferencias bancarias.",
+            "descriptionAdvisory": "Nuestro socio de pagos necesita algunas cosas más para que tus transferencias bancarias sigan funcionando.",
+            "done": {
+                "title": "Aquí ya no queda nada por hacer",
+                "description": "Este paso de verificación ya no es necesario. Tu estado actual está en tu perfil.",
+                "cta": "Ver mi estado"
+            }
         }
     },
     "identity": {
@@ -3300,7 +3337,8 @@
             "subtitle": "¡Este es el último paso!",
             "description": "Agrega Peanut a tu pantalla de inicio para desbloquear tu billetera y empezar a usarla.",
             "tapShare": "Toca el <share>ícono Compartir</share> en tu navegador",
-            "thenTapAddToHomeScreen": "y luego <bold>“Agregar a inicio”</bold>"
+            "thenTapAddToHomeScreen": "y luego <bold>“Agregar a inicio”</bold>",
+            "continueInBrowser": "Continuar en el navegador"
         },
         "pointsCard": {
             "earned": "¡Ganaste {count, plural, one {# punto} other {# puntos}}!"

@@ -93,6 +93,19 @@ const GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS = Object.freeze([
 
 const NOINDEX_HEADER = Object.freeze({ key: 'X-Robots-Tag', value: 'noindex, nofollow' })
 
+/**
+ * Fail-closed production check for indexability decisions. BASE_URL
+ * deliberately falls back to production for links, but that fallback must not
+ * make an unset preview environment indexable — so derive from the RAW env
+ * value: only an explicitly configured production origin counts.
+ *
+ * @param {string | undefined} rawBaseUrl usually process.env.NEXT_PUBLIC_BASE_URL
+ * @returns {boolean}
+ */
+function isProductionDomain(rawBaseUrl) {
+    return rawBaseUrl?.replace(/\/$/, '') === 'https://peanut.me'
+}
+
 function buildNoindexHeaderRules() {
     return [
         ...NOINDEX_EXACT_ROUTES.map((source) => ({ source, headers: [NOINDEX_HEADER] })),
@@ -110,4 +123,5 @@ module.exports = {
     NOINDEX_ROUTE_PREFIXES,
     ROBOTS_DISALLOWED_PATHS,
     buildNoindexHeaderRules,
+    isProductionDomain,
 }

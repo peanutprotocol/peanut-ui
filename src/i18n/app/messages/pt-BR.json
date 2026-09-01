@@ -134,15 +134,13 @@
             "title": "Começar",
             "createAccount": "Crie sua conta",
             "createAccountDone": "Pronto. Seu dinheiro já tem um usuário",
-            "addMoneyPix": "Adicione dinheiro com PIX",
-            "addMoneySepa": "Adicione dinheiro via SEPA",
-            "addMoneySpei": "Adicione dinheiro via SPEI",
-            "addMoneyBank": "Adicione dinheiro do seu banco",
-            "kycNote": "Depósitos bancários exigem uma verificação de identidade única · cerca de 10 min",
             "getCard": "Peça seu cartão Peanut",
             "addMoney": "Adicionar dinheiro",
             "firstPayment": "Faça seu primeiro pagamento",
-            "firstPaymentNote": "Envie alguns dólares para qualquer @usuário. Chega em segundos."
+            "firstPaymentNote": "Envie alguns dólares para qualquer @usuário. Chega em segundos.",
+            "addMoneyRoutes": "Transferência bancária ou cripto",
+            "addMoneyRoutesKyc": "Transferência bancária ou cripto · o banco exige uma verificação de identidade única",
+            "getCardNote": "Seus dólares, em rosa, onde a Visa for aceita."
         },
         "autoBalance": {
             "title": "Termine de configurar seu cartão",
@@ -522,7 +520,26 @@
             "title": "Sobre o Peanut",
             "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
             "policiesHeading": "Políticas",
-            "version": "Versão {version}"
+            "version": "Versão {version}",
+            "beta": {
+                "heading": "Atualizações beta",
+                "description": "Receba versões do canal {channel} antes de chegarem a todos. Apenas para testes internos.",
+                "channelLabel": "Canal de atualizações",
+                "defaultChannel": "Padrão",
+                "bundleLabel": "Pacote em uso",
+                "deviceLabel": "ID do dispositivo",
+                "deviceCopied": "ID do dispositivo copiado",
+                "staged": "Você está nas atualizações beta. Reinicie o app para carregar a versão beta mais recente.",
+                "joined": "Você está nas atualizações beta. No momento não há uma versão beta mais recente.",
+                "joinedWithoutBundle": "Você está nas atualizações beta, mas nenhuma versão beta pôde ser baixada. O app tentará de novo na próxima abertura.",
+                "deviceCopyFailed": "Não foi possível copiar o ID do dispositivo.",
+                "leftStillBeta": "Você saiu das atualizações beta, mas o app ainda está rodando a versão beta. Reinstale pela loja para voltar à versão publicada.",
+                "left": "Atualizações beta desativadas. Este aparelho voltou para a versão publicada.",
+                "leftOverride": "Este aparelho foi colocado em beta pelo painel do Capgo, então o app não consegue tirá-lo. Peça a um administrador para remover a atribuição de canal do aparelho.",
+                "leftUnconfirmed": "Não foi possível falar com o Capgo para confirmar a mudança, então este aparelho continua na versão beta. Tente de novo quando estiver online.",
+                "closed": "O canal {channel} ainda não aceita testadores. Peça a um administrador para permitir a autoatribuição no Capgo.",
+                "failed": "Não foi possível alterar o canal de atualizações."
+            }
         }
     },
     "settings": {
@@ -972,6 +989,7 @@
         "shareAmountRequest": "Compartilhar cobrança de ${amount}",
         "billSplitFor": "Divisão de conta em {merchant}",
         "linkCreatedToast": "Link criado com sucesso!",
+        "linkCreatedAndCopiedToast": "Link criado e copiado para a área de transferência!",
         "requestUpdatedToast": "Cobrança atualizada com sucesso!",
         "recipientPlaceholder": "Insira um nome de usuário, um endereço ou ENS",
         "errors": {
@@ -2856,15 +2874,34 @@
                 "questions": {
                     "title": "Algumas perguntas rápidas",
                     "body": "Declarações regulatórias que somos obrigados a pedir."
+                },
+                "proofOfAddress": {
+                    "title": "Um comprovante de residência, se você tiver",
+                    "body": "Uma conta de consumo, um extrato bancário ou uma carta oficial dos últimos 3 meses com seu nome e seu endereço. Nem todo mundo precisa enviar, e depois não dá para adicionar."
                 }
             },
             "howLongLabel": "Quanto tempo leva",
             "howLong": {
                 "standard": "Menos de 2 minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
-                "extended": "Mais do que a verificação comum. Se um revisor precisar analisar, de 1 a 3 dias úteis."
+                "extended": "Mais do que a verificação comum. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
+                "hosted": "Cerca de 5 minutos com seus documentos em mãos. Se um revisor precisar analisar, de 1 a 3 dias úteis."
             },
             "extraDocNote": "Algumas pessoas precisam enviar mais um documento, como um comprovante de residência. Se for o seu caso, avisaremos antes de abrir a câmera.",
-            "startCta": "Tenho tudo, começar"
+            "startCta": "Tenho tudo, começar",
+            "singleSession": {
+                "title": "Faça tudo de uma vez só",
+                "body": "Nosso parceiro não salva seu progresso. Se você fechar a página ou sair para procurar um documento, começa de novo da primeira etapa."
+            }
+        },
+        "hostedPrep": {
+            "title": "O que esperar",
+            "description": "Nosso parceiro de pagamentos precisa de mais algumas coisas antes que suas transferências bancárias funcionem.",
+            "descriptionAdvisory": "Nosso parceiro de pagamentos precisa de mais algumas coisas para que suas transferências bancárias continuem funcionando.",
+            "done": {
+                "title": "Não há mais nada a fazer aqui",
+                "description": "Esta etapa de verificação não é mais necessária. Seu status atual está no seu perfil.",
+                "cta": "Ver meu status"
+            }
         }
     },
     "identity": {
@@ -3300,7 +3337,8 @@
             "subtitle": "Este é o último passo!",
             "description": "Adicione o Peanut à sua tela de início para desbloquear sua carteira e começar a usá-la.",
             "tapShare": "Toque no <share>ícone Compartilhar</share> do seu navegador",
-            "thenTapAddToHomeScreen": "e depois em <bold>“Adicionar à Tela de Início”</bold>"
+            "thenTapAddToHomeScreen": "e depois em <bold>“Adicionar à Tela de Início”</bold>",
+            "continueInBrowser": "Continuar no navegador"
         },
         "pointsCard": {
             "earned": "Você ganhou {count, plural, one {# ponto} other {# pontos}}!"

@@ -16,6 +16,7 @@ import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { getFromCookie, saveToCookie, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -40,6 +41,10 @@ function SetupPageContent() {
     const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
     const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
     const { deviceType: detectedDeviceType } = useDeviceType()
+    // Warm the geo cache at entry, not when the residence step mounts: the
+    // lookup is a network round trip, and asking for it three steps early is
+    // what lets that select render its suggestion already filled in.
+    useGeoLocation()
     const searchParams = useSearchParams()
     // The init effect must key on the VALUES it reads, not the searchParams
     // object: the step-URL mirror rewrites ?screen= on every step, and a dep

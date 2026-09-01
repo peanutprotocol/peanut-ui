@@ -483,13 +483,13 @@ jest.mock('@/components/Payment/PaymentInfoRow', () => ({
 }))
 
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
-    SumsubKycModals: () => null,
+    SumsubKycModals: () => <div data-testid="sumsub-kyc-host" />,
 }))
 
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: any) =>
         props.visible ? (
-            <div data-testid="initiate-kyc-modal">
+            <div data-testid="initiate-kyc-modal" data-presentation={props.presentation ?? 'modal'}>
                 <button data-testid="kyc-verify-button" onClick={props.onVerify}>
                     Verify
                 </button>
@@ -748,6 +748,8 @@ type Gate =
     | 'needs-identity'
     | 'needs-enrollment'
     | 'waiting-on-provider'
+    | 'pending'
+    | 'loading'
 
 function setGate(kind: Gate) {
     let rails: any[] = []
@@ -833,6 +835,17 @@ function setGate(kind: Gate) {
         case 'needs-identity':
             rails = []
             gateState = { kind: 'needs-identity' }
+            break
+        // the rail is provisioning: nothing for the user to do but wait
+        case 'pending':
+            rails = []
+            isKycApproved = true
+            gateState = { kind: 'pending' }
+            break
+        // capabilities have not answered yet
+        case 'loading':
+            rails = []
+            gateState = { kind: 'loading' }
             break
         case 'waiting-on-provider':
             // provider reviewing submitted info (e.g. eea-uplift docs) — user
@@ -1283,6 +1296,85 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         setGate('ready')
     })
 
+    // The entry decision itself is unit-tested on initialDepositStep: this
+    // harness's nuqs mock is not reactive, so an effect-driven step change
+    // never re-renders here.
+    // The verify CTA starts the Sumsub run, so the SDK host has to be mounted in
+    // that branch — without it the button starts a flow with nowhere to render.
+    // A pending user can reload a persisted ?step=verify. Rendering it before
+    // the gate answers shows the default Unlock screen, whose CTA would start a
+    // Sumsub run their real gate never offered.
+    test('a persisted verify URL renders nothing until the gate answers', () => {
+        resetQueryState({ step: 'verify', amount: '' })
+        setGate('loading')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
+        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+    })
+
+    test('a persisted amount URL waits for the gate too, rather than flashing the wrong step', () => {
+        resetQueryState({ step: 'inputAmount', amount: '10' })
+        setGate('loading')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+    })
+
+    // Effects run after paint: a step the effect is about to rewrite would
+    // otherwise get a frame with a live CTA on it.
+    test('a resolved gate that wants another step never paints the stale one', () => {
+        resetQueryState({ step: 'verify', amount: '' })
+        setGate('pending')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    test('a stale amount step does not paint ahead of required verification', () => {
+        resetQueryState({ step: 'inputAmount', amount: '10' })
+        setGate('needs-identity')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+    })
+
+    // A provisioning rail has nothing for the user to do; offering "Unlock now"
+    // would start another Sumsub run against a gate that only time clears.
+    /*
+     * Assert what DOES appear, not only what doesn't: the first version of this
+     * test checked the KYC modal was absent, which passed while Continue was a
+     * dead button opening nothing at all.
+     */
+    test('a pending gate gets the wait modal from Continue, never a KYC invite', async () => {
+        resetQueryState({ step: 'inputAmount', amount: '10' })
+        setGate('pending')
+        renderWithProviders(<OnrampBankPage />)
+
+        fireEvent.click(screen.getByText('Continue'))
+
+        await waitFor(() => expect(screen.getByText("We're reviewing your details")).toBeInTheDocument())
+        expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    test('the verify step mounts the KYC host its own CTA needs', () => {
+        resetQueryState({ step: 'verify', amount: '' })
+        setGate('needs-identity')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.getByTestId('sumsub-kyc-host')).toBeInTheDocument()
+    })
+
+    test('the verify step is the KYC screen, not the amount input', () => {
+        resetQueryState({ step: 'verify', amount: '' })
+        setGate('needs-identity')
+        renderWithProviders(<OnrampBankPage />)
+
+        expect(screen.getByTestId('initiate-kyc-modal')).toHaveAttribute('data-presentation', 'page')
+        expect(screen.queryByText('How much do you want to add?')).not.toBeInTheDocument()
+    })
+
     test('inputAmount step shows amount input and Continue button', () => {
         renderWithProviders(<OnrampBankPage />)
 
@@ -1330,6 +1422,9 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
     })
 
+    // Was: the amount step showed, and Continue raised the KYC modal. The flow
+    // asks first now, so the same property — no deposit confirmation without
+    // KYC — is enforced a step earlier, before a number is ever typed.
     test('fresh user needs KYC before Bridge deposit confirmation', async () => {
         mockUseKycStatus.mockReturnValue({
             isUserKycApproved: false,
@@ -1340,12 +1435,9 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         renderWithProviders(<OnrampBankPage />)
 
-        const continueButton = screen.getByText('Continue')
-        await act(async () => {
-            fireEvent.click(continueButton)
-        })
-
-        expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+        expect(screen.queryByText('Continue')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('onramp-confirmation-modal')).not.toBeInTheDocument()
+        await waitFor(() => expect(mockSetQueryState).toHaveBeenCalledWith({ step: 'verify' }))
     })
 
     test('KYC approved shows confirmation modal on Continue', async () => {

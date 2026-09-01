@@ -16,6 +16,9 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
 
+const capture = jest.fn()
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
+
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => true),
     getPlatform: jest.fn(() => 'android-native'),
@@ -184,5 +187,61 @@ describe('document click interceptor', () => {
         expect(hash.defaultPrevented).toBe(false)
         expect(mail.defaultPrevented).toBe(false)
         expect(openExternalUrl).not.toHaveBeenCalled()
+    })
+})
+
+describe('deep-link telemetry redaction', () => {
+    // A claim link carries its password in `#p=<password>`, and
+    // deepLinkToNativePath deliberately preserves the fragment so the claim page
+    // can read it. That password derives the private claim key, so it must never
+    // reach analytics — anyone with PostHog access could otherwise claim the funds.
+    it('never sends a claim password or query to analytics', async () => {
+        launchUrl = 'https://peanut.me/claim?c=8453&v=v4.2&i=42#p=SUPERSECRET'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(capture).toHaveBeenCalled())
+        const payloads = JSON.stringify(capture.mock.calls)
+        expect(payloads).not.toContain('SUPERSECRET')
+        expect(payloads).not.toContain('#p=')
+        expect(payloads).not.toContain('c=8453')
+
+        const [, props] = capture.mock.calls.find(([name]) => name === 'native_link_received') as [
+            string,
+            Record<string, unknown>,
+        ]
+        expect(props.raw).toBe('https://peanut.me/claim')
+        expect(props.mapped).toBe('/claim')
+    })
+
+    // The code sits in a PATH segment, so dropping query and fragment left it
+    // fully readable in `raw`. Opening the link reaches captureLink before the
+    // user claims the QR, and the claim API binds a code to the first
+    // authenticated account that presents it — so a PostHog reader could race
+    // the intended owner and take the QR permanently.
+    it('never sends an unclaimed QR code to analytics', async () => {
+        launchUrl = 'https://peanut.me/qr/aB3xK9mQ2pL7vN4z'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(capture).toHaveBeenCalled())
+        const payloads = JSON.stringify(capture.mock.calls)
+        expect(payloads).not.toContain('aB3xK9mQ2pL7vN4z')
+
+        const [, props] = capture.mock.calls.find(([name]) => name === 'native_link_received') as [
+            string,
+            Record<string, unknown>,
+        ]
+        // The route family survives — that is the whole diagnostic value.
+        expect(props.raw).toBe('https://peanut.me/qr/:id')
+    })
+
+    it('redacts the QR code on the success sub-route too', async () => {
+        launchUrl = 'https://peanut.me/qr/aB3xK9mQ2pL7vN4z/success'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(capture).toHaveBeenCalled())
+        expect(JSON.stringify(capture.mock.calls)).not.toContain('aB3xK9mQ2pL7vN4z')
     })
 })

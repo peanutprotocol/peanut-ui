@@ -59,30 +59,33 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
     })
 
-    it.each([
-        ['BR', 'Add money with PIX'],
-        ['MX', 'Add money via SPEI'],
-        ['US', 'Add money from your bank'],
-        ['DE', 'Add money via SEPA'],
-        ['NG', 'Add money'],
-    ])('the add-money label follows residence: %s → %s', (iso2, label) => {
-        mockUser = { user: { activationMilestone: 'registered' }, residence: { declared: iso2, verified: null } }
-        render()
-        expect(screen.getByText(label)).toBeInTheDocument()
-    })
+    // The row opens /add-money, a chooser offering bank transfer AND crypto, so
+    // it no longer names one rail per residence — that promised a route the
+    // chooser does not take you straight to.
+    it.each([['BR'], ['MX'], ['US'], ['DE'], ['NG']])(
+        'the add-money label names the action, not a rail: %s',
+        (iso2) => {
+            mockUser = { user: { activationMilestone: 'registered' }, residence: { declared: iso2, verified: null } }
+            render()
+            expect(screen.getByText('Add money')).toBeInTheDocument()
+            expect(screen.queryByText(/PIX|SPEI|SEPA|from your bank/)).not.toBeInTheDocument()
+        }
+    )
 
     it('carries the KYC cost only while unverified', () => {
         render()
-        expect(screen.getByText('Bank deposits need a one-time ID check · about 10 min')).toBeInTheDocument()
+        expect(screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')).toBeInTheDocument()
         mockUser = { user: { activationMilestone: 'verified' }, residence: { declared: 'BR', verified: 'BR' } }
         render()
-        expect(screen.getAllByText(/Bank deposits need/).length).toBe(1) // only the first render's copy
+        // the verified render names both routes without the ID-check cost
+        expect(screen.getAllByText('Bank transfer or crypto').length).toBe(1)
+        expect(screen.getAllByText(/one-time ID check/).length).toBe(1) // only the first render's copy
     })
 
     it('marks add money done once funded', () => {
         mockUser = { user: { activationMilestone: 'funded' }, residence: { declared: 'BR', verified: 'BR' } }
         render()
-        const addMoney = screen.getByText('Add money with PIX').closest('button')
+        const addMoney = screen.getByText('Add money').closest('button')
         expect(addMoney).toBeDisabled()
     })
 
@@ -126,7 +129,7 @@ describe('GettingStartedChecklist', () => {
 
     it('add money taps into /add-money', () => {
         render()
-        fireEvent.click(screen.getByText('Add money with PIX'))
+        fireEvent.click(screen.getByText('Add money'))
         expect(mockPush).toHaveBeenCalledWith('/add-money')
     })
 })

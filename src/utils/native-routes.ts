@@ -281,6 +281,60 @@ export function isNativeExportPath(path: string): boolean {
     return NATIVE_EXPORT_ROOTS.has(root.toLowerCase())
 }
 
+/**
+ * Static sub-view segments that carry diagnostic value and no identifier.
+ * Everything NOT here and not a route root is treated as an identifier.
+ */
+const TELEMETRY_SAFE_SEGMENTS = new Set(['success', 'bank', 'manteca', 'crypto', 'us'])
+
+/**
+ * The route FAMILY of a deep link, safe to put in telemetry.
+ *
+ * Dropping the query and the fragment is not enough: identifiers also travel
+ * in path segments, and some of them are bearer secrets. `/qr/<16-char code>`
+ * reaches telemetry before the user has claimed the QR, and the claim API
+ * binds a code to the first authenticated account that presents it — so a
+ * reader of the analytics stream could race the intended owner and take the
+ * QR permanently. `/claim/<id>`, `/receipt/<id>` and `/profile/<username>`
+ * are the same shape with lower stakes.
+ *
+ * Fail closed: a segment is kept only when it is a known route root
+ * (NATIVE_EXPORT_ROOTS, which the AASA drift test already pins) or a known
+ * static sub-view. Anything else becomes `:id`. A route added to
+ * NATIVE_EXPORT_ROOTS is therefore covered here the moment it is declared,
+ * and a route that is NOT declared degrades to `:id` rather than leaking.
+ *
+ * Position is not used: a locale or other prefix must not shift a root out of
+ * the window and silently turn the whole path into placeholders.
+ *
+ * @param value - A deep-link URL or path, with or without scheme, query or
+ *   fragment.
+ * @returns The same shape with query and fragment removed and every
+ *   identifier-bearing path segment replaced by `:id`.
+ *
+ * @example
+ * redactNativePath('https://peanut.me/qr/aB3xK9mQ2pL7vN4z')  // => 'https://peanut.me/qr/:id'
+ * redactNativePath('/claim?c=8453#p=SECRET')                 // => '/claim'
+ * redactNativePath('/add-money/belgium/bank')                // => '/add-money/:id/bank'
+ * redactNativePath('/qr/aB3xK9mQ2pL7vN4z/success')           // => '/qr/:id/success'
+ */
+export function redactNativePath(value: string): string {
+    const beforeQuery = value.split('#')[0].split('?')[0]
+    // Keep scheme://host so a peanut.me universal link stays distinguishable
+    // from a custom-scheme launch — neither carries an identifier.
+    const prefix = beforeQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
+    const path = beforeQuery.slice(prefix.length)
+    const redacted = path
+        .split('/')
+        .map((segment) => {
+            if (segment === '') return segment
+            if (NATIVE_EXPORT_ROOTS.has(segment) || TELEMETRY_SAFE_SEGMENTS.has(segment)) return segment
+            return ':id'
+        })
+        .join('/')
+    return `${prefix}${redacted}`
+}
+
 function appendParams(base: string, params: string): string {
     if (!params) return base
     return `${base}${base.includes('?') ? '&' : '?'}${params}`

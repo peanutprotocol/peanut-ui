@@ -61,6 +61,15 @@ export function reportNetworkError(endpoint: string): void {
     emit()
 }
 
+// Has this endpoint already failed inside the current window? Callers use this
+// to report an outage ONCE rather than once per rejected request: React Query
+// retries, several hooks fetching the same route, and a poll that keeps firing
+// while the device is offline all hit the same endpoint within seconds.
+export function hasRecentFailure(endpoint: string): boolean {
+    prune()
+    return failures.some((f) => f.endpoint === endpoint)
+}
+
 // Distinct endpoints that failed inside the current window.
 export function getRecentFailures(): number {
     prune()

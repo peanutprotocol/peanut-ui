@@ -177,10 +177,20 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
-                  CURRENT="$(npx @capgo/cli@latest channel currentBundle production \
+                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \
                     --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
                   if [ -z "$CURRENT" ]; then
                       echo "::error::cannot read the production channel's current bundle from Capgo — refusing to ship a binary that may strand the fleet's OTA path" >&2
+                      exit 1
+                  fi
+                  # Fail closed on an anomalous read. CURRENT is scraped from a CLI
+                  # whose stdout format is not contractual, so a stray version-like
+                  # token that sorts ABOVE this release would make needs_ota false,
+                  # silently skip the matching publish, and recreate TASK-21793 with
+                  # CI green. A production bundle ahead of a brand-new binary cannot
+                  # happen in the version scheme, so treat it as a bad read.
+                  if [ "$(node scripts/semver-newer.mjs "$CURRENT" "$VERSION_NAME")" = "true" ]; then
+                      echo "::error::production bundle $CURRENT sorts above the release $VERSION_NAME — impossible in the version scheme, so the channel read is unreliable; refusing to ship" >&2
                       exit 1
                   fi
                   NEEDS_OTA="$(node scripts/semver-newer.mjs "$VERSION_NAME" "$CURRENT")"
@@ -235,7 +245,7 @@ jobs:
                       echo "::error::out/ is missing its static export — cannot publish the matching OTA bundle, and without it every device on the $VERSION binary refuses OTA updates" >&2
                       exit 1
                   fi
-                  npx @capgo/cli@latest bundle upload \
+                  npx @capgo/cli@8.42.4 bundle upload \
                     --channel production \
                     --apikey "$CAPGO_API_KEY" \
                     --key-data-v2 "$CAPGO_PRIVATE_KEY" \
@@ -244,7 +254,7 @@ jobs:
                     --auto-min-update-version \
                     --version-exists-ok \
                     --comment "${GITHUB_SHA:0:7} — auto-published with the $VERSION native release"
-                  CURRENT="$(npx @capgo/cli@latest channel currentBundle production \
+                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \
                     --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
                   if [ "$CURRENT" != "$VERSION" ]; then
                       echo "::error::production channel serves '${CURRENT:-<none>}', expected $VERSION — devices on the $VERSION binary have no OTA path" >&2

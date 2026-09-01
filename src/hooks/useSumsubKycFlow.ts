@@ -435,8 +435,20 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // the WebSDK by platform, so every flow that mints a token —
                     // not just this one — reaches the right SDK.
                     setAccessToken(response.data.token)
-                    setIsActionFlow(!!response.data.actionType)
-                    setIsMultiLevel(!response.data.actionType && isMultiLevelIntent(effectiveIntent))
+                    const actionType = response.data.actionType
+                    /*
+                     * 'bridge-uplift' is not a single-level applicant action: the
+                     * backend moved the applicant to bridge-requirements, which for
+                     * an EU target branches into the bridge-eea-uplift questionnaire.
+                     * Treat it like a first-run flow for that intent, or the SDK
+                     * closes on the first submission before the questionnaire.
+                     * NA targets share the workflow but stay single-level (see
+                     * isMultiLevelIntent).
+                     */
+                    setIsActionFlow(!!actionType && actionType !== 'bridge-uplift')
+                    setIsMultiLevel(
+                        (!actionType || actionType === 'bridge-uplift') && isMultiLevelIntent(effectiveIntent)
+                    )
                     setShowWrapper(true)
                     return true
                 } else {
@@ -475,7 +487,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setIsVerificationProgressModalOpen(true)
     }, [liveKycStatus])
 
-    // called when user manually closes the sdk modal
+    // Called when the user manually closes the SDK modal. Every manual close
+    // replays a deferred ACTION_REQUIRED: the wrapper cannot tell "submitted the
+    // required follow-up" from "submitted level 1 and walked away", so treating
+    // any close as a submission would swallow a real action-required state.
+    // handleSdkComplete is the one unambiguous submission, and it consumes.
     const handleClose = useCallback(() => {
         setShowWrapper(false)
         setIsActionFlow(false)

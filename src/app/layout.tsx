@@ -6,13 +6,14 @@ import Script from 'next/script'
 import '../styles/globals.css'
 import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
+import { isProductionDomain } from '@/constants/seo-route-policy'
 import { type Metadata } from 'next'
 
 const baseUrl = BASE_URL || 'https://peanut.me'
-// Fail closed: BASE_URL deliberately falls back to production for links, but
-// that fallback must not make an unset preview environment indexable.
-const configuredBaseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '')
-const IS_PRODUCTION_DOMAIN = configuredBaseUrl === 'https://peanut.me'
+// Fail closed on the raw env (see isProductionDomain): BASE_URL deliberately
+// falls back to production for links, but that fallback must not make an
+// unset preview environment indexable.
+const IS_PRODUCTION_DOMAIN = isProductionDomain(process.env.NEXT_PUBLIC_BASE_URL)
 
 export const metadata: Metadata = {
     title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
