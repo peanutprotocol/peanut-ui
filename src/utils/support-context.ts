@@ -239,7 +239,6 @@ const IDENTIFIER_PREFIXES = new Set([
     'receipt',
     'qr',
     'qr-pay',
-    'quests',
     'profile',
     'claim',
     'invite',

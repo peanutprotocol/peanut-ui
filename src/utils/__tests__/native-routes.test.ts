@@ -558,6 +558,11 @@ describe('native-routes', () => {
 
             it('returns null for web-only roots so the caller opens them in the in-app browser', () => {
                 expect(deepLinkToNativePath('https://peanut.me/help')).toBeNull()
+                // retired /quests: reserved in STATIC_REDIRECT_ROUTES, so it must
+                // never be read as a recipient — the in-app browser opens the web
+                // URL, whose redirects.json entry lands on the homepage.
+                expect(deepLinkToNativePath('https://peanut.me/quests')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/quests/most_invites')).toBeNull()
                 expect(deepLinkToNativePath('https://peanut.me/blog/some-post')).toBeNull()
                 expect(deepLinkToNativePath('https://peanut.me/terms')).toBeNull()
                 expect(deepLinkToNativePath('https://peanut.me/es-419/pricing')).toBeNull()

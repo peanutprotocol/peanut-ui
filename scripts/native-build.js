@@ -16,7 +16,7 @@ const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 
 // Files/folders to temporarily disable during native build.
 // the native app only needs (mobile-ui) and (setup) routes.
-// everything else (marketing, blog, quests, locale pages) is web-only.
+// everything else (marketing, blog, locale pages) is web-only.
 const ITEMS_TO_DISABLE = [
     { path: 'api', type: 'dir' },
     { path: 'sitemap.ts', type: 'file' },
@@ -29,9 +29,6 @@ const ITEMS_TO_DISABLE = [
     { path: 'es-419', type: 'dir' }, // localized landing (web-only)
     { path: 'es-ar', type: 'dir' }, // localized landing (web-only)
     { path: 'pt-br', type: 'dir' }, // localized landing (web-only)
-    { path: 'quests/[questId]', type: 'dir' }, // quest detail page (dynamicParams issues)
-    { path: 'quests/explore', type: 'dir' }, // quest explore page
-    { path: 'quests/page.tsx', type: 'file' }, // quest list page
     { path: 'invite', type: 'dir' }, // invite landing pages
     { path: 'exchange', type: 'dir' }, // exchange pages
     { path: 'privacy', type: 'dir' }, // legal pages

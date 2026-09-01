@@ -25,8 +25,8 @@ describe('localeHref', () => {
     })
 
     it('falls back to the landing for paths with no localized twin', () => {
-        // /lp, /exchange, /quests are English-only — never invent /es-419/lp.
-        for (const path of ['/lp', '/exchange', '/quests', '/careers']) {
+        // /lp, /exchange are English-only — never invent /es-419/lp.
+        for (const path of ['/lp', '/exchange', '/careers']) {
             expect(localeHref(path, 'es-419')).toBe('/es-419')
             expect(localeHref(path, 'en')).toBe('/')
         }
