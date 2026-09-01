@@ -800,7 +800,7 @@ jobs:
                         let problem = null;
                         if (!login) {
                           problem = `author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`;
-                        } else if (ALLOWED_BOTS.includes(login)) {
+                        } else if (ALLOWED_BOTS.includes(login.toLowerCase())) {
                           const orderedBy = (c.commit.message.match(/^Ordered-By: @?([A-Za-z0-9-]+)\s*$/m) || [])[1];
                           const orderUrl = (c.commit.message.match(/^Order: (https:\/\/\S+)\s*$/m) || [])[1];
                           if (!orderedBy || !orderUrl) {
@@ -808,7 +808,7 @@ jobs:
                           } else if (!(await hasWriteAccess(orderedBy))) {
                             problem = `cites Ordered-By: ${orderedBy}, who has no write access to this repo — a bot commit must cite the team member who ordered it`;
                           }
-                        } else if (login.endsWith('[bot]')) {
+                        } else if (login.toLowerCase().endsWith('[bot]')) {
                           problem = `authored by ${login} — this bot is not allowlisted; bot commits are only accepted from ${ALLOWED_BOTS.join(', ')}, with provenance trailers`;
                         } else if (!(await hasWriteAccess(login))) {
                           problem = `authored by ${login}, who has no write access to this repo`;
