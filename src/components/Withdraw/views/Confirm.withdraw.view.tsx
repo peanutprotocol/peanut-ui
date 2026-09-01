@@ -32,6 +32,8 @@ interface WithdrawConfirmViewProps {
     isCrossChain?: boolean
     /** True while the shared `useCrossChainTransfer` hook is provisioning the SDA / previewing fees. */
     isCalculating?: boolean
+    /** The Rhino quote failed — the fee is unknown, not sponsored. */
+    quoteFailed?: boolean
     /**
      * Decimal receive amount from Rhino's quote — e.g. "99.95". Nullable for
      * same-chain (no bridge) or while the preview call is in flight. Under SDA
@@ -81,6 +83,7 @@ export default function ConfirmWithdrawView({
     error,
     isCrossChain = false,
     isCalculating = false,
+    quoteFailed = false,
     receiveAmount,
     payAmount,
     showHighFeeWarning = false,
@@ -189,6 +192,7 @@ export default function ConfirmWithdrawView({
                         feeUsd={networkFee}
                         isCrossChain={isCrossChain}
                         loading={isCrossChain && isCalculating}
+                        estimationFailed={isCrossChain && quoteFailed}
                         moreInfoText={t('confirm.networkFeeInfo')}
                     />
                     {isCrossChain && (isCalculating || totalPayDisplay) && (

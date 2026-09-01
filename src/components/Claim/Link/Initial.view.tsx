@@ -40,6 +40,7 @@ import ActionModal from '@/components/Global/ActionModal'
 import { BankFlowManager } from './views/BankFlowManager.view'
 import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
+import { findClaimRoute, resolveClaimQuoteRecipient } from '@/utils/claim-route.utils'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getTokenSymbol } from '@/utils/general.utils'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -608,6 +609,22 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setIsValidRecipient(!!recipient.address)
     }, [recipient.address])
 
+    // A route is priced for one recipient (account-bound quote). Switching the
+    // external address drops the stale selection and re-quotes for the new one;
+    // an unchanged effective recipient (bank claims, the Peanut wallet) keeps it.
+    useEffect(() => {
+        if (!selectedRoute) return
+        const quotedFor = resolveClaimQuoteRecipient({
+            recipientAddress: recipient.address,
+            walletAddress: address,
+            senderAddress: claimLinkData.senderAddress,
+        })
+        if (selectedRoute.quotedFor.toLowerCase() === quotedFor.toLowerCase()) return
+        setSelectedRoute(undefined)
+        setHasFetchedRoute(false)
+        setRefetchXchainRoute(true)
+    }, [recipient.address, address, claimLinkData.senderAddress, selectedRoute, setSelectedRoute, setHasFetchedRoute])
+
     useEffect(() => {
         if (!selectedTokenData) return
         if (
@@ -644,11 +661,16 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
             const chainId = toChain ?? selectedTokenData!.chainId
             const tokenAddress = toToken ?? selectedTokenData!.address
+            // The quote is account- and address-bound, so a cached route is only
+            // valid for the recipient it was priced for.
+            const quotedFor = resolveClaimQuoteRecipient({
+                recipientAddress: recipient.address,
+                walletAddress: address,
+                senderAddress: claimLinkData.senderAddress,
+            })
 
             try {
-                const existingRoute = routes.find(
-                    (route) => route.chainId === chainId && areEvmAddressesEqual(route.tokenAddress, tokenAddress)
-                )
+                const existingRoute = findClaimRoute(routes, { chainId, tokenAddress, quotedFor })
 
                 if (existingRoute) {
                     setSelectedRoute(existingRoute)
@@ -676,13 +698,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 // Rhino preview expects a decimal string, so format down.
                 const decimals = selectedTokenData?.decimals ?? 6
                 const previewAmount = formatUnits(claimLinkData.amount, decimals)
-                // The quote is account-bound and needs an EVM address on each
-                // chain. The SDA deposit itself comes from the Peanut claim
-                // relayer, and a bank claim's `recipient.address` is an IBAN or
-                // account number, so price with the link sender's address (always
-                // an EVM address on the link's chain) as depositor, and as
-                // recipient too when the claimer has no EVM address.
-                const claimerEvmAddress = isAddress(recipient.address) ? recipient.address : address
+                // The SDA deposit itself comes from the Peanut claim relayer, so
+                // the link sender's address (always an EVM address on the link's
+                // chain) stands in as depositor for pricing.
                 const preview = await previewSdaTransfer({
                     chainIn: sourceRhinoChain,
                     chainOut: destRhinoChain,
@@ -690,7 +708,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     amount: previewAmount,
                     mode: 'pay',
                     depositor: claimLinkData.senderAddress,
-                    recipient: claimerEvmAddress ?? claimLinkData.senderAddress,
+                    recipient: quotedFor,
                 })
 
                 const route: ClaimXChainPreview = {
@@ -698,6 +716,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     tokenAddress: tokenAddress as Address,
                     receiveAmount: preview.receiveAmount,
                     feeUsd: preview.feeUsd,
+                    quotedFor,
                 }
 
                 setRoutes([...routes, route])

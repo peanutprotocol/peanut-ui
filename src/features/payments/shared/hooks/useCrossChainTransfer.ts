@@ -134,7 +134,9 @@ export interface UseCrossChainTransferReturn {
     error: string | null
     /** Which path produced the current `transactions` (null before calculate). */
     path: CrossChainPath | null
-    /** Bridge-only: ISO expiry on Rhino quote. SDA / same-chain don't expire. */
+    /** ISO expiry of the Rhino quote behind `payAmount`/`receiveAmount`/`feeUsd`
+     *  (SDA and bridge paths). Callers re-quote past it instead of signing
+     *  stale numbers. Null on same-chain. */
     quoteExpiresAt: string | null
     /** Bridge-only: commitment id (for status polling after the user signs). */
     commitmentId: string | null
@@ -368,6 +370,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                     setMaxDepositLimitUsd,
                     setEstimatedGasCostUsd,
                     setIsFeeEstimationError,
+                    setQuoteExpiresAt,
                 })
                 setPath('sda')
             } catch (err) {
@@ -605,6 +608,7 @@ interface RhinoResultParams {
     setMaxDepositLimitUsd: (v: number | undefined) => void
     setEstimatedGasCostUsd: (v: number | undefined) => void
     setIsFeeEstimationError: (v: boolean) => void
+    setQuoteExpiresAt: (v: string | null) => void
 }
 
 function applyRhinoResult({
@@ -620,6 +624,7 @@ function applyRhinoResult({
     setMaxDepositLimitUsd,
     setEstimatedGasCostUsd,
     setIsFeeEstimationError,
+    setQuoteExpiresAt,
 }: RhinoResultParams): void {
     // USDC/USDT are both 6-decimal on every chain we support.
     const STABLECOIN_DECIMALS = 6
@@ -650,6 +655,9 @@ function applyRhinoResult({
     setFeeUsd(preview.feeUsd)
     setMinDepositLimitUsd(sda.minDepositLimitUsd)
     setMaxDepositLimitUsd(sda.maxDepositLimitUsd)
+    // The SDA deposit is not bound to the quote (no commit), so the numbers on
+    // screen are only Rhino's word until this expiry — callers re-quote past it.
+    setQuoteExpiresAt(preview.expiresAt)
 
     // Gas for a plain ERC20 transfer is absorbed by the kernel paymaster;
     // the user-visible cost is the Rhino bridge fee (already in preview).

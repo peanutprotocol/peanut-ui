@@ -97,6 +97,8 @@ export default function WithdrawCryptoPage() {
         isXChain,
         isDiffToken,
         error: routeError,
+        isFeeEstimationError,
+        isQuoteExpired,
         calculate: calculateRoute,
         reset: resetRouteCalculation,
     } = useCrossChainTransfer()
@@ -173,33 +175,39 @@ export default function WithdrawCryptoPage() {
         }
     }, [routeError, recordError, setPaymentError])
 
+    // Quote the route (Rhino preview + SDA / bridge quote, or the same-chain
+    // tx). Runs on entering the confirm view and again before signing when the
+    // quote on screen has expired.
+    const quoteRoute = useCallback(() => {
+        if (!chargeDetails || !withdrawData || !address) return Promise.resolve()
+        return calculateRoute({
+            source: {
+                address: address as Address,
+                tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                // effectiveAmount is USD-denominated; source token is USDC (1:1).
+                // It sizes the pay-mode quote on every cross-chain path.
+                tokenAmount: effectiveAmount,
+            },
+            destination: {
+                recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
+                tokenAddress: chargeDetails.tokenAddress as Address,
+                tokenAmount: chargeDetails.tokenAmount,
+                tokenDecimals: chargeDetails.tokenDecimals,
+                tokenType: Number(chargeDetails.tokenType),
+                chainId: chargeDetails.chainId,
+            },
+            context: 'withdraw',
+            contextId: chargeDetails.uuid,
+            senderPeanutWalletAddress: address as Address,
+            skipGasEstimate: true, // peanut wallet handles gas
+        })
+    }, [chargeDetails, withdrawData, calculateRoute, address, effectiveAmount])
+
     // prepare transaction when entering confirm view
     useEffect(() => {
-        if (currentView === 'CONFIRM' && chargeDetails && withdrawData && address) {
-            calculateRoute({
-                source: {
-                    address: address as Address,
-                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    // effectiveAmount is USD-denominated; source token is USDC (1:1).
-                    // Required for the bridge path's 'pay' mode (cross-chain ETH/etc).
-                    tokenAmount: effectiveAmount,
-                },
-                destination: {
-                    recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
-                    tokenAddress: chargeDetails.tokenAddress as Address,
-                    tokenAmount: chargeDetails.tokenAmount,
-                    tokenDecimals: chargeDetails.tokenDecimals,
-                    tokenType: Number(chargeDetails.tokenType),
-                    chainId: chargeDetails.chainId,
-                },
-                context: 'withdraw',
-                contextId: chargeDetails.uuid,
-                senderPeanutWalletAddress: address as Address,
-                skipGasEstimate: true, // peanut wallet handles gas
-            })
-        }
-    }, [currentView, chargeDetails, withdrawData, calculateRoute, address, effectiveAmount])
+        if (currentView === 'CONFIRM') void quoteRoute()
+    }, [currentView, quoteRoute])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -350,6 +358,16 @@ export default function WithdrawCryptoPage() {
         if (!transactions || transactions.length === 0) {
             console.error('No transactions prepared for withdrawal')
             setError(t('errors.txNotPrepared'))
+            return
+        }
+
+        // The numbers on screen are Rhino's quote only until it expires. Past
+        // that, refresh them and let the user confirm the fresh numbers instead
+        // of signing a stale pay amount — unless funds already moved for this
+        // charge (the record-only retry below must never re-quote).
+        const alreadySpent = executedSpendRef.current?.chargeId === chargeDetails.uuid
+        if (isQuoteExpired && !alreadySpent) {
+            await quoteRoute()
             return
         }
 
@@ -657,6 +675,7 @@ export default function WithdrawCryptoPage() {
                     networkFee={networkFee}
                     isCrossChain={isCrossChainWithdrawal}
                     isCalculating={isCalculating}
+                    quoteFailed={isFeeEstimationError}
                     receiveAmount={receiveAmount}
                     payAmount={payAmount}
                     showHighFeeWarning={showHighFeeWarning}

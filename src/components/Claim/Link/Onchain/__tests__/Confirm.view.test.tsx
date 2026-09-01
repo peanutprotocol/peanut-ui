@@ -72,7 +72,13 @@ describe('ConfirmClaimLinkView — max network fee row', () => {
         renderWithIntl(
             <ConfirmClaimLinkView
                 {...props}
-                selectedRoute={{ chainId: '8453', tokenAddress: '0xusdc', receiveAmount: '10', feeUsd: 0 }}
+                selectedRoute={{
+                    chainId: '8453',
+                    tokenAddress: '0xusdc',
+                    receiveAmount: '10',
+                    feeUsd: 0,
+                    quotedFor: '0x2222',
+                }}
             />
         )
         expect(screen.getByText('Sponsored by Peanut!')).toBeInTheDocument()
@@ -82,7 +88,13 @@ describe('ConfirmClaimLinkView — max network fee row', () => {
         renderWithIntl(
             <ConfirmClaimLinkView
                 {...props}
-                selectedRoute={{ chainId: '8453', tokenAddress: '0xusdc', receiveAmount: '9.5', feeUsd: 0.5 }}
+                selectedRoute={{
+                    chainId: '8453',
+                    tokenAddress: '0xusdc',
+                    receiveAmount: '9.5',
+                    feeUsd: 0.5,
+                    quotedFor: '0x2222',
+                }}
             />
         )
         expect(screen.getByText('$0.50')).toBeInTheDocument()

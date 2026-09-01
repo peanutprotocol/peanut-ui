@@ -49,6 +49,12 @@ describe('ConfirmWithdrawView — network fee row', () => {
         expect(screen.getAllByText('$10')).toHaveLength(2)
     })
 
+    it('shows a dash, not the sponsored label, when the quote failed', () => {
+        renderWithIntl(<ConfirmWithdrawView {...baseProps} networkFee={0} quoteFailed />)
+        expect(screen.getByText('-')).toBeInTheDocument()
+        expect(screen.queryByText('Sponsored by Peanut!')).not.toBeInTheDocument()
+    })
+
     it('shows a quoted fee verbatim when Rhino quotes one', () => {
         renderWithIntl(<ConfirmWithdrawView {...baseProps} networkFee={0.51} payAmount="10.51" />)
         expect(screen.getByText('$0.51')).toBeInTheDocument()

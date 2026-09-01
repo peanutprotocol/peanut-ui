@@ -107,6 +107,7 @@ describe('useCrossChainTransfer — feeUsd is the quote, verbatim', () => {
         expect(result.current.feeUsd).toBe(0)
         expect(result.current.payAmount).toBe('10.000000')
         expect(result.current.receiveAmount).toBe('10')
+        expect(result.current.quoteExpiresAt).toBe('2099-01-01T00:00:00.000Z')
         expect(result.current.error).toBeNull()
     })
 
