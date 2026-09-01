@@ -323,12 +323,22 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                 // persist them onto the charge for audit (the FEE ledger entry is
                 // booked from Rhino's executed actuals, not from this quote).
                 // Sequential because provision depends on preview's numbers.
+                // A withdraw is sized by what the user spends (pay mode, the
+                // source amount): whatever Rhino quotes as a fee comes out of
+                // the delivery, never on top, so a full-balance withdraw always
+                // fits the balance. A pay-request / claim is sized by what the
+                // recipient must get (receive mode): the payer covers any fee.
+                // Under the 1:1 account config both give the same numbers.
+                const withdraw = context === 'withdraw'
+                if (withdraw && !source.tokenAmount) {
+                    throw new Error('Withdraw requires source.tokenAmount (the USDC amount the user is spending)')
+                }
                 const preview = await previewSdaTransfer({
                     chainIn: sourceRhinoChain,
                     chainOut: destRhinoChain,
                     token: tokenSymbol,
-                    amount: destination.tokenAmount,
-                    mode: 'receive', // UI always asks "merchant gets X" — user pays X + quoted fee
+                    amount: withdraw ? source.tokenAmount! : destination.tokenAmount,
+                    mode: withdraw ? 'pay' : 'receive',
                     depositor: source.address,
                     recipient: destination.recipientAddress,
                 })
@@ -629,12 +639,13 @@ function applyRhinoResult({
     ])
     setSdaAddress(sda.sdaAddress)
     setReceiveAmount(preview.receiveAmount)
-    // SDA path uses mode='receive' — any fee Rhino quotes is taken at source, so
-    // `payAmount` IS `principal + quoted fee` (== principal under the current
-    // 1:1 account config) and matches the on-chain transfer amount we just
-    // encoded above. Callers routing through sendTransactions({ requiredUsdcAmount })
-    // MUST pass this — not the principal — or the kernel's collateral-sweep
-    // under-funds and the transfer reverts with `ERC20: transfer amount exceeds balance`.
+    // `payAmount` is the quote's pay side and matches the on-chain transfer
+    // amount we just encoded above: the source amount on a withdraw (pay
+    // mode), principal + quoted fee on a pay-request (receive mode) — the same
+    // number under the current 1:1 account config. Callers routing through
+    // sendTransactions({ requiredUsdcAmount }) MUST pass this — not the
+    // principal — or the kernel's collateral-sweep under-funds and the
+    // transfer reverts with `ERC20: transfer amount exceeds balance`.
     setPayAmount(preview.payAmount)
     setFeeUsd(preview.feeUsd)
     setMinDepositLimitUsd(sda.minDepositLimitUsd)

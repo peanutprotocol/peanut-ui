@@ -79,7 +79,7 @@ describe('useCrossChainTransfer — feeUsd is the quote, verbatim', () => {
         })
     })
 
-    it('SDA path: sends depositor/recipient to the preview and exposes feeUsd and payAmount as quoted', async () => {
+    it('SDA withdraw: quotes pay mode by the source amount, so a full-balance withdraw never needs more than the balance', async () => {
         mockPreviewSdaTransfer.mockResolvedValue(quote(0))
         const { result } = renderHook(() => useCrossChainTransfer())
 
@@ -101,12 +101,37 @@ describe('useCrossChainTransfer — feeUsd is the quote, verbatim', () => {
         })
 
         expect(mockPreviewSdaTransfer).toHaveBeenCalledWith(
-            expect.objectContaining({ depositor: KERNEL, recipient: RECIPIENT, mode: 'receive', amount: '10' })
+            expect.objectContaining({ depositor: KERNEL, recipient: RECIPIENT, mode: 'pay', amount: '10' })
         )
         expect(result.current.path).toBe('sda')
         expect(result.current.feeUsd).toBe(0)
         expect(result.current.payAmount).toBe('10.000000')
         expect(result.current.receiveAmount).toBe('10')
+        expect(result.current.error).toBeNull()
+    })
+
+    it('SDA pay-request: quotes receive mode by the destination amount (the payer covers any fee)', async () => {
+        mockPreviewSdaTransfer.mockResolvedValue(quote(0))
+        const { result } = renderHook(() => useCrossChainTransfer())
+
+        await act(async () => {
+            await result.current.calculate({
+                source: { ...source, tokenAmount: undefined },
+                destination: {
+                    recipientAddress: RECIPIENT,
+                    tokenAddress: USDC_ARB,
+                    tokenAmount: '10',
+                    tokenDecimals: 6,
+                    tokenType: 1,
+                    chainId: '8453',
+                    tokenSymbol: 'USDC',
+                },
+                context: 'pay-request',
+                contextId: 'charge-3',
+            })
+        })
+
+        expect(mockPreviewSdaTransfer).toHaveBeenCalledWith(expect.objectContaining({ mode: 'receive', amount: '10' }))
         expect(result.current.error).toBeNull()
     })
 
