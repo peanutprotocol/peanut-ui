@@ -1,4 +1,10 @@
-import { countOffScaleSpacing, OFF_SCALE_ICON_RE, OFF_SCALE_RADIUS_RE, RAW_DURATION_RE } from '../ds-lint-rules.cjs'
+import {
+    countOffScaleSpacing,
+    countWeightStacks,
+    OFF_SCALE_ICON_RE,
+    OFF_SCALE_RADIUS_RE,
+    RAW_DURATION_RE,
+} from '../ds-lint-rules.cjs'
 
 const countMatches = (text: string, re: RegExp) => (text.match(re) ?? []).length
 
@@ -39,16 +45,50 @@ describe('offScaleSpacing', () => {
         }
     })
 
+    it('flags arbitrary spacing values wholesale — the bracket form is always drift', () => {
+        for (const cls of ['p-[5px]', 'gap-[20px]', 'p-[13px]', '-m-[3px]', 'md:ps-[10%]']) {
+            expect(countOffScaleSpacing(`<div className="${cls}" />`)).toBe(1)
+        }
+    })
+
     it('does not misread longer utilities or words as spacing classes', () => {
         for (const text of [
             'className="max-p-5"',
             'theme-3',
             'frame-2',
-            'className="p-[13px]"',
+            'className="w-[13px]"',
             'className="ms-auto"',
         ]) {
             expect(countOffScaleSpacing(text)).toBe(0)
         }
+    })
+})
+
+describe('fontWeightOnTypeToken (countWeightStacks)', () => {
+    it('counts a token and weight split across lines inside one className expression', () => {
+        const jsx = [
+            '<span',
+            '    className={`text-body-m ${twMerge(',
+            "        'font-semibold text-foreground-primary capitalize',",
+            '        titleClassName',
+            '    )}`}',
+            '>',
+        ].join('\n')
+        expect(countWeightStacks(jsx)).toBe(1)
+    })
+
+    it('counts same-line stacks in plain strings and const class strings', () => {
+        expect(countWeightStacks('<p className="text-body-s font-bold" />')).toBe(1)
+        expect(countWeightStacks("const style = 'text-body-s font-bold underline'")).toBe(1)
+    })
+
+    it('does not count a token and a weight living in different elements', () => {
+        const jsx = [
+            '<p className="text-body-m">a</p>',
+            '<p className="font-semibold">b</p>',
+            '<p className={twMerge("text-label-l", cls)}>c</p>',
+        ].join('\n')
+        expect(countWeightStacks(jsx)).toBe(0)
     })
 })
 

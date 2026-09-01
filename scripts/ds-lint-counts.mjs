@@ -13,7 +13,13 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { countOffScaleSpacing, OFF_SCALE_ICON_RE, OFF_SCALE_RADIUS_RE, RAW_DURATION_RE } from './ds-lint-rules.cjs'
+import {
+    countOffScaleSpacing,
+    countWeightStacks,
+    OFF_SCALE_ICON_RE,
+    OFF_SCALE_RADIUS_RE,
+    RAW_DURATION_RE,
+} from './ds-lint-rules.cjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(ROOT, 'src')
@@ -259,15 +265,10 @@ counts.classNameSitesInPages = files
 // deliberate holds (geometry-driven indents like Notification's pl-7, boards
 // pending a ruling) live inside the baseline, not an allowlist — a ruling
 // drives the count down, new drift pushes it up and fails.
-const WEIGHT_STACK_RE = /\bfont-(?:bold|semibold|extrabold)\b/
-const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
 counts.fontWeightOnTypeToken = files
     .filter((f) => isTsx(f) && !allowed(f.path))
-    .reduce(
-        (sum, f) => sum + f.text.split('\n').filter((l) => TYPE_TOKEN_RE.test(l) && WEIGHT_STACK_RE.test(l)).length,
-        0
-    )
-// matchers live in ds-lint-rules.mjs (imported at the top) so the regression
+    .reduce((sum, f) => sum + countWeightStacks(f.text), 0)
+// matchers live in ds-lint-rules.cjs (imported at the top) so the regression
 // tests in scripts/__tests__/ds-lint-rules.test.ts exercise the exact rules
 // this script counts with, without running the src/ scan.
 counts.offScaleSpacing = files

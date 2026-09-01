@@ -9,13 +9,74 @@
 // (p-4.5, pr-18, -mt-5, ps-5), so the metric flags every numeric spacing
 // utility — negative forms, variant prefixes, and the logical ps/pe/ms/me
 // families included — whose magnitude is not a documented scale step.
+// arbitrary values (p-[5px], gap-[20%]) are rejected wholesale: a value that
+// equals a scale step has a numeric class, so the bracket form is always drift.
 const SPACING_STEPS = new Set(['0', '0.5', '1', '2', '3', '4', '6', '8', '10', '12', '14', '16'])
-const NUMERIC_SPACING_RE =
-    /(?<![a-z0-9-])-?(?:px|py|pt|pb|pl|pr|ps|pe|p|mx|my|mt|mb|ml|mr|ms|me|m|gap-x|gap-y|gap|space-y|space-x)-([0-9]+(?:\.[0-9]+)?)(?![0-9.a-z%\]])/g
+const SPACING_FAMILIES = 'px|py|pt|pb|pl|pr|ps|pe|p|mx|my|mt|mb|ml|mr|ms|me|m|gap-x|gap-y|gap|space-y|space-x'
+const NUMERIC_SPACING_RE = new RegExp(
+    `(?<![a-z0-9-])-?(?:${SPACING_FAMILIES})-([0-9]+(?:\\.[0-9]+)?)(?![0-9.a-z%\\]])`,
+    'g'
+)
+const ARBITRARY_SPACING_RE = new RegExp(`(?<![a-z0-9-])-?(?:${SPACING_FAMILIES})-\\[[^\\]]+\\]`, 'g')
 
 function countOffScaleSpacing(text) {
     let n = 0
     for (const m of text.matchAll(NUMERIC_SPACING_RE)) if (!SPACING_STEPS.has(m[1])) n++
+    n += (text.match(ARBITRARY_SPACING_RE) ?? []).length
+    return n
+}
+
+// a type token carries its own weight, so a weight utility stacked next to one
+// mints an off-ramp style. matching happens per className expression (the
+// attribute's full string or brace-balanced JSX expression), so a token and a
+// weight split across formatted lines inside one twMerge/clsx call still
+// count; class strings held in variables outside className= are caught by a
+// per-line pass over the remaining text.
+const WEIGHT_STACK_RE = /\bfont-(?:bold|semibold|extrabold)\b/
+const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
+
+function classNameExpressions(text) {
+    const regions = []
+    const re = /className\s*=\s*/g
+    let m
+    while ((m = re.exec(text))) {
+        const i = re.lastIndex
+        const c = text[i]
+        if (c === '"' || c === "'") {
+            const end = text.indexOf(c, i + 1)
+            if (end === -1) continue
+            regions.push({ start: i, end: end + 1 })
+            re.lastIndex = end + 1
+        } else if (c === '{') {
+            let depth = 1
+            let j = i + 1
+            while (j < text.length && depth > 0) {
+                if (text[j] === '{') depth++
+                else if (text[j] === '}') depth--
+                j++
+            }
+            regions.push({ start: i, end: j })
+            re.lastIndex = j
+        }
+    }
+    return regions
+}
+
+function countWeightStacks(text) {
+    let n = 0
+    const regions = classNameExpressions(text)
+    for (const r of regions) {
+        const expr = text.slice(r.start, r.end)
+        if (TYPE_TOKEN_RE.test(expr) && WEIGHT_STACK_RE.test(expr)) n++
+    }
+    let rest = ''
+    let cursor = 0
+    for (const r of regions) {
+        rest += text.slice(cursor, r.start)
+        cursor = r.end
+    }
+    rest += text.slice(cursor)
+    for (const line of rest.split('\n')) if (TYPE_TOKEN_RE.test(line) && WEIGHT_STACK_RE.test(line)) n++
     return n
 }
 
@@ -34,7 +95,9 @@ const RAW_DURATION_RE = /\bduration-(?:[0-9]+\b|\[[^\]]+\])/g
 module.exports = {
     SPACING_STEPS,
     NUMERIC_SPACING_RE,
+    ARBITRARY_SPACING_RE,
     countOffScaleSpacing,
+    countWeightStacks,
     OFF_SCALE_ICON_RE,
     OFF_SCALE_RADIUS_RE,
     RAW_DURATION_RE,
