@@ -7,7 +7,7 @@
 // authored in mono at content/press/{lang}.md.
 //
 // Source of truth for the values below:
-//   palette      → tailwind.config.js + Brand Guidelines v1.2 p.25
+//   palette      → src/styles/globals.css @theme + Brand Guidelines v1.2 p.25
 //   typography   → Brand Guidelines v1.2 p.17-23
 //   logo rules   → Brand Guidelines v1.2 p.5-7
 
@@ -21,7 +21,6 @@ export const BRAND_COLORS: BrandColor[] = [
     { name: 'Pink', hex: '#FF90E8', note: 'Primary. The key-visual ground.' },
     { name: 'Yellow', hex: '#FFC900', note: 'Secondary. The mascot and accents.' },
     { name: 'Lavender', hex: '#90A8ED', note: 'Secondary.' },
-    { name: 'Cream', hex: '#FAF4F0', note: 'Neutral ground.' },
     { name: 'Black', hex: '#000000', note: 'Type, outlines, 1px borders.' },
     { name: 'White', hex: '#FFFFFF', note: 'Type on dark and pink grounds.' },
 ]
