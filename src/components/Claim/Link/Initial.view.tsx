@@ -675,7 +675,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 senderAddress: claimLinkData.senderAddress,
             })
 
-            const generation = toToken || toChain ? quoteGenerationRef.current : (quoteGenerationRef.current += 1)
+            const generation = ++quoteGenerationRef.current
+            const isCurrent = () => generation === quoteGenerationRef.current
 
             try {
                 const existingRoute = findClaimRoute(routes, { chainId, tokenAddress, quotedFor })
@@ -728,14 +729,20 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     expiresAt: preview.expiresAt,
                 }
 
-                setRoutes([...routes, route])
-                if (!toToken && !toChain && generation === quoteGenerationRef.current) {
+                // Functional update: concurrent quotes must not overwrite each
+                // other's cache entry (each miss costs a flow credit).
+                setRoutes((prev) => [...prev, route])
+                if (!toToken && !toChain && isCurrent()) {
                     setSelectedRoute(route)
                     setHasFetchedRoute(true)
                 }
                 return route
             } catch (error) {
                 console.error('Error fetching route:', error)
+                Sentry.captureException(error)
+                // A superseded quote's failure must not clear a newer route or
+                // install its error over a newer success.
+                if (!isCurrent()) return undefined
                 if (!toToken && !toChain) {
                     setSelectedRoute(undefined)
                     setHasFetchedRoute(true)
@@ -744,11 +751,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     showError: true,
                     errorMessage: ROUTE_NOT_FOUND_ERROR,
                 })
-                Sentry.captureException(error)
                 return undefined
             } finally {
-                setIsXchainLoading(false)
-                setLoadingState('Idle')
+                if (isCurrent()) {
+                    setIsXchainLoading(false)
+                    setLoadingState('Idle')
+                }
             }
         },
         [

@@ -9,7 +9,19 @@ jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: (
 jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/DisplayIcon', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+    Button: ({
+        children,
+        onClick,
+        disabled,
+    }: {
+        children: React.ReactNode
+        onClick?: () => void
+        disabled?: boolean
+    }) => (
+        <button onClick={onClick} disabled={disabled}>
+            {children}
+        </button>
+    ),
 }))
 jest.mock('@/context/loadingStates.context', () => {
     const ReactActual = jest.requireActual('react')
@@ -30,9 +42,10 @@ jest.mock('@/hooks/useTokenChainIcons', () => ({
 }))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ address: '0x2222' }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
+const mockClaimLinkXchain = jest.fn()
 jest.mock('../../../useClaimLink', () => ({
     __esModule: true,
-    default: () => ({ claimLinkXchain: jest.fn(), claimLink: jest.fn() }),
+    default: () => ({ claimLinkXchain: mockClaimLinkXchain, claimLink: jest.fn() }),
 }))
 jest.mock('@/hooks/useRecipientDisplay', () => ({ useRecipientDisplay: () => ({ displayName: 'bob' }) }))
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => (e: unknown) => String(e) }))
@@ -46,11 +59,15 @@ jest.mock('@/config/underMaintenance.config', () => ({
 jest.mock('@/components/Invites/badge-campaign-context', () => ({ badgeCampaignForLegacyWire: () => null }))
 jest.mock('../../../Claim.consts', () => ({}))
 
+import { fireEvent } from '@testing-library/react'
 import { ConfirmClaimLinkView } from '../Confirm.view'
+import type { ClaimXChainPreview } from '../../../Claim.consts'
 
 const props = {
     onNext: jest.fn(),
     onPrev: jest.fn(),
+    setSelectedRoute: jest.fn(),
+    setHasFetchedRoute: jest.fn(),
     setClaimType: jest.fn(),
     claimLinkData: {
         amount: 10_000_000n,
@@ -100,5 +117,30 @@ describe('ConfirmClaimLinkView — max network fee row', () => {
             />
         )
         expect(screen.getByText('$0.50')).toBeInTheDocument()
+    })
+
+    it('an expired route is re-quoted, never executed: drops the route and returns to the initial view', () => {
+        jest.useFakeTimers({ now: new Date('2026-09-01T12:00:00Z') })
+        try {
+            const route: ClaimXChainPreview = {
+                chainId: '8453',
+                tokenAddress: '0xusdc',
+                receiveAmount: '10',
+                feeUsd: 0,
+                quotedFor: '0x2222',
+                expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            }
+            renderWithIntl(<ConfirmClaimLinkView {...props} selectedRoute={route} />)
+
+            jest.setSystemTime(Date.now() + 120_000)
+            fireEvent.click(screen.getByRole('button', { name: /receive now/i }))
+
+            expect(mockClaimLinkXchain).not.toHaveBeenCalled()
+            expect(props.setSelectedRoute).toHaveBeenCalledWith(undefined)
+            expect(props.setHasFetchedRoute).toHaveBeenCalledWith(false)
+            expect(props.onPrev).toHaveBeenCalled()
+        } finally {
+            jest.useRealTimers()
+        }
     })
 })
