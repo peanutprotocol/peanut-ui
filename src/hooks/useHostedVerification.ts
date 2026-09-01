@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { startHostedVerification } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
 import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
@@ -29,83 +29,94 @@ export function useHostedVerification(
     const [isStarting, setIsStarting] = useState(false)
     const [awaitingReturn, setAwaitingReturn] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // Synchronous re-entry guard. `isStarting` is React state, set a tick later,
+    // so a fast second tap (Capacitor especially) re-enters start() before the
+    // disable takes effect and reserves/opens a SECOND portal tab. The ref
+    // blocks the duplicate in the same tick; reset on every exit path via finally.
+    const startingRef = useRef(false)
 
     const start = useCallback(async () => {
-        setError(null)
-        // NOT an iframe: `bridge.withpersona.com` serves
-        // `X-Frame-Options: SAMEORIGIN`, so embedding it rendered
-        // "refused to connect" for EVERY user. It has to be a real
-        // top-level page (native: the in-app browser). Bridge's ToS link
-        // (`compliance.bridge.xyz`) sends no framing header, which is why
-        // BridgeTosStep keeps its iframe.
-        //
-        // On web, reserve the tab HERE — synchronously, inside the click's
-        // user-activation window. Fetching the link takes ~800ms, and a
-        // window.open() after that await is no longer gesture-initiated,
-        // so Safari/Firefox block it — the same "nothing happens" symptom
-        // this PR exists to fix. The reserved tab is navigated once the
-        // URL lands, and closed if it never does.
-        // isNativeBridge(), not isCapacitor(): the latter is also true for
-        // any build carrying NEXT_PUBLIC_CAPACITOR_BUILD (vercel previews),
-        // where the native apis don't exist and we'd skip the reservation
-        // in a real browser.
-        const native = isNativeBridge()
-        const reservedTab = native ? null : window.open('', '_blank')
-        // The reserved tab can't carry `noopener` (that returns null and
-        // defeats the reservation), so sever the back-reference by hand —
-        // otherwise Persona, and anything it redirects to, holds a handle
-        // that can navigate the signed-in tab (reverse tabnabbing).
-        if (reservedTab) reservedTab.opener = null
+        if (startingRef.current) return
+        startingRef.current = true
+        try {
+            setError(null)
+            // NOT an iframe: `bridge.withpersona.com` serves
+            // `X-Frame-Options: SAMEORIGIN`, so embedding it rendered
+            // "refused to connect" for EVERY user. It has to be a real
+            // top-level page (native: the in-app browser). Bridge's ToS link
+            // (`compliance.bridge.xyz`) sends no framing header, which is why
+            // BridgeTosStep keeps its iframe.
+            //
+            // On web, reserve the tab HERE — synchronously, inside the click's
+            // user-activation window. Fetching the link takes ~800ms, and a
+            // window.open() after that await is no longer gesture-initiated,
+            // so Safari/Firefox block it — the same "nothing happens" symptom
+            // this PR exists to fix. The reserved tab is navigated once the
+            // URL lands, and closed if it never does.
+            // isNativeBridge(), not isCapacitor(): the latter is also true for
+            // any build carrying NEXT_PUBLIC_CAPACITOR_BUILD (vercel previews),
+            // where the native apis don't exist and we'd skip the reservation
+            // in a real browser.
+            const native = isNativeBridge()
+            const reservedTab = native ? null : window.open('', '_blank')
+            // The reserved tab can't carry `noopener` (that returns null and
+            // defeats the reservation), so sever the back-reference by hand —
+            // otherwise Persona, and anything it redirects to, holds a handle
+            // that can navigate the signed-in tab (reverse tabnabbing).
+            if (reservedTab) reservedTab.opener = null
 
-        setIsStarting(true)
-        let url: string | undefined
-        try {
-            ;({ url } = await startHostedVerification(actionKey))
-        } catch (error) {
-            // The action body catches its own errors, but a server action
-            // can still REJECT at the transport layer — a dropped network,
-            // or a deploy invalidating the action id mid-flight. Without
-            // this the button stays on "Loading..." forever and the blank
-            // reserved tab is orphaned.
-            reservedTab?.close()
-            console.error(`[hosted:${actionKey}] start-action rejected`, error)
-            setError("We couldn't start the verification. Please try again in a moment.")
-            return
-        } finally {
-            setIsStarting(false)
-        }
-        if (!url) {
-            // Friendly copy regardless of the server detail (a 403 here just
-            // means the action aged out); refetch so a stale entry point
-            // self-corrects.
-            reservedTab?.close()
-            setError("We couldn't start the verification. Please try again in a moment.")
-            void fetchUser().catch(() => undefined)
-            return
-        }
-        try {
-            if (native) {
-                await openExternalUrl(url)
-            } else if (reservedTab && !reservedTab.closed) {
-                // `.closed` matters: assigning href to a closed window is a
-                // silent no-op, so without this the user would tap and see
-                // nothing — the very failure this PR removes.
-                reservedTab.location.href = url
-            } else {
-                // No usable tab: pop-ups blocked, a standalone PWA, or the
-                // user closed the blank tab while we fetched. Same-tab
-                // navigation is never gesture-gated, so it always lands.
+            setIsStarting(true)
+            let url: string | undefined
+            try {
+                ;({ url } = await startHostedVerification(actionKey))
+            } catch (error) {
+                // The action body catches its own errors, but a server action
+                // can still REJECT at the transport layer — a dropped network,
+                // or a deploy invalidating the action id mid-flight. Without
+                // this the button stays on "Loading..." forever and the blank
+                // reserved tab is orphaned.
                 reservedTab?.close()
-                window.location.href = url
+                console.error(`[hosted:${actionKey}] start-action rejected`, error)
+                setError("We couldn't start the verification. Please try again in a moment.")
+                return
+            } finally {
+                setIsStarting(false)
+            }
+            if (!url) {
+                // Friendly copy regardless of the server detail (a 403 here just
+                // means the action aged out); refetch so a stale entry point
+                // self-corrects.
+                reservedTab?.close()
+                setError("We couldn't start the verification. Please try again in a moment.")
+                void fetchUser().catch(() => undefined)
                 return
             }
-        } catch (error) {
-            reservedTab?.close()
-            console.error(`[hosted:${actionKey}] failed to open hosted verification`, error)
-            setError("We couldn't open the verification. Please try again in a moment.")
-            return
+            try {
+                if (native) {
+                    await openExternalUrl(url)
+                } else if (reservedTab && !reservedTab.closed) {
+                    // `.closed` matters: assigning href to a closed window is a
+                    // silent no-op, so without this the user would tap and see
+                    // nothing — the very failure this PR removes.
+                    reservedTab.location.href = url
+                } else {
+                    // No usable tab: pop-ups blocked, a standalone PWA, or the
+                    // user closed the blank tab while we fetched. Same-tab
+                    // navigation is never gesture-gated, so it always lands.
+                    reservedTab?.close()
+                    window.location.href = url
+                    return
+                }
+            } catch (error) {
+                reservedTab?.close()
+                console.error(`[hosted:${actionKey}] failed to open hosted verification`, error)
+                setError("We couldn't open the verification. Please try again in a moment.")
+                return
+            }
+            setAwaitingReturn(true)
+        } finally {
+            startingRef.current = false
         }
-        setAwaitingReturn(true)
     }, [fetchUser, actionKey])
 
     // The same-tab fallback navigates THIS tab away, so the listener below is
