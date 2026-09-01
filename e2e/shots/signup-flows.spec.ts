@@ -96,13 +96,25 @@ const tapNext: Step['act'] = async (page) => {
     await page.getByRole('button', { name: /^next$/i }).click()
 }
 
+/**
+ * The residence answer has exactly three outcomes (Residence.tsx onContinue):
+ *   'none'    — nothing is withheld, so no interstitial at all
+ *   'partial' — one product is unavailable; a heads-up you continue past
+ *   'full'    — both bank rails AND the card withheld; the same heads-up, with
+ *               an extra "Notify me when it is available" CTA. Still passable:
+ *               the CTA reads "Continue anyway" and signup completes.
+ */
 const COUNTRIES = [
-    { id: 'spain', label: 'Spain', iso2: 'ES', headsUp: false },
-    { id: 'brazil', label: 'Brazil', iso2: 'BR', headsUp: false },
-    { id: 'usa', label: 'United States', iso2: 'US', headsUp: false },
-    // On Rain's prohibited-issuance list, so Next opens a card heads-up before
-    // the passkey step instead of going straight to it.
-    { id: 'india', label: 'India', iso2: 'IN', headsUp: true },
+    { id: 'spain', label: 'Spain', iso2: 'ES', restriction: 'none' },
+    { id: 'brazil', label: 'Brazil', iso2: 'BR', restriction: 'none' },
+    { id: 'usa', label: 'United States', iso2: 'US', restriction: 'none' },
+    // Rain's prohibited-issuance list — card withheld, banking fine.
+    { id: 'india', label: 'India', iso2: 'IN', restriction: 'partial' },
+    // Bridge does not onboard JP residents — the mirror case: banking
+    // withheld, card fine.
+    { id: 'japan', label: 'Japan', iso2: 'JP', restriction: 'partial' },
+    // Peanut's own UK block (TASK-20729), alongside the sanctions set.
+    { id: 'uk', label: 'United Kingdom', iso2: 'GB', restriction: 'full' },
 ] as const
 
 /** Radix Select: click the trigger, then the option in its portal. */
@@ -129,16 +141,21 @@ function stepsFor(country: (typeof COUNTRIES)[number]): Step[] {
             },
         },
         { name: 'country-picked', act: pickResidence(country.label) },
-        ...(country.headsUp
+        ...(country.restriction !== 'none'
             ? [
                   { name: 'restriction-heads-up', act: tapNext },
                   {
                       name: 'passkey-offer',
-                      act: async (page: Page) => page.getByRole('button', { name: /^continue$/i }).click(),
+                      // "Continue" on a partial restriction, "Continue anyway"
+                      // when both bank rails and the card are withheld.
+                      act: async (page: Page) => page.getByRole('button', { name: /^continue( anyway)?$/i }).click(),
                   },
               ]
             : [{ name: 'passkey-offer', act: tapNext }]),
-        { name: 'passkey-created', act: async (page) => page.getByRole('button', { name: /set it up/i }).click() },
+        {
+            name: 'passkey-created',
+            act: async (page: Page) => page.getByRole('button', { name: /set it up/i }).click(),
+        },
         // The destination, not a continuation of the walk above. The signed-out
         // fixture answers /users/me with null for the whole session, so the app
         // can never see the account it just created and restarts setup instead.
@@ -146,7 +163,7 @@ function stepsFor(country: (typeof COUNTRIES)[number]): Step[] {
         // frame is labelled as a hand-off rather than a step.
         {
             name: 'home',
-            act: async (page) => {
+            act: async (page: Page) => {
                 await page.evaluate(() => window.sessionStorage.clear())
                 await page.goto('/home?__fixture=home', { waitUntil: 'domcontentloaded' })
                 await pause(2500)
