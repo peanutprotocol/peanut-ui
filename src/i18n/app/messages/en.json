@@ -764,7 +764,7 @@
             },
             "congrats": {
                 "title": "Good news",
-                "description": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away, and a quick ID check unlocks {rail}, plus the Peanut card.",
+                "description": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away, and a quick ID check unlocks {rail}. The Peanut card is on its way too.",
                 "rails": {
                     "pix": "PIX and bank transfers",
                     "arQr": "QR payments and transfers",

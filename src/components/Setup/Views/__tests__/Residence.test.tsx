@@ -119,13 +119,13 @@ describe('ResidenceStep', () => {
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
-        // gates stay separated in prose: no-ID features first, then the bank
-        // rail (named per country) and the card behind the ID check
+        // gates stay separated in prose: no-ID features first, the bank rail
+        // behind the ID check (named per country), the card teased with no
+        // access promise (its closed beta gates it; onboarding doesn't say so)
         expect(
-            screen.getByText(
-                /work right away, and a quick ID check unlocks PIX and bank transfers, plus the Peanut card/
-            )
+            screen.getByText(/work right away, and a quick ID check unlocks PIX and bank transfers/)
         ).toBeInTheDocument()
+        expect(screen.getByText(/The Peanut card is on its way too/)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
