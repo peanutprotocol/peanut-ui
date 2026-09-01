@@ -19,16 +19,20 @@ export function resolveClaimQuoteRecipient(input: {
 
 /**
  * A cached route is reusable only for the recipient it was quoted for —
- * switching the external address invalidates it even on the same chain/token.
+ * switching the external address invalidates it even on the same chain/token
+ * — and only until Rhino's quote expires: an expired entry is a miss, so the
+ * caller re-quotes instead of showing a dead fee.
  */
 export function findClaimRoute(
     routes: ClaimXChainPreview[],
-    key: { chainId: string; tokenAddress: string; quotedFor: string }
+    key: { chainId: string; tokenAddress: string; quotedFor: string },
+    now: number = Date.now()
 ): ClaimXChainPreview | undefined {
     return routes.find(
         (route) =>
             route.chainId === key.chainId &&
             route.tokenAddress.toLowerCase() === key.tokenAddress.toLowerCase() &&
-            route.quotedFor.toLowerCase() === key.quotedFor.toLowerCase()
+            route.quotedFor.toLowerCase() === key.quotedFor.toLowerCase() &&
+            new Date(route.expiresAt).getTime() > now
     )
 }

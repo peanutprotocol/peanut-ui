@@ -212,6 +212,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [user, resetClaimBankFlow])
 
     const hasTrackedClaimView = useRef(false)
+    // Each route quote gets a generation; a result whose generation is no
+    // longer current (the recipient changed, or a newer quote started) is
+    // cached but never selected — a slow quote for A must not land on a
+    // confirm screen for B.
+    const quoteGenerationRef = useRef(0)
     useEffect(() => {
         if (claimLinkData && !hasTrackedClaimView.current) {
             hasTrackedClaimView.current = true
@@ -620,6 +625,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             senderAddress: claimLinkData.senderAddress,
         })
         if (selectedRoute.quotedFor.toLowerCase() === quotedFor.toLowerCase()) return
+        quoteGenerationRef.current += 1
         setSelectedRoute(undefined)
         setHasFetchedRoute(false)
         setRefetchXchainRoute(true)
@@ -669,6 +675,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 senderAddress: claimLinkData.senderAddress,
             })
 
+            const generation = toToken || toChain ? quoteGenerationRef.current : (quoteGenerationRef.current += 1)
+
             try {
                 const existingRoute = findClaimRoute(routes, { chainId, tokenAddress, quotedFor })
 
@@ -717,10 +725,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     receiveAmount: preview.receiveAmount,
                     feeUsd: preview.feeUsd,
                     quotedFor,
+                    expiresAt: preview.expiresAt,
                 }
 
                 setRoutes([...routes, route])
-                if (!toToken && !toChain) {
+                if (!toToken && !toChain && generation === quoteGenerationRef.current) {
                     setSelectedRoute(route)
                     setHasFetchedRoute(true)
                 }
