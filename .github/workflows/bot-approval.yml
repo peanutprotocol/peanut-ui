@@ -135,6 +135,13 @@ jobs:
                         else untrailed.push(c.sha.slice(0, 7));
                       }
                       if (unlandedBotCommits === 0) {
+                        // A bot-opened PR whose commits all claim human authors is either
+                        // authorship laundering (API commits carry caller-supplied author
+                        // metadata) or a fully superseded branch — red either way.
+                        if (BOT_SET.has(lc(pr.user.login))) {
+                          core.setFailed(`Bot-opened PR carries no unlanded bot-authored commits — a bot PR must consist of its own provenance-trailed commits.`);
+                          return;
+                        }
                         console.log('✅ No unlanded bot-authored commits — no ownership gate to apply');
                         return;
                       }
