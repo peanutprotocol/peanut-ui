@@ -109,6 +109,10 @@ export const STATIC_REDIRECT_ROUTES = [
     'pints',
     'events',
     'foodie',
+    // Retired route: /quests and /quests/* redirect to / in redirects.json.
+    // Kept reserved so the catch-all and native deep-link mapper never read
+    // 'quests' as a recipient username.
+    'quests',
 ] as const
 
 /**
