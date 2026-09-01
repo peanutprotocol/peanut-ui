@@ -19,6 +19,7 @@ import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
+import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useAuth } from '@/context/authContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
@@ -77,6 +78,7 @@ export function useSemanticRequestFlow() {
         receiveAmount: calculatedReceiveAmount,
         payAmount: calculatedPayAmount,
         feeUsd: calculatedFeeUsd,
+        quoteExpiresAt,
         calculate: calculateRoute,
         isCalculating: isCalculatingRoute,
         isFeeEstimationError,
@@ -487,6 +489,15 @@ export function useSemanticRequestFlow() {
             return
         }
 
+        // The prepared route carries Rhino's quote only until it expires.
+        // Decided at the tap (a render-time flag goes stale on an open screen):
+        // past expiry, re-quote and let the user confirm the fresh numbers
+        // instead of broadcasting the stale route.
+        if (needsRoute && quoteExpiresAt && isQuoteNearExpiry(quoteExpiresAt)) {
+            await prepareRoute()
+            return
+        }
+
         setIsLoading(true)
         clearError()
 
@@ -586,6 +597,8 @@ export function useSemanticRequestFlow() {
         needsRoute,
         routeTransactions,
         calculatedPayAmount,
+        quoteExpiresAt,
+        prepareRoute,
         selectedChainID,
         selectedTokenAddress,
         selectedTokenData,

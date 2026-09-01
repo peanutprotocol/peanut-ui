@@ -28,6 +28,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
 import { useTranslations } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
+import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -39,6 +40,8 @@ export const ConfirmClaimLinkView = ({
     setTransactionHash,
     attachment,
     selectedRoute,
+    setSelectedRoute,
+    setHasFetchedRoute,
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
     const tNav = useTranslations('navigation')
@@ -81,6 +84,17 @@ export const ConfirmClaimLinkView = ({
 
     const handleOnClaim = async () => {
         if (!recipient) {
+            return
+        }
+
+        // The route's fee and receive amount are Rhino's quote only until it
+        // expires. Decided at the tap: past expiry, drop the route and return
+        // to the initial view, which re-quotes for the same selection — never
+        // execute against numbers Rhino no longer stands behind.
+        if (selectedRoute && isQuoteNearExpiry(selectedRoute.expiresAt)) {
+            setSelectedRoute(undefined)
+            setHasFetchedRoute(false)
+            onPrev()
             return
         }
 
