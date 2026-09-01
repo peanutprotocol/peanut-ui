@@ -102,11 +102,14 @@ export function getBridgeChains(): Promise<{ chains: BridgeChainConfig[] }> {
     return getJson('/rhino/bridge/chains', 'Failed to get bridge chains')
 }
 
+/** How long signing/broadcast needs: a quote closer to expiry than this is treated as expired everywhere. */
+export const QUOTE_SIGNING_LEAD_MS = 15_000
+
 /**
  * Returns true when the quote is within the near-expiry window (default 15s).
  * Hooks should re-quote before commit to avoid Rhino rejecting an expired ID.
  */
-export function isQuoteNearExpiry(expiresAt: string, leadTimeMs = 15_000): boolean {
+export function isQuoteNearExpiry(expiresAt: string, leadTimeMs = QUOTE_SIGNING_LEAD_MS): boolean {
     const expires = new Date(expiresAt).getTime()
     return Number.isFinite(expires) && Date.now() + leadTimeMs >= expires
 }

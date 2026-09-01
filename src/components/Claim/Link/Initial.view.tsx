@@ -783,7 +783,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     useEffect(() => {
         if (!selectedChainID || !selectedTokenAddress) return
 
-        // Clear the old route when selection changes
+        // Clear the old route when selection changes — and retire any quote
+        // still in flight for the old chain/token, synchronously, so it can
+        // never resolve as current and select a route for a destination the
+        // user has left.
+        quoteGenerationRef.current += 1
         setSelectedRoute(undefined)
         setHasFetchedRoute(false)
 

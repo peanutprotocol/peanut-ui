@@ -306,6 +306,22 @@ describe('crypto withdraw confirm — expired Rhino quote', () => {
         expect(mockSetCurrentView).not.toHaveBeenCalledWith('STATUS')
     })
 
+    it('a tap with nothing prepared (an expiry refresh that failed) re-quotes instead of dead-ending', async () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: true, transactions: null, quoteExpiresAt: null })
+        try {
+            render(<WithdrawCryptoPage />)
+            const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+            await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap + 1))
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        } finally {
+            Object.assign(mockCrossChainTransfer, { transactions: [{ to: RECIPIENT, value: 0n, data: '0x' }] })
+        }
+    })
+
     it('signs while the quote is still fresh', async () => {
         jest.useFakeTimers({ now: new Date('2026-09-01T12:00:00Z') })
         Object.assign(mockCrossChainTransfer, {

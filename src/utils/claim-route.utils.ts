@@ -1,5 +1,6 @@
 import { isAddress } from 'viem'
 import type { ClaimXChainPreview } from '@/components/Claim/Claim.consts'
+import { QUOTE_SIGNING_LEAD_MS } from '@/services/rhino-bridge'
 
 /**
  * The address a cross-chain claim quote is priced for. Rhino's quote is
@@ -20,8 +21,9 @@ export function resolveClaimQuoteRecipient(input: {
 /**
  * A cached route is reusable only for the recipient it was quoted for —
  * switching the external address invalidates it even on the same chain/token
- * — and only until Rhino's quote expires: an expired entry is a miss, so the
- * caller re-quotes instead of showing a dead fee.
+ * — and only while Rhino's quote outlives the signing lead: an entry the
+ * confirm screen would already refuse is a miss, so the caller re-quotes
+ * instead of bouncing the user between the two screens.
  */
 export function findClaimRoute(
     routes: ClaimXChainPreview[],
@@ -33,6 +35,6 @@ export function findClaimRoute(
             route.chainId === key.chainId &&
             route.tokenAddress.toLowerCase() === key.tokenAddress.toLowerCase() &&
             route.quotedFor.toLowerCase() === key.quotedFor.toLowerCase() &&
-            new Date(route.expiresAt).getTime() > now
+            new Date(route.expiresAt).getTime() > now + QUOTE_SIGNING_LEAD_MS
     )
 }
