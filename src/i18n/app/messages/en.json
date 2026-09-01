@@ -764,11 +764,14 @@
             },
             "congrats": {
                 "title": "Good news",
-                "description": "Nothing is restricted where you live. After a quick ID check, here's what opens up:",
-                "items": {
-                    "card": "The Peanut card (closed beta)",
-                    "dollars": "Digital dollars",
-                    "username": "Sending to any @username"
+                "description": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away, and a quick ID check unlocks {rail}. The Peanut card follows as the closed beta opens up.",
+                "rails": {
+                    "pix": "PIX and bank transfers",
+                    "arQr": "QR payments and transfers",
+                    "spei": "SPEI transfers",
+                    "achWire": "ACH and wire transfers",
+                    "sepa": "SEPA bank transfers",
+                    "bank": "bank transfers where supported"
                 },
                 "continue": "Continue"
             },

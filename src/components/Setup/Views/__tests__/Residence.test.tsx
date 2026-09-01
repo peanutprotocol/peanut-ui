@@ -119,9 +119,12 @@ describe('ResidenceStep', () => {
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
-        // the bank line comes from the per-country rail map, named where known
-        expect(screen.getByText('PIX & bank transfers')).toBeInTheDocument()
-        expect(screen.getByText('The Peanut card (closed beta)')).toBeInTheDocument()
+        // gates stay separated in prose: no-ID features first, the bank rail
+        // behind the ID check (named per country), the card behind its beta
+        expect(
+            screen.getByText(/work right away, and a quick ID check unlocks PIX and bank transfers/)
+        ).toBeInTheDocument()
+        expect(screen.getByText(/The Peanut card follows as the closed beta opens up/)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -132,8 +135,7 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-        expect(screen.getByText('Bank transfers where supported')).toBeInTheDocument()
-        expect(screen.queryByText(/^Bank transfers$/)).not.toBeInTheDocument()
+        expect(screen.getByText(/unlocks bank transfers where supported/)).toBeInTheDocument()
     })
 
     it('returns to the selector from the congrats screen', () => {

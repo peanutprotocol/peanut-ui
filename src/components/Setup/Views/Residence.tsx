@@ -118,23 +118,25 @@ const ResidenceStep = () => {
     }
 
     if (view === 'congrats') {
-        // The bank line comes from the same per-country rail map the compare
-        // cards render, so it never overstates: named rails (PIX, SPEI, ACH,
-        // SEPA) only where known, "where supported" for the rest of the world.
-        const railItem = residenceAvailability(restrictionSets, residenceCountry).available.find(
-            (item) => item !== 'p2p' && item !== 'card'
-        )
+        /* One paragraph, gates kept honest: dollars and @username sends need
+           no ID check, the bank rail unlocks with verification, and the card's
+           closed beta is its own queue. The rail phrase comes from the same
+           per-country map the compare cards render, so it never overstates:
+           named rails (PIX, SPEI, ACH, SEPA) only where known, "where
+           supported" for the rest of the world. */
+        const railItem =
+            residenceAvailability(restrictionSets, residenceCountry).available.find(
+                (item) => item !== 'p2p' && item !== 'card'
+            ) ?? 'bank'
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-heading-xs font-extrabold">{t('residenceStep.congrats.title')}</h1>
-                    <p className="text-body-s text-foreground-secondary">{t('residenceStep.congrats.description')}</p>
-                    <ul className="space-y-1 list-disc pl-5 text-body-s">
-                        {railItem && <li>{t(`residenceStep.compare.items.${railItem}`)}</li>}
-                        {(['card', 'dollars', 'username'] as const).map((item) => (
-                            <li key={item}>{t(`residenceStep.congrats.items.${item}`)}</li>
-                        ))}
-                    </ul>
+                    <p className="text-body-s text-foreground-secondary">
+                        {t('residenceStep.congrats.description', {
+                            rail: t(`residenceStep.congrats.rails.${railItem}`),
+                        })}
+                    </p>
                 </div>
                 <div className="flex w-full flex-col gap-2">
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>

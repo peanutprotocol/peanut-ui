@@ -428,7 +428,7 @@
                 "continue": "Continuar"
             },
             "congrats": {
-                "description": "No hay restricciones donde vivís. Después de una verificación rápida de identidad, esto es lo que se desbloquea:"
+                "description": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}. La tarjeta Peanut llegará a medida que se abra la beta cerrada."
             },
             "restricted": {
                 "title": "Atención",

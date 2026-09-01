@@ -764,11 +764,14 @@
             },
             "congrats": {
                 "title": "Buenas noticias",
-                "description": "No hay restricciones donde vives. Después de una verificación rápida de identidad, esto es lo que se desbloquea:",
-                "items": {
-                    "card": "La tarjeta Peanut (beta cerrada)",
-                    "dollars": "Dólares digitales",
-                    "username": "Envíos a cualquier @usuario"
+                "description": "No hay restricciones donde vives. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}. La tarjeta Peanut llegará a medida que se abra la beta cerrada.",
+                "rails": {
+                    "pix": "PIX y transferencias bancarias",
+                    "arQr": "pagos y transferencias con QR",
+                    "spei": "transferencias SPEI",
+                    "achWire": "transferencias ACH y wire",
+                    "sepa": "transferencias bancarias SEPA",
+                    "bank": "transferencias bancarias donde estén disponibles"
                 },
                 "continue": "Continuar"
             },
