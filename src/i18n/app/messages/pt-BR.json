@@ -1569,6 +1569,7 @@
             "cta": "Recuperar fundos"
         },
         "uploadProofOfAddress": "Enviar comprovante de endereço",
+        "uploadIdentityDocuments": "Enviar documentos de identidade",
         "fixSignature": {
             "navTitle": "Reparar a assinatura do cartão",
             "intro": "Esta ferramenta repara um problema no estado da carteira que impede o seu cartão de se recarregar automaticamente. Leva até duas confirmações rápidas com a passkey.",

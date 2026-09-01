@@ -32,7 +32,7 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'user-1' } }, fetchUser: mockFetchUser, logoutUser: jest.fn() }),
 }))
 jest.mock('@/app/actions/sumsub', () => ({
-    startBridgeHostedVerification: () => mockStartHosted(),
+    startHostedVerification: () => mockStartHosted(),
 }))
 const mockOpenExternalUrl = jest.fn<Promise<void>, [string]>()
 let mockIsCapacitor = false

@@ -1,18 +1,20 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { startBridgeHostedVerification } from '@/app/actions/sumsub'
+import { startHostedVerification } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
 import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 
 /**
- * Drives the handoff to Bridge's hosted verification (Persona) and the wait
- * for the user to come back from it.
+ * Drives the handoff to a provider's hosted verification page and the wait for
+ * the user to come back from it. Serves both `bridge-hosted` (Bridge/Persona)
+ * and `rain-hosted` (Rain's card-member portal) — the same top-level-tab
+ * handoff applies to any third-party page that can't be iframed.
  *
  * `start` must be called STRAIGHT out of a click handler — it reserves the tab
  * synchronously, inside the user-activation window (see below).
  */
-interface BridgeHostedVerification {
+interface HostedVerification {
     /** Call STRAIGHT out of a click — the tab reservation needs the gesture. */
     start: () => Promise<void>
     isStarting: boolean
@@ -20,7 +22,9 @@ interface BridgeHostedVerification {
     error: string | null
 }
 
-export function useBridgeHostedVerification(): BridgeHostedVerification {
+export function useHostedVerification(
+    actionKey: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted'
+): HostedVerification {
     const { fetchUser } = useAuth()
     const [isStarting, setIsStarting] = useState(false)
     const [awaitingReturn, setAwaitingReturn] = useState(false)
@@ -56,7 +60,7 @@ export function useBridgeHostedVerification(): BridgeHostedVerification {
         setIsStarting(true)
         let url: string | undefined
         try {
-            ;({ url } = await startBridgeHostedVerification())
+            ;({ url } = await startHostedVerification(actionKey))
         } catch (error) {
             // The action body catches its own errors, but a server action
             // can still REJECT at the transport layer — a dropped network,
@@ -64,7 +68,7 @@ export function useBridgeHostedVerification(): BridgeHostedVerification {
             // this the button stays on "Loading..." forever and the blank
             // reserved tab is orphaned.
             reservedTab?.close()
-            console.error('[bridge-hosted] start-action rejected', error)
+            console.error(`[hosted:${actionKey}] start-action rejected`, error)
             setError("We couldn't start the verification. Please try again in a moment.")
             return
         } finally {
@@ -97,12 +101,12 @@ export function useBridgeHostedVerification(): BridgeHostedVerification {
             }
         } catch (error) {
             reservedTab?.close()
-            console.error('[bridge-hosted] failed to open Bridge hosted verification', error)
+            console.error(`[hosted:${actionKey}] failed to open hosted verification`, error)
             setError("We couldn't open the verification. Please try again in a moment.")
             return
         }
         setAwaitingReturn(true)
-    }, [fetchUser])
+    }, [fetchUser, actionKey])
 
     // The same-tab fallback navigates THIS tab away, so the listener below is
     // never armed for it — and a Back that restores from BFCache re-runs no
@@ -146,7 +150,7 @@ export function useBridgeHostedVerification(): BridgeHostedVerification {
                     if (disposed) handle.remove()
                     else remove = () => handle.remove()
                 })
-                .catch((error) => console.error('[bridge-hosted] browserFinished listener failed', error))
+                .catch((error) => console.error(`[hosted:${actionKey}] browserFinished listener failed`, error))
             return () => {
                 disposed = true
                 remove?.()
@@ -158,7 +162,7 @@ export function useBridgeHostedVerification(): BridgeHostedVerification {
         }
         document.addEventListener('visibilitychange', onReturn)
         return () => document.removeEventListener('visibilitychange', onReturn)
-    }, [awaitingReturn, fetchUser])
+    }, [awaitingReturn, fetchUser, actionKey])
 
     return { start, isStarting, error }
 }

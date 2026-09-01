@@ -1569,6 +1569,7 @@
             "cta": "Recuperar fondos"
         },
         "uploadProofOfAddress": "Subir comprobante de domicilio",
+        "uploadIdentityDocuments": "Subir documentos de identidad",
         "fixSignature": {
             "navTitle": "Reparar la firma de la tarjeta",
             "intro": "Esta herramienta repara un problema de estado de la billetera que impide que tu tarjeta se recargue automáticamente. Requiere hasta dos confirmaciones rápidas con tu passkey.",
