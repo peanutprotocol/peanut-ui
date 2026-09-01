@@ -9,6 +9,7 @@
 // responses were checked against production on 2026-04-16. That file is gone;
 // this registry replaced it.
 
+import { KYC_PROFILES } from '@/test-utils/kyc-profiles'
 import type { Fixture } from './types'
 
 // Hugo's overflow case: a username no header was designed for, and a points
@@ -130,6 +131,16 @@ const HUGE_HISTORY_ENTRY = {
     recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '9876543.21' },
     memo: 'Series B wire, split three ways with a memo long enough to wrap',
+}
+
+/**
+ * The `GET /users/me` patch for one KYC profile. Both read-models travel
+ * together on purpose: a capability block paired with someone else's identity
+ * status is a state the backend never emits, and the gate reads both.
+ */
+function kycProfileResponse(name: keyof typeof KYC_PROFILES) {
+    const profile = KYC_PROFILES[name]
+    return { capabilities: profile.capabilities, identityVerification: profile.identityVerification }
 }
 
 export const FIXTURES: Record<string, Fixture> = {
@@ -331,6 +342,44 @@ export const FIXTURES: Record<string, Fixture> = {
                 },
             },
         },
+    },
+
+    // ---------------------------------------------------------------------
+    // KYC capability matrix — country x documents x provider outcome.
+    //
+    // The capability blocks come from src/test-utils/kyc-profiles.ts, the same
+    // fixtures src/utils/__tests__/kyc-capability-matrix.test.tsx asserts on,
+    // so the screenshot and the unit test can never document different states.
+    // Each one lands on the deposit screen for its own jurisdiction, which is
+    // where "which payment options opened up" is actually visible.
+    // ---------------------------------------------------------------------
+    'kyc-us-approved': {
+        route: '/add-money/usa/bank',
+        about: 'US, passport + selfie, Sumsub GREEN: Bridge ACH open, deposit goes straight to the amount screen.',
+        responses: { 'GET /users/me': kycProfileResponse('usBridgeApproved') },
+    },
+    'kyc-us-needs-proof-of-address': {
+        route: '/add-money/usa/bank',
+        about: 'US resident on a foreign passport: Bridge wants a proof of address before ACH opens.',
+        responses: { 'GET /users/me': kycProfileResponse('usBridgeNeedsProofOfAddress') },
+    },
+    'kyc-eu-cross-region-us': {
+        route: '/add-money/usa/bank',
+        about: 'Verified for SEPA, now trying a US deposit: the cross-region unlock, not a re-verify wall.',
+        responses: { 'GET /users/me': kycProfileResponse('euSepaApprovedTriesUs') },
+    },
+    // Not `/add-money/argentina/bank` — that route bounces Manteca countries
+    // straight to this one, so the bank path would shoot a redirect.
+    //
+    // Worth knowing when reading this shot: MantecaAddMoney does NOT use the
+    // shared `gateFor` gate the Bridge bank screens use. It reads
+    // `deriveProviderRejection(rails, 'MANTECA')` instead, which is why a
+    // pool-tier user reaches the amount input here while the same capability
+    // block walls them on a Bridge jurisdiction.
+    'kyc-ar-pool-tier': {
+        route: '/add-money/argentina/manteca',
+        about: 'AR on the Manteca QR pool tier: no CUIT, bank rail requires-info — but the deposit screen still opens.',
+        responses: { 'GET /users/me': kycProfileResponse('arMantecaPoolTier') },
     },
 
     // ---------------------------------------------------------------------

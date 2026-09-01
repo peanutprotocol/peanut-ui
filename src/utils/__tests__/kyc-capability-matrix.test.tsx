@@ -29,6 +29,7 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { KYC_PROFILES, type KycProfile } from '@/test-utils/kyc-profiles'
 import {
     deriveGate,
+    getGateReasonCode,
     getGateUserMessage,
     resolveKycModalVariant,
     type GateScope,
@@ -98,9 +99,11 @@ const MATRIX: MatrixCase[] = [
         expectedVariant: 'provider_rejection',
         mustSee: [
             'We need extra documents',
-            // The backend's normalized userMessage must survive to the screen
-            // verbatim — that is the entire point of the reason taxonomy (D10).
-            'We need a recent proof of address — a utility bill or bank statement.',
+            // The localized catalog entry for `proof_of_address`, NOT the
+            // fixture's raw userMessage: a mapped reason code outranks the
+            // backend prose, which is only the fallback for codes this build
+            // does not know.
+            'We need a valid proof of address document.',
         ],
         mustNotSee: ["We couldn't unlock this", 'Unlock your account'],
     },
@@ -121,6 +124,8 @@ const MATRIX: MatrixCase[] = [
         expectedVariant: 'provider_rejection',
         mustSee: ['We need extra documents', 'To deposit from an Argentine bank we need your CUIT.'],
         mustNotSee: ["We couldn't unlock this"],
+        // `manteca_tax_id_required` is not in the reason catalog, so the raw
+        // userMessage IS what renders — the fallback branch.
     },
 ]
 
@@ -153,6 +158,12 @@ describe('KYC capability matrix', () => {
                             onVerify={jest.fn()}
                             variant={resolveKycModalVariant(gate)}
                             providerMessage={getGateUserMessage(gate)}
+                            // The real call sites pass this too, and the
+                            // localized catalog entry for a known code WINS over
+                            // the backend prose. Omitting it here asserted copy
+                            // the app never actually shows — caught by the
+                            // e2e/__shots__ capture, not by this suite.
+                            reasonCode={getGateReasonCode(gate)}
                             regionName="United States"
                         />
                     </IntlWrapper>
