@@ -128,12 +128,23 @@ const chooseBank: Step['act'] = async (page) => {
     await page.getByText('Bank transfer', { exact: true }).click()
 }
 
-/** Find a country in the searchable list and open it. */
+/**
+ * Find a country in the searchable list and open it.
+ *
+ * The row shows its own spinner while it navigates, and that spinner is a bare
+ * `.animate-spin` with no mascot inside — so `settle` does not see it and the
+ * next step can fire against a list that has not left yet. Wait for the search
+ * box to detach instead: that only happens once the destination has mounted.
+ */
 const pickCountry =
     (name: string): Step['act'] =>
     async (page) => {
         await page.getByRole('textbox').first().fill(name)
         await page.getByText(name, { exact: true }).first().click()
+        // NOT the search box: the destination has textboxes of its own, so a
+        // `.first()` locator just re-resolves to one of those and never reports
+        // detached. This heading belongs to the list alone.
+        await page.getByText('Select your country').waitFor({ state: 'detached', timeout: 30_000 })
     }
 
 /**
@@ -230,12 +241,21 @@ const FLOWS: Flow[] = [
 // Serial: four journeys of five-plus steps each against one `next start` is
 // enough contention that parallel workers time out on settle. Sequential is
 // still only ~30s for the set.
+// One width only. The four-width sweep exists to catch layout and overflow
+// bugs, and fixtures.spec.ts already covers every screen at all four. What
+// these specs add is SEQUENCE — which screen follows which tap — and that does
+// not change with viewport. Running them four times over quadrupled the job for
+// no extra signal, and the added contention on a single `next start` was enough
+// to make them flake.
+const WIDTH = '393'
+
 test.describe.configure({ mode: 'serial' })
 
 for (const flow of FLOWS) {
     test(flow.id, async ({ page }, testInfo) => {
         // Six screens with a settle each; the single-shot budget is not enough.
         testInfo.setTimeout(150_000)
+        test.skip(testInfo.project.name !== WIDTH, 'sequence does not change with viewport')
         const width = testInfo.project.name
 
         // The country list asks ipapi.co which country to float to the top and

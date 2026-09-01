@@ -176,11 +176,20 @@ function stepsFor(country: (typeof COUNTRIES)[number], base: string): Step[] {
     ]
 }
 
+// One width only. The four-width sweep exists to catch layout and overflow
+// bugs, and fixtures.spec.ts already covers every screen at all four. What
+// these specs add is SEQUENCE — which screen follows which tap — and that does
+// not change with viewport. Running them four times over quadrupled the job for
+// no extra signal, and the added contention on a single `next start` was enough
+// to make them flake.
+const WIDTH = '393'
+
 test.describe.configure({ mode: 'serial' })
 
 for (const country of COUNTRIES) {
     test(`signup-${country.id}`, async ({ page, context }, testInfo) => {
         testInfo.setTimeout(180_000)
+        test.skip(testInfo.project.name !== WIDTH, 'sequence does not change with viewport')
         const width = testInfo.project.name
 
         // Stands in for the platform authenticator. Setup gates on one existing
