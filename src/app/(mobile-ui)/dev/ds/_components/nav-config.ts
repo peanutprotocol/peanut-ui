@@ -78,6 +78,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'Field',
+            icon: 'edit',
+            href: '/dev/ds/primitives/field',
+            description: 'Form-field chrome: label + control + helper/error line — error is text only, never borders',
+            status: 'production',
+        },
+        {
             label: 'BaseSelect',
             icon: 'clip',
             href: '/dev/ds/primitives/base-select',
