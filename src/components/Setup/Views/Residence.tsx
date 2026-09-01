@@ -14,7 +14,7 @@ import posthog from 'posthog-js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
-type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial'
+type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial' | 'congrats'
 type PartialRestriction = 'card' | 'banking'
 
 const ResidenceStep = () => {
@@ -86,7 +86,10 @@ const ResidenceStep = () => {
             setView('partial')
             return
         }
-        void handleNext()
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, {
+            residence_country: residenceCountry,
+        })
+        setView('congrats')
     }
 
     const onRestrictedContinue = () => {
@@ -114,11 +117,39 @@ const ResidenceStep = () => {
         setView('notify-done')
     }
 
+    if (view === 'congrats') {
+        return (
+            <div className="flex h-full w-full flex-col justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-heading-xs font-extrabold">{t('residenceStep.congrats.title')}</h1>
+                    <p className="text-body-s text-foreground-secondary">{t('residenceStep.congrats.description')}</p>
+                    <ul className="space-y-1 list-disc pl-5 text-body-s">
+                        {(['bank', 'card', 'dollars', 'username'] as const).map((item) => (
+                            <li key={item}>{t(`residenceStep.congrats.items.${item}`)}</li>
+                        ))}
+                    </ul>
+                </div>
+                <div className="flex w-full flex-col gap-2">
+                    <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
+                        {t('residenceStep.congrats.continue')}
+                    </Button>
+                    <button
+                        type="button"
+                        className="mt-1 text-center text-body-s underline underline-offset-2"
+                        onClick={() => setView('select')}
+                    >
+                        {t('residenceStep.restricted.changeCountry')}
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
     if (view === 'partial') {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-heading-xs font-extrabold">{t('residenceStep.partial.title')}</h2>
+                    <h1 className="text-heading-xs font-extrabold">{t('residenceStep.partial.title')}</h1>
                     <p className="text-body-s text-foreground-secondary">
                         {partialRestriction === 'card'
                             ? t('residenceStep.partial.cardDescription')
@@ -145,7 +176,7 @@ const ResidenceStep = () => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-heading-xs font-extrabold">{t('residenceStep.restricted.title')}</h2>
+                    <h1 className="text-heading-xs font-extrabold">{t('residenceStep.restricted.title')}</h1>
                     <p className="text-body-s text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
                     {view === 'notify' && (
                         <div className="mt-2 flex flex-col gap-2">
@@ -195,7 +226,9 @@ const ResidenceStep = () => {
         <div className="flex h-full w-full flex-col justify-between gap-4">
             <div className="flex w-full flex-col gap-2">
                 {/* Rendered here, not by the step chrome, so the heads-up
-                    sub-views don't repeat it (descriptionInView on the step). */}
+                    sub-views can replace them with their own single heading
+                    (titleInView/descriptionInView on the step). */}
+                <h1 className="w-full text-left text-heading-xs leading-tight">{t('steps.residence.title')}</h1>
                 <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
                 <BaseSelect
                     options={countryOptions}

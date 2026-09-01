@@ -762,6 +762,17 @@
                 "bankingDescription": "Bank transfers aren't available in your country. Everything else works: the Peanut card, digital dollars, and sending to any @username.",
                 "continue": "Continue"
             },
+            "congrats": {
+                "title": "Good news",
+                "description": "Nothing is restricted where you live. After a quick ID check, everything Peanut offers opens up:",
+                "items": {
+                    "bank": "Bank transfers",
+                    "card": "The Peanut card",
+                    "dollars": "Digital dollars",
+                    "username": "Sending to any @username"
+                },
+                "continue": "Continue"
+            },
             "restricted": {
                 "title": "Heads up",
                 "description": "Due to regulations, bank transfers and card issuing aren't available for you. You can still hold digital dollars, send to any @username, and withdraw your balance anytime.",

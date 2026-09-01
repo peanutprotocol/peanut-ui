@@ -4,8 +4,9 @@
  *
  * Contract under test: geo only prefills (never advances, never restricts),
  * the multi-doc link reveals a second selector, restricted residences
- * (CN/IR/RU/BY/GB) get the generic heads-up before handleNext can run, and
- * the notify exit validates the email before capturing it.
+ * (CN/IR/RU/BY/GB) get the generic heads-up before handleNext can run,
+ * unrestricted residences get the congrats screen before handleNext can run,
+ * and the notify exit validates the email before capturing it.
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
@@ -60,6 +61,14 @@ describe('ResidenceStep', () => {
         expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
     })
 
+    // The chrome h1 is suppressed for this step (titleInView), so each view
+    // must render exactly one top-level heading of its own.
+    it('renders the step title as the only heading on the select view', () => {
+        render(<ResidenceStep />)
+        expect(screen.getAllByRole('heading')).toHaveLength(1)
+        expect(screen.getByRole('heading', { level: 1, name: 'Where are you a resident?' })).toBeInTheDocument()
+    })
+
     it('prefills from geo as a suggestion without advancing', () => {
         mockGeoCountry = 'br'
         render(<ResidenceStep />)
@@ -92,7 +101,7 @@ describe('ResidenceStep', () => {
         expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
     })
 
-    it('advances directly for an unrestricted residence', () => {
+    it('shows the congrats screen for an unrestricted residence and continues on demand', () => {
         mockSetupState.residenceCountry = 'BR'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
@@ -100,8 +109,27 @@ describe('ResidenceStep', () => {
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
             expect.objectContaining({ residence_country: 'BR' })
         )
-        expect(mockHandleNext).toHaveBeenCalled()
+        expect(mockedCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
+            expect.objectContaining({ residence_country: 'BR' })
+        )
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        expect(screen.getAllByRole('heading')).toHaveLength(1)
+        expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
+        // the screen itself never names a country
+        expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockHandleNext).toHaveBeenCalled()
+    })
+
+    it('returns to the selector from the congrats screen', () => {
+        mockSetupState.residenceCountry = 'BR'
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByText('Choose a different country'))
+        expect(screen.queryByText('Good news')).not.toBeInTheDocument()
+        expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
     })
 
     it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'HK'])(
@@ -111,7 +139,8 @@ describe('ResidenceStep', () => {
             render(<ResidenceStep />)
             fireEvent.click(screen.getByRole('button', { name: 'Next' }))
             expect(mockHandleNext).not.toHaveBeenCalled()
-            expect(screen.getByText('Heads up')).toBeInTheDocument()
+            expect(screen.getAllByRole('heading')).toHaveLength(1)
+            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
             // the screen itself never names a country
             expect(screen.queryByText(/United Kingdom|China|Iran|Russia|Belarus/)).not.toBeInTheDocument()
             expect(mockedCapture).toHaveBeenCalledWith(
@@ -141,6 +170,8 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
         expect(mockHandleNext).not.toHaveBeenCalled()
+        expect(screen.getAllByRole('heading')).toHaveLength(1)
+        expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
         expect(
             screen.getByText(
                 kind === 'card'

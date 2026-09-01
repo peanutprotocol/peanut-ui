@@ -762,6 +762,17 @@
                 "bankingDescription": "Transferências bancárias não estão disponíveis no seu país. Todo o resto funciona: o cartão Peanut, dólares digitais e envios para qualquer @usuário.",
                 "continue": "Continuar"
             },
+            "congrats": {
+                "title": "Boas notícias",
+                "description": "Não há restrições onde você mora. Depois de uma verificação rápida de identidade, tudo o que a Peanut oferece é liberado:",
+                "items": {
+                    "bank": "Transferências bancárias",
+                    "card": "O cartão Peanut",
+                    "dollars": "Dólares digitais",
+                    "username": "Envios para qualquer @usuário"
+                },
+                "continue": "Continuar"
+            },
             "restricted": {
                 "title": "Atenção",
                 "description": "Devido a regulamentações, transferências bancárias e emissão de cartão não estão disponíveis para você. Você ainda pode ter dólares digitais, enviar para qualquer @usuário e sacar seu saldo quando quiser.",

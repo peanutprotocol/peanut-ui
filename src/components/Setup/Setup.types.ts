@@ -54,6 +54,11 @@ export interface ISetupStep {
      * its sub-views), so the chrome must not also render it.
      */
     descriptionInView?: boolean
+    /**
+     * Same contract for the title: the step renders its own <h1> per sub-view
+     * (each view must keep exactly one top-level heading).
+     */
+    titleInView?: boolean
     imageClassName?: string
     titleClassName?: string
     contentClassName?: string

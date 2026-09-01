@@ -427,6 +427,9 @@
                 "bankingDescription": "Las transferencias bancarias no están disponibles en tu país. Todo lo demás funciona: la tarjeta Peanut, dólares digitales y envíos a cualquier @usuario.",
                 "continue": "Continuar"
             },
+            "congrats": {
+                "description": "No hay restricciones donde vivís. Después de una verificación rápida de identidad, se desbloquea todo lo que Peanut ofrece:"
+            },
             "restricted": {
                 "title": "Atención",
                 "description": "Debido a regulaciones, las transferencias bancarias y la emisión de tarjetas no están disponibles para vos. Igual podés tener dólares digitales, enviar a cualquier @usuario y retirar tu saldo cuando quieras.",
