@@ -119,6 +119,9 @@ export const Profile = () => {
                             href="/profile/backup"
                             onClick={() => router.push('/profile/backup')}
                         />
+                        {/* help center is web-only content — DocsLink localizes
+                            the path and opens the in-app browser in Capacitor */}
+                        <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />
                         <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem

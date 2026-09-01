@@ -6,20 +6,18 @@ import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { LOCALE_META } from '@/i18n/localeMeta'
 
 interface Props {
-    /** Display name of the parent hub (e.g. "Blog", "Stories"). */
-    parentLabel: string
-    /** Href of the parent hub (e.g. `/en/stories`, `/en/content?type=use-cases`). */
-    parentHref: string
-    /** i18n template like "Back to {name}". */
-    backToTemplate: string
     /** Current URL locale. */
     currentLocale: Locale
     /** Map of every supported locale → this article's URL at that locale. */
     localizedHrefs: Record<Locale, string>
 }
 
-export function ArticleBackNav({ parentLabel, parentHref, backToTemplate, currentLocale, localizedHrefs }: Props) {
-    const backLabel = backToTemplate.replace('{name}', parentLabel)
+/**
+ * Article-top language switcher. Back navigation is NOT here — that is
+ * HeroBackNav, mounted once in the (marketing) layout for every content
+ * page (was ArticleBackNav until the two affordances were unified).
+ */
+export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
     const [open, setOpen] = useState(false)
     const wrapperRef = useRef<HTMLDivElement | null>(null)
     const current = LOCALE_META[currentLocale]
@@ -41,14 +39,7 @@ export function ArticleBackNav({ parentLabel, parentHref, backToTemplate, curren
     }, [open])
 
     return (
-        <nav aria-label="Article" className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <Link
-                href={parentHref}
-                className="inline-flex items-center gap-2 text-sm text-grey-1 underline decoration-n-1/30 underline-offset-2 hover:text-n-1"
-            >
-                <span aria-hidden>←</span>
-                {backLabel}
-            </Link>
+        <nav aria-label="Language" className="mb-6 flex items-center justify-end">
             <div ref={wrapperRef} className="relative">
                 <button
                     type="button"

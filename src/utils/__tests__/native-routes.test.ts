@@ -22,11 +22,30 @@ import {
     withdrawBankUrl,
     rewriteMethodPath,
     deepLinkToNativePath,
+    isNativeExportPath,
 } from '../native-routes'
 
 describe('native-routes', () => {
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    describe('isNativeExportPath', () => {
+        it('accepts roots the export ships, regardless of params or depth', () => {
+            expect(isNativeExportPath('/home')).toBe(true)
+            expect(isNativeExportPath('/home?x=1')).toBe(true)
+            expect(isNativeExportPath('/profile/backup')).toBe(true)
+            expect(isNativeExportPath('/shhhhh')).toBe(true)
+            expect(isNativeExportPath('/')).toBe(true)
+        })
+
+        it('rejects web-only roots (marketing, help, legal, locale prefixes)', () => {
+            expect(isNativeExportPath('/en/help')).toBe(false)
+            expect(isNativeExportPath('/en/help/fees-pricing?to=ARS')).toBe(false)
+            expect(isNativeExportPath('/terms')).toBe(false)
+            expect(isNativeExportPath('/blog/some-post')).toBe(false)
+            expect(isNativeExportPath('/careers')).toBe(false)
+        })
     })
 
     describe('capacitor mode', () => {
@@ -549,6 +568,8 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('https://peanut.me/home')).toBe('/home')
                 expect(deepLinkToNativePath('https://peanut.me/card')).toBe('/card')
                 expect(deepLinkToNativePath('https://peanut.me/pay-request?chargeId=x')).toBe('/pay-request?chargeId=x')
+                // outside (mobile-ui) but shipped in the export and linked from /profile
+                expect(deepLinkToNativePath('https://peanut.me/shhhhh')).toBe('/shhhhh')
             })
         })
 

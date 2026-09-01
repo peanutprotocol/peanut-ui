@@ -1,6 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
+import { countryData } from '@/components/AddMoney/consts'
 import NavHeader from '@/components/Global/NavHeader'
 import {
     type RecentMethod,
@@ -36,6 +37,18 @@ interface AddWithdrawRouterViewProps {
 }
 
 const MAX_RECENT_METHODS = 5
+
+// A recent method stores the whole URL, and localStorage outlives any deploy.
+// Rename a country slug and every saved entry still points at the old route,
+// which now resolves to "Country not found". The country id never moves, so
+// re-derive the path from it on read. This also repairs an entry saved on the
+// web and opened in the native shell, where the URL shape itself differs.
+// An entry whose country is gone from the catalog keeps what it stored.
+export function withCurrentCountryPath(method: RecentMethod): RecentMethod {
+    if (method.type !== 'country') return method
+    const country = countryData.find((c) => c.type === 'country' && c.id === method.id)
+    return country ? { ...method, path: addMoneyCountryUrl(country.path) } : method
+}
 
 function saveRecentMethod(userId: string, method: DepositMethod, path?: string) {
     const newRecentMethod: RecentMethod = {
@@ -132,7 +145,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
             // 'add' flow: the default view is a one-shot decision, so skip the
             // localstorage re-read + state churn on later user refetches
             const prefs = user ? getUserPreferences(user.user.userId) : undefined
-            const currentRecentMethods = prefs?.recentAddMethods ?? []
+            const currentRecentMethods = (prefs?.recentAddMethods ?? []).map(withCurrentCountryPath)
             if (currentRecentMethods.length > 0) {
                 setRecentMethodsState(currentRecentMethods)
                 setShouldShowAllMethods(false)

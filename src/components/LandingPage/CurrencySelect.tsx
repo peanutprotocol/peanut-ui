@@ -59,6 +59,9 @@ const CurrencySelect = ({
                     <PopoverPanel
                         anchor="bottom end"
                         className="z-50 mt-4 h-72 w-72 overflow-scroll rounded-sm border border-black bg-white shadow-lg sm:w-80 md:w-96"
+                        // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,
+                        // so scrolling this panel at page top reads as a pull. Same guard as Global/Drawer.
+                        onTouchMove={(e: React.TouchEvent) => e.stopPropagation()}
                     >
                         <div className="flex max-h-full w-full flex-col gap-4 overflow-hidden p-4">
                             <div className="relative w-full">

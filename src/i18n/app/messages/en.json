@@ -294,6 +294,7 @@
             "backup": "Backup",
             "exchangeRatesAndFees": "Exchange rates and fees",
             "starAlt": "star",
+            "help": "Help Center",
             "about": "About Peanut"
         },
         "logOut": "Log out",
@@ -1776,14 +1777,14 @@
         },
         "confirm": {
             "recipientReceives": "Recipient receives",
-            "recipientReceivesInfo": "The full amount arrives on the destination chain. The cross-chain network fee is paid on top — see below.",
+            "recipientReceivesInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "chain",
             "to": "To",
             "networkFee": "Network fee",
-            "networkFeeInfo": "Cross-chain bridge fee (destination gas + Rhino's 0.07%). Paid on top of the amount withdrawn.",
+            "networkFeeInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
             "youPay": "You pay",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
         },

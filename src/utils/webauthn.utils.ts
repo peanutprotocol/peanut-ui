@@ -49,6 +49,40 @@ const PASSKEY_LOGIN_MESSAGES = {
 
 export type PasskeyErrorCode = keyof typeof PASSKEY_LOGIN_MESSAGES
 
+/**
+ * PasskeyErrorCode → `setup.*` catalog key, for codes whose copy already
+ * exists translated. Render sites resolve these with useTranslations('setup');
+ * codes not listed fall back to the English message the error carries.
+ */
+const PASSKEY_ERROR_SETUP_KEYS = {
+    LOGIN_CANCELED: 'waitlist.loginCanceled',
+    CEREMONY_TIMEOUT: 'passkey.tookTooLong',
+    PASSKEY_NOT_READY: 'passkey.notReady',
+    PASSKEY_STATE: 'passkey.deviceState',
+    PASSKEY_INTERRUPTED: 'passkey.interrupted',
+} as const satisfies Partial<Record<PasskeyErrorCode, string>>
+
+/** Reads the classification code off a thrown PasskeyError, if it carries one. */
+export function getPasskeyErrorCode(error: unknown): PasskeyErrorCode | undefined {
+    if (!(error instanceof Error) || error.name !== 'PasskeyError') return undefined
+    const code = (error as Error & { code?: unknown }).code
+    return typeof code === 'string' && code in PASSKEY_LOGIN_MESSAGES ? (code as PasskeyErrorCode) : undefined
+}
+
+/**
+ * Maps a login failure to the `setup.*` i18n key for its curated copy, or
+ * undefined when no translated equivalent exists (the caller then renders the
+ * error's own English message as the fallback).
+ */
+export function getPasskeyErrorSetupKey(
+    error: unknown
+): (typeof PASSKEY_ERROR_SETUP_KEYS)[keyof typeof PASSKEY_ERROR_SETUP_KEYS] | undefined {
+    const code = getPasskeyErrorCode(error)
+    return code && code in PASSKEY_ERROR_SETUP_KEYS
+        ? PASSKEY_ERROR_SETUP_KEYS[code as keyof typeof PASSKEY_ERROR_SETUP_KEYS]
+        : undefined
+}
+
 function isNetworkError(error: Error): boolean {
     if (error.name === 'TypeError' && /fetch|network/i.test(error.message)) return true
     // "Load failed" is WebKit's message for a failed fetch (common when the

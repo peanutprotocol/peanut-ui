@@ -60,14 +60,38 @@ export interface SdaPreviewRequest {
     token: RhinoSupportedToken
     amount: string // decimal
     mode: 'pay' | 'receive'
+    /** The kernel wallet that will deposit. The quote is account- and
+     *  address-bound (Rhino's authenticated quote), so both are required. */
+    depositor: string
+    /** Where Rhino delivers on `chainOut` — 0x, base58 or TRC20 per chain. */
+    recipient: string
 }
 
-export interface SdaPreviewResult {
+/**
+ * The one normalized Rhino quote, as returned by both
+ * `/rhino/sda-transfer/preview` and `/rhino/bridge/quote`. `feeUsd` is
+ * Rhino's TOTAL fee and equals `payAmount − receiveAmount` in USD; the
+ * components are for audit only. Consumers show these numbers verbatim —
+ * never add the components on top, never derive a fee from the amounts.
+ */
+export interface RhinoQuote {
+    /** Decimal string in `tokenIn` units — the USDC the kernel deposits. */
     payAmount: string
     payAmountUsd: number
+    /** Decimal string in `tokenOut` units — what the recipient gets (USDC on
+     *  the SDA path, ETH etc. on a cross-token bridge). */
     receiveAmount: string
     receiveAmountUsd: number
     feeUsd: number
+    fees: {
+        gasUsd: number
+        sourceGasUsd: number
+        platformUsd: number
+        percentageUsd: number
+    }
+    quoteId: string
+    expiresAt: string // ISO timestamp
+    estimatedDuration?: number
 }
 
 async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: string): Promise<TRes> {
@@ -87,6 +111,6 @@ export async function provisionSdaTransfer(body: SdaTransferRequest): Promise<Sd
     return postRhino('/rhino/sda-transfer', body, 'Failed to provision SDA transfer')
 }
 
-export async function previewSdaTransfer(body: SdaPreviewRequest): Promise<SdaPreviewResult> {
+export async function previewSdaTransfer(body: SdaPreviewRequest): Promise<RhinoQuote> {
     return postRhino('/rhino/sda-transfer/preview', body, 'Failed to preview SDA transfer')
 }

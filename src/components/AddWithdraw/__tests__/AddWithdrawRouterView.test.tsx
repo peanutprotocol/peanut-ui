@@ -39,7 +39,10 @@ jest.mock('@/utils/native-routes', () => ({
     rewriteMethodPath: (p: string) => p,
 }))
 
+// spread the real module: the view now imports countryData, whose module-level
+// setup reads MANTECA_SUPPORTED_EXCHANGES. Only isMantecaCountry is faked.
 jest.mock('@/constants/manteca.consts', () => ({
+    ...jest.requireActual('@/constants/manteca.consts'),
     isMantecaCountry: jest.fn(() => false),
 }))
 
@@ -120,7 +123,9 @@ jest.mock('../../Global/TokenAndNetworkConfirmationModal', () => ({
     default: () => null,
 }))
 
-import { AddWithdrawRouterView } from '../AddWithdrawRouterView'
+import { AddWithdrawRouterView, withCurrentCountryPath } from '../AddWithdrawRouterView'
+import { countryData } from '@/components/AddMoney/consts'
+import type { RecentMethod } from '@/utils/general.utils'
 import { WithdrawFlowContextProvider, useWithdrawFlow } from '@/context/WithdrawFlowContext'
 
 // these components call useTranslations; IntlWrapper supplies the en catalog
@@ -185,5 +190,53 @@ describe('AddWithdrawRouterView — withdraw method selection', () => {
 
         expect(screen.getByTestId('country-list')).toBeInTheDocument()
         expect(screen.queryByTestId('saved-accounts-view')).not.toBeInTheDocument()
+    })
+})
+
+// Recent methods live in localStorage and outlive any deploy, so a country slug
+// rename (TASK-21136 czechia, TASK-21138 saint-barthelemy) would otherwise leave
+// saved entries pointing at a route that no longer resolves.
+describe('withCurrentCountryPath — stale saved routes after a slug rename', () => {
+    const saved = (over: Partial<RecentMethod> = {}): RecentMethod => ({
+        type: 'country',
+        id: 'CZE',
+        title: 'Czechia',
+        path: '/add-money/czech-republic',
+        ...over,
+    })
+
+    test('repairs an entry saved under the old slug', () => {
+        expect(withCurrentCountryPath(saved()).path).toBe('/add-money/czechia')
+    })
+
+    test('repairs the de-accented slug too', () => {
+        const stale = saved({ id: 'BL', title: 'Saint Barthélemy', path: '/add-money/saint-barthélemy' })
+        expect(withCurrentCountryPath(stale).path).toBe('/add-money/saint-barthelemy')
+    })
+
+    test('leaves an already-current entry untouched', () => {
+        const current = saved({ path: '/add-money/czechia' })
+        expect(withCurrentCountryPath(current)).toEqual(current)
+    })
+
+    test('never rewrites a crypto entry', () => {
+        const crypto: RecentMethod = { type: 'crypto', id: 'crypto', title: 'Crypto', path: '/add-money/crypto' }
+        expect(withCurrentCountryPath(crypto)).toBe(crypto)
+    })
+
+    test('keeps the stored path when the country is gone from the catalog', () => {
+        const orphan = saved({ id: 'NOT_A_COUNTRY', path: '/add-money/atlantis' })
+        expect(withCurrentCountryPath(orphan).path).toBe('/add-money/atlantis')
+    })
+
+    test('every stored country id still resolves, so no saved entry is orphaned', () => {
+        const countries = countryData.filter((c) => c.type === 'country')
+        const ids = countries.map((c) => c.id)
+        expect(new Set(ids).size).toBe(ids.length)
+        for (const c of countries) {
+            expect(
+                withCurrentCountryPath({ type: 'country', id: c.id, title: c.title, path: '/add-money/stale' }).path
+            ).toBe(`/add-money/${c.path}`)
+        }
     })
 })

@@ -21,6 +21,12 @@ export interface BaseSelectOption {
     value: string
 }
 
+// The bottom nav is fixed over the page (AppShell mounts it at bottom-0; the
+// bar is 68px plus the safe-area inset), so the viewport edge is not the last
+// usable pixel. Without this the popper anchors to the window bottom and the
+// final option sits under the nav, unreachable — MX_STATES ends on Zacatecas.
+const BOTTOM_NAV_CLEARANCE_PX = 112
+
 interface BaseSelectProps {
     options: BaseSelectOption[]
     placeholder?: string
@@ -85,11 +91,16 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                 <Portal>
                     <Content
                         className={twMerge(
-                            'relative z-50 max-h-80 overflow-hidden rounded-sm border border-border-default bg-white shadow-lg'
+                            // Cap at the smaller of the design height and the room
+                            // Radix measured (which honours collisionPadding below),
+                            // so a long list shrinks and scrolls instead of running
+                            // under the nav.
+                            'relative z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-hidden rounded-sm border border-border-default bg-white shadow-lg'
                         )}
                         position="popper"
                         sideOffset={4}
                         align="start"
+                        collisionPadding={{ top: 8, right: 8, bottom: BOTTOM_NAV_CLEARANCE_PX, left: 8 }}
                         style={{ width: 'var(--radix-select-trigger-width)' }}
                     >
                         <Viewport className="notranslate w-full p-1">

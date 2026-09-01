@@ -607,7 +607,10 @@ export default function QRPayPage() {
             // this the entry guard shows its error but the doomed init still fires.
             !isPixRecurringCode(qrCode) &&
             !paymentLock &&
-            !shouldBlockPay,
+            !shouldBlockPay &&
+            // The maintenance kill-switch is render-only below; without this the
+            // doomed /init still fires on every scan during a provider outage.
+            !isProviderDisabled,
         retry: (failureCount, error) => {
             // Don't retry provider-specific errors
             if (NON_RETRYABLE_QR_PAY_ERRORS.some((code) => error?.message?.includes(code))) {

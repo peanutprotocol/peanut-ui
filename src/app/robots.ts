@@ -1,12 +1,11 @@
 import type { MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
-import { GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS, ROBOTS_DISALLOWED_PATHS } from '@/constants/seo-route-policy'
-
-// Read the raw env, not BASE_URL: its 'https://peanut.me' fallback would serve
-// the production crawl policy from a preview built without the variable. Same
-// gate as the root layout's noindex.
-const IS_PRODUCTION_DOMAIN = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') === 'https://peanut.me'
+import {
+    GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS,
+    ROBOTS_DISALLOWED_PATHS,
+    isProductionDomain,
+} from '@/constants/seo-route-policy'
 
 // Paths kept out of the index: the API surface, the SDK bundle, and the
 // auth-gated app routes. Used by the `*`, Googlebot, and AI-crawler groups;
@@ -15,8 +14,10 @@ const IS_PRODUCTION_DOMAIN = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, ''
 // group that matches it, so a named group that omits a path silently opts
 // that crawler out of it.
 export default function robots(): MetadataRoute.Robots {
-    // Block indexing on staging, preview deploys, and non-production domains
-    if (!IS_PRODUCTION_DOMAIN) {
+    // Block indexing on staging, preview deploys, and non-production domains.
+    // Fail-closed on the RAW env (see isProductionDomain) — BASE_URL falls
+    // back to production and would open indexing on an unset environment.
+    if (!isProductionDomain(process.env.NEXT_PUBLIC_BASE_URL)) {
         return {
             rules: [{ userAgent: '*', disallow: ['/'] }],
         }

@@ -47,7 +47,18 @@ const NavHeader = ({
     rightElement,
     hideBackBtn = false,
 }: NavHeaderProps) => {
-    const { logoutUser, isLoggingOut } = useAuth()
+    // marketing routes mount NavHeader without the app provider tree, where
+    // useAuth throws by design. Auth only feeds the logout button, so "no
+    // provider" just hides it. try/catch, not a separate optional hook: the
+    // hook still runs unconditionally, and every test that mocks useAuth
+    // keeps working without also having to mock a second export.
+    let auth: ReturnType<typeof useAuth> | undefined
+    try {
+        // eslint-disable-next-line react-hooks/rules-of-hooks -- not conditional: the hook body (useContext) always executes in the same order; only its provider-missing throw is caught
+        auth = useAuth()
+    } catch {
+        auth = undefined
+    }
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)
@@ -105,10 +116,10 @@ const NavHeader = ({
             )}
 
             {rightElement}
-            {showLogoutBtn && (
+            {showLogoutBtn && auth && (
                 <Button
-                    onClick={() => logoutUser()}
-                    loading={isLoggingOut}
+                    onClick={() => auth.logoutUser()}
+                    loading={auth.isLoggingOut}
                     variant="stroke"
                     icon="logout"
                     aria-label={tNav('logout')}
