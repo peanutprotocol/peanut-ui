@@ -33,9 +33,10 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // runs three — and bury the backend signal that can actually be acted on.
     { pattern: /\/fx\/rate(?:\?|$)/, statuses: [400, 404, 429, 503] },
     // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
-    // provider can't decode (bad/expired/unsupported) — both are user-input
-    // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
-    { pattern: /qr-payment\/init/, statuses: [400, 422] },
+    // provider can't decode (bad/expired/unsupported); 409 = the charge the
+    // cashier rang up on the till timed out — all three are user-input outcomes
+    // shown to the user, not server bugs. (BE peanut-api-ts #1041, #1484.)
+    { pattern: /qr-payment\/init/, statuses: [400, 409, 422] },
     // Rain card secrets endpoints are intentionally rate-limited (5/min) — a
     // 429 here is an expected outcome surfaced to the user, not a server bug.
     { pattern: /\/rain\/cards\/[^/]+\/details/, statuses: [429] },
