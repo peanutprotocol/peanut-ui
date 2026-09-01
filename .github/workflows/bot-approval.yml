@@ -15,9 +15,12 @@
 #
 # Bot involvement is decided from commit authorship, never from who opened
 # the PR — a human opening a PR that carries bot commits must not skip the
-# gate. Commits already reachable from main/dev are exempt, exactly like
-# human-authors' already-landed clause: a promotion or back-merge that carries
-# historical bot commits must not wedge on ceremony that already happened.
+# gate. Commits that already went through this base's ceremony are exempt:
+# base main exempts only commits already ON main — the dev path never
+# required a second human, so a dev->main promotion must still collect one —
+# while any other base exempts main+dev, so back-merges carrying historical
+# bot commits don't wedge. PRs past GitHub's 250-commit listing cap fail
+# closed: a gate that cannot see every commit must not pass.
 #
 # PRs with no unlanded bot commits pass immediately — nothing changes for
 # people. This is a separate workflow because approval state changes on
@@ -75,14 +78,16 @@ jobs:
                         memberCache.set(key, ok);
                         return ok;
                       }
-                      // Same exemption as human-authors: a commit already reachable from
-                      // main/dev was gated by the PR that first proposed it; judging it again
-                      // only wedges the promotion or back-merge that carries it.
+                      // Landed exemption, base-aware. Into main, only main reachability
+                      // counts — commits merged to dev were never second-human approved, so
+                      // the promotion PR is where that ceremony happens. Into anything else,
+                      // main+dev reachability exempts, so back-merges don't wedge.
+                      const LANDED_BRANCHES = pr.base.ref === 'main' ? ['main'] : ['main', 'dev'];
                       const landedCache = new Map();
                       async function alreadyLanded(sha) {
                         if (landedCache.has(sha)) return landedCache.get(sha);
                         let landed = false;
-                        for (const branch of ['main', 'dev']) {
+                        for (const branch of LANDED_BRANCHES) {
                           try {
                             const { data } = await github.rest.repos.compareCommitsWithBasehead({
                               owner: context.repo.owner,
@@ -110,7 +115,15 @@ jobs:
                         pull_number: pr.number,
                         per_page: 100,
                       });
+                      // Fail closed when the listing is truncated: the API caps PR commit
+                      // listings at 250, and a gate blind to even one commit must not pass.
+                      const total = typeof pr.commits === 'number' ? pr.commits : null;
+                      if ((total !== null && commits.length < total) || (total === null && commits.length >= 250)) {
+                        core.setFailed(`The PR has ${total ?? '250+'} commits but the API enumerated ${commits.length} — the gate cannot see every commit. Split the PR or merge in stages.`);
+                        return;
+                      }
                       const orderers = new Set();
+                      const untrailed = [];
                       let unlandedBotCommits = 0;
                       for (const c of commits) {
                         const login = lc(c.author && c.author.login);
@@ -119,13 +132,16 @@ jobs:
                         unlandedBotCommits++;
                         const m = c.commit.message.match(/^Ordered-By: @?([A-Za-z0-9-]+)\s*$/m);
                         if (m) orderers.add(lc(m[1]));
+                        else untrailed.push(c.sha.slice(0, 7));
                       }
                       if (unlandedBotCommits === 0) {
                         console.log('✅ No unlanded bot-authored commits — no ownership gate to apply');
                         return;
                       }
-                      if (orderers.size === 0) {
-                        console.log('✅ Bot commits carry no trailers — human-authors fails them; nothing for this gate to own');
+                      // Never fail open: an ownership gate with no owner is red, even though
+                      // human-authors flags the same commits through ci-success.
+                      if (untrailed.length) {
+                        core.setFailed(`Unlanded bot commit(s) without an Ordered-By trailer: ${untrailed.join(', ')} — no owner, no green.`);
                         return;
                       }
                       const assignees = (pr.assignees || []).map((a) => lc(a.login));

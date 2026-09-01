@@ -784,6 +784,13 @@ jobs:
                         pull_number: context.payload.pull_request.number,
                         per_page: 100,
                       });
+                      // Fail closed when the listing is truncated: the API caps PR commit
+                      // listings at 250, and a gate blind to even one commit must not pass.
+                      const total = context.payload.pull_request.commits;
+                      if ((typeof total === 'number' && commits.length < total) || (typeof total !== 'number' && commits.length >= 250)) {
+                        core.setFailed(`The PR has ${typeof total === 'number' ? total : '250+'} commits but the API enumerated ${commits.length} — the gate cannot see every commit. Split the PR or merge in stages.`);
+                        return;
+                      }
                       const bad = [];
                       const landed = [];
                       for (const c of commits) {
