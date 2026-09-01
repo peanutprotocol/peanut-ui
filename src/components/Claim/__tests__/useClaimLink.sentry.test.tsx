@@ -32,7 +32,9 @@ jest.mock('@/utils/peanut-claim.utils', () => ({
     getContractAddress: () => '0xvault',
     signWithdrawalMessage: async () => ['1', '0xrecipient', '0xsig'],
 }))
-jest.mock('@/services/rhino-sda', () => ({ provisionSdaTransfer: jest.fn() }))
+jest.mock('@/services/rhino-sda', () => ({
+    provisionSdaTransfer: jest.fn(async () => ({ sdaAddress: '0x' + '22'.repeat(20) })),
+}))
 jest.mock('@/services/sendLinks', () => ({ sendLinksApi: {}, ESendLinkStatus: { FAILED: 'FAILED' } }))
 
 import useClaimLink from '../useClaimLink'
@@ -56,6 +58,16 @@ const claim = () =>
         link: 'https://peanut.to/claim#p=pw',
     })
 
+// x-chain posts to the same /claim endpoint after provisioning a Rhino SDA;
+// Arbitrum → Arbitrum USDC keeps the real chain/token resolvers happy
+const claimXchain = () =>
+    renderHook(() => useClaimLink(), { wrapper }).result.current.claimLinkXchain({
+        address: '0x1111111111111111111111111111111111111111',
+        link: 'https://peanut.to/claim#p=pw',
+        destinationChainId: '42161',
+        destinationToken: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    })
+
 const originalFetch = global.fetch
 afterEach(() => {
     global.fetch = originalFetch
@@ -75,6 +87,22 @@ describe('claimLinkMutation.onError', () => {
         mockClaimResponse(500, { error: 'An unexpected error occurred.' })
 
         await expect(claim()).rejects.toBeTruthy()
+
+        expect(mockCaptureException).toHaveBeenCalledTimes(1)
+    })
+
+    test('the x-chain mutation skips Sentry for the same already-claimed 409', async () => {
+        mockClaimResponse(409, { error: 'This link was already claimed.', code: 'LINK_ALREADY_CLAIMED' })
+
+        await expect(claimXchain()).rejects.toMatchObject({ code: 'LINK_ALREADY_CLAIMED' })
+
+        expect(mockCaptureException).not.toHaveBeenCalled()
+    })
+
+    test('the x-chain mutation still reports any other failure', async () => {
+        mockClaimResponse(500, { error: 'An unexpected error occurred.' })
+
+        await expect(claimXchain()).rejects.toBeTruthy()
 
         expect(mockCaptureException).toHaveBeenCalledTimes(1)
     })

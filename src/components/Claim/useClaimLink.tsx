@@ -413,6 +413,8 @@ const useClaimLink = () => {
         ...sharedMutationConfig,
         onError: (error) => {
             console.error('Error claiming link x-chain:', error)
+            // same /claim endpoint, same expected race — see claimLinkMutation
+            if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) return
             captureException(error, {
                 tags: { feature: 'claim-link-xchain' },
             })
