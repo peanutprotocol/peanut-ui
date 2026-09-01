@@ -39,11 +39,12 @@ concurrency:
 jobs:
     comment:
         # Same-repo PRs only. Fork PRs never produce the artifact anyway
-        # (ds-shots-filter skips them), so this is belt and braces. Tests runs
-        # with no report artifact (push runs, ds-shots skipped, no baseline
-        # yet) fall through the "find" step below and post nothing.
+        # (ds-shots-filter skips them), so this is belt and braces. Cancelled
+        # runs are skipped: a newer run on the same branch is already coming
+        # and owns the comment.
         if: >-
             github.event.workflow_run.event == 'pull_request' &&
+            github.event.workflow_run.conclusion != 'cancelled' &&
             github.event.workflow_run.head_repository.full_name == github.repository
         runs-on: ubuntu-latest
         timeout-minutes: 5
@@ -71,7 +72,7 @@ jobs:
                   REPORT=$(printf '%s\n' "$ROWS" | grep -E $'\t''visual-diff-report-[0-9]+$' | sed -n '1p' || true)
                   if [ -z "$REPORT" ]; then
                       echo 'found=false' >> "$GITHUB_OUTPUT"
-                      echo 'No visual-diff-report artifact: ds-shots was skipped or had no baseline. Nothing to post.'
+                      echo 'No visual-diff-report artifact: ds-shots was skipped, failed before the diff, or had no baseline.'
                       exit 0
                   fi
                   REPORT_ID=${REPORT%%$'\t'*}
@@ -140,12 +141,50 @@ jobs:
                   fi
                   node scripts/ds-shots-publish.mjs report.json > body.md
 
-            - name: Upsert the sticky comment
-              if: steps.bind.outputs.match == 'true'
+            # A run with no report must not leave an older result standing as
+            # if it were current (the stale-success hazard). If this PR already
+            # carries a sticky comment, overwrite it with a "no result for the
+            # latest push" state; a PR that never had one stays quiet, so
+            # docs-only PRs get no spam. The PR number here comes from the
+            # trusted commit → PRs API keyed by the run's head SHA — never
+            # from anything the PR's build produced.
+            - name: Mark the sticky comment stale when this run has no report
+              if: steps.art.outputs.found != 'true'
+              id: stale
               env:
                   GH_TOKEN: ${{ github.token }}
                   REPO: ${{ github.repository }}
-                  PR: ${{ steps.art.outputs.pr }}
+                  RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+                  RUN_URL: ${{ github.event.workflow_run.html_url }}
+              run: |
+                  set -euo pipefail
+                  PR=$(gh api "repos/$REPO/commits/$RUN_HEAD_SHA/pulls" \
+                      --jq ".[] | select(.head.sha == \"$RUN_HEAD_SHA\") | .number" | sed -n '1p')
+                  if [ -z "$PR" ]; then
+                      echo 'No open PR has this commit as its head — stale run or push event. Nothing to do.'
+                      echo 'update=false' >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+                  {
+                      echo '<!-- ds-shots-visual-diff -->'
+                      echo
+                      echo '## 🖼 Visual diff — ⚠️ no result for the latest push'
+                      echo
+                      echo "The newest [Tests run]($RUN_URL) produced no diff report: ds-shots was skipped, failed before the diff, or had no cached baseline."
+                      echo 'The previous result on this comment was for an older commit, so it was cleared.'
+                      echo
+                      echo '<sub>Fixture screenshots, no backend. Advisory — this check never blocks a merge.</sub>'
+                  } > body.md
+                  echo "pr=$PR" >> "$GITHUB_OUTPUT"
+                  echo 'update=true' >> "$GITHUB_OUTPUT"
+
+            - name: Upsert the sticky comment
+              if: steps.bind.outputs.match == 'true' || steps.stale.outputs.update == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  PR: ${{ steps.art.outputs.found == 'true' && steps.art.outputs.pr || steps.stale.outputs.pr }}
+                  STALE: ${{ steps.stale.outputs.update }}
               run: |
                   set -euo pipefail
                   # Only a comment this bot authored qualifies — a user who
@@ -160,6 +199,10 @@ jobs:
                   if [ -n "$CID" ]; then
                       gh api -X PATCH "repos/$REPO/issues/comments/$CID" -F body=@body.md > /dev/null
                       echo "Updated comment $CID on PR #$PR"
+                  elif [ "$STALE" = 'true' ]; then
+                      # Stale mode only clears an existing result — a PR that
+                      # never had a comment gets none.
+                      echo "PR #$PR has no sticky comment — staying quiet."
                   else
                       gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@body.md > /dev/null
                       echo "Posted new comment on PR #$PR"
