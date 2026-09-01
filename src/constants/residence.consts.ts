@@ -8,12 +8,12 @@
 
 /**
  * Full restriction: neither bank transfers nor card issuing are available.
- * Sanctions-comprehensive jurisdictions (CN, IR, RU, BY, KP, SY, CU), the
+ * Sanctions-comprehensive jurisdictions (CN, IR, RU, BY, KP, SY, CU, MM), the
  * Sumsub document-rejection set (RU, CN, HK are configured as unacceptable in
  * the Sumsub dashboard, so no KYC can ever pass), plus Peanut's own UK block
  * (TASK-20729).
  */
-export const RESTRICTED_RESIDENCE_ISO2 = new Set(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'HK'])
+export const RESTRICTED_RESIDENCE_ISO2 = new Set(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'HK', 'MM'])
 
 /**
  * Card-only restriction: Rain's published prohibited-issuance list minus the
@@ -22,7 +22,7 @@ export const RESTRICTED_RESIDENCE_ISO2 = new Set(['CN', 'IR', 'RU', 'BY', 'GB', 
  * list; Crimea/Donetsk/Luhansk are additionally sanctions-blocked outright,
  * but a country picker cannot distinguish regions.
  */
-export const CARD_RESTRICTED_RESIDENCE_ISO2 = new Set(['IN', 'TR', 'UA', 'VE', 'VN', 'IL', 'IQ', 'MM', 'NP', 'NI'])
+export const CARD_RESTRICTED_RESIDENCE_ISO2 = new Set(['IN', 'TR', 'UA', 'VE', 'VN', 'IL', 'IQ', 'NP', 'NI'])
 
 /**
  * Banking-only restriction: Bridge does not onboard residents of these

@@ -100,6 +100,15 @@ describe('ResidenceStep', () => {
         expect(screen.getByText('Select your second country')).toBeInTheDocument()
     })
 
+    it('clears the stored second residence when the selector is collapsed', () => {
+        // An invisible second residence would still be sent to analytics and
+        // persisted after signup — collapsing must clear the stored pick.
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByText('Have documents from more than one country?'))
+        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setSecondResidenceCountry(''))
+    })
+
     it('shows the per-country availability comparison with the truth-first guidance', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
@@ -213,7 +222,7 @@ describe('ResidenceStep', () => {
         expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
     })
 
-    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'HK'])(
+    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'HK', 'MM'])(
         'shows the generic heads-up for %s before advancing',
         (iso2) => {
             mockSetupState.residenceCountry = iso2
@@ -239,7 +248,6 @@ describe('ResidenceStep', () => {
         ['VN', 'card'],
         ['IL', 'card'],
         ['IQ', 'card'],
-        ['MM', 'card'],
         ['NP', 'card'],
         ['NI', 'card'],
         ['DZ', 'banking'],

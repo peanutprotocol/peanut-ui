@@ -759,7 +759,7 @@
             "partial": {
                 "title": "Atención",
                 "cardDescription": "La tarjeta Peanut no está disponible en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
-                "bankingDescription": "Las transferencias bancarias no están disponibles en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y la tarjeta Peanut requiere una verificación rápida de identidad.",
+                "bankingDescription": "Las transferencias bancarias no están disponibles en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
                 "continue": "Continuar"
             },
             "congrats": {
