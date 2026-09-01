@@ -1,4 +1,9 @@
 import { isNativeBridge } from '@/utils/capacitor'
+import * as Sentry from '@/utils/sentry-lazy'
+
+const CLIPBOARD_WRITE_TIMEOUT_MS = 1000
+
+const describeError = (err: unknown) => (err instanceof Error ? `${err.name}: ${err.message}` : String(err))
 
 /**
  * Copies text to the clipboard, reporting whether it actually landed.
@@ -6,42 +11,67 @@ import { isNativeBridge } from '@/utils/capacitor'
  * Native goes through the Capacitor plugin first: the WebView's
  * navigator.clipboard write is gated on a live user activation, which an await
  * on a network call (creating a link, say) has usually already spent.
+ *
+ * On the web, writeText is raced against a timeout (Brave iOS never settles
+ * it) and a rejection or a hang falls through to the legacy execCommand path.
+ * A copy that fails every path is captured to Sentry once, naming the methods
+ * that failed; the text itself never is.
  */
 export async function copyTextToClipboard(text: string): Promise<boolean> {
+    const failed: Record<string, string> = {}
+
     if (isNativeBridge()) {
         try {
             const { Clipboard } = await import('@capacitor/clipboard')
             await Clipboard.write({ string: text })
             return true
         } catch (err) {
-            console.error('Failed to copy: ', err)
+            failed.nativePlugin = describeError(err)
         }
     }
 
-    let textArea: HTMLTextAreaElement | undefined
-
-    try {
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(text)
+    if (navigator.clipboard && window.isSecureContext) {
+        let timer: ReturnType<typeof setTimeout> | undefined
+        try {
+            await Promise.race([
+                navigator.clipboard.writeText(text),
+                new Promise<never>((_, reject) => {
+                    timer = setTimeout(
+                        () => reject(new Error('navigator.clipboard.writeText timed out')),
+                        CLIPBOARD_WRITE_TIMEOUT_MS
+                    )
+                }),
+            ])
             return true
-        } else {
-            // Fallback for older browsers
-            textArea = document.createElement('textarea')
-            textArea.value = text
-            textArea.style.position = 'fixed'
-            textArea.style.left = '-999999px'
-            textArea.style.top = '-999999px'
-            document.body.appendChild(textArea)
-            textArea.focus()
-            textArea.select()
-            return document.execCommand('copy')
+        } catch (err) {
+            failed.clipboardApi = describeError(err)
+        } finally {
+            clearTimeout(timer)
         }
-    } catch (err) {
-        console.error('Failed to copy: ', err)
-        return false
-    } finally {
-        textArea?.remove()
     }
+
+    // Fallback for older browsers, and for a Clipboard API that rejected or hung
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    textArea.setAttribute('readonly', '')
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-999999px'
+    textArea.style.top = '-999999px'
+    document.body.appendChild(textArea)
+    try {
+        textArea.focus()
+        textArea.select()
+        if (document.execCommand('copy')) return true
+        failed.execCommand = 'returned false'
+    } catch (err) {
+        failed.execCommand = describeError(err)
+    } finally {
+        textArea.remove()
+    }
+
+    console.error('Failed to copy: ', failed)
+    Sentry.captureException(new Error('Clipboard copy failed'), { extra: { failed } })
+    return false
 }
 
 /**

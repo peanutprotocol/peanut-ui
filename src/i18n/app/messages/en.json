@@ -3249,7 +3249,8 @@
             "noContent": "No content provided"
         },
         "copyToClipboard": {
-            "copyCode": "Copy code"
+            "copyCode": "Copy code",
+            "copyFailed": "Copy failed"
         },
         "copyField": {
             "copy": "Copy",
