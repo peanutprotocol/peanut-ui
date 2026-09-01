@@ -852,7 +852,6 @@
             "placeholderAddress": "Ingresá una dirección"
         },
         "confirm": {
-            "recipientReceivesInfo": "El monto completo llega a la red de destino. La comisión de red entre cadenas se paga aparte: mirá abajo.",
             "youPay": "Pagás"
         },
         "compatibilityModal": {

@@ -1777,14 +1777,14 @@
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",
-            "recipientReceivesInfo": "El monto completo llega a la red de destino. La comisión de red entre cadenas se paga aparte: mira abajo.",
+            "recipientReceivesInfo": "Peanut cubre el costo del puente. Es posible que se descuente un pequeño costo de red al entregar.",
             "tokenAndNetwork": "Token y red",
             "tokenOnChain": "{token} en <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "red",
             "to": "Para",
             "networkFee": "Comisión de red",
-            "networkFeeInfo": "Comisión del puente entre cadenas (gas de destino + 0.07% de Rhino). Se paga aparte del monto retirado.",
+            "networkFeeInfo": "Peanut cubre el costo del puente. Es posible que se descuente un pequeño costo de red al entregar.",
             "youPay": "Pagas",
             "highFeeWarning": "Nota: la comisión de red es una parte grande de este retiro. Retirar un monto mayor o elegir una red más barata la reduce."
         },

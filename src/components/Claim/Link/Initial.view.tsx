@@ -676,12 +676,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 // Rhino preview expects a decimal string, so format down.
                 const decimals = selectedTokenData?.decimals ?? 6
                 const previewAmount = formatUnits(claimLinkData.amount, decimals)
+                // The quote is account-bound and needs an address on each chain.
+                // The SDA deposit itself comes from the Peanut claim relayer, so
+                // the claimer's address stands in as depositor for pricing.
+                const claimer = recipient.address || address
+                if (!claimer) throw new Error('Cross-chain route needs a recipient address')
                 const preview = await previewSdaTransfer({
                     chainIn: sourceRhinoChain,
                     chainOut: destRhinoChain,
                     token: tokenSymbol,
                     amount: previewAmount,
                     mode: 'pay',
+                    depositor: claimer,
+                    recipient: claimer,
                 })
 
                 const route: ClaimXChainPreview = {
@@ -714,7 +721,17 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 setLoadingState('Idle')
             }
         },
-        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes, setHasFetchedRoute, setSelectedRoute]
+        [
+            claimLinkData,
+            isXChain,
+            selectedTokenData,
+            setLoadingState,
+            routes,
+            setHasFetchedRoute,
+            setSelectedRoute,
+            recipient.address,
+            address,
+        ]
     )
 
     useEffect(() => {

@@ -12,6 +12,7 @@
  */
 
 import { apiFetch } from '@/utils/api-fetch'
+import type { RhinoQuote } from '@/services/rhino-sda'
 
 export interface BridgeQuoteParams {
     amount: string
@@ -25,15 +26,7 @@ export interface BridgeQuoteParams {
     mode: 'pay' | 'receive'
 }
 
-export interface BridgeQuoteResponse {
-    quoteId: string
-    amountIn: string
-    amountOut: string
-    fee: string
-    feeUsd: number
-    gasFeeUsd: number
-    estimatedDuration?: number
-    expiresAt: string // ISO timestamp
+export interface BridgeQuoteResponse extends RhinoQuote {
     /** Backend echoes this so the FE passes it back through commit — discriminates
      *  the Rhino finalisation path (getSwapCalldata vs deposit-address). */
     isSwap: boolean

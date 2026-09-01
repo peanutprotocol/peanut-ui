@@ -1777,14 +1777,14 @@
         },
         "confirm": {
             "recipientReceives": "O destinatário recebe",
-            "recipientReceivesInfo": "O valor completo chega na rede de destino. A taxa de rede entre redes é paga à parte: veja abaixo.",
+            "recipientReceivesInfo": "Peanut cobre o custo da ponte. Um pequeno custo de rede pode ser descontado na entrega.",
             "tokenAndNetwork": "Token e rede",
             "tokenOnChain": "{token} na <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "rede",
             "to": "Para",
             "networkFee": "Taxa de rede",
-            "networkFeeInfo": "Taxa da ponte entre redes (gas no destino + 0,07% da Rhino). Paga à parte do valor sacado.",
+            "networkFeeInfo": "Peanut cobre o custo da ponte. Um pequeno custo de rede pode ser descontado na entrega.",
             "youPay": "Você paga",
             "highFeeWarning": "Atenção: a taxa de rede é uma parte grande deste saque. Sacar um valor maior ou escolher uma rede mais barata reduz a taxa."
         },

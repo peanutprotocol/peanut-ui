@@ -5,6 +5,7 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import NavHeader from '@/components/Global/NavHeader'
+import NetworkFeeRow from '@/components/Global/NetworkFeeRow'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -77,9 +78,6 @@ export const ConfirmClaimLinkView = ({
         const amount = selectedRoute.receiveAmount
         return isStableCoin(resolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${resolvedTokenSymbol}`
     }, [selectedRoute, resolvedTokenSymbol])
-
-    // Network fee display – always sponsored in this flow
-    const networkFeeDisplay: string = tCommon('sponsoredByPeanut')
 
     const handleOnClaim = async () => {
         if (!recipient) {
@@ -235,8 +233,12 @@ export const ConfirmClaimLinkView = ({
                             />
                         }
 
-                        {/* Max network fee row */}
-                        <PaymentInfoRow label={t('confirm.maxNetworkFee')} value={networkFeeDisplay} />
+                        {/* Max network fee row — the route preview's quoted fee, verbatim */}
+                        <NetworkFeeRow
+                            label={t('confirm.maxNetworkFee')}
+                            feeUsd={selectedRoute?.feeUsd}
+                            isCrossChain={!!selectedRoute}
+                        />
 
                         {/* Peanut fee row */}
                         <PaymentInfoRow label={tCommon('peanutFee')} value={'$ 0.00'} hideBottomBorder />

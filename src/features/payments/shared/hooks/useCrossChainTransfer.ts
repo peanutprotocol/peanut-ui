@@ -32,7 +32,7 @@ import {
     previewSdaTransfer,
     type RhinoTransferContext,
     type RhinoSupportedToken,
-    type SdaPreviewResult,
+    type RhinoQuote,
     type SdaTransferResult,
 } from '@/services/rhino-sda'
 import {
@@ -112,14 +112,17 @@ export interface UseCrossChainTransferReturn {
     transactions: PreparedTransaction[] | null
     sdaAddress: Address | null
     receiveAmount: string | null
-    /** USDC the kernel actually needs on-hand to execute `transactions[0]` — this
-     *  is principal + Rhino fee on the SDA path (where mode='receive' and Rhino
-     *  takes the fee at source) and equals principal on the bridge / same-chain
-     *  paths. Callers that route through `sendTransactions({ requiredUsdcAmount })`
-     *  MUST pass this, not the principal, or the kernel's collateral-sweep
-     *  shortfall is under-funded and the subsequent transfer reverts with
+    /** USDC the kernel actually needs on-hand to execute `transactions[0]` — the
+     *  quote's `payAmount` verbatim on the SDA path (mode='receive': principal
+     *  plus whatever fee Rhino quotes at source, $0 under the current account
+     *  config) and the principal on the bridge / same-chain paths. Callers that
+     *  route through `sendTransactions({ requiredUsdcAmount })` MUST pass this,
+     *  not the principal, or the kernel's collateral-sweep shortfall is
+     *  under-funded and the subsequent transfer reverts with
      *  `ERC20: transfer amount exceeds balance`. */
     payAmount: string | null
+    /** Rhino's quoted total fee, verbatim from the quote (`feeUsd`). Never
+     *  derived on the FE — no summing of components, no pay − receive. */
     feeUsd: number | undefined
     estimatedGasCostUsd: number | undefined
     minDepositLimitUsd: number | undefined
@@ -315,17 +318,19 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                     return
                 }
 
-                // Preview first, then provision — provision now carries the quote
+                // Preview first, then provision — provision carries the quote
                 // economics (feeUsd / payAmount / receiveAmount) so the backend can
-                // persist them onto the charge and book the FEE ledger entry at
-                // settlement (PRINCIPAL + FEE = real on-chain debit). Sequential
-                // because provision depends on preview's numbers.
+                // persist them onto the charge for audit (the FEE ledger entry is
+                // booked from Rhino's executed actuals, not from this quote).
+                // Sequential because provision depends on preview's numbers.
                 const preview = await previewSdaTransfer({
                     chainIn: sourceRhinoChain,
                     chainOut: destRhinoChain,
                     token: tokenSymbol,
                     amount: destination.tokenAmount,
-                    mode: 'receive', // UI always asks "merchant gets X" — user pays X + fee
+                    mode: 'receive', // UI always asks "merchant gets X" — user pays X + quoted fee
+                    depositor: source.address,
+                    recipient: destination.recipientAddress,
                 })
                 const sda = await provisionSdaTransfer({
                     context,
@@ -462,7 +467,7 @@ async function runBridgePath({
     }
 
     const STABLECOIN_DECIMALS = 6
-    const approveAmount = parseUnits(quote.amountIn, STABLECOIN_DECIMALS)
+    const approveAmount = parseUnits(quote.payAmount, STABLECOIN_DECIMALS)
     // Approve USDC for Rhino's bridge contract — required for both same-chain
     // swap (the swap contract does transferFrom) and cross-chain depositWithId.
     const approveData = encodeFunctionData({
@@ -504,12 +509,14 @@ async function runBridgePath({
         },
         bridgeCall,
     ])
-    setReceiveAmount(quote.amountOut)
-    // Bridge path: mode='pay' → user pays exactly `amountIn` at source; the
-    // Rhino fee + gas come out of the destination amount. So the kernel needs
-    // `amountIn` USDC on-hand (same as the principal).
-    setPayAmount(quote.amountIn)
-    setFeeUsd(quote.feeUsd + quote.gasFeeUsd)
+    setReceiveAmount(quote.receiveAmount)
+    // Bridge path: mode='pay' → user pays exactly `payAmount` at source; any
+    // Rhino fee comes out of the destination amount. So the kernel needs
+    // `payAmount` USDC on-hand (same as the principal).
+    setPayAmount(quote.payAmount)
+    // Verbatim. `feeUsd` is already Rhino's total — adding gas on top (the
+    // pre-2026-09 code) double-counted it.
+    setFeeUsd(quote.feeUsd)
     setEstimatedGasCostUsd(0) // gas paid by paymaster — same as SDA path
     setIsFeeEstimationError(false)
     setQuoteExpiresAt(quote.expiresAt)
@@ -576,7 +583,7 @@ async function buildSameChainTx({
 }
 
 interface RhinoResultParams {
-    preview: SdaPreviewResult
+    preview: RhinoQuote
     sda: SdaTransferResult
     source: CrossChainSourceInfo
     setTransactions: (tx: PreparedTransaction[] | null) => void
@@ -622,12 +629,12 @@ function applyRhinoResult({
     ])
     setSdaAddress(sda.sdaAddress)
     setReceiveAmount(preview.receiveAmount)
-    // SDA path uses mode='receive' (preview at line ~310) — Rhino takes the fee
-    // at source. `payAmount` IS `principal + fee` and matches the on-chain
-    // transfer amount we just encoded above. Callers routing through
-    // sendTransactions({ requiredUsdcAmount }) MUST pass this — not the
-    // principal — or the kernel's collateral-sweep under-funds and the
-    // transfer reverts with `ERC20: transfer amount exceeds balance`.
+    // SDA path uses mode='receive' — any fee Rhino quotes is taken at source, so
+    // `payAmount` IS `principal + quoted fee` (== principal under the current
+    // 1:1 account config) and matches the on-chain transfer amount we just
+    // encoded above. Callers routing through sendTransactions({ requiredUsdcAmount })
+    // MUST pass this — not the principal — or the kernel's collateral-sweep
+    // under-funds and the transfer reverts with `ERC20: transfer amount exceeds balance`.
     setPayAmount(preview.payAmount)
     setFeeUsd(preview.feeUsd)
     setMinDepositLimitUsd(sda.minDepositLimitUsd)
