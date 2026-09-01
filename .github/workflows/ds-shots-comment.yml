@@ -112,12 +112,24 @@ jobs:
                   fi
                   echo 'match=true' >> "$GITHUB_OUTPUT"
 
-            - name: Extract report.json from the artifact
+            # Extraction and rendering both consume attacker-controlled bytes,
+            # so either may refuse them: a broken archive fails unzip, an
+            # out-of-contract report is rejected by the validator.
+            # continue-on-error lets the run reach the fallback and upsert
+            # below — the last step of the job still turns an unusable report
+            # into a red run, so tampering stays loud.
+            - name: Extract and render the report
               if: steps.bind.outputs.match == 'true'
+              id: render
+              continue-on-error: true
               env:
                   GH_TOKEN: ${{ github.token }}
                   REPO: ${{ github.repository }}
                   REPORT_ID: ${{ steps.art.outputs.report_id }}
+                  RUN_URL: ${{ github.event.workflow_run.html_url }}
+                  HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+                  RUN_ID: ${{ github.event.workflow_run.id }}
+                  IMG_ID: ${{ steps.art.outputs.img_id }}
               run: |
                   set -euo pipefail
                   gh api "repos/$REPO/actions/artifacts/$REPORT_ID/zip" > report.zip
@@ -126,21 +138,34 @@ jobs:
                   # zip-slip has nothing to work with. A missing member fails
                   # the step loudly.
                   unzip -p report.zip report.json > report.json
-
-            - name: Build the comment body
-              if: steps.bind.outputs.match == 'true'
-              env:
-                  RUN_URL: ${{ github.event.workflow_run.html_url }}
-                  HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-                  REPO: ${{ github.repository }}
-                  RUN_ID: ${{ github.event.workflow_run.id }}
-                  IMG_ID: ${{ steps.art.outputs.img_id }}
-              run: |
-                  set -euo pipefail
                   if [ -n "$IMG_ID" ]; then
                       export ARTIFACT_URL="https://github.com/$REPO/actions/runs/$RUN_ID/artifacts/$IMG_ID"
                   fi
                   node scripts/ds-shots-publish.mjs report.json > body.md
+                  echo 'ok=true' >> "$GITHUB_OUTPUT"
+
+            # A report that exists but cannot be used must not leave the
+            # previous head's result standing as current (same stale-success
+            # hazard as a missing report). Overwrite with the trusted generic
+            # body — never with anything taken from the report.
+            - name: Fall back to the no-result body when the report is unusable
+              if: steps.bind.outputs.match == 'true' && steps.render.outputs.ok != 'true'
+              id: fallback
+              env:
+                  RUN_URL: ${{ github.event.workflow_run.html_url }}
+              run: |
+                  set -euo pipefail
+                  {
+                      echo '<!-- ds-shots-visual-diff -->'
+                      echo
+                      echo '## 🖼 Visual diff — ⚠️ no result for the latest push'
+                      echo
+                      echo "The newest [Tests run]($RUN_URL) uploaded a diff report that could not be used: a broken archive, or a report that failed validation."
+                      echo 'The previous result on this comment was for an older commit, so it was cleared. This publisher run fails on purpose so someone looks.'
+                      echo
+                      echo '<sub>Fixture screenshots, no backend. Advisory — this check never blocks a merge.</sub>'
+                  } > body.md
+                  echo 'used=true' >> "$GITHUB_OUTPUT"
 
             # A run with no report must not leave an older result standing as
             # if it were current (the stale-success hazard). If this PR already
@@ -185,7 +210,7 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
                   REPO: ${{ github.repository }}
                   PR: ${{ steps.art.outputs.found == 'true' && steps.art.outputs.pr || steps.stale.outputs.pr }}
-                  STALE: ${{ steps.stale.outputs.update }}
+                  STALE: ${{ steps.stale.outputs.update == 'true' || steps.fallback.outputs.used == 'true' }}
               run: |
                   set -euo pipefail
                   # Only a comment this bot authored qualifies — a user who
@@ -208,3 +233,9 @@ jobs:
                       gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@body.md > /dev/null
                       echo "Posted new comment on PR #$PR"
                   fi
+
+            - name: Fail loud when the report was unusable
+              if: steps.bind.outputs.match == 'true' && steps.render.outputs.ok != 'true'
+              run: |
+                  echo '::error::The report artifact was present but unusable — see "Extract and render the report". The sticky comment was cleared to the no-result state.'
+                  exit 1
