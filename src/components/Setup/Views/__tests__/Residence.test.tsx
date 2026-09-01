@@ -31,6 +31,7 @@ jest.mock('@/hooks/useSetupFlow', () => ({
 }))
 
 let mockGeoCountry: string | null = null
+let mockRestrictionSets: unknown
 jest.mock('@/hooks/useGeoLocation', () => ({
     useGeoLocation: () => ({ countryCode: mockGeoCountry, isLoading: false, error: null }),
 }))
@@ -45,7 +46,9 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => {
     const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
     return {
         ...actual,
-        useResidenceRestrictionSets: () => actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+        // Overridable so tests can simulate the server lists replacing the
+        // bundled mirror after mount.
+        useResidenceRestrictionSets: () => mockRestrictionSets ?? actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
     }
 })
 
@@ -54,6 +57,7 @@ describe('ResidenceStep', () => {
         jest.clearAllMocks()
         mockSetupState = { residenceCountry: '', secondResidenceCountry: '' }
         mockGeoCountry = null
+        mockRestrictionSets = undefined
     })
 
     it('disables Continue until a country is chosen', () => {
@@ -124,10 +128,10 @@ describe('ResidenceStep', () => {
         // behind the ID check (named per country), the card teased with no
         // access promise (its closed beta gates it; onboarding doesn't say so)
         expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        // the card carries its verification requirement (never imply a no-KYC card)
-        expect(
-            screen.getByText(/The Peanut card is on its way too, and it needs the same ID check/)
-        ).toBeInTheDocument()
+        // the card carries its verification requirement (never imply a no-KYC
+        // card) with no promise of access or arrival
+        expect(screen.getByText(/The Peanut card needs that ID check too/)).toBeInTheDocument()
+        expect(screen.queryByText(/on its way/)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -139,11 +143,29 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-        expect(
-            screen.getByText(/work right away\. The Peanut card is on its way too, and it needs a quick ID check/)
-        ).toBeInTheDocument()
+        expect(screen.getByText(/work right away\. The Peanut card needs a quick ID check/)).toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
+    })
+
+    it('demotes the congrats view when server lists later restrict the country', () => {
+        // The sets render from the bundled mirror and the server response can
+        // land after Next was tapped: the "nothing is restricted" claim must
+        // not outlive the data it was based on.
+        mockSetupState.residenceCountry = 'BR'
+        const view = render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
+        const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
+        const local = actual.LOCAL_RESIDENCE_RESTRICTION_SETS
+        mockRestrictionSets = { ...local, bankingOnly: new Set([...local.bankingOnly, 'BR']) }
+        view.rerender(<ResidenceStep />)
+        expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+        expect(screen.getByText(/Bank transfers aren't available in your country/)).toBeInTheDocument()
+        expect(mockedCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
+            expect.objectContaining({ residence_country: 'BR', restriction_type: 'banking' })
+        )
     })
 
     it('skips the congrats claim when the second residence is restricted', () => {

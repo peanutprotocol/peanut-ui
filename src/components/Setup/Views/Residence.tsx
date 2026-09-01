@@ -2,6 +2,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -130,12 +131,45 @@ const ResidenceStep = () => {
         setView('notify-done')
     }
 
+    /* The tier sets render from the bundled mirror and are replaced by the
+       server-authoritative lists asynchronously. A congrats view reached
+       before that response must not outlive it: re-evaluate on every set
+       change and demote to the matching heads-up (or back to the selector
+       when the second residence turned out restricted). Heads-up views are
+       never demoted — over-warning is stale-safe. */
+    useEffect(() => {
+        if (view !== 'congrats') return
+        if (restrictionSets.full.has(residenceCountry)) {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, {
+                residence_country: residenceCountry,
+            })
+            setView('restricted')
+            return
+        }
+        const partial: PartialRestriction | null = restrictionSets.cardOnly.has(residenceCountry)
+            ? 'card'
+            : restrictionSets.bankingOnly.has(residenceCountry)
+              ? 'banking'
+              : null
+        if (partial) {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN, {
+                residence_country: residenceCountry,
+                restriction_type: partial,
+            })
+            setPartialRestriction(partial)
+            setView('partial')
+            return
+        }
+        const second = deriveResidenceRestrictionsFrom(restrictionSets, secondResidenceCountry)
+        if (second.banking || second.card) setView('select')
+    }, [restrictionSets, view, residenceCountry, secondResidenceCountry])
+
     if (view === 'congrats') {
         /* One paragraph, gates kept honest: dollars and @username sends need
            no ID check; the bank rail unlocks with verification; the card is
-           mentioned without an access promise (its closed beta still gates
-           it, and onboarding deliberately doesn't say so) but WITH its
-           verification requirement — compliance forbids pairing the no-KYC
+           mentioned with no promise of access or arrival (its closed beta
+           still gates it, and onboarding deliberately doesn't say so) but
+           WITH its verification requirement — compliance forbids pairing the no-KYC
            core features with the card in a way that implies a no-KYC card. The rail phrase
            comes from the same per-country map the compare cards render and is
            named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
