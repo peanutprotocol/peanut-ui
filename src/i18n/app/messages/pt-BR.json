@@ -764,7 +764,7 @@
             },
             "congrats": {
                 "title": "Boas notícias",
-                "description": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já, e uma verificação rápida de identidade libera {rail}. O cartão Peanut vem em seguida, conforme o beta fechado for abrindo.",
+                "description": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já, e uma verificação rápida de identidade libera {rail}, além do cartão Peanut.",
                 "rails": {
                     "pix": "PIX e transferências bancárias",
                     "arQr": "pagamentos e transferências por QR",

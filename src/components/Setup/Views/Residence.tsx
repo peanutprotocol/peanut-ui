@@ -119,11 +119,11 @@ const ResidenceStep = () => {
 
     if (view === 'congrats') {
         /* One paragraph, gates kept honest: dollars and @username sends need
-           no ID check, the bank rail unlocks with verification, and the card's
-           closed beta is its own queue. The rail phrase comes from the same
-           per-country map the compare cards render, so it never overstates:
-           named rails (PIX, SPEI, ACH, SEPA) only where known, "where
-           supported" for the rest of the world. */
+           no ID check; the bank rail and the card unlock with verification.
+           The rail phrase comes from the same per-country map the compare
+           cards render, so it never overstates: named rails (PIX, SPEI, ACH,
+           SEPA) only where known, "where supported" for the rest of the
+           world. */
         const railItem =
             residenceAvailability(restrictionSets, residenceCountry).available.find(
                 (item) => item !== 'p2p' && item !== 'card'
