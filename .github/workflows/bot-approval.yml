@@ -7,9 +7,9 @@
 #   - the PR is assigned to every cited orderer, and
 #   - base != main: an APPROVED review of the CURRENT head from an orderer —
 #     the accountability click; bot work never merges on green gates alone,
-#     dev included. A PR the orderer opened themselves counts as owned: they
-#     cannot approve their own PR, and adopting bot commits under your own PR
-#     is the same accountability as authoring them. And
+#     dev included. When the orderer opened the PR themselves (adopting bot
+#     commits), GitHub blocks self-approval, so any other team member's
+#     approval of the current head satisfies the rule instead. And
 #   - base == main: an APPROVED review of the current head from a team member
 #     who is NOT an orderer, so main always gets a second human.
 #
@@ -160,6 +160,10 @@ jobs:
                         pull_number: pr.number,
                         per_page: 100,
                       });
+                      // Fold oldest-first so the newest review per human wins — the API does
+                      // not document an ordering, and last-write-wins on an undocumented
+                      // order could let a stale APPROVED shadow a newer CHANGES_REQUESTED.
+                      reviews.sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at) || a.id - b.id);
                       const latest = new Map();
                       for (const r of reviews) {
                         if (!r.user || r.user.type === 'Bot') continue;
@@ -178,11 +182,16 @@ jobs:
                           return;
                         }
                         console.log(`✅ Second-human approval by ${second.join(', ')} (ordered by ${[...orderers].join(', ')})`);
-                      } else {
-                        if (orderers.has(lc(pr.user.login))) {
-                          console.log(`✅ PR opened by orderer ${pr.user.login} — their own PR is their owned work`);
+                      } else if (orderers.has(lc(pr.user.login))) {
+                        // The orderer opened the PR themselves and cannot self-approve, so
+                        // any other team member's approval of the head stands in — bot work
+                        // still never merges reviewless.
+                        if (!approvers.length) {
+                          core.setFailed(`PR opened by orderer ${pr.user.login}, who cannot approve their own PR — needs an APPROVED review of the current head from any other team member; bot work never merges on green gates alone.`);
                           return;
                         }
+                        console.log(`✅ Approval by ${approvers.join(', ')} for orderer-opened PR`);
+                      } else {
                         const owner = approvers.filter((a) => orderers.has(a));
                         if (!owner.length) {
                           core.setFailed(`Bot work needs an APPROVED review of the current head from the human who ordered it (${[...orderers].join(' or ')}) — their approval is the accountability act; bot PRs never merge on green gates alone.`);
