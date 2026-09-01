@@ -17,6 +17,9 @@ export interface ClaimXChainPreview {
     receiveAmount: string
     /** Rhino fee in USD. */
     feeUsd: number
+    /** The address the account-bound quote was priced for — a cached route
+     *  is only valid for that recipient (see findClaimRoute). */
+    quotedFor: string
 }
 export type ClaimType = 'claim' | 'claimxchain'
 
