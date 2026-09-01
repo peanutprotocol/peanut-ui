@@ -210,8 +210,10 @@ export const InitiateKycModal = ({
     // vendor without it. Every other variant is an error/action state where the
     // list would be noise.
     const showPrepChecklist = (variant === 'default' || variant === 'cross_region') && !error
+    // The checklist is left-aligned, so the paragraph introducing it is too:
+    // centered prose stacked on a left-aligned list reads as two columns.
     const description = showPrepChecklist ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 text-left">
             <p>{getDescription()}</p>
             <KycPrepChecklist path={prepPath} />
         </div>
@@ -219,7 +221,6 @@ export const InitiateKycModal = ({
         getDescription()
     )
     const iconName = (error || isBlocked || isRestartIdentity || isRegionUnavailable ? 'alert' : 'badge') as IconName
-    const iconBubbleClass = isBlocked || isRestartIdentity || isRegionUnavailable ? 'bg-action-secondary' : ''
     const footer =
         isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
             <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
@@ -243,7 +244,11 @@ export const InitiateKycModal = ({
                     heading at all whenever the visible one is dropped. */}
                 {titleIsGeneric && <h1 className="sr-only">{headerTitle}</h1>}
                 <div className="flex flex-col items-center gap-4 text-center">
-                    <IconBubble icon={iconName} size="l" className={iconBubbleClass} />
+                    {/* Yellow, never green: every variant of this screen is
+                        waiting on the user. Green is the bubble the app uses
+                        for a finished state, and a green shield over "we need
+                        extra documents" reads as already-verified. */}
+                    <IconBubble icon={iconName} size="l" color="yellow" />
                     {!titleIsGeneric && <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>}
                     <div className="w-full text-body-s text-foreground-secondary">{description}</div>
                 </div>
@@ -270,7 +275,7 @@ export const InitiateKycModal = ({
             description={description}
             preventClose
             icon={iconName}
-            iconContainerClassName={iconBubbleClass}
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             modalPanelClassName="max-w-full m-2"
             ctaClassName="grid grid-cols-1 gap-3"
             ctas={[

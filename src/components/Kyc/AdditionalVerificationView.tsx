@@ -73,8 +73,11 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
         <div className="flex w-full flex-col gap-6">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <div className="flex flex-col items-center gap-3 text-center">
-                <IconBubble icon="user-id" size="l" color="yellow" />
+            {/* Bubble centered, prose not: the checklist right below is
+                left-aligned, and a centered paragraph above it reads as a
+                second column. */}
+            <div className="flex flex-col gap-3">
+                <IconBubble icon="user-id" size="l" color="yellow" className="self-center" />
                 <p className="text-body-s text-foreground-secondary">
                     {isAdvisory ? t('descriptionAdvisory') : t('description')}
                 </p>
