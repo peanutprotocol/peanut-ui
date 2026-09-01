@@ -64,23 +64,28 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
                   REPO: ${{ github.repository }}
                   RUN_ID: ${{ github.event.workflow_run.id }}
+                  ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
               run: |
                   set -euo pipefail
                   ROWS=$(gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/artifacts?per_page=100" \
                       --jq '.artifacts[] | "\(.id)\t\(.name)"')
+                  # Artifacts persist across reruns of the same run id, so
+                  # match ONLY this attempt's report — a rerun must never
+                  # republish an earlier attempt's result.
                   # sed -n 1p, not head -1: head closes the pipe early and the
                   # SIGPIPE trips pipefail; sed drains the stream.
-                  REPORT=$(printf '%s\n' "$ROWS" | grep -E $'\t''visual-diff-report-[0-9]+$' | sed -n '1p' || true)
+                  REPORT=$(printf '%s\n' "$ROWS" | grep -E $'\t'"visual-diff-report-[0-9]+-$ATTEMPT\$" | sed -n '1p' || true)
                   if [ -z "$REPORT" ]; then
                       echo 'found=false' >> "$GITHUB_OUTPUT"
-                      echo 'No visual-diff-report artifact: ds-shots was skipped, failed before the diff, or had no baseline.'
+                      echo "No visual-diff-report artifact for attempt $ATTEMPT: ds-shots was skipped, failed before the diff, or had no baseline."
                       exit 0
                   fi
                   REPORT_ID=${REPORT%%$'\t'*}
-                  PR=${REPORT##*-}
+                  NAME=${REPORT#*$'\t'}
+                  PR=$(printf '%s' "$NAME" | sed -E "s/^visual-diff-report-([0-9]+)-$ATTEMPT\$/\1/")
                   # The PNG artifact only exists when a screen moved; its id
                   # becomes the images download link in the comment.
-                  IMG_ID=$(printf '%s\n' "$ROWS" | grep -E $'\t'"visual-diff-$PR\$" | sed -n '1p' | cut -f1 || true)
+                  IMG_ID=$(printf '%s\n' "$ROWS" | grep -E $'\t'"visual-diff-$PR-$ATTEMPT\$" | sed -n '1p' | cut -f1 || true)
                   {
                       echo 'found=true'
                       echo "report_id=$REPORT_ID"
