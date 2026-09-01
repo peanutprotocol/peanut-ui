@@ -1,0 +1,166 @@
+# Publishes the ds-shots visual-diff result as one sticky PR comment.
+#
+# Why a separate workflow: the ds-shots job in tests.yml checks out and runs
+# PR code (pnpm install, next build, playwright), so it must hold no write
+# token — a postinstall can plant a GITHUB_PATH or GITHUB_ENV hook that fires
+# in any later step of the same job (see the permissions comment on ds-shots,
+# PR #2819). A workflow_run workflow executes THIS file from the default
+# branch and never checks out PR code, so it can safely hold
+# pull-requests: write.
+#
+# Trust boundary: the artifact was produced by a job that ran PR code, so its
+# contents are attacker-controlled. This workflow extracts exactly one member
+# (report.json) by name — no archive path is ever written to disk — and
+# scripts/ds-shots-publish.mjs validates it strictly before any of it reaches
+# markdown. The PR number is parsed from the artifact name (the PR's build
+# chose it), so it is bound back to the trigger: the numbered PR's head must
+# be the exact commit the run tested, or nothing is posted.
+#
+# Deploy note: workflow_run only fires once this file exists on the DEFAULT
+# branch (main). It lands on dev first, so the comment starts appearing after
+# the next dev → main release. Until then this file is inert.
+name: ds-shots comment
+
+on:
+    workflow_run:
+        workflows: [Tests]
+        types: [completed]
+
+permissions:
+    contents: read # checkout of the default branch, for the builder script
+    actions: read # list + download the triggering run's artifacts
+    pull-requests: write # the sticky comment
+
+# A newer Tests run on the same branch supersedes this comment update.
+concurrency:
+    group: ds-shots-comment-${{ github.event.workflow_run.head_branch }}
+    cancel-in-progress: true
+
+jobs:
+    comment:
+        # Same-repo PRs only. Fork PRs never produce the artifact anyway
+        # (ds-shots-filter skips them), so this is belt and braces. Tests runs
+        # with no report artifact (push runs, ds-shots skipped, no baseline
+        # yet) fall through the "find" step below and post nothing.
+        if: >-
+            github.event.workflow_run.event == 'pull_request' &&
+            github.event.workflow_run.head_repository.full_name == github.repository
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            # For a workflow_run event github.sha is the default branch head,
+            # so this checks out trusted code — never the PR.
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Find the report artifact on the triggering run
+              id: art
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  RUN_ID: ${{ github.event.workflow_run.id }}
+              run: |
+                  set -euo pipefail
+                  ROWS=$(gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/artifacts?per_page=100" \
+                      --jq '.artifacts[] | "\(.id)\t\(.name)"')
+                  # sed -n 1p, not head -1: head closes the pipe early and the
+                  # SIGPIPE trips pipefail; sed drains the stream.
+                  REPORT=$(printf '%s\n' "$ROWS" | grep -E $'\t''visual-diff-report-[0-9]+$' | sed -n '1p' || true)
+                  if [ -z "$REPORT" ]; then
+                      echo 'found=false' >> "$GITHUB_OUTPUT"
+                      echo 'No visual-diff-report artifact: ds-shots was skipped or had no baseline. Nothing to post.'
+                      exit 0
+                  fi
+                  REPORT_ID=${REPORT%%$'\t'*}
+                  PR=${REPORT##*-}
+                  # The PNG artifact only exists when a screen moved; its id
+                  # becomes the images download link in the comment.
+                  IMG_ID=$(printf '%s\n' "$ROWS" | grep -E $'\t'"visual-diff-$PR\$" | sed -n '1p' | cut -f1 || true)
+                  {
+                      echo 'found=true'
+                      echo "report_id=$REPORT_ID"
+                      echo "pr=$PR"
+                      echo "img_id=$IMG_ID"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "Report artifact $REPORT_ID for PR #$PR (images: ${IMG_ID:-none})"
+
+            - name: Bind the artifact's PR number back to the run
+              if: steps.art.outputs.found == 'true'
+              id: bind
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  PR: ${{ steps.art.outputs.pr }}
+                  RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+              run: |
+                  set -euo pipefail
+                  # The artifact name — and so the PR number — was chosen by
+                  # the PR's own build code. Require the numbered PR's head to
+                  # be the exact commit this run tested: a PR naming its
+                  # artifact after somebody else's PR posts nothing, and an
+                  # out-of-order older run cannot overwrite a newer comment.
+                  HEAD=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha' 2>/dev/null || true)
+                  if [ "$HEAD" != "$RUN_HEAD_SHA" ]; then
+                      echo "PR #$PR head ${HEAD:-<none>} != run head $RUN_HEAD_SHA — mismatched artifact name or stale run. Skipping."
+                      echo 'match=false' >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+                  echo 'match=true' >> "$GITHUB_OUTPUT"
+
+            - name: Extract report.json from the artifact
+              if: steps.bind.outputs.match == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  REPORT_ID: ${{ steps.art.outputs.report_id }}
+              run: |
+                  set -euo pipefail
+                  gh api "repos/$REPO/actions/artifacts/$REPORT_ID/zip" > report.zip
+                  # Extract the one member by exact name, to stdout: no path
+                  # from the (untrusted) archive is ever written to disk, so
+                  # zip-slip has nothing to work with. A missing member fails
+                  # the step loudly.
+                  unzip -p report.zip report.json > report.json
+
+            - name: Build the comment body
+              if: steps.bind.outputs.match == 'true'
+              env:
+                  RUN_URL: ${{ github.event.workflow_run.html_url }}
+                  HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+                  REPO: ${{ github.repository }}
+                  RUN_ID: ${{ github.event.workflow_run.id }}
+                  IMG_ID: ${{ steps.art.outputs.img_id }}
+              run: |
+                  set -euo pipefail
+                  if [ -n "$IMG_ID" ]; then
+                      export ARTIFACT_URL="https://github.com/$REPO/actions/runs/$RUN_ID/artifacts/$IMG_ID"
+                  fi
+                  node scripts/ds-shots-publish.mjs report.json > body.md
+
+            - name: Upsert the sticky comment
+              if: steps.bind.outputs.match == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  PR: ${{ steps.art.outputs.pr }}
+              run: |
+                  set -euo pipefail
+                  # Only a comment this bot authored qualifies — a user who
+                  # pastes the marker into their own comment must not have it
+                  # overwritten.
+                  # sed, not head: a gh failure must fail the step, not be
+                  # masked into posting a duplicate comment.
+                  CID=$(gh api --paginate "repos/$REPO/issues/$PR/comments?per_page=100" \
+                      --jq '.[] | select(.user.login == "github-actions[bot]")
+                                | select(.body | startswith("<!-- ds-shots-visual-diff -->")) | .id' \
+                      | sed -n '1p')
+                  if [ -n "$CID" ]; then
+                      gh api -X PATCH "repos/$REPO/issues/comments/$CID" -F body=@body.md > /dev/null
+                      echo "Updated comment $CID on PR #$PR"
+                  else
+                      gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@body.md > /dev/null
+                      echo "Posted new comment on PR #$PR"
+                  fi

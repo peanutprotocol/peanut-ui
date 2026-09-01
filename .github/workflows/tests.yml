@@ -468,6 +468,16 @@ jobs:
                   echo "baseline=${MATCHED#ds-shots-}" >> "$GITHUB_OUTPUT"
                   node scripts/visual-diff.mjs e2e/__shots__/base e2e/__shots__/head \
                       --out=e2e/__shots__/diff --json > e2e/__shots__/report.json
+                  # Stamp the baseline commit into the report so the comment
+                  # publisher (ds-shots-comment.yml) can say what the diff was
+                  # against. Data only — the publisher validates every field.
+                  BASELINE="${MATCHED#ds-shots-}" node -e '
+                      const fs = require("node:fs")
+                      const p = "e2e/__shots__/report.json"
+                      const r = JSON.parse(fs.readFileSync(p, "utf8"))
+                      r.baseline = process.env.BASELINE
+                      fs.writeFileSync(p, JSON.stringify(r, null, 2))
+                  '
 
             # The listing runs PR-authored code (scripts/visual-comment.mjs is
             # itself pixel-moving, so a PR may edit it) — deliberately no token
@@ -497,6 +507,21 @@ jobs:
                       e2e/__shots__/base
                       e2e/__shots__/head
                       e2e/__shots__/diff
+                  retention-days: 7
+
+            # The report rides out separately and unconditionally: the PNG
+            # artifact above only exists when a screen moved, and the comment
+            # publisher needs the "nothing moved" report too so the green
+            # comment posts. ds-shots-comment.yml — a workflow_run workflow
+            # that never runs PR code — downloads it, validates it as
+            # untrusted input, and posts the sticky PR comment this job must
+            # not (it holds no write token, see the permissions comment above).
+            - name: Upload the diff report
+              if: steps.diff.outputs.ready == 'true'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: visual-diff-report-${{ github.event.pull_request.number }}
+                  path: e2e/__shots__/report.json
                   retention-days: 7
             # Rendered into the job summary, which needs no permissions. The
             # script omits the <img> tags when --assets is empty, so this is a
