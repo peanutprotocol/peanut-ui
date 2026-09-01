@@ -13,8 +13,15 @@
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 314,
     "fontWeightOnTypeToken": 47,
-    "offScaleSpacing": 199,
+    "offScaleSpacing": 204,
     "iconOffScale": 64,
     "offScaleRadius": 37,
-    "rawDuration": 9
+    "rawDuration": 9,
+    "_meta": [
+        {
+            "date": "2026-09-01",
+            "metrics": ["offScaleSpacing 199 -> 204"],
+            "reason": "chip round 7 on #2905: spacing metric adds the -px suffix, block-axis logical families, and custom-property shorthand; the +5 are marketing hairline gap-px dividers and one 1px nudge"
+        }
+    ]
 }

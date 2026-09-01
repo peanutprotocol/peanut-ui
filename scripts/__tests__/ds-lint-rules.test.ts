@@ -22,6 +22,24 @@ describe('offScaleSpacing', () => {
         expect(countOffScaleSpacing('className="first:ps-7"')).toBe(1)
     })
 
+    it('flags the 1px -px suffix on every family', () => {
+        for (const cls of ['p-px', 'gap-px', '-m-px', 'md:pt-px']) {
+            expect(countOffScaleSpacing(`<div className="${cls}" />`)).toBe(1)
+        }
+    })
+
+    it('flags the logical block-axis families', () => {
+        expect(countOffScaleSpacing('<div className="pbs-5 mbe-7" />')).toBe(2)
+        expect(countOffScaleSpacing('<div className="-mbs-2.5 pbe-[3px]" />')).toBe(2)
+        expect(countOffScaleSpacing('<div className="pbs-4 mbe-8" />')).toBe(0)
+    })
+
+    it('flags custom-property shorthand values', () => {
+        for (const cls of ['p-(--gutter)', 'gap-(--space)', '-m-(--x)', 'md:ps-(--pad)']) {
+            expect(countOffScaleSpacing(`<div className="${cls}" />`)).toBe(1)
+        }
+    })
+
     it('accepts every documented scale step, negatives and variants included', () => {
         for (const cls of [
             'p-0',
@@ -133,6 +151,7 @@ describe('iconOffScale', () => {
             '<Icon name="chevron-up" className={`h-4 w-4 transition-transform ${open ? "" : "rotate-180"}`} />',
             "<Icon name={icon} className={twMerge('size-6', extra)} />",
             '<Icon name="x" className="size-[18px]" />',
+            '<Icon name="x" className="size-(--icon)" />',
             "<Icon name={icon} className={twMerge('h-[18px] w-[18px]', extra)} />",
         ]) {
             expect(countMatches(text, OFF_SCALE_ICON_RE)).toBeGreaterThan(0)
@@ -184,7 +203,7 @@ describe('offScaleRadius (countOffScaleRadius)', () => {
 
 describe('rawDuration', () => {
     it('flags any numeric or arbitrary duration', () => {
-        for (const cls of ['duration-100', 'duration-250', 'duration-75', 'duration-[250ms]']) {
+        for (const cls of ['duration-100', 'duration-250', 'duration-75', 'duration-[250ms]', 'duration-(--speed)']) {
             expect(countMatches(`className="${cls}"`, RAW_DURATION_RE)).toBe(1)
         }
     })

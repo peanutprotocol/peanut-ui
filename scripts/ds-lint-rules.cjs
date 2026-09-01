@@ -7,17 +7,19 @@
 
 // allowlist inversion, not a blocklist: tailwind v4 compiles ANY numeric step
 // (p-4.5, pr-18, -mt-5, ps-5), so the metric flags every numeric spacing
-// utility — negative forms, variant prefixes, and the logical ps/pe/ms/me
-// families included — whose magnitude is not a documented scale step.
-// arbitrary values (p-[5px], gap-[20%]) are rejected wholesale: a value that
-// equals a scale step has a numeric class, so the bracket form is always drift.
+// utility — negative forms, variant prefixes, the logical inline (ps/pe/ms/me)
+// and block-axis (pbs/pbe/mbs/mbe) families, and the 1px `-px` suffix — whose
+// magnitude is not a documented scale step. arbitrary values (p-[5px]) and
+// custom-property shorthand (p-(--gutter)) are rejected wholesale: a value
+// that equals a scale step has a numeric class, so those forms are always drift.
 const SPACING_STEPS = new Set(['0', '0.5', '1', '2', '3', '4', '6', '8', '10', '12', '14', '16'])
-const SPACING_FAMILIES = 'px|py|pt|pb|pl|pr|ps|pe|p|mx|my|mt|mb|ml|mr|ms|me|m|gap-x|gap-y|gap|space-y|space-x'
+const SPACING_FAMILIES =
+    'pbs|pbe|px|py|pt|pb|pl|pr|ps|pe|p|mbs|mbe|mx|my|mt|mb|ml|mr|ms|me|m|gap-x|gap-y|gap|space-y|space-x'
 const NUMERIC_SPACING_RE = new RegExp(
-    `(?<![a-z0-9-])-?(?:${SPACING_FAMILIES})-([0-9]+(?:\\.[0-9]+)?)(?![0-9.a-z%\\]])`,
+    `(?<![a-z0-9-])-?(?:${SPACING_FAMILIES})-([0-9]+(?:\\.[0-9]+)?|px)(?![0-9.a-z%\\]])`,
     'g'
 )
-const ARBITRARY_SPACING_RE = new RegExp(`(?<![a-z0-9-])-?(?:${SPACING_FAMILIES})-\\[[^\\]]+\\]`, 'g')
+const ARBITRARY_SPACING_RE = new RegExp(`(?<![a-z0-9-])-?(?:${SPACING_FAMILIES})-(?:\\[[^\\]]+\\]|\\(--[^)]+\\))`, 'g')
 
 function countOffScaleSpacing(text) {
     let n = 0
@@ -115,13 +117,16 @@ function countWeightStacks(text) {
 // className syntax (string, template literal, or brace expression): any
 // size-/h-/w- numeric class inside an <Icon …> tag span counts.
 const OFF_SCALE_ICON_RE =
-    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?\b(?:size|h|w)-(?:[0-9]|\[)/g
+    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?\b(?:size|h|w)-(?:[0-9]|\[|\(--)/g
 
 // allowlist inversion like spacing: any rounded suffix outside the documented
 // scale (bare rounded = 4px/xs, none, sm = 2px, round, full) is drift —
 // named steps (md/lg/xl…) and arbitrary values (rounded-[1px]) alike.
 const RADIUS_SIDES = '(?:t|r|b|l|tl|tr|bl|br|s|e|ss|se|es|ee)'
-const RADIUS_RE = new RegExp(`\\brounded(?:-${RADIUS_SIDES})?(?:-(\\[[^\\]]+\\]|[a-z0-9.]+))?(?![a-z0-9-])`, 'g')
+const RADIUS_RE = new RegExp(
+    `\\brounded(?:-${RADIUS_SIDES})?(?:-(\\[[^\\]]+\\]|\\(--[^)]+\\)|[a-z0-9.]+))?(?![a-z0-9-])`,
+    'g'
+)
 const RADIUS_ALLOWED = new Set([undefined, 'none', 'sm', 'round', 'full'])
 
 function countOffScaleRadius(text) {
@@ -132,7 +137,7 @@ function countOffScaleRadius(text) {
 
 // any numeric duration is off-token (the motion scale is instant/fast/
 // moderate/slow); arbitrary values (duration-[250ms]) count too.
-const RAW_DURATION_RE = /\bduration-(?:[0-9]+\b|\[[^\]]+\])/g
+const RAW_DURATION_RE = /\bduration-(?:[0-9]+\b|\[[^\]]+\]|\(--[^)]+\))/g
 
 module.exports = {
     SPACING_STEPS,

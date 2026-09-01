@@ -312,8 +312,13 @@ if (mode === '--json') {
     // ever runs --check, so the flag cannot be abused there.
     const allowIdx = process.argv.indexOf('--allow-increase')
     const allowReason = allowIdx !== -1 ? process.argv[allowIdx + 1] : null
+    // _meta is the durable audit trail: every allowed increase appends its
+    // reason into the baseline file itself, so a bump is visible in the diff
+    // reviewers read, not just in the terminal of whoever ran the command.
+    let meta = []
     try {
         const prev = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'))
+        if (Array.isArray(prev._meta)) meta = prev._meta
         const raised = DEBT_KEYS.filter((k) => typeof prev[k] === 'number' && counts[k] > prev[k])
         if (raised.length && !allowReason) {
             console.error(
@@ -323,12 +328,19 @@ if (mode === '--json') {
             console.error('  --write-baseline --allow-increase "<why>"')
             process.exit(1)
         }
-        if (raised.length) console.log(`baseline increase allowed: ${allowReason}`)
+        if (raised.length) {
+            console.log(`baseline increase allowed: ${allowReason}`)
+            meta.push({
+                date: new Date().toISOString().slice(0, 10),
+                metrics: raised.map((k) => `${k} ${prev[k]} -> ${counts[k]}`),
+                reason: allowReason,
+            })
+        }
     } catch (e) {
         if (e.code !== 'ENOENT') throw e // no previous baseline: first write is free
     }
     // 4-space indent matches prettier (tabWidth 4) so a regen never fails the format gate
-    writeFileSync(BASELINE_PATH, JSON.stringify(counts, null, 4) + '\n')
+    writeFileSync(BASELINE_PATH, JSON.stringify(meta.length ? { ...counts, _meta: meta } : counts, null, 4) + '\n')
     console.log(`baseline written to ${relative(ROOT, BASELINE_PATH)}`)
     console.log(JSON.stringify(counts, null, 2))
 } else if (mode === '--check') {
