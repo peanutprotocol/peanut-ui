@@ -66,21 +66,27 @@ export const __resetResidenceRestrictionSetsForTests = () => {
  * fallback: renders immediately from the local mirror and swaps to
  * GET /config/residence-restrictions once it arrives, so compliance can tune
  * the lists with an API deploy and the signup step follows without an app
- * release.
+ * release. `settled` flips once the lookup resolved either way, for callers
+ * that must not make definitive claims from the mirror alone.
  */
-export const useResidenceRestrictionSets = (): ResidenceRestrictionSets => {
+export const useResidenceRestrictionSetsWithStatus = (): { sets: ResidenceRestrictionSets; settled: boolean } => {
     const [sets, setSets] = useState<ResidenceRestrictionSets>(serverSets ?? LOCAL_RESIDENCE_RESTRICTION_SETS)
+    const [settled, setSettled] = useState<boolean>(serverSets !== null)
 
     useEffect(() => {
         if (serverSets) return
         let cancelled = false
         void loadServerSets().then((loaded) => {
-            if (loaded && !cancelled) setSets(loaded)
+            if (cancelled) return
+            if (loaded) setSets(loaded)
+            setSettled(true)
         })
         return () => {
             cancelled = true
         }
     }, [])
 
-    return sets
+    return { sets, settled }
 }
+
+export const useResidenceRestrictionSets = (): ResidenceRestrictionSets => useResidenceRestrictionSetsWithStatus().sets

@@ -3,7 +3,7 @@ import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
-import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
@@ -26,7 +26,7 @@ const ResidenceStep = () => {
     const { handleNext, isLoading } = useSetupFlow()
     const { countryCode: geoCountryCode } = useGeoLocation()
     // server-authoritative tier lists with the bundled mirror as fallback
-    const restrictionSets = useResidenceRestrictionSets()
+    const { sets: restrictionSets, settled: restrictionSetsSettled } = useResidenceRestrictionSetsWithStatus()
 
     const [view, setView] = useState<ResidenceView>('select')
     const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>('card')
@@ -85,6 +85,15 @@ const ResidenceStep = () => {
             })
             setPartialRestriction(partial)
             setView('partial')
+            return
+        }
+        // The congrats claim is definitive, so it only renders from settled
+        // data: until the server lookup resolves (either way), advance
+        // silently rather than asserting "nothing is restricted" off the
+        // bundled mirror. Heads-ups still render from the mirror — they only
+        // ever over-warn.
+        if (!restrictionSetsSettled) {
+            void handleNext()
             return
         }
         // "Nothing is restricted where you live" must hold for the whole
@@ -197,8 +206,9 @@ const ResidenceStep = () => {
                     </Button>
                     <button
                         type="button"
-                        className="mt-1 text-center text-body-s underline underline-offset-2"
+                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
                         onClick={() => setView('select')}
+                        disabled={isLoading}
                     >
                         {t('residenceStep.restricted.changeCountry')}
                     </button>
@@ -224,8 +234,9 @@ const ResidenceStep = () => {
                     </Button>
                     <button
                         type="button"
-                        className="mt-1 text-center text-body-s underline underline-offset-2"
+                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
                         onClick={() => setView('select')}
+                        disabled={isLoading}
                     >
                         {t('residenceStep.restricted.changeCountry')}
                     </button>
@@ -274,8 +285,9 @@ const ResidenceStep = () => {
                     )}
                     <button
                         type="button"
-                        className="mt-1 text-center text-body-s underline underline-offset-2"
+                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
                         onClick={() => setView('select')}
+                        disabled={isLoading}
                     >
                         {t('residenceStep.restricted.changeCountry')}
                     </button>

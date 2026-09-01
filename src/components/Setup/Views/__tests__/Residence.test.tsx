@@ -32,6 +32,7 @@ jest.mock('@/hooks/useSetupFlow', () => ({
 
 let mockGeoCountry: string | null = null
 let mockRestrictionSets: unknown
+let mockRestrictionSetsSettled = true
 jest.mock('@/hooks/useGeoLocation', () => ({
     useGeoLocation: () => ({ countryCode: mockGeoCountry, isLoading: false, error: null }),
 }))
@@ -47,7 +48,11 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => {
     return {
         ...actual,
         // Overridable so tests can simulate the server lists replacing the
-        // bundled mirror after mount.
+        // bundled mirror after mount, and an unsettled in-flight lookup.
+        useResidenceRestrictionSetsWithStatus: () => ({
+            sets: mockRestrictionSets ?? actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+            settled: mockRestrictionSetsSettled,
+        }),
         useResidenceRestrictionSets: () => mockRestrictionSets ?? actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
     }
 })
@@ -58,6 +63,7 @@ describe('ResidenceStep', () => {
         mockSetupState = { residenceCountry: '', secondResidenceCountry: '' }
         mockGeoCountry = null
         mockRestrictionSets = undefined
+        mockRestrictionSetsSettled = true
     })
 
     it('disables Continue until a country is chosen', () => {
@@ -146,6 +152,22 @@ describe('ResidenceStep', () => {
         expect(screen.getByText(/work right away\. The Peanut card needs a quick ID check/)).toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
+    })
+
+    it('advances silently instead of claiming congrats while the server lookup is unsettled', () => {
+        // The mirror alone must not back a definitive "nothing is restricted"
+        // claim: before the lookup resolves, the step behaves like the
+        // pre-congrats flow and just advances.
+        mockRestrictionSetsSettled = false
+        mockSetupState.residenceCountry = 'BR'
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        expect(mockHandleNext).toHaveBeenCalled()
+        expect(screen.queryByText('Good news')).not.toBeInTheDocument()
+        expect(mockedCapture).not.toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
+            expect.anything()
+        )
     })
 
     it('demotes the congrats view when server lists later restrict the country', () => {
