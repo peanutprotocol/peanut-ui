@@ -359,10 +359,10 @@
             "rows": {
                 "p2p": "Peanut-to-Peanut payments",
                 "card": "Peanut card",
-                "saBank": "PIX, QR & bank transfers (Brazil & Argentina)",
-                "pixBank": "PIX & bank transfers (Brazil)",
+                "saBank": "PIX (Brazil), QR & bank transfers (Argentina)",
+                "pixBank": "PIX payments & transfers (Brazil)",
                 "pixQr": "PIX QR payments (Brazil)",
-                "brBank": "Bank transfers (Brazil)",
+                "brBank": "PIX transfers (Brazil)",
                 "arQrBank": "QR payments & transfers (Argentina)",
                 "arQr": "QR payments (Argentina)",
                 "arBank": "Bank transfers (Argentina)",
