@@ -676,19 +676,21 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 // Rhino preview expects a decimal string, so format down.
                 const decimals = selectedTokenData?.decimals ?? 6
                 const previewAmount = formatUnits(claimLinkData.amount, decimals)
-                // The quote is account-bound and needs an address on each chain.
-                // The SDA deposit itself comes from the Peanut claim relayer, so
-                // the claimer's address stands in as depositor for pricing.
-                const claimer = recipient.address || address
-                if (!claimer) throw new Error('Cross-chain route needs a recipient address')
+                // The quote is account-bound and needs an EVM address on each
+                // chain. The SDA deposit itself comes from the Peanut claim
+                // relayer, and a bank claim's `recipient.address` is an IBAN or
+                // account number, so price with the link sender's address (always
+                // an EVM address on the link's chain) as depositor, and as
+                // recipient too when the claimer has no EVM address.
+                const claimerEvmAddress = isAddress(recipient.address) ? recipient.address : address
                 const preview = await previewSdaTransfer({
                     chainIn: sourceRhinoChain,
                     chainOut: destRhinoChain,
                     token: tokenSymbol,
                     amount: previewAmount,
                     mode: 'pay',
-                    depositor: claimer,
-                    recipient: claimer,
+                    depositor: claimLinkData.senderAddress,
+                    recipient: claimerEvmAddress ?? claimLinkData.senderAddress,
                 })
 
                 const route: ClaimXChainPreview = {

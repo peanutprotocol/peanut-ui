@@ -75,10 +75,11 @@ export interface SdaPreviewRequest {
  * never add the components on top, never derive a fee from the amounts.
  */
 export interface RhinoQuote {
-    /** Destination-token decimal string the depositor pays. */
+    /** Decimal string in `tokenIn` units — the USDC the kernel deposits. */
     payAmount: string
     payAmountUsd: number
-    /** Destination-token decimal string the recipient gets. */
+    /** Decimal string in `tokenOut` units — what the recipient gets (USDC on
+     *  the SDA path, ETH etc. on a cross-token bridge). */
     receiveAmount: string
     receiveAmountUsd: number
     feeUsd: number
