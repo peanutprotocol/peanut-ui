@@ -1569,6 +1569,7 @@
             "cta": "Recover funds"
         },
         "uploadProofOfAddress": "Upload proof of address",
+        "uploadIdentityDocuments": "Upload identity documents",
         "fixSignature": {
             "navTitle": "Fix card signature",
             "intro": "This tool repairs a wallet state issue that stops your card from funding itself automatically. It takes up to two quick passkey confirmations.",
