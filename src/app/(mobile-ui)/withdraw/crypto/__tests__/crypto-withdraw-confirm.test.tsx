@@ -239,6 +239,8 @@ const mockCrossChainTransfer = {
     isCalculating: false,
     isXChain: false,
     isDiffToken: false,
+    isFeeEstimationError: false,
+    isQuoteExpired: false,
     error: null,
     calculate: jest.fn(),
     reset: jest.fn(),
@@ -274,7 +276,20 @@ const confirm = async () => {
 beforeEach(() => {
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
-    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false })
+    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, isQuoteExpired: false })
+})
+
+describe('crypto withdraw confirm — expired Rhino quote', () => {
+    it('re-quotes instead of signing when the quote on screen has expired', async () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: true, isQuoteExpired: true })
+
+        await confirm()
+
+        await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalled())
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSetCurrentView).not.toHaveBeenCalledWith('STATUS')
+    })
 })
 
 // ---------- tests ----------
