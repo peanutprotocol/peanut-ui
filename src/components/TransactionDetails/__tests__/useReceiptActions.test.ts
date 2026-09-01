@@ -55,6 +55,17 @@ describe('useReceiptActions.cancelSendLink', () => {
         expect(mockToast.error).not.toHaveBeenCalled()
     })
 
+    test('a refetch failure after already-claimed is not a cancel failure', async () => {
+        mockCancelLinkAndClaim.mockRejectedValue(
+            Object.assign(new Error('This link was already claimed.'), { code: 'LINK_ALREADY_CLAIMED' })
+        )
+        mockInvalidateQueries.mockRejectedValueOnce(new Error('offline'))
+        const { result } = renderHook(() => useReceiptActions(tx))
+
+        await expect(result.current.cancelSendLink()).resolves.toBe('already-claimed')
+        expect(mockToast.info).toHaveBeenCalledWith('sendLinkAlreadyClaimed')
+    })
+
     test('any other failure reports failed with the retry toast', async () => {
         mockCancelLinkAndClaim.mockRejectedValue(new Error('paymaster down'))
         const { result } = renderHook(() => useReceiptActions(tx))

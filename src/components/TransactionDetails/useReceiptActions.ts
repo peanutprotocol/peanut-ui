@@ -110,7 +110,9 @@ export function useReceiptActions(transaction: TransactionDetails | null) {
             return 'cancelled'
         } catch (error) {
             if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) {
-                await invalidateTransactions()
+                // refetch so the entry re-renders as claimed; a refetch failure is
+                // not a cancel failure (same rule as the success path above)
+                await invalidateTransactions().catch(() => undefined)
                 toast.info(friendly(error))
                 return 'already-claimed'
             }

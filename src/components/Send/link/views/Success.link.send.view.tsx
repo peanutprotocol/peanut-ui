@@ -176,7 +176,7 @@ const LinkSendSuccessView = () => {
                                 setCancelStatus('idle')
                                 setShowCancelLinkDrawer(false)
                                 toast.info(friendly(error))
-                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(() => undefined)
                                 router.push('/home')
                                 return
                             }
