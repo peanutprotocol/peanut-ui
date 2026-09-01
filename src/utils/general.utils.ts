@@ -351,55 +351,6 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     return formattedAmount
 }
 
-const CLIPBOARD_WRITE_TIMEOUT_MS = 1000
-
-/**
- * Copies text and reports whether it landed. Tries the async Clipboard API first; a rejection
- * (Capacitor WebView NotAllowedError) or a hang (Brave iOS never settles the promise) falls
- * through to the legacy execCommand path. Every failure is captured to Sentry.
- */
-export async function copyTextToClipboardWithFallback(text: string): Promise<boolean> {
-    if (navigator.clipboard && window.isSecureContext) {
-        let timer: ReturnType<typeof setTimeout> | undefined
-        try {
-            await Promise.race([
-                navigator.clipboard.writeText(text),
-                new Promise<never>((_, reject) => {
-                    timer = setTimeout(
-                        () => reject(new Error('navigator.clipboard.writeText timed out')),
-                        CLIPBOARD_WRITE_TIMEOUT_MS
-                    )
-                }),
-            ])
-            return true
-        } catch (err) {
-            Sentry.captureException(err)
-            console.error('Clipboard API failed, trying fallback method. Error:', err)
-        } finally {
-            clearTimeout(timer)
-        }
-    }
-
-    const textarea = document.createElement('textarea')
-    textarea.value = text
-    textarea.setAttribute('readonly', '')
-    textarea.style.position = 'absolute'
-    textarea.style.left = '-9999px'
-    document.body.appendChild(textarea)
-    try {
-        textarea.select()
-        const copied = document.execCommand('copy')
-        if (!copied) Sentry.captureMessage('Clipboard fallback: execCommand("copy") returned false')
-        return copied
-    } catch (err) {
-        Sentry.captureException(err)
-        console.error('Fallback method failed. Error:', err)
-        return false
-    } finally {
-        textarea.remove()
-    }
-}
-
 export const isTestnetChain = (chainId: string) => {
     // viem's chains carry a `testnet: true` flag; fall through to default
     // false for unknown chains so prod paths fail closed (treat as mainnet).

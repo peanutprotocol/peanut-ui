@@ -6,7 +6,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useOtaChannel } from '@/hooks/useOtaChannel'
 import { BETA_OTA_CHANNEL } from '@/utils/capgo-updater'
-import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useTranslations } from 'next-intl'
 
 /**
@@ -39,7 +39,7 @@ export const BetaUpdatesCard = () => {
 
     const copyDeviceId = async (deviceId: string) => {
         try {
-            await copyTextToClipboardWithFallback(deviceId)
+            await copyTextToClipboard(deviceId)
             toast.info(t('deviceCopied'))
         } catch {
             toast.error(t('deviceCopyFailed'))

@@ -3,7 +3,7 @@
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useEffect, useState, Suspense, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
@@ -94,7 +94,7 @@ const UnsupportedBrowserModalContent = ({
                     const urlToCopy = redirectUri
                         ? `${window.location.origin}${decodeURIComponent(redirectUri)}`
                         : window.location.href
-                    await copyTextToClipboardWithFallback(urlToCopy)
+                    await copyTextToClipboard(urlToCopy)
                     setHasCopied(true)
                     toast.success(t('unsupportedBrowserModal.copySuccessToast'))
                     copyTimeoutRef.current = setTimeout(() => setHasCopied(false), 2000)

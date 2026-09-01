@@ -1,4 +1,7 @@
 import { isNativeBridge } from '@/utils/capacitor'
+import * as Sentry from '@/utils/sentry-lazy'
+
+const CLIPBOARD_WRITE_TIMEOUT_MS = 1000
 
 /**
  * Copies text to the clipboard, reporting whether it actually landed.
@@ -6,6 +9,10 @@ import { isNativeBridge } from '@/utils/capacitor'
  * Native goes through the Capacitor plugin first: the WebView's
  * navigator.clipboard write is gated on a live user activation, which an await
  * on a network call (creating a link, say) has usually already spent.
+ *
+ * On the web, writeText is raced against a timeout (Brave iOS never settles
+ * it) and a rejection or a hang falls through to the legacy execCommand path.
+ * Every failure is captured to Sentry; the text itself never is.
  */
 export async function copyTextToClipboard(text: string): Promise<boolean> {
     if (isNativeBridge()) {
@@ -14,33 +21,52 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
             await Clipboard.write({ string: text })
             return true
         } catch (err) {
+            Sentry.captureException(err)
             console.error('Failed to copy: ', err)
         }
     }
 
-    let textArea: HTMLTextAreaElement | undefined
-
-    try {
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(text)
+    if (navigator.clipboard && window.isSecureContext) {
+        let timer: ReturnType<typeof setTimeout> | undefined
+        try {
+            await Promise.race([
+                navigator.clipboard.writeText(text),
+                new Promise<never>((_, reject) => {
+                    timer = setTimeout(
+                        () => reject(new Error('navigator.clipboard.writeText timed out')),
+                        CLIPBOARD_WRITE_TIMEOUT_MS
+                    )
+                }),
+            ])
             return true
-        } else {
-            // Fallback for older browsers
-            textArea = document.createElement('textarea')
-            textArea.value = text
-            textArea.style.position = 'fixed'
-            textArea.style.left = '-999999px'
-            textArea.style.top = '-999999px'
-            document.body.appendChild(textArea)
-            textArea.focus()
-            textArea.select()
-            return document.execCommand('copy')
+        } catch (err) {
+            Sentry.captureException(err)
+            console.error('Failed to copy: ', err)
+        } finally {
+            clearTimeout(timer)
         }
+    }
+
+    // Fallback for older browsers, and for a Clipboard API that rejected or hung
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    textArea.setAttribute('readonly', '')
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-999999px'
+    textArea.style.top = '-999999px'
+    document.body.appendChild(textArea)
+    try {
+        textArea.focus()
+        textArea.select()
+        const copied = document.execCommand('copy')
+        if (!copied) Sentry.captureMessage('Clipboard fallback: execCommand("copy") returned false')
+        return copied
     } catch (err) {
+        Sentry.captureException(err)
         console.error('Failed to copy: ', err)
         return false
     } finally {
-        textArea?.remove()
+        textArea.remove()
     }
 }
 

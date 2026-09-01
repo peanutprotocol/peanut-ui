@@ -4,7 +4,7 @@ import { twMerge } from '@/utils/tw'
 import { Icon } from '../Icons/Icon'
 import { Button, type ButtonSize } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 
 export interface CopyToClipboardRef {
     copy: () => void
@@ -27,7 +27,7 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
         const [copied, setCopied] = useState(false)
 
         const copy = useCallback(async () => {
-            const didCopy = await copyTextToClipboardWithFallback(textToCopy)
+            const didCopy = await copyTextToClipboard(textToCopy)
             if (!didCopy) {
                 toast.error(t('copyToClipboard.copyFailed'))
                 return

@@ -20,7 +20,7 @@ import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/ca
 import { useCardReveal } from '@/hooks/useCardReveal'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
 import { cardBalanceDueCents } from '@/utils/balance.utils'
-import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
 
 type CardAction = 'lock' | 'unlock' | 'cancel'
@@ -51,7 +51,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const handleCopy = useCallback(
         (value: string, field: 'pan' | 'cvv') => {
             // Fire-and-forget; the util captures failures to Sentry.
-            void copyTextToClipboardWithFallback(value)
+            void copyTextToClipboard(value)
             triggerHaptic()
             toast.success(field === 'pan' ? t('cardNumberCopied') : t('cvvCopied'))
         },
