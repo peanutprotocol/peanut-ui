@@ -266,12 +266,25 @@ counts.fontWeightOnTypeToken = files
         (sum, f) => sum + f.text.split('\n').filter((l) => TYPE_TOKEN_RE.test(l) && WEIGHT_STACK_RE.test(l)).length,
         0
     )
-const OFF_SCALE_SPACING_RE =
-    /(?<![a-z0-9-])(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y|space-y|space-x)-(?:1\.5|2\.5|3\.5|5|7|9|11|13|15)(?![0-9.])/g
+// allowlist inversion, not a blocklist: tailwind v4 compiles ANY numeric step
+// (p-4.5, pr-18, -mt-5), so the metric flags every numeric spacing utility —
+// negative forms and variant prefixes included — whose magnitude is not a
+// documented scale step, instead of enumerating known-bad values.
+const SPACING_STEPS = new Set(['0', '0.5', '1', '2', '3', '4', '6', '8', '10', '12', '14', '16'])
+const NUMERIC_SPACING_RE =
+    /(?<![a-z0-9-])-?(?:px|py|pt|pb|pl|pr|p|mx|my|mt|mb|ml|mr|m|gap-x|gap-y|gap|space-y|space-x)-([0-9]+(?:\.[0-9]+)?)(?![0-9.a-z%\]])/g
 counts.offScaleSpacing = files
     .filter((f) => isTsx(f) && !allowed(f.path))
-    .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_SPACING_RE), 0)
-const OFF_SCALE_ICON_RE = /(?:<Icon\s[^>]*\bsize|\biconSize)=\{(?!16\}|20\}|24\})[0-9]+\}/g
+    .reduce((sum, f) => {
+        let n = 0
+        for (const m of f.text.matchAll(NUMERIC_SPACING_RE)) if (!SPACING_STEPS.has(m[1])) n++
+        return sum + n
+    }, 0)
+// three ways an Icon gets sized: the size prop (also width/height, which the
+// component forwards), Button's iconSize, and — banned outright by the icon
+// law — tailwind size-/h-/w- classes on the Icon itself.
+const OFF_SCALE_ICON_RE =
+    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?className="[^"]*\b(?:size|h|w)-[0-9]/g
 counts.iconOffScale = files
     .filter((f) => isTsx(f) && !allowed(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_ICON_RE), 0)
@@ -279,7 +292,9 @@ const OFF_SCALE_RADIUS_RE = /\brounded(?:-[trbl]{1,2})?-(?:md|lg|xl|2xl|3xl)\b/g
 counts.offScaleRadius = files
     .filter((f) => isTsx(f) && !allowed(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_RADIUS_RE), 0)
-const RAW_DURATION_RE = /\bduration-(?:75|100|150|200|300|500|700|1000)\b/g
+// any numeric duration is off-token (the motion scale is instant/fast/
+// moderate/slow); arbitrary values (duration-[250ms]) count too.
+const RAW_DURATION_RE = /\bduration-(?:[0-9]+\b|\[[^\]]+\])/g
 counts.rawDuration = files
     .filter((f) => isTsx(f) && !allowed(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, RAW_DURATION_RE), 0)
