@@ -63,6 +63,9 @@ const renderView = (amount?: number) => {
     )
 }
 
+// CopyToClipboard toasts on a failed copy; the view renders it, so it needs the hook.
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+
 describe('RhinoDepositView sub-minimum gate', () => {
     it('blocks a fixed amount below the chain floor — no deposit address, minimum message shown', () => {
         renderView(3)

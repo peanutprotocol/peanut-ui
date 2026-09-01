@@ -3,6 +3,8 @@ import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { Icon } from '../Icons/Icon'
 import { Button, type ButtonSize } from '@/components/0_Bruddle/Button'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
 
 export interface CopyToClipboardRef {
     copy: () => void
@@ -21,15 +23,19 @@ interface Props {
 const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
     ({ textToCopy, fill = 'black', className, iconSize = '6', type = 'icon', buttonSize, onCopy }, ref) => {
         const t = useTranslations('global')
+        const toast = useToast()
         const [copied, setCopied] = useState(false)
 
-        const copy = useCallback(() => {
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                setCopied(true)
-                setTimeout(() => setCopied(false), 2000)
-                onCopy?.()
-            })
-        }, [textToCopy, onCopy])
+        const copy = useCallback(async () => {
+            const didCopy = await copyTextToClipboardWithFallback(textToCopy)
+            if (!didCopy) {
+                toast.error(t('copyToClipboard.copyFailed'))
+                return
+            }
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+            onCopy?.()
+        }, [textToCopy, onCopy, toast, t])
 
         useImperativeHandle(ref, () => ({ copy }), [copy])
 

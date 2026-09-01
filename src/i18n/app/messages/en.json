@@ -3236,7 +3236,8 @@
             "noContent": "No content provided"
         },
         "copyToClipboard": {
-            "copyCode": "Copy code"
+            "copyCode": "Copy code",
+            "copyFailed": "Could not copy. Select the text and copy it by hand."
         },
         "copyField": {
             "copy": "Copy",
