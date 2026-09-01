@@ -6,7 +6,7 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
-import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
@@ -35,7 +35,7 @@ export default function InitialWithdrawView({
     isProcessing,
     isFromSendFlow = false,
 }: InitialWithdrawViewProps) {
-    const { usdAmount, withdrawData } = useWithdrawFlow()
+    const { withdrawData } = useWithdrawFlow()
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const router = useRouter()
@@ -186,7 +186,7 @@ export default function InitialWithdrawView({
                     transactionType={'WITHDRAW'}
                     recipientType="USERNAME"
                     recipientName={''}
-                    amount={`${formatAmount(parseFloat(usdAmount || amount))}`}
+                    amount={`${formatAmount(parseFloat(amount))}`}
                     tokenSymbol="USDC"
                     isFromSendFlow={isFromSendFlow}
                 />

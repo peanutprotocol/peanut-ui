@@ -5,9 +5,12 @@ import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import AddressLink from '@/components/Global/AddressLink'
 import Loading from '@/components/Global/Loading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
-import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.view'
-import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.view'
-import { useWithdrawFlow, type WithdrawData } from '@/context/WithdrawFlowContext'
+import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
+import InitialWithdrawView from '@/features/withdraw/views/InitialWithdrawView'
+import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
+import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { useFlowStepper } from '@/hooks/useFlowStepper'
+import { WITHDRAW_CRYPTO_STEPS, type WithdrawData } from '@/features/withdraw/types'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
@@ -57,16 +60,14 @@ export default function WithdrawCryptoPage() {
     // Forward the marker verbatim rather than assuming crypto: entering as
     // /withdraw?method=bank and then picking Crypto lands here as method=bank,
     // and rewriting it to crypto would change the amount step's back behaviour.
+    // step=amount lands on the amount screen directly — the root stepper's
+    // guard falls back to method selection if the flow memory is gone.
     const { isFromSendFlow, sendFlowMethod } = useSendFlowOrigin()
-    const amountStepHref = isFromSendFlow ? `/withdraw?method=${sendFlowMethod}` : '/withdraw'
+    const amountStepHref = isFromSendFlow ? `/withdraw?step=amount&method=${sendFlowMethod}` : '/withdraw?step=amount'
     const onBack = useSafeBack(amountStepHref)
     const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
-        amountToWithdraw,
-        usdAmount,
-        currentView,
-        setCurrentView,
         withdrawData,
         setWithdrawData,
         showCompatibilityModal,
@@ -84,6 +85,21 @@ export default function WithdrawCryptoPage() {
         resetWithdrawFlow,
         recipient,
     } = useWithdrawFlow()
+
+    // the one typed amount (USD), carried in the URL from the shared amount step
+    const [amountToWithdraw] = useWithdrawAmount()
+    const usdAmount = amountToWithdraw
+
+    // recipient → review → success as named screen ids in the URL. The guards
+    // cover refresh/deep-link into a step whose prepared state (charge, route)
+    // did not survive — the flow restarts at the recipient step.
+    const stepper = useFlowStepper({
+        steps: WITHDRAW_CRYPTO_STEPS,
+        guards: {
+            review: { ok: !!(chargeDetails && withdrawData) },
+            success: { ok: !!(chargeDetails && withdrawData) },
+        },
+    })
 
     // hooks for route calculation and payment recording
     const {
@@ -164,9 +180,9 @@ export default function WithdrawCryptoPage() {
         }
     }, [routeError, recordError, setPaymentError])
 
-    // prepare transaction when entering confirm view
+    // prepare transaction when entering the review step
     useEffect(() => {
-        if (currentView === 'CONFIRM' && chargeDetails && withdrawData && address) {
+        if (stepper.step === 'review' && chargeDetails && withdrawData && address) {
             calculateRoute({
                 source: {
                     address: address as Address,
@@ -190,7 +206,7 @@ export default function WithdrawCryptoPage() {
                 skipGasEstimate: true, // peanut wallet handles gas
             })
         }
-    }, [currentView, chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
+    }, [stepper.step, chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -313,12 +329,12 @@ export default function WithdrawCryptoPage() {
     const handleCompatibilityProceed = useCallback(() => {
         setShowCompatibilityModal(false)
         if (chargeDetails && withdrawData) {
-            setCurrentView('CONFIRM')
+            void stepper.goTo('review')
         } else {
             console.error('Proceeding to confirm, but charge details or withdraw data are missing.')
             setError(t('errors.confirmDetailsFailed'))
         }
-    }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError, t])
+    }, [chargeDetails, withdrawData, stepper, setShowCompatibilityModal, setError, t])
 
     // True when the withdraw needs a Rhino path (SDA or bridge swap) rather
     // than a direct USDC transfer. Crosses a chain boundary OR a token
@@ -494,7 +510,7 @@ export default function WithdrawCryptoPage() {
             setTransactionHash(finalTxHash)
             setPaymentDetails(payment)
             triggerHaptic()
-            setCurrentView('STATUS')
+            void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: usdAmount,
                 method_type: 'crypto',
@@ -535,7 +551,7 @@ export default function WithdrawCryptoPage() {
         sendMoney,
         isCrossChainWithdrawal,
         recordPayment,
-        setCurrentView,
+        stepper,
         setTransactionHash,
         setPaymentDetails,
         clearErrors,
@@ -546,15 +562,15 @@ export default function WithdrawCryptoPage() {
     ])
 
     const handleBackFromConfirm = useCallback(() => {
-        setCurrentView('INITIAL')
+        void stepper.goTo('recipient')
         clearErrors()
         setChargeDetails(null)
-    }, [setCurrentView, clearErrors, setChargeDetails])
+    }, [stepper, clearErrors, setChargeDetails])
 
-    // reset withdraw flow when this component unmounts. Resetting on unmount (rather
-    // than in the success view's onComplete) avoids a race: a synchronous reset clears
-    // amountToWithdraw and flips currentView off STATUS, which re-triggers the guard
-    // below and pushes '/withdraw' over the '/home' navigation from "Back to home".
+    // reset withdraw flow when this component unmounts. Resetting on unmount
+    // (rather than in the success view's onComplete) avoids a race with the
+    // '/home' navigation from "Back to home". The amount and step live in the
+    // URL, so this only clears flow memory (charge, route, token selection).
     useEffect(() => {
         return () => {
             resetRouteCalculation()
@@ -612,9 +628,9 @@ export default function WithdrawCryptoPage() {
     // effect — navigating during render is a React violation ("Cannot update
     // Router while rendering WithdrawCryptoPage") that hard-errors the Next 16
     // dev overlay on direct entry/refresh of this route.
-    // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
-    // which would override the router.push('/home') in handleDone
-    const needsAmountRedirect = !amountToWithdraw && currentView !== 'STATUS'
+    // Guard against the success step: it must stay rendered while the "Back to
+    // home" navigation is in flight.
+    const needsAmountRedirect = !amountToWithdraw && stepper.step !== 'success'
     useEffect(() => {
         if (needsAmountRedirect) router.push(amountStepHref)
     }, [needsAmountRedirect, router, amountStepHref])
@@ -625,7 +641,7 @@ export default function WithdrawCryptoPage() {
 
     return (
         <div className="mx-auto flex min-h-[inherit] w-full max-w-md flex-col gap-4 self-center">
-            {currentView === 'INITIAL' && (
+            {stepper.step === 'recipient' && (
                 <InitialWithdrawView
                     amount={usdAmount}
                     onReview={handleSetupReview}
@@ -635,7 +651,7 @@ export default function WithdrawCryptoPage() {
                 />
             )}
 
-            {currentView === 'CONFIRM' && withdrawData && chargeDetails && (
+            {stepper.step === 'review' && withdrawData && chargeDetails && (
                 <ConfirmWithdrawView
                     amount={usdAmount}
                     token={withdrawData.token}
@@ -657,7 +673,7 @@ export default function WithdrawCryptoPage() {
                 />
             )}
 
-            {currentView === 'STATUS' && withdrawData && chargeDetails && (
+            {stepper.step === 'success' && withdrawData && chargeDetails && (
                 <>
                     <PaymentSuccessView
                         headerTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}

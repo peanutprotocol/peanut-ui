@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import { WithdrawFlowContextProvider } from '@/context/WithdrawFlowContext'
+import { WithdrawFlowProvider } from '@/features/withdraw/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import InitialWithdrawView from '../Initial.withdraw.view'
+import InitialWithdrawView from '../../views/InitialWithdrawView'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
 
 jest.mock('@/lib/validation/recipient', () => ({
@@ -100,12 +100,12 @@ function TestHarness() {
     )
 
     return (
-        <WithdrawFlowContextProvider>
+        <WithdrawFlowProvider>
             <tokenSelectorContext.Provider value={tokenContext}>
                 <button onClick={() => setSelectedChainID('8453')}>switch network</button>
                 <InitialWithdrawView amount="1" onReview={jest.fn()} />
             </tokenSelectorContext.Provider>
-        </WithdrawFlowContextProvider>
+        </WithdrawFlowProvider>
     )
 }
 
