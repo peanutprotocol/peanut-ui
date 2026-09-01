@@ -4,6 +4,14 @@
 // can import them without running the scan. CommonJS on purpose: node's ESM
 // loader named-imports it statically, and jest's CJS runtime requires it with
 // no transform.
+//
+// heuristic boundary: these are regex matchers over source text, scanning
+// class attributes, builder calls, and string/template literals. class lists
+// assembled through other static expressions (array .join, string
+// concatenation, lookup maps) are out of scope here — that long tail is the
+// AST-scanner follow-up (Notion: "AST-based ds-lint composition scanner").
+// the ratchet still catches such drift indirectly the moment any covered
+// form touches the same file, and baselines cap every covered form.
 
 // allowlist inversion, not a blocklist: tailwind v4 compiles ANY numeric step
 // (p-4.5, pr-18, -mt-5, ps-5), so the metric flags every numeric spacing
@@ -12,6 +20,11 @@
 // magnitude is not a documented scale step. arbitrary values (p-[5px]) and
 // custom-property shorthand (p-(--gutter)) are rejected wholesale: a value
 // that equals a scale step has a numeric class, so those forms are always drift.
+// positioning and scroll offsets (inset/top/right/bottom/left/start/end,
+// scroll-m*/scroll-p*) are deliberately OUT of scope: the spacing board
+// governs box rhythm (padding/margin/gap), while offsets are geometry tied
+// to what they overlap, and flagging them would drown the metric in
+// coordinate math that has no scale-step answer.
 const SPACING_STEPS = new Set(['0', '0.5', '1', '2', '3', '4', '6', '8', '10', '12', '14', '16'])
 const SPACING_FAMILIES =
     'pbs|pbe|px|py|pt|pb|pl|pr|ps|pe|p|mbs|mbe|mx|my|mt|mb|ml|mr|ms|me|m|gap-x|gap-y|gap|space-y|space-x'
@@ -145,8 +158,11 @@ function countWeightStacks(text) {
 // non-literal size expressions (size={iconSize}, size={a ? 16 : 20}) are
 // counted conservatively: the matcher cannot resolve them, and an unresolved
 // size is a hold to justify in the baseline, not a free pass.
+// quoted forms count too. iconSize carries two denominations: pixel props
+// (Button et al: "16"/"20"/"24" ok) and CopyToClipboard's tailwind-unit enum
+// ("4"=16px, "5"=20px, "6"=24px ok) — anything outside both sets is off-step.
 const OFF_SCALE_ICON_RE =
-    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?\b(?:size|width|height)=\{(?![0-9]+\})[^}]*\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?![0-9]+\})[^}]*\}|<Icon\s[^>]*?\b(?:size|h|w)-(?:[0-9]|\[|\(--)/g
+    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?\b(?:size|width|height)=\{(?![0-9]+\})[^}]*\}|<Icon\s[^>]*?\b(?:size|width|height)=["'](?!16["']|20["']|24["'])[0-9]+["']|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?![0-9]+\})[^}]*\}|\biconSize=["'](?!4["']|5["']|6["']|16["']|20["']|24["'])[0-9]+["']|<Icon\s[^>]*?\b(?:size|h|w)-(?:[0-9]|\[|\(--)/g
 
 // allowlist inversion like spacing: any rounded suffix outside the documented
 // scale (bare rounded = 4px/xs, none, sm = 2px, round, full) is drift —

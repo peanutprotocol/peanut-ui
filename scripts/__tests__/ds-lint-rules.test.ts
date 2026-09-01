@@ -173,6 +173,10 @@ describe('iconOffScale', () => {
             '<Icon name="x" size={iconSize} />',
             '<Icon name="x" size={small ? 16 : 20} />',
             'iconSize={resolved}',
+            '<Icon name="x" size="18" />',
+            'iconSize="18"',
+            'iconSize="2"',
+            'iconSize="8"',
         ]) {
             expect(countMatches(text, OFF_SCALE_ICON_RE)).toBeGreaterThan(0)
         }
@@ -184,6 +188,10 @@ describe('iconOffScale', () => {
             '<Icon size={20} />',
             '<Icon size={24} />',
             'iconSize={20}',
+            '<Icon name="x" size="16" />',
+            'iconSize="4"',
+            'iconSize="6"',
+            'iconSize="24"',
         ]) {
             expect(countMatches(text, OFF_SCALE_ICON_RE)).toBe(0)
         }
