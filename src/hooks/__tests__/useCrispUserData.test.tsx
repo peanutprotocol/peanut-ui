@@ -89,7 +89,7 @@ describe('useCrispUserData', () => {
         expect(result.current.appContext).toContain('route:/withdraw/manteca')
     })
 
-    it('exposes the Rain user id and a card-member portal link from the cached overview', () => {
+    it('exposes the raw Rain user id from the cached overview (no pre-built portal link)', () => {
         client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
             status: { hasApplication: true, applicationStatus: 'denied', rainUserId: 'rain-xyz' },
             balance: null,
@@ -98,7 +98,9 @@ describe('useCrispUserData', () => {
         const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
 
         expect(result.current.rainUserId).toBe('rain-xyz')
-        expect(result.current.cardPortalLink).toBe('https://cardmemberportal.com/kyc?userId=rain-xyz')
+        // The unauthenticated portal URL is deliberately NOT surfaced — agents
+        // construct it from the id on demand (PR #2900 review).
+        expect((result.current as unknown as Record<string, unknown>).cardPortalLink).toBeUndefined()
         expect(
             client
                 .getQueryCache()

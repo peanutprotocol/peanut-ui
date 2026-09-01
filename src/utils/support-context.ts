@@ -22,7 +22,6 @@ import { formatCurrency } from '@/utils/general.utils'
 import {
     ARBISCAN_ADDRESS_BASE_URL,
     BRIDGE_DASHBOARD_BASE_URL,
-    CARD_MEMBER_PORTAL_BASE_URL,
     POSTHOG_PERSON_BASE_URL,
     SENTRY_USER_ISSUES_BASE_URL,
 } from '@/constants/support'
@@ -185,7 +184,6 @@ export function buildSupportSegments(input: SupportSegmentInput): string[] {
 export interface SupportLinks {
     walletAddressLink: string | undefined
     bridgeCustomerLink: string | undefined
-    cardPortalLink: string | undefined
     posthogPersonLink: string | undefined
     sentryIssuesLink: string | undefined
 }
@@ -194,13 +192,11 @@ export interface SupportLinks {
 export function buildSupportLinks(
     userId: string | undefined,
     walletAddress: string | undefined,
-    bridgeCustomerId: string | undefined,
-    rainUserId: string | undefined
+    bridgeCustomerId: string | undefined
 ): SupportLinks {
     return {
         walletAddressLink: walletAddress ? `${ARBISCAN_ADDRESS_BASE_URL}/${walletAddress}` : undefined,
         bridgeCustomerLink: bridgeCustomerId ? `${BRIDGE_DASHBOARD_BASE_URL}/${bridgeCustomerId}` : undefined,
-        cardPortalLink: rainUserId ? `${CARD_MEMBER_PORTAL_BASE_URL}?userId=${rainUserId}` : undefined,
         posthogPersonLink: userId ? `${POSTHOG_PERSON_BASE_URL}/${userId}` : undefined,
         sentryIssuesLink: userId ? `${SENTRY_USER_ISSUES_BASE_URL}:${userId}` : undefined,
     }

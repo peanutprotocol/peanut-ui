@@ -3,7 +3,6 @@ import {
     buildBalanceSummary,
     buildCardSummary,
     buildLinkedAccounts,
-    buildSupportLinks,
     buildSupportSegments,
     normalizeSupportRoute,
     redactSupportText,
@@ -130,17 +129,6 @@ describe('buildLinkedAccounts', () => {
 
     it('is undefined when nothing is linked', () => {
         expect(buildLinkedAccounts([])).toBeUndefined()
-    })
-})
-
-describe('buildSupportLinks', () => {
-    it('builds a card-member portal re-upload link from the Rain user id', () => {
-        const links = buildSupportLinks('user-1', undefined, undefined, 'rain-abc')
-        expect(links.cardPortalLink).toBe('https://cardmemberportal.com/kyc?userId=rain-abc')
-    })
-
-    it('leaves the portal link undefined when there is no Rain user id', () => {
-        expect(buildSupportLinks('user-1', undefined, undefined, undefined).cardPortalLink).toBeUndefined()
     })
 })
 
