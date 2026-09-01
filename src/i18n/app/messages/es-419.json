@@ -766,7 +766,7 @@
                 "title": "Buenas noticias",
                 "description": "No hay restricciones donde vives. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}. La tarjeta Peanut también está en camino.",
                 "rails": {
-                    "pix": "PIX y transferencias bancarias",
+                    "pix": "transferencias PIX",
                     "arQr": "pagos y transferencias con QR",
                     "spei": "transferencias SPEI",
                     "achWire": "transferencias ACH y wire",
@@ -789,7 +789,7 @@
                 "cardTitle": "Disponible con {country}",
                 "items": {
                     "p2p": "Pagos a cualquier @usuario",
-                    "pix": "PIX y transferencias bancarias",
+                    "pix": "PIX",
                     "arQr": "Pagos QR y transferencias",
                     "spei": "Transferencias bancarias SPEI",
                     "achWire": "Transferencias ACH y Wire",

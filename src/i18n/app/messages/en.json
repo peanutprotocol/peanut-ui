@@ -766,7 +766,7 @@
                 "title": "Good news",
                 "description": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away, and a quick ID check unlocks {rail}. The Peanut card is on its way too.",
                 "rails": {
-                    "pix": "PIX and bank transfers",
+                    "pix": "PIX transfers",
                     "arQr": "QR payments and transfers",
                     "spei": "SPEI transfers",
                     "achWire": "ACH and wire transfers",
@@ -789,7 +789,7 @@
                 "cardTitle": "Available with {country}",
                 "items": {
                     "p2p": "Payments to any @username",
-                    "pix": "PIX & bank transfers",
+                    "pix": "PIX",
                     "arQr": "QR payments & transfers",
                     "spei": "SPEI bank transfers",
                     "achWire": "ACH & Wire transfers",

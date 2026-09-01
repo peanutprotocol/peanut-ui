@@ -95,7 +95,8 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         expect(screen.getByText('Available with Brazil')).toBeInTheDocument()
         expect(screen.getByText('Available with Germany')).toBeInTheDocument()
-        expect(screen.getByText('PIX & bank transfers')).toBeInTheDocument()
+        // BR is PIX-only — no BANK_TRANSFER_BR rail exists, so the item must not claim one
+        expect(screen.getByText('PIX')).toBeInTheDocument()
         expect(screen.getByText('SEPA transfers')).toBeInTheDocument()
         expect(screen.getByText('Which country goes first?')).toBeInTheDocument()
         expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
@@ -122,9 +123,7 @@ describe('ResidenceStep', () => {
         // gates stay separated in prose: no-ID features first, the bank rail
         // behind the ID check (named per country), the card teased with no
         // access promise (its closed beta gates it; onboarding doesn't say so)
-        expect(
-            screen.getByText(/work right away, and a quick ID check unlocks PIX and bank transfers/)
-        ).toBeInTheDocument()
+        expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
         expect(screen.getByText(/The Peanut card is on its way too/)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()

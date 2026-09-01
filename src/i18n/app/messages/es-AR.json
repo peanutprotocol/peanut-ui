@@ -445,7 +445,7 @@
                 "cardTitle": "Disponible con {country}",
                 "items": {
                     "p2p": "Pagos a cualquier @usuario",
-                    "pix": "PIX y transferencias bancarias",
+                    "pix": "PIX",
                     "arQr": "Pagos QR y transferencias",
                     "spei": "Transferencias bancarias SPEI",
                     "achWire": "Transferencias ACH y Wire",
