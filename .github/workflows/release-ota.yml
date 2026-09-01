@@ -76,16 +76,41 @@ jobs:
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
               run: |
-                  # Keep the raw output: piping the CLI straight into grep discards
-                  # its diagnostics, so a config-load or auth failure is
+                  # Keep the raw output rather than piping the CLI into grep, which
+                  # discarded its diagnostics and made a config-load or auth failure
                   # indistinguishable from an empty channel.
+                  #
+                  # Streams stay separate and the EXIT STATUS is the gate. The CLI
+                  # mirrors its errors onto stdout as well as stderr, so "did any
+                  # version-shaped text appear" is not a safe success test: npx's
+                  # install warning names `@capgo/cli@8.42.4`, and npm prints its
+                  # own "new version available" notice at exit — either can satisfy
+                  # the version grep and be read as the current bundle.
+                  set +e
                   npx @capgo/cli@8.42.4 channel currentBundle production \
-                    --apikey "$CAPGO_API_KEY" --quiet >"$RUNNER_TEMP/capgo-current.txt" 2>&1 || true
-                  CURRENT="$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' "$RUNNER_TEMP/capgo-current.txt" | tail -n1 || true)"
+                    --apikey "$CAPGO_API_KEY" --quiet >"$RUNNER_TEMP/capgo-out.txt" 2>"$RUNNER_TEMP/capgo-err.txt"
+                  STATUS=$?
+                  set -e
+
+                  dump_capgo() {
+                      echo "--- capgo stdout ---" >&2
+                      cat "$RUNNER_TEMP/capgo-out.txt" >&2
+                      echo "--- capgo stderr ---" >&2
+                      cat "$RUNNER_TEMP/capgo-err.txt" >&2
+                      echo "--------------------" >&2
+                  }
+
+                  if [ "$STATUS" -ne 0 ]; then
+                      dump_capgo
+                      echo "::error::the Capgo CLI failed (exit $STATUS) reading the production channel" >&2
+                      exit 1
+                  fi
+
+                  # stdout only: npm's notices land on stderr after the CLI output,
+                  # where `tail -n1` would pick one up as if it were the version.
+                  CURRENT="$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' "$RUNNER_TEMP/capgo-out.txt" | tail -n1 || true)"
                   if [ -z "$CURRENT" ]; then
-                      echo "--- capgo cli output ---" >&2
-                      cat "$RUNNER_TEMP/capgo-current.txt" >&2
-                      echo "------------------------" >&2
+                      dump_capgo
                       echo "::error::cannot read the production channel's current bundle from Capgo — refusing to guess the next OTA version" >&2
                       exit 1
                   fi
