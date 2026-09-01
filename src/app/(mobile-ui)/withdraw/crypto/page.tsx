@@ -347,8 +347,10 @@ export default function WithdrawCryptoPage() {
         }
 
         if (!transactions || transactions.length === 0) {
-            console.error('No transactions prepared for withdrawal')
-            setError(t('errors.txNotPrepared'))
+            // Nothing prepared — the route never resolved, or an expiry refresh
+            // just failed. Quote again instead of dead-ending on "not prepared";
+            // a persistent failure keeps surfacing through routeError.
+            await quoteRoute()
             return
         }
 

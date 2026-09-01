@@ -42,6 +42,12 @@ describe('findClaimRoute — a quote is only reusable for the recipient it was p
         ).toBe(routeForA)
     })
 
+    it('does not reuse it inside the signing lead either (10 s left is a miss, not a bounce loop)', () => {
+        expect(
+            findClaimRoute([routeForA], { chainId: '8453', tokenAddress: USDC, quotedFor: A }, NOW + 50_000)
+        ).toBeUndefined()
+    })
+
     it('does not reuse it once the quote behind it has expired', () => {
         expect(
             findClaimRoute([routeForA], { chainId: '8453', tokenAddress: USDC, quotedFor: A }, NOW + 61_000)
