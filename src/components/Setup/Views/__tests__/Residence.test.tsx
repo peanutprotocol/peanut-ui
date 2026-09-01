@@ -124,7 +124,10 @@ describe('ResidenceStep', () => {
         // behind the ID check (named per country), the card teased with no
         // access promise (its closed beta gates it; onboarding doesn't say so)
         expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        expect(screen.getByText(/The Peanut card is on its way too/)).toBeInTheDocument()
+        // the card carries its verification requirement (never imply a no-KYC card)
+        expect(
+            screen.getByText(/The Peanut card is on its way too, and it needs the same ID check/)
+        ).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -136,9 +139,26 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-        expect(screen.getByText(/work right away\. The Peanut card is on its way too/)).toBeInTheDocument()
-        expect(screen.queryByText(/ID check/)).not.toBeInTheDocument()
+        expect(
+            screen.getByText(/work right away\. The Peanut card is on its way too, and it needs a quick ID check/)
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
+    })
+
+    it('skips the congrats claim when the second residence is restricted', () => {
+        // "Nothing is restricted where you live" would contradict the compare
+        // cards the user just saw for a restricted second country: advance
+        // silently, like the flow did before the congrats screen existed.
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'GB' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        expect(mockHandleNext).toHaveBeenCalled()
+        expect(screen.queryByText('Good news')).not.toBeInTheDocument()
+        expect(mockedCapture).not.toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
+            expect.anything()
+        )
     })
 
     it('returns to the selector from the congrats screen', () => {

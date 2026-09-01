@@ -86,6 +86,19 @@ const ResidenceStep = () => {
             setView('partial')
             return
         }
+        // "Nothing is restricted where you live" must hold for the whole
+        // declared residence set: a restricted second country just showed its
+        // limits on the compare cards, so the congrats claim would contradict
+        // them. Advance silently instead — the heads-ups stay primary-driven.
+        if (
+            secondResidenceCountry &&
+            (restrictionSets.full.has(secondResidenceCountry) ||
+                restrictionSets.cardOnly.has(secondResidenceCountry) ||
+                restrictionSets.bankingOnly.has(secondResidenceCountry))
+        ) {
+            void handleNext()
+            return
+        }
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, {
             residence_country: residenceCountry,
         })
@@ -120,8 +133,10 @@ const ResidenceStep = () => {
     if (view === 'congrats') {
         /* One paragraph, gates kept honest: dollars and @username sends need
            no ID check; the bank rail unlocks with verification; the card is
-           mentioned without an access promise — its closed beta still gates
-           it, and onboarding deliberately doesn't say so. The rail phrase
+           mentioned without an access promise (its closed beta still gates
+           it, and onboarding deliberately doesn't say so) but WITH its
+           verification requirement — compliance forbids pairing the no-KYC
+           core features with the card in a way that implies a no-KYC card. The rail phrase
            comes from the same per-country map the compare cards render and is
            named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
            the rest of the world the map falls back to 'bank', which here means
