@@ -35,9 +35,9 @@
 # a sibling same-head run posted between its marker read and its PATCH;
 # once serialized, either order ends correctly, because the marker-head
 # guard makes a no-report run keep any comment already posted for its head.
-# (GitHub keeps at most one run queued per group; a superseded queued run is
-# safe to lose — every run in the group is for the same head, so any
-# survivor leaves the comment consistent for that head.)
+# queue: max keeps EVERY same-head publisher (FIFO, up to 100) — the default
+# one-slot queue would let a third run drop a sibling PR's only pending
+# publisher and leave that PR's comment stale.
 #
 # Deploy note: workflow_run only fires once this file exists on the DEFAULT
 # branch (main). It lands on dev first, so the comment starts appearing after
@@ -57,6 +57,7 @@ permissions:
 concurrency:
     group: ds-shots-comment-${{ github.event.workflow_run.head_sha }}
     cancel-in-progress: false
+    queue: max
 
 jobs:
     comment:
