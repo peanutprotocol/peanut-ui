@@ -35,6 +35,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
+import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted, printableAddress, validateEnsName } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
@@ -97,7 +98,7 @@ export default function WithdrawCryptoPage() {
         isDiffToken,
         error: routeError,
         isFeeEstimationError,
-        isQuoteExpired,
+        quoteExpiresAt,
         calculate: calculateRoute,
         reset: resetRouteCalculation,
     } = useCrossChainTransfer()
@@ -351,12 +352,15 @@ export default function WithdrawCryptoPage() {
             return
         }
 
-        // The numbers on screen are Rhino's quote only until it expires. Past
-        // that, refresh them and let the user confirm the fresh numbers instead
-        // of signing a stale pay amount — unless funds already moved for this
-        // charge (the record-only retry below must never re-quote).
+        // The numbers on screen are Rhino's quote only until it expires. Decide
+        // that NOW, at the tap — a render-time flag goes stale on a screen left
+        // open — with the signing lead time the bridge path uses. Past expiry,
+        // refresh and let the user confirm the fresh numbers instead of signing
+        // a stale pay amount — unless funds already moved for this charge (the
+        // record-only retry below must never re-quote).
         const alreadySpent = executedSpendRef.current?.chargeId === chargeDetails.uuid
-        if (isQuoteExpired && !alreadySpent) {
+        const quoteExpired = quoteExpiresAt ? isQuoteNearExpiry(quoteExpiresAt) : false
+        if (quoteExpired && !alreadySpent) {
             await quoteRoute()
             return
         }
@@ -548,6 +552,8 @@ export default function WithdrawCryptoPage() {
         address,
         transactions,
         payAmount,
+        quoteExpiresAt,
+        quoteRoute,
         usdAmount,
         sendTransactions,
         sendMoney,

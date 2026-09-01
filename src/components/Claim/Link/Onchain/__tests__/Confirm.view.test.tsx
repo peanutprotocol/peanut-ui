@@ -78,6 +78,7 @@ describe('ConfirmClaimLinkView — max network fee row', () => {
                     receiveAmount: '10',
                     feeUsd: 0,
                     quotedFor: '0x2222',
+                    expiresAt: '2099-01-01T00:00:00.000Z',
                 }}
             />
         )
@@ -94,6 +95,7 @@ describe('ConfirmClaimLinkView — max network fee row', () => {
                     receiveAmount: '9.5',
                     feeUsd: 0.5,
                     quotedFor: '0x2222',
+                    expiresAt: '2099-01-01T00:00:00.000Z',
                 }}
             />
         )
