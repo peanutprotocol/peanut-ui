@@ -16,8 +16,8 @@ import { fileURLToPath } from 'node:url'
 import {
     countOffScaleSpacing,
     countWeightStacks,
+    countOffScaleRadius,
     OFF_SCALE_ICON_RE,
-    OFF_SCALE_RADIUS_RE,
     RAW_DURATION_RE,
 } from './ds-lint-rules.cjs'
 
@@ -279,7 +279,7 @@ counts.iconOffScale = files
     .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_ICON_RE), 0)
 counts.offScaleRadius = files
     .filter((f) => isTsx(f) && !allowed(f.path))
-    .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_RADIUS_RE), 0)
+    .reduce((sum, f) => sum + countOffScaleRadius(f.text), 0)
 counts.rawDuration = files
     .filter((f) => isTsx(f) && !allowed(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, RAW_DURATION_RE), 0)

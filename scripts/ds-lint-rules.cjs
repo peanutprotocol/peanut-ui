@@ -37,7 +37,9 @@ const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
 
 function classNameExpressions(text) {
     const regions = []
-    const re = /className\s*=\s*/g
+    // any JSX prop ending in ClassName (titleClassName, iconClassName, …)
+    // carries classes into an element, so all of them are scanned.
+    const re = /\b[a-zA-Z]*[cC]lassName\s*=\s*/g
     let m
     while ((m = re.exec(text))) {
         const i = re.lastIndex
@@ -82,11 +84,24 @@ function countWeightStacks(text) {
 
 // three ways an Icon gets sized: the size prop (also width/height, which the
 // component forwards), Button's iconSize, and — banned outright by the icon
-// law — tailwind size-/h-/w- classes on the Icon itself.
+// law — tailwind size-/h-/w- classes on the Icon itself, whatever the
+// className syntax (string, template literal, or brace expression): any
+// size-/h-/w- numeric class inside an <Icon …> tag span counts.
 const OFF_SCALE_ICON_RE =
-    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?className="[^"]*\b(?:size|h|w)-[0-9]/g
+    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?\b(?:size|h|w)-[0-9]/g
 
-const OFF_SCALE_RADIUS_RE = /\brounded(?:-[trbl]{1,2})?-(?:md|lg|xl|2xl|3xl)\b/g
+// allowlist inversion like spacing: any rounded suffix outside the documented
+// scale (bare rounded = 4px/xs, none, sm = 2px, round, full) is drift —
+// named steps (md/lg/xl…) and arbitrary values (rounded-[1px]) alike.
+const RADIUS_SIDES = '(?:t|r|b|l|tl|tr|bl|br|s|e|ss|se|es|ee)'
+const RADIUS_RE = new RegExp(`\\brounded(?:-${RADIUS_SIDES})?(?:-(\\[[^\\]]+\\]|[a-z0-9.]+))?(?![a-z0-9-])`, 'g')
+const RADIUS_ALLOWED = new Set([undefined, 'none', 'sm', 'round', 'full'])
+
+function countOffScaleRadius(text) {
+    let n = 0
+    for (const m of text.matchAll(RADIUS_RE)) if (!RADIUS_ALLOWED.has(m[1])) n++
+    return n
+}
 
 // any numeric duration is off-token (the motion scale is instant/fast/
 // moderate/slow); arbitrary values (duration-[250ms]) count too.
@@ -98,7 +113,7 @@ module.exports = {
     ARBITRARY_SPACING_RE,
     countOffScaleSpacing,
     countWeightStacks,
+    countOffScaleRadius,
     OFF_SCALE_ICON_RE,
-    OFF_SCALE_RADIUS_RE,
     RAW_DURATION_RE,
 }

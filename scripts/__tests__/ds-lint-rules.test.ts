@@ -1,8 +1,8 @@
 import {
     countOffScaleSpacing,
     countWeightStacks,
+    countOffScaleRadius,
     OFF_SCALE_ICON_RE,
-    OFF_SCALE_RADIUS_RE,
     RAW_DURATION_RE,
 } from '../ds-lint-rules.cjs'
 
@@ -82,6 +82,16 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const style = 'text-body-s font-bold underline'")).toBe(1)
     })
 
+    it('counts stacks carried through *ClassName props, not just className', () => {
+        const jsx = [
+            '<TitleBlock',
+            "    titleClassName={twMerge('text-body-m',",
+            "        'font-semibold')}",
+            '/>',
+        ].join('\n')
+        expect(countWeightStacks(jsx)).toBe(1)
+    })
+
     it('does not count a token and a weight living in different elements', () => {
         const jsx = [
             '<p className="text-body-m">a</p>',
@@ -101,6 +111,8 @@ describe('iconOffScale', () => {
             'iconSize={13}',
             '<Icon name="check" className="size-4" />',
             '<Icon name="paste" className="h-3.5 w-3.5" />',
+            '<Icon name="chevron-up" className={`h-4 w-4 transition-transform ${open ? "" : "rotate-180"}`} />',
+            "<Icon name={icon} className={twMerge('size-6', extra)} />",
         ]) {
             expect(countMatches(text, OFF_SCALE_ICON_RE)).toBeGreaterThan(0)
         }
@@ -118,16 +130,33 @@ describe('iconOffScale', () => {
     })
 })
 
-describe('offScaleRadius', () => {
-    it('flags radii off the none/2/4/full scale, sides included', () => {
-        for (const cls of ['rounded-md', 'rounded-lg', 'rounded-t-2xl', 'rounded-3xl']) {
-            expect(countMatches(`className="${cls}"`, OFF_SCALE_RADIUS_RE)).toBe(1)
+describe('offScaleRadius (countOffScaleRadius)', () => {
+    it('flags radii off the scale — named steps, sides, and arbitrary values', () => {
+        for (const cls of [
+            'rounded-md',
+            'rounded-lg',
+            'rounded-t-2xl',
+            'rounded-3xl',
+            'rounded-[1px]',
+            'rounded-[5px]',
+            'rounded-t-[10px]',
+            'rounded-xs',
+        ]) {
+            expect(countOffScaleRadius(`className="${cls}"`)).toBe(1)
         }
     })
 
-    it('accepts the scale classes', () => {
-        for (const cls of ['rounded-sm', 'rounded-round', 'rounded-full', 'rounded-none']) {
-            expect(countMatches(`className="${cls}"`, OFF_SCALE_RADIUS_RE)).toBe(0)
+    it('accepts the scale classes, bare rounded and sides included', () => {
+        for (const cls of [
+            'rounded-sm',
+            'rounded-round',
+            'rounded-full',
+            'rounded-none',
+            'rounded',
+            'rounded-t-sm',
+            'rounded-e-full',
+        ]) {
+            expect(countOffScaleRadius(`className="${cls}"`)).toBe(0)
         }
     })
 })
