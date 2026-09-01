@@ -765,13 +765,13 @@
             "congrats": {
                 "title": "Buenas noticias",
                 "description": "No hay restricciones donde vives. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}. La tarjeta Peanut también está en camino.",
+                "descriptionNoRail": "No hay restricciones donde vives. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato. La tarjeta Peanut también está en camino.",
                 "rails": {
                     "pix": "transferencias PIX",
                     "arQr": "pagos y transferencias con QR",
                     "spei": "transferencias SPEI",
                     "achWire": "transferencias ACH y wire",
-                    "sepa": "transferencias bancarias SEPA",
-                    "bank": "transferencias bancarias donde estén disponibles"
+                    "sepa": "transferencias bancarias SEPA"
                 },
                 "continue": "Continuar"
             },

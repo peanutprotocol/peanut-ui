@@ -129,13 +129,16 @@ describe('ResidenceStep', () => {
         expect(mockHandleNext).toHaveBeenCalled()
     })
 
-    it('hedges the bank line for a country with no known rail', () => {
-        // NG is in no restriction set, but no named rail serves it either: the
-        // congrats screen must not promise bank transfers outright.
+    it('drops the ID-check clause for a country with no fiat rail', () => {
+        // NG is in no restriction set, but no fiat rail serves it (blockchain
+        // only): the congrats screen must not frame the ID check as unlocking
+        // bank transfers there — the rail clause disappears entirely.
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-        expect(screen.getByText(/unlocks bank transfers where supported/)).toBeInTheDocument()
+        expect(screen.getByText(/work right away\. The Peanut card is on its way too/)).toBeInTheDocument()
+        expect(screen.queryByText(/ID check/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
     })
 
     it('returns to the selector from the congrats screen', () => {

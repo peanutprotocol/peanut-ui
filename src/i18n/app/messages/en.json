@@ -765,13 +765,13 @@
             "congrats": {
                 "title": "Good news",
                 "description": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away, and a quick ID check unlocks {rail}. The Peanut card is on its way too.",
+                "descriptionNoRail": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away. The Peanut card is on its way too.",
                 "rails": {
                     "pix": "PIX transfers",
                     "arQr": "QR payments and transfers",
                     "spei": "SPEI transfers",
                     "achWire": "ACH and wire transfers",
-                    "sepa": "SEPA bank transfers",
-                    "bank": "bank transfers where supported"
+                    "sepa": "SEPA bank transfers"
                 },
                 "continue": "Continue"
             },

@@ -122,21 +122,24 @@ const ResidenceStep = () => {
            no ID check; the bank rail unlocks with verification; the card is
            mentioned without an access promise — its closed beta still gates
            it, and onboarding deliberately doesn't say so. The rail phrase
-           comes from the same per-country map the compare cards render, so it
-           never overstates: named rails (PIX, SPEI, ACH, SEPA) only where
-           known, "where supported" for the rest of the world. */
-        const railItem =
-            residenceAvailability(restrictionSets, residenceCountry).available.find(
-                (item) => item !== 'p2p' && item !== 'card'
-            ) ?? 'bank'
+           comes from the same per-country map the compare cards render and is
+           named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
+           the rest of the world the map falls back to 'bank', which here means
+           blockchain-only — so the ID-check clause is dropped entirely rather
+           than promising a rail verification cannot deliver. */
+        const railItem = residenceAvailability(restrictionSets, residenceCountry).available.find(
+            (item) => item !== 'p2p' && item !== 'card' && item !== 'bank'
+        )
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-heading-xs font-extrabold">{t('residenceStep.congrats.title')}</h1>
                     <p className="text-body-s text-foreground-secondary">
-                        {t('residenceStep.congrats.description', {
-                            rail: t(`residenceStep.congrats.rails.${railItem}`),
-                        })}
+                        {railItem
+                            ? t('residenceStep.congrats.description', {
+                                  rail: t(`residenceStep.congrats.rails.${railItem}`),
+                              })
+                            : t('residenceStep.congrats.descriptionNoRail')}
                     </p>
                 </div>
                 <div className="flex w-full flex-col gap-2">
