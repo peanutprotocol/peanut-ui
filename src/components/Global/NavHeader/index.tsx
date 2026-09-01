@@ -6,7 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Link from 'next/link'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Icons/Icon'
-import { useOptionalAuth } from '@/context/authContext'
+import { useAuth } from '@/context/authContext'
 
 interface NavHeaderProps {
     onPrev?: () => void
@@ -47,9 +47,18 @@ const NavHeader = ({
     rightElement,
     hideBackBtn = false,
 }: NavHeaderProps) => {
-    // marketing routes mount NavHeader without the app provider tree; auth is
-    // only needed for the logout button, so read it tolerantly
-    const auth = useOptionalAuth()
+    // marketing routes mount NavHeader without the app provider tree, where
+    // useAuth throws by design. Auth only feeds the logout button, so "no
+    // provider" just hides it. try/catch, not a separate optional hook: the
+    // hook still runs unconditionally, and every test that mocks useAuth
+    // keeps working without also having to mock a second export.
+    let auth: ReturnType<typeof useAuth> | undefined
+    try {
+        // eslint-disable-next-line react-hooks/rules-of-hooks -- not conditional: the hook body (useContext) always executes in the same order; only its provider-missing throw is caught
+        auth = useAuth()
+    } catch {
+        auth = undefined
+    }
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)

@@ -17,7 +17,6 @@ const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRend
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
-    useOptionalAuth: () => undefined,
 }))
 jest.mock('next/image', () => ({
     __esModule: true,

@@ -20,7 +20,6 @@ import CardTermsScreen from '@/components/Card/CardTermsScreen'
 // NavHeader reads useAuth; stub it so the presentational screen renders alone.
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
-    useOptionalAuth: () => undefined,
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
