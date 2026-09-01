@@ -72,10 +72,10 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                         </div>
                         <div className="flex flex-col">
                             <span
-                                className={`text-body-m ${twMerge(
-                                    'font-semibold text-foreground-primary capitalize',
+                                className={twMerge(
+                                    'text-body-m-semibold text-foreground-primary capitalize',
                                     titleClassName
-                                )}`}
+                                )}
                             >
                                 {name}
                             </span>

@@ -187,7 +187,7 @@ export const ShareAssetActions: FC<Props> = ({
                 className="w-full"
                 loading={isSharing}
                 disabled={isSharing || isSaving || !ready}
-                icon={<Icon name="share" size={18} />}
+                icon={<Icon name="share" size={20} />}
             >
                 {t('share')}
             </Button>
@@ -197,7 +197,7 @@ export const ShareAssetActions: FC<Props> = ({
                 className="w-full"
                 loading={isSaving}
                 disabled={isSharing || isSaving || !ready}
-                icon={<Icon name="download" size={18} />}
+                icon={<Icon name="download" size={20} />}
             >
                 {t('saveImage')}
             </Button>

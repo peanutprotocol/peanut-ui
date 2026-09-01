@@ -52,7 +52,7 @@ export default function BackupPage() {
 
                 <Section title={t('enableNow')}>
                     <Card>
-                        <ol className="space-y-4 list-decimal py-2 pl-5">
+                        <ol className="space-y-4 list-decimal py-2 pl-6">
                             {backupSteps.map((step, index) => (
                                 <li key={index}>
                                     <p className="font-bold text-foreground-primary">{step.title}</p>
@@ -104,7 +104,7 @@ export default function BackupPage() {
                 titleClassName="text-heading-xs"
                 content={
                     <div className="space-y-3 w-full">
-                        <ol className="list-decimal pl-5 text-left text-body-s text-foreground-primary">
+                        <ol className="list-decimal pl-6 text-left text-body-s text-foreground-primary">
                             <li>{t('changePhoneModal.step1')}</li>
                             <li>{t('changePhoneModal.step2', { platform })}</li>
                             <li>{t('changePhoneModal.step3')}</li>
@@ -135,7 +135,7 @@ export default function BackupPage() {
                             <p className="mt-1 text-body-s text-foreground-primary">
                                 {t('exportKeysModal.saferIntro')}
                             </p>
-                            <ul className="space-y-1 mt-2 list-disc pl-5 text-body-s text-foreground-primary">
+                            <ul className="space-y-1 mt-2 list-disc pl-6 text-body-s text-foreground-primary">
                                 <li>{t('exportKeysModal.bullets.screenshot')}</li>
                                 <li>{t('exportKeysModal.bullets.textMessage')}</li>
                                 <li>{t('exportKeysModal.bullets.noteApp')}</li>

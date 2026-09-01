@@ -78,7 +78,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     // handle error state before checking for empty contacts
     if (!!isError) {
         return (
-            <div className="space-y-8 flex min-h-[inherit] flex-col">
+            <div className="flex min-h-[inherit] flex-col gap-8">
                 <NavHeader title={tNav('send')} onPrev={onPrev} />
                 <div className="flex flex-1 items-center justify-center">
                     <EmptyState
@@ -108,7 +108,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const hasNoSearchResults = isSearching && contacts.length === 0
 
     return (
-        <div className="space-y-8 flex min-h-[inherit] flex-col">
+        <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title={tNav('send')} onPrev={onPrev} />
 
             {hasContacts ? (
@@ -127,7 +127,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                         <ContactsListSkeleton count={5} />
                     ) : contacts.length > 0 ? (
                         <div className="space-y-2">
-                            <h2 className="text-body-m font-bold">{t('contacts.yourContacts')}</h2>
+                            <h2 className="text-body-m-semibold">{t('contacts.yourContacts')}</h2>
                             <div className="space-y-0 flex-1 overflow-y-auto">
                                 {contacts.map((contact, index) => {
                                     const isVerified = contact.isVerified

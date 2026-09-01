@@ -54,7 +54,7 @@ const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', classNam
                 aria-label={t('openAssetAria', { title })}
                 leading={
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-200">
-                        <Icon name="credit-card" size={18} />
+                        <Icon name="credit-card" size={20} />
                     </div>
                 }
                 title={title}

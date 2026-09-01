@@ -59,7 +59,7 @@ export const DataRow = ({
             {moreInfoText && (
                 <div className="relative z-20 flex items-center justify-center px-2">
                     <Tooltip content={moreInfoText} position="right">
-                        <Icon name="info" size={12} />
+                        <Icon name="info" size={16} />
                     </Tooltip>
                 </div>
             )}

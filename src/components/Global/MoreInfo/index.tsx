@@ -68,10 +68,10 @@ const MoreInfo = ({ text }: MoreInfoProps) => {
         return createPortal(
             <Transition
                 show={show}
-                enter="transition-opacity duration-150 ease-out"
+                enter="transition-opacity duration-fast ease-out"
                 enterFrom="opacity-0"
                 enterTo="opacity-100"
-                leave="transition-opacity duration-100 ease-out"
+                leave="transition-opacity duration-instant ease-out"
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
             >

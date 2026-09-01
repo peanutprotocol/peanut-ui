@@ -118,7 +118,7 @@ const ResidenceStep = () => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-heading-xs font-extrabold">{t('residenceStep.partial.title')}</h2>
+                    <h2 className="text-heading-xs">{t('residenceStep.partial.title')}</h2>
                     <p className="text-body-s text-foreground-secondary">
                         {partialRestriction === 'card'
                             ? t('residenceStep.partial.cardDescription')
@@ -145,7 +145,7 @@ const ResidenceStep = () => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-heading-xs font-extrabold">{t('residenceStep.restricted.title')}</h2>
+                    <h2 className="text-heading-xs">{t('residenceStep.restricted.title')}</h2>
                     <p className="text-body-s text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
                     {view === 'notify' && (
                         <div className="mt-2 flex flex-col gap-2">
@@ -161,7 +161,7 @@ const ResidenceStep = () => {
                         </div>
                     )}
                     {view === 'notify-done' && (
-                        <p className="text-body-s font-bold">{t('residenceStep.restricted.notifyDone')}</p>
+                        <p className="text-label-l">{t('residenceStep.restricted.notifyDone')}</p>
                     )}
                 </div>
                 <div className="flex w-full flex-col gap-2">
@@ -251,7 +251,7 @@ const ResidenceStep = () => {
                                             key={iso2}
                                             className="rounded-sm border border-border-default bg-background-default p-3"
                                         >
-                                            <p className="mb-1 text-body-xs font-bold">
+                                            <p className="mb-1 text-label-m">
                                                 {t('residenceStep.compare.cardTitle', { country: label })}
                                             </p>
                                             <ul className="space-y-0.5 text-body-xs text-foreground-secondary">

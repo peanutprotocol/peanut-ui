@@ -42,7 +42,7 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
                     >
                         <Icon name="check-circle" className="mt-0.5 size-4 shrink-0" />
                         <span>
-                            <span className="block text-body-s font-bold">{t(`items.${item}.title`)}</span>
+                            <span className="block text-label-l">{t(`items.${item}.title`)}</span>
                             <span className="block text-body-xs text-foreground-secondary">
                                 {t(`items.${item}.body`)}
                             </span>
@@ -64,7 +64,7 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
             {/* Plain prose, not a card: the framed box read as one more
                 requirement alongside the list above it, when it is only a note. */}
             <div className="flex flex-col gap-0.5">
-                <span className="text-body-xs font-bold tracking-wide uppercase">{t('howLongLabel')}</span>
+                <span className="text-label-m tracking-wide uppercase">{t('howLongLabel')}</span>
                 <span className="text-body-xs text-foreground-secondary">{t(`howLong.${path}`)}</span>
             </div>
             {!isHosted && <p className="text-body-xs text-foreground-secondary">{t('extraDocNote')}</p>}

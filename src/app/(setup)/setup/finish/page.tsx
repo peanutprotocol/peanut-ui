@@ -28,7 +28,7 @@ function FinishSetupPageContent() {
             description={t('finish.description')}
             showBackButton={false}
             showSkipButton={false}
-            contentClassName="flex flex-col items-center justify-center gap-5"
+            contentClassName="flex flex-col items-center justify-center gap-6"
         >
             <SignTestTransaction />
         </SetupWrapper>

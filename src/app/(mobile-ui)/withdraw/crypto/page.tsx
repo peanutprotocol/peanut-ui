@@ -624,7 +624,7 @@ export default function WithdrawCryptoPage() {
     }
 
     return (
-        <div className="mx-auto space-y-4 min-h-[inherit] w-full max-w-md self-center">
+        <div className="mx-auto flex min-h-[inherit] w-full max-w-md flex-col gap-4 self-center">
             {currentView === 'INITIAL' && (
                 <InitialWithdrawView
                     amount={usdAmount}

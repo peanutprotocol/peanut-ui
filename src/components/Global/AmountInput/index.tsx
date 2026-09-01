@@ -360,7 +360,7 @@ const AmountInput = ({
                 >
                     <IconComponent
                         name={'arrow-exchange'}
-                        className="ml-5 rotate-90 cursor-pointer"
+                        className="ml-4 rotate-90 cursor-pointer"
                         width={32}
                         height={32}
                     />

@@ -31,8 +31,8 @@ export default function DevSegmented<T extends string>({
                     aria-pressed={value === option.value}
                     onClick={() => onChange(option.value)}
                     className={twMerge(
-                        'rounded-sm font-bold transition-colors',
-                        size === 'sm' ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-body-xs',
+                        'rounded-sm transition-colors',
+                        size === 'sm' ? 'px-2 py-1 text-[11px] font-bold' : 'px-3 py-1.5 text-label-m',
                         value === option.value
                             ? 'bg-action-primary text-foreground-primary'
                             : 'text-foreground-secondary hover:bg-purple-200/40'

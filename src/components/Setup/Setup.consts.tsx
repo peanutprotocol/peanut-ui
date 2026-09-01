@@ -84,7 +84,7 @@ export const setupSteps: ISetupStep[] = [
         // The heads-up sub-views replace the intro copy; the select view
         // renders the description itself.
         descriptionInView: true,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
     {
         screenId: 'passkey-permission',
