@@ -55,4 +55,14 @@ describe('copyTextToClipboardWithFallback', () => {
         await expect(copyTextToClipboardWithFallback('x')).resolves.toBe(false)
         expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
     })
+
+    it('returns false and leaves no textarea behind when execCommand throws', async () => {
+        writeText.mockRejectedValue(new Error('nope'))
+        execCommand.mockImplementation(() => {
+            throw new Error('execCommand unsupported')
+        })
+        await expect(copyTextToClipboardWithFallback('secret')).resolves.toBe(false)
+        expect(document.querySelector('textarea')).toBeNull()
+        expect(Sentry.captureException).toHaveBeenCalledTimes(2)
+    })
 })

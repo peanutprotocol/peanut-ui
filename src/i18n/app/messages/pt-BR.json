@@ -3237,7 +3237,7 @@
         },
         "copyToClipboard": {
             "copyCode": "Copiar código",
-            "copyFailed": "Não foi possível copiar. Selecione o texto e copie manualmente."
+            "copyFailed": "Não foi possível copiar"
         },
         "copyField": {
             "copy": "Copiar",
