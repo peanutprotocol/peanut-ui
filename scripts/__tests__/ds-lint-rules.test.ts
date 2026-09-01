@@ -101,11 +101,22 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
     })
 
     it('counts every weight utility, not just the bold family', () => {
-        for (const w of ['font-thin', 'font-light', 'font-normal', 'font-medium', 'font-black', 'font-[550]']) {
+        for (const w of [
+            'font-thin',
+            'font-light',
+            'font-normal',
+            'font-medium',
+            'font-black',
+            'font-extraBlack',
+            'font-[550]',
+            'font-[650.5]',
+            'font-(weight:--my-weight)',
+        ]) {
             expect(countWeightStacks(`<p className="text-body-s ${w}" />`)).toBe(1)
         }
-        expect(countWeightStacks('<p className="text-body-s font-sans" />')).toBe(0)
-        expect(countWeightStacks('<p className="text-body-s font-roboto" />')).toBe(0)
+        for (const notWeight of ['font-sans', 'font-roboto', 'font-(--brand-face)', 'font-blackout']) {
+            expect(countWeightStacks(`<p className="text-body-s ${notWeight}" />`)).toBe(0)
+        }
     })
 
     it('counts stacks carried through *ClassName props, not just className', () => {

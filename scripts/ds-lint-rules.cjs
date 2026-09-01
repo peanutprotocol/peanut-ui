@@ -34,8 +34,12 @@ function countOffScaleSpacing(text) {
 // weight split across formatted lines inside one twMerge/clsx call still
 // count; class strings held in variables outside className= are caught by a
 // per-line pass over the remaining text.
+// stock weight names + the theme's own extraBlack (globals.css
+// --font-weight-extraBlack, registered in tw.ts) + arbitrary numeric brackets
+// (decimals included) + the font-(weight:…) custom-property form. bare
+// font-(--x) is a font-FAMILY custom property, not a weight — excluded.
 const WEIGHT_STACK_RE =
-    /\bfont-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|\[[0-9]+\])(?![a-z-])/
+    /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\(weight:[^)]+\))(?![a-zA-Z0-9-])/
 const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
 
 function classNameExpressions(text) {
