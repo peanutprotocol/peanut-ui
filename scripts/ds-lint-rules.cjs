@@ -64,9 +64,34 @@ function classNameExpressions(text) {
     return regions
 }
 
+// class-builder calls (twMerge('text-body-m', active && 'font-semibold')
+// assigned to a variable) produce class lists outside any *ClassName
+// attribute, so their paren-balanced argument spans are regions too.
+function builderCallRegions(text) {
+    const regions = []
+    const re = /\b(?:twMerge|clsx|cn|classNames|cva|tw)\s*\(/g
+    let m
+    while ((m = re.exec(text))) {
+        let depth = 1
+        let j = re.lastIndex
+        while (j < text.length && depth > 0) {
+            if (text[j] === '(') depth++
+            else if (text[j] === ')') depth--
+            j++
+        }
+        regions.push({ start: m.index, end: j })
+        re.lastIndex = j
+    }
+    return regions
+}
+
 function countWeightStacks(text) {
     let n = 0
-    const regions = classNameExpressions(text)
+    const attrRegions = classNameExpressions(text)
+    const inAttr = (r) => attrRegions.some((a) => r.start >= a.start && r.end <= a.end)
+    const regions = [...attrRegions, ...builderCallRegions(text).filter((r) => !inAttr(r))].sort(
+        (a, b) => a.start - b.start
+    )
     for (const r of regions) {
         const expr = text.slice(r.start, r.end)
         if (TYPE_TOKEN_RE.test(expr) && WEIGHT_STACK_RE.test(expr)) n++
@@ -74,6 +99,7 @@ function countWeightStacks(text) {
     let rest = ''
     let cursor = 0
     for (const r of regions) {
+        if (r.start < cursor) continue
         rest += text.slice(cursor, r.start)
         cursor = r.end
     }
@@ -88,7 +114,7 @@ function countWeightStacks(text) {
 // className syntax (string, template literal, or brace expression): any
 // size-/h-/w- numeric class inside an <Icon …> tag span counts.
 const OFF_SCALE_ICON_RE =
-    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?\b(?:size|h|w)-[0-9]/g
+    /<Icon\s[^>]*?\b(?:size|width|height)=\{(?!16\}|20\}|24\})[0-9]+\}|\biconSize=\{(?!16\}|20\}|24\})[0-9]+\}|<Icon\s[^>]*?\b(?:size|h|w)-(?:[0-9]|\[)/g
 
 // allowlist inversion like spacing: any rounded suffix outside the documented
 // scale (bare rounded = 4px/xs, none, sm = 2px, round, full) is drift —

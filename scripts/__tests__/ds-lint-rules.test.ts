@@ -92,6 +92,17 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks(jsx)).toBe(1)
     })
 
+    it('counts extracted multiline class builders assigned to variables', () => {
+        const code = [
+            'const classes = twMerge(',
+            "    'text-body-m',",
+            "    active && 'font-semibold'",
+            ')',
+            'return <p className={classes} />',
+        ].join('\n')
+        expect(countWeightStacks(code)).toBe(1)
+    })
+
     it('does not count a token and a weight living in different elements', () => {
         const jsx = [
             '<p className="text-body-m">a</p>',
@@ -113,6 +124,8 @@ describe('iconOffScale', () => {
             '<Icon name="paste" className="h-3.5 w-3.5" />',
             '<Icon name="chevron-up" className={`h-4 w-4 transition-transform ${open ? "" : "rotate-180"}`} />',
             "<Icon name={icon} className={twMerge('size-6', extra)} />",
+            '<Icon name="x" className="size-[18px]" />',
+            "<Icon name={icon} className={twMerge('h-[18px] w-[18px]', extra)} />",
         ]) {
             expect(countMatches(text, OFF_SCALE_ICON_RE)).toBeGreaterThan(0)
         }

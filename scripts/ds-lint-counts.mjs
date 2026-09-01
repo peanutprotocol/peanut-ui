@@ -266,22 +266,20 @@ counts.classNameSitesInPages = files
 // pending a ruling) live inside the baseline, not an allowlist — a ruling
 // drives the count down, new drift pushes it up and fails.
 counts.fontWeightOnTypeToken = files
-    .filter((f) => isTsx(f) && !allowed(f.path))
+    .filter((f) => !allowed(f.path))
     .reduce((sum, f) => sum + countWeightStacks(f.text), 0)
 // matchers live in ds-lint-rules.cjs (imported at the top) so the regression
 // tests in scripts/__tests__/ds-lint-rules.test.ts exercise the exact rules
-// this script counts with, without running the src/ scan.
-counts.offScaleSpacing = files
-    .filter((f) => isTsx(f) && !allowed(f.path))
-    .reduce((sum, f) => sum + countOffScaleSpacing(f.text), 0)
+// this script counts with, without running the src/ scan. these five scan
+// .ts as well as .tsx — class constants exported from plain modules
+// (Marketing/mdx/constants.ts) carry the same drift.
+counts.offScaleSpacing = files.filter((f) => !allowed(f.path)).reduce((sum, f) => sum + countOffScaleSpacing(f.text), 0)
 counts.iconOffScale = files
-    .filter((f) => isTsx(f) && !allowed(f.path))
+    .filter((f) => !allowed(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_ICON_RE), 0)
-counts.offScaleRadius = files
-    .filter((f) => isTsx(f) && !allowed(f.path))
-    .reduce((sum, f) => sum + countOffScaleRadius(f.text), 0)
+counts.offScaleRadius = files.filter((f) => !allowed(f.path)).reduce((sum, f) => sum + countOffScaleRadius(f.text), 0)
 counts.rawDuration = files
-    .filter((f) => isTsx(f) && !allowed(f.path))
+    .filter((f) => !allowed(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, RAW_DURATION_RE), 0)
 
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
