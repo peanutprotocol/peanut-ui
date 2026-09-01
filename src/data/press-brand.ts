@@ -14,15 +14,23 @@
 export interface BrandColor {
     name: string
     hex: string
+    /** DS token whose value IS this colour, so the swatch paints with a token
+     *  instead of an inline style — ds-lint ratchets inline styles. */
+    swatchClass: string
     note: string
 }
 
 export const BRAND_COLORS: BrandColor[] = [
-    { name: 'Pink', hex: '#FF90E8', note: 'Primary. The key-visual ground.' },
-    { name: 'Yellow', hex: '#FFC900', note: 'Secondary. The mascot and accents.' },
-    { name: 'Lavender', hex: '#90A8ED', note: 'Secondary.' },
-    { name: 'Black', hex: '#000000', note: 'Type, outlines, 1px borders.' },
-    { name: 'White', hex: '#FFFFFF', note: 'Type on dark and pink grounds.' },
+    { name: 'Pink', hex: '#FF90E8', swatchClass: 'bg-background-brand', note: 'Primary. The key-visual ground.' },
+    {
+        name: 'Yellow',
+        hex: '#FFC900',
+        swatchClass: 'bg-background-icon-bubble-yellow',
+        note: 'Secondary. The mascot and accents.',
+    },
+    { name: 'Lavender', hex: '#90A8ED', swatchClass: 'bg-background-icon-bubble-blue', note: 'Secondary.' },
+    { name: 'Black', hex: '#000000', swatchClass: 'bg-foreground-primary', note: 'Type, outlines, 1px borders.' },
+    { name: 'White', hex: '#FFFFFF', swatchClass: 'bg-foreground-inverse', note: 'Type on dark and pink grounds.' },
 ]
 
 export interface BrandTypeRole {
