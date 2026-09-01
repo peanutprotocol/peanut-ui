@@ -137,8 +137,10 @@ jobs:
                       if (unlandedBotCommits === 0) {
                         // A bot-opened PR whose commits all claim human authors is either
                         // authorship laundering (API commits carry caller-supplied author
-                        // metadata) or a fully superseded branch — red either way.
-                        if (BOT_SET.has(lc(pr.user.login))) {
+                        // metadata) or a fully superseded branch — red either way. ANY bot
+                        // opener counts, not just allowlisted ones: an unlisted bot opening
+                        // forged-human commits must not slip past both gates.
+                        if (pr.user.type === 'Bot' || lc(pr.user.login).endsWith('[bot]')) {
                           core.setFailed(`Bot-opened PR carries no unlanded bot-authored commits — a bot PR must consist of its own provenance-trailed commits.`);
                           return;
                         }
