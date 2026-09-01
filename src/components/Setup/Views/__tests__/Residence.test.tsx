@@ -131,13 +131,11 @@ describe('ResidenceStep', () => {
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
         // gates stay separated in prose: no-ID features first, the bank rail
-        // behind the ID check (named per country), the card teased with no
-        // access promise (its closed beta gates it; onboarding doesn't say so)
+        // behind the ID check (named per country); the card is deliberately
+        // absent — its beta stays unnamed in onboarding, and any mention
+        // would have to state every access gate
         expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        // the card carries its verification requirement (never imply a no-KYC
-        // card) with no promise of access or arrival
-        expect(screen.getByText(/The Peanut card needs that ID check too/)).toBeInTheDocument()
-        expect(screen.queryByText(/on its way/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Peanut card/)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -149,7 +147,8 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-        expect(screen.getByText(/work right away\. The Peanut card needs a quick ID check/)).toBeInTheDocument()
+        expect(screen.getByText(/work right away\.$/)).toBeInTheDocument()
+        expect(screen.queryByText(/Peanut card/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
     })

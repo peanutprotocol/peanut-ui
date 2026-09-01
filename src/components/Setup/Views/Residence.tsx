@@ -175,11 +175,12 @@ const ResidenceStep = () => {
 
     if (view === 'congrats') {
         /* One paragraph, gates kept honest: dollars and @username sends need
-           no ID check; the bank rail unlocks with verification; the card is
-           mentioned with no promise of access or arrival (its closed beta
-           still gates it, and onboarding deliberately doesn't say so) but
-           WITH its verification requirement — compliance forbids pairing the no-KYC
-           core features with the card in a way that implies a no-KYC card. The rail phrase
+           no ID check; the bank rail unlocks with verification. The card is
+           deliberately NOT mentioned: its closed beta must stay unnamed in
+           onboarding (product direction), and any card mention must state
+           every access gate (compliance) — no sentence satisfies both, and
+           the compare cards already state card availability per residence.
+           The rail phrase
            comes from the same per-country map the compare cards render and is
            named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
            the rest of the world the map falls back to 'bank', which here means
