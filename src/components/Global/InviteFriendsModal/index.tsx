@@ -60,7 +60,7 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
                             <QRCode
                                 value={inviteLink}
                                 size={120}
-                                style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                                className="h-auto w-full max-w-full"
                                 viewBox="0 0 120 120"
                                 level="H"
                             />

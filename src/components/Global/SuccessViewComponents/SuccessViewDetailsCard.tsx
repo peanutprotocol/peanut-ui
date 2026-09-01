@@ -24,16 +24,16 @@ export const SuccessViewDetailsCard: React.FC<SuccessViewDetailsCardProps> = ({
                 {/* Left side: Icon, Amount, Description */}
                 <div className="flex items-center gap-3">
                     <div
-                        className={`flex h-14 w-14 min-w-14 items-center justify-center rounded-full bg-secondary-7 font-bold`}
+                        className={`flex h-14 w-14 min-w-14 items-center justify-center rounded-full bg-blue-500 font-bold`}
                     >
                         <Icon name="link" size={24} className="text-white" />
                     </div>
                     <div className="space-y-1">
-                        <h1 className="text-lg font-bold">{title}</h1>
-                        {amountDisplay && <h2 className="text-4xl font-extrabold">$ {amountDisplay}</h2>}
+                        <h1 className="text-heading-card">{title}</h1>
+                        {amountDisplay && <h2 className="text-heading-l">$ {amountDisplay}</h2>}
 
                         {description && (
-                            <p className="line-clamp-3 text-sm text-grey-1">
+                            <p className="line-clamp-3 text-body-s text-foreground-secondary">
                                 {t('successViewDetailsCard.for', { description })}
                             </p>
                         )}

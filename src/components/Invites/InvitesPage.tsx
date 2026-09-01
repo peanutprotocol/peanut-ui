@@ -1,9 +1,9 @@
 'use client'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import PeanutLoading from '../Global/PeanutLoading'
+import Loading from '../Global/Loading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PeanutWavingHello } from '@/assets/mascot'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -35,6 +35,7 @@ import {
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
 import { destinationForInviteAcquisition } from '@/services/invite-acquisition'
+import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
 
 function InvitePageContent() {
     const t = useTranslations('invites')
@@ -294,10 +295,13 @@ function InvitePageContent() {
             // normal-app fallback.
             saveRedirectUrl()
         }
-        // PasskeyError carries curated user-facing copy; without this catch a
-        // cancelled passkey prompt becomes an unhandled rejection and a Sentry event.
+        // PasskeyError carries curated copy; without this catch a cancelled
+        // passkey prompt becomes an unhandled rejection and a Sentry event.
+        // Known codes render the translated catalog copy instead of the
+        // error's hardcoded English message.
         handleLoginClick().catch((error: unknown) => {
-            toast.error((error instanceof Error && error.message) || tSetup('loginFailed'))
+            const i18nKey = getPasskeyErrorSetupKey(error)
+            toast.error(i18nKey ? tSetup(i18nKey) : (error instanceof Error && error.message) || tSetup('loginFailed'))
         })
     }
 
@@ -306,12 +310,12 @@ function InvitePageContent() {
     }, [isDeadBareLink, router])
 
     if (isClaimingBadgeCampaigns || !shouldShowContent || isDeadBareLink) {
-        return <PeanutLoading coverFullScreen />
+        return <Loading variant="mascot" coverFullScreen />
     }
 
     if (showsInvalidInvite) {
         return (
-            <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
+            <div className="my-auto space-y-4 flex h-[100dvh] w-screen flex-col items-center justify-center px-6">
                 <ValidationErrorView
                     title={t('invalidCodeTitle')}
                     message={t('invalidCodeMessage')}
@@ -337,14 +341,14 @@ function InvitePageContent() {
         <InvitesPageLayout image={PeanutWavingHello.src}>
             <div
                 className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
-                    'flex flex-col items-end justify-center gap-5 pt-8 '
+                    'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',
+                    'flex flex-col items-end justify-center gap-6 pt-8'
                 )}
             >
                 <div className="mx-auto w-full md:max-w-xs">
-                    <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-5">
-                        <h1 className="text-xl font-extrabold">{title}</h1>
-                        <p className="text-base font-medium">{description}</p>
+                    <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-6">
+                        <h1 className="text-heading-xs text-foreground-primary">{title}</h1>
+                        <p className="text-body-m">{description}</p>
                         <Button onClick={handleClaim} shadowSize="4">
                             {ctaLabel}
                         </Button>
@@ -371,7 +375,7 @@ function InvitePageContent() {
 
 export default function InvitesPage() {
     return (
-        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+        <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
             <InvitePageContent />
         </Suspense>
     )

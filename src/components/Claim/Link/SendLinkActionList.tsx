@@ -40,17 +40,12 @@ import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import ConfirmInviteModal from '../../Global/ConfirmInviteModal'
 import Loading from '../../Global/Loading'
-import { ActionListCard } from '../../ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import SupportCTA from '../../Global/SupportCTA'
 import DEVCONNECT_LOGO from '@/assets/logos/devconnect.svg'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import {
-    MIN_BANK_TRANSFER_AMOUNT,
-    MIN_MERCADOPAGO_AMOUNT,
-    MIN_PIX_AMOUNT,
-    validateMinimumAmount,
-} from '@/constants/payment.consts'
+import { CLAIM_RAIL_MINIMUMS, validateMinimumAmount } from '@/constants/payment.consts'
 import { useAppDispatch } from '@/redux/hooks'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useTranslations } from 'next-intl'
@@ -135,13 +130,8 @@ export default function SendLinkActionList({
 
     const handleMethodClick = async (method: PaymentMethod) => {
         const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-        if (['bank', 'mercadopago', 'pix'].includes(method.id) && !validateMinimumAmount(amountInUsd, method.id)) {
-            const minAmount =
-                method.id === 'bank'
-                    ? MIN_BANK_TRANSFER_AMOUNT
-                    : method.id === 'mercadopago'
-                      ? MIN_MERCADOPAGO_AMOUNT
-                      : MIN_PIX_AMOUNT
+        if (method.id in CLAIM_RAIL_MINIMUMS && !validateMinimumAmount(amountInUsd, method.id)) {
+            const minAmount = CLAIM_RAIL_MINIMUMS[method.id as keyof typeof CLAIM_RAIL_MINIMUMS]
             setMinAmountErrorInfo({ title: method.title, amount: minAmount })
             setShowMinAmountError(true)
             return
@@ -277,7 +267,7 @@ export default function SendLinkActionList({
             {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
                 <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
-                    <p className="text-center text-sm">{t('actions.invitedBy', { username })}</p>
+                    <p className="text-center text-body-s">{t('actions.invitedBy', { username })}</p>
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
                 </div>
             )}
@@ -328,7 +318,7 @@ export default function SendLinkActionList({
                         onClick: () => setShowMinAmountError(false),
                     },
                 ]}
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
@@ -371,10 +361,9 @@ const MethodCard = ({
     const t = useTranslations('claim')
     const showSoon = method.soon || soon
     return (
-        <ActionListCard
+        <ListItem
             position="single"
-            description={method.description}
-            descriptionClassName="text-[12px]"
+            body={<div className="text-[12px]">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">
                     {method.title}
@@ -387,8 +376,8 @@ const MethodCard = ({
                 </div>
             }
             onClick={onClick}
-            isDisabled={showSoon || isDisabled}
-            rightContent={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+            disabled={showSoon || isDisabled}
+            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
         />
     )
 }

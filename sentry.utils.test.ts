@@ -29,6 +29,140 @@ describe('shouldIgnoreError — alreadyReported (fetchWithSentry wrapper)', () =
     })
 })
 
+// Sentry orders `exception.values` root-cause-first, so a wrapper carrying a
+// `cause` lands at the end of the array — where the old values[0]-only lookup
+// never saw it.
+function chainedEvent(values: Array<{ type: string; value: string }>): ErrorEvent {
+    return { exception: { values } } as unknown as ErrorEvent
+}
+
+describe('shouldIgnoreError — chained exceptions', () => {
+    it('ignores a wrapper that is not the first value (the real PEANUT-UI-SNP shape)', () => {
+        const event = chainedEvent([
+            { type: 'Error', value: 'Request to https://api.peanut.me/bridge/exchange-rate timed out after 20000ms' },
+            { type: 'ServiceUnavailableError', value: 'Service temporarily unavailable. Please try again.' },
+        ])
+        expect(shouldIgnoreError(event)).toBe(true)
+    })
+
+    it('ignores a ConnectionTimeoutError wrapper behind its cause', () => {
+        const event = chainedEvent([
+            { type: 'Error', value: 'aborted' },
+            { type: 'ConnectionTimeoutError', value: 'Peanut is taking too long to respond' },
+        ])
+        expect(shouldIgnoreError(event)).toBe(true)
+    })
+
+    it('still reports a chain with no ignorable link', () => {
+        const event = chainedEvent([
+            { type: 'RangeError', value: 'invalid array length' },
+            { type: 'CardIssuanceError', value: 'could not issue card' },
+        ])
+        expect(shouldIgnoreError(event)).toBe(false)
+    })
+
+    it('finds extension frames outside the first value', () => {
+        const event = {
+            exception: {
+                values: [
+                    { type: 'Error', value: 'inner' },
+                    {
+                        type: 'TypeError',
+                        value: 'outer',
+                        stacktrace: { frames: [{ filename: 'chrome-extension://abc/content.js' }] },
+                    },
+                ],
+            },
+        } as unknown as ErrorEvent
+        expect(shouldIgnoreError(event)).toBe(true)
+    })
+})
+
+describe('shouldIgnoreError — Capgo updater noise', () => {
+    it.each([
+        '[CapgoUpdater] 🔴 Failed to send stats batch',
+        '[CapgoUpdater] 🔴 Error waiting for download',
+        '[CapgoUpdater] 🔴 Download error: unexpected end of stream',
+        '🔴 ✨  CapgoUpdater : Semaphore wait timed out after 15000ms',
+        '[capgo] update check failed: network_error',
+    ])('ignores transient updater failure: %s', (message) => {
+        expect(shouldIgnoreError(eventWith({ message }))).toBe(true)
+    })
+
+    it('keeps disable_auto_update_under_native — OTA is dead for that binary', () => {
+        expect(
+            shouldIgnoreError(eventWith({ message: '[capgo] update check failed: disable_auto_update_under_native' }))
+        ).toBe(false)
+    })
+
+    it('keeps disable_auto_update_under_native from the plugin channel too', () => {
+        const message =
+            '[CapgoUpdater] 🔴 getLatest failed with error: disable_auto_update_under_native, message: Cannot revert under native version'
+        expect(shouldIgnoreError(eventWith({ message }))).toBe(false)
+    })
+
+    it('keeps a checksum mismatch — the bundle arrived corrupt, not merely late', () => {
+        expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Checksum mismatch' }))).toBe(false)
+    })
+
+    /*
+     * The generic IGNORED_ERRORS loop runs first and returns early, so an
+     * actionable failure whose text also trips a fuzzy pattern would be dropped
+     * before the Capgo carve-out ever ran. Real Capgo reports `network_error`
+     * (snake_case) today, which misses `networkIssues` by luck rather than design
+     * — these pin the ordering so a future message shape cannot re-open it.
+     */
+    it('keeps a corrupt bundle even when the message also trips networkIssues', () => {
+        expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Checksum mismatch: Network Error' }))).toBe(
+            false
+        )
+    })
+
+    it('keeps an under-native rejection even when the message also trips networkIssues', () => {
+        expect(
+            shouldIgnoreError(
+                eventWith({ message: '[capgo] update check failed: disable_auto_update_under_native, Failed to fetch' })
+            )
+        ).toBe(false)
+    })
+
+    it('still suppresses a transient Capgo failure that trips networkIssues', () => {
+        expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Download error: Failed to fetch' }))).toBe(
+            true
+        )
+    })
+
+    it('does not touch non-Capgo errors that mention a download', () => {
+        expect(shouldIgnoreError(eventWith({ type: 'Error', value: 'Download error: statement failed' }))).toBe(false)
+    })
+})
+
+describe('shouldIgnoreError — passkey wrapper', () => {
+    it('ignores the curated PasskeyError wrapper (useZeroDev already reported the raw failure)', () => {
+        const event = eventWith({
+            type: 'PasskeyError',
+            value: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
+        })
+        expect(shouldIgnoreError(event)).toBe(true)
+    })
+
+    it('still reports the underlying WebAuthn failure', () => {
+        expect(shouldIgnoreError(eventWith({ type: 'NotReadableError', value: 'passkey prompt interrupted' }))).toBe(
+            false
+        )
+    })
+    it('does not widen fuzzy message matching to a wrapped cause', () => {
+        // Only exception TYPES are scanned chain-wide. A wrapper whose message
+        // happens to contain a noise pattern must still be reported — widening
+        // that is exactly what ate real payment failures in 5343f1d0.
+        const event = chainedEvent([
+            { type: 'PaymentError', value: 'charge could not be created' },
+            { type: 'SendFailedError', value: 'Details: Failed to fetch' },
+        ])
+        expect(shouldIgnoreError(event)).toBe(false)
+    })
+})
+
 describe('shouldIgnoreError — critical-flow captures', () => {
     const tags = criticalFlowTags('direct-send')
 
@@ -83,5 +217,82 @@ describe('beforeSendHandler — OneSignal op-failure fingerprint', () => {
 describe('shouldIgnoreError — OneSignal worker-messenger noise', () => {
     it('ignores the no-service-worker postMessage warning', () => {
         expect(shouldIgnoreError(eventWith({ message: '[WM] No SW registration for postMessage' }))).toBe(true)
+    })
+})
+
+describe('shouldIgnoreError — fetch-site network captures', () => {
+    function fetchSiteCapture(value: string, method = 'POST', kind = 'network-error'): ErrorEvent {
+        return {
+            fingerprint: [kind, 'https://api.peanut.me/charges', method],
+            exception: { values: [{ type: 'TypeError', value }] },
+        } as unknown as ErrorEvent
+    }
+
+    // Both engine spellings, because the split is per-engine: WebKit says
+    // `Load failed`, Chromium (so every Android WebView) says `Failed to fetch`.
+    it.each(['Failed to fetch', 'Load failed', 'Network Error'])(
+        'keeps a failed mutation for %s — the user lost progress in a money flow',
+        (value) => {
+            expect(shouldIgnoreError(fetchSiteCapture(value))).toBe(false)
+        }
+    )
+
+    it.each(['PUT', 'PATCH', 'DELETE', 'post'])('keeps a failed %s', (method) => {
+        expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', method))).toBe(false)
+    })
+
+    it('keeps a mutation that timed out (the other fetch-site fingerprint)', () => {
+        expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', 'POST', 'timeout'))).toBe(false)
+    })
+
+    // 78% of this population is failed GETs on /home — balance and price polls
+    // that retry and succeed. Their rate belongs in PostHog, not as individual
+    // Sentry events.
+    it.each(['GET', 'HEAD'])('still ignores a failed %s', (method) => {
+        expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', method))).toBe(true)
+    })
+
+    it('still ignores the same message without the fetch-site fingerprint', () => {
+        expect(shouldIgnoreError(eventWith({ type: 'TypeError', value: 'Failed to fetch' }))).toBe(true)
+    })
+
+    it('does not rescue an unrelated fingerprint that merely mentions the network', () => {
+        const event = {
+            fingerprint: ['onesignal-op-failed', 'update-subscription'],
+            exception: { values: [{ type: 'TypeError', value: 'Failed to fetch' }] },
+        } as unknown as ErrorEvent
+        expect(shouldIgnoreError(event)).toBe(true)
+    })
+})
+
+describe('shouldIgnoreError — injected third-party scripts', () => {
+    function framedEvent(filename: string): ErrorEvent {
+        return {
+            exception: {
+                values: [
+                    {
+                        type: 'TypeError',
+                        value: "Cannot read properties of undefined (reading 'M_ID')",
+                        stacktrace: { frames: [{ filename }] },
+                    },
+                ],
+            },
+        } as unknown as ErrorEvent
+    }
+
+    // The scheme-bearing cases were always caught; `app:///executors/` is the
+    // one that forced PEANUT-UI-SNS to be archived by hand.
+    it.each([
+        'chrome-extension://abcdef/inject.js',
+        'moz-extension://abcdef/inject.js',
+        'safari-extension://abcdef/inject.js',
+        'app:///executors/200.js',
+    ])('ignores a frame from %s', (filename) => {
+        expect(shouldIgnoreError(framedEvent(filename))).toBe(true)
+    })
+
+    it('does not ignore our own bundle, including an unresolved app:/// frame', () => {
+        expect(shouldIgnoreError(framedEvent('/_next/static/chunks/main-abc123.js'))).toBe(false)
+        expect(shouldIgnoreError(framedEvent('app:///_next/static/chunks/main-abc123.js'))).toBe(false)
     })
 })

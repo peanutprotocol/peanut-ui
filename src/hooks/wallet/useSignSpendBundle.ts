@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Address, Hex } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
@@ -226,8 +227,8 @@ export const useSignSpendBundle = () => {
                         kind,
                     })
 
-                    const adminSignature = (await activeAccount.signTypedData(
-                        buildRainWithdrawTypedData(prep, chainIdNum)
+                    const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
+                        activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                     )) as Hex
 
                     return {
@@ -266,8 +267,8 @@ export const useSignSpendBundle = () => {
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
 
-                const adminSignature = (await activeAccount.signTypedData(
-                    buildRainWithdrawTypedData(prep, chainIdNum)
+                const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
+                    activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                 )) as Hex
 
                 const withdrawCall = {

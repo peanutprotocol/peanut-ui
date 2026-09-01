@@ -2,7 +2,7 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
-import CyclingLoading from '@/components/Global/PeanutLoading/CyclingLoading'
+import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -87,9 +87,9 @@ const MantecaAddMoney: FC = () => {
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
     // rail-approval proxy. Same fix-pattern as Profile/ProfileEdit.
-    const { rails } = useCapabilities()
+    const { rails, nextActions } = useCapabilities()
     const { isVerified: isUserIdentityVerified } = useIdentityVerification()
-    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -266,6 +266,7 @@ const MantecaAddMoney: FC = () => {
         return (
             <>
                 <InitiateKycModal
+                    prepPath="extended"
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
                     onVerify={async () => {
@@ -280,7 +281,7 @@ const MantecaAddMoney: FC = () => {
                         if (mantecaRejection.state === 'restart-identity') {
                             await sumsubFlow.handleRestartIdentity()
                         } else if (mantecaRejection.state === 'fixable') {
-                            await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                            await sumsubFlow.handleFixableRejection(mantecaRejection)
                         } else {
                             await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                         }

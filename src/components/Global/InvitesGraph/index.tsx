@@ -33,7 +33,10 @@
 import { useTranslations } from 'next-intl'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
+import { openExternalUrl } from '@/utils/capacitor'
+import { profileUrl } from '@/utils/native-routes'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { pointsApi } from '@/services/points'
 import { inferBankAccountType } from '@/utils/bridge.utils'
@@ -155,8 +158,6 @@ interface BaseProps {
 interface FullModeProps extends BaseProps {
     /** Admin API key to fetch full graph */
     apiKey: string
-    /** Password for payment mode authentication */
-    password?: string
     /** Graph mode: 'full' shows all features, 'payment' shows P2P only (no invites, fixed 120-day window) */
     mode?: GraphMode
     /** Close/back button handler */
@@ -191,6 +192,7 @@ const DEFAULT_TOP_NODES = 5000
 
 export default function InvitesGraph(props: InvitesGraphProps) {
     const t = useTranslations('global')
+    const router = useRouter()
     const {
         width,
         height,
@@ -890,13 +892,11 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // API only supports 'full' | 'payment' modes (user mode uses different endpoint)
             const apiMode = mode === 'payment' ? 'payment' : 'full'
             // Pass topNodes for both modes - payment mode now supports it via Performance button
-            // Pass password for payment mode authentication
             // Pass includeNewDays so backend always includes recent signups regardless of topNodes
             const result = await pointsApi.getInvitesGraph(props.apiKey, {
                 mode: apiMode,
                 topNodes: topNodes > 0 ? topNodes : undefined,
                 includeNewDays: displaySettingsRef.current.activityFilter.activityDays,
-                password: mode === 'payment' ? props.password : undefined,
             })
 
             if (result.success && result.data) {
@@ -946,7 +946,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     limit: externalNodesConfig.limit, // User-configurable limit
                     types: ['WALLET', 'BANK', 'MERCHANT'], // Fetch all types, filter client-side
                     topNodes: topNodes > 0 ? topNodes : undefined, // Match graph's top-N filter
-                    password: apiMode === 'payment' ? props.password : undefined, // Password for payment mode
                 })
 
                 if (result.success && result.data) {
@@ -1564,25 +1563,30 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 if (node.externalType === 'WALLET') {
                     // Wallet → Arbiscan
-                    window.open(`https://arbiscan.io/address/${externalId}`, '_blank')
+                    openExternalUrl(`https://arbiscan.io/address/${externalId}`).catch((e) =>
+                        console.warn('failed to open explorer link:', e)
+                    )
                 } else if (node.externalType === 'MERCHANT') {
                     // Merchant → Google search
-                    window.open(`https://www.google.com/search?q=${encodeURIComponent(node.label)}`, '_blank')
+                    openExternalUrl(`https://www.google.com/search?q=${encodeURIComponent(node.label)}`).catch((e) =>
+                        console.warn('failed to open search link:', e)
+                    )
                 }
                 // BANK → Do nothing (no useful URL for IBAN/CLABE/ACH)
                 return
             }
 
-            // User mode: Navigate to user profile in new tab
+            // User node → profile. window.open('/<user>','_blank') was dead on
+            // iOS (no popup support) and a full app reset on Android.
             if (isMinimal && node.username) {
-                window.open(`/${node.username}`, '_blank')
+                router.push(profileUrl(node.username))
                 return
             }
 
             // Full/Payment mode: User node → Select (camera follows)
             setSelectedUserId(node.id)
         },
-        [isMinimal]
+        [isMinimal, router]
     )
 
     // Right-click selects the node (camera follows)
@@ -1848,7 +1852,6 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             // configureForces is async - must wait for it to complete before reheating
             configureForces().then(() => {
                 if (!graphRef.current) return
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const internalGraph = graphRef.current as any
                 if (internalGraph._simulation) {
                     internalGraph._simulation.alpha(1).restart()
@@ -2024,8 +2027,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         return (
             <div className="flex flex-1 items-center justify-center">
                 <div className="flex items-center gap-3">
-                    <Icon name="pending" size={24} className="animate-spin text-purple-600" />
-                    <span className="text-lg font-medium text-gray-700">{t('invitesGraph.loadingNetwork')}</span>
+                    <Icon name="pending" size={24} className="animate-spin" />
+                    <span className="text-body-l font-medium">{t('invitesGraph.loadingNetwork')}</span>
                 </div>
             </div>
         )
@@ -2035,9 +2038,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     if (!isMinimal && error) {
         return (
             <div className="flex flex-1 items-center justify-center p-4">
-                <div className="bg-red-50 max-w-md rounded-2xl p-8 text-center shadow-lg">
-                    <div className="mb-4 text-5xl">⚠️</div>
-                    <p className="text-red-900 mb-4 text-lg font-medium">{error}</p>
+                <div className="max-w-md rounded-2xl bg-red-50 p-8 text-center shadow-lg">
+                    <div className="mb-4 text-heading-xl">⚠️</div>
+                    <p className="mb-4 text-body-l font-medium text-red-600">{error}</p>
                     {props.onClose && (
                         <Button onClick={props.onClose} variant="stroke">
                             {t('invitesGraph.goBack')}
@@ -2139,7 +2142,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     {selectedUserId && (
                         <button
                             onClick={handleResetView}
-                            className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-md transition-colors hover:bg-gray-50"
+                            className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-body-xs font-medium shadow-md transition-colors"
                         >
                             <span>←</span>
                             <span>{t('invitesGraph.resetView')}</span>
@@ -2184,7 +2187,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 }
             `}</style>
             {/* Top Control Bar */}
-            <div className="border-b border-gray-200 bg-white shadow-sm">
+            <div className="border-b bg-white shadow-sm">
                 {/* Top Row: Navigation, Title, Stats, Controls */}
                 <div className="flex items-center justify-between px-4 py-3">
                     {/* Left: Title & Stats */}
@@ -2193,28 +2196,28 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                             <>
                                 <button
                                     onClick={props.onClose}
-                                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-body-s transition-colors"
                                 >
                                     <span>←</span>
                                     <span className="hidden sm:inline">{t('invitesGraph.back')}</span>
                                 </button>
-                                <div className="h-6 w-px bg-gray-300"></div>
+                                <div className="h-6 w-px"></div>
                             </>
                         )}
-                        <h1 className="text-lg font-bold text-gray-900">
+                        <h1 className="text-heading-card">
                             {mode === 'payment' ? t('invitesGraph.paymentNetwork') : t('invitesGraph.inviteNetwork')}
                         </h1>
-                        <div className="flex gap-3 text-xs font-medium">
-                            <span className="rounded-full bg-purple-100 px-2 py-1 text-purple-700">
+                        <div className="flex gap-3 text-body-xs font-medium">
+                            <span className="rounded-full px-2 py-1">
                                 {t('invitesGraph.nodes', { count: combinedGraphNodes.length })}
                                 {externalNodesConfig.enabled &&
                                     combinedGraphNodes.filter((n: any) => n.isExternal).length > 0 && (
-                                        <span className="ml-1 text-orange-600">
+                                        <span className="ml-1">
                                             (+{combinedGraphNodes.filter((n: any) => n.isExternal).length} ext)
                                         </span>
                                     )}
                             </span>
-                            <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-700">
+                            <span className="rounded-full bg-blue-200 px-2 py-1 text-blue-600">
                                 {/* In payment mode, show P2P edges; in other modes, show invite edges */}
                                 {t('invitesGraph.edges', {
                                     count:
@@ -2223,7 +2226,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                             : filteredGraphData.stats.totalEdges) + externalLinks.length,
                                 })}
                                 {externalNodesConfig.enabled && externalLinks.length > 0 && (
-                                    <span className="ml-1 text-orange-600">(+{externalLinks.length} ext)</span>
+                                    <span className="ml-1">(+{externalLinks.length} ext)</span>
                                 )}
                             </span>
                         </div>
@@ -2234,7 +2237,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 {/* Second Row: Search (hidden in payment mode - no usernames) */}
                 {mode !== 'payment' && (
-                    <div className="border-t border-gray-100 px-4 py-2">
+                    <div className="border-t px-4 py-2">
                         <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <input
@@ -2242,31 +2245,31 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                     value={searchQuery}
                                     onChange={(e) => handleSearch(e.target.value)}
                                     placeholder={t('invitesGraph.searchPlaceholder')}
-                                    className="w-full rounded-lg border border-gray-300 py-1.5 pl-9 pr-9 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                                    className="/20 w-full rounded-lg border py-1.5 pr-9 pl-9 text-body-s transition-colors focus:ring-2 focus:outline-none"
                                 />
                                 <Icon
                                     name="search"
                                     size={16}
-                                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                    className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
                                 />
                                 {searchQuery && (
                                     <button
                                         onClick={handleClearSearch}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 transition-colors"
                                     >
                                         <Icon name="cancel" size={14} />
                                     </button>
                                 )}
                             </div>
                             {searchResults.length > 0 && (
-                                <span className="text-xs text-gray-600">
+                                <span className="text-body-xs">
                                     {searchResults.length} {searchResults.length === 1 ? 'match' : 'matches'}
                                 </span>
                             )}
                         </div>
                         {/* Search Results Dropdown */}
                         {searchQuery && searchResults.length > 1 && (
-                            <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                            <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border bg-white shadow-lg">
                                 {searchResults.map((node: any) => (
                                     <button
                                         key={node.id}
@@ -2274,13 +2277,13 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                             setSelectedUserId(node.id)
                                             handleClearSearch()
                                         }}
-                                        className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors ${
-                                            node.isExternal ? 'hover:bg-orange-50' : 'hover:bg-purple-50'
+                                        className={`flex w-full items-center justify-between px-3 py-2 text-body-s transition-colors ${
+                                            node.isExternal ? 'hover:bg-orange-200/40' : 'hover:bg-purple-200/40'
                                         }`}
                                     >
                                         <div className="flex items-center gap-2">
                                             {node.isExternal && (
-                                                <span className="text-xs">
+                                                <span className="text-body-xs">
                                                     {node.externalType === 'WALLET'
                                                         ? '💳'
                                                         : node.externalType === 'BANK'
@@ -2288,9 +2291,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                                           : '🏪'}
                                                 </span>
                                             )}
-                                            <span className="font-medium text-gray-900">{node.displayName}</span>
+                                            <span className="font-medium">{node.displayName}</span>
                                         </div>
-                                        <span className="text-xs text-gray-500">
+                                        <span className="text-body-xs">
                                             {node.isExternal
                                                 ? node.totalUsd
                                                     ? `${node.uniqueUsers} users, $${node.totalUsd.toFixed(0)}`
@@ -2309,13 +2312,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 {/* Selected User/Node Banner */}
                 {selectedUserId && (
                     <div
-                        className={`border-t px-4 py-2 text-sm ${
-                            selectedUserId.startsWith('ext_')
-                                ? 'border-orange-100 bg-orange-50'
-                                : 'border-purple-100 bg-purple-50'
-                        }`}
+                        className={`border-t px-4 py-2 text-body-s ${selectedUserId.startsWith('ext_') ? 'border-orange-200 bg-orange-200/40' : 'border-purple-200 bg-purple-200/40'}`}
                     >
-                        <span className={selectedUserId.startsWith('ext_') ? 'text-orange-700' : 'text-purple-700'}>
+                        <span className={selectedUserId.startsWith('ext_') ? 'text-orange-800' : 'text-purple-600'}>
                             {t('invitesGraph.focusedOn')}{' '}
                             <span className="font-bold">
                                 {selectedUserId.startsWith('ext_')
@@ -2325,7 +2324,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                       selectedUserId}
                             </span>
                         </span>
-                        <button onClick={handleResetView} className="ml-2 font-semibold text-purple-900 underline">
+                        <button onClick={handleResetView} className="ml-2 font-semibold underline">
                             {t('invitesGraph.clear')}
                         </button>
                     </div>

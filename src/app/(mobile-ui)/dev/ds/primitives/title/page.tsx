@@ -13,8 +13,8 @@ export default function TitlePage() {
         <DocPage>
             <DocHeader
                 title="Title"
-                description="Knerd display font with filled + outline double-render for drop shadow effect."
-                status="production"
+                description="Knerd display font with filled + outline double-render for drop shadow effect. NOTE: this primitive is dead in the wallet product — its only real call-site is MarketingHero (marketing pages). Treat it as marketing-only, not a wallet primitive."
+                status="unused"
             />
 
             <SectionDivider />
@@ -33,15 +33,15 @@ export default function TitlePage() {
 
             <DocSection title="Examples">
                 <DocSection.Content>
-                    <div className="rounded-sm bg-purple-1 p-4">
+                    <div className="rounded-sm bg-action-primary p-4">
                         <Title text="PEANUT" />
                     </div>
 
-                    <div className="rounded-sm bg-purple-1 p-4">
+                    <div className="rounded-sm bg-action-primary p-4">
                         <Title text="NO OFFSET" offset={false} />
                     </div>
 
-                    <div className="rounded-sm bg-yellow-1 p-4">
+                    <div className="rounded-sm bg-action-secondary p-4">
                         <Title text="ON YELLOW" />
                     </div>
                 </DocSection.Content>

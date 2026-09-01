@@ -1,10 +1,20 @@
 name: Tests
 
 on:
+    # push is post-merge signal only. `['**']` double-ran the whole suite on
+    # every PR commit (push + pull_request runs on the same SHA, in different
+    # concurrency groups, so neither cancelled the other).
+    # content-publish-automerge's merge-on-green requires "at least one and
+    # ALL green" ci-success check runs per SHA, so one run per SHA satisfies it.
+    # feat/design-system is in both lists for the DS release train: PRs based
+    # on it need the suite (and ds-shots), and pushes to it write the ds-shots
+    # baseline a based PR can restore — Actions cache scoping only lets a PR
+    # read caches from its own ref, its base branch, and the default branch.
+    # Remove it from all three allowlists once the DS branch merges to dev.
     push:
-        branches: ['**']
+        branches: [main, dev, feat/design-system]
     pull_request:
-        branches: [main, dev, develop]
+        branches: [main, dev, develop, feat/design-system]
     workflow_dispatch:
 
 # Cancel in-progress runs on the same PR / branch when a newer commit lands.
@@ -22,7 +32,7 @@ jobs:
     # Prettier formatting + content-link validation. Fast, no node_modules
     # needed beyond what setup-node cache restores.
     # (Renamed from "lint" — the job never actually ran a linter; ESLint now
-    # lives in its own advisory job below.)
+    # lives in its own blocking job below.)
     format:
         runs-on: ubuntu-latest
         steps:
@@ -55,9 +65,32 @@ jobs:
             - name: Validate sitemap, footer, and blog links
               run: pnpm validate-links
 
-    # Blocking ESLint pass. In ci-success.needs, so a red eslint job blocks the
-    # PR. `pnpm lint` fails on errors only — the remaining warnings do not gate.
-    # Ratchet to a warn floor (`--max-warnings`) once that count is down.
+    # DS debt ratchet (DS 10, TASK-21450). Runs scripts/ds-lint-counts.mjs
+    # --check against the committed baseline: debt counts (raw hex, inline
+    # styles, stock text sizes, non-DS classes in views, useSearchParams files)
+    # may only go down. A PR that lowers a count should also tighten the
+    # baseline (--write-baseline) so the gain locks in. Pure-node script — no
+    # pnpm install needed.
+    ds-lint:
+        runs-on: ubuntu-latest
+        steps:
+            # no submodules/token: the count script only reads src/**/*.ts(x)
+            # and the only submodule (src/content) holds none. no git ops after
+            # checkout either, so don't persist credentials.
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: DS lint-count ratchet
+              run: node scripts/ds-lint-counts.mjs --check
+
+    # Blocking ESLint pass (DS 10, TASK-21450). Errors reached zero on
+    # feat/design-system, so this gates the PR via ci-success.needs. Warnings
+    # do not fail the job; add a warn floor only if the team decides one.
     eslint:
         runs-on: ubuntu-latest
         steps:
@@ -107,7 +140,51 @@ jobs:
             - name: Typecheck
               run: pnpm typecheck
 
+    # Isolated on purpose. The BE's living fixture lives in peanut-api-ts, so
+    # fetching it needs a cross-repo secret — and a secret must never share a
+    # job with PR-authored code, which can plant a GITHUB_PATH wrapper during
+    # postinstall and read it out of the environment. This job checks nothing
+    # out, installs nothing, runs no repo code, and hands the result to `unit`
+    # as data.
+    #
+    # Non-blocking by design: no credential in this repo is currently scoped to
+    # read peanut-api-ts (MONO_READ_TOKEN is mono-only — it 404s here), so the
+    # fetch warns and produces no artifact, and the drift checks in
+    # render-snapshot skip. Provision a contents:read token for peanut-api-ts
+    # and the check goes live with no other change.
+    be-baseline:
+        runs-on: ubuntu-latest
+        permissions: {}
+        steps:
+            - name: Fetch the BE render-snapshot baseline
+              id: fetch
+              env:
+                  GH_TOKEN: ${{ secrets.MONO_READ_TOKEN }}
+                  BE_REF: ${{ github.base_ref || 'dev' }}
+              run: |
+                  set -euo pipefail
+                  if [ -z "${GH_TOKEN:-}" ]; then
+                      echo "::warning::No token for the BE baseline fetch — baseline-vs-BE drift checks will skip."
+                      exit 0
+                  fi
+                  if ! gh api "repos/peanutprotocol/peanut-api-ts/contents/test/integration/__fixtures__/history-real-staging.jsonl?ref=${BE_REF}" \
+                          --jq '.content' > /tmp/be-baseline.b64; then
+                      echo "::warning::Could not read the BE fixture at ${BE_REF} — the token is not scoped to peanut-api-ts. Drift checks will skip."
+                      exit 0
+                  fi
+                  base64 -d < /tmp/be-baseline.b64 > /tmp/be-baseline.jsonl
+                  test -s /tmp/be-baseline.jsonl
+                  echo 'fetched=true' >> "$GITHUB_OUTPUT"
+
+            - uses: actions/upload-artifact@v4
+              if: steps.fetch.outputs.fetched == 'true'
+              with:
+                  name: be-baseline
+                  path: /tmp/be-baseline.jsonl
+                  retention-days: 1
+
     unit:
+        needs: be-baseline
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -127,20 +204,25 @@ jobs:
             - name: Generate Next types
               run: pnpm next typegen
 
-            # Fetch the canonical 49-entry HistoryEntry baseline from the BE
-            # repo. Living source-of-truth = peanut-api-ts/test/integration/
-            # __fixtures__/history-real-staging.jsonl. We don't vendor a copy
-            # in this repo because it bloats every FE diff by ~3.7K lines.
-            # PR base branch tracks the BE branch the FE is coordinated with
-            # (dev when targeting dev; the paired BE PR's HEAD when in flight).
-            - name: Fetch BE render-snapshot baseline
-              env:
-                  GH_TOKEN: ${{ secrets.PEANUT_ALL_READ_TOKEN }}
+            # The BE fixture arrives as an ARTIFACT from the isolated be-baseline
+            # job. Nothing here ever sees a credential: this job has already run
+            # PR-controlled checkout, postinstall and typegen, so a secret in
+            # scope could be lifted by a GITHUB_PATH wrapper.
+            - name: Download the BE render-snapshot baseline
+              uses: actions/download-artifact@v4
+              continue-on-error: true
+              with:
+                  name: be-baseline
+                  path: /tmp/be-baseline
+
+            - name: Import the BE baseline
               run: |
-                  BE_REF="${{ github.base_ref || 'dev' }}"
-                  gh api "repos/peanutprotocol/peanut-api-ts/contents/test/integration/__fixtures__/history-real-staging.jsonl?ref=${BE_REF}" \
-                      --jq '.content' | base64 -d > /tmp/be-baseline.jsonl
-                  node scripts/import-be-baseline.mjs /tmp/be-baseline.jsonl \
+                  set -euo pipefail
+                  if [ ! -s /tmp/be-baseline/be-baseline.jsonl ]; then
+                      echo 'No BE baseline artifact — the drift checks will skip.'
+                      exit 0
+                  fi
+                  node scripts/import-be-baseline.mjs /tmp/be-baseline/be-baseline.jsonl \
                       src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 
             - name: Run unit tests
@@ -171,22 +253,99 @@ jobs:
                   path: test-results/junit.xml
                   retention-days: 7
 
-    # Playwright e2e — advisory until TEST_HARNESS_SECRET + harness API
-    # reachability are wired in repo settings (per the prior comment).
-    e2e:
+    # Can this PR move a pixel? Answered from the PR file list over the API, so
+    # a docs-only, workflow-only or test-only PR skips the capture with no
+    # checkout and no install.
+    ds-shots-filter:
+        name: ds-shots-filter
+        # A fork PR gets a read-only GITHUB_TOKEN and no SUBMODULE_TOKEN, so
+        # neither the submodule checkout nor the comment can work. Skip it.
+        if: >-
+            github.event_name == 'pull_request' &&
+            github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
-        # Without a cap a stalled step runs to the 6h default. "Install
-        # Playwright browsers" hung three times on 2026-08-18 (~30min each)
-        # while sibling runs cleared it in under two minutes. An unbounded hang
-        # is worse than a failure here: `ci-success` never reports, and
-        # content-publish-automerge merges on all-green-of-N, so N stays 0 and
-        # a content publish stalls with no error anywhere. Fail fast instead.
-        timeout-minutes: 20
+        # Reads the PR file list and nothing else.
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            render: ${{ steps.check.outputs.render }}
+        steps:
+            - name: Look for a file that changes what a screen renders
+              id: check
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR: ${{ github.event.pull_request.number }}
+                  REPO: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+                  # Everything a fixture screen is built from. src/ is most of
+                  # it; the config files decide how src/ compiles, and the lock
+                  # file decides which version of every dependency renders.
+                  # e2e/flows/ and the regression config are here because the
+                  # behaviour specs run inside ds-shots — without them a PR
+                  # touching only those files would skip the job that runs them.
+                  KEEP='^(src/|e2e/(shots|flows)/|scripts/visual-(diff|comment)\.mjs$|playwright\.(shots|regression)\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
+                  # Inside the set above but never on camera. src/content is the
+                  # blog and SEO submodule, and no fixture renders those pages.
+                  DROP='(^src/content(/|$)|/__tests__/|/__mocks__/|\.test\.tsx?$|\.md$)'
+
+                  FILES=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename')
+                  HITS=$(printf '%s\n' "$FILES" | grep -E "$KEEP" | grep -vE "$DROP" || true)
+
+                  if [ -z "$HITS" ]; then
+                      echo 'render=false' >> "$GITHUB_OUTPUT"
+                      echo 'Nothing here can move a pixel. Skipping the visual diff.'
+                      exit 0
+                  fi
+                  echo 'render=true' >> "$GITHUB_OUTPUT"
+                  echo 'Files that can move a pixel:'
+                  printf '%s\n' "$HITS"
+
+    # Visual diff over src/dev/fixtures/registry.ts — 30 fixtures at four phone
+    # widths, 120 PNGs. No API, no database, no provider key and no secret: a
+    # fixture answers every request the app makes.
+    #
+    # ADVISORY. It is deliberately NOT in `ci-success.needs`, so it can never
+    # block a merge. It is a review aid.
+    #
+    # Two roles, one set of steps, because the capture half is the same work:
+    #   • push to dev, main or feat/design-system (the DS release train) →
+    #     capture that commit and cache it as a baseline.
+    #     The cache has to be written from the base branch: an entry written by
+    #     a PR run is scoped to that PR, and no sibling PR can read it. Written
+    #     from dev, ten PRs on that base restore it instead of building it.
+    #   • pull request → capture the head, diff it against that baseline, and
+    #     keep one comment up to date.
+    ds-shots:
+        name: ds-shots
+        needs: [ds-shots-filter]
+        # `always()` because ds-shots-filter never runs on a push, and a skipped
+        # `needs` would otherwise skip this job too.
+        if: >-
+            always() &&
+            ((github.event_name == 'push' && contains(fromJSON('["dev","main","feat/design-system"]'), github.ref_name))
+            || needs.ds-shots-filter.outputs.render == 'true')
+        runs-on: ubuntu-latest
+        # Build ~4m + capture ~2m on a runner, plus install. A hang past this is
+        # a bug, not a slow day.
+        timeout-minutes: 30
+        # Read-only on purpose. This job checks out the PR and runs its
+        # install, build and test code, and a later step is not an isolation
+        # boundary: a postinstall can plant a GITHUB_PATH or GITHUB_ENV hook
+        # that fires in any step after it. Nothing here may hold a credential
+        # that can write to the repo, so the diff travels as an artifact and a
+        # job summary instead of a pushed branch and a PR comment.
+        permissions:
+            contents: read
         steps:
             - uses: actions/checkout@v4
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # The asset push below builds its own remote URL, so the
+                  # submodule PAT does not need to stay in .git/config.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -197,9 +356,10 @@ jobs:
 
             - run: pnpm install --frozen-lockfile
 
-            # Cache the browser binaries — the download is the step that hangs,
-            # so the cheapest fix is to not do it on most runs. Keyed on the
-            # Playwright version, because browser builds are pinned to it.
+            # Browser cache, moved here verbatim from the deleted `e2e` job. The
+            # download is the step that hangs, so the cheapest fix is to not do
+            # it on most runs. Keyed on the Playwright version, because browser
+            # builds are pinned to it.
             - name: Resolve Playwright version
               id: pw
               run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
@@ -250,26 +410,141 @@ jobs:
                   echo "::error::playwright install-deps failed after 3 attempts"
                   exit 1
 
-            - name: Run E2E tests
-              run: pnpm test:e2e
-              continue-on-error: true
+            - name: Build
+              env:
+                  # Without this DEV_TOOLS_ENABLED is false, ?__fixture= is
+                  # ignored, and every screen redirects to /setup. It is a
+                  # NEXT_PUBLIC_ value, so it must be set on the build, not on
+                  # the capture — Next inlines it into the bundle here.
+                  NEXT_PUBLIC_VERCEL_ENV: preview
+                  # BASE_URL falls back to https://peanut.me when unset, which
+                  # flips the dev layout's prod gate and notFound()s every
+                  # /dev page the regression specs drive. Locally .env sets
+                  # it; CI has no .env, so set it here.
+                  NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
+              run: pnpm build
 
-            - name: Upload Playwright report
-              if: always()
+            # The capture fails a shot that still has a spinner on camera, on
+            # purpose. No continue-on-error: a red step is how anyone finds out.
+            - name: Capture screenshots
+              env:
+                  SHOTS_OUT: e2e/__shots__/${{ github.event_name == 'push' && 'base' || 'head' }}
+              run: pnpm test:visual:capture
+
+            - name: Save this commit as the baseline
+              if: github.event_name == 'push'
+              # A re-run of the same commit finds the key taken. Losing that
+              # race costs nothing — the baseline is already there.
+              continue-on-error: true
+              uses: actions/cache/save@v4
+              with:
+                  path: e2e/__shots__/base
+                  key: ds-shots-${{ github.sha }}
+
+            - name: Restore the baseline capture
+              if: github.event_name == 'pull_request'
+              id: baseline
+              uses: actions/cache/restore@v4
+              with:
+                  path: e2e/__shots__/base
+                  key: ds-shots-${{ github.event.pull_request.base.sha }}
+                  # If the exact base commit is not cached — it landed minutes
+                  # ago, or the entry was evicted — take the newest baseline
+                  # there is. The comment names the commit it actually used.
+                  restore-keys: ds-shots-
+
+            - name: Diff against the baseline
+              if: github.event_name == 'pull_request'
+              id: diff
+              run: |
+                  set -euo pipefail
+                  MATCHED='${{ steps.baseline.outputs.cache-matched-key }}'
+                  if [ -z "$MATCHED" ]; then
+                      echo 'ready=false' >> "$GITHUB_OUTPUT"
+                      echo 'No baseline is cached yet.'
+                      exit 0
+                  fi
+                  echo "ready=true" >> "$GITHUB_OUTPUT"
+                  echo "baseline=${MATCHED#ds-shots-}" >> "$GITHUB_OUTPUT"
+                  node scripts/visual-diff.mjs e2e/__shots__/base e2e/__shots__/head \
+                      --out=e2e/__shots__/diff --json > e2e/__shots__/report.json
+
+            # The listing runs PR-authored code (scripts/visual-comment.mjs is
+            # itself pixel-moving, so a PR may edit it) — deliberately no token
+            # in this step's env for it to read.
+            - name: List the changed screenshots
+              if: steps.diff.outputs.ready == 'true'
+              id: wanted
+              run: |
+                  set -euo pipefail
+                  node scripts/visual-comment.mjs e2e/__shots__/report.json --list > e2e/__shots__/wanted.txt
+                  if [ -s e2e/__shots__/wanted.txt ]; then
+                      echo 'any=true' >> "$GITHUB_OUTPUT"
+                  else
+                      echo 'any=false' >> "$GITHUB_OUTPUT"
+                      echo 'Nothing changed, so nothing to publish.'
+                  fi
+
+            # The PNGs ride out as an artifact. Publishing them to a branch
+            # needed contents:write in this job, which is exactly what a PR's
+            # own build code must never be able to reach.
+            - name: Upload the changed screenshots
+              if: steps.diff.outputs.ready == 'true' && steps.wanted.outputs.any == 'true'
               uses: actions/upload-artifact@v4
               with:
-                  name: playwright-report
-                  path: playwright-report/
+                  name: visual-diff-${{ github.event.pull_request.number }}
+                  path: |
+                      e2e/__shots__/base
+                      e2e/__shots__/head
+                      e2e/__shots__/diff
+                  retention-days: 7
+            # Rendered into the job summary, which needs no permissions. The
+            # script omits the <img> tags when --assets is empty, so this is a
+            # text report plus the artifact above.
+            - name: Render the visual diff summary
+              if: github.event_name == 'pull_request'
+              env:
+                  BASE_REF: ${{ github.base_ref }}
+              run: |
+                  set -euo pipefail
+                  if [ '${{ steps.diff.outputs.ready }}' != 'true' ]; then
+                      {
+                          echo '## 🖼 Visual diff — no baseline yet'
+                          echo
+                          echo "Nothing is cached for \`${BASE_REF}\`. The next push to that"
+                          echo 'branch captures one, and this fills in on your next push here.'
+                      } > e2e/__shots__/body.md
+                  else
+                      node scripts/visual-comment.mjs e2e/__shots__/report.json \
+                          --baseline='${{ steps.diff.outputs.baseline }}' \
+                          --head='${{ github.event.pull_request.head.sha }}' > e2e/__shots__/body.md
+                      echo >> e2e/__shots__/body.md
+                      echo 'Images are in the **visual-diff** artifact on this run.' >> e2e/__shots__/body.md
+                  fi
+                  cat e2e/__shots__/body.md >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Run regression specs
+              run: pnpm test:e2e:regression
+
+            # The page snapshot in error-context.md is the only way to see
+            # WHAT rendered on the runner when a spec dies in CI but passes
+            # locally. Without this upload the failure is undebuggable.
+            - name: Upload regression artifacts on failure
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: regression-results-${{ github.run_number }}
+                  path: e2e/__results__/
                   retention-days: 7
 
     # Coverage + test-summary aggregator. Mirrors the pattern from
     # peanut-api-ts/.github/workflows/tests.yaml `report` job.
     report:
         runs-on: ubuntu-latest
-        # Wait for format + typecheck + e2e too — the report header says
-        # "all green", which would lie if only unit results were
-        # considered (per CR feedback on PR #1908).
-        needs: [format, typecheck, unit, e2e]
+        # Wait for format + typecheck too — the report header says "all
+        # green", which would lie if only unit results were considered
+        # (per CR feedback on PR #1908).
+        needs: [format, typecheck, unit]
         if: always()
         permissions:
             contents: read
@@ -469,6 +744,33 @@ jobs:
                         memberCache.set(login, ok);
                         return ok;
                       }
+                      // A commit already reachable from `main` or `dev` is permanent: every ref
+                      // carries non_fast_forward + required_signatures with no bypass actors, so it
+                      // can never be rewritten. Judging it a second time only wedges the back-merge
+                      // that carries it — the PR goes red with no branch shape that can clear it.
+                      // Gate new work; the PR that first proposed the commit is where this bites.
+                      const landedCache = new Map();
+                      async function alreadyLanded(sha) {
+                        if (landedCache.has(sha)) return landedCache.get(sha);
+                        let landed = false;
+                        for (const branch of ['main', 'dev']) {
+                          try {
+                            const { data } = await github.rest.repos.compareCommitsWithBasehead({
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              basehead: `${branch}...${sha}`,
+                            });
+                            if (data.status === 'identical' || data.status === 'behind') {
+                              landed = true;
+                              break;
+                            }
+                          } catch (e) {
+                            // Missing branch or unrelated history — not an exemption.
+                          }
+                        }
+                        landedCache.set(sha, landed);
+                        return landed;
+                      }
                       const commits = await github.paginate(github.rest.pulls.listCommits, {
                         owner: context.repo.owner,
                         repo: context.repo.repo,
@@ -476,17 +778,28 @@ jobs:
                         per_page: 100,
                       });
                       const bad = [];
+                      const landed = [];
                       for (const c of commits) {
                         const sha = c.sha.slice(0, 7);
                         const login = c.author && c.author.login;
                         const email = (c.commit.author && c.commit.author.email) || 'unknown';
+                        let problem = null;
                         if (!login) {
-                          bad.push(`${sha}: author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`);
+                          problem = `author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`;
                         } else if (login.endsWith('[bot]')) {
-                          bad.push(`${sha}: authored by ${login} — bot-authored commits are not allowed; commit as yourself`);
+                          problem = `authored by ${login} — bot-authored commits are not allowed; commit as yourself`;
                         } else if (!(await hasWriteAccess(login))) {
-                          bad.push(`${sha}: authored by ${login}, who has no write access to this repo`);
+                          problem = `authored by ${login}, who has no write access to this repo`;
                         }
+                        if (!problem) continue;
+                        if (await alreadyLanded(c.sha)) {
+                          landed.push(`${sha}: ${problem}`);
+                          continue;
+                        }
+                        bad.push(`${sha}: ${problem}`);
+                      }
+                      if (landed.length) {
+                        core.warning(`Already merged to main/dev, so not judged again:\n${landed.join('\n')}`);
                       }
                       if (bad.length) {
                         core.setFailed(`Commits must be authored by a team member:\n${bad.join('\n')}`);
@@ -505,7 +818,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, eslint, typecheck, unit, e2e, report, human-authors]
+        needs: [format, ds-lint, eslint, typecheck, unit, report, human-authors]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -514,10 +827,10 @@ jobs:
                       echo "::error::One or more required jobs failed or were cancelled"
                       echo "Job results:"
                       echo "  format:    ${{ needs.format.result }}"
+                      echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
-                      echo "  e2e:       ${{ needs.e2e.result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"
                       exit 1

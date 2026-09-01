@@ -9,7 +9,7 @@ import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
 import { type UserCapabilities } from '@/types/capabilities'
-import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -141,6 +141,11 @@ export const useMultiPhaseKycFlow = ({
     // completed/abandoned events (LATAM successes fired as kyc_approved with
     // region_intent: None). The last initiated intent wins over the prop.
     const lastIntentRef = useRef<KYCRegionIntent | undefined>(undefined)
+    // Terminal status already reported for the CURRENT attempt. Cleared on each
+    // submission, so a re-opened SDK cannot re-report the same rejection while a
+    // genuinely new rejection after a retry still reports (status alone cannot
+    // tell those apart — liveKycStatus stays REJECTED across both).
+    const reportedRejectionRef = useRef<string | null>(null)
 
     // bridge ToS state
     const [tosLink, setTosLink] = useState<string | null>(null)
@@ -245,6 +250,7 @@ export const useMultiPhaseKycFlow = ({
     const {
         isLoading,
         error,
+        isTerminalError,
         showWrapper,
         accessToken,
         liveKycStatus,
@@ -252,12 +258,14 @@ export const useMultiPhaseKycFlow = ({
         handleRestartIdentity,
         handleSelfHealResubmit,
         handleStartAction,
+        handleFixableRejection,
         handleSdkComplete: originalHandleSdkComplete,
         handleClose,
         refreshToken,
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
         isActionFlow,
+        isMultiLevel,
     } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
 
     // keep ref in sync
@@ -267,20 +275,59 @@ export const useMultiPhaseKycFlow = ({
 
     // refresh user store when kyc status transitions to a non-success state
     // so the drawer/status item reads the updated verification record
+    const prevCapturedStatusRef = useRef<SumsubKycStatus | undefined>(undefined)
     useEffect(() => {
+        // Same defer guard as the transition effect in useSumsubKycFlow: while a
+        // multi-level SDK session is open, ACTION_REQUIRED is the routine "the
+        // follow-up questionnaire is showing" status (the backend maps the
+        // follow-up level's `init` state to it ~3 min after the documents are
+        // submitted). Acting on it here would log a bogus KYC_REJECTED for every
+        // succeeding EEA applicant and flip the user store to action_required
+        // under the open SDK. The effect re-runs when the SDK closes, so an
+        // abandoned session still gets the capture and the store refresh —
+        // unless the close was a submission, which consumes the deferral
+        // (handleSdkComplete / handleSdkClose advance the ref below).
+        if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
+        // Edge-triggered like that sibling effect: the other deps also change
+        // during a resubmit round (setShowWrapper toggles while the status is a
+        // stale REJECTED/ACTION_REQUIRED), which used to fire duplicate
+        // KYC_REJECTED captures and redundant fetchUser calls.
+        const prevStatus = prevCapturedStatusRef.current
+        prevCapturedStatusRef.current = liveKycStatus
+        if (liveKycStatus === prevStatus) return
         if (liveKycStatus === 'ACTION_REQUIRED' || liveKycStatus === 'REJECTED') {
+            if (reportedRejectionRef.current === liveKycStatus) return
+            reportedRejectionRef.current = liveKycStatus
             posthog.capture(ANALYTICS_EVENTS.KYC_REJECTED, {
                 region_intent: lastIntentRef.current ?? regionIntent,
                 status: liveKycStatus,
             })
             fetchUser()
         }
-    }, [liveKycStatus, fetchUser, regionIntent])
+    }, [liveKycStatus, fetchUser, regionIntent, showWrapper, isMultiLevel])
+
+    // A multi-level session never reaches handleSdkComplete on the happy path:
+    // the SDK stays open through the follow-up level and the APPROVED transition
+    // closes it without onComplete. The wrapper reports the Level-1 submit
+    // through onSubmitted instead, so the funnel still gets its KYC_SUBMITTED.
+    const handleSdkSubmitted = useCallback(() => {
+        reportedRejectionRef.current = null
+        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
+    }, [regionIntent])
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
+        reportedRejectionRef.current = null
         posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
         isRealtimeFlowRef.current = true
+        // Deliberately does NOT consume a deferred ACTION_REQUIRED for the capture
+        // effect. On native this callback is ambiguous in a multi-level session:
+        // SumsubNativeSdk marks Pending as submitted, so a Level-1 submit followed
+        // by backing out of Level 2 arrives here exactly like a real completion.
+        // Suppressing the capture and the user-store refresh on that path would
+        // strand the applicant on a stale progress modal. (originalHandleSdkComplete
+        // still consumes for the sibling transition effect — pre-existing, and the
+        // same ambiguity applies to it.)
         originalHandleSdkComplete()
         // for action flows (manteca, self-heal), the base status is already APPROVED
         // and won't transition — directly start the preparing/tracking phase
@@ -480,10 +527,6 @@ export const useMultiPhaseKycFlow = ({
 
     const isModalOpen = isVerificationProgressModalOpen || forceShowModal
 
-    // multi-level only for first-time LATAM (workflow with conditional questionnaire).
-    // cross-region LATAM uses an applicant action (single level, not multi-level).
-    const isMultiLevel = regionIntent === 'LATAM' && !isActionFlow
-
     // Derive preparing stage from elapsed time for progressive copy
     const preparingStage = useMemo<'initial' | 'configuring' | 'slow'>(() => {
         if (preparingElapsed < 3) return 'initial'
@@ -497,8 +540,12 @@ export const useMultiPhaseKycFlow = ({
         handleRestartIdentity,
         handleSelfHealResubmit,
         handleStartAction,
+        handleFixableRejection,
         isLoading,
         error,
+        // terminal = the user has no action that changes the outcome; consumers
+        // must suppress their retry CTA on it (TASK-21882)
+        isTerminalError,
         liveKycStatus,
 
         // SDK wrapper
@@ -506,6 +553,7 @@ export const useMultiPhaseKycFlow = ({
         accessToken,
         handleSdkClose: handleClose,
         handleSdkComplete,
+        handleSdkSubmitted,
         refreshToken,
         isMultiLevel,
 

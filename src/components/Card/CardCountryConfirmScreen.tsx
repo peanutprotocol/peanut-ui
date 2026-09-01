@@ -1,10 +1,12 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useLocale, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { localizedCountryName } from '@/utils/country-name.utils'
 
 interface Props {
@@ -48,26 +50,24 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
 
     if (candidates.length === 0) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-6">
+            <PageStack gap="6">
                 <NavHeader title={t('navAddCard')} onPrev={onPrev} />
                 <div className="my-auto flex flex-col items-center gap-3 text-center">
-                    <h1 className="text-2xl font-extrabold text-n-1">{t('countryConfirm.noCandidatesTitle')}</h1>
-                    <p className="text-grey-1">{t('countryConfirm.noCandidatesBody')}</p>
-                    <button type="button" onClick={onContactSupport} className="text-black underline">
-                        {tCommon('contactSupport')}
-                    </button>
+                    <h1 className="text-heading-s text-foreground-primary">{t('countryConfirm.noCandidatesTitle')}</h1>
+                    <p className="text-foreground-secondary">{t('countryConfirm.noCandidatesBody')}</p>
+                    <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
 
             <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-extrabold text-n-1">{t('countryConfirm.title')}</h1>
-                <p className="text-grey-1">{t('countryConfirm.description')}</p>
+                <h1 className="text-heading-s text-foreground-primary">{t('countryConfirm.title')}</h1>
+                <p className="text-foreground-secondary">{t('countryConfirm.description')}</p>
             </div>
 
             <ul className="flex flex-col gap-3">
@@ -77,8 +77,8 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                             type="button"
                             onClick={() => setSelected(iso2)}
                             aria-pressed={selected === iso2}
-                            className={`w-full rounded-sm border border-n-1 p-4 text-left text-sm font-semibold ${
-                                selected === iso2 ? 'bg-primary-3' : 'bg-white'
+                            className={`w-full rounded-sm border border-border-default p-4 text-left text-body-s font-semibold ${
+                                selected === iso2 ? 'bg-purple-200' : 'bg-background-default'
                             }`}
                         >
                             {localizedCountryName(locale, iso2, iso2)}
@@ -87,7 +87,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
                 ))}
             </ul>
 
-            {submitError && <p className="text-sm text-red">{submitError}</p>}
+            {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 
             <Button
                 variant="purple"
@@ -99,7 +99,7 @@ const CardCountryConfirmScreen: FC<Props> = ({ candidates, onConfirm, onContactS
             >
                 {tCommon('continue')}
             </Button>
-        </div>
+        </PageStack>
     )
 }
 

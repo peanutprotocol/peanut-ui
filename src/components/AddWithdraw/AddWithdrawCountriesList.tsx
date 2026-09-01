@@ -1,6 +1,8 @@
 'use client'
 
 import { COUNTRY_SPECIFIC_METHODS, countryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { Section } from '@/components/0_Bruddle/Section'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -24,7 +26,7 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -464,8 +466,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         }
 
         return (
-            <div className="space-y-2">
-                <h2 className="text-base font-bold">{title}</h2>
+            <Section title={title}>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
@@ -475,13 +476,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             method.id === 'pix-add' &&
                             underMaintenanceConfig.pixBrazilOnrampMaintenance
                         return (
-                            <ActionListCard
+                            <ListItem
                                 key={method.id}
-                                isDisabled={method.isSoon}
+                                disabled={method.isSoon}
                                 title={method.title}
-                                description={method.description}
-                                descriptionClassName={'text-xs'}
-                                leftIcon={
+                                body={<div className="text-body-xs">{method.description}</div>}
+                                leading={
                                     typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
@@ -507,7 +507,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         />
                                     )
                                 }
-                                rightContent={
+                                trailing={
                                     method.isSoon ? (
                                         <StatusBadge status="soon" size="small" />
                                     ) : isPixOnrampUnderMaintenance ? (
@@ -518,6 +518,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         />
                                     ) : null
                                 }
+                                chevron={!method.isSoon && !isPixOnrampUnderMaintenance}
                                 onClick={() => {
                                     if (flow === 'withdraw') {
                                         handleWithdrawMethodClick(method)
@@ -525,25 +526,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         handleAddMethodClick(method)
                                     }
                                 }}
-                                position={
-                                    paymentMethods.length === 1
-                                        ? 'single'
-                                        : index === 0
-                                          ? 'first'
-                                          : index === paymentMethods.length - 1
-                                            ? 'last'
-                                            : 'middle'
-                                }
+                                position={getCardPosition(index, paymentMethods.length)}
                             />
                         )
                     })}
                 </div>
-            </div>
+            </Section>
         )
     }
 
     return (
-        <div className="w-full space-y-8 self-start">
+        <div className="space-y-8 w-full self-start">
             <NavHeader
                 title={localizedCountryTitle(locale, currentCountry)}
                 onPrev={() => {

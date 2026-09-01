@@ -8,26 +8,37 @@
  *      is inline `style={{ fill: 'none' }}` in LucideWrapper which beats
  *      class-level CSS on specificity. This spec verifies the inline style is
  *      set on every `svg.lucide` — pure DOM assertion, no screenshots.
- *   2. All Lucide icons render at `stroke-width="2"` (Lucide default, matches
- *      lucide.dev) — never `2.25` or any override.
+ *   2. Every icon carries the stroke weight its viewBox asks for. Lucide draws
+ *      at stroke-width 2 on a 24-unit grid, and Icon.tsx crops seven icons to
+ *      a 20-unit viewBox (VIEWBOX_BOOST), which scales the stroke down to
+ *      2 × 20/24. Both cases are the one rule `2 × span / 24`, so the check
+ *      reads each icon's own viewBox instead of naming the seven.
  *
- * No harness auth needed — purely renders dev pages.
+ * No API and no login. `?__fixture=home` writes the fake session the app layout
+ * needs to render anything — see src/dev/fixtures/active.ts. Any fixture name
+ * does; these pages call no API of their own.
  */
 
 import { test, expect } from '@playwright/test'
 
 test.describe('Icon rendering regression', () => {
-    test('every icon on /dev/ds/foundations/icons has inline fill:none and stroke-width=2', async ({ page }) => {
-        await page.goto('/dev/ds/foundations/icons', { waitUntil: 'domcontentloaded' })
+    test('every icon on /dev/ds/foundations/icons has inline fill:none and the stroke its viewBox asks for', async ({
+        page,
+    }) => {
+        await page.goto('/dev/ds/foundations/icons?__fixture=home', { waitUntil: 'domcontentloaded' })
 
-        // Dev-mode compile + client hydration can take a while on first hit.
-        await page.waitForSelector('svg.lucide', { timeout: 60_000 })
+        // 'attached', not 'visible': the assertions below read attributes, and
+        // on a slow CI runner the icon grid can sit at zero size (fonts/layout
+        // pending) long after the SVGs are in the DOM.
+        await page.waitForSelector('svg.lucide', { state: 'attached', timeout: 120_000 })
 
         const attrs = await page.$$eval('svg.lucide', (nodes) =>
             nodes.map((n) => ({
                 name: n.className.baseVal.match(/lucide-[a-z0-9-]+/g)?.slice(-1)[0] ?? 'unknown',
                 inlineFill: (n as SVGSVGElement).style.fill,
-                strokeWidth: n.getAttribute('stroke-width'),
+                strokeWidth: Number(n.getAttribute('stroke-width')),
+                // Third number of "minX minY width height" — the grid the icon draws on.
+                span: Number((n.getAttribute('viewBox') ?? '0 0 24 24').split(' ')[2]),
             }))
         )
 
@@ -36,17 +47,20 @@ test.describe('Icon rendering regression', () => {
         const badFill = attrs.filter((a) => a.inlineFill !== 'none' && a.inlineFill !== 'currentcolor')
         expect(badFill, `Lucide icons with unexpected inline fill: ${JSON.stringify(badFill)}`).toEqual([])
 
-        const badStroke = attrs.filter((a) => a.strokeWidth !== '2')
-        expect(badStroke, `Lucide icons with non-default stroke-width: ${JSON.stringify(badStroke)}`).toEqual([])
+        const badStroke = attrs.filter((a) => Math.abs(a.strokeWidth - (2 * a.span) / 24) > 0.001)
+        expect(
+            badStroke,
+            `Lucide icons whose stroke does not match their viewBox: ${JSON.stringify(badStroke)}`
+        ).toEqual([])
     })
 
     test('icons inside button elements keep fill:none (the /setup blob regression)', async ({ page }) => {
         // The dev icons page puts every icon in a grid card — not inside <button> tags.
         // Use the DS playground's button showcase which renders buttons with icons in them.
-        await page.goto('/dev/ds/primitives/button', { waitUntil: 'domcontentloaded' })
-        await page.waitForSelector('button svg.lucide', { timeout: 60_000 }).catch(() => {
-            // Fallback: if button-showcase doesn't have icons, try the icons page itself.
-        })
+        await page.goto('/dev/ds/primitives/button?__fixture=home', { waitUntil: 'domcontentloaded' })
+        // no catch: a swallowed timeout here let this test pass green against
+        // a 404 page (zero icons found → empty loop → pass).
+        await page.waitForSelector('button svg.lucide', { state: 'attached', timeout: 60_000 })
 
         // Check every lucide SVG currently on the page (whether inside button or not).
         const all = await page.$$eval('svg.lucide', (nodes) =>

@@ -103,6 +103,13 @@ export const TERMINAL_REJECT_LABELS = new Set([
     'PEP',
     'SANCTIONS',
     'DUPLICATE',
+    // Jurisdictional blocks. A retry cannot pass one of these — the document's
+    // country is unacceptable, not the document — so no surface may offer
+    // "try again". These two drive the region-restricted screen (the BE
+    // classifies them into identityVerification.reason); listing them here is
+    // what stops the OTHER surfaces from contradicting it with a retry CTA.
+    'WRONG_USER_REGION',
+    'REGULATIONS_VIOLATIONS',
 ])
 
 /** check if any of the reject labels indicate a terminal (permanent) rejection */
@@ -123,6 +130,13 @@ export const isTerminalRejection = ({
     rejectLabels?: string[] | null
 }): boolean => {
     if (rejectType === 'FINAL' || rejectType === 'PROVIDER_FINAL') return true
+    // An explicit RETRY is the provider (or our backend read-model, via
+    // `canRetry`) stating the user CAN resubmit, and it outranks everything
+    // below — which are heuristics for when no such statement exists. Labels in
+    // particular are retained from an earlier decision when a later one carries
+    // none, so a stale FORGERY could otherwise deny a retry the backend just
+    // authorized and route the user to support for nothing.
+    if (rejectType === 'RETRY' || rejectType === 'PROVIDER_FIXABLE') return false
     if (failureCount && failureCount >= MAX_RETRY_COUNT) return true
     if (rejectLabels?.length && hasTerminalRejectLabel(rejectLabels)) return true
     return false

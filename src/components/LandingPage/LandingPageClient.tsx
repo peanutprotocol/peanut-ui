@@ -21,6 +21,7 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
 import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
+import type { LandingContentHrefs } from './landingContentHrefs'
 
 // Split out: the carousel drags the whole testimonials manifest (~64 KB of
 // JSON) into whatever chunk imports it, and it renders far below the fold.
@@ -35,6 +36,7 @@ type LandingPageClientProps = {
     marqueeMessages: string[]
     locale: Locale
     strings: LandingStrings
+    contentHrefs: LandingContentHrefs
     // Server-rendered slots
     problemSlot: ReactNode
     mantecaSlot: ReactNode
@@ -52,6 +54,7 @@ export function LandingPageClient({
     marqueeMessages,
     locale,
     strings,
+    contentHrefs,
     problemSlot,
     mantecaSlot,
     regulatedRailsSlot,
@@ -98,8 +101,6 @@ export function LandingPageClient({
         }
     }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
 
-    // Memoized: this component re-renders per scroll frame during the button
-    // animation — don't rebuild the FAQ array + rich answer element each time.
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
     const [buttonScale, setButtonScale] = useState(1)
@@ -236,24 +237,24 @@ export function LandingPageClient({
     // edit there just drops out of this map and renders unlinked.
     const marqueeProps = useMemo(() => {
         const hrefs: Record<string, string> = {
-            'No transfer fees': `/${locale}/pricing`,
-            USD: `/${locale}/help/what-are-digital-dollars`,
-            EUR: `/${locale}/help/send-euros-argentina`,
-            'USDT/USDC': `/${locale}/blog/stablecoin-balance-visa-merchants`,
-            GLOBAL: `/${locale}/help/supported-geographies`,
-            'SELF-CUSTODIAL': `/${locale}/help/security-custody`,
+            'No transfer fees': contentHrefs.pricing,
+            USD: contentHrefs.whatAreDigitalDollars,
+            EUR: contentHrefs.sendEurosArgentina,
+            'USDT/USDC': contentHrefs.stablecoinBalanceVisaMerchants,
+            GLOBAL: contentHrefs.supportedGeographies,
+            'SELF-CUSTODIAL': contentHrefs.securityCustody,
             // /support is only a permanent redirect to /en/help, so linking it
             // would drop es/pt readers into English while its neighbours stay localized
-            '24/7': `/${locale}/help`,
+            '24/7': contentHrefs.help,
         }
         return {
             visible: true,
             message: marqueeMessages.map((word) => (hrefs[word] ? { label: word, href: hrefs[word] } : word)),
         }
-    }, [marqueeMessages, locale])
+    }, [contentHrefs, marqueeMessages])
 
-    // Memoized for the same reason as faqQuestions above — this component
-    // re-renders per scroll frame while the send button grows.
+    // Memoized because this component re-renders per scroll frame while the
+    // send button grows.
     const doorMarqueeProps = useMemo(
         () => ({
             visible: true,
@@ -282,7 +283,7 @@ export function LandingPageClient({
                         <div className="flex flex-col items-center">
                             <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
                             {heroConfig.primaryCta.subtext && (
-                                <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">
+                                <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">
                                     {heroConfig.primaryCta.subtext}
                                 </span>
                             )}
@@ -303,7 +304,7 @@ export function LandingPageClient({
                Without this boundary, the entire LandingPageClient suspends during SSR,
                sending an empty HTML shell to crawlers and killing SEO. */}
             <Suspense>
-                <NoFees locale={locale} strings={strings} />
+                <NoFees strings={strings} contentHrefs={contentHrefs} />
             </Suspense>
             <Marquee {...marqueeProps} />
             {yourMoneySlot}

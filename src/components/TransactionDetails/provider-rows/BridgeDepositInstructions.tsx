@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import MoreInfo from '@/components/Global/MoreInfo'
@@ -30,7 +30,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
 
     return (
         <>
-            <PaymentInfoRow
+            <DataRow
                 label={
                     <div className="flex items-center gap-1">
                         <span>{t('bridge.depositMessage')}</span>
@@ -49,14 +49,13 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                         />
                     </div>
                 }
-                hideBottomBorder={false}
             />
 
             {/* Toggle button for bank details */}
-            <div className="border-grey-11 border-b pb-3">
+            <div className="pb-3">
                 <button
                     onClick={() => setShowBankDetails(!showBankDetails)}
-                    className="flex w-full items-center justify-between py-3 text-left text-sm font-normal text-black underline transition-colors"
+                    className="flex w-full items-center justify-between py-3 text-left text-body-s font-normal text-foreground-primary underline transition-colors duration-instant"
                 >
                     <span>{showBankDetails ? t('bridge.hideBankDetails') : t('bridge.seeBankDetails')}</span>
                     <Icon
@@ -70,13 +69,12 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
             {showBankDetails && (
                 <>
                     {/* resolveBridgeAccountHolderName maps Bridge's stale/absent legal entity name to the current one (Sp. Z.o.o. -> S.A.) */}
-                    <PaymentInfoRow
+                    <DataRow
                         label={t('bridge.accountHolderName')}
                         value={resolveBridgeAccountHolderName(instructions.account_holder_name)}
                         allowCopy
-                        hideBottomBorder={false}
                     />
-                    <PaymentInfoRow
+                    <DataRow
                         label={t('bridge.bankName')}
                         value={
                             <div className="flex items-center gap-2">
@@ -84,9 +82,8 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                 <CopyToClipboard textToCopy={instructions.bank_name} iconSize="4" />
                             </div>
                         }
-                        hideBottomBorder={true}
                     />
-                    <PaymentInfoRow
+                    <DataRow
                         label={t('bridge.bankAddress')}
                         value={
                             <div className="flex items-center gap-2">
@@ -94,13 +91,12 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                 <CopyToClipboard textToCopy={instructions.bank_address} iconSize="4" />
                             </div>
                         }
-                        hideBottomBorder={false}
                     />
 
                     {instructions.clabe ? (
                         // Mexican format (SPEI) — CLABE is the canonical 18-digit
                         // bank reference; account/routing aren't applicable.
-                        <PaymentInfoRow
+                        <DataRow
                             label="CLABE"
                             value={
                                 <div className="flex items-center gap-2">
@@ -109,12 +105,11 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                 </div>
                             }
                             allowCopy
-                            hideBottomBorder
                         />
                     ) : instructions.iban && instructions.bic ? (
                         // European format (IBAN/BIC)
                         <>
-                            <PaymentInfoRow
+                            <DataRow
                                 label="IBAN"
                                 value={
                                     <div className="flex items-center gap-2">
@@ -122,9 +117,8 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                         <CopyToClipboard textToCopy={formatIban(instructions.iban)} iconSize="4" />
                                     </div>
                                 }
-                                hideBottomBorder={true}
                             />
-                            <PaymentInfoRow
+                            <DataRow
                                 label="BIC"
                                 value={
                                     <div className="flex items-center gap-2">
@@ -132,24 +126,13 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                         <CopyToClipboard textToCopy={instructions.bic} iconSize="4" />
                                     </div>
                                 }
-                                hideBottomBorder={true}
                             />
                         </>
                     ) : instructions.sort_code && instructions.account_number ? (
                         // UK faster_payments format (Sort Code/Account Number)
                         <>
-                            <PaymentInfoRow
-                                label={t('bridge.sortCode')}
-                                value={instructions.sort_code}
-                                allowCopy
-                                hideBottomBorder
-                            />
-                            <PaymentInfoRow
-                                label={t('rows.accountNumber')}
-                                value={instructions.account_number}
-                                allowCopy
-                                hideBottomBorder
-                            />
+                            <DataRow label={t('bridge.sortCode')} value={instructions.sort_code} allowCopy />
+                            <DataRow label={t('rows.accountNumber')} value={instructions.account_number} allowCopy />
                         </>
                     ) : (
                         // US format (Account Number/Routing Number + optional beneficiary).
@@ -159,7 +142,7 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                         // renders or copies `undefined`.
                         <>
                             {instructions.bank_account_number && (
-                                <PaymentInfoRow
+                                <DataRow
                                     label={t('rows.accountNumber')}
                                     value={
                                         <div className="flex items-center gap-2">
@@ -170,11 +153,10 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                             />
                                         </div>
                                     }
-                                    hideBottomBorder={false}
                                 />
                             )}
                             {instructions.bank_routing_number && (
-                                <PaymentInfoRow
+                                <DataRow
                                     label={t('bridge.routingNumber')}
                                     value={
                                         <div className="flex items-center gap-2">
@@ -185,11 +167,10 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                             />
                                         </div>
                                     }
-                                    hideBottomBorder={false}
                                 />
                             )}
                             {instructions.bank_beneficiary_name && (
-                                <PaymentInfoRow
+                                <DataRow
                                     label={t('bridge.beneficiaryName')}
                                     value={
                                         <div className="flex items-center gap-2">
@@ -200,11 +181,10 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                             />
                                         </div>
                                     }
-                                    hideBottomBorder={true}
                                 />
                             )}
                             {instructions.bank_beneficiary_address && (
-                                <PaymentInfoRow
+                                <DataRow
                                     label={t('bridge.beneficiaryAddress')}
                                     value={
                                         <div className="flex items-center gap-2">
@@ -215,7 +195,6 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                                             />
                                         </div>
                                     }
-                                    hideBottomBorder={true}
                                 />
                             )}
                         </>

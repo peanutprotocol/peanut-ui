@@ -141,11 +141,38 @@ export function getNativeRpId(): string {
  * - on web: window.open with _blank
  * - in capacitor: uses @capacitor/browser plugin
  */
+/*
+ * Whether OUR in-app browser sheet is (probably) up — set on every
+ * openExternalUrl, cleared by browserFinished (wired in useNativeAppLinks) and
+ * by closeInAppBrowser. Lets a deep link that arrives while the sheet is open
+ * (the Persona/Bridge KYC return leg) close it before navigating, instead of
+ * routing underneath a full-screen browser.
+ */
+let inAppBrowserOpen = false
+
+export function markInAppBrowserClosed(): void {
+    inAppBrowserOpen = false
+}
+
+export async function closeInAppBrowser(): Promise<void> {
+    if (!inAppBrowserOpen || !isCapacitor()) return
+    inAppBrowserOpen = false
+    try {
+        const { Browser } = await import('@capacitor/browser')
+        await Browser.close()
+    } catch {
+        // Browser.close rejects when the sheet is already gone — fine.
+    }
+}
+
 export async function openExternalUrl(url: string): Promise<void> {
     if (isCapacitor()) {
         const { Browser } = await import('@capacitor/browser')
+        inAppBrowserOpen = true
         await Browser.open({ url })
-    } else {
-        window.open(url, '_blank')
+    } else if (!window.open(url, '_blank')) {
+        // WhatsApp/Instagram in-app browsers block window.open — the guest
+        // store bounce was a silent dead tap there. Navigate in place instead.
+        window.location.assign(url)
     }
 }

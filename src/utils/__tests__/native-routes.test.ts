@@ -9,6 +9,7 @@ jest.mock('@/utils/capacitor', () => ({
 const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>
 
 import {
+    redactNativePath,
     profileUrl,
     sendUrl,
     requestUrl,
@@ -21,11 +22,30 @@ import {
     withdrawBankUrl,
     rewriteMethodPath,
     deepLinkToNativePath,
+    isNativeExportPath,
 } from '../native-routes'
 
 describe('native-routes', () => {
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    describe('isNativeExportPath', () => {
+        it('accepts roots the export ships, regardless of params or depth', () => {
+            expect(isNativeExportPath('/home')).toBe(true)
+            expect(isNativeExportPath('/home?x=1')).toBe(true)
+            expect(isNativeExportPath('/profile/backup')).toBe(true)
+            expect(isNativeExportPath('/shhhhh')).toBe(true)
+            expect(isNativeExportPath('/')).toBe(true)
+        })
+
+        it('rejects web-only roots (marketing, help, legal, locale prefixes)', () => {
+            expect(isNativeExportPath('/en/help')).toBe(false)
+            expect(isNativeExportPath('/en/help/fees-pricing?to=ARS')).toBe(false)
+            expect(isNativeExportPath('/terms')).toBe(false)
+            expect(isNativeExportPath('/blog/some-post')).toBe(false)
+            expect(isNativeExportPath('/careers')).toBe(false)
+        })
     })
 
     describe('capacitor mode', () => {
@@ -132,9 +152,9 @@ describe('native-routes', () => {
                 expect(rewriteMethodPath('/withdraw/crypto')).toBe('/withdraw/crypto')
             })
 
-            it('should rewrite /add-money/crypto as dynamic (no static exception for add-money)', () => {
-                // note: add-money does NOT have a static route exception for crypto
-                expect(rewriteMethodPath('/add-money/crypto')).toBe('/add-money?country=crypto')
+            it('should not rewrite /add-money/crypto or /add-money/us (static routes)', () => {
+                expect(rewriteMethodPath('/add-money/crypto')).toBe('/add-money/crypto')
+                expect(rewriteMethodPath('/add-money/us')).toBe('/add-money/us')
             })
 
             it('should append extraParams to rewritten add-money path', () => {
@@ -495,5 +515,188 @@ describe('native-routes', () => {
                 )
             })
         })
+    })
+
+    // 2026-08 native-links review coverage: the "My QR" payload, the legacy
+    // /request/pay shape, bare-origin push links, static add-money subroutes,
+    // and web-only roots.
+    describe('deepLinkToNativePath — review additions', () => {
+        describe('capacitor mode', () => {
+            beforeEach(() => {
+                mockIsCapacitor.mockReturnValue(true)
+            })
+
+            it('maps /pay/<user> — the "My QR" payload — onto the send dispatcher', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send?recipient=alice')
+            })
+
+            it('maps legacy /request/pay?id=<chargeUuid> as a CHARGE, not user "pay"', () => {
+                expect(deepLinkToNativePath('https://peanut.me/request/pay?id=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('still maps /request/<user> to the request screen', () => {
+                expect(deepLinkToNativePath('https://peanut.me/request/alice')).toBe('/request?recipient=alice')
+            })
+
+            it('maps the bare-origin shapes legacy pushes and inbox rows carry', () => {
+                expect(deepLinkToNativePath('https://peanut.me?id=req-123')).toBe('/pay-request?id=req-123')
+                expect(deepLinkToNativePath('https://peanut.me/?chargeId=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('drops the truly bare origin', () => {
+                expect(deepLinkToNativePath('https://peanut.me')).toBeNull()
+            })
+
+            it('keeps the static add-money subroutes instead of rewriting them to ?country=', () => {
+                expect(deepLinkToNativePath('/add-money/crypto')).toBe('/add-money/crypto')
+                expect(deepLinkToNativePath('/add-money/us')).toBe('/add-money/us')
+            })
+
+            it('returns null for web-only roots so the caller opens them in the in-app browser', () => {
+                expect(deepLinkToNativePath('https://peanut.me/help')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/blog/some-post')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/terms')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/es-419/pricing')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/foodie')).toBeNull()
+            })
+
+            it('keeps roots the native export ships', () => {
+                expect(deepLinkToNativePath('https://peanut.me/home')).toBe('/home')
+                expect(deepLinkToNativePath('https://peanut.me/card')).toBe('/card')
+                expect(deepLinkToNativePath('https://peanut.me/pay-request?chargeId=x')).toBe('/pay-request?chargeId=x')
+                // outside (mobile-ui) but shipped in the export and linked from /profile
+                expect(deepLinkToNativePath('https://peanut.me/shhhhh')).toBe('/shhhhh')
+            })
+        })
+
+        describe('web mode', () => {
+            beforeEach(() => {
+                mockIsCapacitor.mockReturnValue(false)
+            })
+
+            it('maps /pay/<user> to the send route (mirror of the web page redirect)', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send/alice')
+            })
+
+            it('maps legacy /request/pay?id= to pay-request on web too', () => {
+                expect(deepLinkToNativePath('https://peanut.me/request/pay?id=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('keeps web-only roots as-is', () => {
+                expect(deepLinkToNativePath('https://peanut.me/help')).toBe('/help')
+            })
+
+            it('maps the bare-origin id shape to pay-request', () => {
+                expect(deepLinkToNativePath('https://peanut.me?id=req-123')).toBe('/pay-request?id=req-123')
+            })
+        })
+    })
+
+    /*
+     * AASA drift guard: every path root claimed for the app in
+     * public/.well-known/apple-app-site-association must map to a native page
+     * (directly or via a rewrite). A root added to the AASA without a mapper
+     * branch ships an App Link that cold-boots the app to /home — the exact
+     * class of bug the 2026-08 native-links review closed. The Android
+     * intent-filter list mirrors the AASA, so this guards both platforms.
+     */
+    describe('AASA path list maps into the native export', () => {
+        beforeEach(() => {
+            mockIsCapacitor.mockReturnValue(true)
+        })
+
+        // extension-less JSON — require() won't parse it
+        const { readFileSync } = require('fs')
+        const { join } = require('path')
+        const aasa = JSON.parse(
+            readFileSync(join(process.cwd(), 'public/.well-known/apple-app-site-association'), 'utf8')
+        )
+        const roots = new Set<string>(
+            aasa.applinks.details
+                .flatMap((d: { paths: string[] }) => d.paths)
+                .map((p: string) => p.split('/').filter(Boolean)[0])
+                .filter(Boolean)
+        )
+
+        // A representative deep link per claimed root — dynamic roots get a
+        // realistic sample; static roots are tested bare.
+        const SAMPLE_BY_ROOT: Record<string, string> = {
+            claim: '/claim?c=42161&v=v4.2&i=99#p=pw',
+            pay: '/pay/alice',
+            'pay-request': '/pay-request?chargeId=x',
+            send: '/send/alice',
+            request: '/request/alice',
+            qr: '/qr/CODE123',
+            'add-money': '/add-money/belgium/bank',
+            withdraw: '/withdraw/be/bank',
+            receipt: '/receipt/intent-1?kind=ONRAMP',
+            profile: '/profile',
+            invite: '/invite?code=alice',
+        }
+
+        it.each([...roots])('claimed root %s resolves to a native path', (root) => {
+            const sample = SAMPLE_BY_ROOT[root] ?? `/${root}`
+            expect(deepLinkToNativePath(`https://peanut.me${sample}`)).not.toBeNull()
+        })
+    })
+})
+
+describe('redactNativePath (deep-link telemetry)', () => {
+    // The BLOCKING finding: the code lives in a path segment, so stripping
+    // only query and fragment left an unclaimed, claimable QR code readable
+    // in analytics.
+    it('replaces a QR code in the path with a placeholder', () => {
+        expect(redactNativePath('https://peanut.me/qr/aB3xK9mQ2pL7vN4z')).toBe('https://peanut.me/qr/:id')
+    })
+
+    it('replaces the code but keeps a known static sub-view', () => {
+        expect(redactNativePath('/qr/aB3xK9mQ2pL7vN4z/success')).toBe('/qr/:id/success')
+    })
+
+    it('still drops the query and the fragment', () => {
+        expect(redactNativePath('/claim?c=8453&v=v4.2#p=SUPERSECRET')).toBe('/claim')
+    })
+
+    it('redacts other identifier-bearing routes', () => {
+        expect(redactNativePath('/receipt/9f1c2b3a')).toBe('/receipt/:id')
+        expect(redactNativePath('/profile/somebody')).toBe('/profile/:id')
+        expect(redactNativePath('/claim/abc123')).toBe('/claim/:id')
+    })
+
+    it('keeps a bare route family unchanged', () => {
+        expect(redactNativePath('https://peanut.me/home')).toBe('https://peanut.me/home')
+        expect(redactNativePath('/settings')).toBe('/settings')
+    })
+
+    it('keeps the country placeholder out but preserves the view', () => {
+        expect(redactNativePath('/add-money/belgium/bank')).toBe('/add-money/:id/bank')
+    })
+
+    // Fail closed: a route that is not declared must degrade to a placeholder
+    // rather than pass an unknown identifier through.
+    it('redacts an undeclared root instead of trusting it', () => {
+        expect(redactNativePath('/not-a-declared-route/secret-value')).toBe('/:id/:id')
+    })
+
+    // A locale or other prefix must not shift the root out of a positional
+    // window and turn the whole path into placeholders.
+    it('finds the route family behind a prefix segment', () => {
+        expect(redactNativePath('/es/qr/aB3xK9mQ2pL7vN4z')).toBe('/:id/qr/:id')
+    })
+
+    it('preserves a custom scheme host', () => {
+        expect(redactNativePath('peanut://qr/aB3xK9mQ2pL7vN4z')).toBe('peanut://qr/:id')
+    })
+
+    it('handles a trailing slash and an empty path', () => {
+        expect(redactNativePath('/qr/')).toBe('/qr/')
+        expect(redactNativePath('/')).toBe('/')
+        expect(redactNativePath('')).toBe('')
     })
 })

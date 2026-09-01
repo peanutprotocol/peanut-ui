@@ -5,8 +5,8 @@ export default function FoundationsPage() {
     return (
         <DocPage>
             <div>
-                <h1 className="text-h3">Foundations</h1>
-                <p className="mt-1 text-sm text-grey-1">
+                <h1 className="text-heading-m">Foundations</h1>
+                <p className="mt-1 text-body-s text-foreground-secondary">
                     Design tokens, visual primitives, and systemic building blocks.
                 </p>
             </div>

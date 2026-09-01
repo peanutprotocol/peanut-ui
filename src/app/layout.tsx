@@ -6,10 +6,14 @@ import Script from 'next/script'
 import '../styles/globals.css'
 import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
+import { isProductionDomain } from '@/constants/seo-route-policy'
 import { type Metadata } from 'next'
 
 const baseUrl = BASE_URL || 'https://peanut.me'
-const IS_PRODUCTION_DOMAIN = baseUrl === 'https://peanut.me'
+// Fail closed on the raw env (see isProductionDomain): BASE_URL deliberately
+// falls back to production for links, but that fallback must not make an
+// unset preview environment indexable.
+const IS_PRODUCTION_DOMAIN = isProductionDomain(process.env.NEXT_PUBLIC_BASE_URL)
 
 export const metadata: Metadata = {
     title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
@@ -17,11 +21,13 @@ export const metadata: Metadata = {
         'Peanut is a money app for people who cross borders — send and receive money globally, spend with the Peanut Card, cash in and out through local rails.',
     metadataBase: new URL(baseUrl),
     icons: { icon: '/favicon.ico' },
-    alternates: { canonical: '/' },
     keywords:
         'peer-to-peer payments, send money instantly, request money, fast global transfers, remittances, digital dollar transfers, Latin America, Argentina, Brazil, P2P payments, crypto payments, stablecoin, digital dollars',
-    // Block staging/preview deploys from indexing (belt-and-suspenders with robots.ts)
-    robots: IS_PRODUCTION_DOMAIN ? { index: true, follow: true } : { index: false, follow: false },
+    // Canonicals belong to leaf pages: a root canonical here would be inherited
+    // by app routes and falsely cluster them with the homepage. Index/follow is
+    // also the production default, so emit robots metadata only as a staging /
+    // preview belt-and-suspenders guard.
+    ...(IS_PRODUCTION_DOMAIN ? {} : { robots: { index: false, follow: false } }),
     openGraph: {
         type: 'website',
         title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
@@ -138,6 +144,11 @@ export const viewport: Viewport = {
     userScalable: false,
     colorScheme: 'light',
     viewportFit: 'cover',
+    // Renders <meta name="theme-color">, which Android Chrome applies
+    // immediately (browser tab AND installed PWA) and which overrides a
+    // cached manifest theme_color — the manifest alone left the status
+    // strip black until Chrome's day-scale manifest refresh.
+    themeColor: '#FAF4F0',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -145,7 +156,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const apiHostname = new URL(PEANUT_API_URL).origin
 
     return (
-        <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
+        <html
+            lang="en"
+            style={{ colorScheme: 'light' }}
+            data-theme="light"
+            className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable}`}
+        >
             <head>
                 <meta name="color-scheme" content="light" />
 
@@ -260,9 +276,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         </>
                     )}
             </head>
-            <body
-                className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
-            >
+            {/* font variable classes live on <html>: @theme vars like --font-sans
+                substitute var(--font-roboto) at :root, so the next/font vars must
+                be defined there — on <body> the :root substitution fails and every
+                font-sans consumer falls back to the system font */}
+            <body className="chakra-ui-light font-sans">
                 <ClientProviders>{children}</ClientProviders>
             </body>
         </html>

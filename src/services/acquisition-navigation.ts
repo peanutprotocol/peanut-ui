@@ -5,10 +5,10 @@ export type AcquisitionNavigation = {
     destination: AcquisitionDestination
 }
 
-export const OFFRAMP_MIGRATION_ROUTE = '/add-money/crypto?network=EVM&source=offramp'
-
+// the offramp migration surface is gone (TASK-20535); the enum member survives
+// only because the backend can still emit it until its registry flip deploys.
 const DESTINATION_ROUTES: Readonly<Record<AcquisitionDestination, string>> = {
-    offramp_migration: OFFRAMP_MIGRATION_ROUTE,
+    offramp_migration: '/home',
     normal_app: '/home',
 }
 

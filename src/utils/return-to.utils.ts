@@ -1,3 +1,4 @@
+import { isSameRoute } from '@/constants/routes'
 import { sanitizeRedirectURL } from './general.utils'
 
 /**
@@ -39,9 +40,8 @@ export const readReturnTo = (searchParams: ReadonlyParams, currentPathname?: str
 
     if (currentPathname) {
         const targetPathname = sanitized.split(/[?#]/)[0]
-        // trailing slash is not a meaningful difference for Next.js routes
-        const normalize = (path: string) => (path.length > 1 ? path.replace(/\/+$/, '') : path)
-        if (normalize(targetPathname) === normalize(currentPathname)) return null
+        // isSameRoute owns the one trailing-slash rule for the whole app
+        if (isSameRoute(currentPathname, targetPathname)) return null
     }
 
     return sanitized

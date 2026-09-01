@@ -54,7 +54,9 @@
             "custom": "Personalizado",
             "unknown": "Desconhecido"
         },
-        "exchangeRate": "Taxa de câmbio"
+        "exchangeRate": "Taxa de câmbio",
+        "slideToProceed": "Deslize para continuar",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
@@ -64,6 +66,7 @@
         "notDeployedOnChain": "O Bulk não está disponível nesta rede, tente outra rede.",
         "userRejectedRequest": "Confirme a solicitação na sua carteira.",
         "networkError": "Ocorreu um erro de rede. Atualize a página e tente novamente.",
+        "connectionLost": "Conexão perdida. Verifique sua conexão com a internet e tente novamente.",
         "nonceExpired": "O nonce expirou, tente novamente.",
         "walletNotConnected": "Verifique se a sua carteira está conectada.",
         "gasExceedsAllowance": "O gas necessário excede o seu saldo. Confirme se você tem fundos suficientes.",
@@ -101,7 +104,8 @@
         "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
         "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
-        "loginIncomplete": "O login não foi concluído. Tente novamente."
+        "loginIncomplete": "O login não foi concluído. Tente novamente.",
+        "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes."
     },
     "migration": {
         "downloadPrompt": {
@@ -137,6 +141,27 @@
             "redirecting": "Levando você para a loja…",
             "pickStore": "Escolha sua loja e baixe o app."
         }
+    },
+    "navigation": {
+        "home": "Início",
+        "send": "Enviar",
+        "request": "Cobrar",
+        "add": "Adicionar",
+        "withdraw": "Sacar",
+        "history": "Histórico",
+        "docs": "Docs",
+        "support": "Suporte",
+        "logout": "Sair",
+        "loggingOut": "Saindo...",
+        "dashboard": "Painel",
+        "pay": "Pagar",
+        "cashout": "Saque",
+        "claim": "Resgatar",
+        "peanutLogoAlt": "Logo da Peanut",
+        "receipt": "Recibo",
+        "supportUnread": "Nova resposta do suporte",
+        "card": "Cartão",
+        "scanQr": "Escanear QR"
     },
     "shhhhh": {
         "hero": {

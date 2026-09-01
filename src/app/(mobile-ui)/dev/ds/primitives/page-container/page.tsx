@@ -22,7 +22,7 @@ export default function PageContainerPage() {
 
             <DocSection title="Usage">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Wraps mobile screens with responsive width constraints. Children inherit full width via the{' '}
                         <code className="font-mono">*:w-full</code> selector. On desktop (md+), content is offset with{' '}
                         <code className="font-mono">md:pl-24</code> and capped at{' '}

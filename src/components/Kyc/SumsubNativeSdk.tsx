@@ -35,6 +35,8 @@ export const SumsubNativeSdk = ({
     onComplete,
     onError,
     onRefreshToken,
+    onSubmitted,
+    isMultiLevel,
 }: SumsubSdkProps) => {
     const t = useTranslations('kyc')
     const locale = useLocale()
@@ -45,6 +47,8 @@ export const SumsubNativeSdk = ({
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
     const accessTokenRef = useRef(accessToken)
+    const isMultiLevelRef = useRef(isMultiLevel)
+    const onSubmittedRef = useRef(onSubmitted)
     const sumsubLocaleRef = useRef(toSumsubLocale(locale))
 
     useEffect(() => {
@@ -53,7 +57,9 @@ export const SumsubNativeSdk = ({
         onErrorRef.current = onError
         onRefreshTokenRef.current = onRefreshToken
         accessTokenRef.current = accessToken
-    }, [onClose, onComplete, onError, onRefreshToken, accessToken])
+        isMultiLevelRef.current = isMultiLevel
+        onSubmittedRef.current = onSubmitted
+    }, [onClose, onComplete, onError, onRefreshToken, accessToken, isMultiLevel, onSubmitted])
 
     useEffect(() => {
         sumsubLocaleRef.current = toSumsubLocale(locale)
@@ -116,9 +122,24 @@ export const SumsubNativeSdk = ({
                     // The promise resolves on close, whatever the user did — so
                     // the status decides between "submitted, go show progress"
                     // and "backed out, just close".
-                    if (hasSubmitted || SUBMITTED_STATES.has(result?.status ?? '')) {
+                    //
+                    // Multi-level cannot trust `hasSubmitted` on its own: Pending
+                    // fires after Level 1 with the questionnaire still outstanding,
+                    // so a Level-1 submit followed by backing out of Level 2 looks
+                    // identical to a finished workflow. The plugin dismisses after
+                    // the LAST level, so there a close whose OWN status is not a
+                    // submitted one is the user leaving mid-workflow — report it as
+                    // a close, or the flow hooks consume the deferred
+                    // ACTION_REQUIRED and strand them on a stale progress modal.
+                    // Single-level keeps trusting `hasSubmitted`: one submit IS the
+                    // whole flow there, and the closing status often lies (Initial).
+                    const closedSubmitted = SUBMITTED_STATES.has(result?.status ?? '')
+                    if (isMultiLevelRef.current ? closedSubmitted : hasSubmitted || closedSubmitted) {
                         onCompleteRef.current()
                     } else {
+                        // The level they DID finish still counts for the funnel —
+                        // routing this as a close must not also lose the submit.
+                        if (hasSubmitted) onSubmittedRef.current?.()
                         onCloseRef.current()
                     }
                 },
@@ -155,7 +176,7 @@ export const SumsubNativeSdk = ({
             visible
             onClose={onClose}
             classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
-            classOverlay="bg-black bg-opacity-50"
+            classOverlay="bg-black/50"
             video={false}
             className="z-[100] !p-0 md:!p-6"
             classButtonClose="hidden"

@@ -6,6 +6,7 @@ import {
     EXCESS_COLLATERAL_MIN_CENTS,
     isAmountWithinBalance,
     isRainBalanceKnown,
+    isValidSendAmount,
     printableUsdc,
     rainCentsToUsdcUnits,
 } from '../balance.utils'
@@ -243,6 +244,41 @@ describe('balance utils', () => {
         it('treats a missing overview as unknown, without throwing on null', () => {
             expect(isRainBalanceKnown(undefined)).toBe(false)
             expect(isRainBalanceKnown(null)).toBe(false)
+        })
+    })
+
+    // Gates the send-link amount: string truthiness let "0"/"0.00" create a
+    // real zero-value on-chain link (TASK-21669).
+    describe('isValidSendAmount', () => {
+        it('accepts positive amounts, including sub-cent ones', () => {
+            expect(isValidSendAmount('1')).toBe(true)
+            expect(isValidSendAmount('0.01')).toBe(true)
+            expect(isValidSendAmount('0.000001')).toBe(true)
+            expect(isValidSendAmount('123.45')).toBe(true)
+            expect(isValidSendAmount(5)).toBe(true)
+        })
+
+        it('rejects zero in every spelling', () => {
+            expect(isValidSendAmount('0')).toBe(false)
+            expect(isValidSendAmount('0.00')).toBe(false)
+            expect(isValidSendAmount('00')).toBe(false)
+            expect(isValidSendAmount(0)).toBe(false)
+        })
+
+        it('rejects empty and missing input', () => {
+            expect(isValidSendAmount('')).toBe(false)
+            expect(isValidSendAmount('   ')).toBe(false)
+            expect(isValidSendAmount(null)).toBe(false)
+            expect(isValidSendAmount(undefined)).toBe(false)
+        })
+
+        it('rejects anything parseUnits would reject at spend time', () => {
+            expect(isValidSendAmount('abc')).toBe(false)
+            expect(isValidSendAmount('1,50')).toBe(false)
+            expect(isValidSendAmount('-1')).toBe(false)
+            expect(isValidSendAmount('0.0000001')).toBe(false) // more than 6 decimals
+            expect(isValidSendAmount(NaN)).toBe(false)
+            expect(isValidSendAmount(Infinity)).toBe(false)
         })
     })
 })

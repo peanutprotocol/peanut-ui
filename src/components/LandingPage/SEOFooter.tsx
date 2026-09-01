@@ -2,21 +2,17 @@ import Link from 'next/link'
 import manifest from '@/content/generated/footer-manifest.json'
 import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
+import { resolveContentHref } from '@/lib/content'
 
-// SEO footer driven by the content manifest (peanut-content/generated/footer-manifest.json).
-// Data is imported as a JSON module — works in both client and server components
-// without fs. The manifest is bundled at build time by webpack.
+// Server-only SEO footer driven by the content manifest
+// (peanut-content/generated/footer-manifest.json). The manifest is bundled at
+// build time, while locale ownership is resolved against the content mirror.
 
 interface ManifestEntry {
     slug: string
     name: string
     href: string
     external?: boolean
-}
-
-function localizeHref(href: string, locale: Locale): string {
-    if (href.startsWith('/en/')) return `/${locale}/${href.slice(4)}`
-    return href
 }
 
 function FooterSection({ title, children }: { title: string; children: React.ReactNode }) {
@@ -37,13 +33,25 @@ function FooterSection({ title, children }: { title: string; children: React.Rea
 const RESOURCES_MOVED_ELSEWHERE = new Set(['terms', 'jobs'])
 
 /**
+ * The manifest ships two pricing links into "Learn More" — the `pricing`
+ * resource (/pricing) and the `fees-pricing` article (/help/fees-pricing) —
+ * which read as a duplicate pair. The resource keeps the slot under the
+ * clearer name; the article is dropped from the footer, not deleted.
+ */
+const ARTICLES_DROPPED_AS_DUPLICATES = new Set(['fees-pricing'])
+
+/** Manifest names are authored English and rendered as-is across every locale;
+ *  this override follows suit rather than translating one item in a column of
+ *  untranslated siblings. */
+const RESOURCE_NAME_OVERRIDES: Record<string, string> = { pricing: 'Fees and Pricing' }
+
+/**
  * Every published legal document, in the order a reader needs them: the two
  * that bind all users first, then the card-programme docs. Card applicants see
  * these inline at signing time (CardTermsScreen), but app-store review and the
  * issuer both expect them permanently reachable, which is what this column is.
- * Hrefs are authored `/en/…` and localized by `localizeHref` like the manifest
- * entries; the marketing pages fall back to English prose when a translation
- * is missing, so a localized URL is always safe.
+ * Hrefs are authored `/en/…`. The content resolver localizes translated prose
+ * and keeps missing translations on the locale that owns them.
  */
 const LEGAL_LINKS: Array<{ slug: string; href: string; label: (i18n: Translations) => string }> = [
     { slug: 'terms', href: '/en/terms', label: (i18n) => i18n.footerTerms },
@@ -71,7 +79,7 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-white underline hover:text-white/70"
+                    className="text-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
                 >
                     {children}
                 </a>
@@ -85,7 +93,13 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
             route also pulls its client chunks, which is how the wallet bundle and
             the Sentry SDK were arriving on the landing page after being removed
             from its own graph. Navigation fetches on click instead. */}
-            <Link prefetch={false} href={href} className="text-xs text-white underline hover:text-white/70">
+            {/* skip-ink off + an offset: the browser default breaks the rule
+                around descenders, so the "g" in a link looked un-underlined. */}
+            <Link
+                prefetch={false}
+                href={href}
+                className="text-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
+            >
                 {children}
             </Link>
         </li>
@@ -97,14 +111,16 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
     const sendTo = (manifest.sendMoney?.to ?? []) as ManifestEntry[]
     const sendFrom = (manifest.sendMoney?.from ?? []) as ManifestEntry[]
     const compare = (manifest.compare ?? []) as ManifestEntry[]
-    const articles = ((manifest as Record<string, unknown>).articles ?? []) as ManifestEntry[]
+    const articles = (((manifest as Record<string, unknown>).articles ?? []) as ManifestEntry[]).filter(
+        (entry) => !ARTICLES_DROPPED_AS_DUPLICATES.has(entry.slug)
+    )
     const resources = (manifest.resources ?? []) as ManifestEntry[]
     const hasSendMoney = sendTo.length > 0 || sendFrom.length > 0
     // What's left of "Resources" rides on top of "Learn More" — the column
     // itself is gone, its slot in the 4-up grid taken by Legal.
     const learnMoreResources = resources.filter((entry) => !RESOURCES_MOVED_ELSEWHERE.has(entry.slug))
 
-    const link = (entry: ManifestEntry) => (entry.external ? entry.href : localizeHref(entry.href, locale))
+    const link = (entry: ManifestEntry) => (entry.external ? entry.href : resolveContentHref(entry.href, locale))
 
     return (
         <nav aria-label={i18n.footerSiteDirectory} className="bg-black px-8 py-8 pb-24 md:px-20 md:pb-8">
@@ -138,9 +154,12 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
                     <FooterSection title={i18n.footerLearnMoreSection}>
                         {learnMoreResources.map((entry) => (
                             <FooterLink key={`resource-${entry.slug}`} href={link(entry)} external={entry.external}>
-                                {entry.name}
+                                {RESOURCE_NAME_OVERRIDES[entry.slug] ?? entry.name}
                             </FooterLink>
                         ))}
+                        {/* Sits directly under Supported Networks, at the end of
+                            the resource links and before the articles. */}
+                        <FooterLink href={`/${locale}/status`}>{i18n.footerStatus}</FooterLink>
                         {articles.map((entry) => (
                             <FooterLink key={entry.slug} href={link(entry)}>
                                 {entry.name}
@@ -151,7 +170,7 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
 
                 <FooterSection title={i18n.footerLegalSection}>
                     {LEGAL_LINKS.map((entry) => (
-                        <FooterLink key={entry.slug} href={localizeHref(entry.href, locale)}>
+                        <FooterLink key={entry.slug} href={resolveContentHref(entry.href, locale)}>
                             {entry.label(i18n)}
                         </FooterLink>
                     ))}

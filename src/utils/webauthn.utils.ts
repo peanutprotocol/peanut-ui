@@ -27,11 +27,13 @@ export enum WebAuthnErrorName {
     NotSupported = 'NotSupportedError',
 }
 
-export type PasskeyErrorClassification = { code: string; message: string }
+export type PasskeyErrorClassification = { code: PasskeyErrorCode; message: string }
 
 // Curated copy keyed by code. Never surface raw error.message / server bodies to
 // the user (those go to Sentry only); these strings are the only thing shown.
-const PASSKEY_LOGIN_MESSAGES: Record<string, string> = {
+// Keys are the closed set of classification codes — `PasskeyErrorCode` below —
+// so a new code can't silently fall into the wrong handler branch downstream.
+const PASSKEY_LOGIN_MESSAGES = {
     LOGIN_CANCELED: 'Login was cancelled, or no passkey was found on this device. Try again, or create a wallet.',
     PASSKEY_INTERRUPTED: 'Something interrupted the passkey prompt. Please try again.',
     PASSKEY_UNSUPPORTED:
@@ -39,7 +41,46 @@ const PASSKEY_LOGIN_MESSAGES: Record<string, string> = {
     PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
     PASSKEY_ORIGIN: 'This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.',
     NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
+    // flow-neutral wording — classifyPasskeyError also serves the signup ceremony
+    CEREMONY_TIMEOUT: 'This is taking longer than it should. Please try again.',
+    PASSKEY_NOT_READY: 'The app is still getting ready for passkeys. Wait a moment and try again.',
     LOGIN_ERROR: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
+} as const satisfies Record<string, string>
+
+export type PasskeyErrorCode = keyof typeof PASSKEY_LOGIN_MESSAGES
+
+/**
+ * PasskeyErrorCode → `setup.*` catalog key, for codes whose copy already
+ * exists translated. Render sites resolve these with useTranslations('setup');
+ * codes not listed fall back to the English message the error carries.
+ */
+const PASSKEY_ERROR_SETUP_KEYS = {
+    LOGIN_CANCELED: 'waitlist.loginCanceled',
+    CEREMONY_TIMEOUT: 'passkey.tookTooLong',
+    PASSKEY_NOT_READY: 'passkey.notReady',
+    PASSKEY_STATE: 'passkey.deviceState',
+    PASSKEY_INTERRUPTED: 'passkey.interrupted',
+} as const satisfies Partial<Record<PasskeyErrorCode, string>>
+
+/** Reads the classification code off a thrown PasskeyError, if it carries one. */
+export function getPasskeyErrorCode(error: unknown): PasskeyErrorCode | undefined {
+    if (!(error instanceof Error) || error.name !== 'PasskeyError') return undefined
+    const code = (error as Error & { code?: unknown }).code
+    return typeof code === 'string' && code in PASSKEY_LOGIN_MESSAGES ? (code as PasskeyErrorCode) : undefined
+}
+
+/**
+ * Maps a login failure to the `setup.*` i18n key for its curated copy, or
+ * undefined when no translated equivalent exists (the caller then renders the
+ * error's own English message as the fallback).
+ */
+export function getPasskeyErrorSetupKey(
+    error: unknown
+): (typeof PASSKEY_ERROR_SETUP_KEYS)[keyof typeof PASSKEY_ERROR_SETUP_KEYS] | undefined {
+    const code = getPasskeyErrorCode(error)
+    return code && code in PASSKEY_ERROR_SETUP_KEYS
+        ? PASSKEY_ERROR_SETUP_KEYS[code as keyof typeof PASSKEY_ERROR_SETUP_KEYS]
+        : undefined
 }
 
 function isNetworkError(error: Error): boolean {
@@ -55,7 +96,7 @@ function isNetworkError(error: Error): boolean {
  */
 export function classifyPasskeyError(error: unknown): PasskeyErrorClassification {
     const err = error instanceof Error ? error : new Error(String(error))
-    let code = 'LOGIN_ERROR'
+    let code: PasskeyErrorCode = 'LOGIN_ERROR'
     // iOS surfaces ceremony failures as a bare Error whose message carries the
     // ASAuthorizationError code, not a DOMException name: 1001 = user canceled,
     // 1004 = failed (typically no usable passkey on this device). Both mean
@@ -78,6 +119,21 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
             break
         case 'SecurityError':
             code = 'PASSKEY_ORIGIN'
+            break
+        // ceremony guards from passkeyCeremony.utils (TASK-21782)
+        case 'CeremonyTimeoutError':
+            code = 'CEREMONY_TIMEOUT'
+            break
+        case 'CeremonyConflictError':
+            code = 'PASSKEY_INTERRUPTED'
+            break
+        case 'PasskeyShimNotReadyError':
+            code = 'PASSKEY_NOT_READY'
+            break
+        // install known-dead — only an app restart re-runs it, so send the
+        // restart copy instead of the transient "wait a moment" one
+        case 'PasskeyShimFailedError':
+            code = 'PASSKEY_STATE'
             break
         default:
             if (isNetworkError(err)) code = 'NETWORK'

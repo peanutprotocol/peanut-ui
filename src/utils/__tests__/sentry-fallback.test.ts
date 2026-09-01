@@ -19,6 +19,9 @@ jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
 
 jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
+    // fetchWithSentry consults this before capturing, to report one failure per
+    // endpoint per window. Always-false keeps every capture assertion below live.
+    hasRecentFailure: jest.fn(() => false),
 }))
 
 jest.mock('../native-http', () => ({

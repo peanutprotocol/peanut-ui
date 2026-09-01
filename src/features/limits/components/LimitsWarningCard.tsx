@@ -1,11 +1,10 @@
 'use client'
 
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useModalsContext } from '@/context/ModalsContext'
-import { twMerge } from 'tailwind-merge'
 import { LIMITS_COPY, type LimitsWarningItem } from '../utils'
 
 export type LimitsWarningType = 'warning' | 'error'
@@ -72,59 +71,53 @@ export default function LimitsWarningCard({
     }
 
     return (
-        <InfoCard
-            variant={type === 'error' ? 'warning' : 'warning'}
-            icon="info-filled"
-            iconClassName={type === 'error' ? 'text-error' : 'text-yellow-9'}
+        <Notification
+            priority={type === 'error' ? 'error' : 'attention'}
             title={titleKind ? t(`warningCard.${titleKind}Title`) : title}
-            titleClassName="font-semibold"
-            className={twMerge('p-4', className)}
-            customContent={
-                <div className="flex flex-col gap-2">
-                    <ul className="list-inside list-disc space-y-1 text-xs md:text-sm">
-                        {items.map((item, index) => (
-                            <li key={index}>
-                                {item.isLink && item.href ? (
-                                    <Link href={item.href} className="underline underline-offset-2">
-                                        {item.icon && (
-                                            <Icon name={item.icon} className="mr-1 text-yellow-11" size={12} />
-                                        )}
-                                        <span className="text-yellow-11">{itemText(item)}</span>
-                                    </Link>
-                                ) : (
-                                    itemText(item)
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                    {onIncreaseLimits ? (
-                        <>
-                            <div className="my-1 border-t border-yellow-9" />
-                            <button
-                                onClick={onIncreaseLimits}
-                                disabled={isIncreaseLimitsLoading}
-                                className="flex items-center gap-1 text-xs md:text-sm"
-                            >
-                                <Icon name="plus-circle" className="text-yellow-11" size={12} />
-                                <span className="font-semibold text-yellow-11 underline">
-                                    {isIncreaseLimitsLoading ? tCommon('loading') : t('increase.cta')}
-                                </span>
-                            </button>
-                        </>
-                    ) : showSupportLink ? (
-                        <>
-                            <div className="my-1 border-t border-yellow-9" />
-                            <button
-                                onClick={() => openSupportWithMessage(LIMITS_COPY.SUPPORT_MESSAGE)}
-                                className="flex items-center gap-1 text-xs md:text-sm"
-                            >
-                                <Icon name="plus-circle" className="text-yellow-11" size={12} />
-                                <span className="font-semibold text-yellow-11 underline">{t('needHigherLimits')}</span>
-                            </button>
-                        </>
-                    ) : null}
-                </div>
-            }
-        />
+            className={className}
+        >
+            <div className="flex flex-col gap-2">
+                <ul className="space-y-1 list-inside list-disc text-start">
+                    {items.map((item, index) => (
+                        <li key={index}>
+                            {item.isLink && item.href ? (
+                                <Link href={item.href} className="underline underline-offset-2">
+                                    {item.icon && <Icon name={item.icon} className="mr-1" size={12} />}
+                                    <span>{itemText(item)}</span>
+                                </Link>
+                            ) : (
+                                itemText(item)
+                            )}
+                        </li>
+                    ))}
+                </ul>
+                {onIncreaseLimits ? (
+                    <>
+                        <div className="my-1 border-t" />
+                        <button
+                            onClick={onIncreaseLimits}
+                            disabled={isIncreaseLimitsLoading}
+                            className="flex items-center gap-1"
+                        >
+                            <Icon name="plus-circle" size={12} />
+                            <span className="font-semibold underline">
+                                {isIncreaseLimitsLoading ? tCommon('loading') : t('increase.cta')}
+                            </span>
+                        </button>
+                    </>
+                ) : showSupportLink ? (
+                    <>
+                        <div className="my-1 border-t" />
+                        <button
+                            onClick={() => openSupportWithMessage(LIMITS_COPY.SUPPORT_MESSAGE)}
+                            className="flex items-center gap-1"
+                        >
+                            <Icon name="plus-circle" size={12} />
+                            <span className="font-semibold underline">{t('needHigherLimits')}</span>
+                        </button>
+                    </>
+                ) : null}
+            </div>
+        </Notification>
     )
 }

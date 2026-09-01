@@ -21,7 +21,7 @@ const FULL_LOCALES = APP_LOCALES.filter((locale) => !DELTA_LOCALES.includes(loca
  */
 const CONTEXT_DIVERGENT: Record<string, string> = {
     Send: 'nav/action verb vs. transaction-type noun (Enviar / Envío)',
-    Request: 'nav/action verb vs. transaction-type noun (Solicitar / Solicitud)',
+    Request: 'nav/action verb vs. transaction-type noun (Recibir / Solicitud)',
     Add: 'nav verb vs. transaction-type noun (Agregar / Ingreso)',
     Withdraw: 'nav verb vs. transaction-type noun (Retirar / Retiro)',
     Pay: 'nav/action verb vs. transaction-type noun (Pagar / Pago)',
@@ -30,6 +30,7 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     Join: 'standalone CTA vs. sentence fragment completed by a team name',
     Processing: 'generic in-flight status vs. KYC under-review status (En proceso)',
     Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
+    Verified: 'badge/KYC status vs. residence chip agreeing with "residencia" (Verificado / Verificada)',
     'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
 }
 
@@ -126,7 +127,6 @@ describe('ICU message compilation', () => {
             minutes: 2,
         }
         for (const path of leafPaths(messages)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             t(path as any, dummy)
         }
         expect(invalid).toEqual([])

@@ -1,0 +1,279 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { Card } from '@/components/0_Bruddle/Card'
+import { BaseInput } from '@/components/0_Bruddle/BaseInput'
+import { DocPage } from './DocPage'
+
+export type UsageStatus = 'live' | 'showcase-only' | 'dead' | 'duplicate' | 'variant' | 'canonical' | 'adhoc'
+
+export interface UsageItem {
+    name: string
+    realUsages: number
+    devUsages?: number
+    status: UsageStatus
+    source?: string
+    divergence?: string
+    usedIn?: string[]
+    verified?: boolean
+}
+
+export interface UsageCategory {
+    category: string
+    layer?: string
+    summary?: string
+    items: UsageItem[]
+}
+
+const STATUS_META: Record<UsageStatus, { label: string; cls: string; hint: string }> = {
+    live: {
+        label: 'live in product',
+        cls: 'bg-background-badge-success text-foreground-primary border-border-default',
+        hint: 'rendered on real app screens',
+    },
+    variant: {
+        label: 'redundant variant',
+        cls: 'bg-background-badge-info text-foreground-primary border-border-default',
+        hint: 'used, but duplicates another impl',
+    },
+    duplicate: {
+        label: 'duplicate',
+        cls: 'bg-background-badge-error text-foreground-primary border-border-default',
+        hint: 'same job as a canonical impl',
+    },
+    canonical: {
+        label: 'canonical',
+        cls: 'bg-action-primary/50 text-foreground-primary border-border-default',
+        hint: 'the one to keep',
+    },
+    adhoc: {
+        label: 'ad-hoc inline',
+        cls: 'bg-background-badge-attention text-foreground-primary border-border-default',
+        hint: 'reinvented inline, not the primitive',
+    },
+    'showcase-only': {
+        label: 'SHOWCASE-ONLY',
+        cls: 'bg-background-badge-attention/60 text-foreground-secondary border-border-subtle',
+        hint: 'exists in /dev only — product never renders it',
+    },
+    dead: {
+        label: 'DEAD · never used',
+        cls: 'bg-background-disabled text-foreground-secondary border-border-subtle',
+        hint: 'referenced nowhere, delete-candidate',
+    },
+}
+const STATUS_ORDER: UsageStatus[] = ['live', 'canonical', 'variant', 'duplicate', 'adhoc', 'showcase-only', 'dead']
+
+function StatusChip({ status }: { status: UsageStatus }) {
+    const m = STATUS_META[status] ?? STATUS_META.live
+    return (
+        <span className={`inline-block rounded-round border px-2 py-0.5 text-label-m whitespace-nowrap ${m.cls}`}>
+            {m.label}
+        </span>
+    )
+}
+
+export function UsageAudit({
+    eyebrow,
+    title,
+    intro,
+    heroClass = 'bg-background-brand',
+    categories,
+    footnote,
+}: {
+    eyebrow: string
+    title: string
+    intro: React.ReactNode
+    heroClass?: string
+    categories: UsageCategory[]
+    footnote?: React.ReactNode
+}) {
+    const allItems = useMemo(
+        () => categories.flatMap((c) => c.items.map((i) => ({ ...i, category: c.category }))),
+        [categories]
+    )
+    const [cat, setCat] = useState<string>('all')
+    const [status, setStatus] = useState<string>('all')
+    const [q, setQ] = useState('')
+
+    const counts = useMemo(() => {
+        const live = allItems.filter(
+            (i) => i.status === 'live' || i.status === 'canonical' || i.status === 'variant'
+        ).length
+        const showcase = allItems.filter((i) => i.status === 'showcase-only').length
+        const dead = allItems.filter((i) => i.status === 'dead').length
+        return { total: allItems.length, live, showcase, dead }
+    }, [allItems])
+
+    const catNames = useMemo(() => categories.map((c) => c.category), [categories])
+
+    const visible = useMemo(() => {
+        const ql = q.trim().toLowerCase()
+        return categories
+            .filter((c) => cat === 'all' || c.category === cat)
+            .map((c) => ({
+                ...c,
+                items: c.items
+                    .filter((i) => status === 'all' || i.status === status)
+                    .filter(
+                        (i) =>
+                            !ql ||
+                            i.name.toLowerCase().includes(ql) ||
+                            (i.divergence || '').toLowerCase().includes(ql) ||
+                            (i.source || '').toLowerCase().includes(ql)
+                    )
+                    .sort((a, b) => b.realUsages - a.realUsages),
+            }))
+            .filter((c) => c.items.length > 0)
+    }, [categories, cat, status, q])
+
+    return (
+        <DocPage>
+            {/* Hero — DS Card on the lens tint */}
+            <Card className={`p-4 ${heroClass}`}>
+                <p className="text-label-m text-foreground-primary/70 uppercase">{eyebrow}</p>
+                <h1 className="mt-1 text-h4">{title}</h1>
+                <div className="mt-2 text-label-l text-foreground-primary">{intro}</div>
+            </Card>
+
+            {/* Stat cards */}
+            <div className="grid grid-cols-4 gap-2">
+                {[
+                    { label: 'inventoried', value: counts.total },
+                    { label: 'live in product', value: counts.live },
+                    { label: 'showcase-only', value: counts.showcase },
+                    { label: 'dead', value: counts.dead },
+                ].map((s) => (
+                    <Card key={s.label} className="p-2 text-center">
+                        <p className="text-heading-xs">{s.value}</p>
+                        <p className="text-body-xs text-foreground-secondary">{s.label}</p>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Legend */}
+            <div className="flex flex-wrap gap-x-3 gap-y-1 rounded-sm border border-dashed border-border-subtle p-3">
+                {STATUS_ORDER.map((s) => (
+                    <span key={s} className="flex items-center gap-1 text-body-xs text-foreground-secondary">
+                        <StatusChip status={s} />
+                        {STATUS_META[s].hint}
+                    </span>
+                ))}
+            </div>
+
+            {/* Filters */}
+            <div className="space-y-2">
+                <BaseInput
+                    variant="sm"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search name / divergence / file…"
+                    aria-label="Search audit items"
+                />
+                <div className="flex flex-wrap gap-1">
+                    {['all', ...catNames].map((c) => (
+                        <button
+                            key={c}
+                            onClick={() => setCat(c)}
+                            className={`rounded-round border border-border-default px-2 py-1 text-label-m ${
+                                cat === c
+                                    ? 'bg-action-primary text-foreground-primary'
+                                    : 'bg-background-default text-foreground-secondary'
+                            }`}
+                        >
+                            {c}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                    {['all', ...STATUS_ORDER].map((s) => (
+                        <button
+                            key={s}
+                            onClick={() => setStatus(s)}
+                            className={`rounded-round border px-2 py-1 text-label-m ${
+                                status === s
+                                    ? 'border-border-default bg-foreground-primary text-foreground-inverse'
+                                    : 'border-border-disabled bg-background-default text-foreground-secondary'
+                            }`}
+                        >
+                            {s === 'all' ? 'all status' : STATUS_META[s as UsageStatus].label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Grouped items */}
+            {visible.map((c) => (
+                <div key={c.category}>
+                    <div className="mb-2 border-b border-border-default pb-1">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-label-l">{c.category}</h2>
+                            <span className="text-body-xs text-foreground-secondary">{c.items.length} shown</span>
+                        </div>
+                        {c.summary && <p className="mt-1 text-body-xs text-foreground-secondary">{c.summary}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        {c.items.map((i, idx) => {
+                            const isDead = i.status === 'dead' || i.status === 'showcase-only'
+                            return (
+                                <Card
+                                    key={c.category + i.name + idx}
+                                    className={`p-3 ${
+                                        isDead
+                                            ? 'border-dashed border-border-subtle bg-background-page'
+                                            : 'border-border-disabled'
+                                    }`}
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <p className="text-label-l">{i.name}</p>
+                                        <span
+                                            className={`shrink-0 rounded-sm px-2 py-0.5 text-label-m ${
+                                                i.realUsages > 0
+                                                    ? 'bg-foreground-primary text-foreground-inverse'
+                                                    : 'bg-background-disabled text-foreground-secondary'
+                                            }`}
+                                        >
+                                            {i.realUsages}× app
+                                        </span>
+                                    </div>
+                                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                        <StatusChip status={i.status} />
+                                        {typeof i.devUsages === 'number' && i.devUsages > 0 && (
+                                            <span className="text-body-xs text-foreground-secondary">
+                                                {i.devUsages}× in /dev only
+                                            </span>
+                                        )}
+                                        {i.verified && (
+                                            <span className="text-body-xs text-foreground-secondary">
+                                                ✓ re-verified
+                                            </span>
+                                        )}
+                                    </div>
+                                    {i.divergence && (
+                                        <p className="mt-2 text-body-xs text-foreground-secondary">{i.divergence}</p>
+                                    )}
+                                    {i.source && (
+                                        <p className="mt-1 truncate font-mono text-body-xs text-foreground-secondary/80">
+                                            {i.source}
+                                        </p>
+                                    )}
+                                    {i.usedIn && i.usedIn.length > 0 && (
+                                        <p className="mt-1 font-mono text-body-xs text-foreground-secondary/70">
+                                            used in: {i.usedIn.slice(0, 4).join(' · ')}
+                                        </p>
+                                    )}
+                                </Card>
+                            )
+                        })}
+                    </div>
+                </div>
+            ))}
+
+            {footnote && (
+                <Card className="border-dashed border-border-subtle p-3 text-body-xs text-foreground-secondary">
+                    {footnote}
+                </Card>
+            )}
+        </DocPage>
+    )
+}

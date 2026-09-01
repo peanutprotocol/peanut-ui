@@ -18,6 +18,7 @@ export function useOtaUpdates() {
     useEffect(() => {
         if (!isCapacitor()) return
 
+        let disposed = false
         let cleanup: (() => void) | undefined
 
         import('@/utils/capgo-updater')
@@ -29,13 +30,17 @@ export function useOtaUpdates() {
                 )
             )
             .then((fn) => {
-                cleanup = fn
+                // Unmounted while init was still resolving: run the cleanup now
+                // or the listeners it registered are never removed.
+                if (disposed) fn()
+                else cleanup = fn
             })
             .catch((err) => {
                 console.warn('[capgo] ota init failed:', err)
             })
 
         return () => {
+            disposed = true
             cleanup?.()
         }
     }, [])

@@ -1,6 +1,6 @@
 import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useTranslations } from 'next-intl'
-import { Slider } from '@/components/Slider'
 import ChainChip from '@/components/AddMoney/components/ChainChip'
 import {
     RHINO_SUPPORTED_EVM_CHAINS,
@@ -26,12 +26,12 @@ export default function TokenAndNetworkConfirmationModal({
             visible={isVisible}
             onClose={onClose}
             icon={'alert'}
-            iconContainerClassName="bg-yellow-1"
+            iconContainerClassName="bg-action-secondary"
             modalClassName="z-[9999]"
             title={t('tokenAndNetworkConfirmationModal.title')}
             description={
                 <div className="flex flex-col items-center gap-2">
-                    <span className="text-sm">{t('tokenAndNetworkConfirmationModal.warning')}</span>
+                    <span className="text-body-s">{t('tokenAndNetworkConfirmationModal.warning')}</span>
 
                     <div className="mt-2 flex w-full flex-col items-start gap-2">
                         <h2 className="font-bold text-black">
@@ -70,10 +70,7 @@ export default function TokenAndNetworkConfirmationModal({
             }
             footer={
                 <div className="w-full">
-                    <Slider
-                        onValueChange={(v) => v && onAccept()}
-                        title={t('tokenAndNetworkConfirmationModal.slideToProceed')}
-                    />
+                    <SlideToConfirm onConfirm={onAccept} label={t('tokenAndNetworkConfirmationModal.slideToProceed')} />
                 </div>
             }
             ctas={[]}

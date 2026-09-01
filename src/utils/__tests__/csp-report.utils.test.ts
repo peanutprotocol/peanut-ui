@@ -51,6 +51,19 @@ describe('shouldIgnoreCspReport', () => {
     it('does not treat a missing blocked-uri as noise', () => {
         expect(shouldIgnoreCspReport({})).toBe(false)
     })
+
+    it.each([
+        'https://peanut.me/dev/payment-graph?user=marker-user&password=marker-password',
+        'https://peanut.me/dev/payment-graph?focus=marker-focus',
+    ])('drops reports from a cached explorer document before forwarding: %s', (documentUri) => {
+        expect(
+            shouldIgnoreCspReport({
+                'document-uri': documentUri,
+                'blocked-uri': 'https://blocked.example/script.js',
+                'effective-directive': 'script-src',
+            })
+        ).toBe(true)
+    })
 })
 
 describe('normalizeCspReports', () => {

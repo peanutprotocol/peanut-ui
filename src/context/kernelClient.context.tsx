@@ -1,6 +1,8 @@
 'use client'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import {
+    assertZeroDevBundlerUrl,
+    assertZeroDevRpcUrls,
     PEANUT_WALLET_CHAIN,
     USER_OP_ENTRY_POINT,
     ZERODEV_KERNEL_VERSION,
@@ -26,6 +28,7 @@ import type { Address, Hash } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_ADDRESS } from '@/constants/demo-data'
+import { ensureActiveFixture } from '@/dev/fixtures/active'
 import { captureException, captureMessage } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
@@ -124,6 +127,10 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
     privateKey: `0x${string}`,
     { bundlerUrl, paymasterUrl }: { bundlerUrl: string; paymasterUrl: string }
 ): Promise<GenericSmartAccountClient<C>> => {
+    // Bundler on BOTH paths: http(undefined) silently falls back to the chain's
+    // public RPC, which has no ERC-4337 methods, so an unsponsored run would
+    // report ready and then fail every userOp.
+    assertZeroDevBundlerUrl(bundlerUrl)
     const signer = privateKeyToAccount(privateKey)
     const validator = await signerToEcdsaValidator(publicClient, {
         signer,
@@ -147,6 +154,10 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
     }
 
     if (sponsored) {
+        // Only the sponsored branch reads paymasterUrl, so validating it up
+        // front rejected a deliberately unsponsored harness run that never
+        // needed one.
+        assertZeroDevRpcUrls(bundlerUrl, paymasterUrl)
         clientConfig.paymaster = {
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({
@@ -201,6 +212,7 @@ export const createKernelClientForChain = async <C extends Chain>(
     console.log(`Creating new kernel client for chain ${chain.name}...`)
 
     const { bundlerUrl, paymasterUrl } = options
+    assertZeroDevRpcUrls(bundlerUrl, paymasterUrl)
 
     let kernelAccount: Awaited<ReturnType<typeof createKernelAccount>>
     // The v0.0.3 PATCHED validator this account migrates *to* — the same
@@ -358,8 +370,10 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             return
         }
 
-        // Demo mode: no passkey/kernel client — synthesize the address and report ready.
-        if (isDemoMode()) {
+        // Demo mode, and dev fixtures: no passkey/kernel client — synthesize the
+        // address and report ready. Without this a fixture screen waits forever
+        // on a kernel address it can never get.
+        if (isDemoMode() || ensureActiveFixture()) {
             dispatch(zerodevActions.setAddress(DEMO_ADDRESS))
             dispatch(zerodevActions.setIsKernelClientReady(true))
             return

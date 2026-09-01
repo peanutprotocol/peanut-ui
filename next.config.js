@@ -4,6 +4,7 @@ const withBundleAnalyzer =
     process.env.ANALYZE === 'true' ? require('@next/bundle-analyzer')({ enabled: true }) : (config) => config
 
 const redirectsConfig = require('./redirects.json')
+const { buildNoindexHeaderRules } = require('./src/constants/seo-route-policy')
 const { googleAdsRemarketingHosts } = require('./csp-google-domains')
 
 /**
@@ -89,7 +90,7 @@ const chainRpcHosts = [
  * - `chainRpcHosts` is broad (provider-level wildcards), because a single
  *   provider serves one subdomain per network.
  */
-function contentSecurityPolicyReportOnly() {
+function contentSecurityPolicyReportOnly(includeReporting = true) {
     const directives = [
         "default-src 'self'",
         // PostHog is same-origin via the /relay rewrite, so it needs no entry here.
@@ -126,6 +127,10 @@ function contentSecurityPolicyReportOnly() {
             'https://*.analytics.google.com',
             'https://stats.g.doubleclick.net',
             'https://www.googletagmanager.com',
+            // Network-failure triage probe (network-triage.ts): Android's own
+            // captive-portal endpoint, used to tell "device offline" from "our
+            // edge unreachable" when a fetch dies without a status.
+            'https://www.gstatic.com',
             // Every Google country domain, because the remarketing beacon goes
             // to the user's own — see csp-google-domains.js for why this cannot
             // be a wildcard. Supersedes the former lone 'https://www.google.com'
@@ -185,7 +190,7 @@ function contentSecurityPolicyReportOnly() {
     // Reporting-Endpoints header below) is what replaces it in Chromium.
     // Shipping only one would undercount violations and promote the policy on
     // a partial picture.
-    directives.push(`report-uri ${CSP_REPORT_PATH}`, `report-to ${CSP_REPORT_GROUP}`)
+    if (includeReporting) directives.push(`report-uri ${CSP_REPORT_PATH}`, `report-to ${CSP_REPORT_GROUP}`)
     return directives.join('; ')
 }
 
@@ -227,7 +232,15 @@ let nextConfig = {
         // Vercel injects VERCEL_ENV and VERCEL_GIT_COMMIT_REF server-side at
         // build time. Re-export as NEXT_PUBLIC_* so the client bundle (and
         // src/utils/sentry-env.ts in particular) can read them too.
-        NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV,
+        // The `?? ''` matters: next skips null env values, and only a defined
+        // value is statically inlined by webpack's DefinePlugin. The /dev
+        // build-time gates (dev/ds/audit pages, DEV_TOOLS_ENABLED) need the
+        // literal so their `=== 'preview'` check folds to a constant and the
+        // dev-only data is tree-shaken out of non-Vercel prod builds.
+        // respect an explicitly-set build env first (the ds-shots CI job sets
+        // NEXT_PUBLIC_VERCEL_ENV=preview so fixture mode engages), then Vercel's
+        // own var, else '' so the audit-gate condition still folds to a literal.
+        NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV ?? '',
         NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF,
     },
 
@@ -264,6 +277,16 @@ let nextConfig = {
 
     // Transpile packages for better compatibility
     transpilePackages: ['@squirrel-labs/peanut-sdk'],
+
+    // react-pdf's ESM graph (yoga wasm, pdfkit) breaks when webpack bundles it
+    // into the server build — load it from node_modules at runtime instead.
+    serverExternalPackages: ['@react-pdf/renderer'],
+
+    // Font.register reads these paths inside react-pdf, invisible to the
+    // file tracer — include them for the deployed serverless function.
+    outputFileTracingIncludes: {
+        '/receipt/[entryId]/pdf': ['./src/assets/fonts/*.ttf'],
+    },
 
     // Experimental features for optimization
     experimental: {
@@ -364,6 +387,10 @@ let nextConfig = {
     },
     async headers() {
         return [
+            // App/auth/transaction surfaces must never inherit the root
+            // marketing metadata's index directive. HTTP directives work for
+            // client layouts and preserve social-card crawling.
+            ...buildNoindexHeaderRules(),
             {
                 source: '/.well-known/apple-app-site-association',
                 headers: [
@@ -411,6 +438,21 @@ let nextConfig = {
                     ...reportingEndpointsHeader(),
                     { key: 'X-Content-Type-Options', value: 'nosniff' },
                     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+                ],
+            },
+            {
+                source: '/dev/payment-graph',
+                headers: [
+                    { key: 'Cache-Control', value: 'private, no-store, max-age=0, must-revalidate' },
+                    { key: 'Pragma', value: 'no-cache' },
+                    { key: 'Referrer-Policy', value: 'no-referrer' },
+                    { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+                    // The document URL can contain a legacy ?password=
+                    // credential before synchronous client scrubbing.
+                    // Keep the report-only policy, but never register a report
+                    // delivery directive that could serialize that URL.
+                    { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly(false) },
+                    { key: 'Reporting-Endpoints', value: 'csp-disabled="/api/csp-report-disabled"' },
                 ],
             },
         ]

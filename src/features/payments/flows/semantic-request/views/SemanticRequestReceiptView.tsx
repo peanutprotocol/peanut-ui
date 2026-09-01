@@ -16,7 +16,7 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { BASE_URL } from '@/constants/general.consts'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
@@ -101,7 +101,7 @@ export function SemanticRequestReceiptView() {
             <div className="flex min-h-[inherit] flex-col gap-4">
                 <NavHeader title={t('headers.receipt')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )
@@ -113,7 +113,7 @@ export function SemanticRequestReceiptView() {
             <div className="flex min-h-[inherit] flex-col gap-4">
                 <NavHeader title={t('headers.receipt')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <p className="text-sm text-grey-1">{t('receipt.unableToLoad')}</p>
+                    <p className="text-body-s text-foreground-secondary">{t('receipt.unableToLoad')}</p>
                 </div>
             </div>
         )

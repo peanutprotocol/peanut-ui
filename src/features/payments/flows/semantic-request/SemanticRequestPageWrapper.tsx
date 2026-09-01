@@ -13,9 +13,9 @@
  */
 
 import { SemanticRequestPage } from './SemanticRequestPage'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -90,7 +90,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )
@@ -101,7 +101,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
         return (
             <div className="flex w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
-                <ErrorAlert description={error?.message || t('errors.invalidPaymentUrl')} />
+                <Notification priority="error">{error?.message || t('errors.invalidPaymentUrl')}</Notification>
             </div>
         )
     }
