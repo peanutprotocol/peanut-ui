@@ -90,13 +90,14 @@ function setCapabilities(gateKind: string, rails: Array<{ status: string; channe
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
 }))
-jest.mock('@/context/WithdrawFlowContext', () => ({
-    useWithdrawFlow: () => ({
+jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
+    useOptionalWithdrawFlow: () => ({
         setSelectedBankAccount: jest.fn(),
-        amountToWithdraw: '',
         setSelectedMethod: jest.fn(),
-        setAmountToWithdraw: jest.fn(),
     }),
+}))
+jest.mock('@/features/withdraw/useWithdrawAmount', () => ({
+    useWithdrawAmount: () => ['', jest.fn()],
 }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
@@ -228,7 +229,8 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByText('To Bank'))
 
-        expect(mockPush).toHaveBeenCalledWith('/withdraw')
+        // method chosen → land on the amount step (named screen id in the URL)
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
         expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
     })
 

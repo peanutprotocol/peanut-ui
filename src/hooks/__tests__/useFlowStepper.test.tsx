@@ -116,7 +116,10 @@ describe('useFlowStepper', () => {
             onUrlUpdate
         )
         expect(result.current.step).toBe('review')
-        await act(async () => {})
+        // the corrective write is throttled by nuqs (~50ms) — wait it out
+        await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 120))
+        })
         expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get('step')).toBe('review')
     })
 

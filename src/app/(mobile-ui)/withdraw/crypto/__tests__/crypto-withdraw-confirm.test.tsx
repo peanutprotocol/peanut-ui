@@ -117,7 +117,7 @@ jest.mock('@/services/requests', () => ({
 
 // ---------- view mocks ----------
 
-jest.mock('@/components/Withdraw/views/Confirm.withdraw.view', () => ({
+jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
     __esModule: true,
     default: (props: { onConfirm: () => void }) => (
         <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
@@ -126,7 +126,7 @@ jest.mock('@/components/Withdraw/views/Confirm.withdraw.view', () => ({
     ),
 }))
 
-jest.mock('@/components/Withdraw/views/Initial.withdraw.view', () => ({
+jest.mock('@/features/withdraw/views/InitialWithdrawView', () => ({
     __esModule: true,
     default: () => <div data-testid="initial-view" />,
 }))
@@ -167,7 +167,21 @@ const CHARGE_UUID = 'charge-uuid-123'
 const RECIPIENT = '0x1111111111111111111111111111111111111111'
 const USER_ADDRESS = '0x2222222222222222222222222222222222222222'
 
-const mockSetCurrentView = jest.fn()
+// URL stepper: the page renders by stepper.step and advances via goTo
+const mockStepperGoTo = jest.fn()
+const mockStepper = {
+    step: 'review' as string,
+    goTo: mockStepperGoTo,
+    back: jest.fn(),
+    reset: jest.fn(),
+    isFirst: false,
+}
+jest.mock('@/hooks/useFlowStepper', () => ({
+    useFlowStepper: () => mockStepper,
+}))
+jest.mock('@/features/withdraw/useWithdrawAmount', () => ({
+    useWithdrawAmount: () => ['50', jest.fn()],
+}))
 const mockSetPaymentDetails = jest.fn()
 const mockSetTransactionHash = jest.fn()
 const mockSetPaymentError = jest.fn()
@@ -191,11 +205,6 @@ const withdrawData = {
 }
 
 const mockWithdrawFlow = {
-    amountToWithdraw: '50',
-    usdAmount: '50',
-    setAmountToWithdraw: jest.fn(),
-    currentView: 'CONFIRM',
-    setCurrentView: mockSetCurrentView,
     withdrawData,
     setWithdrawData: jest.fn(),
     showCompatibilityModal: false,
@@ -213,7 +222,7 @@ const mockWithdrawFlow = {
     resetWithdrawFlow: jest.fn(),
 }
 
-jest.mock('@/context/WithdrawFlowContext', () => ({
+jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => mockWithdrawFlow,
 }))
 
@@ -291,7 +300,7 @@ describe('crypto withdraw confirm — charge completion', () => {
 
         await confirm()
 
-        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
         expect(mockSendMoney).toHaveBeenCalledWith(
             RECIPIENT,
             '50',
@@ -316,7 +325,7 @@ describe('crypto withdraw confirm — charge completion', () => {
 
         await confirm()
 
-        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
         // The mined tx hash (not the userOp hash) must reach the validator.
         expect(mockRecordPayment).toHaveBeenCalledWith(
             expect.objectContaining({ chargeId: CHARGE_UUID, txHash: '0xmined' })
@@ -336,7 +345,7 @@ describe('crypto withdraw confirm — charge completion', () => {
 
         await confirm()
 
-        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
         // The failing call MUST have been attempted — pre-fix code never called
         // recordPayment on this path, which is the bug.
         expect(mockRecordPayment).toHaveBeenCalled()
@@ -359,7 +368,7 @@ describe('crypto withdraw confirm — charge completion', () => {
 
         await confirm()
 
-        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
         expect(mockRecordPayment).toHaveBeenCalled()
         expect(mockCaptureMessage).toHaveBeenCalled()
         expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
@@ -376,7 +385,7 @@ describe('crypto withdraw confirm — charge completion', () => {
 
         await confirm()
 
-        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
         expect(mockRecordPayment).not.toHaveBeenCalled()
         expect(mockCaptureMessage).toHaveBeenCalled()
         expect(mockSetPaymentDetails).toHaveBeenCalledWith(null)
@@ -394,7 +403,7 @@ describe('crypto withdraw confirm — charge completion', () => {
 
         await confirm()
 
-        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
         // Cross-chain keeps recording whatever hash it has (pre-existing
         // behavior): the BE validator's cross-chain branch completes from the
         // source-chain submission and never runs same-chain tx matching, so
@@ -420,7 +429,7 @@ describe('crypto withdraw confirm — charge completion', () => {
 
         await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
         expect(mockSendMoney).not.toHaveBeenCalled()
-        expect(mockSetCurrentView).not.toHaveBeenCalledWith('STATUS')
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
         expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     })
 
@@ -437,7 +446,7 @@ describe('crypto withdraw confirm — charge completion', () => {
         await confirm()
 
         await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
-        expect(mockSetCurrentView).not.toHaveBeenCalledWith('STATUS')
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
         expect(mockSetWithdrawError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     })
 })
@@ -462,7 +471,7 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
         expect(mockSendMoney).toHaveBeenCalledTimes(1)
 
         fireEvent.click(screen.getByTestId('confirm-withdraw'))
-        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
 
         // The on-chain leg ran exactly once across both attempts.
         expect(mockSendMoney).toHaveBeenCalledTimes(1)
@@ -486,7 +495,7 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
         await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
 
         fireEvent.click(screen.getByTestId('confirm-withdraw'))
-        await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('success'))
 
         // No spend happened on attempt 1, so attempt 2 legitimately broadcasts.
         expect(mockSendMoney).toHaveBeenCalledTimes(2)
