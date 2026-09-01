@@ -382,6 +382,16 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': kycProfileResponse('arMantecaPoolTier') },
     },
 
+    // The RFI applicant-action call fails. Reachable in production whenever
+    // Sumsub or the token mint is down, and the only place the generic error
+    // copy in `kyc.initiate.descriptionError` is visible.
+    'kyc-start-action-fails': {
+        route: '/add-money/usa/bank',
+        about: 'Tapping Upload document when the applicant-action call fails.',
+        responses: { 'GET /users/me': kycProfileResponse('usBridgeNeedsProofOfAddress') },
+        fails: ['POST /users/kyc/start-action'],
+    },
+
     // ---------------------------------------------------------------------
     // Error states.
     // ---------------------------------------------------------------------
