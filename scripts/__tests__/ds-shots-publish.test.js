@@ -93,6 +93,7 @@ describe('ds-shots-publish', () => {
         ['negative unchanged', valid({ unchanged: -1 })],
         ['array report', [1, 2, 3]],
         ['not json at all', 'not json {'],
+        ['oversized file', 'x'.repeat(1024 * 1024 + 10)],
     ])('rejects: %s', (_label, report) => {
         const result = run(report)
 
