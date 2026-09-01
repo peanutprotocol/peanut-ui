@@ -361,7 +361,7 @@ function SetupPageContent() {
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
-            title={t(titleKey)}
+            title={!step.titleInView ? t(titleKey) : undefined}
             description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}

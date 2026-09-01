@@ -82,8 +82,9 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: true,
         showSkipButton: false,
         // The heads-up sub-views replace the intro copy; the select view
-        // renders the description itself.
+        // renders the title and description itself.
         descriptionInView: true,
+        titleInView: true,
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
     {

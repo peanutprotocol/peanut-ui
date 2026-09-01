@@ -2,7 +2,8 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
+import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
@@ -14,7 +15,7 @@ import posthog from 'posthog-js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
-type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial'
+type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial' | 'congrats'
 type PartialRestriction = 'card' | 'banking'
 
 const ResidenceStep = () => {
@@ -25,7 +26,7 @@ const ResidenceStep = () => {
     const { handleNext, isLoading } = useSetupFlow()
     const { countryCode: geoCountryCode } = useGeoLocation()
     // server-authoritative tier lists with the bundled mirror as fallback
-    const restrictionSets = useResidenceRestrictionSets()
+    const { sets: restrictionSets, settled: restrictionSetsSettled } = useResidenceRestrictionSetsWithStatus()
 
     const [view, setView] = useState<ResidenceView>('select')
     const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>('card')
@@ -86,7 +87,32 @@ const ResidenceStep = () => {
             setView('partial')
             return
         }
-        void handleNext()
+        // The congrats claim is definitive, so it only renders from settled
+        // data: until the server lookup resolves (either way), advance
+        // silently rather than asserting "nothing is restricted" off the
+        // bundled mirror. Heads-ups still render from the mirror — they only
+        // ever over-warn.
+        if (!restrictionSetsSettled) {
+            void handleNext()
+            return
+        }
+        // "Nothing is restricted where you live" must hold for the whole
+        // declared residence set: a restricted second country just showed its
+        // limits on the compare cards, so the congrats claim would contradict
+        // them. Advance silently instead — the heads-ups stay primary-driven.
+        if (
+            secondResidenceCountry &&
+            (restrictionSets.full.has(secondResidenceCountry) ||
+                restrictionSets.cardOnly.has(secondResidenceCountry) ||
+                restrictionSets.bankingOnly.has(secondResidenceCountry))
+        ) {
+            void handleNext()
+            return
+        }
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, {
+            residence_country: residenceCountry,
+        })
+        setView('congrats')
     }
 
     const onRestrictedContinue = () => {
@@ -114,11 +140,89 @@ const ResidenceStep = () => {
         setView('notify-done')
     }
 
+    /* The tier sets render from the bundled mirror and are replaced by the
+       server-authoritative lists asynchronously. A congrats view reached
+       before that response must not outlive it: re-evaluate on every set
+       change and demote to the matching heads-up (or back to the selector
+       when the second residence turned out restricted). Heads-up views are
+       never demoted — over-warning is stale-safe. */
+    useEffect(() => {
+        if (view !== 'congrats') return
+        if (restrictionSets.full.has(residenceCountry)) {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, {
+                residence_country: residenceCountry,
+            })
+            setView('restricted')
+            return
+        }
+        const partial: PartialRestriction | null = restrictionSets.cardOnly.has(residenceCountry)
+            ? 'card'
+            : restrictionSets.bankingOnly.has(residenceCountry)
+              ? 'banking'
+              : null
+        if (partial) {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN, {
+                residence_country: residenceCountry,
+                restriction_type: partial,
+            })
+            setPartialRestriction(partial)
+            setView('partial')
+            return
+        }
+        const second = deriveResidenceRestrictionsFrom(restrictionSets, secondResidenceCountry)
+        if (second.banking || second.card) setView('select')
+    }, [restrictionSets, view, residenceCountry, secondResidenceCountry])
+
+    if (view === 'congrats') {
+        /* One paragraph, gates kept honest: dollars and @username sends need
+           no ID check; the bank rail unlocks with verification. The card is
+           deliberately NOT mentioned: its closed beta must stay unnamed in
+           onboarding (product direction), and any card mention must state
+           every access gate (compliance) — no sentence satisfies both, and
+           the compare cards already state card availability per residence.
+           The rail phrase
+           comes from the same per-country map the compare cards render and is
+           named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
+           the rest of the world the map falls back to 'bank', which here means
+           blockchain-only — so the ID-check clause is dropped entirely rather
+           than promising a rail verification cannot deliver. */
+        const railItem = residenceAvailability(restrictionSets, residenceCountry).available.find(
+            (item) => item !== 'p2p' && item !== 'card' && item !== 'bank'
+        )
+        return (
+            <div className="flex h-full w-full flex-col justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-heading-xs">{t('residenceStep.congrats.title')}</h1>
+                    <p className="text-body-s text-foreground-secondary">
+                        {railItem
+                            ? t('residenceStep.congrats.description', {
+                                  rail: t(`residenceStep.congrats.rails.${railItem}`),
+                              })
+                            : t('residenceStep.congrats.descriptionNoRail')}
+                    </p>
+                </div>
+                <div className="flex w-full flex-col gap-2">
+                    <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
+                        {t('residenceStep.congrats.continue')}
+                    </Button>
+                    <button
+                        type="button"
+                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
+                        onClick={() => setView('select')}
+                        disabled={isLoading}
+                    >
+                        {t('residenceStep.restricted.changeCountry')}
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
     if (view === 'partial') {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-heading-xs">{t('residenceStep.partial.title')}</h2>
+                    <h1 className="text-heading-xs">{t('residenceStep.partial.title')}</h1>
                     <p className="text-body-s text-foreground-secondary">
                         {partialRestriction === 'card'
                             ? t('residenceStep.partial.cardDescription')
@@ -131,8 +235,9 @@ const ResidenceStep = () => {
                     </Button>
                     <button
                         type="button"
-                        className="mt-1 text-center text-body-s underline underline-offset-2"
+                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
                         onClick={() => setView('select')}
+                        disabled={isLoading}
                     >
                         {t('residenceStep.restricted.changeCountry')}
                     </button>
@@ -145,7 +250,7 @@ const ResidenceStep = () => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-heading-xs">{t('residenceStep.restricted.title')}</h2>
+                    <h1 className="text-heading-xs">{t('residenceStep.restricted.title')}</h1>
                     <p className="text-body-s text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
                     {view === 'notify' && (
                         <div className="mt-2 flex flex-col gap-2">
@@ -181,8 +286,9 @@ const ResidenceStep = () => {
                     )}
                     <button
                         type="button"
-                        className="mt-1 text-center text-body-s underline underline-offset-2"
+                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
                         onClick={() => setView('select')}
+                        disabled={isLoading}
                     >
                         {t('residenceStep.restricted.changeCountry')}
                     </button>
@@ -195,7 +301,9 @@ const ResidenceStep = () => {
         <div className="flex h-full w-full flex-col justify-between gap-4">
             <div className="flex w-full flex-col gap-2">
                 {/* Rendered here, not by the step chrome, so the heads-up
-                    sub-views don't repeat it (descriptionInView on the step). */}
+                    sub-views can replace them with their own single heading
+                    (titleInView/descriptionInView on the step). */}
+                <h1 className="w-full text-left text-heading-xs leading-tight">{t('steps.residence.title')}</h1>
                 <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
                 <BaseSelect
                     options={countryOptions}

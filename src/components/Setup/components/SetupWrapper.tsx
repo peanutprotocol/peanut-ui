@@ -284,31 +284,37 @@ export const SetupWrapper = memo(function SetupWrapper({
                         contentClassName
                     )}
                 >
-                    {/* title and description container */}
-                    <div
-                        className={twMerge(
-                            'mx-auto space-y-4 h-full w-full md:max-h-48 md:max-w-xs',
-                            (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
-                            sunsetLanding && 'md:h-auto md:max-h-none'
-                        )}
-                    >
-                        {headingTitle && (
-                            <h1
-                                className={twMerge(
-                                    'w-full text-left text-heading-xs leading-tight',
-                                    sunsetLanding && 'md:text-center',
-                                    titleClassName
-                                )}
-                            >
-                                {headingTitle}
-                            </h1>
-                        )}
-                        {headingDescription && (
-                            <p className={twMerge('text-body-m text-black', sunsetLanding && 'md:text-center')}>
-                                {headingDescription}
-                            </p>
-                        )}
-                    </div>
+                    {/* title and description container. Skipped entirely when
+                        the step renders its own heading (titleInView +
+                        descriptionInView): the wrapper is height-capped on
+                        desktop, so an empty slot would push the content down
+                        by up to 12rem. */}
+                    {(headingTitle || headingDescription) && (
+                        <div
+                            className={twMerge(
+                                'mx-auto space-y-4 h-full w-full md:max-h-48 md:max-w-xs',
+                                (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
+                                sunsetLanding && 'md:h-auto md:max-h-none'
+                            )}
+                        >
+                            {headingTitle && (
+                                <h1
+                                    className={twMerge(
+                                        'w-full text-left text-heading-xs leading-tight',
+                                        sunsetLanding && 'md:text-center',
+                                        titleClassName
+                                    )}
+                                >
+                                    {headingTitle}
+                                </h1>
+                            )}
+                            {headingDescription && (
+                                <p className={twMerge('text-body-m text-black', sunsetLanding && 'md:text-center')}>
+                                    {headingDescription}
+                                </p>
+                            )}
+                        </div>
+                    )}
                     {/* main content area */}
                     <div className="mx-auto w-full md:max-w-xs">
                         {Children.map(children, (child) => {

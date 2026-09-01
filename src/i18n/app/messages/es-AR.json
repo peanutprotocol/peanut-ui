@@ -88,7 +88,8 @@
             "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
             "tapToClaim": "Tocá para reclamar tu recompensa.",
             "card": {
-                "title": "Conseguí tu <b>Peanut Card</b>"
+                "title": "Conseguí tu <b>Peanut Card</b>",
+                "description": "Gastá tu saldo <b>donde acepten Visa</b>."
             },
             "invite": {
                 "title": "Invitá amigos. Ganá recompensas",
@@ -423,9 +424,13 @@
             },
             "partial": {
                 "title": "Atención",
-                "cardDescription": "La tarjeta Peanut no está disponible en tu país. Todo lo demás funciona: transferencias bancarias, dólares digitales y envíos a cualquier @usuario.",
-                "bankingDescription": "Las transferencias bancarias no están disponibles en tu país. Todo lo demás funciona: la tarjeta Peanut, dólares digitales y envíos a cualquier @usuario.",
+                "cardDescription": "La tarjeta Peanut no está disponible en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
+                "bankingDescription": "Las transferencias bancarias no están disponibles en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
                 "continue": "Continuar"
+            },
+            "congrats": {
+                "description": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}.",
+                "descriptionNoRail": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato."
             },
             "restricted": {
                 "title": "Atención",
@@ -441,7 +446,7 @@
                 "cardTitle": "Disponible con {country}",
                 "items": {
                     "p2p": "Pagos a cualquier @usuario",
-                    "pix": "PIX y transferencias bancarias",
+                    "pix": "PIX",
                     "arQr": "Pagos QR y transferencias",
                     "spei": "Transferencias bancarias SPEI",
                     "achWire": "Transferencias ACH y Wire",

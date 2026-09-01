@@ -203,7 +203,7 @@
             "tapToClaim": "Tap to claim your reward.",
             "card": {
                 "title": "Get your <b>Peanut Card</b>",
-                "description": "Closed beta. <b>Badges skip the line.</b>"
+                "description": "Spend your balance <b>anywhere Visa works</b>."
             },
             "invite": {
                 "title": "Invite friends. Earn rewards",
@@ -758,8 +758,21 @@
             },
             "partial": {
                 "title": "Heads up",
-                "cardDescription": "The Peanut card isn't available in your country. Everything else works: bank transfers, digital dollars, and sending to any @username.",
-                "bankingDescription": "Bank transfers aren't available in your country. Everything else works: the Peanut card, digital dollars, and sending to any @username.",
+                "cardDescription": "The Peanut card isn't available in your country. Digital dollars and sending to any @username work right away.",
+                "bankingDescription": "Bank transfers aren't available in your country. Digital dollars and sending to any @username work right away.",
+                "continue": "Continue"
+            },
+            "congrats": {
+                "title": "Good news",
+                "description": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away, and a quick ID check unlocks {rail}.",
+                "descriptionNoRail": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away.",
+                "rails": {
+                    "pix": "PIX transfers",
+                    "arQr": "QR payments and transfers",
+                    "spei": "SPEI transfers",
+                    "achWire": "ACH and wire transfers",
+                    "sepa": "SEPA bank transfers"
+                },
                 "continue": "Continue"
             },
             "restricted": {
@@ -776,7 +789,7 @@
                 "cardTitle": "Available with {country}",
                 "items": {
                     "p2p": "Payments to any @username",
-                    "pix": "PIX & bank transfers",
+                    "pix": "PIX",
                     "arQr": "QR payments & transfers",
                     "spei": "SPEI bank transfers",
                     "achWire": "ACH & Wire transfers",

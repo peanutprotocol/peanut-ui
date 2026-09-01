@@ -203,7 +203,7 @@
             "tapToClaim": "Toque para resgatar sua recompensa.",
             "card": {
                 "title": "Peça seu <b>Peanut Card</b>",
-                "description": "Beta fechado. <b>Emblemas furam a fila.</b>"
+                "description": "Gaste seu saldo <b>onde a Visa é aceita</b>."
             },
             "invite": {
                 "title": "Convide amigos. Ganhe recompensas",
@@ -758,8 +758,21 @@
             },
             "partial": {
                 "title": "Atenção",
-                "cardDescription": "O cartão Peanut não está disponível no seu país. Todo o resto funciona: transferências bancárias, dólares digitais e envios para qualquer @usuário.",
-                "bankingDescription": "Transferências bancárias não estão disponíveis no seu país. Todo o resto funciona: o cartão Peanut, dólares digitais e envios para qualquer @usuário.",
+                "cardDescription": "O cartão Peanut não está disponível no seu país. Dólares digitais e envios para qualquer @usuário funcionam desde já.",
+                "bankingDescription": "Transferências bancárias não estão disponíveis no seu país. Dólares digitais e envios para qualquer @usuário funcionam desde já.",
+                "continue": "Continuar"
+            },
+            "congrats": {
+                "title": "Boas notícias",
+                "description": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já, e uma verificação rápida de identidade libera {rail}.",
+                "descriptionNoRail": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já.",
+                "rails": {
+                    "pix": "transferências PIX",
+                    "arQr": "pagamentos e transferências por QR",
+                    "spei": "transferências SPEI",
+                    "achWire": "transferências ACH e wire",
+                    "sepa": "transferências bancárias SEPA"
+                },
                 "continue": "Continuar"
             },
             "restricted": {
@@ -776,7 +789,7 @@
                 "cardTitle": "Disponível com {country}",
                 "items": {
                     "p2p": "Pagamentos para qualquer @usuário",
-                    "pix": "PIX e transferências bancárias",
+                    "pix": "PIX",
                     "arQr": "Pagamentos QR e transferências",
                     "spei": "Transferências bancárias SPEI",
                     "achWire": "Transferências ACH e Wire",
