@@ -7,7 +7,9 @@ import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { captureException } from '@sentry/nextjs'
@@ -31,6 +33,7 @@ const LinkSendSuccessView = () => {
     const { user } = useUserStore()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const toast = useToast()
+    const friendly = useFriendlyError()
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
 
@@ -166,6 +169,17 @@ const LinkSendSuccessView = () => {
                                 router.push('/home')
                             }
                         } catch (error) {
+                            if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) {
+                                // the recipient got there first — the link is CLAIMED, not
+                                // failed; home renders it as claimed once refetched
+                                setIsLoading(false)
+                                setCancelStatus('idle')
+                                setShowCancelLinkDrawer(false)
+                                toast.info(friendly(error))
+                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(() => undefined)
+                                router.push('/home')
+                                return
+                            }
                             captureException(error)
                             console.error('Error claiming link:', error)
                             setIsLoading(false)

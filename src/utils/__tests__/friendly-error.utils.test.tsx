@@ -353,6 +353,14 @@ describe('chain-infrastructure outage on claim', () => {
         expect(friendlyError(outage)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
     })
 
+    // A cancel on a link the recipient already claimed reverts in the vault;
+    // the API leaves the link CLAIMED and answers 409 with this code
+    // (TASK-22091). Same copy the claimer-side text matcher already produces.
+    test('an already-claimed link maps to the existing already-claimed copy', () => {
+        const err = Object.assign(new Error('This link was already claimed.'), { code: 'LINK_ALREADY_CLAIMED' })
+        expect(friendlyError(err)).toEqual({ kind: 'code', code: 'sendLinkAlreadyClaimed' })
+    })
+
     test('the same prose WITHOUT the code keeps the support fallback', () => {
         // the code is the only new signal — an API that predates it, or a
         // genuinely unclassified 500, must not start advertising a retry
