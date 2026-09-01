@@ -313,7 +313,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     <span className="text-label-m text-foreground-secondary">{tCommon('or')}</span>
                     <div className="h-px w-full bg-border-subtle"></div>
                 </div>
-                <Button icon="plus" className="mb-5" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
+                <Button icon="plus" className="mb-4" onClick={() => setShouldShowAllMethods(true)} shadowSize="4">
                     {tAddMoney('selectNewMethod')}
                 </Button>
                 <TokenAndNetworkConfirmationModal

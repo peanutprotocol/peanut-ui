@@ -183,7 +183,7 @@ const CardRejectionScreen: FC<Props> = ({
         <div className="flex min-h-[inherit] flex-col justify-between gap-6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
                 <ScaledRejectionAsset
                     ref={captureRef}
                     username={safeUsername}
@@ -228,8 +228,8 @@ const CardRejectionScreen: FC<Props> = ({
                     {t('tweetToAppeal')}
                 </Button>
                 {showJoined ? (
-                    <div className="flex h-13 items-center justify-center gap-2 text-center text-body-s font-bold text-foreground-primary">
-                        <Icon name="check-circle" size={18} />
+                    <div className="flex h-13 items-center justify-center gap-2 text-center text-label-l text-foreground-primary">
+                        <Icon name="check-circle" size={16} />
                         {t('onTheList')}
                     </div>
                 ) : (

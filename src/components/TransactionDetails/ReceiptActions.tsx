@@ -148,7 +148,7 @@ export function ReceiptActions({
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
                             >
-                                <div className="flex items-center">{!isLoading && <Icon name="ban" size={18} />}</div>
+                                <div className="flex items-center">{!isLoading && <Icon name="ban" size={20} />}</div>
                                 <span>{t(CANCEL_LINK_KEYS[cancelLinkState])}</span>
                             </Button>
                         )}
@@ -156,7 +156,7 @@ export function ReceiptActions({
             )}
 
             {isPendingSentLink && !shouldShowQrShare && (
-                <div className="flex items-center justify-center gap-1.5 text-center text-label-m text-foreground-secondary">
+                <div className="flex items-center justify-center gap-1 text-center text-label-m text-foreground-secondary">
                     <Icon name="info" size={20} />
                     {t('pendingLinkDeviceNote')}
                 </div>
@@ -188,7 +188,7 @@ export function ReceiptActions({
                         shadowSize="4"
                         className="flex w-full items-center gap-1"
                     >
-                        <Icon name="currency" size={18} />
+                        <Icon name="currency" size={20} />
                         {t('actions.pay')}
                     </Button>
                     <Button

@@ -61,7 +61,7 @@ const UserCard = ({
         if (type === 'request_pay') title = t('userCard.isRequesting', { name: fullName ?? username })
         if (type === 'request_fulfilment') title = t('userCard.sendingTo', { name: fullName ?? username })
         return (
-            <div className="flex items-center gap-2 text-body-xs font-normal text-foreground-secondary">
+            <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
                 {icon && <Icon name={icon} size={8} />} {title}
             </div>
         )

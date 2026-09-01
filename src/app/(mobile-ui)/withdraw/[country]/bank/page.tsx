@@ -454,7 +454,7 @@ export default function WithdrawBankPage() {
             />
 
             {view === 'INITIAL' && (
-                <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-5">
+                <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
                     <PeanutActionDetailsCard
                         countryCodeForFlag={countryCodeForFlag()}
                         avatarSize="small"

@@ -61,7 +61,7 @@ const InputAmountStep = ({
     if (currencyData?.isLoading) {
         // dev keeps the header mounted so back always works during the load
         return (
-            <div className="space-y-8 flex min-h-[inherit] flex-col justify-start">
+            <div className="flex min-h-[inherit] flex-col justify-start gap-8">
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <Loading variant="mascot" />
             </div>
@@ -83,11 +83,11 @@ const InputAmountStep = ({
         : null
 
     return (
-        <div className="space-y-8 flex min-h-[inherit] flex-col justify-start">
+        <div className="flex min-h-[inherit] flex-col justify-start gap-8">
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {maintenanceBanner}
-                <div className="text-body-s font-bold">{t('howMuchToAdd')}</div>
+                <div className="text-label-l">{t('howMuchToAdd')}</div>
 
                 <AmountInput
                     initialAmount={tokenAmount}

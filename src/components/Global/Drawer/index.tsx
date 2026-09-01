@@ -76,7 +76,7 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
 DrawerContent.displayName = 'DrawerContent'
 
 const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div className={twMerge('grid gap-1.5 p-4 text-center sm:text-left', className)} {...props} />
+    <div className={twMerge('grid gap-1 p-4 text-center sm:text-left', className)} {...props} />
 )
 DrawerHeader.displayName = 'DrawerHeader'
 

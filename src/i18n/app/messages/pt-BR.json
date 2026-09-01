@@ -359,10 +359,10 @@
             "rows": {
                 "p2p": "Pagamentos de Peanut para Peanut",
                 "card": "Cartão Peanut",
-                "saBank": "PIX, QR e transferências bancárias (Brasil e Argentina)",
-                "pixBank": "PIX e transferências bancárias (Brasil)",
+                "saBank": "PIX (Brasil), QR e transferências bancárias (Argentina)",
+                "pixBank": "Pagamentos e transferências PIX (Brasil)",
                 "pixQr": "Pagamentos QR com PIX (Brasil)",
-                "brBank": "Transferências bancárias (Brasil)",
+                "brBank": "Transferências PIX (Brasil)",
                 "arQrBank": "Pagamentos QR e transferências (Argentina)",
                 "arQr": "Pagamentos QR (Argentina)",
                 "arBank": "Transferências bancárias (Argentina)",
@@ -1582,6 +1582,7 @@
             "cta": "Recuperar fundos"
         },
         "uploadProofOfAddress": "Enviar comprovante de endereço",
+        "uploadIdentityDocuments": "Enviar documentos de identidade",
         "fixSignature": {
             "navTitle": "Reparar a assinatura do cartão",
             "intro": "Esta ferramenta repara um problema no estado da carteira que impede o seu cartão de se recarregar automaticamente. Leva até duas confirmações rápidas com a passkey.",

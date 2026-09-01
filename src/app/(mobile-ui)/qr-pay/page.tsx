@@ -1454,7 +1454,7 @@ export default function QRPayPage() {
                         <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
-                    <div className="space-y-5 w-full">
+                    <div className="space-y-4 w-full">
                         {/* Show Claim Reward button if eligible and not claimed yet */}
                         {rewardClaimable ? (
                             <Button
@@ -1486,7 +1486,7 @@ export default function QRPayPage() {
                             >
                                 {/* progress fill from left to right */}
                                 <div
-                                    className="absolute inset-0 bg-black transition-all duration-100"
+                                    className="absolute inset-0 bg-black transition-all duration-instant"
                                     style={{
                                         width: `${holdProgress}%`,
                                         left: 0,
@@ -1498,7 +1498,7 @@ export default function QRPayPage() {
                                         <>
                                             <span className="relative z-10">{label}</span>
                                             <span
-                                                className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-75"
+                                                className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-instant"
                                                 style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
                                             >
                                                 {label}

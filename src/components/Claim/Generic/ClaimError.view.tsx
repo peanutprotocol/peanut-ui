@@ -19,7 +19,7 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
     const t = useTranslations('claim')
 
     return (
-        <div className="space-y-4 flex flex-col items-center justify-center rounded-lg text-center">
+        <div className="space-y-4 flex flex-col items-center justify-center text-center">
             <Image src={PeanutCrying.src} unoptimized alt={t('errors.sadPeanutAlt')} width={96} height={96} />
             <div className="space-y-2">
                 <h1 className="text-heading-card text-foreground-primary">{title}</h1>

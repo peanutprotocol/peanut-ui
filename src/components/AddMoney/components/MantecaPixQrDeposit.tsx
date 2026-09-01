@@ -58,7 +58,7 @@ const MantecaPixQrDeposit: FC<{
             <PageStack>
                 <NavHeader title={t('title')} onPrev={onDone} />
                 <div className="my-auto flex flex-col items-center gap-4 text-center">
-                    <IconBubble icon="check" size="m" color="green" />
+                    <IconBubble icon="check" size="l" color="green" />
                     <h2 className="text-heading-s text-foreground-primary">{t('pix.depositReceived')}</h2>
                     <p className="text-body-s text-foreground-secondary">{t('pix.balanceUpdated')}</p>
                     <Button variant="purple" shadowSize="4" className="w-full" onClick={onDone}>

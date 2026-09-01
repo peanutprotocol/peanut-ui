@@ -88,7 +88,7 @@ const CardFace: FC<Props> = ({
                 alt=""
                 aria-hidden
                 className={twMerge(
-                    'pointer-events-none absolute right-0 bottom-0 h-[90%] w-auto transition-transform duration-500 select-none',
+                    'pointer-events-none absolute right-0 bottom-0 h-[90%] w-auto transition-transform duration-slow select-none',
                     detailsShown && 'translate-x-full translate-y-full'
                 )}
                 priority

@@ -91,7 +91,7 @@ export const BetaUpdatesCard = () => {
         <Card position="single" className="space-y-3 p-4">
             <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-body-s font-bold text-black">{t('heading')}</h2>
+                    <h2 className="text-label-l text-black">{t('heading')}</h2>
                     <p className="text-body-xs text-foreground-secondary">
                         {t('description', { channel: BETA_OTA_CHANNEL })}
                     </p>

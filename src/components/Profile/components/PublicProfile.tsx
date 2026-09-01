@@ -186,7 +186,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <Icon name="arrow-up-right" size={18} fill="black" />
+                            <Icon name="arrow-up-right" size={20} fill="black" />
                             <span className="font-bold">{tNav('send')}</span>
                         </Button>
 
@@ -202,7 +202,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <Icon name="arrow-down-left" size={18} fill="black" />
+                            <Icon name="arrow-down-left" size={20} fill="black" />
                             <span className="font-bold">{tNav('request')}</span>
                         </Button>
                     </div>
@@ -268,7 +268,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div>
                         <HomeHistory username={username} />
                         {isSelfProfile && (
-                            <div className="mt-3 mb-1 flex w-full items-center justify-center gap-2 rounded-md bg-background-disabled/25 px-3 py-2">
+                            <div className="mt-3 mb-1 flex w-full items-center justify-center gap-2 rounded-sm bg-background-disabled/25 px-3 py-2">
                                 <Icon name="info" size={16} className="text-foreground-secondary" />
                                 <p className="text-center text-body-s text-foreground-secondary">
                                     {t('activityPrivateNote')}

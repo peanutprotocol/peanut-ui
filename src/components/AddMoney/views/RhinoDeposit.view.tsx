@@ -85,9 +85,7 @@ const RhinoDepositView = ({
                                 {t('marketMovedDescription')}
                             </p>
 
-                            <p className="text-center text-body-s font-bold text-foreground-secondary">
-                                {t('marketMovedNote')}
-                            </p>
+                            <p className="text-center text-label-l text-foreground-secondary">{t('marketMovedNote')}</p>
                         </div>
                     </Card>
                     <Button onClick={resetStatus} shadowSize="4" loading={isResetting} disabled={isResetting}>
@@ -159,7 +157,7 @@ const RhinoDepositView = ({
 
                             <Button
                                 variant="primary-soft"
-                                className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5"
+                                className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1 rounded-full px-3 md:h-9 md:px-4"
                                 shadowSize="3"
                                 size="small"
                                 onClick={() => copyRef.current?.copy()}
@@ -190,26 +188,26 @@ const RhinoDepositView = ({
                             <div className="flex w-full flex-col gap-1">
                                 <div className="flex w-full items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="info" size={18} className="text-foreground-secondary" />
+                                        <Icon name="info" size={16} className="text-foreground-secondary" />
                                         <p className="text-body-s text-foreground-secondary">
                                             {t('minDepositForLabel', { network: amountLimitsTitle })}
                                         </p>
                                     </div>
 
-                                    <p className="text-body-s font-medium text-foreground-secondary">
+                                    <p className="text-body-s text-foreground-secondary">
                                         {depositAddressData.minDepositLimitUsd} USD
                                     </p>
                                 </div>
 
                                 <div className="flex w-full items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="info" size={18} className="text-foreground-secondary" />
+                                        <Icon name="info" size={16} className="text-foreground-secondary" />
                                         <p className="text-body-s text-foreground-secondary">
                                             {t('maxDepositForLabel', { network: amountLimitsTitle })}
                                         </p>
                                     </div>
 
-                                    <p className="text-body-s font-medium text-foreground-secondary">
+                                    <p className="text-body-s text-foreground-secondary">
                                         {depositAddressData.maxDepositLimitUsd} USD
                                     </p>
                                 </div>
@@ -217,7 +215,7 @@ const RhinoDepositView = ({
 
                             {chainType === 'EVM' && (
                                 <Card className="space-y-2 p-4">
-                                    <h3 className="text-body-s font-bold text-foreground-primary">
+                                    <h3 className="text-label-l text-foreground-primary">
                                         {t('supportedEvmNetworks')}
                                     </h3>
                                     <div className="flex flex-wrap gap-2">

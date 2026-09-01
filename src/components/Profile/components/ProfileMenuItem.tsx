@@ -63,7 +63,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
                 {badge && <StatusBadge status="custom" customText={badge} />}
                 {showTooltip && (
                     <Tooltip content={toolTipText}>
-                        <Icon name="info" size={14} fill="black" />
+                        <Icon name="info" size={16} fill="black" />
                     </Tooltip>
                 )}
             </div>

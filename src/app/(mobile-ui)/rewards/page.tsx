@@ -206,7 +206,7 @@ const PointsPage = () => {
                             />
                             <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-background-disabled">
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-hover transition-all duration-500"
+                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-hover transition-all duration-slow"
                                     style={{
                                         width: `${
                                             tierInfo?.data.currentTier >= 2
@@ -246,11 +246,11 @@ const PointsPage = () => {
                     the explainer is part of that framing, so web and Android skip it */}
                 {isIOSNative() && (
                     <Card className="flex flex-col gap-3 p-6">
-                        <h2 className="text-body-m font-black">{t('howItWorks.title')}</h2>
+                        <h2 className="text-body-m-semibold">{t('howItWorks.title')}</h2>
                         <ol className="flex flex-col gap-2">
                             {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
                                 <li key={step} className="flex items-start gap-3 text-body-s">
-                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-action-secondary text-body-xs font-black">
+                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-action-secondary text-label-m">
                                         {i + 1}
                                     </span>
                                     <span>{t(`howItWorks.${step}`)}</span>
@@ -284,7 +284,7 @@ const PointsPage = () => {
                                         onClick={() => router.push(profileUrl(user.invitedBy!))}
                                         className="inline-flex cursor-pointer items-center gap-1 font-bold"
                                     >
-                                        {user.invitedBy} <Icon name="invite-heart" size={14} />
+                                        {user.invitedBy} <Icon name="invite-heart" size={16} />
                                     </span>{' '}
                                     {t('invitedYou')}{' '}
                                 </>

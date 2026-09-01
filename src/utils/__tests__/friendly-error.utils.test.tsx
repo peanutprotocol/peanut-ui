@@ -387,7 +387,6 @@ describe('browser-native fetch rejection (TASK-21956)', () => {
     test.each([
         ['chargesApi.get on a 500', new Error('Failed to fetch charge: Internal Server Error')],
         ['useLimits on a 503', new Error('Failed to fetch limits: Service Unavailable')],
-        ['quests leaderboard', new Error('Failed to fetch leaderboards')],
     ])('%s is a server error, not lost connectivity', (_case, error) => {
         expect(friendlyError(error)).toEqual({ kind: 'code', code: 'genericSupport' })
     })

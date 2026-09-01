@@ -66,7 +66,7 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                 {POLICY_LINKS.map((doc, index) => (
                     <Card key={doc.href} position={cardPosition(index, POLICY_LINKS.length)}>
                         <DocsLink href={doc.href} className="flex cursor-pointer justify-between py-1">
-                            <span className="text-body-s font-medium text-black">{doc.name}</span>
+                            <span className="text-body-s text-black">{doc.name}</span>
                             <NavigationArrow size={24} className="fill-black" />
                         </DocsLink>
                     </Card>

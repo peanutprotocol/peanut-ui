@@ -212,7 +212,7 @@ function CancelButton({ label, disabled, onClick }: { label?: string; disabled: 
             shadowSize="4"
         >
             <div className="flex items-center">
-                <Icon name="ban" size={18} />
+                <Icon name="ban" size={20} />
             </div>
             <span>{label ?? t('actions.cancelDeposit')}</span>
         </Button>

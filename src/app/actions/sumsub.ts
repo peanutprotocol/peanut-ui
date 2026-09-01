@@ -178,16 +178,19 @@ export const initiateSelfHealResubmission = async (
 }
 
 /**
- * Exchange the `bridge-hosted` capability action for Bridge's hosted
- * verification URL (same POST /users/kyc/start-action endpoint as
- * {@link startKycAction}, different response shape: that path mints Sumsub
- * tokens, this one returns a URL — hence its own guard).
+ * Exchange a hosted-verification capability action for its provider's hosted
+ * URL (same POST /users/kyc/start-action endpoint as {@link startKycAction},
+ * different response shape: that path mints Sumsub tokens, this one returns a
+ * URL — hence its own guard). Serves both `bridge-hosted` (Bridge/Persona) and
+ * `rain-hosted` (Rain's card-member portal); the key selects the provider.
  */
-export const startBridgeHostedVerification = async (): Promise<{ url?: string; error?: string }> => {
+export const startHostedVerification = async (
+    key: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted'
+): Promise<{ url?: string; error?: string }> => {
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
-            body: JSON.stringify({ key: 'bridge-hosted' }),
+            body: JSON.stringify({ key }),
         })
         const responseJson = await response.json()
         if (!response.ok) {

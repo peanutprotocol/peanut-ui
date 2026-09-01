@@ -8,7 +8,7 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
-import { useBridgeHostedVerification } from '@/hooks/useBridgeHostedVerification'
+import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
@@ -22,7 +22,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
  * an interruption, not as the step it actually is.
  *
  * The CTA calls `start` straight out of the click: the reserved tab depends on
- * that user gesture (see useBridgeHostedVerification).
+ * that user gesture (see useHostedVerification).
  *
  * The task DISAPPEARING is the success signal — nothing else reports it, since
  * nothing polls a requires-info rail. The card this replaced got that for free
@@ -45,7 +45,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
     const router = useRouter()
     const onBack = useSafeBack(IDENTITY_ROUTE)
     const { nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
-    const { start, isStarting, error } = useBridgeHostedVerification()
+    const { start, isStarting, error } = useHostedVerification('bridge-hosted')
     const hostedTask = nextActions.find((action) => action.kind === 'bridge-hosted')
     // A future-dated action is advisory: those rails still work today, and this
     // screen must not tell that user their transfers are blocked.
@@ -59,7 +59,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="flex flex-col items-center gap-3 text-center" data-testid="hosted-task-done">
                     <IconBubble icon="check-circle" size="l" color="green" />
-                    <p className="text-body-m font-bold">{t('done.title')}</p>
+                    <p className="text-body-m-semibold">{t('done.title')}</p>
                     <p className="text-body-s text-foreground-secondary">{t('done.description')}</p>
                 </div>
                 <Button variant="purple" shadowSize="4" onClick={() => router.replace(IDENTITY_ROUTE)}>
@@ -73,8 +73,11 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
         <div className="flex w-full flex-col gap-6">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <div className="flex flex-col items-center gap-3 text-center">
-                <IconBubble icon="user-id" size="l" color="yellow" />
+            {/* Bubble centered, prose not: the checklist right below is
+                left-aligned, and a centered paragraph above it reads as a
+                second column. */}
+            <div className="flex flex-col gap-3">
+                <IconBubble icon="user-id" size="l" color="yellow" className="self-center" />
                 <p className="text-body-s text-foreground-secondary">
                     {isAdvisory ? t('descriptionAdvisory') : t('description')}
                 </p>

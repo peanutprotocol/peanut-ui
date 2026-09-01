@@ -85,7 +85,7 @@ export const setupSteps: ISetupStep[] = [
         // renders the title and description itself.
         descriptionInView: true,
         titleInView: true,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
     {
         screenId: 'passkey-permission',

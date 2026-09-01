@@ -359,10 +359,10 @@
             "rows": {
                 "p2p": "Pagos de Peanut a Peanut",
                 "card": "Tarjeta Peanut",
-                "saBank": "PIX, QR y transferencias bancarias (Brasil y Argentina)",
-                "pixBank": "PIX y transferencias bancarias (Brasil)",
+                "saBank": "PIX (Brasil), QR y transferencias bancarias (Argentina)",
+                "pixBank": "Pagos y transferencias PIX (Brasil)",
                 "pixQr": "Pagos QR con PIX (Brasil)",
-                "brBank": "Transferencias bancarias (Brasil)",
+                "brBank": "Transferencias PIX (Brasil)",
                 "arQrBank": "Pagos QR y transferencias (Argentina)",
                 "arQr": "Pagos QR (Argentina)",
                 "arBank": "Transferencias bancarias (Argentina)",
@@ -1582,6 +1582,7 @@
             "cta": "Recuperar fondos"
         },
         "uploadProofOfAddress": "Subir comprobante de domicilio",
+        "uploadIdentityDocuments": "Subir documentos de identidad",
         "fixSignature": {
             "navTitle": "Reparar la firma de la tarjeta",
             "intro": "Esta herramienta repara un problema de estado de la billetera que impide que tu tarjeta se recargue automáticamente. Requiere hasta dos confirmaciones rápidas con tu passkey.",

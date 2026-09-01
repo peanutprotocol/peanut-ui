@@ -315,7 +315,7 @@ function SetupPageContent() {
                 image={PeanutWavingHello.src}
                 title={t('existingSession.title')}
                 description={t('existingSession.description', { username: existingSessionUsername })}
-                contentClassName="flex flex-col items-center justify-center gap-5"
+                contentClassName="flex flex-col items-center justify-center gap-6"
             >
                 <div className="flex w-full flex-col gap-3">
                     <Button shadowSize="4" onClick={handleContinueSession} disabled={isLoggingOut}>
