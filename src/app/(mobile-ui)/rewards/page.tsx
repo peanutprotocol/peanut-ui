@@ -206,7 +206,7 @@ const PointsPage = () => {
                             />
                             <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-background-disabled">
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-hover transition-all duration-500"
+                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-hover transition-all duration-slow"
                                     style={{
                                         width: `${
                                             tierInfo?.data.currentTier >= 2
@@ -284,7 +284,7 @@ const PointsPage = () => {
                                         onClick={() => router.push(profileUrl(user.invitedBy!))}
                                         className="inline-flex cursor-pointer items-center gap-1 font-bold"
                                     >
-                                        {user.invitedBy} <Icon name="invite-heart" size={14} />
+                                        {user.invitedBy} <Icon name="invite-heart" size={16} />
                                     </span>{' '}
                                     {t('invitedYou')}{' '}
                                 </>

@@ -61,7 +61,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                     <div className="flex items-center justify-between rounded-sm border border-border-default bg-background-default px-4 py-3">
                         <div>
                             <div className="text-body-s text-foreground-secondary">{label}</div>
-                            <div className="text-body-m font-bold">
+                            <div className="text-body-m-semibold">
                                 {amount != null ? formatDollars(amount) : t('noLimitSet')}
                             </div>
                         </div>

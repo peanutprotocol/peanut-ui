@@ -159,7 +159,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     </>
                 ) : isFeedback ? (
                     <div className="flex w-full flex-col gap-2 text-left">
-                        <label htmlFor="cancel-feedback" className="text-body-s font-bold">
+                        <label htmlFor="cancel-feedback" className="text-label-l">
                             {t('cancel.feedbackLabel')}
                         </label>
                         <textarea

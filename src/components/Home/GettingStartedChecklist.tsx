@@ -109,7 +109,7 @@ const GettingStartedChecklist = () => {
 
     return (
         <div>
-            <p className="mb-2 text-body-s font-bold">{t('title')}</p>
+            <p className="mb-2 text-label-l">{t('title')}</p>
             <Card position="single" className="overflow-hidden p-0">
                 {items.map((item) => {
                     const tappable = !item.done && !!item.onTap
@@ -134,10 +134,7 @@ const GettingStartedChecklist = () => {
                             </span>
                             <span className="min-w-0">
                                 <span
-                                    className={twMerge(
-                                        'block text-body-s font-bold',
-                                        item.done && 'text-foreground-secondary'
-                                    )}
+                                    className={twMerge('block text-label-l', item.done && 'text-foreground-secondary')}
                                 >
                                     {item.label}
                                 </span>

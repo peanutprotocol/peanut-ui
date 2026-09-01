@@ -2,7 +2,7 @@
     "rawHex": 65,
     "rawHexFiles": 41,
     "inlineStyle": 50,
-    "stockTextSize": 362,
+    "stockTextSize": 361,
     "dsTextScale": 10,
     "nonDsClassesInViews": 138,
     "useSearchParamsFiles": 47,
@@ -11,5 +11,10 @@
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 314
+    "classNameSitesInPages": 314,
+    "fontWeightOnTypeToken": 13,
+    "offScaleSpacing": 124,
+    "iconOffScale": 42,
+    "offScaleRadius": 33,
+    "rawDuration": 9
 }

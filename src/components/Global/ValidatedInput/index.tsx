@@ -270,7 +270,7 @@ const ValidatedInput = ({
                                 dismissSuggestion()
                                 onUpdate({ value: suggestion, isValid: false, isChanging: true })
                             }}
-                            className="flex w-full items-start gap-1.5 rounded-sm border border-border-default bg-background-default px-3 py-2 text-left text-body-xs font-medium text-foreground-primary transition-colors hover:bg-background-disabled"
+                            className="flex w-full items-start gap-1 rounded-sm border border-border-default bg-background-default px-3 py-2 text-left text-body-xs font-medium text-foreground-primary transition-colors hover:bg-background-disabled"
                         >
                             <Icon name="paste" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                             <span className="break-all">

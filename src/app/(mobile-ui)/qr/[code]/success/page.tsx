@@ -64,7 +64,7 @@ export default function RedirectQrSuccessPage() {
                     <div className="flex gap-3">
                         <Icon name="star" size={20} className="flex-shrink-0 text-action-secondary" />
                         <div className="space-y-1">
-                            <p className="text-body-s font-bold">{t('claimSuccess.putItAnywhere')}</p>
+                            <p className="text-label-l">{t('claimSuccess.putItAnywhere')}</p>
                             <p className="text-body-xs text-foreground-secondary">
                                 {t('claimSuccess.stickerDescription')}
                             </p>

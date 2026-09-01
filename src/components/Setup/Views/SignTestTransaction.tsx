@@ -253,11 +253,11 @@ const SignTestTransaction = () => {
         return (
             <div className="flex w-full flex-col gap-3 text-left">
                 <div className="rounded-sm border border-border-default bg-background-default p-3">
-                    <p className="text-body-s font-bold">{t('accountReady.worksNowTitle')}</p>
+                    <p className="text-label-l">{t('accountReady.worksNowTitle')}</p>
                     <p className="text-body-s">{t('accountReady.worksNowBody')}</p>
                 </div>
                 <div className="rounded-sm border border-border-default bg-background-default p-3">
-                    <p className="text-body-s font-bold">{t('accountReady.laterTitle')}</p>
+                    <p className="text-label-l">{t('accountReady.laterTitle')}</p>
                     <p className="text-body-s">{t('accountReady.laterBody')}</p>
                 </div>
                 <Button
@@ -291,7 +291,7 @@ const SignTestTransaction = () => {
                     >
                         {getButtonText()}
                     </Button>
-                    {displayError && <p className="text-body-s font-bold text-foreground-error">{displayError}</p>}
+                    {displayError && <p className="text-label-l text-foreground-error">{displayError}</p>}
                 </div>
                 <div>
                     {/* In-app explainer instead of a browser redirect — leaving

@@ -77,7 +77,7 @@ const UnlockRegionModal = ({
                     <h2 className="text-label-m">{t('whatYoullUnlock')}</h2>
                     <Notification priority="info" className="w-full" items={unlockItems} />
                     <div className="flex items-center gap-2">
-                        <Icon name="info" size={12} className="text-foreground-secondary" />
+                        <Icon name="info" size={16} className="text-foreground-secondary" />
                         <p className="text-body-xs text-foreground-secondary">{tKyc('doesntStoreDocumentsPeriod')}</p>
                     </div>
                 </div>

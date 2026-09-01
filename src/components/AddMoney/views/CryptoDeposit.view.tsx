@@ -85,9 +85,7 @@ const CryptoDepositView = ({
                             <p className="text-center text-body-s text-foreground-secondary">
                                 {t('marketMovedDescription')}
                             </p>
-                            <p className="text-center text-body-s font-bold text-foreground-secondary">
-                                {t('marketMovedNote')}
-                            </p>
+                            <p className="text-center text-label-l text-foreground-secondary">{t('marketMovedNote')}</p>
                         </div>
                     </Card>
                     <Button onClick={resetStatus} shadowSize="4" loading={isResetting} disabled={isResetting}>
@@ -155,10 +153,10 @@ const CryptoDepositView = ({
                                 <div className="flex items-center gap-1">
                                     <Tooltip content={tooltipText[network]} position="bottom">
                                         <span className="flex items-center gap-1">
-                                            <span className="text-body-s font-bold">
+                                            <span className="text-label-l">
                                                 {isEvm ? t('universalDepositAddress') : t('depositAddress')}
                                             </span>
-                                            <Icon name="info" size={18} className="text-foreground-secondary" />
+                                            <Icon name="info" size={16} className="text-foreground-secondary" />
                                         </span>
                                     </Tooltip>
                                 </div>
@@ -189,7 +187,7 @@ const CryptoDepositView = ({
                                 }}
                                 className={`border-t border-border-default p-4 ${isEvm ? 'cursor-pointer' : ''}`}
                             >
-                                <p className="mb-2 text-body-s font-bold">{t('supportedNetworks')}</p>
+                                <p className="mb-2 text-label-l">{t('supportedNetworks')}</p>
                                 <div className="flex items-center gap-2">
                                     <div className="flex flex-wrap gap-2">
                                         {isEvm ? (
@@ -228,8 +226,8 @@ const CryptoDepositView = ({
 
                             {/* supported tokens section */}
                             <div className="border-t border-border-default p-4">
-                                <p className="mb-2 text-body-s font-bold">{t('supportedTokens')}</p>
-                                <div className="flex flex-wrap gap-1.5">
+                                <p className="mb-2 text-label-l">{t('supportedTokens')}</p>
+                                <div className="flex flex-wrap gap-2">
                                     {supportedTokens.map((token) => (
                                         <ChainChip
                                             key={token.name}
@@ -252,7 +250,7 @@ const CryptoDepositView = ({
                                 <p className="text-body-s text-foreground-secondary">
                                     {t('minDepositFor', { network: amountLimitsLabel })}
                                 </p>
-                                <p className="text-body-s font-bold">
+                                <p className="text-label-l">
                                     {depositAddressData.minDepositLimitUsd.toLocaleString()} USD
                                 </p>
                             </div>
@@ -260,7 +258,7 @@ const CryptoDepositView = ({
                                 <p className="text-body-s text-foreground-secondary">
                                     {t('maxDepositFor', { network: amountLimitsLabel })}
                                 </p>
-                                <p className="text-body-s font-bold">
+                                <p className="text-label-l">
                                     {depositAddressData.maxDepositLimitUsd.toLocaleString()} USD
                                 </p>
                             </div>
@@ -276,7 +274,7 @@ const CryptoDepositView = ({
                             shadowSize="4"
                             onClick={() => setShowHowToDeposit(true)}
                         >
-                            <Icon name="info" size={16} className="mr-1.5" />
+                            <Icon name="info" size={16} className="mr-1" />
                             {tAddMoney('howToDeposit.title')}
                         </Button>
                     </>

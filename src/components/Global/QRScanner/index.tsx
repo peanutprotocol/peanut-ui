@@ -88,7 +88,7 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
                 className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
                 onClick={onClose}
             >
-                <Icon name="cancel" size={18} fill="white" />
+                <Icon name="cancel" size={20} fill="white" />
             </Button>
             <span className="text-heading-m text-foreground-inverse">{t('qrScanner.scanToPay')}</span>
             <Button
@@ -120,7 +120,7 @@ function PasteActions({
         <>
             <button
                 onClick={onPaste}
-                className="justify mx-auto mt-10 flex items-center gap-1.5 text-center text-white underline underline-offset-2"
+                className="justify mx-auto mt-10 flex items-center gap-1 text-center text-white underline underline-offset-2"
             >
                 <Icon name="paste" fill="white" height={16} width={16} />
                 <span className="text-body-s">{t('qrScanner.clickToPaste')}</span>
@@ -128,18 +128,18 @@ function PasteActions({
             {detectedAddress ? (
                 <button
                     onClick={onUseDetected}
-                    className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="wallet" fill="white" height={16} width={16} />
-                    <span className="text-body-s font-semibold">{printableAddress(detectedAddress)}</span>
+                    <span className="text-label-l">{printableAddress(detectedAddress)}</span>
                 </button>
             ) : showPasteChip ? (
                 <button
                     onClick={onUsePasteChip}
-                    className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="paste" fill="white" height={16} width={16} />
-                    <span className="text-body-s font-semibold">{t('qrScanner.useCopiedCode')}</span>
+                    <span className="text-label-l">{t('qrScanner.useCopiedCode')}</span>
                 </button>
             ) : null}
         </>

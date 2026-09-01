@@ -377,7 +377,7 @@ export const CreateRequestLinkView = () => {
     }, [merchantComment, tokenValue, generateLink, recipientAddress])
 
     return (
-        <div className="space-y-8 flex min-h-[inherit] w-full flex-col justify-start">
+        <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8">
             <NavHeader onPrev={onBack} title={tNav('request')} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {/* board order (17831:78719): card, amount, helper note, qr, message, cta */}

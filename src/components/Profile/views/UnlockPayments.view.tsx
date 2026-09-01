@@ -341,7 +341,7 @@ const UnlockPayments = () => {
     const showCardRestrictionNote = !restrictions.banking && restrictions.card
 
     return (
-        <div className="space-y-8 flex min-h-[inherit] flex-col">
+        <div className="flex min-h-[inherit] flex-col gap-8">
             <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
             <div className="my-auto">
                 <p className="text-body-s">{t('description')}</p>
@@ -357,7 +357,7 @@ const UnlockPayments = () => {
                     {residenceIso2 && (
                         <span
                             className={twMerge(
-                                'ml-auto shrink-0 rounded-full border border-border-default px-2 py-0.5 text-body-xs font-bold uppercase',
+                                'ml-auto shrink-0 rounded-full border border-border-default px-2 py-0.5 text-label-m uppercase',
                                 residence?.verified
                                     ? 'bg-background-badge-success text-foreground-primary'
                                     : 'text-foreground-secondary'
@@ -459,7 +459,7 @@ const UnlockPayments = () => {
 
                 <Link
                     href="/limits"
-                    className="mt-3 flex items-center justify-between rounded-sm border border-border-default bg-background-default px-3 py-2.5 text-body-s dark:border-white dark:bg-foreground-primary"
+                    className="mt-3 flex items-center justify-between rounded-sm border border-border-default bg-background-default px-3 py-2 text-body-s dark:border-white dark:bg-foreground-primary"
                 >
                     <span className="flex items-center gap-2">
                         <Icon name="meter" className="size-4 shrink-0" />
@@ -659,10 +659,10 @@ const UnlockGroupCard = ({
     const t = useTranslations('profile.unlockPayments')
     return (
         <div className="overflow-hidden rounded-sm border border-border-default bg-background-default dark:border-white dark:bg-foreground-primary">
-            <div className="flex items-center gap-2 border-b border-border-default bg-background-badge-helper px-3 py-2 text-body-s font-bold dark:border-white dark:bg-foreground-primary">
+            <div className="flex items-center gap-2 border-b border-border-default bg-background-badge-helper px-3 py-2 text-label-l dark:border-white dark:bg-foreground-primary">
                 <span>{t(`groups.${group.labelKey}`)}</span>
                 {group.isYourRegion && (
-                    <span className="ml-auto rounded-full border border-border-default bg-background-badge-accent px-2 py-0.5 text-label-m font-bold text-foreground-primary uppercase">
+                    <span className="ml-auto rounded-full border border-border-default bg-background-badge-accent px-2 py-0.5 text-label-m text-foreground-primary uppercase">
                         {t('yourRegion')}
                     </span>
                 )}
@@ -679,7 +679,7 @@ const UnlockGroupCard = ({
                         disabled={!tappable}
                         onClick={() => onRowClick(row)}
                         className={twMerge(
-                            'flex w-full items-center gap-2 border-t border-border-default px-3 py-2.5 text-left text-body-s first:border-t-0 dark:border-white',
+                            'flex w-full items-center gap-2 border-t border-border-default px-3 py-2 text-left text-body-s first:border-t-0 dark:border-white',
                             !tappable && 'cursor-default'
                         )}
                     >
@@ -689,7 +689,7 @@ const UnlockGroupCard = ({
                         </span>
                         <span
                             className={twMerge(
-                                'ml-auto shrink-0 rounded-full border border-border-default px-2 py-0.5 text-body-xs font-bold text-foreground-primary uppercase',
+                                'ml-auto shrink-0 rounded-full border border-border-default px-2 py-0.5 text-label-m text-foreground-primary uppercase',
                                 CHIP_CLASSES[row.chip]
                             )}
                         >

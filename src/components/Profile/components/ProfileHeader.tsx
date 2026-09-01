@@ -72,7 +72,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 )}
 
                 {/* Name */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                     <VerifiedUserLabel
                         name={name}
                         username={username}
@@ -96,7 +96,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         onSuccess={() => posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)}
                         className="h-10 w-fit rounded-full py-3 pr-4 pl-6"
                     >
-                        <div className="text-body-s font-semibold">{profileUrl.replace('https://', '')}</div>
+                        <div className="text-label-l">{profileUrl.replace('https://', '')}</div>
                         <div className="-ml-2">
                             <Icon name="share" size={16} fill="black" />
                         </div>

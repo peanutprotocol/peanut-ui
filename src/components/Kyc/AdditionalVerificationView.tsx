@@ -59,7 +59,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="flex flex-col items-center gap-3 text-center" data-testid="hosted-task-done">
                     <IconBubble icon="check-circle" size="l" color="green" />
-                    <p className="text-body-m font-bold">{t('done.title')}</p>
+                    <p className="text-body-m-semibold">{t('done.title')}</p>
                     <p className="text-body-s text-foreground-secondary">{t('done.description')}</p>
                 </div>
                 <Button variant="purple" shadowSize="4" onClick={() => router.replace(IDENTITY_ROUTE)}>

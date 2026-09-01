@@ -46,7 +46,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
                 )}
             >
                 {isSearch ? (
-                    <Icon name="cancel" size={12} className="size-4 rotate-45" />
+                    <Icon name="cancel" size={16} className="size-4 rotate-45" />
                 ) : chainIconURI && !chainImageError ? (
                     <Image
                         src={chainIconURI}

@@ -176,7 +176,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
                                         </div>
                                         <div className="w-full">
-                                            <div className="text-body-m font-bold">{copy.title}</div>
+                                            <div className="text-body-m-semibold">{copy.title}</div>
                                             <div className="text-body-s text-foreground-secondary">
                                                 {copy.description}
                                             </div>

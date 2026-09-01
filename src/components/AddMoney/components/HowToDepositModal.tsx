@@ -23,14 +23,14 @@ const HowToDepositModal = ({ visible, onClose }: HowToDepositModalProps) => {
             onClose={onClose}
             title={t('title')}
             content={
-                <div className="flex w-full flex-col gap-5 text-left">
+                <div className="flex w-full flex-col gap-4 text-left">
                     <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
                         {steps.map((item, index) => (
                             <div
                                 key={index}
                                 className={`px-4 py-3 ${index !== steps.length - 1 ? 'border-b border-border-default' : ''}`}
                             >
-                                <p className="text-body-s font-bold">{item.step}</p>
+                                <p className="text-label-l">{item.step}</p>
                                 <p className="text-body-s text-foreground-secondary">{item.text}</p>
                             </div>
                         ))}

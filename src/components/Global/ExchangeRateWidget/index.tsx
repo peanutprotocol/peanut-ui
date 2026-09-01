@@ -223,7 +223,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent text-body-m font-bold text-foreground-primary outline-none"
+                            className="w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -240,7 +240,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     className="size-4 rounded-full object-cover"
                                 />
                                 {sourceCurrency}{' '}
-                                <Icon name="chevron-down" className="text-foreground-secondary" size={14} />
+                                <Icon name="chevron-down" className="text-foreground-secondary" size={16} />
                             </button>
                         }
                     />
@@ -252,7 +252,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                 className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-background-disabled"
                 aria-label={l.swapCurrencies}
             >
-                <Icon name="arrow-exchange" size={18} className="rotate-90 transition-transform duration-300" />
+                <Icon name="arrow-exchange" size={20} className="rotate-90 transition-transform duration-moderate" />
             </button>
 
             <div className="w-full">
@@ -284,7 +284,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent text-body-m font-bold text-foreground-primary outline-none"
+                            className="w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -300,7 +300,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     className="size-4 rounded-full object-cover"
                                 />
                                 {destinationCurrency}{' '}
-                                <Icon name="chevron-down" className="text-foreground-secondary" size={14} />
+                                <Icon name="chevron-down" className="text-foreground-secondary" size={16} />
                             </button>
                         }
                     />
@@ -336,16 +336,15 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             <Button
                 onClick={() => ctaAction(sourceCurrency, destinationCurrency)}
                 icon={ctaIcon}
-                iconSize={13}
                 shadowSize="4"
-                className="w-full text-body-m font-bold"
+                className="w-full"
             >
                 {ctaLabel}
             </Button>
 
             {typeof destinationAmount === 'number' && destinationAmount > 0 && (
                 <div className="flex items-center gap-1">
-                    <Icon name="info" className="text-foreground-secondary" size={14} />
+                    <Icon name="info" className="text-foreground-secondary" size={16} />
                     <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>
                 </div>
             )}

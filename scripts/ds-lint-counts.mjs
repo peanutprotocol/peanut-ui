@@ -252,6 +252,38 @@ counts.classNameSitesInPages = files
     .filter((f) => /^app\/\(mobile-ui\)\//.test(f.path) && /(^|\/)page\.tsx$/.test(f.path) && !f.path.includes('/dev/'))
     .reduce((sum, f) => sum + countMatches(f.text, /className=/g), 0)
 
+// composition-drift metrics (2026-09-01 sweep). design.md laws the token
+// metrics above cannot see: stacked weights mint off-ramp type styles, the
+// spacing/radius/motion scales ban off-scale values, icons have three sizes.
+// deliberate holds (geometry-driven indents like Notification's pl-7, boards
+// pending a ruling) live inside the baseline, not an allowlist — a ruling
+// drives the count down, new drift pushes it up and fails.
+const WEIGHT_STACK_RE = /\bfont-(?:bold|semibold|extrabold)\b/
+const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
+counts.fontWeightOnTypeToken = files
+    .filter((f) => isTsx(f) && !allowed(f.path))
+    .reduce(
+        (sum, f) => sum + f.text.split('\n').filter((l) => TYPE_TOKEN_RE.test(l) && WEIGHT_STACK_RE.test(l)).length,
+        0
+    )
+const OFF_SCALE_SPACING_RE =
+    /(?<![a-z0-9-])(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y|space-y|space-x)-(?:1\.5|2\.5|3\.5|5|7|9|11|13|15)(?![0-9.])/g
+counts.offScaleSpacing = files
+    .filter((f) => isTsx(f) && !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_SPACING_RE), 0)
+const OFF_SCALE_ICON_RE = /(?:<Icon\s[^>]*\bsize|\biconSize)=\{(?!16\}|20\}|24\})[0-9]+\}/g
+counts.iconOffScale = files
+    .filter((f) => isTsx(f) && !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_ICON_RE), 0)
+const OFF_SCALE_RADIUS_RE = /\brounded(?:-[trbl]{1,2})?-(?:md|lg|xl|2xl|3xl)\b/g
+counts.offScaleRadius = files
+    .filter((f) => isTsx(f) && !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_RADIUS_RE), 0)
+const RAW_DURATION_RE = /\bduration-(?:75|100|150|200|300|500|700|1000)\b/g
+counts.rawDuration = files
+    .filter((f) => isTsx(f) && !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, RAW_DURATION_RE), 0)
+
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
 // else is debt (must only go DOWN). the ratchet only enforces the debt keys.
 const DEBT_KEYS = [
@@ -266,6 +298,11 @@ const DEBT_KEYS = [
     'classNameSitesInPages',
     'deadLegacyTokens',
     'consumedUndefinedTokens',
+    'fontWeightOnTypeToken',
+    'offScaleSpacing',
+    'iconOffScale',
+    'offScaleRadius',
+    'rawDuration',
 ]
 
 const mode = process.argv[2] ?? ''

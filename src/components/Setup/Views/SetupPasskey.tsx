@@ -235,7 +235,7 @@ const SetupPasskey = () => {
                     >
                         {t('passkey.setItUp')}
                     </Button>
-                    {preflightWarning && <p className="text-body-s font-bold text-orange-400">{preflightWarning}</p>}
+                    {preflightWarning && <p className="text-label-l text-orange-400">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
                             <Notification priority="error">{t('passkey.usernameTaken')}</Notification>

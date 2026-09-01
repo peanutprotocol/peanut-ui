@@ -35,7 +35,7 @@ const MantecaLimitsView = () => {
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
 
     return (
-        <div className="space-y-6 flex min-h-[inherit] flex-col">
+        <div className="flex min-h-[inherit] flex-col gap-6">
             <NavHeader title={t('title')} onPrev={onBack} />
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}

@@ -60,7 +60,7 @@ const Section: React.FC<SectionProps> = ({ title, icon, children, className, tit
     <div className={twMerge('space-y-2', className)}>
         <div className="flex items-center gap-2">
             {icon && <Icon name={icon} size={16} className="text-foreground-secondary" />}
-            <h2 className={twMerge('text-body-m font-bold text-foreground-primary', titleClassName)}>{title}</h2>
+            <h2 className={twMerge('text-body-m-semibold text-foreground-primary', titleClassName)}>{title}</h2>
         </div>
         {children}
     </div>
@@ -446,7 +446,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             )}
                         </div>
                         <div className="flex flex-col items-start overflow-hidden">
-                            <span className="truncate text-body-m font-semibold text-foreground-primary">
+                            <span className="truncate text-body-m-semibold text-foreground-primary">
                                 {buttonSymbol || t('tokenSelector.selectAToken')}
                                 {buttonChainName && (
                                     <span className="ml-1 text-body-s font-medium text-foreground-secondary">
