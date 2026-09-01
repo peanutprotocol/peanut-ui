@@ -703,17 +703,23 @@ jobs:
                           });
                       }
 
-    # Human-only authorship gate. Every commit on the PR must be authored by a
-    # repo collaborator's own GitHub account — no `*[bot]` authors (claude[bot],
-    # github-actions[bot], …) and no emails that GitHub cannot map to an
-    # account. Policy set 2026-08-24: AI is a tool, not an owner; every commit
-    # has a human who is accountable for it. Cloud coding sessions that commit
-    # as claude[bot] are exactly what this blocks. Content-publish PRs pass:
-    # update-content.yml authors and signs its commit as a human account.
+    # Authorship + provenance gate. Every commit on the PR must be either
+    # (a) authored by a repo collaborator's own GitHub account, or
+    # (b) authored by an allowlisted bot and carry provenance trailers naming
+    #     the team member who ordered the work:
+    #         Ordered-By: <github-login>   (must have write access to this repo)
+    #         Order: <https link to the order — Discord message, PR comment,
+    #                Notion task>
+    # Policy set 2026-08-24, amended 2026-09-01: AI is a tool, not an owner;
+    # every commit has a human who is accountable for it. Unknown bots
+    # (claude[bot] cloud sessions, …) and emails GitHub cannot map to an
+    # account still fail. The ownership half of the policy — the orderer is
+    # assignee and approves the merge — lives in bot-approval.yml, a separate
+    # required check.
     #
-    # No allowlist to maintain: "has write access to this repo" IS the team
-    # roster, and GitHub org/repo access management keeps it current. The
-    # per-user permission endpoint works with the default GITHUB_TOKEN.
+    # No allowlist of humans to maintain: "has write access to this repo" IS
+    # the team roster, and GitHub org/repo access management keeps it current.
+    # The per-user permission endpoint works with the default GITHUB_TOKEN.
     human-authors:
         name: human-authors
         if: github.event_name == 'pull_request'
@@ -723,10 +729,11 @@ jobs:
         permissions:
             pull-requests: read
         steps:
-            - name: Verify every commit is authored by a team member
+            - name: Verify every commit is authored by a team member or a provenance-trailed bot
               uses: actions/github-script@v7
               with:
                   script: |
+                      const ALLOWED_BOTS = ['chip-peanut-bot[bot]'];
                       const memberCache = new Map();
                       async function hasWriteAccess(login) {
                         if (memberCache.has(login)) return memberCache.get(login);
@@ -786,8 +793,16 @@ jobs:
                         let problem = null;
                         if (!login) {
                           problem = `author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`;
+                        } else if (ALLOWED_BOTS.includes(login)) {
+                          const orderedBy = (c.commit.message.match(/^Ordered-By: @?([A-Za-z0-9-]+)\s*$/m) || [])[1];
+                          const orderUrl = (c.commit.message.match(/^Order: (https:\/\/\S+)\s*$/m) || [])[1];
+                          if (!orderedBy || !orderUrl) {
+                            problem = `authored by ${login} without provenance trailers — a bot commit must carry "Ordered-By: <github-login>" and "Order: <https link to the human's order>"`;
+                          } else if (!(await hasWriteAccess(orderedBy))) {
+                            problem = `cites Ordered-By: ${orderedBy}, who has no write access to this repo — a bot commit must cite the team member who ordered it`;
+                          }
                         } else if (login.endsWith('[bot]')) {
-                          problem = `authored by ${login} — bot-authored commits are not allowed; commit as yourself`;
+                          problem = `authored by ${login} — this bot is not allowlisted; bot commits are only accepted from ${ALLOWED_BOTS.join(', ')}, with provenance trailers`;
                         } else if (!(await hasWriteAccess(login))) {
                           problem = `authored by ${login}, who has no write access to this repo`;
                         }
