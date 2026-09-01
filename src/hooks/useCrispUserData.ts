@@ -28,6 +28,8 @@ export interface CrispUserData {
     walletAddressLink: string | undefined
     bridgeCustomerLink: string | undefined
     mantecaUserId: string | undefined
+    rainUserId: string | undefined
+    cardPortalLink: string | undefined
     posthogPersonLink: string | undefined
     sentryIssuesLink: string | undefined
     // Live verification state so agents stop guessing where a user is stuck (#2360).
@@ -164,7 +166,12 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
     // This ensures we always show the user's wallet address in support metadata,
     // even if ZeroDev client isn't initialized yet. useWallet().address could be
     // undefined during initialization, but we want persistent data for support agents.
-    const links = buildSupportLinks(userId, walletAddress, user?.user?.bridgeCustomerId || undefined)
+    // Rain's own applicant id — the key to its card-member KYC portal. Unlike
+    // Manteca's, it IS on a client-held read-model (the cached card overview),
+    // so support gets both the id and a ready-to-open re-upload link instead of
+    // an engineer + DB lookup (TASK-21687/21964).
+    const rainUserId = rainOverview?.status?.rainUserId || undefined
+    const links = buildSupportLinks(userId, walletAddress, user?.user?.bridgeCustomerId || undefined, rainUserId)
 
     // DATA GAP (flagged): the Manteca providerUserId used to come from the now-removed
     // raw `user.kycVerifications` field. Neither read-model carries it — `capabilities`
@@ -204,6 +211,7 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
         walletAddress,
         ...links,
         mantecaUserId,
+        rainUserId,
         identityStatus: verification?.identityStatus,
         emailOnFile: verification?.emailOnFile,
         verificationGates: verification?.gates,

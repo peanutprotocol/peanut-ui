@@ -55,6 +55,8 @@ export function supportSessionFields(userData: CrispUserData, supportTopic?: str
         ['wallet_address', userData.walletAddressLink || ''],
         ['bridge_user_id', userData.bridgeCustomerLink || ''],
         ['manteca_user_id', userData.mantecaUserId || ''],
+        ['rain_user_id', userData.rainUserId || ''],
+        ['card_portal_link', userData.cardPortalLink || ''],
         ['posthog_person', userData.posthogPersonLink || ''],
         ['sentry_issues', userData.sentryIssuesLink || ''],
         ['identity_status', userData.identityStatus || ''],

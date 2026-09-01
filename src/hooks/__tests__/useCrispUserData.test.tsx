@@ -87,6 +87,18 @@ describe('useCrispUserData', () => {
         expect(result.current.balance).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
         expect(result.current.accountStats).toContain('1240 pts')
         expect(result.current.appContext).toContain('route:/withdraw/manteca')
+    })
+
+    it('exposes the Rain user id and a card-member portal link from the cached overview', () => {
+        client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
+            status: { hasApplication: true, applicationStatus: 'denied', rainUserId: 'rain-xyz' },
+            balance: null,
+            cards: [],
+        })
+        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
+
+        expect(result.current.rainUserId).toBe('rain-xyz')
+        expect(result.current.cardPortalLink).toBe('https://cardmemberportal.com/kyc?userId=rain-xyz')
         expect(
             client
                 .getQueryCache()
