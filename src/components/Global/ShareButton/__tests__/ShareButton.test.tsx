@@ -22,7 +22,7 @@ jest.mock('@/components/Global/Icons/Icon', () => ({
     Icon: () => null,
 }))
 
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 
 const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
 const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share')

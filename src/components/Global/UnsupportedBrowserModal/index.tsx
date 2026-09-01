@@ -94,7 +94,10 @@ const UnsupportedBrowserModalContent = ({
                     const urlToCopy = redirectUri
                         ? `${window.location.origin}${decodeURIComponent(redirectUri)}`
                         : window.location.href
-                    await copyTextToClipboard(urlToCopy)
+                    if (!(await copyTextToClipboard(urlToCopy))) {
+                        toast.error(t('unsupportedBrowserModal.copyErrorToast'))
+                        return
+                    }
                     setHasCopied(true)
                     toast.success(t('unsupportedBrowserModal.copySuccessToast'))
                     copyTimeoutRef.current = setTimeout(() => setHasCopied(false), 2000)

@@ -20,13 +20,13 @@ const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: Cop
     const t = useTranslations('global')
     const [isCopied, setIsCopied] = useState(false)
 
-    const handleClick = useCallback(() => {
+    const handleClick = useCallback(async () => {
         if (disabled && onDisabledClick) {
             onDisabledClick()
             return
         }
 
-        copyTextToClipboard(text)
+        if (!(await copyTextToClipboard(text))) return
         setIsCopied(true)
         setTimeout(() => setIsCopied(false), timeoutDuration)
     }, [disabled, onDisabledClick, text])

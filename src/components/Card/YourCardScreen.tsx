@@ -33,6 +33,7 @@ interface Props {
 
 const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const t = useTranslations('card.yourCard')
+    const tGlobal = useTranslations('global')
     const [autoRenewDismissed, setAutoRenewDismissed] = useState(false)
     const [action, setAction] = useQueryState('action', parseAsStringEnum<CardAction>(['lock', 'unlock', 'cancel']))
     const { revealed, isLoading: isRevealing, error: revealError, toggle } = useCardReveal({ cardId: card.id })
@@ -49,13 +50,15 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const balanceDueCents = cardBalanceDueCents(overview.balance?.spendingPower)
 
     const handleCopy = useCallback(
-        (value: string, field: 'pan' | 'cvv') => {
-            // Fire-and-forget; the util captures failures to Sentry.
-            void copyTextToClipboard(value)
+        async (value: string, field: 'pan' | 'cvv') => {
+            if (!(await copyTextToClipboard(value))) {
+                toast.error(tGlobal('copyToClipboard.copyFailed'))
+                return
+            }
             triggerHaptic()
             toast.success(field === 'pan' ? t('cardNumberCopied') : t('cvvCopied'))
         },
-        [triggerHaptic, toast, t]
+        [triggerHaptic, toast, t, tGlobal]
     )
 
     return (

@@ -3,6 +3,8 @@ import * as Sentry from '@/utils/sentry-lazy'
 
 const CLIPBOARD_WRITE_TIMEOUT_MS = 1000
 
+const describeError = (err: unknown) => (err instanceof Error ? `${err.name}: ${err.message}` : String(err))
+
 /**
  * Copies text to the clipboard, reporting whether it actually landed.
  *
@@ -12,17 +14,19 @@ const CLIPBOARD_WRITE_TIMEOUT_MS = 1000
  *
  * On the web, writeText is raced against a timeout (Brave iOS never settles
  * it) and a rejection or a hang falls through to the legacy execCommand path.
- * Every failure is captured to Sentry; the text itself never is.
+ * A copy that fails every path is captured to Sentry once, naming the methods
+ * that failed; the text itself never is.
  */
 export async function copyTextToClipboard(text: string): Promise<boolean> {
+    const failed: Record<string, string> = {}
+
     if (isNativeBridge()) {
         try {
             const { Clipboard } = await import('@capacitor/clipboard')
             await Clipboard.write({ string: text })
             return true
         } catch (err) {
-            Sentry.captureException(err)
-            console.error('Failed to copy: ', err)
+            failed.nativePlugin = describeError(err)
         }
     }
 
@@ -40,8 +44,7 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
             ])
             return true
         } catch (err) {
-            Sentry.captureException(err)
-            console.error('Failed to copy: ', err)
+            failed.clipboardApi = describeError(err)
         } finally {
             clearTimeout(timer)
         }
@@ -58,16 +61,17 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     try {
         textArea.focus()
         textArea.select()
-        const copied = document.execCommand('copy')
-        if (!copied) Sentry.captureMessage('Clipboard fallback: execCommand("copy") returned false')
-        return copied
+        if (document.execCommand('copy')) return true
+        failed.execCommand = 'returned false'
     } catch (err) {
-        Sentry.captureException(err)
-        console.error('Failed to copy: ', err)
-        return false
+        failed.execCommand = describeError(err)
     } finally {
         textArea.remove()
     }
+
+    console.error('Failed to copy: ', failed)
+    Sentry.captureException(new Error('Clipboard copy failed'), { extra: { failed } })
+    return false
 }
 
 /**

@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { beginClipboardCopy, copyTextToClipboard } from '../clipboard.utils'
 
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 // clipboard.utils reports through the lazy wrapper; aliasing it to the mock keeps the calls synchronous.
 jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
 
@@ -134,24 +134,26 @@ describe('copyTextToClipboard', () => {
         expect(writeText).toHaveBeenCalledWith(LINK)
     })
 
-    it('reports failure when the write is refused and the fallback cannot copy', async () => {
+    it('reports one failure when the write is refused and the fallback cannot copy', async () => {
         writeText.mockRejectedValue(new Error('denied'))
         document.execCommand = jest.fn(() => false)
 
         await expect(copyTextToClipboard(LINK)).resolves.toBe(false)
         expect(Sentry.captureException).toHaveBeenCalledTimes(1)
-        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+        expect((Sentry.captureException as jest.Mock).mock.calls[0][1]).toEqual({
+            extra: { failed: { clipboardApi: 'Error: denied', execCommand: 'returned false' } },
+        })
     })
 
     // The Capacitor WebView rejects writeText (NotAllowedError) even when the
-    // legacy command still works.
+    // legacy command still works — that is a success, not a Sentry event.
     it('falls back to execCommand when the write is refused', async () => {
         writeText.mockRejectedValue(new Error('denied'))
         document.execCommand = jest.fn(() => true)
 
         await expect(copyTextToClipboard(LINK)).resolves.toBe(true)
         expect(document.execCommand).toHaveBeenCalledWith('copy')
-        expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+        expect(Sentry.captureException).not.toHaveBeenCalled()
     })
 
     // Brave iOS never settles the writeText promise.
@@ -159,13 +161,16 @@ describe('copyTextToClipboard', () => {
         jest.useFakeTimers()
         try {
             writeText.mockReturnValue(new Promise(() => {}))
-            document.execCommand = jest.fn(() => true)
+            document.execCommand = jest.fn(() => false)
 
             const result = copyTextToClipboard(LINK)
             await jest.advanceTimersByTimeAsync(1000)
 
-            await expect(result).resolves.toBe(true)
-            expect((Sentry.captureException as jest.Mock).mock.calls[0][0].message).toContain('timed out')
+            await expect(result).resolves.toBe(false)
+            expect(document.execCommand).toHaveBeenCalledWith('copy')
+            expect((Sentry.captureException as jest.Mock).mock.calls[0][1].extra.failed.clipboardApi).toContain(
+                'timed out'
+            )
         } finally {
             jest.useRealTimers()
         }
@@ -179,5 +184,6 @@ describe('copyTextToClipboard', () => {
 
         await expect(copyTextToClipboard(LINK)).resolves.toBe(false)
         expect(document.querySelector('textarea')).toBeNull()
+        expect(Sentry.captureException).toHaveBeenCalledTimes(1)
     })
 })

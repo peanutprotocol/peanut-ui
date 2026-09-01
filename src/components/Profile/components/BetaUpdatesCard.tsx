@@ -38,12 +38,8 @@ export const BetaUpdatesCard = () => {
     if (!supported || (!mayJoin && !isBeta)) return null
 
     const copyDeviceId = async (deviceId: string) => {
-        try {
-            await copyTextToClipboard(deviceId)
-            toast.info(t('deviceCopied'))
-        } catch {
-            toast.error(t('deviceCopyFailed'))
-        }
+        if (await copyTextToClipboard(deviceId)) toast.info(t('deviceCopied'))
+        else toast.error(t('deviceCopyFailed'))
     }
 
     const onToggle = async (beta: boolean) => {
