@@ -33,6 +33,12 @@ export default function PlaygroundPage() {
                     href="/dev/share-builder"
                     icon="copy"
                 />
+                <CatalogCard
+                    title="Virtual Accounts"
+                    description="Get-paid flow prototype on Bridge V1 — KYC gate, payment-reference slot, pooled-name notice, pending / returned / failed states, payer share view."
+                    href="/dev/virtual-accounts"
+                    icon="bank"
+                />
             </CatalogGrid>
         </DocPage>
     )

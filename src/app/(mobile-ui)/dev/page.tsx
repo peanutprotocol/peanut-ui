@@ -99,6 +99,13 @@ export default function DevToolsPage() {
             icon: 'credit-card',
         },
         {
+            name: 'Virtual accounts',
+            description:
+                'Get-paid flow on Bridge V1 — currency picker with the KYC gate, details with the payment reference as a removable slot, payer-facing share view. Mock data, states in the URL.',
+            path: '/dev/virtual-accounts',
+            icon: 'bank',
+        },
+        {
             name: 'Perk success test',
             description: 'Fires the perk-claim success screens without needing a real perk to claim.',
             path: '/dev/perk-success-test',

@@ -229,5 +229,6 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'Shake & Confetti', icon: 'gift', href: '/dev/shake-test' },
         { label: 'Perk Success', icon: 'check-circle', href: '/dev/perk-success-test' },
         { label: 'Share Builder', icon: 'copy', href: '/dev/share-builder' },
+        { label: 'Virtual Accounts', icon: 'bank', href: '/dev/virtual-accounts' },
     ],
 }
