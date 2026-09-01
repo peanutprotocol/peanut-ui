@@ -29,7 +29,11 @@
 
 import { readFileSync, statSync } from 'node:fs'
 
-const MARKER = '<!-- ds-shots-visual-diff -->'
+// The marker carries the head the comment describes, so a later run with no
+// report can tell a current comment (keep) from a stale one (clear) without
+// guessing which PR a run belongs to. HEAD_SHA is trusted workflow context.
+const RAW_HEAD = process.env.HEAD_SHA ?? ''
+const MARKER = `<!-- ds-shots-visual-diff head=${/^[0-9a-f]{40}$/.test(RAW_HEAD) ? RAW_HEAD : 'unknown'} -->`
 const MAX_BYTES = 1024 * 1024 // a legit report is a few KB
 const MAX_ENTRIES = 1000 // 30 fixtures x 4 widths = 120 legit shots
 const ROW_LIMIT = 20 // table rows, one per screen

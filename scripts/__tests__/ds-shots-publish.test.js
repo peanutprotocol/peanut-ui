@@ -39,7 +39,7 @@ describe('ds-shots-publish', () => {
         })
 
         expect(result.status).toBe(0)
-        expect(result.stdout).toContain('<!-- ds-shots-visual-diff -->')
+        expect(result.stdout).toContain(`<!-- ds-shots-visual-diff head=${'b'.repeat(40)} -->`)
         expect(result.stdout).toContain('2 screens moved')
         expect(result.stdout).toContain('3 of 120 shots changed')
         expect(result.stdout).toContain('`aaaaaaa` → head `bbbbbbb`')
@@ -52,10 +52,10 @@ describe('ds-shots-publish', () => {
     })
 
     it('still posts (green) when nothing moved', () => {
-        const result = run(valid({ changed: [], added: [], removed: [], unchanged: 120 }))
+        const result = run(valid({ changed: [], added: [], removed: [], unchanged: 120 }), { HEAD_SHA: '' })
 
         expect(result.status).toBe(0)
-        expect(result.stdout).toContain('<!-- ds-shots-visual-diff -->')
+        expect(result.stdout).toContain('<!-- ds-shots-visual-diff head=unknown -->')
         expect(result.stdout).toContain('no screen moved')
         expect(result.stdout).toContain('120 shots, all identical')
     })
