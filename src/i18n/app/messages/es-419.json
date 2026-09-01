@@ -764,10 +764,9 @@
             },
             "congrats": {
                 "title": "Buenas noticias",
-                "description": "No hay restricciones donde vives. Después de una verificación rápida de identidad, se desbloquea todo lo que Peanut ofrece:",
+                "description": "No hay restricciones donde vives. Después de una verificación rápida de identidad, esto es lo que se desbloquea:",
                 "items": {
-                    "bank": "Transferencias bancarias",
-                    "card": "La tarjeta Peanut",
+                    "card": "La tarjeta Peanut (beta cerrada)",
                     "dollars": "Dólares digitales",
                     "username": "Envíos a cualquier @usuario"
                 },

@@ -119,8 +119,21 @@ describe('ResidenceStep', () => {
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
+        // the bank line comes from the per-country rail map, named where known
+        expect(screen.getByText('PIX & bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('The Peanut card (closed beta)')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
+    })
+
+    it('hedges the bank line for a country with no known rail', () => {
+        // NG is in no restriction set, but no named rail serves it either: the
+        // congrats screen must not promise bank transfers outright.
+        mockSetupState.residenceCountry = 'NG'
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        expect(screen.getByText('Bank transfers where supported')).toBeInTheDocument()
+        expect(screen.queryByText(/^Bank transfers$/)).not.toBeInTheDocument()
     })
 
     it('returns to the selector from the congrats screen', () => {

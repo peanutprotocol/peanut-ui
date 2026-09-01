@@ -428,7 +428,7 @@
                 "continue": "Continuar"
             },
             "congrats": {
-                "description": "No hay restricciones donde vivís. Después de una verificación rápida de identidad, se desbloquea todo lo que Peanut ofrece:"
+                "description": "No hay restricciones donde vivís. Después de una verificación rápida de identidad, esto es lo que se desbloquea:"
             },
             "restricted": {
                 "title": "Atención",

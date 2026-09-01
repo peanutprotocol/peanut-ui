@@ -764,10 +764,9 @@
             },
             "congrats": {
                 "title": "Good news",
-                "description": "Nothing is restricted where you live. After a quick ID check, everything Peanut offers opens up:",
+                "description": "Nothing is restricted where you live. After a quick ID check, here's what opens up:",
                 "items": {
-                    "bank": "Bank transfers",
-                    "card": "The Peanut card",
+                    "card": "The Peanut card (closed beta)",
                     "dollars": "Digital dollars",
                     "username": "Sending to any @username"
                 },
