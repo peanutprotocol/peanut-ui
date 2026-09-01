@@ -1,0 +1,327 @@
+# Publishes the ds-shots visual-diff result as one sticky PR comment.
+#
+# Why a separate workflow: the ds-shots job in tests.yml checks out and runs
+# PR code (pnpm install, next build, playwright), so it must hold no write
+# token — a postinstall can plant a GITHUB_PATH or GITHUB_ENV hook that fires
+# in any later step of the same job (see the permissions comment on ds-shots,
+# PR #2819). A workflow_run workflow executes THIS file from the default
+# branch and never checks out PR code, so it can safely hold
+# pull-requests: write.
+#
+# Trust boundary: the artifact was produced by a job that ran PR code, so its
+# contents are attacker-controlled. This workflow extracts exactly one member
+# (report.json) by name — no archive path is ever written to disk — and
+# scripts/ds-shots-publish.mjs validates it strictly before any of it reaches
+# markdown. The PR number is parsed from the artifact name (the PR's build
+# chose it), so it is bound back to the trigger: the numbered PR's head must
+# be the exact commit the run tested, or nothing is posted.
+#
+# Outcome table (report artifact × PR binding × existing comment) — every
+# path must end in one of these cells, so audit changes against the table:
+#   report usable + head matches the named PR → render, post or update
+#   report usable + that PR's head moved      → no-op, the newer run owns it
+#   report usable + named PR is a true 404    → no-op (attacker-chosen name)
+#   report unusable (bad zip / bad schema)    → clear to no-result, fail red
+#   no report + comment is for this head      → keep (a sibling run posted it)
+#   no report + comment is for an older head  → clear to no-result
+#   no report + no comment                    → stay quiet
+#   any operational API failure               → red job, comment untouched
+#
+# Supersession is enforced by head-SHA binding, not by cancellation. The
+# concurrency group below serializes publishers for the SAME head only —
+# cancel-in-progress stays false, because one branch can hold two open PRs
+# (dev and main base) whose publishers must both run. Serialization closes
+# the read-then-write race where a no-report run could overwrite the result
+# a sibling same-head run posted between its marker read and its PATCH;
+# once serialized, either order ends correctly, because the marker-head
+# guard makes a no-report run keep any comment already posted for its head.
+# queue: max keeps EVERY same-head publisher (FIFO, up to 100) — the default
+# one-slot queue would let a third run drop a sibling PR's only pending
+# publisher and leave that PR's comment stale.
+#
+# Deploy note: workflow_run only fires once this file exists on the DEFAULT
+# branch (main). It lands on dev first, so the comment starts appearing after
+# the next dev → main release. Until then this file is inert.
+name: ds-shots comment
+
+on:
+    workflow_run:
+        workflows: [Tests]
+        types: [completed]
+
+permissions:
+    contents: read # checkout of the default branch, for the builder script
+    actions: read # list + download the triggering run's artifacts
+    pull-requests: write # the sticky comment
+
+concurrency:
+    group: ds-shots-comment-${{ github.event.workflow_run.head_sha }}
+    cancel-in-progress: false
+    queue: max
+
+jobs:
+    comment:
+        # Same-repo PRs only. Fork PRs never produce the artifact anyway
+        # (ds-shots-filter skips them), so this is belt and braces. Cancelled
+        # runs are deliberately NOT excluded: a manually cancelled run for the
+        # current head must clear an older sticky result, and a run cancelled
+        # by concurrency after a newer push is already a no-op — its head SHA
+        # no longer matches the PR, so both the bind and the stale path skip.
+        if: >-
+            github.event.workflow_run.event == 'pull_request' &&
+            github.event.workflow_run.head_repository.full_name == github.repository
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            # For a workflow_run event github.sha is the default branch head,
+            # so this checks out trusted code — never the PR.
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Find the report artifact on the triggering run
+              id: art
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  RUN_ID: ${{ github.event.workflow_run.id }}
+              run: |
+                  set -euo pipefail
+                  ROWS=$(gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/artifacts?per_page=100" \
+                      --jq '.artifacts[] | "\(.id)\t\(.name)"')
+                  # Artifacts persist across reruns of the same run id, and
+                  # every attempt of a run tests the SAME head SHA. Take the
+                  # highest attempt's report: "Re-run failed jobs" that skips
+                  # a succeeded ds-shots keeps attempt 1's still-valid result,
+                  # while a full rerun's fresh report wins by attempt number.
+                  # The attempt suffix exists because v4 uploads are immutable
+                  # — a fixed name would collide on rerun.
+                  REPORT=$(printf '%s\n' "$ROWS" | grep -E $'\t''visual-diff-report-[0-9]+-[0-9]+$' | sort -t- -k5,5n | tail -1 || true)
+                  if [ -z "$REPORT" ]; then
+                      echo 'found=false' >> "$GITHUB_OUTPUT"
+                      echo 'No attempt of this run produced a diff report: ds-shots was skipped, failed before the diff, or had no baseline.'
+                      exit 0
+                  fi
+                  REPORT_ID=${REPORT%%$'\t'*}
+                  NAME=${REPORT#*$'\t'}
+                  ATTEMPT_USED=${NAME##*-}
+                  PR=$(printf '%s' "$NAME" | sed -E 's/^visual-diff-report-([0-9]+)-[0-9]+$/\1/')
+                  # The PNG artifact only exists when a screen moved; its id
+                  # becomes the images download link in the comment. Same
+                  # attempt as the report it belongs to.
+                  IMG_ID=$(printf '%s\n' "$ROWS" | grep -E $'\t'"visual-diff-$PR-$ATTEMPT_USED\$" | sed -n '1p' | cut -f1 || true)
+                  {
+                      echo 'found=true'
+                      echo "report_id=$REPORT_ID"
+                      echo "pr=$PR"
+                      echo "img_id=$IMG_ID"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "Report artifact $REPORT_ID for PR #$PR (images: ${IMG_ID:-none})"
+
+            - name: Bind the artifact's PR number back to the run
+              if: steps.art.outputs.found == 'true'
+              id: bind
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  PR: ${{ steps.art.outputs.pr }}
+                  RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+              run: |
+                  set -euo pipefail
+                  # The artifact name — and so the PR number — was chosen by
+                  # the PR's own build code. Require the numbered PR's head to
+                  # be the exact commit this run tested: a PR naming its
+                  # artifact after somebody else's PR posts nothing, and an
+                  # out-of-order older run cannot overwrite a newer comment.
+                  #
+                  # A true 404 (the number points at no PR) is that attack and
+                  # stays a no-op. Any other failure — 5xx, rate limit,
+                  # network — must fail this job loudly: swallowed, it would
+                  # exit green while an older result stands as current.
+                  set +e
+                  OUT=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha' 2>&1)
+                  STATUS=$?
+                  set -e
+                  if [ "$STATUS" -ne 0 ]; then
+                      if printf '%s' "$OUT" | grep -q 'HTTP 404'; then
+                          echo "PR #$PR does not exist — the artifact name pointed at nothing. Skipping."
+                          echo 'match=false' >> "$GITHUB_OUTPUT"
+                          exit 0
+                      fi
+                      echo "::error::PR-head lookup for #$PR failed: $OUT"
+                      exit 1
+                  fi
+                  HEAD=$OUT
+                  if [ "$HEAD" != "$RUN_HEAD_SHA" ]; then
+                      echo "PR #$PR head ${HEAD:-<none>} != run head $RUN_HEAD_SHA — mismatched artifact name or stale run. Skipping."
+                      echo 'match=false' >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+                  echo 'match=true' >> "$GITHUB_OUTPUT"
+
+            # The download is a plain API call: a transient failure here is
+            # operational, must go red with the comment untouched, and must
+            # never be misread as a tampered artifact — so it lives OUTSIDE
+            # the continue-on-error step below.
+            - name: Download the report artifact
+              if: steps.bind.outputs.match == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  REPORT_ID: ${{ steps.art.outputs.report_id }}
+              run: |
+                  set -euo pipefail
+                  gh api "repos/$REPO/actions/artifacts/$REPORT_ID/zip" > report.zip
+
+            # Extraction and rendering consume attacker-controlled bytes, so
+            # either may refuse them: a broken archive fails unzip, an
+            # out-of-contract report is rejected by the validator.
+            # continue-on-error lets the run reach the fallback and upsert
+            # below — the last step of the job still turns an unusable report
+            # into a red run, so tampering stays loud.
+            - name: Extract and render the report
+              if: steps.bind.outputs.match == 'true'
+              id: render
+              continue-on-error: true
+              env:
+                  REPO: ${{ github.repository }}
+                  RUN_URL: ${{ github.event.workflow_run.html_url }}
+                  HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+                  RUN_ID: ${{ github.event.workflow_run.id }}
+                  IMG_ID: ${{ steps.art.outputs.img_id }}
+              run: |
+                  set -euo pipefail
+                  # Extract the one member by exact name, to stdout: no path
+                  # from the (untrusted) archive is ever written to disk, so
+                  # zip-slip has nothing to work with. A missing member fails
+                  # the step loudly.
+                  unzip -p report.zip report.json > report.json
+                  if [ -n "$IMG_ID" ]; then
+                      export ARTIFACT_URL="https://github.com/$REPO/actions/runs/$RUN_ID/artifacts/$IMG_ID"
+                  fi
+                  node scripts/ds-shots-publish.mjs report.json > body.md
+                  echo 'ok=true' >> "$GITHUB_OUTPUT"
+
+            # A report that exists but cannot be used must not leave the
+            # previous head's result standing as current (same stale-success
+            # hazard as a missing report). Overwrite with the trusted generic
+            # body — never with anything taken from the report.
+            - name: Fall back to the no-result body when the report is unusable
+              if: steps.bind.outputs.match == 'true' && steps.render.outputs.ok != 'true'
+              id: fallback
+              env:
+                  RUN_URL: ${{ github.event.workflow_run.html_url }}
+                  RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+              run: |
+                  set -euo pipefail
+                  {
+                      echo "<!-- ds-shots-visual-diff head=$RUN_HEAD_SHA -->"
+                      echo
+                      echo '## 🖼 Visual diff — ⚠️ no result for the latest push'
+                      echo
+                      echo "The newest [Tests run]($RUN_URL) uploaded a diff report that could not be used: a broken archive, or a report that failed validation."
+                      echo 'The previous result on this comment no longer reflects the latest run, so it was cleared. This publisher run fails on purpose so someone looks.'
+                      echo
+                      echo '<sub>Fixture screenshots, no backend. Advisory — this check never blocks a merge.</sub>'
+                  } > body.md
+                  echo 'used=true' >> "$GITHUB_OUTPUT"
+
+            # A run with no report must not leave an older result standing as
+            # if it were current (the stale-success hazard). Which PR a run
+            # belongs to cannot be known exactly — one branch can hold two
+            # open PRs, and any branch can be parked on any commit — so this
+            # never guesses. It checks EVERY open PR whose head is exactly
+            # this run's branch and commit, and clears a comment only when
+            # the head recorded in its marker differs from this run's head:
+            # only then does the comment provably describe an older commit of
+            # that PR. A comment already carrying this head was posted by a
+            # sibling run that had a report, and stays. A PR with no comment
+            # stays quiet, so docs-only PRs get no spam. Every identity input
+            # is a trusted event field or GitHub API response — never
+            # anything the PR's build produced.
+            - name: Clear stale comments when this run has no report
+              if: steps.art.outputs.found != 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+                  HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+                  RUN_URL: ${{ github.event.workflow_run.html_url }}
+              run: |
+                  set -euo pipefail
+                  # env.* inside the jq program, not shell interpolation — a
+                  # branch name must never be able to edit the filter.
+                  CANDIDATES=$(gh api "repos/$REPO/commits/$RUN_HEAD_SHA/pulls" \
+                      --jq '.[] | select(.state == "open" and .head.sha == env.RUN_HEAD_SHA and .head.ref == env.HEAD_BRANCH) | .number')
+                  if [ -z "$CANDIDATES" ]; then
+                      echo 'No open PR has this branch+commit as its head — superseded or stale run. Nothing to do.'
+                      exit 0
+                  fi
+                  {
+                      echo "<!-- ds-shots-visual-diff head=$RUN_HEAD_SHA -->"
+                      echo
+                      echo '## 🖼 Visual diff — ⚠️ no result for the latest push'
+                      echo
+                      echo "The newest [Tests run]($RUN_URL) produced no diff report in any attempt: ds-shots was skipped, failed before the diff, or had no cached baseline."
+                      echo 'The previous result on this comment no longer reflects the latest run, so it was cleared.'
+                      echo
+                      echo '<sub>Fixture screenshots, no backend. Advisory — this check never blocks a merge.</sub>'
+                  } > stale-body.md
+                  for PR in $CANDIDATES; do
+                      ROW=$(gh api --paginate "repos/$REPO/issues/$PR/comments?per_page=100" \
+                          --jq '.[] | select(.user.login == "github-actions[bot]")
+                                    | select(.body | startswith("<!-- ds-shots-visual-diff"))
+                                    | "\(.id)\t\(try (.body | capture("head=(?<h>[0-9a-f]{40})") | .h) catch "none")"' \
+                          | sed -n '1p')
+                      if [ -z "$ROW" ]; then
+                          echo "PR #$PR has no sticky comment — staying quiet."
+                          continue
+                      fi
+                      CID=${ROW%%$'\t'*}
+                      CHEAD=${ROW##*$'\t'}
+                      if [ "$CHEAD" = "$RUN_HEAD_SHA" ]; then
+                          echo "PR #$PR comment already reflects this head — keeping it."
+                          continue
+                      fi
+                      gh api -X PATCH "repos/$REPO/issues/comments/$CID" -F body=@stale-body.md > /dev/null
+                      echo "Cleared the stale comment on PR #$PR"
+                  done
+
+            - name: Upsert the sticky comment
+              if: steps.bind.outputs.match == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  REPO: ${{ github.repository }}
+                  PR: ${{ steps.art.outputs.pr }}
+                  FALLBACK: ${{ steps.fallback.outputs.used }}
+              run: |
+                  set -euo pipefail
+                  # Only a comment this bot authored qualifies — a user who
+                  # pastes the marker into their own comment must not have it
+                  # overwritten. The prefix match covers markers with and
+                  # without the head= field.
+                  # sed, not head: a gh failure must fail the step, not be
+                  # masked into posting a duplicate comment.
+                  CID=$(gh api --paginate "repos/$REPO/issues/$PR/comments?per_page=100" \
+                      --jq '.[] | select(.user.login == "github-actions[bot]")
+                                | select(.body | startswith("<!-- ds-shots-visual-diff")) | .id' \
+                      | sed -n '1p')
+                  if [ -n "$CID" ]; then
+                      gh api -X PATCH "repos/$REPO/issues/comments/$CID" -F body=@body.md > /dev/null
+                      echo "Updated comment $CID on PR #$PR"
+                  elif [ "$FALLBACK" = 'true' ]; then
+                      # The unusable-report fallback only clears an existing
+                      # result — a PR that never had a comment gets none.
+                      echo "PR #$PR has no sticky comment — staying quiet."
+                  else
+                      gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@body.md > /dev/null
+                      echo "Posted new comment on PR #$PR"
+                  fi
+
+            - name: Fail loud when the report was unusable
+              if: steps.bind.outputs.match == 'true' && steps.render.outputs.ok != 'true'
+              run: |
+                  echo '::error::The report artifact was present but unusable — see "Extract and render the report". The sticky comment was cleared to the no-result state.'
+                  exit 1
