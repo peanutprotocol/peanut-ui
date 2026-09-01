@@ -76,6 +76,22 @@ describe('visual-diff partial-width capture', () => {
         expect(report.removed).toEqual(['gone@320.png'])
     })
 
+    it('fails loud when the capture produced nothing', () => {
+        capture(path.join(root, 'base'), { 'home@320.png': 0 })
+        capture(path.join(root, 'head'), {})
+
+        const out = path.join(root, 'diff')
+        const result = spawnSync(
+            process.execPath,
+            [SCRIPT_PATH, path.join(root, 'base'), path.join(root, 'head'), `--out=${out}`, '--json'],
+            { encoding: 'utf-8' }
+        )
+
+        // an empty after dir must never diff all-green — that is tool breakage
+        expect(result.status).toBe(2)
+        expect(result.stderr).toContain('capture produced nothing')
+    })
+
     it('still detects pixel changes and additions at captured widths', () => {
         capture(path.join(root, 'base'), {
             'home@320.png': 0,

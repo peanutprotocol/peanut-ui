@@ -63,6 +63,14 @@ const shots = (dir) => new Set(readdirSync(dir).filter((f) => f.endsWith('.png')
 const before = shots(beforeDir)
 const after = shots(afterDir)
 
+// A capture that produced nothing must stay loud: with zero after-files the
+// width-aware removal filter below would turn "every screenshot vanished"
+// into an all-green report. That is tool breakage, not a diff result.
+if (before.size > 0 && after.size === 0) {
+    console.error(`no PNGs in ${afterDir} — the capture produced nothing`)
+    process.exit(2)
+}
+
 mkdirSync(outDir, { recursive: true })
 
 const changed = []
