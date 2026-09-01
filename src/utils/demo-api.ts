@@ -631,7 +631,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => ({ success: true, perk: { sponsored: false, amountSponsored: 0, discountPercentage: 0 } }),
     },
 
-    // invites / quests / badges
+    // invites / badges
     { method: 'POST', pattern: '/invites/validate', handler: () => ({ success: true, username: 'demo' }) },
     { method: 'POST', pattern: '/invites/accept', handler: () => ({ success: true }) },
     { method: 'GET', pattern: '/invites/waitlist-position', handler: () => ({ position: null }) },

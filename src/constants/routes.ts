@@ -30,7 +30,6 @@ export const DEDICATED_ROUTES = [
     'profile',
     'kyc',
     'maintenance',
-    'quests',
     'receipt',
     'crisp-proxy',
     'card',
