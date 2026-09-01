@@ -82,7 +82,8 @@ export default function WithdrawCryptoPage() {
         setTransactionHash,
         paymentDetails,
         setPaymentDetails,
-        resetWithdrawFlow,
+        setRecipient,
+        setIsValidRecipient,
         recipient,
     } = useWithdrawFlow()
 
@@ -567,18 +568,43 @@ export default function WithdrawCryptoPage() {
         setChargeDetails(null)
     }, [stepper, clearErrors, setChargeDetails])
 
-    // reset withdraw flow when this component unmounts. Resetting on unmount
-    // (rather than in the success view's onComplete) avoids a race with the
-    // '/home' navigation from "Back to home". The amount and step live in the
-    // URL, so this only clears flow memory (charge, route, token selection).
+    // Clear crypto-TRANSIENT flow memory when this page unmounts (charge,
+    // route, recipient, token selection) — on unmount rather than in the
+    // success view's onComplete to avoid a race with the '/home' navigation
+    // from "Back to home". Deliberately NOT resetWithdrawFlow(): back from the
+    // recipient screen is an intra-/withdraw transition, and nuking
+    // selectedMethod here made the root amount guard bounce that back-nav to
+    // method selection instead of the amount step (Chip review, PR #2917).
+    // Leaving /withdraw entirely unmounts the provider, which clears the rest.
     useEffect(() => {
         return () => {
             resetRouteCalculation()
             resetPaymentRecorder()
             resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
-            resetWithdrawFlow()
+            setWithdrawData(null)
+            setChargeDetails(null)
+            setTransactionHash(null)
+            setPaymentDetails(null)
+            setRecipient({ address: '', name: '' })
+            setIsValidRecipient(false)
+            setPaymentError(null)
+            setWithdrawError({ showError: false, errorMessage: '' })
+            setShowCompatibilityModal(false)
         }
-    }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider, resetWithdrawFlow])
+    }, [
+        resetRouteCalculation,
+        resetPaymentRecorder,
+        resetTokenContextProvider,
+        setWithdrawData,
+        setChargeDetails,
+        setTransactionHash,
+        setPaymentDetails,
+        setRecipient,
+        setIsValidRecipient,
+        setPaymentError,
+        setWithdrawError,
+        setShowCompatibilityModal,
+    ])
 
     // Display payment errors first (user actions), then route errors (system limitations)
     const displayError = paymentError

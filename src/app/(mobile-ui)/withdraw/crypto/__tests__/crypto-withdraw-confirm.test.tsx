@@ -204,8 +204,12 @@ const withdrawData = {
     amount: '50',
 }
 
+const mockSetRecipient = jest.fn()
+const mockSetIsValidRecipient = jest.fn()
 const mockWithdrawFlow = {
     withdrawData,
+    setRecipient: mockSetRecipient,
+    setIsValidRecipient: mockSetIsValidRecipient,
     setWithdrawData: jest.fn(),
     showCompatibilityModal: false,
     setShowCompatibilityModal: jest.fn(),
@@ -499,5 +503,25 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
 
         // No spend happened on attempt 1, so attempt 2 legitimately broadcasts.
         expect(mockSendMoney).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('crypto withdraw — unmount keeps the flow selection (Chip review PR #2917)', () => {
+    test('unmount clears transient state only — never resetWithdrawFlow', () => {
+        // Back from the recipient screen is an intra-/withdraw transition:
+        // the root amount guard needs selectedMethod to survive, or back
+        // bounces to method selection instead of the amount step. The page
+        // must clear its transient state (charge, route, recipient) without
+        // the blanket reset.
+        const { unmount } = render(<WithdrawCryptoPage />)
+        unmount()
+
+        expect(mockWithdrawFlow.resetWithdrawFlow).not.toHaveBeenCalled()
+        expect(mockWithdrawFlow.setChargeDetails).toHaveBeenCalledWith(null)
+        expect(mockWithdrawFlow.setWithdrawData).toHaveBeenCalledWith(null)
+        expect(mockSetTransactionHash).toHaveBeenCalledWith(null)
+        expect(mockSetPaymentDetails).toHaveBeenCalledWith(null)
+        expect(mockSetRecipient).toHaveBeenCalledWith({ address: '', name: '' })
+        expect(mockSetIsValidRecipient).toHaveBeenCalledWith(false)
     })
 })
