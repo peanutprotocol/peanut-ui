@@ -946,20 +946,39 @@ describe('GROUP 2: Payment Form States', () => {
         })
     })
 
-    test('Provider maintenance shows maintenance banner', async () => {
+    test('Provider maintenance shows maintenance banner and never calls /init', async () => {
         const maintenanceConfig = require('@/config/underMaintenance.config').default
         maintenanceConfig.disabledPaymentProviders = ['MANTECA']
 
         setupMantecaPayment()
 
+        try {
+            renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+            await waitFor(() => {
+                expect(screen.getByText('Service Temporarily Unavailable')).toBeInTheDocument()
+            })
+
+            // The kill-switch used to be render-only: the banner showed while the lock
+            // query still fired a doomed /init on every scan during the outage. The
+            // banner assertion alone passes with the guard removed, so assert the call.
+            expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+        } finally {
+            // finally, not a trailing statement: a failed assertion above would otherwise
+            // leak MANTECA into every later test through this module singleton.
+            maintenanceConfig.disabledPaymentProviders = []
+        }
+    })
+
+    test('With the provider enabled the same QR does call /init', async () => {
+        setupMantecaPayment()
+
         renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
 
         await waitFor(() => {
-            expect(screen.getByText('Service Temporarily Unavailable')).toBeInTheDocument()
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalled()
         })
-
-        // Clean up
-        maintenanceConfig.disabledPaymentProviders = []
+        expect(screen.queryByText('Service Temporarily Unavailable')).not.toBeInTheDocument()
     })
 })
 
