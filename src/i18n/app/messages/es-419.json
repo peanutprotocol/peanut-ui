@@ -2971,7 +2971,8 @@
     },
     "global": {
         "amountInput": {
-            "balance": "Saldo:"
+            "balance": "Saldo:",
+            "useFullBalance": "Usar saldo completo: {balance}"
         },
         "tokenSelector": {
             "selectAToken": "Elige un token",

@@ -24,6 +24,13 @@ interface AmountInputProps {
     secondaryDenomination?: { symbol: string; price: number; decimals: number }
     setCurrentDenomination?: (denomination: string) => void
     walletBalance?: string
+    /**
+     * Exact amount, in the primary denomination, that tapping the balance row
+     * fills in. Omit to keep the balance row plain text.
+     */
+    balanceFillAmount?: number
+    /** Called with the amount actually filled when the balance row is tapped. */
+    onBalanceFilled?: (value: string) => void
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
     infoContent?: React.ReactNode
@@ -49,6 +56,8 @@ const AmountInput = ({
     secondaryDenomination,
     setCurrentDenomination,
     walletBalance,
+    balanceFillAmount,
+    onBalanceFilled,
     hideCurrencyToggle,
     hideBalance,
     infoContent,
@@ -239,6 +248,40 @@ const AmountInput = ({
         }
     }, [defaultSliderSuggestedAmount])
 
+    // What tapping the balance row fills in, or undefined when the row stays
+    // plain text. Computed from the number the parent validates against, never
+    // parsed back out of the label. Floored to the 2 decimals the balance label
+    // shows — that label truncates too (formatNumberForDisplay, roundingMode
+    // 'trunc'), so the filled amount and the number under the user's thumb
+    // always agree, and neither can claim more than the wallet holds. Anything
+    // finer than a cent stays behind on purpose (TASK-21899).
+    const fillValue = useMemo(() => {
+        if (disabled || !balanceFillAmount || balanceFillAmount <= 0) return undefined
+        // The amount is denominated in the primary unit, so it must not be
+        // filled into a field the user toggled to the secondary one.
+        if (displaySymbol !== primaryDenomination.symbol) return undefined
+        // A denomination coarser than cents still wins — filling 10.12 into a
+        // whole-number field would show an amount it can't hold.
+        const decimals = Math.min(2, denominations[displaySymbol]?.decimals ?? 2)
+        // forInput slices the fraction instead of rounding it, so this floors.
+        const formatted = formatTokenAmount(String(balanceFillAmount), decimals, true)
+        // Anything the field can't express — a balance under a cent, or a
+        // magnitude String() writes in exponential notation — formats to "0"/"".
+        // Leave the row inert rather than offering an amount that can't be used.
+        return formatted && Number(formatted) ? formatted : undefined
+    }, [disabled, balanceFillAmount, displaySymbol, primaryDenomination.symbol, denominations])
+
+    const fillBalance = useCallback(() => {
+        if (!fillValue) return
+        isEditingRef.current = true
+        setDisplayValue(fillValue)
+        setExactValue(Number(fillValue) * 10 ** DECIMAL_SCALE)
+        // Reported separately from setPrimaryAmount, which cannot tell a filled
+        // amount from a typed one — the withdraw screen needs that distinction
+        // to know the user asked for "everything".
+        onBalanceFilled?.(fillValue)
+    }, [fillValue, onBalanceFilled])
+
     const inputRef = useRef<HTMLInputElement>(null)
     // set input width based on display value length
     // add extra space for decimal numbers to prevent cutoff
@@ -330,12 +373,42 @@ const AmountInput = ({
                 )}
 
                 {/* Balance */}
-                {walletBalance && !hideBalance && (
-                    <div className="text-center text-foreground-secondary">
-                        {t('amountInput.balance')} {secondaryDenomination ? 'USD ' : '$ '}
-                        {walletBalance}
-                    </div>
-                )}
+                {walletBalance &&
+                    !hideBalance &&
+                    (() => {
+                        // A symbol sits against the number ($10.12), an ISO code
+                        // takes a space (USD 10.12) — the CLDR rule for en-US,
+                        // which is how the amount itself is formatted.
+                        const balanceAmount = `${secondaryDenomination ? 'USD ' : '$'}${walletBalance}`
+                        if (!fillValue) {
+                            return (
+                                <div className="text-center text-foreground-secondary">
+                                    {`${t('amountInput.balance')} ${balanceAmount}`}
+                                </div>
+                            )
+                        }
+                        // Only the amount is the action — "Balance:" stays a label,
+                        // so the underline marks exactly what the tap fills in.
+                        return (
+                            <div className="flex items-center justify-center gap-1 text-foreground-secondary">
+                                <span>{t('amountInput.balance')}</span>
+                                <button
+                                    type="button"
+                                    // The form wrapper focuses the amount field on any
+                                    // click inside it. Let this one bubble and the mobile
+                                    // keyboard opens over the CTA the user is heading for.
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        fillBalance()
+                                    }}
+                                    aria-label={t('amountInput.useFullBalance', { balance: balanceAmount })}
+                                    className="min-h-11 min-w-11 px-1 underline underline-offset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                                >
+                                    {balanceAmount}
+                                </button>
+                            </div>
+                        )
+                    })()}
             </div>
             {/* Conversion toggle */}
             {showConversion && (

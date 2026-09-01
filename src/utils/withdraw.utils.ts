@@ -1,5 +1,6 @@
 import { countryData, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { isValidEmail } from '@/utils/format.utils'
+import { formatUnits } from 'viem'
 
 /**
  * Extracts the country name from an IBAN by parsing the first 2 characters (country code)
@@ -356,4 +357,43 @@ export const isBelowRhinoMinDeposit = (
     if (payAmount == null || minDepositLimitUsd == null) return false
     const pay = parseFloat(payAmount)
     return Number.isFinite(pay) && pay < minDepositLimitUsd
+}
+
+/**
+ * The amount a crypto withdrawal should actually move.
+ *
+ * "Use full balance" fills the balance rounded down to cents, and that rounded
+ * number is what the user reads on every screen of the flow. When they have not
+ * edited it since, they asked for everything — so the withdrawal settles the
+ * sub-cent remainder too and the wallet reaches a true zero, rather than
+ * stranding dust that displays as $0.00 and can never be withdrawn.
+ *
+ * The live balance is only used while it still floors to the amount on screen.
+ * Otherwise — a deposit landed, or the balance dropped — this returns the amount
+ * the user saw, unchanged.
+ *
+ * It deliberately does NOT clamp to the live balance. This function's only job is
+ * to decide whether the sub-cent remainder rides along; it never enlarges or
+ * shrinks what the user agreed to withdraw. Silently sending less than the
+ * confirmed amount would be worse than failing, and an amount that now exceeds
+ * the balance is caught downstream: cross-chain withdrawals block the confirm CTA
+ * on `insufficientForFee`, and a same-chain send fails rather than overdrawing.
+ * That is the same outcome a typed amount has always had when the balance moves.
+ *
+ * @param amount        the amount on screen, as filled or typed (USD)
+ * @param spendableBalance  live spendable balance in token units
+ * @param isMaxWithdrawal   the amount came from the balance tap, unedited
+ */
+export const resolveWithdrawAmount = (
+    amount: string,
+    spendableBalance: bigint | undefined,
+    isMaxWithdrawal: boolean,
+    decimals: number
+): string => {
+    if (!isMaxWithdrawal || spendableBalance === undefined || !amount) return amount
+    const live = formatUnits(spendableBalance, decimals)
+    const liveNum = Number(live)
+    const amountNum = Number(amount)
+    if (!Number.isFinite(liveNum) || !Number.isFinite(amountNum)) return amount
+    return Math.floor(liveNum * 100) / 100 === amountNum ? live : amount
 }

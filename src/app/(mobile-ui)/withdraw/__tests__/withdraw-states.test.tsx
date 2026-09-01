@@ -61,10 +61,13 @@ const mockSetUsdAmount = jest.fn()
 const mockSetSelectedBankAccount = jest.fn()
 const mockSetSelectedMethod = jest.fn()
 const mockSetShowAllWithdrawMethods = jest.fn()
+const mockSetIsMaxWithdrawal = jest.fn()
 
 const mockWithdrawFlow = {
     amountToWithdraw: '',
     setAmountToWithdraw: mockSetAmountToWithdraw,
+    isMaxWithdrawal: false,
+    setIsMaxWithdrawal: mockSetIsMaxWithdrawal,
     setError: mockSetError,
     error: { showError: false, errorMessage: '' },
     setUsdAmount: mockSetUsdAmount,
@@ -155,6 +158,20 @@ jest.mock('@/components/Global/AmountInput', () => ({
                 disabled={props.disabled}
             />
             {props.walletBalance && <span data-testid="wallet-balance">{props.walletBalance}</span>}
+            {!!props.balanceFillAmount && (
+                <button
+                    data-testid="use-full-balance"
+                    data-fill={String(props.balanceFillAmount)}
+                    onClick={() => {
+                        // real component floors to cents, then reports both ways
+                        const filled = (Math.floor(props.balanceFillAmount * 100) / 100).toString()
+                        props.onBalanceFilled?.(filled)
+                        props.setPrimaryAmount?.(filled)
+                    }}
+                >
+                    Use full balance
+                </button>
+            )}
         </div>
     ),
 }))
@@ -470,6 +487,92 @@ describe('GROUP 3: Amount Validation', () => {
                 errorMessage: 'Minimum withdrawal is $1.',
             })
         )
+    })
+
+    test('Marks the amount as a max withdrawal, and unmarks it on any edit', () => {
+        // The flag is what lets the crypto path settle the sub-cent remainder
+        // the displayed 2 decimals leave behind (TASK-21899).
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('12.345678', 6),
+            formattedSpendableBalance: '12.34',
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 12.345678,
+        })
+
+        renderWithdraw()
+
+        fireEvent.click(screen.getByTestId('use-full-balance'))
+        expect(mockSetIsMaxWithdrawal).toHaveBeenLastCalledWith(true)
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        expect(mockSetIsMaxWithdrawal).toHaveBeenLastCalledWith(false)
+    })
+
+    test('Hands down the full-precision balance while the field shows cents', () => {
+        // The page passes the number its own validation compares against, not
+        // the rounded label; the input is what floors it for display, and the
+        // crypto path recovers the remainder from the flag (TASK-21899).
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('12.345678', 6),
+            formattedSpendableBalance: '12.34',
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 12.345678,
+        })
+
+        renderWithdraw()
+        expect(screen.getByTestId('use-full-balance')).toHaveAttribute('data-fill', '12.345678')
+
+        fireEvent.click(screen.getByTestId('use-full-balance'))
+
+        expect(screen.getByTestId('amount-field')).toHaveValue('12.34')
+        expect(screen.getByText('Continue')).not.toBeDisabled()
+    })
+
+    test('Full balance passes validation and continues with that amount', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+
+        renderWithdraw()
+        fireEvent.click(screen.getByTestId('use-full-balance'))
+
+        const continueBtn = screen.getByText('Continue')
+        expect(continueBtn).not.toBeDisabled()
+
+        fireEvent.click(continueBtn)
+        expect(mockSetAmountToWithdraw).toHaveBeenCalledWith('100')
+    })
+
+    test('Full balance below the method minimum keeps Continue disabled', async () => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('0.5', 6),
+            formattedSpendableBalance: '0.50',
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 0.5,
+        })
+
+        renderWithdraw()
+        fireEvent.click(screen.getByTestId('use-full-balance'))
+
+        expect(screen.getByText('Continue')).toBeDisabled()
+        await waitFor(() =>
+            expect(mockSetError).toHaveBeenCalledWith({
+                showError: true,
+                errorMessage: 'Minimum withdrawal is $1.',
+            })
+        )
+    })
+
+    test('No fill action while the balance is still loading', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockUseWallet.mockReturnValue({
+            spendableBalance: undefined,
+            formattedSpendableBalance: '0.00',
+            hasSufficientSpendableBalance: () => false,
+        })
+
+        renderWithdraw()
+
+        expect(screen.queryByTestId('use-full-balance')).not.toBeInTheDocument()
+        expect(screen.getByText('Continue')).toBeDisabled()
     })
 
     test('Stale bank method entering via ?method=crypto keeps the bank minimum', () => {
