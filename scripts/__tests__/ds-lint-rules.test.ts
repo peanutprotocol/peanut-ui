@@ -1,0 +1,107 @@
+import { countOffScaleSpacing, OFF_SCALE_ICON_RE, OFF_SCALE_RADIUS_RE, RAW_DURATION_RE } from '../ds-lint-rules.cjs'
+
+const countMatches = (text: string, re: RegExp) => (text.match(re) ?? []).length
+
+describe('offScaleSpacing', () => {
+    it('flags off-scale steps across every spacing family, logical ps/pe/ms/me included', () => {
+        for (const cls of ['p-5', 'px-7', 'py-2.5', 'gap-11', 'p-4.5', 'pr-18', 'ps-5', 'pe-18', 'ms-2.5', 'me-7']) {
+            expect(countOffScaleSpacing(`<div className="${cls}" />`)).toBe(1)
+        }
+    })
+
+    it('flags negative and variant-prefixed forms', () => {
+        expect(countOffScaleSpacing('className="-m-2.5"')).toBe(1)
+        expect(countOffScaleSpacing('className="-mt-5"')).toBe(1)
+        expect(countOffScaleSpacing('className="md:pr-18"')).toBe(1)
+        expect(countOffScaleSpacing('className="first:ps-7"')).toBe(1)
+    })
+
+    it('accepts every documented scale step, negatives and variants included', () => {
+        for (const cls of [
+            'p-0',
+            'p-0.5',
+            'gap-1',
+            'px-2',
+            'py-3',
+            'p-4',
+            'gap-6',
+            'p-8',
+            'mt-10',
+            'pb-12',
+            'ps-4',
+            'me-2',
+            '-mt-4',
+            'md:gap-6',
+            'space-y-8',
+            'gap-x-16',
+        ]) {
+            expect(countOffScaleSpacing(`<div className="${cls}" />`)).toBe(0)
+        }
+    })
+
+    it('does not misread longer utilities or words as spacing classes', () => {
+        for (const text of [
+            'className="max-p-5"',
+            'theme-3',
+            'frame-2',
+            'className="p-[13px]"',
+            'className="ms-auto"',
+        ]) {
+            expect(countOffScaleSpacing(text)).toBe(0)
+        }
+    })
+})
+
+describe('iconOffScale', () => {
+    it('flags off-step size, width/height props, and class-sized Icons', () => {
+        for (const text of [
+            '<Icon name="info" size={18} />',
+            '<Icon name={logo} width={18} height={18} />',
+            '<Icon name="swap" width={32} height={32} />',
+            'iconSize={13}',
+            '<Icon name="check" className="size-4" />',
+            '<Icon name="paste" className="h-3.5 w-3.5" />',
+        ]) {
+            expect(countMatches(text, OFF_SCALE_ICON_RE)).toBeGreaterThan(0)
+        }
+    })
+
+    it('accepts the 16/20/24 steps', () => {
+        for (const text of [
+            '<Icon name="info" size={16} />',
+            '<Icon size={20} />',
+            '<Icon size={24} />',
+            'iconSize={20}',
+        ]) {
+            expect(countMatches(text, OFF_SCALE_ICON_RE)).toBe(0)
+        }
+    })
+})
+
+describe('offScaleRadius', () => {
+    it('flags radii off the none/2/4/full scale, sides included', () => {
+        for (const cls of ['rounded-md', 'rounded-lg', 'rounded-t-2xl', 'rounded-3xl']) {
+            expect(countMatches(`className="${cls}"`, OFF_SCALE_RADIUS_RE)).toBe(1)
+        }
+    })
+
+    it('accepts the scale classes', () => {
+        for (const cls of ['rounded-sm', 'rounded-round', 'rounded-full', 'rounded-none']) {
+            expect(countMatches(`className="${cls}"`, OFF_SCALE_RADIUS_RE)).toBe(0)
+        }
+    })
+})
+
+describe('rawDuration', () => {
+    it('flags any numeric or arbitrary duration', () => {
+        for (const cls of ['duration-100', 'duration-250', 'duration-75', 'duration-[250ms]']) {
+            expect(countMatches(`className="${cls}"`, RAW_DURATION_RE)).toBe(1)
+        }
+    })
+
+    it('accepts the motion tokens', () => {
+        for (const cls of ['duration-instant', 'duration-fast', 'duration-moderate', 'duration-slow']) {
+            expect(countMatches(`className="${cls}"`, RAW_DURATION_RE)).toBe(0)
+        }
+    })
+})
