@@ -69,7 +69,6 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
         textArea.remove()
     }
 
-    console.error('Failed to copy: ', failed)
     Sentry.captureException(new Error('Clipboard copy failed'), { extra: { failed } })
     return false
 }
