@@ -503,9 +503,9 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   # run_attempt is in the name because a rerun keeps the run
-                  # id and v4 artifacts are immutable: a fixed name collides on
-                  # re-upload, and the comment publisher could read attempt
-                  # 1's report as current. It matches only its own attempt.
+                  # id and v4 artifacts are immutable: a fixed name collides
+                  # on re-upload. The comment publisher takes the newest
+                  # attempt's report — every attempt tests the same head SHA.
                   name: visual-diff-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
                   path: |
                       e2e/__shots__/base

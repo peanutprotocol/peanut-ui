@@ -64,28 +64,31 @@ jobs:
                   GH_TOKEN: ${{ github.token }}
                   REPO: ${{ github.repository }}
                   RUN_ID: ${{ github.event.workflow_run.id }}
-                  ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
               run: |
                   set -euo pipefail
                   ROWS=$(gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/artifacts?per_page=100" \
                       --jq '.artifacts[] | "\(.id)\t\(.name)"')
-                  # Artifacts persist across reruns of the same run id, so
-                  # match ONLY this attempt's report — a rerun must never
-                  # republish an earlier attempt's result.
-                  # sed -n 1p, not head -1: head closes the pipe early and the
-                  # SIGPIPE trips pipefail; sed drains the stream.
-                  REPORT=$(printf '%s\n' "$ROWS" | grep -E $'\t'"visual-diff-report-[0-9]+-$ATTEMPT\$" | sed -n '1p' || true)
+                  # Artifacts persist across reruns of the same run id, and
+                  # every attempt of a run tests the SAME head SHA. Take the
+                  # highest attempt's report: "Re-run failed jobs" that skips
+                  # a succeeded ds-shots keeps attempt 1's still-valid result,
+                  # while a full rerun's fresh report wins by attempt number.
+                  # The attempt suffix exists because v4 uploads are immutable
+                  # — a fixed name would collide on rerun.
+                  REPORT=$(printf '%s\n' "$ROWS" | grep -E $'\t''visual-diff-report-[0-9]+-[0-9]+$' | sort -t- -k5,5n | tail -1 || true)
                   if [ -z "$REPORT" ]; then
                       echo 'found=false' >> "$GITHUB_OUTPUT"
-                      echo "No visual-diff-report artifact for attempt $ATTEMPT: ds-shots was skipped, failed before the diff, or had no baseline."
+                      echo 'No attempt of this run produced a diff report: ds-shots was skipped, failed before the diff, or had no baseline.'
                       exit 0
                   fi
                   REPORT_ID=${REPORT%%$'\t'*}
                   NAME=${REPORT#*$'\t'}
-                  PR=$(printf '%s' "$NAME" | sed -E "s/^visual-diff-report-([0-9]+)-$ATTEMPT\$/\1/")
+                  ATTEMPT_USED=${NAME##*-}
+                  PR=$(printf '%s' "$NAME" | sed -E 's/^visual-diff-report-([0-9]+)-[0-9]+$/\1/')
                   # The PNG artifact only exists when a screen moved; its id
-                  # becomes the images download link in the comment.
-                  IMG_ID=$(printf '%s\n' "$ROWS" | grep -E $'\t'"visual-diff-$PR-$ATTEMPT\$" | sed -n '1p' | cut -f1 || true)
+                  # becomes the images download link in the comment. Same
+                  # attempt as the report it belongs to.
+                  IMG_ID=$(printf '%s\n' "$ROWS" | grep -E $'\t'"visual-diff-$PR-$ATTEMPT_USED\$" | sed -n '1p' | cut -f1 || true)
                   {
                       echo 'found=true'
                       echo "report_id=$REPORT_ID"
@@ -166,7 +169,7 @@ jobs:
                       echo '## 🖼 Visual diff — ⚠️ no result for the latest push'
                       echo
                       echo "The newest [Tests run]($RUN_URL) uploaded a diff report that could not be used: a broken archive, or a report that failed validation."
-                      echo 'The previous result on this comment was for an older commit, so it was cleared. This publisher run fails on purpose so someone looks.'
+                      echo 'The previous result on this comment no longer reflects the latest run, so it was cleared. This publisher run fails on purpose so someone looks.'
                       echo
                       echo '<sub>Fixture screenshots, no backend. Advisory — this check never blocks a merge.</sub>'
                   } > body.md
@@ -201,8 +204,8 @@ jobs:
                       echo
                       echo '## 🖼 Visual diff — ⚠️ no result for the latest push'
                       echo
-                      echo "The newest [Tests run]($RUN_URL) produced no diff report: ds-shots was skipped, failed before the diff, or had no cached baseline."
-                      echo 'The previous result on this comment was for an older commit, so it was cleared.'
+                      echo "The newest [Tests run]($RUN_URL) produced no diff report in any attempt: ds-shots was skipped, failed before the diff, or had no cached baseline."
+                      echo 'The previous result on this comment no longer reflects the latest run, so it was cleared.'
                       echo
                       echo '<sub>Fixture screenshots, no backend. Advisory — this check never blocks a merge.</sub>'
                   } > body.md
