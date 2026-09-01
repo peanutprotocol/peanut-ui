@@ -110,7 +110,9 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         await page.clock.setFixedTime(FROZEN_NOW)
         await page.addInitScript(seenOnceModals)
 
-        await page.goto(`${fixture.route}?${FIXTURE_PARAM}=${name}`, { waitUntil: 'domcontentloaded' })
+        // A fixture route may carry its own query (deep-linked flow steps).
+        const sep = fixture.route.includes('?') ? '&' : '?'
+        await page.goto(`${fixture.route}${sep}${FIXTURE_PARAM}=${name}`, { waitUntil: 'domcontentloaded' })
         await settle(page)
 
         // A build without NEXT_PUBLIC_VERCEL_ENV=preview ignores the param and
