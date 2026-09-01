@@ -95,7 +95,15 @@ for (const file of [...after].filter((f) => before.has(f)).sort()) {
 }
 
 const added = [...after].filter((f) => !before.has(f)).sort()
-const removed = [...before].filter((f) => !after.has(f)).sort()
+
+// A partial capture must not report the widths it never shot as "removed":
+// PR runs shoot 2 of the baseline's 4 widths (see tests.yml), so only a width
+// the after capture actually produced can prove a removal. A screen that is
+// really gone is still reported — its files are missing at the captured
+// widths too.
+const widthOf = (f) => f.match(/@(\d+)\.png$/)?.[1] ?? ''
+const afterWidths = new Set([...after].map(widthOf))
+const removed = [...before].filter((f) => !after.has(f) && afterWidths.has(widthOf(f))).sort()
 
 changed.sort((x, y) => y.percent - x.percent)
 
