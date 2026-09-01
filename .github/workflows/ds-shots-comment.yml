@@ -40,11 +40,12 @@ jobs:
     comment:
         # Same-repo PRs only. Fork PRs never produce the artifact anyway
         # (ds-shots-filter skips them), so this is belt and braces. Cancelled
-        # runs are skipped: a newer run on the same branch is already coming
-        # and owns the comment.
+        # runs are deliberately NOT excluded: a manually cancelled run for the
+        # current head must clear an older sticky result, and a run cancelled
+        # by concurrency after a newer push is already a no-op — its head SHA
+        # no longer matches the PR, so both the bind and the stale path skip.
         if: >-
             github.event.workflow_run.event == 'pull_request' &&
-            github.event.workflow_run.conclusion != 'cancelled' &&
             github.event.workflow_run.head_repository.full_name == github.repository
         runs-on: ubuntu-latest
         timeout-minutes: 5
