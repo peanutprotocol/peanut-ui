@@ -1,5 +1,6 @@
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
+import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
 import ARBITRUM_ICON from '@/assets/chains/arbitrum.svg'
 import MANTLE_ICON from '@/assets/chains/mantle.svg'
 
@@ -32,13 +33,29 @@ const TOKEN_LOGO_OVERRIDES: Record<string, string> = {
     '5000:MNT': MANTLE_ICON,
 }
 
+// TASK-21667: chain-details.json ships mostly SVG icon URLs, and next/image
+// refuses image/svg+xml without dangerouslyAllowSVG — so Ethereum, Optimism,
+// BNB and friends rendered as letter initials in the withdraw network list.
+// The chain registry already curates a raster logo per withdraw-eligible
+// chain; those win over the chain-details icon. CHAIN_ICON_OVERRIDES stays
+// first (bundled/native-webview rationale above).
+const REGISTRY_CHAIN_LOGOS: Record<string, string> = Object.fromEntries(
+    CHAIN_REGISTRY.flatMap((c) =>
+        c.logoUrl ? [c.id, ...(c.aliasIds ?? [])].map((id) => [id, c.logoUrl!] as const) : []
+    )
+)
+
 export async function getSupportedChainsAndTokens(): Promise<Record<string, ChainWithTokens>> {
     const result: Record<string, ChainWithTokens> = {}
     for (const chain of supportedPeanutChains) {
         if (!chain.mainnet) continue
         result[chain.chainId] = {
             chainId: chain.chainId,
-            chainIconURI: CHAIN_ICON_OVERRIDES[String(chain.chainId)] ?? chain.icon?.url ?? '',
+            chainIconURI:
+                CHAIN_ICON_OVERRIDES[String(chain.chainId)] ??
+                REGISTRY_CHAIN_LOGOS[String(chain.chainId)] ??
+                chain.icon?.url ??
+                '',
             networkName: chain.name,
             tokens: [],
         }
