@@ -114,13 +114,19 @@ export function ReceiptActions({
         if (!setIsLoading || !onClose) return
         setIsLoading(true)
         setCancelLinkState('cancelling')
-        const ok = await cancelSendLink()
+        const result = await cancelSendLink()
         setIsLoading(false)
-        if (!ok) {
+        if (result === 'failed') {
             setCancelLinkState('idle')
             return
         }
         setShowCancelLinkDrawer(false)
+        if (result === 'already-claimed') {
+            // nothing was cancelled — the refetched entry renders as claimed
+            setCancelLinkState('idle')
+            onClose()
+            return
+        }
         setCancelLinkState('cancelled')
         // Brief delay for toast visibility before the drawer closes.
         await new Promise((resolve) => setTimeout(resolve, 1500))

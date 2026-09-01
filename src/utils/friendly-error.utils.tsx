@@ -134,6 +134,9 @@ const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
     // advice — the sanitized 500 prose says "contact support" instead, which is
     // what six users were told during the 2026-08-19 ZeroDev incident.
     [API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE]: 'networkBusyTimeout',
+    // A claim or cancel on a deposit the recipient already withdrew. The API
+    // leaves the link CLAIMED and answers 409 with this code (TASK-22091).
+    [API_ERROR_CODES.LINK_ALREADY_CLAIMED]: 'sendLinkAlreadyClaimed',
 }
 
 /** Both cooldown codes render the same copy — the distinction between a
