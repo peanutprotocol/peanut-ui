@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -219,6 +220,183 @@ const ToastProposal = ({
 }
 
 // ---------------------------------------------------------------------------
+// in-modal variants E/F/G — tuned for inside ActionModal only
+// ---------------------------------------------------------------------------
+
+// variant E — modal body row: icon + Body/S at the modal's own body type step,
+// so the note reads as part of the description stack, not as a foreign block
+const ModalBodyNote = ({
+    priority = 'info',
+    title,
+    children,
+}: {
+    priority?: Priority
+    title?: string
+    children?: React.ReactNode
+}) => {
+    const { icon, accentText } = PRIORITY_META[priority]
+    return (
+        <div
+            role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
+            className="flex w-full items-start gap-2 text-start"
+        >
+            <Icon name={icon} size={16} className={twMerge('mt-0.5 shrink-0', accentText)} />
+            <span
+                className={twMerge(
+                    'min-w-0 flex-1 text-body-s break-words',
+                    priority === 'error' ? 'text-foreground-error' : 'text-foreground-primary'
+                )}
+            >
+                {title && <span className="font-semibold">{title} </span>}
+                {children}
+            </span>
+        </div>
+    )
+}
+
+// variant F — footnote under the CTA: Body/XS centered, dimmed; the note is
+// the least important thing in the modal and finally looks like it
+const ModalFootnote = ({ priority = 'info', children }: { priority?: Priority; children?: React.ReactNode }) => (
+    <p
+        role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
+        className={twMerge(
+            'w-full text-center text-body-xs break-words',
+            priority === 'error' ? 'text-foreground-error' : 'text-foreground-secondary'
+        )}
+    >
+        {children}
+    </p>
+)
+
+// variant G — tinted chip: badge-weight, keeps a hint of the tinted background
+// but at Label/M chip scale, so the tone survives without the slab
+const ModalChip = ({
+    priority = 'info',
+    title,
+    children,
+}: {
+    priority?: Priority
+    title?: string
+    children?: React.ReactNode
+}) => {
+    const { icon, bg } = PRIORITY_META[priority]
+    return (
+        <div
+            role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
+            className={twMerge(
+                'flex w-full items-start gap-1.5 rounded-sm px-2 py-1 text-start text-foreground-over-color-secondary',
+                bg
+            )}
+        >
+            <Icon name={icon} size={12} className="mt-0.5 shrink-0" />
+            <span className="min-w-0 flex-1 text-body-xs break-words">
+                {title && <span className="font-semibold">{title} </span>}
+                {children}
+            </span>
+        </div>
+    )
+}
+
+// ---------------------------------------------------------------------------
+// faithful ActionModal panel replica (static — real ActionModal is an overlay)
+// ---------------------------------------------------------------------------
+
+/** copies ActionModal's panel exactly: white bg, border-default, rounded (4px),
+ *  p-6 gap-6 centered stack, 48px IconBubble, Heading/XS title, full-width
+ *  purple cta. Only `visible`/overlay plumbing is dropped. */
+const ModalPanelReplica = ({
+    icon = 'info',
+    iconBubbleClassName = 'bg-action-primary',
+    title,
+    cta,
+    children,
+}: {
+    icon?: IconName
+    iconBubbleClassName?: string
+    title: React.ReactNode
+    cta?: string
+    children: React.ReactNode
+}) => (
+    <div className="w-full max-w-sm rounded border border-border-default bg-background-default">
+        <div className="flex flex-col items-center gap-6 p-6 text-center">
+            <div className="flex w-full flex-col items-center gap-4">
+                <IconBubble
+                    size="m"
+                    icon={<Icon name={icon} fill="currentColor" size={24} className="text-black" />}
+                    className={iconBubbleClassName}
+                />
+                <h3 className="text-heading-xs text-foreground-primary">{title}</h3>
+            </div>
+            {children}
+            {cta && (
+                <Button onClick={noop} className="w-full justify-center">
+                    {cta}
+                </Button>
+            )}
+        </div>
+    </div>
+)
+
+/** side-by-side pair for the in-modal variants: the same modal frame (backup
+ *  lose-phone content) once with the current Notification, once with the
+ *  proposed variant — info + error priorities and a long-copy case each.
+ *  `footnote` renders the variant's notes below the CTA instead of above it. */
+const InModalComparison = ({
+    render,
+    footnote = false,
+}: {
+    render: (priority: Priority, title: string, copy: string) => React.ReactNode
+    footnote?: boolean
+}) => {
+    const variantNotes = (
+        <div className={twMerge('flex w-full flex-col items-start', footnote ? 'gap-1' : 'gap-2')}>
+            {render(
+                'info',
+                'Backup is enabled',
+                'Sign into your new phone with your Apple ID. Your wallet restores automatically.'
+            )}
+            {render('error', 'No backup', "Your funds are permanently lost, we can't recover your wallet.")}
+            {render('error', 'Transfer failed.', LONG_COPY)}
+        </div>
+    )
+    return (
+        <div className="grid items-start gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+                <p className="text-body-xs text-foreground-secondary">current</p>
+                <ModalPanelReplica title="What if I lose my phone?" cta="Got it">
+                    <div className="space-y-3 w-full">
+                        <Notification priority="info" title="Backup is enabled">
+                            Sign into your new phone with your Apple ID. Your wallet restores automatically.
+                        </Notification>
+                        <Notification priority="error" title="No backup">
+                            Your funds are permanently lost, we can&apos;t recover your wallet.
+                        </Notification>
+                        <Notification priority="error" title="Transfer failed.">
+                            {LONG_COPY}
+                        </Notification>
+                    </div>
+                </ModalPanelReplica>
+            </div>
+            <div className="flex flex-col gap-2">
+                <p className="text-body-xs text-foreground-secondary">proposal</p>
+                <ModalPanelReplica title="What if I lose my phone?" cta={footnote ? undefined : 'Got it'}>
+                    {footnote ? (
+                        <div className="flex w-full flex-col gap-3">
+                            <Button onClick={noop} className="w-full justify-center">
+                                Got it
+                            </Button>
+                            {variantNotes}
+                        </div>
+                    ) : (
+                        variantNotes
+                    )}
+                </ModalPanelReplica>
+            </div>
+        </div>
+    )
+}
+
+// ---------------------------------------------------------------------------
 // page scaffolding
 // ---------------------------------------------------------------------------
 
@@ -411,6 +589,109 @@ export default function NotificationProposalsPage() {
                     The last pill is the RainCooldownContext clock toast — today it renders the priority icon AND the
                     clock (the double-icon bug). Here custom content owns the whole slot, so one icon by construction.
                 </p>
+            </VariantSection>
+
+            <section className="flex flex-col gap-3">
+                <DevSectionLabel>current component inside real modals</DevSectionLabel>
+                <p className="max-w-3xl text-body-s text-foreground-secondary">
+                    Faithful static replicas of three production modals (real ActionModal panel styles, real copy), with
+                    the current Notification exactly as production styles it. This is what ships today.
+                </p>
+                <div className="grid items-start gap-4 lg:grid-cols-3">
+                    <ModalPanelReplica title="What if I lose my phone?">
+                        {/* profile/backup lose-phone faq modal, verbatim */}
+                        <div className="space-y-3 w-full">
+                            <Notification priority="success" title="Backup is enabled">
+                                Sign into your new phone with your Apple ID. Download Peanut. Your wallet restores
+                                automatically
+                            </Notification>
+                            <Notification priority="error" title="No backup">
+                                Your funds are permanently lost, we can&apos;t recover your wallet. This is how
+                                self-custody works.
+                            </Notification>
+                        </div>
+                    </ModalPanelReplica>
+                    <ModalPanelReplica title="What if I change phone?">
+                        {/* profile/backup change-phone faq modal, verbatim */}
+                        <div className="space-y-3 w-full">
+                            <ol className="list-decimal pl-6 text-left text-body-s text-foreground-primary">
+                                <li>Verify backup is working (check step 3 above)</li>
+                                <li>Know your Apple ID password</li>
+                                <li>Keep old phone until new one works</li>
+                            </ol>
+                            <Notification priority="success" title="iPhone → iPhone">
+                                Just sign in. Everything transfers.
+                            </Notification>
+                            <Notification priority="success" title="Android → Android">
+                                Sign into Google. Your wallet follows.
+                            </Notification>
+                            <Notification priority="attention" title="iPhone ↔ Android">
+                                Create new wallet on new device. Transfer your funds. Passkeys don&apos;t work
+                                cross-platform unless you are using a third party password manager such as 1Password.
+                            </Notification>
+                        </div>
+                    </ModalPanelReplica>
+                    <ModalPanelReplica title="🎉 You're unlocked" icon="globe-lock" cta="Start sending money">
+                        {/* WelcomeUnlockModal (via HomeModals), verbatim */}
+                        <div className="flex w-full flex-col items-start gap-2">
+                            <p>You can now:</p>
+                            <Notification
+                                priority="info"
+                                className="w-full"
+                                items={[
+                                    <p key="qr">
+                                        QR Payments in <b>Argentina and Brazil</b>
+                                    </p>,
+                                    <p key="us">
+                                        <b>United States</b> ACH and Wire transfers
+                                    </p>,
+                                    <p key="eu">
+                                        <b>Europe</b> SEPA transfers (+30 countries)
+                                    </p>,
+                                    <p key="mx">
+                                        <b>Mexico</b> SPEI transfers
+                                    </p>,
+                                ]}
+                            />
+                        </div>
+                    </ModalPanelReplica>
+                </div>
+            </section>
+
+            <VariantSection
+                label="E — modal body row"
+                rationale="Icon + Body/S at the modal's own body type step, no box. The note joins the description stack instead of interrupting it — a step louder than C, for notes that carry real content (the backup modals)."
+            >
+                <InModalComparison
+                    render={(p, title, copy) => (
+                        <ModalBodyNote priority={p} title={title}>
+                            {copy}
+                        </ModalBodyNote>
+                    )}
+                />
+            </VariantSection>
+
+            <VariantSection
+                label="F — footnote under the CTA"
+                rationale="Body/XS centered below the button, dimmed (error stays red). For caveats that today get a full tint block despite being the least important thing in the modal."
+            >
+                <InModalComparison
+                    footnote
+                    render={(p, _title, copy) => <ModalFootnote priority={p}>{copy}</ModalFootnote>}
+                />
+            </VariantSection>
+
+            <VariantSection
+                label="G — tinted chip"
+                rationale="Keeps a hint of the tinted background but at chip weight: Body/XS, 12px icon, 4px vertical padding. The tone survives without the slab — for modals where the color coding itself matters (backup success vs error)."
+            >
+                <InModalComparison
+                    render={(p, title, copy) => (
+                        <ModalChip priority={p} title={title}>
+                            {copy}
+                        </ModalChip>
+                    )}
+                />
             </VariantSection>
 
             <DevNoteCard title="Proposal notes">
