@@ -5,7 +5,9 @@
  */
 import React from 'react'
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
 import { IntlWrapper } from '@/test-utils/intl'
+import { loadMessages } from '@/i18n/app/messages'
 import { AboutView } from '../About.view'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -41,5 +43,21 @@ describe('AboutView', () => {
         } finally {
             jest.useRealTimers()
         }
+    })
+
+    // TASK-22146: the Terms of Service title follows the app language, but every
+    // language opens the same English document at /terms.
+    it.each([
+        ['en', 'Terms of Service'],
+        ['es-419', 'Términos de servicio'],
+        ['pt-BR', 'Termos de serviço'],
+    ] as const)('in %s the Terms of Service link reads "%s" and opens /terms', async (locale, title) => {
+        const messages = await loadMessages(locale)
+        rtlRender(
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                <AboutView appVersion="1.2.3" />
+            </NextIntlClientProvider>
+        )
+        expect(screen.getByRole('link', { name: title })).toHaveAttribute('href', '/terms')
     })
 })

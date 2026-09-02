@@ -519,6 +519,7 @@
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guarda tu saldo, envía a cualquier @usuario y mueve dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
             "policiesHeading": "Políticas",
+            "terms": "Términos de servicio",
             "version": "Versión {version}",
             "beta": {
                 "heading": "Actualizaciones beta",
