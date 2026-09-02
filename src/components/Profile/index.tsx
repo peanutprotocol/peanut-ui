@@ -19,6 +19,11 @@ import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
+import { useOtaUpdate } from '@/context/OtaUpdateContext'
+import OtaUpdateModal from './components/OtaUpdateModal'
+import { openStore } from '@/utils/migration.utils'
+import { IOS_APP_STORE_LISTING_LIVE, MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { isIOSNative } from '@/utils/capacitor'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -40,6 +45,14 @@ export const Profile = () => {
     const showCardMenuItem = hasCardAccess || (!residenceRestrictions.card && isEligible !== false)
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
+    const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const storeUpdateOffered = storeUpdateRequired && (!isIOSNative() || IOS_APP_STORE_LISTING_LIVE)
+    // a staged OTA bundle wins over the store hint: it is already on the device
+    const onUpdateTap = () => {
+        if (pendingBundle) setIsUpdateModalOpen(true)
+        else openStore(isIOSNative() ? 'ios' : 'android', MIGRATION_SURFACES.PROFILE_UPDATE)
+    }
 
     const logout = async () => {
         await logoutUser()
@@ -53,7 +66,14 @@ export const Profile = () => {
         <div className="h-full w-full bg-background">
             <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
-                <ProfileHeader name={displayName} username={username} isVerified={isUserSumsubKycApproved} />
+                {/* the copy-username icon next to the name is enough here; the
+                    share pill is the public-profile affordance */}
+                <ProfileHeader
+                    name={displayName}
+                    username={username}
+                    isVerified={isUserSumsubKycApproved}
+                    showShareButton={false}
+                />
                 <div className="space-y-4">
                     {/* IA from #2834: identity/products first, then social +
                         account, then app settings. Payment limits moved inline
@@ -123,6 +143,14 @@ export const Profile = () => {
                             the path and opens the in-app browser in Capacitor */}
                         <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />
                         <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
+                        {(pendingBundle || storeUpdateOffered) && (
+                            <ProfileMenuItem
+                                icon="download"
+                                label={t('menu.updateAvailable')}
+                                onClick={onUpdateTap}
+                                href="/dummy"
+                            />
+                        )}
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
                             icon="bank"
@@ -155,6 +183,7 @@ export const Profile = () => {
                 username={user?.user.username ?? ''}
                 source="profile"
             />
+            <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
         </div>
     )
 }

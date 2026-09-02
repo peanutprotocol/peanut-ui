@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país.",
         "slideToProceed": "Deslizá para continuar",
@@ -68,7 +69,7 @@
             "emptyDescription": "Empezá enviando o solicitando dinero"
         },
         "welcomeUnlock": {
-            "title": "🎉 Ya tenés acceso",
+            "title": "Ya tenés acceso",
             "cta": "Empezá a enviar dinero",
             "youCanNow": "Ahora podés:"
         },
@@ -146,7 +147,8 @@
             "inviteFriends": "Invitá amigos a Peanut",
             "unlockedRegions": "Desbloqueá pagos",
             "help": "Centro de Ayuda",
-            "about": "Acerca de Peanut"
+            "about": "Acerca de Peanut",
+            "updateAvailable": "Actualización disponible"
         },
         "edit": {
             "errors": {
@@ -308,11 +310,41 @@
             "begShareText": "Bro… estoy de rodillas. Peanut es solo por invitación y me quedé afuera. Salvame la vida y mandame tu invitación",
             "activityPrivateNote": "La actividad solo es visible para vos, no es pública."
         },
+        "update": {
+            "title": "Actualización lista",
+            "description": "Reiniciá Peanut para terminar de instalar la versión {version}.",
+            "restartNow": "Reiniciar ahora",
+            "notNow": "Ahora no",
+            "manualRestart": "Cerrá Peanut desde el selector de apps y volvé a abrirla para terminar la actualización.",
+            "applyFailed": "No se pudo aplicar la actualización. Revisá tu conexión y probá de nuevo: Peanut sigue con la versión con la que iniciaste."
+        },
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guardá tu saldo, enviá a cualquier @usuario y mové dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
             "policiesHeading": "Políticas",
-            "version": "Versión {version}"
+            "version": "Versión {version}",
+            "beta": {
+                "heading": "Actualizaciones beta",
+                "description": "Recibí compilaciones del canal {channel} antes de que lleguen a todos. Solo para pruebas internas.",
+                "channelLabel": "Canal de actualizaciones",
+                "defaultChannel": "Predeterminado",
+                "bundleLabel": "Paquete en uso",
+                "deviceLabel": "ID del dispositivo",
+                "deviceCopied": "ID del dispositivo copiado",
+                "staged": "Ya estás en actualizaciones beta. Reiniciá la app para cargar la compilación beta más reciente.",
+                "joined": "Ya estás en actualizaciones beta. Por ahora no hay una compilación beta más reciente.",
+                "joinedWithoutBundle": "Ya estás en actualizaciones beta, pero no se pudo descargar ninguna compilación beta. La app lo intentará de nuevo en el próximo inicio.",
+                "deviceCopyFailed": "No se pudo copiar el ID del dispositivo.",
+                "leftStillBeta": "Saliste de las actualizaciones beta, pero la app sigue ejecutando la compilación beta. Reinstalala desde la tienda para volver a la versión publicada.",
+                "left": "Actualizaciones beta desactivadas. Este dispositivo volvió a la versión publicada.",
+                "leftOverride": "Este dispositivo fue puesto en beta desde el panel de Capgo, así que la app no puede sacarlo. Pedile a un administrador que quite la asignación de canal del dispositivo.",
+                "leftUnconfirmed": "No se pudo contactar a Capgo para confirmar el cambio, así que este dispositivo sigue en la compilación beta. Probá de nuevo cuando tengas conexión.",
+                "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
+                "failed": "No se pudo cambiar el canal de actualizaciones.",
+                "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
+                "notEnabled": "Las actualizaciones beta no están habilitadas para este dispositivo.",
+                "appOnly": "Las actualizaciones beta solo están disponibles en la app de Peanut."
+            }
         }
     },
     "settings": {
