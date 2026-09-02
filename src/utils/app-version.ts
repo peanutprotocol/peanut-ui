@@ -23,3 +23,21 @@ export async function getBinaryInfo(): Promise<BinaryInfo | null> {
         return null
     }
 }
+
+/**
+ * How the app version reads on screen: `<major>.<minor>.<build>`.
+ *
+ * The build number takes the patch position because it is the digit that
+ * actually moves between releases — the marketing version is stamped by hand
+ * from the release workflow's input, while the build is the workflow run
+ * number, so `1.1.1 (34534)` showed a patch digit that had not changed in
+ * months next to the only number identifying the build.
+ *
+ * A binary reporting fewer than two version segments keeps the old
+ * `<version> (<build>)` shape rather than rendering `undefined` into the digit
+ * a support conversation depends on.
+ */
+export function formatBinaryVersion({ appVersion, appBuild }: BinaryInfo): string {
+    const [major, minor] = appVersion.split('.')
+    return major && minor ? `${major}.${minor}.${appBuild}` : `${appVersion} (${appBuild})`
+}
