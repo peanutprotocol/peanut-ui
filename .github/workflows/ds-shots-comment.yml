@@ -200,7 +200,12 @@ jobs:
                       # can name the other — so ambiguity posts nothing and
                       # the job summary stays the visible diff for that rare
                       # configuration.
-                      CANDIDATES=$(gh api "repos/$REPO/commits/$RUN_HEAD_SHA/pulls" \
+                      # --paginate matters: this endpoint lists every PR whose
+                      # branch CONTAINS the commit (a dev-tip commit sits in
+                      # dozens of rebased branches), and the jq filter runs
+                      # after pagination — page one alone can miss the real
+                      # head match.
+                      CANDIDATES=$(gh api --paginate "repos/$REPO/commits/$RUN_HEAD_SHA/pulls?per_page=100" \
                           --jq '.[] | select(.state == "open" and .head.sha == env.RUN_HEAD_SHA and .head.ref == env.RUN_HEAD_BRANCH) | .number')
                       COUNT=$(printf '%s\n' "$CANDIDATES" | grep -c . || true)
                       if [ "$COUNT" -ne 1 ] || ! printf '%s\n' "$CANDIDATES" | grep -qx "$PR"; then
@@ -303,7 +308,10 @@ jobs:
                   set -euo pipefail
                   # env.* inside the jq program, not shell interpolation — a
                   # branch name must never be able to edit the filter.
-                  CANDIDATES=$(gh api "repos/$REPO/commits/$RUN_HEAD_SHA/pulls" \
+                  # --paginate for the same reason as in the bind step: the
+                  # endpoint lists PRs containing the commit, and the head
+                  # match can sit past page one.
+                  CANDIDATES=$(gh api --paginate "repos/$REPO/commits/$RUN_HEAD_SHA/pulls?per_page=100" \
                       --jq '.[] | select(.state == "open" and .head.sha == env.RUN_HEAD_SHA and .head.ref == env.HEAD_BRANCH) | .number')
                   if [ -z "$CANDIDATES" ]; then
                       echo 'No open PR has this branch+commit as its head — superseded or stale run. Nothing to do.'
