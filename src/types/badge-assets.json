@@ -54,5 +54,33 @@
         "TRON": "/badges/tron.svg",
         "VERIFIED": "/badges/verified.svg",
         "WAITLIST_SKIP": "/badges/skip_pass.svg"
+    },
+    "avatars": {
+        "basics": [
+            "apple",
+            "avocado",
+            "cactus",
+            "cloud",
+            "cube",
+            "donut",
+            "drop",
+            "egg",
+            "fish",
+            "flower",
+            "frog",
+            "gem",
+            "ghost",
+            "heart",
+            "leaf",
+            "moon",
+            "mushroom",
+            "planet",
+            "star",
+            "sun"
+        ],
+        "badges": {
+            "BUG_WHISPERER": ["beetle", "shell", "peek"],
+            "OFFRAMP_USER": ["bolt", "spark", "wink"]
+        }
     }
 }
