@@ -73,10 +73,12 @@ const LONG_COPY =
 
 /** checklist rows shared by the A/B variants (mirrors the production `items` prop) */
 const CheckRows = ({ items }: { items: React.ReactNode[] }) => (
-    <div className="flex flex-col gap-1 text-body-xs">
+    // no own type step: inherits the variant's body size (A/B both set Body/S),
+    // so a checklist reads at the same size as every other render of the variant
+    <div className="flex flex-col gap-1">
         {items.map((item, i) => (
             <div key={i} className="flex items-start gap-1.5">
-                <Icon name="check" size={14} className="mt-px shrink-0" />
+                <Icon name="check" size={16} className="mt-0.5 shrink-0" />
                 <div className="min-w-0 flex-1">{item}</div>
             </div>
         ))}
@@ -541,6 +543,8 @@ const MODAL_USAGES = {
     onrampNextStep: {
         label: 'OnrampConfirmationModal:39 — next-step list (drawer)',
         priority: 'helper',
+        // bullet-lists hide the icon (prod fix 9fc4368d5)
+        hideIcon: true,
         body: (
             <ul className="list-inside list-disc text-start">
                 <li>Bank details to send money to</li>
@@ -739,6 +743,8 @@ const USAGE_GROUPS: UsageGroup[] = [
             {
                 label: 'AddMoneyBankDetails:440 — double check list',
                 priority: 'attention',
+                // bullet-lists hide the icon (prod fix 9fc4368d5)
+                hideIcon: true,
                 title: 'Double check in your bank before sending:',
                 body: (
                     <ul className="list-inside list-disc text-start">
@@ -801,6 +807,8 @@ const USAGE_GROUPS: UsageGroup[] = [
             {
                 label: 'LimitsWarningCard:74 — limits warning + action',
                 priority: 'attention',
+                // bullet-lists hide the icon (prod fix 9fc4368d5)
+                hideIcon: true,
                 title: "You're close to your limit.",
                 body: (
                     <div className="flex flex-col gap-2">
