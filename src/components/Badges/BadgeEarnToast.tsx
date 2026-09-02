@@ -85,8 +85,10 @@ export default function BadgeEarnToast() {
             id: toastId,
             type: 'success',
             duration: 6000,
-            className: 'border-action-secondary bg-background-default',
-            hideIcon: true,
+            // the compact notification carries no border of its own — this toast
+            // draws its accent border explicitly. custom content suppresses the
+            // priority icon by construction (ToastStack), no hideIcon needed.
+            className: 'border border-action-secondary bg-background-default',
             content: (
                 <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
                     <BadgeImage

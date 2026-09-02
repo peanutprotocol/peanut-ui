@@ -40,7 +40,10 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
                 priority={TOAST_PRIORITY[type]}
                 onDismiss={onDismiss}
                 className={className}
-                hideIcon={hideIcon}
+                // custom content designs its own leading visual (badge art, clock
+                // pill) — the stock priority icon must never stack in front of it,
+                // whether or not the caller remembered hideIcon
+                hideIcon={hideIcon || content != null}
             >
                 {content ?? message}
             </Notification>
