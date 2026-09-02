@@ -2462,7 +2462,9 @@
                 "name": "Passe livre",
                 "description": "Você pulou a lista de espera. Um amigo te deu a chave e você entrou direto."
             }
-        }
+        },
+        "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}",
+        "toastChooseAvatar": "Escolher avatar"
     },
     "notifications": {
         "setupTitle": "Ativar as notificações?",
@@ -3578,5 +3580,17 @@
             "android": "Atualizar o Android System WebView"
         },
         "continueAnyway": "Continuar mesmo assim"
+    },
+    "avatar": {
+        "title": "Seu avatar",
+        "description": "Escolha um ou jogue o dado entre tudo o que você desbloqueou.",
+        "fromBadges": "Dos seus selos",
+        "basics": "Básicos",
+        "unlocked": "{count} desbloqueados",
+        "noBadgeAvatars": "Ganhe um selo e seus avatares aparecem aqui.",
+        "roll": "Jogar o dado",
+        "useInitial": "Usar minha inicial",
+        "change": "Trocar avatar",
+        "saveFailed": "Não foi possível salvar seu avatar. Tente de novo."
     }
 }

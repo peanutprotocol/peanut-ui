@@ -83,18 +83,11 @@ describe('useHomeFlow', () => {
         expect(mockDisconnect).not.toHaveBeenCalled()
     })
 
-    it('derives avatarName from the showFullName preference', () => {
+    it('passes the picked avatar through and never derives one from the full name', () => {
+        mockUser = userWith({ avatarKey: 'basic.frog', showFullName: true, fullName: 'Kushagra S' })
+        expect(renderHook(() => useHomeFlow()).result.current.avatarKey).toBe('basic.frog')
+
         mockUser = userWith({ showFullName: true, fullName: 'Kushagra S' })
-        expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBe('Kushagra S')
-
-        mockUser = userWith({ showFullName: false, fullName: 'Kushagra S' })
-        expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBe('kush')
-
-        // usernameless: full name still seeds the initials
-        mockUser = { user: { userId: 'u1', username: null, fullName: 'Kushagra S' } }
-        expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBe('Kushagra S')
-
-        mockUser = { user: { userId: 'u1', username: null } }
-        expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBeUndefined()
+        expect(renderHook(() => useHomeFlow()).result.current.avatarKey).toBeNull()
     })
 })

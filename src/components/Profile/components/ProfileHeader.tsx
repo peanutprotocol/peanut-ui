@@ -6,8 +6,9 @@ import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import AvatarWithBadge from '../AvatarWithBadge'
-import DotFaceAvatar from '@/components/Global/DotFaceAvatar'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { VerifiedUserLabel } from '@/components/UserHeader'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
@@ -21,6 +22,8 @@ interface ProfileHeaderProps {
     className?: string
     showShareButton?: boolean
     haveSentMoneyToUser?: boolean
+    /** Self profile only: makes the avatar a button that opens the picker. */
+    onChangeAvatar?: () => void
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -30,8 +33,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     className,
     showShareButton = true,
     haveSentMoneyToUser = false,
+    onChangeAvatar,
 }) => {
     const { user: authenticatedUser } = useAuth()
+    const tAvatar = useTranslations('avatar')
     // The self-profile verified badge means "this person's ID was confirmed" —
     // NOT "this person has an enabled payment rail." It reads identityVerification
     // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
@@ -63,10 +68,26 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return (
         <>
             <div className={twMerge('space-y-2 flex flex-col items-center', className)}>
-                {/* Own profile gets the generated dot face; someone else's
-                    public profile keeps initials (letters identify others). */}
+                {/* Own profile wears the picked avatar (or one username initial)
+                    at Avatar L; someone else's public profile keeps initials
+                    (letters identify others). */}
                 {isSelfProfile ? (
-                    <DotFaceAvatar username={username} size={88} />
+                    onChangeAvatar ? (
+                        <button
+                            type="button"
+                            onClick={onChangeAvatar}
+                            aria-label={tAvatar('change')}
+                            className="rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                        >
+                            <UserAvatar
+                                username={username}
+                                avatarKey={authenticatedUser?.user.avatarKey}
+                                size="medium"
+                            />
+                        </button>
+                    ) : (
+                        <UserAvatar username={username} avatarKey={authenticatedUser?.user.avatarKey} size="medium" />
+                    )
                 ) : (
                     <AvatarWithBadge name={name || username} />
                 )}

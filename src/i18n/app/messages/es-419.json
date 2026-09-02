@@ -2462,7 +2462,9 @@
                 "name": "Pase directo",
                 "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
             }
-        }
+        },
+        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}",
+        "toastChooseAvatar": "Elegir avatar"
     },
     "notifications": {
         "setupTitle": "¿Activar las notificaciones?",
@@ -3578,5 +3580,17 @@
             "android": "Actualizar Android System WebView"
         },
         "continueAnyway": "Continuar de todos modos"
+    },
+    "avatar": {
+        "title": "Tu avatar",
+        "description": "Elige uno o tira el dado entre todo lo que desbloqueaste.",
+        "fromBadges": "De tus insignias",
+        "basics": "Básicos",
+        "unlocked": "{count} desbloqueados",
+        "noBadgeAvatars": "Gana una insignia y sus avatares aparecen aquí.",
+        "roll": "Tirar el dado",
+        "useInitial": "Usar mi inicial",
+        "change": "Cambiar avatar",
+        "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo."
     }
 }
