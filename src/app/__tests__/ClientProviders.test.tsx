@@ -67,6 +67,21 @@ describe('ClientProviders provider order', () => {
         expect(chain[context - 1]).toBe('(dynamic)')
     })
 
+    // notifyAppReady has 15 s from launch before Capgo rolls the running bundle
+    // back. A provider that only mounts once a lazily-loaded chunk resolves can
+    // miss that window, or never mount at all if the chunk fails.
+    it.each(['/home', '/setup', '/'])('mounts the OTA provider outermost on %s', (path) => {
+        const chain = chainFor(path)
+        expect(chain[0]).toBe('OtaUpdateProvider')
+        expect(chain.lastIndexOf('OtaUpdateProvider')).toBe(0)
+        expect(chain.indexOf('PeanutProvider')).toBeGreaterThan(0)
+    })
+
+    it('mounts the OTA provider above the lazily-loaded app providers', () => {
+        const chain = chainFor('/home')
+        expect(chain.indexOf('(dynamic)')).toBeGreaterThan(chain.indexOf('OtaUpdateProvider'))
+    })
+
     it('mounts the marketing intl provider outside ContextProvider on the landing page', () => {
         const chain = chainFor('/')
         const intl = chain.indexOf('MarketingIntlProvider')

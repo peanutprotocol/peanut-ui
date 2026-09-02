@@ -161,19 +161,54 @@ function isNewerBinaryRejection(message: string): boolean {
 // gone, no index.html) re-stages through the normal check and reloads.
 const PENDING_APPLY_KEY = 'capgoPendingApply'
 
-export async function applyStagedBundle(bundleId: string, hooks: { onSetRejected?: () => void } = {}): Promise<void> {
+/**
+ * Whether the page was actually handed over to the plugin. `reloading` is the
+ * only outcome a restart watchdog may act on: everything else means the app
+ * is still running the bundle it started with and nothing is coming.
+ */
+export type OtaApplyOutcome = 'reloading' | 'failed'
+
+export async function applyStagedBundle(
+    bundleId: string,
+    hooks: { onSetRejected?: () => void; onRestaged?: (bundle: BundleInfo) => void } = {}
+): Promise<OtaApplyOutcome> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     writeStoredValue(PENDING_APPLY_KEY, bundleId)
+    const abandon = (reason: string, err: unknown): OtaApplyOutcome => {
+        console.warn(`[capgo] ${reason}:`, err instanceof Error ? err.message : String(err ?? ''))
+        // The marker is the next launch's evidence that an apply was attempted
+        // and lost; an apply that never left the ground would report as a
+        // silent failure at error level on every subsequent start.
+        removeStoredValue(PENDING_APPLY_KEY)
+        return 'failed'
+    }
     try {
         await CapacitorUpdater.set({ id: bundleId })
+        return 'reloading'
     } catch (err) {
         console.warn(
             '[capgo] set() rejected, re-staging before reload:',
             err instanceof Error ? err.message : String(err)
         )
         hooks.onSetRejected?.()
-        await queueUpdateCheck()
-        await CapacitorUpdater.reload()
+        // Only a freshly staged bundle earns a reload. Offline, up-to-date and
+        // store-update-required all leave the device on the bundle it is
+        // already running, so reloading would restart the app for nothing.
+        let outcome: OtaCheckOutcome
+        try {
+            // The re-stage mints a NEW bundle id; the caller has to learn it or a
+            // retry would hand set() the same dead id it just rejected.
+            outcome = await queueUpdateCheck({ onUpdateAvailable: hooks.onRestaged })
+        } catch (checkErr) {
+            return abandon('re-stage threw, apply abandoned', checkErr)
+        }
+        if (outcome !== 'staged') return abandon(`re-stage returned ${outcome}, apply abandoned`, null)
+        try {
+            await CapacitorUpdater.reload()
+        } catch (reloadErr) {
+            return abandon('reload() rejected, apply abandoned', reloadErr)
+        }
+        return 'reloading'
     }
 }
 

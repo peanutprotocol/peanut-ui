@@ -44,8 +44,9 @@ import { TAB_ORDER, TAB_SPRING, type TabId } from './tab-order'
  * Now every tab's left/width is measured up front (and again on resize), so
  * the destination x is a number known BEFORE the spring starts. Nothing is
  * re-measured mid-flight, so the pill travels once and stops on the target.
- * The spring is near-critically damped (bounce 0.05 over the 300ms moderate
- * token) — no overshoot to walk back from.
+ * The travel is over the 300ms moderate token; the pill's spring bounces (0.3,
+ * Kush's ruling) while the shared TAB_SPRING that drives the page slide stays
+ * near-critically damped.
  *
  * The pill is also draggable (drag="x", clamped to the measured tab range):
  * hold and drag it along the bar, release, and it snaps to the nearest tab
@@ -62,11 +63,13 @@ const tabClass =
 // tab / draggable pill underneath
 const iconClass = 'pointer-events-none relative z-10'
 
-const PILL_SPRING = TAB_SPRING
+// The pill overshoots on purpose (Kush, 2026-09-02); TAB_SPRING stays
+// near-critically damped because it also drives the full-page tab slide, where
+// visible overshoot reads as a glitch rather than as bounce.
+const PILL_SPRING = { ...TAB_SPRING, bounce: 0.3 } as const
 
-// 3px ink drop in the border colour; the pill gets a 1px drop at 55% so it
-// reads as raised off the bar without a second full-weight edge
-const HARD_SHADOW = 'shadow-[3px_3px_0_0_var(--color-border-default)]'
+// The pill gets a 1px drop at 55% so it reads as raised off the bar without a
+// second full-weight edge; the bar and QR circle carry the DS shadow-4 token.
 const PILL_SHADOW = 'shadow-[1px_1px_0_0_rgb(22_22_22/0.55)]'
 
 /** A tab's box inside the bar, in the bar's own coordinates. */
@@ -217,11 +220,10 @@ export const BottomNav = () => {
                         e.stopPropagation()
                     }
                 }}
-                // Hard offset shadow (contrast study "Hard offset shadow"): the
-                // DS 3px ink drop in the border colour, carried by the bar AND
-                // the QR circle so the pair reads as one plane. btn-shadow-* is
-                // pure black, so the token is spelled out here.
-                className={`relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page ${HARD_SHADOW}`}
+                // Hard offset shadow (contrast study "Hard offset shadow"),
+                // carried by the bar AND the QR circle so the pair reads as one
+                // plane. shadow-4 is the DS token for it (Kush's ruling).
+                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-4"
             >
                 <Link
                     href="/home"
@@ -313,7 +315,7 @@ export const BottomNav = () => {
                     triggerHaptic()
                     setIsQRScannerOpen(true)
                 }}
-                className={`flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary ${HARD_SHADOW} transition-transform duration-instant active:scale-95 disabled:opacity-40`}
+                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary shadow-4 transition-transform duration-instant active:scale-95 disabled:opacity-40"
             >
                 <Icon name="qr-code" size={24} />
             </button>

@@ -83,11 +83,15 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <NuqsAdapter>
-            <PeanutProvider>
-                {/* OTA init (notifyAppReady) must run on every native launch, so
-                    the provider sits above every route-conditional layer. */}
-                <OtaUpdateProvider>
+        /* OTA init (notifyAppReady) must run on every native launch AND land
+           inside the plugin's 15 s app-ready timeout, or Capgo rolls the active
+           bundle back. So it sits above every lazily-loaded provider, not just
+           above the route-conditional ones: PeanutProvider renders app routes
+           only through the dynamically-imported AppStateProviders chunk, and a
+           chunk that loads slowly or fails would take readiness down with it. */
+        <OtaUpdateProvider>
+            <NuqsAdapter>
+                <PeanutProvider>
                     {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
                         → useSendMoney calls useTranslations, so the intl context has to
                         exist by the time ContextProvider renders. */}
@@ -107,8 +111,8 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                             </FooterVisibilityProvider>
                         </ContextProvider>
                     </IntlProvider>
-                </OtaUpdateProvider>
-            </PeanutProvider>
-        </NuqsAdapter>
+                </PeanutProvider>
+            </NuqsAdapter>
+        </OtaUpdateProvider>
     )
 }

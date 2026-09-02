@@ -200,7 +200,9 @@ function ScanRegionOverlay({
                     className="flex-column z-50 translate-y-[100%] transform items-center text-center"
                     data-testid="qr-scan-region"
                 >
-                    <div className="mt-10 flex flex-wrap justify-center gap-2 [@media(max-height:729px)]:hidden">
+                    {/* 2x2 grid, not a wrapping row: four badges of unequal width
+                        reflowed into a 3+1 that read as a broken row (Kush, 2026-09-02). */}
+                    <div className="mt-6 grid grid-cols-2 gap-2 [@media(max-height:729px)]:hidden">
                         {PAYMENT_METHODS.map((method) => (
                             <PaymentMethodBadge
                                 key={method.name ?? 'evm'}

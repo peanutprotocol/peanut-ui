@@ -110,6 +110,8 @@ export const setupSteps: ISetupStep[] = [
         // The view renders the description itself: the confirm prompt before
         // signing, the account-ready celebration after.
         descriptionInView: true,
-        contentClassName: 'flex flex-col items-center justify-center gap-6',
+        // items-end, like every other signup step — centering this one alone
+        // left its copy off the setup flow's left-aligned column.
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
 ]

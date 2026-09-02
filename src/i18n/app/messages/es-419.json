@@ -523,7 +523,8 @@
             "description": "Reinicia Peanut para terminar de instalar la versión {version}.",
             "restartNow": "Reiniciar ahora",
             "notNow": "Ahora no",
-            "manualRestart": "Cierra Peanut desde el selector de apps y vuelve a abrirla para terminar la actualización."
+            "manualRestart": "Cierra Peanut desde el selector de apps y vuelve a abrirla para terminar la actualización.",
+            "applyFailed": "No se pudo aplicar la actualización. Revisa tu conexión e inténtalo de nuevo: Peanut sigue con la versión con la que iniciaste."
         },
         "about": {
             "title": "Acerca de Peanut",

@@ -3,8 +3,15 @@
 import type { BundleInfo } from '@capgo/capacitor-updater'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
+import type { OtaApplyOutcome } from '@/utils/capgo-updater'
 
-export type OtaApplyState = 'idle' | 'applying' | 'manual-restart'
+/**
+ * `manual-restart` — a reload was issued but the page outlived it (iOS, which
+ * has no programmatic exit), so the user has to close the app themselves.
+ * `failed` — nothing was handed to the plugin at all; the app is still on the
+ * bundle it started with and the offer is retriable.
+ */
+export type OtaApplyState = 'idle' | 'applying' | 'manual-restart' | 'failed'
 
 export interface OtaUpdateContextValue {
     /** downloaded bundle queued by the plugin, waiting for a restart */
@@ -38,6 +45,9 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
     const [storeUpdateRequired, setStoreUpdateRequired] = useState(false)
     const [applyState, setApplyState] = useState<OtaApplyState>('idle')
     const fallbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+    // Read and written synchronously: two taps landing in the same tick both see
+    // `applyState === 'idle'` in their render's closure and would apply twice.
+    const applyingRef = useRef(false)
 
     useEffect(() => {
         if (!isCapacitor()) return
@@ -75,7 +85,10 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
     }, [])
 
     const applyNow = useCallback(async () => {
-        if (!pendingBundle || applyState !== 'idle') return
+        // A failed apply is retriable; 'applying' and 'manual-restart' are not
+        // (one is in flight, the other already handed the page to the plugin).
+        if (!pendingBundle || applyingRef.current || applyState === 'manual-restart') return
+        applyingRef.current = true
         setApplyState('applying')
         const armWatchdog = () => {
             clearTimeout(fallbackTimer.current)
@@ -95,13 +108,25 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         // short — the watchdog is dropped for its duration and re-armed once
         // reload() has been issued.
         armWatchdog()
+        let outcome: OtaApplyOutcome = 'failed'
         try {
             const { applyStagedBundle } = await import('@/utils/capgo-updater')
-            await applyStagedBundle(pendingBundle.id, {
+            outcome = await applyStagedBundle(pendingBundle.id, {
                 onSetRejected: () => clearTimeout(fallbackTimer.current),
+                onRestaged: (bundle) => setPendingBundle(bundle),
             })
         } catch (err) {
             console.warn('[capgo] apply failed:', err)
+        }
+        // Nothing reached the plugin: no restart is coming, so the watchdog must
+        // not fire — it would exit the app on Android, or tell an iOS user to
+        // close and reopen for an update that was never staged — and the modal
+        // has to become actionable again instead of spinning on 'applying'.
+        if (outcome !== 'reloading') {
+            clearTimeout(fallbackTimer.current)
+            applyingRef.current = false
+            setApplyState('failed')
+            return
         }
         armWatchdog()
     }, [pendingBundle, applyState])
