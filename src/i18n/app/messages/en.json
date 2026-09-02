@@ -815,6 +815,7 @@
             "notReady": "The app is still getting ready for passkeys. Wait a moment and try again.",
             "deviceState": "There was a problem with the passkey on this device. Restart the app and try again.",
             "interrupted": "Something interrupted the passkey prompt. Please try again.",
+            "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
             "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",
             "learnMore": "Learn more about what Passkeys are",
             "help": {
@@ -3561,6 +3562,17 @@
         "ready": {
             "title": "ready?",
             "subtitle": "Try the door."
+        }
+    },
+    "unsupportedWebView": {
+        "title": "Update needed to keep going",
+        "body": {
+            "ios": "Peanut needs a newer version of iOS. Update your device in Settings and open the app again.",
+            "android": "Peanut needs a newer Android System WebView. Update it from Google Play and open the app again."
+        },
+        "cta": {
+            "ios": "See how to update iOS",
+            "android": "Update Android System WebView"
         }
     }
 }

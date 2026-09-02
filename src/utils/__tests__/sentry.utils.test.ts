@@ -145,6 +145,23 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(warnSpy).not.toHaveBeenCalled()
     })
 
+    // Same integration, other path: the per-attempt retry notice on a GET
+    // timeout must not become its own Sentry event either.
+    it('retries a GET timeout without a console.warn', async () => {
+        const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        const abort = () => Object.assign(new Error('aborted'), { name: 'AbortError' })
+        global.fetch = jest.fn().mockRejectedValue(abort())
+
+        await expect(fetchWithSentry('https://api.peanut.me/users/me', { method: 'GET' })).rejects.toThrow(
+            'Peanut is taking too long to respond — check your connection and try again.'
+        )
+
+        expect(global.fetch).toHaveBeenCalledTimes(2)
+        expect(warnSpy).not.toHaveBeenCalled()
+        expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('timed out — retrying'))
+        infoSpy.mockRestore()
+    })
+
     it('still reports 400s from endpoints without a skip rule', async () => {
         global.fetch = jest.fn().mockResolvedValue(mockResponse(400, { error: 'bad request' }))
 

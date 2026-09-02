@@ -1,5 +1,5 @@
 import type { ErrorEvent } from '@sentry/nextjs'
-import { beforeSendHandler, shouldIgnoreError } from './sentry.utils'
+import { beforeSendHandler, getEventSearchTexts, isTransientCapgoNoise, shouldIgnoreError } from './sentry.utils'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 
 function eventWith(partial: {
@@ -134,6 +134,31 @@ describe('shouldIgnoreError — Capgo updater noise', () => {
 
     it('does not touch non-Capgo errors that mention a download', () => {
         expect(shouldIgnoreError(eventWith({ type: 'Error', value: 'Download error: statement failed' }))).toBe(false)
+    })
+
+    // Exported for the PostHog mirror wrapper (sentry-init), whose processEvent
+    // hook runs before beforeSend and so cannot rely on shouldIgnoreError.
+    describe('isTransientCapgoNoise', () => {
+        const textsOf = (message: string) => getEventSearchTexts(eventWith({ message }))
+
+        it('is true for a transient updater failure', () => {
+            expect(isTransientCapgoNoise(textsOf('[CapgoUpdater] 🔴 Failed to send stats batch'))).toBe(true)
+            expect(isTransientCapgoNoise(textsOf('[capgo] update check failed: network_error'))).toBe(true)
+        })
+
+        it('is false for the actionable failures shouldIgnoreError keeps', () => {
+            expect(isTransientCapgoNoise(textsOf('[CapgoUpdater] 🔴 Checksum mismatch'))).toBe(false)
+            expect(
+                isTransientCapgoNoise(textsOf('[capgo] update check failed: disable_auto_update_under_native'))
+            ).toBe(false)
+        })
+
+        it('is false for anything not from Capgo', () => {
+            expect(isTransientCapgoNoise(textsOf('Failed to send stats batch'))).toBe(false)
+            expect(isTransientCapgoNoise(getEventSearchTexts(eventWith({ type: 'TypeError', value: 'boom' })))).toBe(
+                false
+            )
+        })
     })
 })
 

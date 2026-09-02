@@ -471,6 +471,7 @@
             "notReady": "La app todavía se está preparando para las passkeys. Esperá un momento e intentalo de nuevo.",
             "deviceState": "Hubo un problema con la passkey en este dispositivo. Reiniciá la app e intentalo de nuevo.",
             "interrupted": "Algo interrumpió la solicitud de la passkey. Intentalo de nuevo.",
+            "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisá tu conexión e intentalo de nuevo.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste vos, tu passkey está lista: solo iniciá sesión.",
             "learnMore": "Aprendé más sobre qué son las passkeys",
             "help": {

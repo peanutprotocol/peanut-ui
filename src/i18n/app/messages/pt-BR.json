@@ -815,6 +815,7 @@
             "notReady": "O app ainda está se preparando para as passkeys. Aguarde um momento e tente de novo.",
             "deviceState": "Houve um problema com a passkey neste dispositivo. Reinicie o app e tente de novo.",
             "interrupted": "Algo interrompeu a solicitação da passkey. Tente de novo.",
+            "serverUnreachable": "Não foi possível acessar os servidores da Peanut. Verifique sua conexão e tente de novo.",
             "usernameTaken": "Este nome de usuário já está registrado — possivelmente de uma tentativa anterior neste dispositivo. Se foi você, sua passkey está pronta: é só fazer login.",
             "learnMore": "Saiba mais sobre o que são as passkeys",
             "help": {
@@ -3561,6 +3562,17 @@
         "ready": {
             "title": "tudo pronto?",
             "subtitle": "Teste a porta."
+        }
+    },
+    "unsupportedWebView": {
+        "title": "Atualize para continuar",
+        "body": {
+            "ios": "O Peanut precisa de uma versão mais recente do iOS. Atualize seu aparelho em Ajustes e abra o app de novo.",
+            "android": "O Peanut precisa de uma versão mais recente do Android System WebView. Atualize pelo Google Play e abra o app de novo."
+        },
+        "cta": {
+            "ios": "Ver como atualizar o iOS",
+            "android": "Atualizar o Android System WebView"
         }
     }
 }

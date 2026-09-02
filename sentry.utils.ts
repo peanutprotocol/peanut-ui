@@ -116,7 +116,7 @@ function isActionableCapgoError(searchTexts: string[]): boolean {
     return isFromCapgo(searchTexts) && searchTexts.some((text) => CAPGO_ACTIONABLE.some((p) => text.includes(p)))
 }
 
-function isTransientCapgoNoise(searchTexts: string[]): boolean {
+export function isTransientCapgoNoise(searchTexts: string[]): boolean {
     return isFromCapgo(searchTexts) && !isActionableCapgoError(searchTexts)
 }
 
@@ -183,6 +183,32 @@ export function isThirdPartyScriptFrame(filename: string): boolean {
 }
 
 /**
+ * The texts every noise predicate matches against, one entry per field.
+ * Matching each field independently — rather than one concatenated string —
+ * keeps a pattern from matching across unrelated fields and suppressing a
+ * legitimate event. Shared with the PostHog mirror wrapper in sentry-init so
+ * both filters read the same event the same way.
+ *
+ * Class names come from every link in the chain. Sentry orders `exception.values`
+ * root-cause-first, so a wrapper carrying a `cause` lands at the END — exactly
+ * where fetchWithSentry's ServiceUnavailableError and useZeroDev's PasskeyError
+ * always sit. Reading only values[0] left `alreadyReported` inert for a month:
+ * PEANUT-UI-SNP kept double-counting PEANUT-UI-QEY.
+ *
+ * Deliberately types only, not messages. Class names are exact, so matching them
+ * chain-wide can only catch our own wrappers. Widening the fuzzy message patterns
+ * the same way would suppress MORE — the failure 5343f1d0 just fixed, where viem's
+ * "Details: Failed to fetch" ate real payment errors via `networkIssues`.
+ */
+export function getEventSearchTexts(event: ErrorEvent): string[] {
+    const message = event.message || ''
+    const exceptionValue = event.exception?.values?.[0]?.value || ''
+    const culprit = (event as any).culprit || ''
+    const exceptionTypes = (event.exception?.values ?? []).map((v) => v.type || '')
+    return [message, exceptionValue, culprit, ...exceptionTypes]
+}
+
+/**
  * Check if error message matches any ignored pattern
  */
 export function shouldIgnoreError(event: ErrorEvent): boolean {
@@ -190,26 +216,7 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     // stay filtered even there — a user backing out of the passkey sheet is not
     // a defect, and those would drown out the real failures.
     const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
-    const message = event.message || ''
-    const exceptionValue = event.exception?.values?.[0]?.value || ''
-    const culprit = (event as any).culprit || ''
-    /*
-     * Class names from every link in the chain. Sentry orders `exception.values`
-     * root-cause-first, so a wrapper carrying a `cause` lands at the END — exactly
-     * where fetchWithSentry's ServiceUnavailableError and useZeroDev's PasskeyError
-     * always sit. Reading only values[0] left `alreadyReported` inert for a month:
-     * PEANUT-UI-SNP kept double-counting PEANUT-UI-QEY.
-     *
-     * Deliberately types only, not messages. Class names are exact, so matching them
-     * chain-wide can only catch our own wrappers. Widening the fuzzy message patterns
-     * the same way would suppress MORE — the failure 5343f1d0 just fixed, where viem's
-     * "Details: Failed to fetch" ate real payment errors via `networkIssues`.
-     */
-    const exceptionTypes = (event.exception?.values ?? []).map((v) => v.type || '')
-
-    // Match each field independently — concatenating them would let a pattern
-    // match across unrelated fields and suppress a legitimate event.
-    const searchTexts = [message, exceptionValue, culprit, ...exceptionTypes]
+    const searchTexts = getEventSearchTexts(event)
 
     /*
      * Rescue actionable OTA failures BEFORE the generic patterns run. The Capgo
