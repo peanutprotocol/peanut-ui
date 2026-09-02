@@ -57,8 +57,6 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
     const runCancel = async () => {
         setPhase('canceling')
         setError(null)
-        // Hoisted so the catch can back a signed-but-unused draft out (TASK-21815).
-        let livePreparationId: string | undefined
         try {
             // An unloaded overview reads as zero spending power below, which
             // would skip the withdrawal and get the cancel rejected by the
@@ -87,15 +85,14 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     throw new Error(t('errors.unexpectedStrategy'))
                 }
                 verifiedWithdrawal = artifact.rainWithdrawal
-                livePreparationId = artifact.rainWithdrawal.preparationId
             }
+            // No draft back-out on a cancelCard throw: execution-ambiguous —
+            // the probe-verified TTL sweep owns cleanup (TASK-21815 review).
             await rainApi.cancelCard(cardId, { verifiedWithdrawal })
-            livePreparationId = undefined // consumed
             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_CONFIRMED)
             setCanceled(true)
             setPhase('feedback')
         } catch (e) {
-            if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
             let message = e instanceof Error ? e.message : t('cancel.failed')
             if (e instanceof InsufficientSpendableError) {
                 message = t('errors.balanceReturnFailed')

@@ -62,8 +62,6 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
     const run = async () => {
         setPhase('loading')
         setError(null)
-        // Hoisted so the catch can back a signed-but-unused draft out (TASK-21815).
-        let livePreparationId: string | undefined
         try {
             if (mode === 'lock') {
                 // An unloaded overview reads as zero spending power below, which
@@ -98,10 +96,11 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                         throw new Error(t('errors.unexpectedStrategy'))
                     }
                     verifiedWithdrawal = artifact.rainWithdrawal
-                    livePreparationId = artifact.rainWithdrawal.preparationId
                 }
+                // No draft back-out on a lockCard throw: the backend may have
+                // consumed the withdrawal before the error surfaced — cleanup
+                // belongs to the probe-verified TTL sweep (TASK-21815 review).
                 await rainApi.lockCard(cardId, verifiedWithdrawal)
-                livePreparationId = undefined // consumed
             } else {
                 await rainApi.activateCard(cardId)
             }
@@ -109,7 +108,6 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             posthog.capture(mode === 'lock' ? ANALYTICS_EVENTS.CARD_LOCKED : ANALYTICS_EVENTS.CARD_UNLOCKED)
             setPhase('success')
         } catch (e) {
-            if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
             // Friendlier copy for the two known sign-time errors. Any other
             // throw (passkey cancelled, network, backend) keeps its message.
             let message = e instanceof Error ? e.message : t(copyKeys.failed)

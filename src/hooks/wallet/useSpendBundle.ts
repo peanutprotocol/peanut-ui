@@ -169,8 +169,13 @@ export const useSpendBundle = () => {
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind })
 
             // Hoisted so the catch can back an abandoned draft out — `prep`
-            // itself is block-scoped inside the try (TASK-21815).
+            // itself is block-scoped inside the try (TASK-21815). Once a
+            // broadcast is ATTEMPTED, a throw is execution-ambiguous (the
+            // response may be lost after money moved) — from that point the
+            // catch must NOT cancel; the backend's TTL sweep (probe-verified)
+            // owns cleanup.
             let livePreparationId: string | undefined
+            let broadcastAttempted = false
             try {
                 // Shared collateral pre-flights (root-validator migration gate +
                 // session-key grant) — ONE ordered sequence for both spend
@@ -213,6 +218,7 @@ export const useSpendBundle = () => {
                         activeClient.account!.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                     )) as Hex
 
+                    broadcastAttempted = true
                     const { txHash } = await rainApi.submitWithdrawal({
                         preparationId: prep.preparationId,
                         amount: prep.amount,
@@ -290,6 +296,7 @@ export const useSpendBundle = () => {
                     posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind })
                     modals?.setIsSecurityVerificationOpen?.(true)
                     let attempt: Awaited<ReturnType<typeof tryMixedEphemeralSpend>>
+                    broadcastAttempted = true
                     try {
                         const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
                         attempt = await tryMixedEphemeralSpend({
@@ -386,6 +393,7 @@ export const useSpendBundle = () => {
                         ...(transferCall ? [transferCall] : []),
                         ...subsequentCalls,
                     ]
+                    broadcastAttempted = true
                     const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr)
 
                     // Stamp the intent so the Rain collateral webhook reconciles to the
@@ -405,11 +413,13 @@ export const useSpendBundle = () => {
                     modals?.setIsSecurityVerificationOpen?.(false)
                 }
             } catch (e) {
-                // Back the abandoned draft out (cancelled passkey prompt,
-                // failed broadcast, …). Fire-and-forget: the backend refuses
-                // while the Rain signature could still execute, and the TTL
-                // sweep is the guaranteed cleanup either way (TASK-21815).
-                if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
+                // Back the abandoned draft out ONLY when the failure provably
+                // precedes any broadcast (cancelled passkey prompt, grant
+                // failure). A post-broadcast throw is execution-ambiguous —
+                // money may have moved with the response lost — so those rely
+                // on the backend's probe-verified TTL sweep instead
+                // (TASK-21815 review). Fire-and-forget either way.
+                if (livePreparationId && !broadcastAttempted) void rainApi.cancelPreparation(livePreparationId)
                 const errorKind =
                     e instanceof SessionKeyGrantRequiredError
                         ? `session-key:${e.cause.kind}`

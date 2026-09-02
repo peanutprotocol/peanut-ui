@@ -51,14 +51,11 @@ export const useReturnExcessCollateral = () => {
             if (artifact.strategy !== 'collateral-only') {
                 throw new Error('Unexpected withdrawal strategy')
             }
-            try {
-                await rainApi.submitWithdrawal(artifact.rainWithdrawal)
-            } catch (e) {
-                // Back the signed-but-unsubmitted draft out (best-effort — the
-                // backend refuses while it could still execute; TASK-21815).
-                void rainApi.cancelPreparation(artifact.rainWithdrawal.preparationId)
-                throw e
-            }
+            // No cancel on a submit throw: the failure is execution-ambiguous
+            // (the withdrawal may have executed with the response lost). The
+            // backend's probe-verified TTL sweep owns abandoned-draft cleanup
+            // (TASK-21815 review).
+            await rainApi.submitWithdrawal(artifact.rainWithdrawal)
 
             // Funds moved collateral → smart wallet; refresh both buckets so the
             // unified balance doesn't transiently double-count or crater.
